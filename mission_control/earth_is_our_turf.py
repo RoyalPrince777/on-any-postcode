@@ -205,6 +205,10 @@ def action(
     here=_node(current,current["player"]["node"])
     if cmd=="navigate":
         travel=str(mode or current["player"]["travel_mode"]).strip().lower()
+        if travel=="car" and not current["vehicle_life"].get("inside_vehicle"):
+            raise ValueError("mtown_vehicle_required_for_car_travel")
+        if current["vehicle_life"].get("inside_vehicle") and travel!="car":
+            raise ValueError("mtown_exit_vehicle_before_noncar_travel")
         plan=route(here["id"],target,travel)
         current["player"]["travel_mode"]=travel
         current["active_route"]=plan
@@ -216,10 +220,19 @@ def action(
         position=current.get("world_position")
         if not isinstance(plan,dict) or not isinstance(position,dict):
             raise ValueError("eiot_active_route_missing")
+        move_distance=distance if distance is not None else 50
+        if plan["mode"]=="car":
+            vid=current["vehicle_life"].get("active_vehicle_id")
+            if not current["vehicle_life"].get("inside_vehicle") or not vid:
+                raise ValueError("mtown_vehicle_required_for_car_travel")
+            vehicle_state=current["interiors"].get("vehicle_state",{}).get(vid)
+            available_energy=100.0 if vehicle_state is None else float(vehicle_state.get("energy",0))
+            if float(move_distance) > available_energy*1200:
+                raise ValueError("mtown_vehicle_energy_insufficient")
         moved=mtown_world_position.advance(
             position,
             plan,
-            distance_m=distance if distance is not None else 50,
+            distance_m=move_distance,
         )
         current["world_position"]=moved
         current["player"]["travel_mode"]=plan["mode"]
@@ -281,6 +294,10 @@ def action(
         current["world_position"]=None
     elif cmd=="move":
         travel=str(mode or current["player"]["travel_mode"]).strip().lower()
+        if travel=="car" and not current["vehicle_life"].get("inside_vehicle"):
+            raise ValueError("mtown_vehicle_required_for_car_travel")
+        if current["vehicle_life"].get("inside_vehicle") and travel!="car":
+            raise ValueError("mtown_exit_vehicle_before_noncar_travel")
         plan=route(here["id"],target,travel)
         if len(plan["steps"])!=1: raise ValueError("eiot_move_requires_direct_link")
         current["player"]["node"]=plan["to"]; current["player"]["travel_mode"]=travel
@@ -296,9 +313,14 @@ def action(
         current["events"].append({"type":"movement","from":here["id"],"to":plan["to"],"mode":travel,"kind":plan["steps"][0]["kind"]})
     elif cmd=="claim-vehicle":
         vid=str(target or "").strip()
-        _,character=mtown_vehicle_life.claim_vehicle(
-            current["vehicle_life"],character=current["character"],vehicle_id=vid,
+        life,character,streets=mtown_vehicle_life.claim_vehicle(
+            current["vehicle_life"],
+            character=current["character"],
+            living_streets=current["living_streets"],
+            vehicle_id=vid,
         )
+        current["vehicle_life"]=life
+        current["living_streets"]=streets
         current["character"]=earth_is_our_turf_character.set_owned_vehicles(
             current["character"],character["owned"]["vehicles"],
         )
@@ -360,12 +382,33 @@ def action(
         current["events"].append({"type":"interior_exited","node":here["id"]})
     elif cmd=="service-vehicle":
         vid=str(target or current["vehicle_life"].get("active_vehicle_id") or "").strip()
+        vehicle=next((v for v in current["living_streets"]["vehicles"] if v["id"]==vid),None)
+        if vehicle is None or vehicle.get("node")!=here["id"]:
+            raise ValueError("mtown_vehicle_not_here")
+        if vid not in current["character"]["owned"]["vehicles"]:
+            raise ValueError("mtown_vehicle_not_owned")
+        if here["id"]!="lower-mitcham":
+            raise ValueError("mtown_vehicle_service_location_required")
         current["interiors"]=mtown_interiors_persistence.service_vehicle(
             current["interiors"],vehicle_id=vid,
         )
         current["events"].append({"type":"vehicle_serviced","vehicle_id":vid})
     elif cmd=="restore-vehicle-energy":
         vid=str(target or current["vehicle_life"].get("active_vehicle_id") or "").strip()
+        vehicle=next((v for v in current["living_streets"]["vehicles"] if v["id"]==vid),None)
+        if vehicle is None or vehicle.get("node")!=here["id"]:
+            raise ValueError("mtown_vehicle_not_here")
+        if vid not in current["character"]["owned"]["vehicles"]:
+            raise ValueError("mtown_vehicle_not_owned")
+        vehicle_state=current["interiors"].get("vehicle_state",{}).get(vid)
+        if vehicle_state is None:
+            current["interiors"]=mtown_interiors_persistence.ensure_vehicle(
+                current["interiors"],vehicle=vehicle,
+            )
+            vehicle_state=current["interiors"]["vehicle_state"][vid]
+        allowed={"lower-mitcham"} if vehicle_state["energy_type"]=="fuel" else {"eastfields","lower-mitcham"}
+        if here["id"] not in allowed:
+            raise ValueError("mtown_vehicle_energy_location_required")
         current["interiors"]=mtown_interiors_persistence.refuel_vehicle(
             current["interiors"],vehicle_id=vid,
         )
