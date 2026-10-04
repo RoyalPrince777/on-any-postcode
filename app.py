@@ -23,8 +23,11 @@ from mission_control import (
     a7_certification,
     approval_service,
     arena_agents,
+    arena_global,
     arena_intelligence,
+    arena_profile_store,
     arena_rooms,
+    arena_tournament,
     authority,
     carnival_intelligence,
     certification,
@@ -1963,6 +1966,10 @@ def my_card_page():
 
     my_card = None
     contacts = []
+    arena_record = None
+    arena_rank = None
+    arena_history = []
+    arena_record_available = False
     if user:
         identity_id = str(user["id"])
         my_card = {
@@ -2012,6 +2019,17 @@ def my_card_page():
                 link_relationships.LinkRelationshipsUnavailable,
             ):
                 contacts = []
+
+        try:
+            arena_record = arena_profile_store.profile(identity_id)
+            arena_rank = arena_profile_store.ranking_position(identity_id)
+            arena_history = arena_profile_store.match_history(identity_id, limit=10)
+            arena_record_available = True
+        except arena_profile_store.ArenaStoreUnavailable:
+            arena_record = None
+            arena_rank = None
+            arena_history = []
+            arena_record_available = False
     else:
         public_card = session.get(PUBLIC_MY_CARD_SESSION_KEY)
         if isinstance(public_card, dict):
@@ -2047,7 +2065,53 @@ def my_card_page():
             theme=theme,
             avatar=avatar,
             my_emojis=emojis,
+            arena_record=arena_record,
+            arena_rank=arena_rank,
+            arena_history=arena_history,
+            arena_record_available=arena_record_available,
             oap_csrf_token=web_security.csrf_token(),
+        )
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.get("/arena/competition")
+@web_security.login_required()
+def arena_competition_center():
+    """Authenticated, read-only Arena competition projection."""
+
+    identity_id = web_security.authenticated_identity()
+    profile = None
+    rank = None
+    history = []
+    rankings = []
+    store_available = False
+    try:
+        profile = arena_profile_store.profile(identity_id)
+        rank = arena_profile_store.ranking_position(identity_id)
+        history = arena_profile_store.match_history(identity_id, limit=25)
+        rankings = arena_profile_store.ranking(limit=25)
+        store_available = True
+    except arena_profile_store.ArenaStoreUnavailable:
+        pass
+
+    response = make_response(
+        render_template(
+            "arena_competition.html",
+            profile=profile,
+            rank=rank,
+            history=history,
+            rankings=rankings,
+            store_available=store_available,
+            league_status=arena_global.status(),
+            tournament_status={
+                "teams": True,
+                "four_team_knockout": True,
+                "receipt_backed_results": True,
+                "payments": False,
+                "prizes": False,
+            },
         )
     )
     response.headers["Cache-Control"] = "no-store"
