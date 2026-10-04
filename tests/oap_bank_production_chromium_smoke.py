@@ -36,7 +36,7 @@ def main() -> None:
         response = page.goto(BANK_URL, wait_until="domcontentloaded")
         assert response is not None and response.status == 200
 
-        expect(page.get_by_text("OAP Bank", exact=True).first).to_be_visible()
+        expect(page.get_by_text("👑 OAP BANK", exact=True).first).to_be_visible()
         expect(page.locator('[aria-label="OAP Bank navigation"]')).to_be_visible()
         expect(page.get_by_text("Bank Home", exact=True)).to_be_visible()
 
