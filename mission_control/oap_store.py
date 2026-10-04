@@ -190,7 +190,7 @@ PUBLIC_STORE_APPS = (
     _catalogue_placeholder(app_id="oap.link", name="The Link", open_url="/the-link", description="People, opportunities and the bridge into private Link Up.", category="Communication"),
     _catalogue_placeholder(app_id="oap.arena", name="OAP Arena", open_url="/arena", description="First-party games, challenges and Global Arena progression.", category="Games"),
     _catalogue_placeholder(app_id="oap.library", name="OAP Library", open_url="/library", description="One World. One Library. Unlimited Learning.", category="Learning"),
-    _catalogue_placeholder(app_id="oap.place", name="On Any Place", open_url="/on-any-place", description="Maps, place search, routes, weather and movement intelligence.", category="Places"),
+    _catalogue_placeholder(app_id="oap.place", name="On Any Postcode Maps", open_url="/oap-map", description="Maps, place search, routes, weather and movement intelligence.", category="Places"),
     _catalogue_placeholder(app_id="oap.movement", name="Movement", open_url="/movement", description="Travel, movement, route context and delivery awareness.", category="Movement"),
     _catalogue_placeholder(app_id="oap.booking", name="OAP Direct", open_url="/booking", description="First-party supplier and booking journey.", category="Travel"),
 )
