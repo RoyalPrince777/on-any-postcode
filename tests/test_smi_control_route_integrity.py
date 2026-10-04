@@ -11,6 +11,7 @@ FINAL = ROOT / "mission_control" / "static" / "smi_chat_final.js"
 CANONICAL = ROOT / "mission_control" / "static" / "smi_canonical_controller.js"
 INTERACTION = ROOT / "mission_control" / "static" / "smi_interaction_layer.js"
 COMMAND = ROOT / "mission_control" / "static" / "smi_command_centre.js"
+NOISE = ROOT / "mission_control" / "static" / "smi_noise_strip.js"
 
 DIRECT_CONTROL_IDS = {
     "refresh-history",
@@ -40,7 +41,7 @@ def test_every_direct_smi_button_has_runtime_owner():
     base = BASE.read_text(encoding="utf-8")
     scripts = "\n".join(
         path.read_text(encoding="utf-8")
-        for path in (FINAL, CANONICAL, INTERACTION, COMMAND)
+        for path in (FINAL, CANONICAL, INTERACTION, COMMAND, NOISE)
     )
     inline = base.split("<script>", 1)[1] if "<script>" in base else ""
 
