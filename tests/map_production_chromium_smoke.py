@@ -94,7 +94,7 @@ with sync_playwright() as p:
         assert matches and all(status == 200 for status in matches), (asset, matches)
 
     road_count = page.locator("#road-layer polyline").count()
-    assert road_count > 0, "no_live_road_polylines"
+    assert road_count >= 25, ("insufficient_live_road_context", road_count)
     assert boot.is_hidden(), "map_boot_state_did_not_clear"
     assert not page_errors, ("browser_page_errors", page_errors)
     road_request_failures = [
