@@ -253,7 +253,15 @@ def reconcile_event_lineage(events: object) -> list[dict[str, Any]]:
 
 
 def contradiction_registry(events: object) -> list[dict[str, Any]]:
-    reconciled = reconcile_event_lineage(events)
+    if not isinstance(events, list):
+        raise TypeError("transport_events_invalid")
+    if all(
+        isinstance(event, dict) and event.get("lineage_state") in EVENT_LINEAGE_STATES
+        for event in events
+    ):
+        reconciled = [dict(event) for event in events]
+    else:
+        reconciled = reconcile_event_lineage(events)
     active = [event for event in reconciled if event.get("lineage_state") == "ACTIVE"]
     contradictions = []
     for index, left in enumerate(active):
