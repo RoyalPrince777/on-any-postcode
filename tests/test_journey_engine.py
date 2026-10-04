@@ -98,3 +98,152 @@ def test_unsupported_or_legacy_public_modes_fail_closed(mode):
             destination="B",
             observation=observation,
         )
+
+
+def _sample_journey():
+    walk_obs = journey_engine.transport_observation(
+        truth_state="OBSERVED",
+        source="OAP route engine",
+        observed_at="2026-10-04T05:00:00+01:00",
+        freshness="fresh",
+        confidence=95,
+    )
+    rail_obs = journey_engine.transport_observation(
+        truth_state="PREDICTED",
+        source="operator feed",
+        observed_at="2026-10-04T05:01:00+01:00",
+        freshness="fresh",
+        confidence=89,
+    )
+    return journey_engine.compose_journey(
+        origin="A",
+        destination="C",
+        legs=[
+            journey_engine.journey_leg(
+                mode="walk", origin="A", destination="B",
+                observation=walk_obs, duration_minutes=5,
+            ),
+            journey_engine.journey_leg(
+                mode="rail", origin="B", destination="C",
+                observation=rail_obs, duration_minutes=22,
+            ),
+        ],
+    )
+
+
+def test_observed_fresh_disruption_propagates_only_to_matching_modes():
+    journey = _sample_journey()
+    event = journey_engine.disruption_event(
+        event_type="line suspended",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator incident feed",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=97,
+        ),
+        severity=90,
+        evidence_ids=["ev-rail-001"],
+    )
+    assessment = journey_engine.assess_disruptions(journey=journey, events=[event])
+    assert assessment["impact_state"] == "IMPACT_CONFIRMED"
+    assert assessment["affected_leg_ids"] == [journey["legs"][1]["leg_id"]]
+    assert assessment["evidence_ids"] == ["ev-rail-001"]
+    assert assessment["execution_authorised"] is False
+
+
+def test_stale_disruption_degrades_to_unknown_not_confirmed():
+    journey = _sample_journey()
+    event = journey_engine.disruption_event(
+        event_type="possible suspension",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator incident feed",
+            observed_at="2026-10-04T03:00:00+01:00",
+            freshness="stale",
+            confidence=99,
+        ),
+        severity=80,
+    )
+    assessment = journey_engine.assess_disruptions(journey=journey, events=[event])
+    assert assessment["impact_state"] == "UNKNOWN"
+
+
+def test_recovery_plan_uses_supplied_alternative_without_auto_execution():
+    journey = _sample_journey()
+    event = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator incident feed",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=96,
+        ),
+        severity=95,
+    )
+    assessment = journey_engine.assess_disruptions(journey=journey, events=[event])
+    alternative = journey_engine.compose_journey(
+        origin="A",
+        destination="C",
+        legs=[
+            journey_engine.journey_leg(
+                mode="bus",
+                origin="A",
+                destination="C",
+                observation=journey_engine.transport_observation(
+                    truth_state="PREDICTED",
+                    source="operator feed",
+                    observed_at="2026-10-04T05:03:00+01:00",
+                    freshness="fresh",
+                    confidence=84,
+                ),
+                duration_minutes=34,
+            )
+        ],
+    )
+    recovery = journey_engine.recovery_plan(
+        journey=journey,
+        assessment=assessment,
+        alternatives=[alternative],
+    )
+    assert recovery["recovery_state"] == "ALTERNATIVE_AVAILABLE"
+    assert recovery["alternative_journey_ids"] == [alternative["journey_id"]]
+    assert recovery["automatic_execution"] is False
+    assert recovery["payment_action_authorised"] is False
+
+
+def test_command_center_projection_preserves_evidence_and_authority_boundary():
+    journey = _sample_journey()
+    event = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="PREDICTED",
+            source="operator feed",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=82,
+        ),
+        severity=70,
+        evidence_ids=["ev-rail-002"],
+    )
+    assessment = journey_engine.assess_disruptions(journey=journey, events=[event])
+    recovery = journey_engine.recovery_plan(
+        journey=journey,
+        assessment=assessment,
+    )
+    state = journey_engine.command_center_state(
+        journey=journey,
+        assessment=assessment,
+        recovery=recovery,
+    )
+    assert state["impact_state"] == "PREDICTED_IMPACT"
+    assert state["recovery_state"] == "REPLAN_REQUIRED"
+    assert state["evidence_ids"] == ["ev-rail-002"]
+    assert "alternatives" in state["actions"]
+    assert state["execution_authorised"] is False
+    assert state["payment_authorised"] is False
