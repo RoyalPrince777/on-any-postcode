@@ -14,6 +14,8 @@ def test_arena_hub_surfaces_my_card_and_all_proven_room_modes(anonymous_client):
         "/arena/chess/room",
         "/arena/ludo/room",
         "/arena/oware/room",
+        "/arena/iq/room",
+        "/arena/route-empire/room",
     ):
         assert f'href="{room_path}"' in page
     assert "Create / Join Chess Room" in page
@@ -44,7 +46,7 @@ def test_arena_truth_copy_distinguishes_challenge_boundary_from_wider_foundation
 
     assert response.status_code == 200
     assert "Challenge Engine remains session-scoped and non-ranked" in page
-    assert "multiplayer rooms are exposed for Connect 4, Dot, Chess, Ludo and Oware" in page
+    assert "multiplayer rooms are exposed for all seven current games" in page
     assert "durable player-profile and ranking foundations exist behind explicit migration" in page
     assert "Multiplayer, durable profiles, rankings, payments, prizes" not in page
 
@@ -53,6 +55,6 @@ def test_arena_product_registry_no_longer_claims_all_multiplayer_locked():
     from mission_control import products
 
     arena = next(item for item in products.SPOT_CAPABILITIES if item["id"] == "arena")
-    assert "Connect 4, Dot, Chess, Ludo and Oware room multiplayer exposed" in arena["status"]
-    assert "remaining iq arena and route empire room exposure" in arena["blocked_by"].lower()
+    assert "all seven current game room multiplayer surfaces exposed" in arena["status"]
+    assert "full my card competition projection" in arena["blocked_by"].lower()
     assert "Durable profiles, multiplayer, rankings" not in arena["blocked_by"]
