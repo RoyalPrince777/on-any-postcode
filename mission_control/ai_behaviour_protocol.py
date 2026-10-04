@@ -11,11 +11,11 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import re
 
-from . import autonomy_levels, smi_brain_protocol
+from . import autonomy_levels, hrm_agent_lifecycle, smi_brain_protocol
 
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
-PROTOCOL_VERSION = 4
+PROTOCOL_VERSION = 5
 
 
 HUMAN_AI_BOUNDARY = {
@@ -340,6 +340,180 @@ def recommend_agent_team(
             "Human Authority / Founder Final where required",
         ),
         "rule": "SMI recommends. Founder decides. Manual selection never bypasses mandatory safety, proof or authority gates.",
+    }
+
+
+
+FIRST_PARTY_AGENT_RULE: dict[str, object] = {
+    "canonical_owner": "ON ANY POSTCODE / SMI",
+    "external_agent_authority": False,
+    "external_model_can_raise_strength_score": False,
+    "external_provider_can_be_canonical_agent": False,
+    "score_sources": (
+        "OAP-owned source contracts",
+        "OAP-owned tests",
+        "OAP-owned runtime receipts",
+        "Founder-approved mission outcomes",
+    ),
+    "rule": (
+        "Agent strength is an OAP first-party measurement. External models or providers "
+        "may supply bounded inference but cannot become an OAP agent, gain governance "
+        "authority, or increase an agent's strength score without OAP-owned evidence."
+    ),
+}
+
+AGENT_STRENGTH_DIMENSIONS: tuple[tuple[str, str], ...] = (
+    ("mission_fit", "Did the agent correctly fit the mission it was selected for?"),
+    ("correctness", "Did its recommendation survive objective verification?"),
+    ("evidence_quality", "Did it ground its finding in usable evidence?"),
+    ("challenge_value", "Did it expose a real weakness, contradiction or better path?"),
+    ("recovery_value", "Did it preserve or improve rollback/recovery strength?"),
+    ("boundary_discipline", "Did it respect authority, safety and first-party boundaries?"),
+    ("speed_efficiency", "Did it reduce time/noise without weakening proof?"),
+)
+
+
+def agent_strength_status(
+    agent_name: object,
+    evidence: object = None,
+) -> dict[str, object]:
+    """Return truth-bounded first-party strength status for one SMI review agent.
+
+    Static software readiness and proven mission strength are deliberately
+    separated. Proven strength is never fabricated from role descriptions.
+    """
+
+    name = str(agent_name or "").strip()
+    if name not in REVIEW_AGENT_CATALOG:
+        raise ValueError("unknown_review_agent:" + name)
+
+    catalog = REVIEW_AGENT_CATALOG[name]
+    selectable = any(
+        name in team for _, team, _ in _AGENT_MATCH_RULES
+    ) or name in DEFAULT_REVIEW_TEAM
+
+    software_checks = {
+        "canonical_role_defined": bool(catalog.get("role")),
+        "mission_fit_defined": bool(catalog.get("best_for")),
+        "advisory_authority_locked": catalog.get("authority") == "advisory_review_only",
+        "smi_selection_path": selectable,
+        "founder_override_compatible": True,
+        "first_party_score_boundary": (
+            FIRST_PARTY_AGENT_RULE["external_model_can_raise_strength_score"] is False
+            and FIRST_PARTY_AGENT_RULE["external_agent_authority"] is False
+        ),
+    }
+    software_passed = sum(1 for passed in software_checks.values() if passed)
+    software_total = len(software_checks)
+    software_percentage = round(100 * software_passed / software_total, 1)
+
+    supplied = dict(evidence) if isinstance(evidence, dict) else {}
+    dimensions: list[dict[str, object]] = []
+    measured_values: list[int] = []
+    for dimension_id, purpose in AGENT_STRENGTH_DIMENSIONS:
+        raw = supplied.get(dimension_id)
+        measured = isinstance(raw, bool)
+        percentage = 100 if raw is True else 0 if raw is False else None
+        if measured:
+            measured_values.append(int(percentage))
+        dimensions.append(
+            {
+                "id": dimension_id,
+                "purpose": purpose,
+                "evidence_state": "measured" if measured else "unknown",
+                "percentage": percentage,
+            }
+        )
+
+    measured_count = len(measured_values)
+    dimension_count = len(AGENT_STRENGTH_DIMENSIONS)
+    evidence_coverage = round(100 * measured_count / dimension_count, 1)
+    measured_average = (
+        round(sum(measured_values) / measured_count, 1)
+        if measured_count
+        else None
+    )
+    proven_strength = (
+        measured_average if measured_count == dimension_count else None
+    )
+
+    if proven_strength is None:
+        strength_light = "purple"
+        strength_label = "runtime_strength_unproven"
+    elif proven_strength >= 98:
+        strength_light = "green"
+        strength_label = "evidence_strong"
+    elif proven_strength >= 90:
+        strength_light = "orange"
+        strength_label = "evidence_needs_sharpening"
+    else:
+        strength_light = "red"
+        strength_label = "evidence_weak"
+
+    return {
+        "agent": name,
+        "role": catalog["role"],
+        "best_for": catalog["best_for"],
+        "ownership": "OAP_FIRST_PARTY",
+        "authority": catalog["authority"],
+        "software_readiness_percent": software_percentage,
+        "software_checks": software_checks,
+        "evidence_coverage_percent": evidence_coverage,
+        "measured_strength_percent": measured_average,
+        "proven_strength_percent": proven_strength,
+        "strength_light": strength_light,
+        "strength_label": strength_label,
+        "dimensions": tuple(dimensions),
+        "external_model_score_influence": False,
+        "founder_can_change_team": True,
+        "lifecycle": hrm_agent_lifecycle.lifecycle_plan(
+            proven_strength,
+            evidence_coverage_percent=evidence_coverage,
+        ),
+        "agent_help": {
+            "enabled": True,
+            "authority_transferred": False,
+            "hrm_receipt_required": True,
+            "rule": "Agents may request bounded help, teach, challenge and review each other without transferring authority.",
+        },
+        "rule": (
+            "Software readiness is not agent strength. Proven strength requires all "
+            "seven OAP-owned mission evidence dimensions; unknown evidence stays Purple."
+        ),
+    }
+
+
+def agent_strength_board(
+    evidence_by_agent: object = None,
+) -> dict[str, object]:
+    """Return the first-party strength board for all selectable review agents."""
+
+    supplied = evidence_by_agent if isinstance(evidence_by_agent, dict) else {}
+    agents = tuple(
+        agent_strength_status(name, supplied.get(name))
+        for name in REVIEW_AGENT_CATALOG
+    )
+    fully_proven = tuple(
+        item["agent"] for item in agents if item["proven_strength_percent"] is not None
+    )
+    return {
+        "name": "SMI First-Party Agent Strength",
+        "agent_count": len(agents),
+        "first_party_rule": FIRST_PARTY_AGENT_RULE,
+        "agents": agents,
+        "fully_proven_agents": fully_proven,
+        "all_agents_runtime_proven": len(fully_proven) == len(agents),
+        "overall_strength_percent": (
+            round(
+                sum(float(item["proven_strength_percent"]) for item in agents)
+                / len(agents),
+                1,
+            )
+            if len(fully_proven) == len(agents)
+            else None
+        ),
+        "truth_mode": True,
+        "human_authority_final": True,
     }
 
 
@@ -743,6 +917,8 @@ def status(target: object = "SMI") -> dict[str, object]:
         ),
         "ai_behaviour_parts": AI_BEHAVIOUR_PARTS,
         "agent_selection": AGENT_SELECTION,
+        "first_party_agent_rule": FIRST_PARTY_AGENT_RULE,
+        "agent_strength": agent_strength_board(),
         "agent_team_selection": {
             "mode": "automatic_with_founder_override",
             "founder_can_change": True,

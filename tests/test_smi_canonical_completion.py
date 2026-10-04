@@ -294,3 +294,67 @@ def test_behaviour_status_exposes_auto_plus_founder_override_contract():
     assert "Agent Smith" in selection["catalog"]
     assert "Shere Khan" in selection["catalog"]
     assert "Bagheera" in selection["catalog"]
+
+
+def test_agent_strength_board_is_first_party_and_does_not_fake_runtime_strength():
+    board = ai_behaviour_protocol.agent_strength_board()
+
+    assert board["truth_mode"] is True
+    assert board["human_authority_final"] is True
+    assert board["first_party_rule"]["external_agent_authority"] is False
+    assert board["first_party_rule"]["external_model_can_raise_strength_score"] is False
+    assert board["overall_strength_percent"] is None
+    assert board["all_agents_runtime_proven"] is False
+
+    agents = {item["agent"]: item for item in board["agents"]}
+    for name in ("Twinz", "Agent Smith", "Shere Khan", "Bagheera"):
+        assert name in agents
+        assert agents[name]["ownership"] == "OAP_FIRST_PARTY"
+        assert agents[name]["software_readiness_percent"] == 100.0
+        assert agents[name]["proven_strength_percent"] is None
+        assert agents[name]["strength_light"] == "purple"
+
+
+def test_agent_strength_becomes_proven_only_with_all_seven_oap_evidence_dimensions():
+    evidence = {
+        "mission_fit": True,
+        "correctness": True,
+        "evidence_quality": True,
+        "challenge_value": True,
+        "recovery_value": True,
+        "boundary_discipline": True,
+        "speed_efficiency": True,
+    }
+    status = ai_behaviour_protocol.agent_strength_status("Shere Khan", evidence)
+
+    assert status["software_readiness_percent"] == 100.0
+    assert status["evidence_coverage_percent"] == 100.0
+    assert status["measured_strength_percent"] == 100.0
+    assert status["proven_strength_percent"] == 100.0
+    assert status["strength_light"] == "green"
+    assert status["external_model_score_influence"] is False
+
+
+def test_agent_strength_partial_evidence_stays_unproven():
+    status = ai_behaviour_protocol.agent_strength_status(
+        "Bagheera",
+        {
+            "mission_fit": True,
+            "recovery_value": True,
+            "boundary_discipline": True,
+        },
+    )
+
+    assert status["evidence_coverage_percent"] < 100
+    assert status["measured_strength_percent"] == 100.0
+    assert status["proven_strength_percent"] is None
+    assert status["strength_light"] == "purple"
+
+
+def test_unknown_agent_strength_fails_closed():
+    try:
+        ai_behaviour_protocol.agent_strength_status("Not An OAP Agent")
+    except ValueError as exc:
+        assert str(exc) == "unknown_review_agent:Not An OAP Agent"
+    else:
+        raise AssertionError("unknown review agent must fail closed")

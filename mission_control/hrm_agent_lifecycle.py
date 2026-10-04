@@ -76,6 +76,156 @@ class LifecycleDirection(str, Enum):
     TERMINATE_CANDIDATE = "TERMINATE_CANDIDATE"
 
 
+
+class AgentRank(str, Enum):
+    TRAINEE = "TRAINEE"
+    SPECIALIST = "SPECIALIST"
+    SENIOR = "SENIOR"
+    ELITE = "ELITE"
+    CAPTAIN = "CAPTAIN"
+
+
+RANK_ORDER: tuple[AgentRank, ...] = (
+    AgentRank.TRAINEE,
+    AgentRank.SPECIALIST,
+    AgentRank.SENIOR,
+    AgentRank.ELITE,
+    AgentRank.CAPTAIN,
+)
+
+RANK_MINIMUM_STRENGTH: dict[AgentRank, float] = {
+    AgentRank.TRAINEE: 0.0,
+    AgentRank.SPECIALIST: 68.0,
+    AgentRank.SENIOR: 78.0,
+    AgentRank.ELITE: 88.0,
+    AgentRank.CAPTAIN: 95.0,
+}
+
+TRAINING_25_8: dict[str, object] = {
+    "name": "25-8 Training",
+    "mode": "continuous_event_driven_learning",
+    "literal_time_claim": False,
+    "meaning": (
+        "OAP shorthand for always-ready bounded learning. Training runs from real "
+        "mission receipts, failures, corrections, simulations and helper reviews; "
+        "it does not claim a literal 25-hour day or 8-day week."
+    ),
+    "production_execution_granted": False,
+    "self_promotion_allowed": False,
+    "self_termination_allowed": False,
+    "first_party_only": True,
+}
+
+
+def rank_for_strength(score: float) -> AgentRank:
+    """Map proven strength to a rank without granting authority."""
+    clean = max(0.0, min(100.0, float(score)))
+    if clean >= RANK_MINIMUM_STRENGTH[AgentRank.CAPTAIN]:
+        return AgentRank.CAPTAIN
+    if clean >= RANK_MINIMUM_STRENGTH[AgentRank.ELITE]:
+        return AgentRank.ELITE
+    if clean >= RANK_MINIMUM_STRENGTH[AgentRank.SENIOR]:
+        return AgentRank.SENIOR
+    if clean >= RANK_MINIMUM_STRENGTH[AgentRank.SPECIALIST]:
+        return AgentRank.SPECIALIST
+    return AgentRank.TRAINEE
+
+
+def lifecycle_plan(
+    score: float | None,
+    *,
+    evidence_coverage_percent: float = 0.0,
+    current_rank: AgentRank | str = AgentRank.TRAINEE,
+    risk: str = "low",
+    material_failures: int = 0,
+    helper_available: bool = True,
+    termination_requested: bool = False,
+) -> dict[str, object]:
+    """Recommend rank/lifecycle movement from proven first-party evidence only."""
+
+    try:
+        rank = current_rank if isinstance(current_rank, AgentRank) else AgentRank(str(current_rank))
+    except ValueError as exc:
+        raise ValueError("invalid_agent_rank") from exc
+
+    coverage = max(0.0, min(100.0, float(evidence_coverage_percent)))
+    failures = max(0, int(material_failures))
+    risk_level = str(risk).strip().lower()
+
+    if score is None or coverage < 100.0:
+        return {
+            "current_rank": rank.value,
+            "recommended_rank": rank.value,
+            "direction": LifecycleDirection.LEARN.value,
+            "promotion_candidate": False,
+            "downgrade_candidate": False,
+            "suspension_candidate": False,
+            "termination_candidate": False,
+            "helper_review_recommended": bool(helper_available),
+            "training": TRAINING_25_8,
+            "reason": "full_first_party_strength_evidence_required",
+            "human_authority_required": False,
+            "automatic_rank_change_allowed": False,
+        }
+
+    clean_score = max(0.0, min(100.0, float(score)))
+    target = rank_for_strength(clean_score)
+    rank_index = RANK_ORDER.index(rank)
+    target_index = RANK_ORDER.index(target)
+    severe_risk = risk_level in {"high", "critical", "severe"}
+
+    if termination_requested:
+        direction = LifecycleDirection.TERMINATE_CANDIDATE
+        recommended = rank
+    elif severe_risk or failures >= 3:
+        direction = LifecycleDirection.SUSPEND
+        recommended = rank
+    elif target_index > rank_index:
+        direction = LifecycleDirection.PROMOTE
+        recommended = RANK_ORDER[rank_index + 1]
+    elif target_index < rank_index:
+        direction = LifecycleDirection.DOWNGRADE
+        recommended = RANK_ORDER[rank_index - 1]
+    elif failures > 0:
+        direction = LifecycleDirection.RECOVER
+        recommended = rank
+    elif clean_score >= 88:
+        direction = LifecycleDirection.UPGRADE
+        recommended = rank
+    else:
+        direction = LifecycleDirection.MAINTAIN
+        recommended = rank
+
+    authority_change = direction in {
+        LifecycleDirection.PROMOTE,
+        LifecycleDirection.DOWNGRADE,
+        LifecycleDirection.TERMINATE_CANDIDATE,
+    }
+    return {
+        "current_rank": rank.value,
+        "recommended_rank": recommended.value,
+        "direction": direction.value,
+        "promotion_candidate": direction is LifecycleDirection.PROMOTE,
+        "downgrade_candidate": direction is LifecycleDirection.DOWNGRADE,
+        "suspension_candidate": direction is LifecycleDirection.SUSPEND,
+        "termination_candidate": direction is LifecycleDirection.TERMINATE_CANDIDATE,
+        "helper_review_recommended": bool(
+            helper_available
+            and direction
+            in {
+                LifecycleDirection.LEARN,
+                LifecycleDirection.RECOVER,
+                LifecycleDirection.DOWNGRADE,
+                LifecycleDirection.SUSPEND,
+            }
+        ),
+        "training": TRAINING_25_8,
+        "reason": "first_party_strength_and_risk_review",
+        "human_authority_required": authority_change,
+        "automatic_rank_change_allowed": False,
+    }
+
+
 @dataclass(frozen=True)
 class AgentAssessment:
     score: float

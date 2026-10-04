@@ -5,11 +5,15 @@ from mission_control.hrm_agent_lifecycle import (
     MIND_7,
     SOUL_7,
     TOTAL_GOVERNED_CHECKS,
+    TRAINING_25_8,
+    AgentRank,
     GovernancePlane,
     LifecycleDirection,
     ReviewDepth,
     assess_agent,
     governance_checks,
+    lifecycle_plan,
+    rank_for_strength,
     required_depth,
     stars_for_score,
 )
@@ -76,3 +80,81 @@ def test_severe_risk_can_fail_closed_without_promoting_authority():
     assert result.direction is LifecycleDirection.SUSPEND
     assert result.fail_closed is True
     assert result.human_authority_required is False
+
+
+def test_rank_thresholds_are_truth_bounded_and_ordered():
+    assert rank_for_strength(20) is AgentRank.TRAINEE
+    assert rank_for_strength(70) is AgentRank.SPECIALIST
+    assert rank_for_strength(80) is AgentRank.SENIOR
+    assert rank_for_strength(90) is AgentRank.ELITE
+    assert rank_for_strength(98) is AgentRank.CAPTAIN
+
+
+def test_missing_full_evidence_forces_learning_not_promotion():
+    plan = lifecycle_plan(
+        100,
+        evidence_coverage_percent=85,
+        current_rank=AgentRank.SPECIALIST,
+    )
+    assert plan["direction"] == LifecycleDirection.LEARN.value
+    assert plan["recommended_rank"] == AgentRank.SPECIALIST.value
+    assert plan["promotion_candidate"] is False
+    assert plan["automatic_rank_change_allowed"] is False
+
+
+def test_promotion_advances_only_one_rank_and_requires_human_authority():
+    plan = lifecycle_plan(
+        96,
+        evidence_coverage_percent=100,
+        current_rank=AgentRank.SPECIALIST,
+    )
+    assert plan["direction"] == LifecycleDirection.PROMOTE.value
+    assert plan["recommended_rank"] == AgentRank.SENIOR.value
+    assert plan["human_authority_required"] is True
+    assert plan["automatic_rank_change_allowed"] is False
+
+
+def test_downgrade_is_one_rank_at_a_time_and_helper_review_is_recommended():
+    plan = lifecycle_plan(
+        60,
+        evidence_coverage_percent=100,
+        current_rank=AgentRank.ELITE,
+    )
+    assert plan["direction"] == LifecycleDirection.DOWNGRADE.value
+    assert plan["recommended_rank"] == AgentRank.SENIOR.value
+    assert plan["helper_review_recommended"] is True
+    assert plan["human_authority_required"] is True
+
+
+def test_severe_failure_suspends_before_any_termination():
+    plan = lifecycle_plan(
+        99,
+        evidence_coverage_percent=100,
+        current_rank=AgentRank.CAPTAIN,
+        risk="critical",
+        material_failures=3,
+    )
+    assert plan["direction"] == LifecycleDirection.SUSPEND.value
+    assert plan["termination_candidate"] is False
+    assert plan["helper_review_recommended"] is True
+
+
+def test_termination_is_candidate_only_and_never_automatic():
+    plan = lifecycle_plan(
+        20,
+        evidence_coverage_percent=100,
+        current_rank=AgentRank.TRAINEE,
+        termination_requested=True,
+    )
+    assert plan["direction"] == LifecycleDirection.TERMINATE_CANDIDATE.value
+    assert plan["human_authority_required"] is True
+    assert plan["automatic_rank_change_allowed"] is False
+
+
+def test_25_8_training_is_brand_shorthand_not_fake_time_claim():
+    assert TRAINING_25_8["name"] == "25-8 Training"
+    assert TRAINING_25_8["mode"] == "continuous_event_driven_learning"
+    assert TRAINING_25_8["literal_time_claim"] is False
+    assert TRAINING_25_8["first_party_only"] is True
+    assert TRAINING_25_8["self_promotion_allowed"] is False
+    assert TRAINING_25_8["self_termination_allowed"] is False
