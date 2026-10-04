@@ -8,12 +8,12 @@ OSRM-compatible endpoints; this never dispatches, charges, or silently tracks an
 from __future__ import annotations
 
 import hashlib
-from http.client import IncompleteRead
 import json
 import math
 import os
 import threading
 import time
+from http.client import IncompleteRead
 from typing import Any
 from urllib import error as urlerror
 from urllib import parse as urlparse
