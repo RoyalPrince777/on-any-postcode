@@ -5,9 +5,11 @@
   const statusNode = document.querySelector("[data-oap-voice-status]");
   const recordControls = Array.from(document.querySelectorAll("[data-oap-voice-control]"));
   const stopControls = Array.from(document.querySelectorAll("[data-oap-voice-stop]"));
+  const pttControls = Array.from(document.querySelectorAll("[data-oap-ptt-control]"));
+  const pttStopControls = Array.from(document.querySelectorAll("[data-oap-ptt-stop]"));
   const lists = Array.from(document.querySelectorAll("[data-oap-voice-list]"));
 
-  if (!recordControls.length && !lists.length) {
+  if (!recordControls.length && !pttControls.length && !lists.length) {
     return;
   }
 
@@ -82,7 +84,7 @@
     return payload;
   };
 
-  const uploadVoice = async (peerId, blob, durationMs) => {
+  const uploadVoice = async (peerId, blob, durationMs, kind = "voice") => {
     if (blob.size > state.maxBytes) {
       throw new Error("voice_too_large");
     }
@@ -90,7 +92,8 @@
     form.append("recipient_id", peerId);
     form.append("duration_ms", String(Math.min(durationMs, state.maxDurationMs)));
     form.append("voice", blob, "voice");
-    const response = await fetch("/linkup/voice", {
+    const endpoint = kind === "ptt" ? "/linkup/ptt" : "/linkup/voice";
+    const response = await fetch(endpoint, {
       method: "POST",
       body: form,
       headers: { "X-OAP-CSRF": csrfToken, Accept: "application/json" },
@@ -113,7 +116,9 @@
   };
 
   const controlsForPeer = (peerId) =>
-    [...recordControls, ...stopControls].filter((control) => recipientFor(control) === peerId);
+    [...recordControls, ...stopControls, ...pttControls, ...pttStopControls].filter(
+      (control) => recipientFor(control) === peerId,
+    );
 
   const refreshControls = () => {
     recordControls.forEach((control) => {
@@ -126,7 +131,21 @@
     });
     stopControls.forEach((control) => {
       const peerId = recipientFor(control);
-      const active = Boolean(state.current && state.current.peerId === peerId);
+      const active = Boolean(
+        state.current && state.current.peerId === peerId && state.current.kind === "voice",
+      );
+      control.hidden = !active;
+      control.disabled = !active;
+    });
+    pttControls.forEach((control) => {
+      const peerId = recipientFor(control);
+      control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current);
+    });
+    pttStopControls.forEach((control) => {
+      const peerId = recipientFor(control);
+      const active = Boolean(
+        state.current && state.current.peerId === peerId && state.current.kind === "ptt",
+      );
       control.hidden = !active;
       control.disabled = !active;
     });
@@ -160,7 +179,8 @@
 
         const label = document.createElement("p");
         label.className = "mc-eyebrow";
-        label.textContent = `${voice.direction === "sent" ? "OUT" : "IN"} · Voice · ${voice.created_at}`;
+        const kindLabel = voice.kind === "ptt" ? "PTT" : "Voice";
+        label.textContent = `${voice.direction === "sent" ? "OUT" : "IN"} · ${kindLabel} · ${voice.created_at}`;
         item.appendChild(label);
 
         const audio = document.createElement("audio");
@@ -215,7 +235,7 @@
     }
   };
 
-  const startRecording = async (control) => {
+  const startRecording = async (control, kind = "voice") => {
     if (!state.ready || state.current || !browserReady()) {
       return;
     }
@@ -256,10 +276,10 @@
           return;
         }
         try {
-          setStatus("Voice landing…");
-          await uploadVoice(peerId, blob, durationMs);
+          setStatus(kind === "ptt" ? "PTT landing…" : "Voice landing…");
+          await uploadVoice(peerId, blob, durationMs, kind);
           await renderVoiceList(peerId);
-          setStatus("Voice landed.");
+          setStatus(kind === "ptt" ? "PTT landed." : "Voice landed.");
         } catch (error) {
           setStatus(
             error.code === "voice_too_large"
@@ -269,10 +289,14 @@
         }
       });
 
-      state.current = { peerId, recorder, stream, chunks, startedAt, cancelled: false };
+      state.current = { peerId, recorder, stream, chunks, startedAt, cancelled: false, kind };
       recorder.start(1000);
       state.autoStopTimer = window.setTimeout(finishRecording, state.maxDurationMs);
-      setStatus("Voice recording… tap Stop when finished.");
+      setStatus(
+        kind === "ptt"
+          ? "PTT transmitting… release or tap Stop when finished."
+          : "Voice recording… tap Stop when finished.",
+      );
       refreshControls();
     } catch (error) {
       stopTracks(stream);
@@ -287,12 +311,55 @@
   };
 
   recordControls.forEach((control) => {
-    control.addEventListener("click", () => startRecording(control));
+    control.addEventListener("click", () => startRecording(control, "voice"));
+  });
+
+  pttControls.forEach((control) => {
+    const begin = (event) => {
+      event.preventDefault();
+      startRecording(control, "ptt");
+    };
+    control.addEventListener("pointerdown", begin);
+    control.addEventListener("keydown", (event) => {
+      if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+        begin(event);
+      }
+    });
+    const finish = () => {
+      if (state.current && state.current.kind === "ptt" && state.current.peerId === recipientFor(control)) {
+        finishRecording();
+      }
+    };
+    control.addEventListener("pointerup", finish);
+    control.addEventListener("pointercancel", finish);
+    control.addEventListener("pointerleave", finish);
+    control.addEventListener("keyup", (event) => {
+      if (event.key === " " || event.key === "Enter") {
+        finish();
+      }
+    });
   });
 
   stopControls.forEach((control) => {
     control.addEventListener("click", () => {
-      if (!state.current || state.current.peerId !== recipientFor(control)) {
+      if (
+        !state.current ||
+        state.current.kind !== "voice" ||
+        state.current.peerId !== recipientFor(control)
+      ) {
+        return;
+      }
+      finishRecording();
+    });
+  });
+
+  pttStopControls.forEach((control) => {
+    control.addEventListener("click", () => {
+      if (
+        !state.current ||
+        state.current.kind !== "ptt" ||
+        state.current.peerId !== recipientFor(control)
+      ) {
         return;
       }
       finishRecording();
