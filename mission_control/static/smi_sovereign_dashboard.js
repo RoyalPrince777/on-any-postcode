@@ -9,7 +9,7 @@ const stateClass=(value)=>{const v=String(value||'').toLowerCase();if(['green','
 const fetchJson=async(url,timeoutMs=4500)=>{if(!url)throw new Error('route_not_configured');const controller=new AbortController();const timer=setTimeout(()=>controller.abort('dashboard_timeout'),timeoutMs);try{const response=await fetch(url,{credentials:'same-origin',headers:{Accept:'application/json'},cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error(`HTTP ${response.status}`);return await response.json()}catch(error){if(error?.name==='AbortError'||controller.signal.aborted)throw new Error('timeout');throw error}finally{clearTimeout(timer)}};
 const updateStatusToggle=()=>{const button=document.querySelector('.smi-chat-return');if(button)button.textContent=document.body.classList.contains('smi-home-open')?'✦ Chat':'⌂ Home'};
 const goChat=()=>{document.body.classList.remove('smi-home-open');updateStatusToggle();document.getElementById('message')?.focus()};
-const goDashboard=()=>{document.body.classList.add('smi-home-open');updateStatusToggle();refresh()};
+const goDashboard=()=>{document.body.classList.add('smi-home-open');updateStatusToggle()};
 const scrollToPanel=(id)=>{const panel=document.getElementById(id);if(!panel)return;if(panel.tagName==='DETAILS')panel.open=true;panel.scrollIntoView({behavior:'auto',block:'start'});};
 function command(icon,label,detail,href,chat=false){if(chat)return `<button class="smi-command" type="button" data-smi-chat><span class="smi-command-icon">${icon}</span><span><strong>${esc(label)}</strong><small>${esc(detail)}</small></span></button>`;return `<a class="smi-command" href="${esc(href)}"><span class="smi-command-icon">${icon}</span><span><strong>${esc(label)}</strong><small>${esc(detail)}</small></span></a>`}
 function shell(){
@@ -41,14 +41,14 @@ function shell(){
     <div class="smi-home-actions">\${actionMarkup}</div>
    </section>
    <section class="smi-summary-strip smi-home-summary" id="smi-summary-strip" aria-label="SMI essential status">
-    <article class="smi-summary-card"><small>SMI</small><strong><i class="smi-dot"></i>Reading</strong><span>Runtime</span></article>
-    <article class="smi-summary-card"><small>Founder</small><strong><i class="smi-dot"></i>Checking</strong><span>Authority</span></article>
-    <article class="smi-summary-card"><small>HRM</small><strong><i class="smi-dot"></i>Checking</strong><span>Memory</span></article>
-    <article class="smi-summary-card"><small>Green Gate</small><strong><i class="smi-dot"></i>Checking</strong><span>Proof</span></article>
-    <article class="smi-summary-card"><small>21 Signals</small><strong><i class="smi-dot"></i>Checking</strong><span>Canonical</span></article>
+    <article class="smi-summary-card"><small>SMI</small><strong><i class="smi-dot"></i>Ready</strong><span>Runtime</span></article>
+    <article class="smi-summary-card"><small>Founder</small><strong><i class="smi-dot"></i>Tap Refresh</strong><span>Authority</span></article>
+    <article class="smi-summary-card"><small>HRM</small><strong><i class="smi-dot"></i>Tap Refresh</strong><span>Memory</span></article>
+    <article class="smi-summary-card"><small>Green Gate</small><strong><i class="smi-dot"></i>Tap Refresh</strong><span>Proof</span></article>
+    <article class="smi-summary-card"><small>21 Signals</small><strong><i class="smi-dot"></i>Tap Refresh</strong><span>Canonical</span></article>
    </section>
    <div class="smi-home-lower">
-    <section class="smi-panel smi-scroll-target" id="smi-live-monitor"><div class="smi-panel-head"><h2>System Status</h2><span id="smi-last-refresh">Starting bounded read</span></div><div class="smi-monitor-list" id="smi-monitor-list"><div class="smi-monitor-item"><span>🔄</span><span><strong>Reading evidence</strong><small>Bounded to 4.5 seconds per endpoint; unavailable never means Green.</small></span><span class="smi-state yellow">CHECKING</span></div></div><div class="smi-secondary-proof" aria-label="Core Functions"><strong>Core Functions</strong><div class="smi-secondary-proof-actions"><a href="${esc(cfg.functionHealthUrl)}">Function Health</a><a href="${esc(cfg.greenGateUrl)}">Green Gate</a><button type="button" data-scroll="smi-signal-intelligence">21 Signals</button><a href="${esc(cfg.guardianUrl)}">Guardian</a><a href="${esc(cfg.hrmUrl)}">HRM</a></div><small>No duplicate controls · proof routes only.</small></div></section>
+    <section class="smi-panel smi-scroll-target" id="smi-live-monitor"><div class="smi-panel-head"><h2>System Status</h2><span id="smi-last-refresh">Status on demand</span></div><div class="smi-monitor-list" id="smi-monitor-list"><div class="smi-monitor-item"><span>🔄</span><span><strong>Status not loaded</strong><small>Home starts with zero status requests. Tap Refresh signals when you want evidence.</small></span><span class="smi-state yellow">CHECKING</span></div></div><div class="smi-secondary-proof" aria-label="Core Functions"><strong>Core Functions</strong><div class="smi-secondary-proof-actions"><a href="${esc(cfg.functionHealthUrl)}">Function Health</a><a href="${esc(cfg.greenGateUrl)}">Green Gate</a><button type="button" data-scroll="smi-signal-intelligence">21 Signals</button><a href="${esc(cfg.guardianUrl)}">Guardian</a><a href="${esc(cfg.hrmUrl)}">HRM</a></div><small>No duplicate controls · proof routes only.</small></div></section>
     <details class="smi-panel smi-signal-details smi-scroll-target" id="smi-signal-intelligence"><summary><span><strong>21 Signals</strong><small>Canonical OAP signal contract · open only when needed</small></span><span>Open</span></summary><div class="smi-signal-runtime" id="smi-signal-runtime" role="status" aria-live="polite">Awaiting bounded signed-in response · no green assumed.</div><div class="smi-signal-grid">\${CORE_SIGNALS.map(([id,emoji,label,group])=>\`<article class="smi-signal" data-signal-id="\${id}"><span class="emoji">\${emoji}</span><strong>\${esc(label)}</strong><small>\${esc(group)}</small></article>\`).join('')}</div></details>
    </div>
    <section class="smi-truth smi-first-party-note"><strong>Truth Mode.</strong> Dashboard buttons route to existing first-party rooms. A home-screen click does not silently deploy, spend, dispatch, migrate or approve consequential actions.</section>
@@ -83,7 +83,7 @@ function boot(){
  document.getElementById('smi-refresh')?.addEventListener('click',refresh);
  const title=document.querySelector('.chat-title');if(title)title.textContent='SMI';
  const subtitle=document.querySelector('.chat-subtitle');if(subtitle)subtitle.textContent='Founder session · OAP first-party intelligence';
- refresh();window.setInterval(()=>{if(document.body.classList.contains('smi-home-open'))refresh()},30000);
+ /* Home intentionally performs zero status requests on boot. Founder requests evidence explicitly. */
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
