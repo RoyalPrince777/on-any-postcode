@@ -21,9 +21,9 @@ def test_smi_runtime_routes_auto_mode_and_named_reviewers():
     text = RUNTIME.read_text(encoding="utf-8")
     for marker in (
         '"SMI_AUTO"',
-        'smi_auto_review.selected_roles',
+        'smi_auto.selected_review_roles',
         'brain["active_reviewers"]',
-        'smi_auto_review.build_vote_board',
+        'smi_auto.build_evidence_vote_board',
         '"auto_review": auto_review',
     ):
         assert marker in text
