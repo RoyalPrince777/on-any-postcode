@@ -15,7 +15,7 @@ from . import autonomy_levels, smi_brain_protocol
 
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
-PROTOCOL_VERSION = 3
+PROTOCOL_VERSION = 4
 
 
 HUMAN_AI_BOUNDARY = {
@@ -165,6 +165,183 @@ AGENT_SELECTION = {
         "helpers": ("GitHub", "Render", "Neon", "Plugin Management"),
     },
 }
+
+
+REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
+    "Twinz": {
+        "role": "Dual-path contradiction / state-divergence reviewer",
+        "best_for": "cache conflicts, race conditions, fresh-vs-existing state, split paths, new-then-old regressions",
+        "authority": "advisory_review_only",
+    },
+    "Agent Smith": {
+        "role": "System integrity / duplicate / drift hunter",
+        "best_for": "duplicate code, stale routes, inconsistent state, corruption, contract drift",
+        "authority": "advisory_review_only",
+    },
+    "Shere Khan": {
+        "role": "Adversarial stress-test / failure-hunter",
+        "best_for": "weakest-link analysis, survivability, false Green, threat and failure propagation",
+        "authority": "advisory_review_only",
+    },
+    "Bagheera": {
+        "role": "Recovery / restraint / safe-path reviewer",
+        "best_for": "rollback, recovery, last-known-good preservation, reversible repair",
+        "authority": "advisory_review_only",
+    },
+    "Bee": {
+        "role": "Coordination reviewer",
+        "best_for": "multi-agent coordination and bounded work distribution",
+        "authority": "advisory_review_only",
+    },
+    "Elephant": {
+        "role": "Memory / history reviewer",
+        "best_for": "history, provenance, prior decisions, long-memory consistency",
+        "authority": "advisory_review_only",
+    },
+    "Eagle": {
+        "role": "Wide-view reviewer",
+        "best_for": "whole-system impact, architecture visibility, cross-system consequences",
+        "authority": "advisory_review_only",
+    },
+    "Falcon": {
+        "role": "Speed / execution-path reviewer",
+        "best_for": "latency, fast bounded diagnosis, performance bottlenecks",
+        "authority": "advisory_review_only",
+    },
+}
+
+_AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
+    (
+        ("cache", "stale", "new then old", "new-then-old", "race", "split", "diverg", "state conflict"),
+        ("Twinz", "Agent Smith", "Shere Khan", "Bagheera"),
+        "Two-state or divergence risk detected.",
+    ),
+    (
+        ("duplicate", "drift", "corrupt", "stale route", "inconsistent", "contract"),
+        ("Agent Smith", "Twinz", "Shere Khan", "Bagheera"),
+        "Integrity, duplication or drift risk detected.",
+    ),
+    (
+        ("rollback", "recover", "recovery", "fallback", "last-known-good", "outage"),
+        ("Bagheera", "Shere Khan", "Agent Smith"),
+        "Recovery and reversibility are primary.",
+    ),
+    (
+        ("threat", "attack", "failure", "surviv", "adversarial", "false green", "weakest"),
+        ("Shere Khan", "Agent Smith", "Bagheera"),
+        "Adversarial survivability review is primary.",
+    ),
+    (
+        ("memory", "history", "provenance", "prior decision", "audit trail"),
+        ("Elephant", "Agent Smith", "Bagheera"),
+        "Historical consistency and provenance are primary.",
+    ),
+    (
+        ("latency", "slow", "performance", "speed", "bottleneck"),
+        ("Falcon", "Agent Smith", "Shere Khan"),
+        "Performance-path review is primary.",
+    ),
+    (
+        ("architecture", "whole system", "cross-system", "system design"),
+        ("Eagle", "Agent Smith", "Shere Khan", "Bagheera"),
+        "Whole-system impact review is primary.",
+    ),
+    (
+        ("coordinate", "multi-agent", "team", "orchestr"),
+        ("Bee", "Eagle", "Shere Khan", "Bagheera"),
+        "Coordination across bounded specialist roles is primary.",
+    ),
+)
+
+DEFAULT_REVIEW_TEAM: tuple[str, ...] = (
+    "Agent Smith",
+    "Shere Khan",
+    "Bagheera",
+)
+
+
+def recommend_agent_team(
+    mission: object,
+    founder_selection: object = None,
+) -> dict[str, object]:
+    """Recommend the smallest sufficient review team, with Founder override.
+
+    SMI recommendation is advisory. A valid Founder manual selection becomes the
+    active team exactly as supplied; SMI may warn about missing coverage but may
+    not silently add, remove or replace selected roles.
+    """
+
+    mission_text = " ".join(str(mission or "").strip().split())[:800]
+    normalised = mission_text.casefold()
+
+    recommended = DEFAULT_REVIEW_TEAM
+    reason = "General integrity, adversarial and recovery review."
+    for keywords, team, match_reason in _AGENT_MATCH_RULES:
+        if any(keyword in normalised for keyword in keywords):
+            recommended = team
+            reason = match_reason
+            break
+
+    def _team_payload(names: tuple[str, ...]) -> tuple[dict[str, str], ...]:
+        return tuple(
+            {
+                "name": name,
+                "role": REVIEW_AGENT_CATALOG[name]["role"],
+                "best_for": REVIEW_AGENT_CATALOG[name]["best_for"],
+                "authority": REVIEW_AGENT_CATALOG[name]["authority"],
+            }
+            for name in names
+        )
+
+    selected_names: tuple[str, ...] | None = None
+    if founder_selection is not None:
+        if isinstance(founder_selection, str):
+            raw = tuple(part.strip() for part in founder_selection.split(","))
+        elif isinstance(founder_selection, (list, tuple)):
+            raw = tuple(str(part).strip() for part in founder_selection)
+        else:
+            raise ValueError("founder_selection_must_be_list_tuple_or_comma_string")
+
+        selected_names = tuple(dict.fromkeys(name for name in raw if name))
+        if not selected_names:
+            raise ValueError("founder_selection_empty")
+        unknown = tuple(name for name in selected_names if name not in REVIEW_AGENT_CATALOG)
+        if unknown:
+            raise ValueError("unknown_review_agent:" + ",".join(unknown))
+
+    active_names = selected_names or tuple(recommended)
+    manual = selected_names is not None
+
+    warnings: list[str] = []
+    if manual:
+        if "Shere Khan" not in active_names:
+            warnings.append("No dedicated adversarial failure-hunter selected.")
+        if "Bagheera" not in active_names:
+            warnings.append("No dedicated rollback/recovery reviewer selected.")
+        if "Agent Smith" not in active_names and "Twinz" not in active_names:
+            warnings.append("No dedicated integrity/divergence reviewer selected.")
+
+    return {
+        "mission": mission_text,
+        "selection_mode": (
+            "founder_manual_override" if manual else "smi_recommended"
+        ),
+        "recommendation_reason": reason,
+        "recommended_team": _team_payload(tuple(recommended)),
+        "active_team": _team_payload(active_names),
+        "founder_can_change": True,
+        "founder_override_applied": manual,
+        "smi_can_silently_override_founder": False,
+        "coverage_warnings": tuple(warnings),
+        "mandatory_gates_unchanged": (
+            "Guardian",
+            "Green Gate",
+            "HRM receipt where required",
+            "Human Authority / Founder Final where required",
+        ),
+        "rule": "SMI recommends. Founder decides. Manual selection never bypasses mandatory safety, proof or authority gates.",
+    }
+
 
 RATING_RULES = {
     "upgrade_zone": {
@@ -566,6 +743,13 @@ def status(target: object = "SMI") -> dict[str, object]:
         ),
         "ai_behaviour_parts": AI_BEHAVIOUR_PARTS,
         "agent_selection": AGENT_SELECTION,
+        "agent_team_selection": {
+            "mode": "automatic_with_founder_override",
+            "founder_can_change": True,
+            "smi_can_silently_override_founder": False,
+            "catalog": REVIEW_AGENT_CATALOG,
+            "default_recommendation": recommend_agent_team(target),
+        },
         "rating_rules": RATING_RULES,
         "twenty_one_laws": TWENTY_ONE_LAWS,
         "seven_major_links": SEVEN_MAJOR_LINKS,
