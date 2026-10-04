@@ -876,7 +876,7 @@ def update_game_state(*, room_id: object, reconnect_token: object, expected_revi
     raise ValueError("arena_room_server_game_adapter_required")
 
 
-def status() -> dict[str, bool]:
+def status() -> dict[str, Any]:
     return {
         "durable_rooms": True,
         "playable_room_games_only": True,
