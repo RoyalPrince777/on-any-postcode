@@ -217,6 +217,40 @@ def ai_behaviour():
 
 
 
+
+@bp.route("/smi/agent-team/recommend", methods=["GET", "POST"])
+@bp.route("/war-room/agent-team/recommend", methods=["GET", "POST"])
+@web_security.login_required(api=True, founder_only=True)
+def smi_agent_team_recommend():
+    """Recommend a mission-fit SMI review team or apply Founder manual override."""
+
+    if request.method == "POST":
+        if not web_security.csrf_valid(request):
+            return _no_store(
+                make_response(jsonify({"error": {"code": "csrf_failed"}}), 403)
+            )
+        body = request.get_json(silent=True)
+        if not isinstance(body, dict):
+            return _no_store(
+                make_response(jsonify({"error": {"code": "json_object_required"}}), 400)
+            )
+        mission = body.get("mission") or ""
+        founder_selection = body.get("selected_agents")
+    else:
+        mission = request.args.get("mission") or request.args.get("q") or ""
+        founder_selection = None
+
+    try:
+        result = ai_behaviour_protocol.recommend_agent_team(
+            mission, founder_selection=founder_selection
+        )
+    except ValueError as exc:
+        return _no_store(
+            make_response(jsonify({"error": {"code": str(exc)[:160]}}), 400)
+        )
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.get("/war-room/ai-behaviour/progress")
 @bp.get("/smi/ai-behaviour/progress")
 @web_security.login_required(api=True, founder_only=True)
