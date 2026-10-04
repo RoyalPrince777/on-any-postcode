@@ -210,7 +210,7 @@ def status() -> dict[str, Any]:
             "contacts": {"href": "/linkup", "built": True},
             "my_line": {"href": "/my-line", "built": True},
             "oap_mail": {
-                "href": "/mail/status",
+                "href": "/mail",
                 "built": True,
                 "mode": mail.get("mode"),
                 "send_enabled": bool(mail.get("send_enabled")),
