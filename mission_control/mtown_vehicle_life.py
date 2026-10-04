@@ -36,7 +36,13 @@ def validate(state: object) -> dict[str,Any]:
         errors.append("mtown_vehicle_life_schema_invalid")
     return {"passed":not errors,"errors":errors}
 
-def claim_vehicle(state: object, *, character: dict[str,Any], vehicle_id: object) -> tuple[dict[str,Any],dict[str,Any]]:
+def claim_vehicle(
+    state: object,
+    *,
+    character: dict[str,Any],
+    living_streets: dict[str,Any],
+    vehicle_id: object,
+) -> tuple[dict[str,Any],dict[str,Any],dict[str,Any]]:
     checked=validate(state)
     if not checked["passed"]:
         raise ValueError(checked["errors"][0])
@@ -45,10 +51,19 @@ def claim_vehicle(state: object, *, character: dict[str,Any], vehicle_id: object
         raise ValueError("mtown_vehicle_life_vehicle_invalid")
     life=copy.deepcopy(state)
     char=copy.deepcopy(character)
+    streets=copy.deepcopy(living_streets)
+    vehicle=next((v for v in streets.get("vehicles",[]) if v.get("id")==vid),None)
+    if vehicle is None:
+        raise ValueError("mtown_vehicle_invalid")
+    if vehicle.get("node")!=char.get("movement",{}).get("node"):
+        raise ValueError("mtown_vehicle_not_here")
+    if vehicle.get("owner") not in {"world",char.get("character_id")}:
+        raise ValueError("mtown_vehicle_claim_forbidden")
     owned=char.setdefault("owned",{}).setdefault("vehicles",[])
     if vid not in owned:
         owned.append(vid)
-    return life,char
+    vehicle["owner"]=char.get("character_id")
+    return life,char,streets
 
 def enter_vehicle(
     state: object,
