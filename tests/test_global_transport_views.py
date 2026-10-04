@@ -249,6 +249,8 @@ def test_transport_control_status_is_fail_closed_and_recovery_ready():
     assert payload["product"] == "OAP Global Transport Control"
     assert payload["journey_engine"]["disruption_propagation"] is True
     assert payload["journey_engine"]["alternative_recovery_contract"] is True
+    assert payload["journey_engine"]["recovery_case_contract"] is True
+    assert payload["journey_engine"]["evidence_trace_contract"] is True
     assert "impact" in payload["actions"]
     assert "evidence" in payload["actions"]
     assert payload["automatic_execution"] is False
