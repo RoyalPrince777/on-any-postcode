@@ -778,6 +778,7 @@ def earth_is_our_turf_action():
             state,
             command=payload.get("command"),
             target=payload.get("target"),
+            mode=payload.get("mode"),
         )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
