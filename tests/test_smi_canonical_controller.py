@@ -143,3 +143,11 @@ def test_canonical_controller_preserves_governed_backend_contract():
     assert "event: complete" not in text
     assert "oap-smi-complete" in text
     assert "Human Authority" in text
+
+
+def test_send_button_has_explicit_android_safe_canonical_click_owner():
+    text = CONTROLLER.read_text(encoding="utf-8")
+
+    assert "explicitSendClickOwner:true" in text
+    assert text.count("oapSend.addEventListener('click'") == 1
+    assert "event.preventDefault();event.stopImmediatePropagation();oapSubmit();" in text
