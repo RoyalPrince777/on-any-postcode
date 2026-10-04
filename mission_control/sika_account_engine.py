@@ -175,6 +175,36 @@ def read_account(account_id: object) -> BankAccount | None:
     )
 
 
+def read_owner_accounts(owner_reference: object) -> list[BankAccount]:
+    """Return durable accounts owned by one exact authenticated owner reference."""
+
+    owner_value = _required(owner_reference, error="owner_reference_required")
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT account_id,owner_reference,legal_entity,jurisdiction,
+                          currency,ledger_account_id,status
+                   FROM oap_sika_accounts
+                   WHERE owner_reference=%s
+                   ORDER BY created_at,account_id""",
+                (owner_value,),
+            ).fetchall()
+    except Exception as exc:
+        raise AccountEngineUnavailable("owner_accounts_read_failed") from exc
+    return [
+        BankAccount(
+            account_id=str(row[0]),
+            owner_reference=str(row[1]),
+            legal_entity=str(row[2]),
+            jurisdiction=str(row[3]),
+            currency=str(row[4]),
+            ledger_account_id=str(row[5]),
+            status=str(row[6]),
+        )
+        for row in rows
+    ]
+
+
 def resolve_owned_account(
     *,
     account_id: object,
@@ -253,6 +283,7 @@ def status() -> dict[str, object]:
         "persistent_account_identity": True,
         "owner_binding": True,
         "owner_resolution": True,
+        "owner_scoped_account_listing": True,
         "legal_entity_binding": True,
         "jurisdiction_binding": True,
         "currency_binding": True,
