@@ -256,3 +256,64 @@ def test_ludo_and_oware_room_pages_and_actions(client, csrf, monkeypatch):
     )
     assert response.status_code == 200
     assert response.get_json()["revision"] == 1
+
+
+
+def test_iq_and_route_empire_room_pages_and_actions(client, csrf, monkeypatch):
+    import app as app_module
+
+    for route, asset, root in (
+        ("/arena/iq/room", "arena_iq_room.js", "data-iq-room"),
+        ("/arena/route-empire/room", "arena_route_empire_room.js", "data-route-room"),
+    ):
+        page = client.get(route)
+        html = page.get_data(as_text=True)
+        assert page.status_code == 200
+        assert asset in html
+        assert root in html
+        for marker in ("data-create", "data-join", "data-reconnect", "data-refresh", "data-stop"):
+            assert marker in html
+        assert page.headers["Referrer-Policy"] == "no-referrer"
+
+    expected_room = "00000000-0000-0000-0000-000000000001"
+    monkeypatch.setattr(
+        app_module.arena_rooms,
+        "iq_action",
+        lambda **kwargs: {
+            "room_id": expected_room, "revision": 1, "duplicate": False,
+            "status": "ACTIVE", "game_state": {"your_answer_locked": True},
+        },
+    )
+    iq_payload = {
+        "room_id": expected_room, "reconnect_token": "x" * 40,
+        "expected_revision": 0, "request_id": "http-iq-room-0001",
+        "action": "answer", "choice_id": "b",
+    }
+    assert client.post("/arena/rooms/iq/action", json=iq_payload).status_code == 403
+    response = client.post(
+        "/arena/rooms/iq/action", json=iq_payload,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["revision"] == 1
+
+    monkeypatch.setattr(
+        app_module.arena_rooms,
+        "route_empire_action",
+        lambda **kwargs: {
+            "room_id": expected_room, "revision": 1, "duplicate": False,
+            "status": "ACTIVE", "game_state": {"round": 1},
+        },
+    )
+    route_payload = {
+        "room_id": expected_room, "reconnect_token": "x" * 40,
+        "expected_revision": 0, "request_id": "http-route-room-0001",
+        "action": "claim", "node_id": "north",
+    }
+    assert client.post("/arena/rooms/route-empire/action", json=route_payload).status_code == 403
+    response = client.post(
+        "/arena/rooms/route-empire/action", json=route_payload,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["revision"] == 1
