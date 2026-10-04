@@ -54,7 +54,7 @@ def test_entrance_intelligence_respects_travel_mode():
 def test_continuous_route_keeps_living_streets_available():
     state=earth_is_our_turf.new_world()
     state=earth_is_our_turf.action(
-        state,command="navigate",target="lavender-avenue",mode="car",
+        state,command="navigate",target="lavender-avenue",mode="foot",
     )
     state=earth_is_our_turf.action(state,command="advance-route",distance=100)
     world=earth_is_our_turf.public_state(state)

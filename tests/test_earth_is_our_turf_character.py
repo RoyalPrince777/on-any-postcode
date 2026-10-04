@@ -37,11 +37,11 @@ def test_character_equipment_and_relationship_memory():
 
 def test_world_travel_updates_character_position_and_memory():
     state=earth_is_our_turf.new_world()
-    state=earth_is_our_turf.action(state,command="navigate",target="lavender-avenue",mode="car")
+    state=earth_is_our_turf.action(state,command="navigate",target="lavender-avenue",mode="foot")
     state=earth_is_our_turf.action(state,command="travel-route")
     world=earth_is_our_turf.public_state(state)
     assert world["character"]["movement"]["node"]=="lavender-avenue"
-    assert world["character"]["movement"]["mode"]=="car"
+    assert world["character"]["movement"]["mode"]=="foot"
     assert "lavender-avenue" in world["character"]["memory"]["places_visited"]
 
 

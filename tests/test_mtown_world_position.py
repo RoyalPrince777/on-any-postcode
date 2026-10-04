@@ -43,7 +43,7 @@ def test_lookahead_nodes_follow_current_route():
 def test_world_advance_route_updates_character_without_destination_jump():
     state=earth_is_our_turf.new_world()
     state=earth_is_our_turf.action(
-        state,command="navigate",target="lavender-avenue",mode="car",
+        state,command="navigate",target="lavender-avenue",mode="foot",
     )
     planned=earth_is_our_turf.public_state(state)
     assert planned["world_position"]["route_progress"]==0
@@ -58,7 +58,7 @@ def test_world_advance_route_updates_character_without_destination_jump():
 def test_world_advance_route_finishes_and_preserves_position_receipt():
     state=earth_is_our_turf.new_world()
     state=earth_is_our_turf.action(
-        state,command="navigate",target="lavender-avenue",mode="car",
+        state,command="navigate",target="lavender-avenue",mode="foot",
     )
     total=earth_is_our_turf.public_state(state)["active_route"]["distance_m"]
     state=earth_is_our_turf.action(state,command="advance-route",distance=total+1)

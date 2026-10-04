@@ -72,7 +72,7 @@ def test_mitcham_streams_named_neighbourhood_chunks_and_environment():
     assert view["environment"]["live_claim"] is False
     assert view["environment"]["source"]=="game_environment_simulation_v1"
 
-    state=earth_is_our_turf.action(state,command="navigate",target="lavender-avenue",mode="car")
+    state=earth_is_our_turf.action(state,command="navigate",target="lavender-avenue",mode="foot")
     planned=earth_is_our_turf.public_state(state)
     assert "lavender" in planned["loaded_chunks"]
 
