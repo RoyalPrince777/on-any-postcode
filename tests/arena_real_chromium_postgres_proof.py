@@ -33,11 +33,15 @@ def prepare():
     )
     base = postgres_db.init_postgres(assume_yes=True)
     assert base["initialized"] is True, "Ephemeral base schema must be complete"
-    migration = (ROOT / "migrations/0008_oap_arena_multiplayer_rooms.sql").read_text()
+    migrations = (
+        ROOT / "migrations/0008_oap_arena_multiplayer_rooms.sql",
+        ROOT / "migrations/0010_oap_arena_oware_room.sql",
+    )
     with postgres_db.connect() as connection:
-        for sql in migration.split(";"):
-            if sql.strip():
-                connection.execute(sql)
+        for path in migrations:
+            for sql in path.read_text().split(";"):
+                if sql.strip():
+                    connection.execute(sql)
         connection.commit()
     app_module.app.config.update(
         TESTING=True, SECRET_KEY="arena-disposable-chromium-ci",
@@ -66,7 +70,7 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
     assert_layout(host)
     assert_layout(guest)
     if game == "connect4":
-        for unavailable in ("ludo", "iq", "route-empire"):
+        for unavailable in ("iq", "route-empire"):
             rejected = host.evaluate(
                 """async game => {
                     const csrf = document.querySelector('meta[name="oap-csrf-token"]').content;
@@ -165,6 +169,53 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
     guest_context.close()
 
 
+
+def play_added_room(browser, game, host_viewport, guest_viewport):
+    web_security.PUBLIC_WRITE_LIMITER.reset()
+    host_context = browser.new_context(viewport=host_viewport)
+    guest_context = browser.new_context(viewport=guest_viewport)
+    host, guest = host_context.new_page(), guest_context.new_page()
+    errors = []
+    host.on("pageerror", lambda e: errors.append("host: " + str(e)))
+    guest.on("pageerror", lambda e: errors.append("guest: " + str(e)))
+    route = "/arena/ludo/room" if game == "ludo" else "/arena/oware/room"
+    host.goto(BASE + route, wait_until="domcontentloaded")
+    guest.goto(BASE + route, wait_until="domcontentloaded")
+    assert_layout(host); assert_layout(guest)
+
+    host.locator("[data-host]").fill("Alpha " + game)
+    host.locator("[data-create]").click()
+    expect(host.locator("[data-room]")).to_be_visible()
+    room_code = host.locator("[data-code]").inner_text()
+    assert len(room_code) == 6
+    expect(host.locator("[data-token]")).not_to_be_empty()
+
+    guest.locator("[data-join-code]").fill(room_code)
+    guest.locator("[data-guest]").fill("Bravo " + game)
+    guest.locator("[data-join]").click()
+    expect(guest.locator("[data-room]")).to_be_visible()
+    expect(guest.locator("[data-status]")).to_have_text("ACTIVE")
+
+    host.locator("[data-refresh]").click()
+    expect(host.locator("[data-status]")).to_have_text("ACTIVE")
+    if game == "ludo":
+        host.locator("[data-roll]").click()
+    else:
+        host.locator("[data-pits] button:not([disabled])").first.click()
+    expect(host.locator("[data-revision]")).to_have_text("1")
+
+    guest.locator("[data-refresh]").click()
+    expect(guest.locator("[data-revision]")).to_have_text("1")
+    host.locator("[data-stop]").click()
+    expect(host.locator("[data-status]")).to_have_text("STOPPED")
+    guest.locator("[data-refresh]").click()
+    expect(guest.locator("[data-status]")).to_have_text("STOPPED")
+    assert host.locator("[data-stop]").is_disabled()
+    assert guest.locator("[data-stop]").is_disabled()
+    assert not errors, errors
+    print("ARENA_REAL_CHROMIUM_POSTGRES_PASS", game)
+    host_context.close(); guest_context.close()
+
 def main():
     prepare()
     server = make_server("127.0.0.1", 8768, app_module.app, threaded=True)
@@ -177,6 +228,8 @@ def main():
             desktop = {"width": 1280, "height": 800}
             play_two_seats(browser, "connect4", mobile, desktop)
             play_two_seats(browser, "dot", desktop, mobile)
+            play_added_room(browser, "ludo", mobile, desktop)
+            play_added_room(browser, "oware", desktop, mobile)
             browser.close()
     finally:
         server.shutdown()
