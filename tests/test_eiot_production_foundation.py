@@ -3,7 +3,11 @@ from pathlib import Path
 
 import eiot_world_server
 
-from mission_control import earth_is_our_turf, mtown_endless_world, mtown_world_server
+from mission_control import (
+    earth_is_our_turf,
+    mtown_endless_world,
+    mtown_world_server,
+)
 
 
 def test_endless_cells_are_deterministic_and_unbounded():
