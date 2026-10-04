@@ -848,6 +848,22 @@ def arena_room_create():
     return _arena_json(result, 201)
 
 
+@app.post("/arena/rooms/matchmake")
+def arena_room_matchmake():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.matchmake(
+            game_key=payload.get("game_key"),
+            display_name=payload.get("display_name"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result, 201)
+
+
 @app.post("/arena/rooms/join")
 def arena_room_join():
     denied = _arena_write_allowed()
