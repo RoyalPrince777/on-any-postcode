@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="oap-csrf-token" content="{{ csrf_token }}"><meta name="referrer" content="no-referrer">
+<title>Ludo Room · OAP Arena</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
+<script src="{{ url_for('static', filename='arena_ludo_room.js') }}" defer></script></head>
+<body><main class="mc-shell arena-game" data-ludo-room>
+<section class="card room-panel"><nav class="arena-nav"><a href="/arena">← All games</a> · <a href="/arena/ludo">Local Ludo</a></nav>
+<p class="arena-hint">OAP Arena · First-party two-player room</p><h1>🎲 Ludo · Room</h1>
+<p>Server-authoritative two-player Ludo. Share only the six-character room code; keep reconnect tokens private.</p>
+<div data-entry>
+<h2>Create</h2><label>Your name <input data-host maxlength="40" autocomplete="nickname"></label><button data-create type="button">Create Room</button>
+<h2>Join</h2><label>Room code <input data-join-code maxlength="6" autocapitalize="characters" autocomplete="off"></label><label>Your name <input data-guest maxlength="40" autocomplete="nickname"></label><button data-join type="button">Join Room</button>
+<h2>Reconnect</h2><label>Room ID <input data-reconnect-id autocomplete="off"></label><label>Private token <input data-reconnect-token type="password" autocomplete="off"></label><button data-reconnect type="button">Reconnect</button>
+</div>
+<section data-room hidden>
+<p>Code: <strong data-code></strong> · Status: <strong data-status></strong> · Revision: <strong data-revision></strong></p>
+<details><summary>Private reconnect details</summary><p>Room ID: <span data-id></span></p><p>Token: <span data-token></span></p></details>
+<p data-players></p><p data-turn aria-live="polite"></p><p>Roll: <strong data-roll-value>—</strong></p>
+<div class="arena-actions"><button data-roll type="button">Roll die</button><button data-refresh type="button">Refresh Match</button><button data-stop type="button">STOP</button></div>
+<div data-pieces class="arena-game-content"></div>
+</section>
+<p data-error role="alert"></p><p>Unranked room; no chat, payment or prize execution. Server state is authoritative.</p>
+</section></main></body></html>
