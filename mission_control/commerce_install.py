@@ -6,6 +6,7 @@ Provider secrets remain deployment-only environment variables.
 from __future__ import annotations
 
 from . import (
+    commerce_delivery_destination,
     commerce_provider_receipts,
     distribution_runtime,
     market_supplier_network,
@@ -15,6 +16,7 @@ from . import (
 )
 
 COMPONENTS = (
+    ("delivery_destination", commerce_delivery_destination.init_schema),
     ("supplier_network", market_supplier_network.init_schema),
     ("payment_orchestrator", sika_payment_orchestrator.init_schema),
     ("payment_submission_evidence", sika_payment_submission_evidence.init_schema),
