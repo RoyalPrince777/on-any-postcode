@@ -206,9 +206,9 @@ def _impact_state(event: dict[str, Any]) -> str:
 
 def assess_disruptions(*, journey: dict[str, Any], events: object, dependencies: object = None) -> dict[str, Any]:
     if not isinstance(journey, dict) or not isinstance(journey.get("legs"), list):
-        raise ValueError("transport_journey_invalid")
+        raise TypeError("transport_journey_invalid")
     if not isinstance(events, list):
-        raise ValueError("transport_events_invalid")
+        raise TypeError("transport_events_invalid")
     impacts = []
     affected_leg_ids = set()
     evidence_ids = []
@@ -224,7 +224,7 @@ def assess_disruptions(*, journey: dict[str, Any], events: object, dependencies:
             raise ValueError("transport_dependencies_invalid")
         for edge in dependencies:
             if not isinstance(edge, dict):
-                raise ValueError("transport_dependency_invalid")
+                raise TypeError("transport_dependency_invalid")
             source_leg_id = str(edge.get("from_leg_id") or "")
             target_leg_id = str(edge.get("to_leg_id") or "")
             relation = str(edge.get("type") or "")
@@ -253,10 +253,10 @@ def assess_disruptions(*, journey: dict[str, Any], events: object, dependencies:
     }
     for event in events:
         if not isinstance(event, dict):
-            raise ValueError("transport_event_invalid")
+            raise TypeError("transport_event_invalid")
         modes = event.get("affected_modes")
         if not isinstance(modes, list):
-            raise ValueError("transport_event_invalid")
+            raise TypeError("transport_event_invalid")
         matched = [
             leg["leg_id"]
             for leg in journey["legs"]
