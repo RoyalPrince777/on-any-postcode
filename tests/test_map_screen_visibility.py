@@ -178,9 +178,11 @@ def test_road_network_has_bounded_batch_level_cold_start_recovery():
 
 def test_road_network_watchdog_invalidates_stuck_batches():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
-    assert "const ROAD_TILE_TIMEOUT_MS=8000;" in template
-    assert "const recoveryTimer=batchAttempt<3?setTimeout" in template
-    assert "!roadLayer.querySelector('polyline')" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=20000;" in template
+    assert "recoveryTimer" not in template
+    assert "tiles=tiles.slice(0,8)" in template
+    assert "Math.min(2,tiles.length)" in template
+    assert "request===roadRequest&&count<180" in template
     assert "loadRoadNetwork(b,mode,batchAttempt+1,null)" in template
     assert "},6000):null;" in template
     assert "if(recoveryTimer)clearTimeout(recoveryTimer);" in template
