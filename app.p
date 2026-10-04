@@ -4,6 +4,7 @@ import os
 import secrets
 import sqlite3
 from datetime import datetime
+from market_storefront import register_market_storefront
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("OAP_FLASK_SECRET") or secrets.token_hex(32)
@@ -61,6 +62,7 @@ def init_db():
     conn.close()
 
 init_db()
+register_market_storefront(app, db)
 
 BASE = """
 <!doctype html>
@@ -228,10 +230,6 @@ def creators():
 @app.route("/businesses")
 def businesses():
     return simple("🏪 Businesses", "Local business discovery, promo slots, trusted listings, and postcode commerce.")
-
-@app.route("/market")
-def market():
-    return simple("🛒 OAP Market", "Public preview for products, merch, creator goods, business offers, and future checkout.")
 
 @app.route("/explorer")
 def explorer():
