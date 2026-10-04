@@ -54,5 +54,5 @@ def test_arena_product_registry_no_longer_claims_all_multiplayer_locked():
 
     arena = next(item for item in products.SPOT_CAPABILITIES if item["id"] == "arena")
     assert "Connect 4, Dot, Chess, Ludo and Oware room multiplayer exposed" in arena["status"]
-    assert "remaining game-room exposure" in arena["blocked_by"].lower()
+    assert "remaining iq arena and route empire room exposure" in arena["blocked_by"].lower()
     assert "Durable profiles, multiplayer, rankings" not in arena["blocked_by"]
