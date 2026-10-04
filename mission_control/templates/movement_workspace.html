@@ -14,6 +14,7 @@
       <p>Book a Ride, E-Bike or Delivery, manage certified work availability, and handle governed match proposals.</p>
     </div>
     <div class="mc-header-actions">
+      <a class="mc-secondary-link" id="movement-map-link" href="/oap-map">Map</a>
       <a class="mc-secondary-link" href="{{ url_for('movement.movement_home') }}">Movement</a>
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
       <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
@@ -179,6 +180,23 @@
   <script>
   (() => {
     const csrf = {{ oap_csrf_token|tojson }};
+    const params = new URLSearchParams(window.location.search);
+    const pickupInput = document.getElementById("pickup-query");
+    const destinationInput = document.getElementById("destination-query");
+    const serviceInput = document.getElementById("service-type");
+    const fromParam = (params.get("from") || "").trim();
+    const toParam = (params.get("to") || "").trim();
+    const serviceParam = (params.get("service") || "").trim().toLowerCase();
+    if (pickupInput && fromParam && !pickupInput.value) pickupInput.value = fromParam;
+    if (destinationInput && toParam && !destinationInput.value) destinationInput.value = toParam;
+    if (serviceInput && ["ride","ebike","delivery"].includes(serviceParam)) serviceInput.value = serviceParam;
+    const mapLink = document.getElementById("movement-map-link");
+    if (mapLink && (fromParam || toParam)) {
+      const mapParams = new URLSearchParams();
+      if (fromParam) mapParams.set("location", fromParam);
+      if (toParam) mapParams.set("to", toParam);
+      mapLink.href = "/oap-map?" + mapParams.toString();
+    }
 
     const setResult = (id, text) => {
       const node = document.getElementById(id);
