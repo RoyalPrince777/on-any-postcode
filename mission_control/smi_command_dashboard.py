@@ -17,6 +17,7 @@ from . import (
     bank_permission_scope,
     brain,
     intelligence_runtime_proof,
+    mail_mailbox,
     mail_outbound,
     movement_intelligence,
     personal_telecom,
@@ -74,6 +75,7 @@ def status() -> dict[str, Any]:
     unlock_matrix = _regulated_unlock_matrix()
     telecom = personal_telecom.status()
     mail = mail_outbound.status()
+    mailbox = mail_mailbox.status()
     movement = movement_intelligence.movement_intelligence_status()
     mission_field = smi_73_signal_field.definition_status()
 
@@ -214,7 +216,10 @@ def status() -> dict[str, Any]:
                 "send_enabled": bool(mail.get("send_enabled")),
                 "relay_configured": bool(mail.get("relay_configured")),
                 "recipient_delivery_proven": bool(mail.get("recipient_delivery_proven")),
+                "mailbox_read_built": True,
+                "mailbox_schema_ready": bool(mailbox.get("schema_ready")),
                 "inbox_receive_built": False,
+                "inbound_transport_built": False,
             },
         },
         "sovereign_ui": {
