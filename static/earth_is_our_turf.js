@@ -29,6 +29,7 @@ function render(){
  q("[data-traffic]").textContent=" "+state.environment.traffic;
  const here=state.nodes.find(n=>n.id===state.player.node);q("[data-location]").textContent=here.label;\n q("[data-local-voice]").textContent=state.language?.arrival||"";
  q("[data-environment]").innerHTML="<strong>Environment Intelligence</strong><br>Footfall "+state.environment.footfall+" · Shops "+state.environment.shop_activity+" · Parks "+state.environment.park_activity+"<br>"+esc(state.environment.lighting)+" · "+esc(state.environment.soundscape)+" · "+esc(state.environment.visibility)+"<br><small>Game simulation · not live telemetry</small>";
+ q("[data-living]").innerHTML="<strong>Living Streets</strong><br>Traffic "+state.living.counts.moving_traffic+" · Pedestrians "+state.living.counts.pedestrians+" · Persistent vehicles "+state.living.counts.persistent_vehicles+" · Entrances "+state.living.counts.entrances+"<br><small>Game simulation · fictionalised fine detail · not live traffic</small>";
  q("[data-links]").innerHTML=state.navigation_links.map(lineMarkup).join("");
  const routeLine=q("[data-route-line]"),pts=routePoints();routeLine.setAttribute("points",pts);routeLine.hidden=!pts;
  root.querySelectorAll(".eiot-pin").forEach(n=>n.remove());
