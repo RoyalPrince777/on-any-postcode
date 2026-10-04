@@ -111,7 +111,7 @@ def test_oap_os_generation_zero_map_binding_stays_non_visual_and_consent_safe():
 def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
 
-    assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=12000;" in template
     assert "const controller=new AbortController();" in template
     assert "signal:controller.signal" in template
     assert "finally{clearTimeout(timeout)}" in template
@@ -146,7 +146,7 @@ def test_road_tiles_are_prioritised_and_bounded_instead_of_flooded():
     assert "tiles.sort((a,b)=>" in template
     assert "tiles=tiles.slice(0,4);" in template
     assert "Math.min(4,tiles.length)" in template
-    assert "for(let attempt=0;attempt<2;attempt++)" in template
+    assert "for(let attempt=0;attempt<3;attempt++)" in template
     assert "response.status!==503" in template
 
 
@@ -176,7 +176,7 @@ def test_road_network_has_bounded_batch_level_cold_start_recovery():
 
 def test_road_network_does_not_self_cancel_slow_successful_batches():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
-    assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=12000;" in template
     assert "recoveryTimer" not in template
     assert "tiles=tiles.slice(0,4)" in template
     assert "Math.min(4,tiles.length)" in template

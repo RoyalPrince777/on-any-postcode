@@ -308,3 +308,10 @@ def test_route_failure_falls_back_to_real_road_context_and_clears_boot():
     assert "const roadCount=await loadRoadNetwork(defaultBounds,profile.value);" in route
     assert "setRenderState(roadCount>0?'stable':'degraded')" in route
     assert route.count("loadRoadNetwork(defaultBounds,profile.value)") >= 2
+
+
+def test_live_road_tiles_have_bounded_resilient_retry_budget():
+    page = MAP.read_text(encoding="utf-8")
+    assert "const ROAD_TILE_TIMEOUT_MS=12000;" in page
+    assert "for(let attempt=0;attempt<3;attempt++)" in page
+    assert "if(attempt<2)await new Promise(resolve=>setTimeout(resolve,350*(attempt+1)))" in page
