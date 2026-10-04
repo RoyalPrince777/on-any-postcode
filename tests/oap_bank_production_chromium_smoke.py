@@ -53,10 +53,23 @@ def main() -> None:
             "canonical_balance_engine",
             "payment_reservations",
             "atomic_payment_creation",
+            "terminal_hold_lifecycle",
+            "authenticated_customer_view",
         ):
             assert payload["software_checks"][required_check] is True
         assert payload["software_external_execution_ready"] is False
         assert payload["money_movement_enabled"] is False
+        assert payload["authenticated_customer_view"] is True
+        assert payload["personal_balance_public"] is False
+
+        private_response = context.request.get(
+            BASE_URL + "/pay/bank/me/status"
+        )
+        assert private_response.status == 401
+        assert (
+            private_response.json()["error"]["code"]
+            == "authentication_required"
+        )
 
         for route in CUSTOMER_ROUTES:
             route_response = context.request.get(BASE_URL + route)
