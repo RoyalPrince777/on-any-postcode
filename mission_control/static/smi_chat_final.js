@@ -1099,9 +1099,7 @@ refreshOps();
   }else{
     bootControlSurfaceV2();
   }
-})();
-
-
+}
 
 /* SMI automatic reviewer + evidence-vote surface.
  * Uses only the completed governed result returned by the server.
@@ -1153,3 +1151,4 @@ window.addEventListener('oap-smi-complete',event=>{
   messages.append(card);
   messages.scrollTop=messages.scrollHeight;
 });
+})();
