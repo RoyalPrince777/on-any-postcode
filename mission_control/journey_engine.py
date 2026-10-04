@@ -363,6 +363,99 @@ def recovery_plan(
     }
 
 
+
+def evidence_trace(
+    *,
+    journey: dict[str, Any],
+    assessment: dict[str, Any],
+    recovery: dict[str, Any],
+) -> dict[str, Any]:
+    journey_id = journey.get("journey_id") if isinstance(journey, dict) else None
+    if (
+        not journey_id
+        or not isinstance(assessment, dict)
+        or assessment.get("journey_id") != journey_id
+        or not isinstance(recovery, dict)
+        or recovery.get("journey_id") != journey_id
+    ):
+        raise ValueError("transport_evidence_trace_invalid")
+
+    events = []
+    for impact in assessment.get("impacts") or []:
+        if not isinstance(impact, dict):
+            raise TypeError("transport_impact_invalid")
+        events.append(
+            {
+                "event_id": impact.get("event_id"),
+                "event_type": impact.get("event_type"),
+                "truth_state": impact.get("truth_state"),
+                "freshness": impact.get("freshness"),
+                "confidence": impact.get("confidence"),
+                "impact_state": impact.get("impact_state"),
+                "affected_leg_ids": list(impact.get("affected_leg_ids") or []),
+                "evidence_ids": list(impact.get("evidence_ids") or []),
+            }
+        )
+
+    unresolved = []
+    if assessment.get("impact_state") == "UNKNOWN":
+        unresolved.append("impact_truth_unresolved")
+    if recovery.get("recovery_state") in {"UNKNOWN", "REPLAN_REQUIRED"}:
+        unresolved.append("recovery_not_closed")
+    if not assessment.get("evidence_ids"):
+        unresolved.append("evidence_missing")
+
+    return {
+        "journey_id": journey_id,
+        "source_events": events,
+        "evidence_ids": list(assessment.get("evidence_ids") or []),
+        "impact_state": assessment.get("impact_state"),
+        "recovery_state": recovery.get("recovery_state"),
+        "unresolved": unresolved,
+        "trace_complete": not unresolved,
+        "execution_authorised": False,
+        "payment_authorised": False,
+        "human_authority_final": True,
+    }
+
+
+def recovery_case(
+    *,
+    journey: dict[str, Any],
+    assessment: dict[str, Any],
+    recovery: dict[str, Any],
+) -> dict[str, Any]:
+    trace = evidence_trace(
+        journey=journey,
+        assessment=assessment,
+        recovery=recovery,
+    )
+    state = recovery.get("recovery_state")
+    if state == "NOT_REQUIRED":
+        permitted = ["inspect", "evidence"]
+    elif state == "ALTERNATIVE_AVAILABLE":
+        permitted = ["inspect", "map", "alternatives", "evidence", "dependencies"]
+    else:
+        permitted = ["inspect", "map", "impact", "evidence", "dependencies"]
+
+    return {
+        "case_id": str(uuid4()),
+        "journey_id": journey.get("journey_id"),
+        "impact_state": assessment.get("impact_state"),
+        "recovery_state": state,
+        "affected_leg_ids": list(assessment.get("affected_leg_ids") or []),
+        "alternative_journey_ids": list(recovery.get("alternative_journey_ids") or []),
+        "evidence_trace": trace,
+        "permitted_actions": permitted,
+        "automatic_execution": False,
+        "operator_action_authorised": False,
+        "payment_action_authorised": False,
+        "closed": state == "NOT_REQUIRED" and trace["trace_complete"],
+        "human_authority_final": True,
+    }
+
+
+
 def command_center_state(
     *,
     journey: dict[str, Any],
@@ -413,6 +506,8 @@ def status() -> dict[str, Any]:
         "alternative_recovery_contract": True,
         "evidence_lineage": True,
         "command_center_projection": True,
+        "recovery_case_contract": True,
+        "evidence_trace_contract": True,
         "scheduled_is_not_live": True,
         "predicted_is_not_observed": True,
         "execution_authorised": False,
