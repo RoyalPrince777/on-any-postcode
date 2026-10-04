@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from mission_control import (
     location_intelligence,
     movement_operations,
@@ -183,7 +185,7 @@ def test_public_movement_links_to_private_workspace(client):
 
 
 def test_movement_workspace_accepts_map_route_prefill():
-    source = open("mission_control/templates/movement_workspace.html", encoding="utf-8").read()
+    source = Path("mission_control/templates/movement_workspace.html").read_text(encoding="utf-8")
     assert 'id="movement-map-link"' in source
     assert 'params.get("from")' in source
     assert 'params.get("to")' in source
