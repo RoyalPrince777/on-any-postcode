@@ -513,9 +513,9 @@ def get_public_arena_hub(state: Mapping[str, Any] | None = None) -> dict[str, An
         "status": status(),
         "truth": (
             "The embedded Challenge Engine remains session-scoped and non-ranked. "
-            "Arena-wide multiplayer rooms are exposed for Connect 4, Dot and Chess; "
+            "Arena-wide multiplayer rooms are exposed for Connect 4, Dot, Chess, Ludo and Oware; "
             "durable player-profile and ranking foundations exist behind explicit migration. "
-            "Remaining game-room exposure, full My Card competition projection, payments, "
+            "Remaining IQ Arena and Route Empire room exposure, full My Card competition projection, payments, "
             "prizes, external distribution and live A7 signals remain separately gated."
         ),
     }
