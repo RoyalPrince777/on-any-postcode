@@ -140,6 +140,7 @@ def status() -> dict[str, Any]:
         "configured": postgres_db.configured(),
         "schema_ready": False,
         "ready": False,
+        "ptt_ready": False,
         "first_party": True,
         "guardian_validation": "deterministic_audio",
         "external_media_provider_required": False,
@@ -154,7 +155,14 @@ def status() -> dict[str, Any]:
                 """SELECT 1 FROM information_schema.tables
                    WHERE table_schema='public' AND table_name='link_voice_notes'"""
             ).fetchone()
+            kind_row = connection.execute(
+                """SELECT 1 FROM information_schema.columns
+                   WHERE table_schema='public'
+                     AND table_name='link_voice_notes'
+                     AND column_name='kind'"""
+            ).fetchone()
         result["schema_ready"] = row is not None
+        result["ptt_ready"] = bool(row is not None and kind_row is not None)
     except Exception:  # noqa: BLE001 - status is intentionally coarse and fail-closed.
         return result
     result["ready"] = bool(result["schema_ready"])
