@@ -339,6 +339,7 @@ def readiness_state() -> dict[str, object]:
         live_road_intelligence,
         map_live_pattern,
         maps_movement_direct_proof_runner,
+        offline_routing,
         product_store,
         reviews,
         routing,
@@ -356,6 +357,7 @@ def readiness_state() -> dict[str, object]:
     market_state = product_store.status()
     reviews_state = reviews.status()
     route_matrix_state = maps_movement_direct_proof_runner.route_matrix_status()
+    offline_state = offline_routing.status()
     try:
         event_state = travel_marketplace.public_offers(category="event", limit=1)
     except Exception:  # noqa: BLE001
@@ -395,6 +397,9 @@ def readiness_state() -> dict[str, object]:
     wider_uk_routing_live = bool(
         federation_state.get("uk_wide_owned_graph_proven")
     )
+    offline_local_routing_package_proven = bool(
+        offline_state.get("offline_local_routing_package_proven")
+    )
 
     remaining = []
     if not road_tiles_proven:
@@ -419,6 +424,8 @@ def readiness_state() -> dict[str, object]:
         remaining.append("business owner listing tools")
     if not war_room_proof_runner_pass:
         remaining.append("combined War Room proof-runner pass")
+    if not offline_local_routing_package_proven:
+        remaining.append("offline/local road and routing package proof")
     first_party_reviews_ready = bool(reviews_state.get("ready"))
     if not first_party_reviews_ready:
         remaining.append("first-party reviews proof")
@@ -454,6 +461,8 @@ def readiness_state() -> dict[str, object]:
         "first_party_reviews_ready": first_party_reviews_ready,
         "connected_routing_shards": connected_shards,
         "wider_uk_routing_live": wider_uk_routing_live,
+        "offline_local_routing_package_proven": offline_local_routing_package_proven,
+        "offline_local_routing_package": offline_state,
         "dynamic_live_eta_ready": dynamic_live_eta_ready,
         "traffic_layer_ready": traffic_layer_ready,
         "reroute_signal_ready": reroute_signal_ready,
@@ -495,7 +504,7 @@ def smi_21_state() -> dict[str, object]:
         ("authority_disruption", "Authority-backed disruption evidence", bool(readiness["live_disruption_authority_proven"]), "evidence"),
         ("war_room_proof", "Combined proof runner", bool(readiness["war_room_proof_runner_pass"]), "software"),
         ("uk_wide_routing", "UK-wide owned routing graph", bool(readiness["wider_uk_routing_live"]), "evidence"),
-        ("offline_local", "Offline/local road and routing package", False, "evidence"),
+        ("offline_local", "Offline/local road and routing package", bool(readiness["offline_local_routing_package_proven"]), "evidence"),
     ]
     gates = [
         {
@@ -511,12 +520,31 @@ def smi_21_state() -> dict[str, object]:
     passed = sum(1 for gate in gates if gate["passed"])
     software_gates = [gate for gate in gates if gate["layer"] == "software"]
     software_passed = sum(1 for gate in software_gates if gate["passed"])
+    readiness_percent = round((passed / len(gates)) * 100, 1) if gates else 0.0
+    star_groups = [
+        {
+            "star": star,
+            "gate_numbers": tuple(gate["number"] for gate in group),
+            "green_votes": sum(1 for gate in group if gate["passed"]),
+            "purple_votes": sum(1 for gate in group if not gate["passed"]),
+            "signal": "green" if all(gate["passed"] for gate in group) else "purple",
+        }
+        for star, group in enumerate(
+            (gates[index:index + 3] for index in range(0, len(gates), 3)),
+            start=1,
+        )
+    ]
     return {
         "component": "SMI 21 · Map Intelligence",
         "public_product": "On Any Postcode Maps",
         "private_brain": "Map Intelligence",
         "gate_count": 21,
         "passed_gate_count": passed,
+        "readiness_percent": readiness_percent,
+        "truth_mode": True,
+        "green_votes": passed,
+        "purple_votes": len(gates) - passed,
+        "seven_star_review": star_groups,
         "protocol_complete": len(gates) == 21,
         "overall_green": passed == 21,
         "software_gate_count": len(software_gates),
@@ -623,6 +651,7 @@ def status() -> dict[str, object]:
         "live_disruption_authority_proven": bool(readiness["live_disruption_authority_proven"]),
         "connected_routing_shards": int(readiness["connected_routing_shards"]),
         "wider_uk_routing_live": bool(readiness["wider_uk_routing_live"]),
+        "offline_local_routing_package_proven": bool(readiness["offline_local_routing_package_proven"]),
         "overall_green": bool(readiness["overall_green"]),
         "remaining_before_green": readiness["remaining_before_green"],
         "reason_not_green": (
