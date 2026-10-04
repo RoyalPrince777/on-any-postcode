@@ -7,6 +7,7 @@ Human Authority remains final.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 
 AUTO_VERSION = 4
@@ -225,8 +226,6 @@ DEFAULT_AUTO_REVIEW = (
 
 def explicit_review_roles(message: object) -> tuple[str, ...]:
     """Resolve Founder-typed names to canonical SMI review lenses."""
-
-    import re
 
     text = str(message or "").casefold()
     selected: list[str] = []
