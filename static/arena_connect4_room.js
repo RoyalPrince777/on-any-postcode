@@ -67,7 +67,7 @@ async function refresh(){
 }
 function lockEntry(locked){
  entryBusy=locked;
- for(const key of ["[data-create]","[data-join]","[data-reconnect]"])
+ for(const key of ["[data-matchmake]","[data-create]","[data-join]","[data-reconnect]"])
   q(key).disabled=locked;
 }
 async function enter(task){
@@ -93,6 +93,8 @@ async function action(action,column){
 
  }finally{busy=false;render();}
 }
+q("[data-matchmake]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/matchmake",{game_key:"connect4",display_name:q("[data-host]").value.trim()});identity(d,d.seat);await refresh();});
+q("[data-matchmake]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/matchmake",{game_key:"connect4",display_name:q("[data-host]").value.trim()});identity(d,d.seat);await refresh();});
 q("[data-create]").onclick=()=>enter(async()=>{
  const host=q("[data-host]").value.trim();
  const result=await post("/arena/rooms/create",{game_key:"connect4",capacity:2,host_name:host});

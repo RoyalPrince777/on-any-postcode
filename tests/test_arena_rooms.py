@@ -101,6 +101,8 @@ def test_status_keeps_boundaries_explicit():
         "durable_rooms": True,
         "playable_room_games_only": True,
         "invite_codes": True,
+        "quick_matchmaking": True,
+        "matchmaking_games": sorted(arena_rooms.SUPPORTED_GAMES),
         "reconnect_tokens": True,
         "revision_conflict_guard": True,
         "connect4_server_actions": True,
@@ -552,3 +554,51 @@ def test_route_empire_room_action_enforces_turn(monkeypatch):
             expected_revision=1, request_id="route-room-wrong-seat-0001",
             action="claim", node_id="market",
         )
+
+
+
+def test_matchmake_creates_waiting_room_when_none_available(monkeypatch):
+    connection = _Connection([
+        _Result(one=None),
+        _Result(one=("ABC234",)),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+    monkeypatch.setattr(arena_rooms, "_room_code", lambda: "ABC234")
+
+    result = arena_rooms.matchmake(game_key="connect4", display_name="Alpha")
+
+    assert result["game_key"] == "connect4"
+    assert result["seat"] == 1
+    assert result["status"] == "WAITING"
+    assert result["matched"] is False
+    assert result["matchmaking"] is True
+    assert connection.commits == 1
+    assert any("FOR UPDATE SKIP LOCKED" in sql for sql, _ in connection.calls)
+
+
+def test_matchmake_atomically_joins_oldest_waiting_room(monkeypatch):
+    room_id = str(uuid.uuid4())
+    connection = _Connection([
+        _Result(one=(room_id, "ABC234")),
+        _Result(many=[(1, "Alpha")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+
+    result = arena_rooms.matchmake(game_key="connect4", display_name="Bravo")
+
+    assert result["room_id"] == room_id
+    assert result["room_code"] == "ABC234"
+    assert result["seat"] == 2
+    assert result["status"] == "ACTIVE"
+    assert result["matched"] is True
+    assert connection.commits == 1
+    assert any("SET status='ACTIVE'" in sql for sql, _ in connection.calls)
+
+
+def test_matchmaking_supports_every_authoritative_room_game():
+    expected = {"connect4", "dot", "chess", "ludo", "oware", "iq", "route-empire"}
+    assert arena_rooms.SUPPORTED_GAMES == expected
+    assert arena_rooms.status()["matchmaking_games"] == sorted(expected)
