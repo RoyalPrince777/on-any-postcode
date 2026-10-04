@@ -7,8 +7,11 @@ Founder and treated as opaque evidence references.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import subprocess
+import tempfile
 from pathlib import Path
 
 from . import personal_telecom
@@ -24,11 +27,24 @@ REFERENCE_ENV = {
 }
 
 MANIFEST_NAME = "install-state.json"
+CHECKSUM_NAME = "install-state.sha256"
+MANIFEST_SCHEMA = "oap.personal-telecom.install.v2"
 
 
 def _install_root() -> Path:
     raw = os.environ.get(INSTALL_ROOT_ENV, DEFAULT_INSTALL_ROOT)
     return Path(raw).expanduser()
+
+
+def _source_revision() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
 
 
 def authority_references() -> dict[str, dict[str, object]]:
@@ -52,6 +68,7 @@ def preflight() -> dict[str, object]:
         "single_owner": telecom["validation"]["single_owner"],
         "single_primary_line": telecom["validation"]["single_primary_line"],
         "oap_number": telecom["line"]["oap_number"],
+        "source_revision": _source_revision(),
         "authority_references": refs,
         "external_execution_enabled": any(telecom["execution"].values()),
         "sensitive_material_exposed": False,
@@ -70,8 +87,9 @@ def _manifest() -> dict[str, object]:
     telecom = personal_telecom.status()
     refs = authority_references()
     return {
-        "schema": "oap.personal-telecom.install.v1",
+        "schema": MANIFEST_SCHEMA,
         "system": "OAP Personal Telecom",
+        "source_revision": _source_revision(),
         "owner_scope": telecom["line"]["owner_scope"],
         "line_name": telecom["line"]["line_name"],
         "oap_number": telecom["line"]["oap_number"],
@@ -95,6 +113,89 @@ def _manifest() -> dict[str, object]:
     }
 
 
+def _encode_manifest(manifest: dict[str, object]) -> bytes:
+    return (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode("utf-8")
+
+
+def _write_atomic(path: Path, payload: bytes, mode: int = 0o600) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary_path = Path(temporary_name)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary_path.chmod(mode)
+        os.replace(temporary_path, path)
+    finally:
+        if temporary_path.exists():
+            temporary_path.unlink()
+
+
+def _manifest_integrity() -> dict[str, object]:
+    root = _install_root()
+    manifest_path = root / MANIFEST_NAME
+    checksum_path = root / CHECKSUM_NAME
+
+    if not manifest_path.is_file():
+        return {
+            "manifest_present": False,
+            "checksum_present": checksum_path.is_file(),
+            "checksum_valid": False,
+            "schema_valid": False,
+            "oap_number_valid": False,
+            "source_revision": None,
+            "current_revision": _source_revision(),
+            "source_revision_matches": False,
+            "integrity_valid": False,
+        }
+
+    try:
+        payload = manifest_path.read_bytes()
+        manifest = json.loads(payload.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {
+            "manifest_present": True,
+            "checksum_present": checksum_path.is_file(),
+            "checksum_valid": False,
+            "schema_valid": False,
+            "oap_number_valid": False,
+            "source_revision": None,
+            "current_revision": _source_revision(),
+            "source_revision_matches": False,
+            "integrity_valid": False,
+        }
+
+    expected = ""
+    if checksum_path.is_file():
+        expected = checksum_path.read_text(encoding="ascii").strip()
+    actual = hashlib.sha256(payload).hexdigest()
+    current_revision = _source_revision()
+    source_revision = str(manifest.get("source_revision") or "")
+    checksum_valid = bool(expected) and expected == actual
+    schema_valid = manifest.get("schema") == MANIFEST_SCHEMA
+    oap_number_valid = manifest.get("oap_number") == personal_telecom.PERSONAL_LINE["oap_number"]
+    source_revision_matches = bool(source_revision) and source_revision == current_revision
+
+    return {
+        "manifest_present": True,
+        "checksum_present": checksum_path.is_file(),
+        "checksum_valid": checksum_valid,
+        "schema_valid": schema_valid,
+        "oap_number_valid": oap_number_valid,
+        "source_revision": source_revision,
+        "current_revision": current_revision,
+        "source_revision_matches": source_revision_matches,
+        "integrity_valid": bool(
+            checksum_valid
+            and schema_valid
+            and oap_number_valid
+            and source_revision_matches
+        ),
+    }
+
+
 def install(*, assume_yes: bool = False, dry_run: bool = True) -> dict[str, object]:
     if not assume_yes:
         raise RuntimeError("Explicit human approval required: pass --yes")
@@ -106,12 +207,21 @@ def install(*, assume_yes: bool = False, dry_run: bool = True) -> dict[str, obje
     manifest = _manifest()
     root = _install_root()
     manifest_path = root / MANIFEST_NAME
+    checksum_path = root / CHECKSUM_NAME
+    payload = _encode_manifest(manifest)
+    digest = hashlib.sha256(payload).hexdigest()
 
     if not dry_run:
-        root.mkdir(parents=True, exist_ok=True, mode=0o700)
-        encoded = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
-        manifest_path.write_text(encoded, encoding="utf-8")
-        manifest_path.chmod(0o600)
+        _write_atomic(manifest_path, payload)
+        _write_atomic(checksum_path, (digest + "\n").encode("ascii"))
+        integrity = _manifest_integrity()
+        if not integrity["integrity_valid"]:
+            raise RuntimeError("Personal telecom install integrity verification failed")
+    else:
+        integrity = {
+            "integrity_valid": False,
+            "source_revision": manifest["source_revision"],
+        }
 
     return {
         "system": "OAP Personal Telecom Installer",
@@ -119,7 +229,10 @@ def install(*, assume_yes: bool = False, dry_run: bool = True) -> dict[str, obje
         "installed": not dry_run,
         "install_root": str(root),
         "manifest_name": MANIFEST_NAME,
+        "checksum_name": CHECKSUM_NAME,
         "software_ready": True,
+        "source_revision": manifest["source_revision"],
+        "integrity_verified": bool(integrity["integrity_valid"]),
         "external_activation_ready": check["external_activation_ready"],
         "authority_reference_state": manifest["authority_reference_state"],
         "external_execution_changed": False,
@@ -133,11 +246,13 @@ def uninstall(*, assume_yes: bool = False, dry_run: bool = True) -> dict[str, ob
         raise RuntimeError("Explicit human approval required: pass --yes")
 
     root = _install_root()
-    manifest_path = root / MANIFEST_NAME
-    existed = manifest_path.exists()
+    targets = (root / MANIFEST_NAME, root / CHECKSUM_NAME)
+    existed = any(path.exists() for path in targets)
 
-    if not dry_run and existed:
-        manifest_path.unlink()
+    if not dry_run:
+        for path in targets:
+            if path.exists():
+                path.unlink()
         try:
             root.rmdir()
         except OSError:
@@ -154,20 +269,38 @@ def uninstall(*, assume_yes: bool = False, dry_run: bool = True) -> dict[str, ob
 
 
 def status() -> dict[str, object]:
-    root = _install_root()
-    manifest_path = root / MANIFEST_NAME
     check = preflight()
+    integrity = _manifest_integrity()
     return {
         "system": "OAP Personal Telecom Install Readiness",
         "installer_built": True,
-        "install_root": str(root),
-        "manifest_present": manifest_path.is_file(),
+        "install_root": str(_install_root()),
+        "manifest_present": integrity["manifest_present"],
         "software_ready": check["ready_to_install_software"],
+        "install_integrity": integrity,
         "external_activation_ready": check["external_activation_ready"],
         "authority_references": check["authority_references"],
         "rollback_built": True,
         "external_execution_enabled": False,
         "sensitive_material_exposed": False,
+        "human_authority_final": True,
+    }
+
+
+def verify() -> dict[str, object]:
+    check = preflight()
+    integrity = _manifest_integrity()
+    return {
+        "system": "OAP Personal Telecom Install Verification",
+        "software_contract_valid": check["software_contract_valid"],
+        "software_ready": check["ready_to_install_software"],
+        "integrity": integrity,
+        "verified": bool(
+            check["software_contract_valid"]
+            and check["ready_to_install_software"]
+            and integrity["integrity_valid"]
+        ),
+        "external_execution_enabled": False,
         "human_authority_final": True,
     }
 
@@ -179,10 +312,13 @@ def main() -> int:
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--status", action="store_true")
+    parser.add_argument("--verify", action="store_true")
     parser.add_argument("--uninstall", action="store_true")
     args = parser.parse_args()
 
-    if args.status:
+    if args.verify:
+        payload = verify()
+    elif args.status:
         payload = status()
     elif args.uninstall:
         payload = uninstall(assume_yes=args.yes, dry_run=not args.apply)
@@ -190,7 +326,7 @@ def main() -> int:
         payload = install(assume_yes=args.yes, dry_run=not args.apply)
 
     print(json.dumps(payload, indent=2, sort_keys=True))
-    return 0
+    return 0 if not args.verify or payload["verified"] else 3
 
 
 if __name__ == "__main__":
