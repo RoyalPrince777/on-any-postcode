@@ -1,6 +1,5 @@
 """Regression coverage for MBS — M Town Build System."""
-from mission_control import earth_is_our_turf
-from mission_control import mtown_build_system
+from mission_control import earth_is_our_turf, mtown_build_system
 
 
 def test_mbs_status_contract():
