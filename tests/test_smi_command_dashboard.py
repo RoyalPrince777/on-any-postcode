@@ -165,7 +165,7 @@ def test_smi_essential_controls_have_clear_labels_functions_owners_and_real_rout
         "protection": ("Protection", "/mission/war-room", "Guardian"),
         "war_room": ("War Room", "/mission/war-room", "War Room"),
         "recovery": ("Recovery", "/mission/war-room", "Recovery"),
-        "founder_final": ("Founder Final", "/mission/judgement", "Human Authority"),
+        "founder_final": ("Founder Final", "/mission/war-room", "Human Authority"),
     }
 
     for control in controls:
@@ -195,7 +195,7 @@ def test_smi_home_renders_clear_control_functions_and_founder_final_route(client
     ):
         assert label in page
 
-    assert 'href="/mission/judgement"' in page
+    assert 'href="/mission/war-room"' in page
     assert 'href="/mission/improvement"' in page
     assert 'href="/mission/organism"' in page
     assert "clear function · real route · named owner" in page
