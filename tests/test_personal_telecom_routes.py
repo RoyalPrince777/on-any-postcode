@@ -116,3 +116,41 @@ def test_button_groups_cover_every_feature_once():
 
     assert sorted(grouped) == sorted(ids)
     assert len(grouped) == len(set(grouped))
+
+
+def test_my_line_front_door_has_all_primary_controls():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    template = (root / "mission_control" / "templates" / "personal_telecom.html").read_text(
+        encoding="utf-8"
+    )
+    my_card = (root / "templates" / "my_card.html").read_text(encoding="utf-8")
+    messenger = (root / "static" / "linkup_messenger.js").read_text(encoding="utf-8")
+    linkup_template = (
+        root / "mission_control" / "templates" / "linkup.html"
+    ).read_text(encoding="utf-8")
+
+    assert "My Line" in template
+    assert "Network Passport" in template
+    assert "Link Call" in template
+    assert "Link Message" in template
+    assert "PTT" in template
+    assert 'href="/my-line"' in my_card
+    assert "data-linkup-intent" in linkup_template
+    assert 'intent === "link-call"' in messenger
+    assert 'intent === "ptt"' in messenger
+    assert 'intent === "message"' in messenger
+
+
+def test_ptt_migration_is_explicit_and_bounded():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "migrations" / "0011_link_voice_ptt_kind.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "ALTER TABLE link_voice_notes" in migration
+    assert "ADD COLUMN IF NOT EXISTS kind" in migration
+    assert "CHECK (kind IN ('voice','ptt'))" in migration
