@@ -182,6 +182,24 @@ class EatsStore:
             connection.commit()
         return _row(row)
 
+    def read_order(self, *, order_id: object, identity_id: object) -> dict[str, Any]:
+        order = _uuid(order_id, "order_id")
+        identity = _uuid(identity_id, "identity_id")
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT o.order_id,o.merchant_id,o.state,o.amount_minor,o.currency,
+                          o.fulfilment_mode,o.movement_booking_id,o.payment_id,o.payment_hold_id,
+                          o.created_at,o.updated_at
+                   FROM oap_eats_orders o
+                   JOIN oap_eats_merchants m ON m.merchant_id=o.merchant_id
+                   WHERE o.order_id=%s
+                     AND (o.customer_identity_id=%s OR m.owner_identity_id=%s)""",
+                (order, identity, identity),
+            ).fetchone()
+        if row is None:
+            raise PermissionError("order_not_owned")
+        return _row(row)
+
     def bind_payment(self, *, order_id: object, customer_identity_id: object, payment_id: object, hold_id: object) -> dict[str, Any]:
         order = _uuid(order_id, "order_id")
         customer = _uuid(customer_identity_id, "customer_identity_id")
