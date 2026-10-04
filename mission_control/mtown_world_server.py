@@ -3,11 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from mission_control import (
-    earth_is_our_turf,
-    mtown_endless_world,
-    mtown_persistence,
-)
+from mission_control import earth_is_our_turf, mtown_endless_world, mtown_persistence
 
 def new_session()->dict[str,Any]:
     return {"world":earth_is_our_turf.new_world(),"server":{"authoritative":True,"tick":0}}
