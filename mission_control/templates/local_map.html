@@ -240,6 +240,7 @@ async function loadPlaces(term){
 }
 async function route(options={}){
  const a=from.value.trim(),b=to.value.trim();if((!options.originCoords&&a.length<2)||b.length<2)return;
+ setRenderState('loading');
  toast(options.originCoords?'Recalculating route…':'Finding route…');
  try{
    const params=new URLSearchParams({to:b,profile:profile.value});
