@@ -317,3 +317,53 @@ def test_iq_and_route_empire_room_pages_and_actions(client, csrf, monkeypatch):
     )
     assert response.status_code == 200
     assert response.get_json()["revision"] == 1
+
+
+
+def test_matchmaking_http_requires_csrf_and_returns_membership(client, csrf, monkeypatch):
+    import app as app_module
+
+    result = {
+        "room_id": "00000000-0000-0000-0000-000000000010",
+        "room_code": "ABC234",
+        "player_id": "00000000-0000-0000-0000-000000000011",
+        "reconnect_token": "match-token-" + "x" * 32,
+        "game_key": "chess",
+        "seat": 1,
+        "status": "WAITING",
+        "matched": False,
+        "matchmaking": True,
+    }
+    monkeypatch.setattr(app_module.arena_rooms, "matchmake", lambda **kwargs: result)
+
+    payload = {"game_key": "chess", "display_name": "Alpha"}
+    assert client.post("/arena/rooms/matchmake", json=payload).status_code == 403
+    response = client.post(
+        "/arena/rooms/matchmake",
+        json=payload,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 201
+    assert response.get_json()["matchmaking"] is True
+    assert response.get_json()["game_key"] == "chess"
+
+
+def test_all_authoritative_room_games_expose_quick_match(client):
+    cases = (
+        ("/arena/connect4/room", "/static/arena_connect4_room.js", "connect4"),
+        ("/arena/dot/room", "/static/arena_dot_room.js", "dot"),
+        ("/arena/chess/room", "/static/arena_chess_room.js", "chess"),
+        ("/arena/ludo/room", "/static/arena_ludo_room.js", "ludo"),
+        ("/arena/oware/room", "/static/arena_oware_room.js", "oware"),
+        ("/arena/iq/room", "/static/arena_iq_room.js", "iq"),
+        ("/arena/route-empire/room", "/static/arena_route_empire_room.js", "route-empire"),
+    )
+    for page_path, asset_path, game_key in cases:
+        page = client.get(page_path)
+        assert page.status_code == 200
+        assert "data-matchmake" in page.get_data(as_text=True)
+        script = client.get(asset_path)
+        assert script.status_code == 200
+        text = script.get_data(as_text=True)
+        assert "/arena/rooms/matchmake" in text
+        assert f'game_key:"{game_key}"' in text
