@@ -308,3 +308,84 @@ def test_dependency_without_evidence_or_declared_edge_does_not_spread_impact():
     )
     assessment = journey_engine.assess_disruptions(journey=journey, events=[event])
     assert assessment["affected_leg_ids"] == [journey["legs"][1]["leg_id"]]
+
+
+def test_evidence_trace_marks_missing_evidence_unresolved():
+    journey = _sample_journey()
+    event = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator incident feed",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=95,
+        ),
+        severity=90,
+    )
+    assessment = journey_engine.assess_disruptions(journey=journey, events=[event])
+    recovery = journey_engine.recovery_plan(journey=journey, assessment=assessment)
+    trace = journey_engine.evidence_trace(
+        journey=journey,
+        assessment=assessment,
+        recovery=recovery,
+    )
+    assert trace["trace_complete"] is False
+    assert "evidence_missing" in trace["unresolved"]
+    assert "recovery_not_closed" in trace["unresolved"]
+    assert trace["execution_authorised"] is False
+    assert trace["payment_authorised"] is False
+
+
+def test_recovery_case_exposes_only_governed_actions():
+    journey = _sample_journey()
+    event = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator incident feed",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=98,
+        ),
+        severity=95,
+        evidence_ids=["ev-rail-004"],
+    )
+    assessment = journey_engine.assess_disruptions(journey=journey, events=[event])
+    alternative = journey_engine.compose_journey(
+        origin="A",
+        destination="C",
+        legs=[
+            journey_engine.journey_leg(
+                mode="bus",
+                origin="A",
+                destination="C",
+                observation=journey_engine.transport_observation(
+                    truth_state="PREDICTED",
+                    source="operator feed",
+                    observed_at="2026-10-04T05:03:00+01:00",
+                    freshness="fresh",
+                    confidence=86,
+                ),
+                duration_minutes=32,
+            )
+        ],
+    )
+    recovery = journey_engine.recovery_plan(
+        journey=journey,
+        assessment=assessment,
+        alternatives=[alternative],
+    )
+    case = journey_engine.recovery_case(
+        journey=journey,
+        assessment=assessment,
+        recovery=recovery,
+    )
+    assert case["recovery_state"] == "ALTERNATIVE_AVAILABLE"
+    assert case["alternative_journey_ids"] == [alternative["journey_id"]]
+    assert "alternatives" in case["permitted_actions"]
+    assert case["automatic_execution"] is False
+    assert case["operator_action_authorised"] is False
+    assert case["payment_action_authorised"] is False
