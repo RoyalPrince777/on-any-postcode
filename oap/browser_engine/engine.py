@@ -4,6 +4,7 @@ This is intentionally not a standards-complete browser engine. It proves an
 OAP-owned parsing/layout/render contract that can grow without misrepresenting
 Android System WebView as first-party OAP technology.
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterable
