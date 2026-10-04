@@ -25,7 +25,7 @@ def bind_payment(*, order_id: object, customer_identity_id: object, payment_id: 
     hold = sika_payment_reservations.read_hold(payment_id)
     if hold is None or not hold.active:
         raise ValueError("active_payment_hold_required")
-    expected = Decimal(order["amount_minor"]) / Decimal("100")
+    expected = Decimal(order["amount_minor"]) / Decimal(100)
     if intent.amount != expected or hold.amount != expected:
         raise ValueError("payment_amount_mismatch")
     if intent.currency != order["currency"] or hold.currency != order["currency"]:
