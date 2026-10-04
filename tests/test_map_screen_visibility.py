@@ -78,7 +78,10 @@ def test_road_network_loads_without_successful_route():
         "if(from.value.trim()&&to.value.trim())route();"
     )
     assert 'id="road-source-state"' in template
-    assert "if(request===roadRequest&&!count){clearBoot();showRoadStatus('Road network unavailable" in template
+    assert "if(request===roadRequest&&!count){" in template
+    assert "if(batchAttempt<3)" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "clearBoot();showRoadStatus('Road network unavailable — route guidance may still work.');" in template
 
 
 def test_route_failure_preserves_independent_road_layer():
