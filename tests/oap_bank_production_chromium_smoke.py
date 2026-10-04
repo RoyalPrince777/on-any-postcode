@@ -5,20 +5,11 @@ The target is the deployed public OAP Bank surface and its canonical status.
 """
 from __future__ import annotations
 
-import json
-import os
-
 from playwright.sync_api import expect, sync_playwright
 
 
-BANK_URL = os.environ.get(
-    "OAP_BANK_URL",
-    "https://on-any-postcode.onrender.com/pay/bank",
-)
-STATUS_URL = os.environ.get(
-    "OAP_BANK_STATUS_URL",
-    "https://on-any-postcode.onrender.com/pay/bank/status",
-)
+BANK_URL = "https://on-any-postcode.onrender.com/pay/bank"
+STATUS_URL = "https://on-any-postcode.onrender.com/pay/bank/status"
 
 
 def main() -> None:
@@ -42,7 +33,7 @@ def main() -> None:
 
         status_response = context.request.get(STATUS_URL)
         assert status_response.status == 200
-        payload = json.loads(status_response.text())
+        payload = status_response.json()
         assert payload["software_scope"] == "software_only"
         assert payload["software_ready"] is True
         assert payload["software_percent"] == 100
