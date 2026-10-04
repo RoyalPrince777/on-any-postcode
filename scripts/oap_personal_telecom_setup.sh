@@ -24,6 +24,14 @@ fi
 
 cd "$REPO_DIR"
 
+git fetch origin main
+current_branch="$(git branch --show-current)"
+if [[ "$current_branch" != "main" ]]; then
+  printf 'Refusing install from branch %s; switch to main first.\n' "$current_branch" >&2
+  exit 2
+fi
+git pull --ff-only origin main
+
 python -m mission_control.personal_telecom_install --yes
 python -m mission_control.personal_telecom_install --yes --apply
 python -m mission_control.personal_telecom_install --status
