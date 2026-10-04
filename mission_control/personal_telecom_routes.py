@@ -8,11 +8,13 @@ from . import personal_telecom, personal_telecom_install, web_security
 bp = Blueprint("personal_telecom_ui", __name__, template_folder="templates")
 
 FEATURE_ROUTES: tuple[dict[str, str], ...] = (
+    {"id": "phone", "name": "Phone", "route": "/linkup?intent=link-call", "kind": "communications"},
+    {"id": "incoming", "name": "Incoming", "route": "/linkup/incoming", "kind": "communications"},
+    {"id": "recents", "name": "Recents", "route": "/linkup/calls/recents", "kind": "communications"},
+    {"id": "ptt", "name": "Walkie-Talkie", "route": "/linkup?intent=ptt", "kind": "communications"},
+    {"id": "messages", "name": "Messages", "route": "/linkup?intent=message", "kind": "communications"},
+    {"id": "contacts", "name": "Contacts", "route": "/linkup", "kind": "communications"},
     {"id": "my_card", "name": "My Card", "route": "/my-card", "kind": "identity"},
-    {"id": "link_up", "name": "Link Up", "route": "/linkup", "kind": "communications"},
-    {"id": "link_message", "name": "Link Message", "route": "/linkup?intent=message", "kind": "communications"},
-    {"id": "link_call", "name": "Link Call", "route": "/linkup?intent=link-call", "kind": "communications"},
-    {"id": "ptt", "name": "PTT", "route": "/linkup?intent=ptt", "kind": "communications"},
     {"id": "passport", "name": "Network Passport", "route": "/my-line/passport", "kind": "telecom"},
     {"id": "gates", "name": "Unlock Gates", "route": "/my-line/gates", "kind": "telecom"},
     {"id": "install", "name": "Install & Verify", "route": "/my-line/install", "kind": "device"},
@@ -24,17 +26,12 @@ BUTTON_GROUPS: tuple[dict[str, object], ...] = (
     {
         "id": "use",
         "name": "Use My Line",
-        "buttons": ("link_message", "link_call", "ptt", "link_up"),
-    },
-    {
-        "id": "identity",
-        "name": "Identity & Network",
-        "buttons": ("my_card", "passport", "status"),
+        "buttons": ("phone", "incoming", "recents", "ptt", "messages", "contacts"),
     },
     {
         "id": "control",
-        "name": "Control & Recovery",
-        "buttons": ("install", "gates", "recovery"),
+        "name": "Line Control",
+        "buttons": ("my_card", "passport", "status", "install", "gates", "recovery"),
     },
 )
 

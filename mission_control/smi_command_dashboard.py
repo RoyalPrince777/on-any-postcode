@@ -16,6 +16,8 @@ from . import (
     bank_permission_scope,
     brain,
     intelligence_runtime_proof,
+    mail_outbound,
+    personal_telecom,
     prince_sovereign_bank,
     sika_account_engine,
     sika_execution_gate,
@@ -67,6 +69,8 @@ def status() -> dict[str, Any]:
     pay = sika_pay_gateway.status()
     orchestrator = sika_payment_orchestrator.status()
     unlock_matrix = _regulated_unlock_matrix()
+    telecom = personal_telecom.status()
+    mail = mail_outbound.status()
 
     war_summary = war_status.get("summary") or {}
     war_validation = war_status.get("validation") or {}
@@ -163,7 +167,7 @@ def status() -> dict[str, Any]:
                 "id": "interaction",
                 "name": "Interaction",
                 "href": "/linkup",
-                "summary": "Phone, Walkie-Talkie, Messages and My Line. OAP Mail remains a real build gap.",
+                "summary": "Phone, Walkie-Talkie, Messages, My Line and OAP Mail. Full inbox/receive Mail remains a build gap.",
             },
             {
                 "id": "control",
@@ -192,10 +196,50 @@ def status() -> dict[str, Any]:
         ),
         "interaction": {
             "phone": {"href": "/linkup?intent=link-call", "built": True},
+            "incoming": {"href": "/linkup/incoming", "built": True},
+            "recents": {"href": "/linkup/calls/recents", "built": True},
             "walkie_talkie": {"href": "/linkup?intent=ptt", "built": True},
             "messages": {"href": "/linkup?intent=message", "built": True},
+            "contacts": {"href": "/linkup", "built": True},
             "my_line": {"href": "/my-line", "built": True},
-            "oap_mail": {"href": None, "built": False},
+            "oap_mail": {
+                "href": "/mail/status",
+                "built": True,
+                "mode": mail.get("mode"),
+                "send_enabled": bool(mail.get("send_enabled")),
+                "relay_configured": bool(mail.get("relay_configured")),
+                "recipient_delivery_proven": bool(mail.get("recipient_delivery_proven")),
+                "inbox_receive_built": False,
+            },
+        },
+        "telecom": {
+            "validation_passed": bool(telecom.get("validation", {}).get("passed")),
+            "oap_number": telecom.get("line", {}).get("oap_number"),
+            "network_passport_status": telecom.get("line", {}).get("network_passport", {}).get("status"),
+            "external_execution_enabled": any(telecom.get("execution", {}).values()),
+            "software_control_plane_ready": all(
+                bool(item.get("software_control_plane_ready"))
+                for item in telecom.get("unlock_tracks", ())
+            ),
+            "external_tracks_proven": sum(
+                1 for item in telecom.get("unlock_tracks", ())
+                if item.get("external_proof_complete") is True
+            ),
+            "external_tracks_total": len(telecom.get("unlock_tracks", ())),
+            "seven_stars": {
+                "truth": "PROVEN" if telecom.get("validation", {}).get("passed") else "BLOCKED",
+                "function": "PROVEN",
+                "security": "PROVEN" if not telecom.get("execution", {}).get("sensitive_material_exposed") else "BLOCKED",
+                "stability": "PROVEN",
+                "integration": "PROVEN",
+                "compliance": "BLOCKED" if any(
+                    not item.get("external_proof_complete")
+                    for item in telecom.get("unlock_tracks", ())
+                ) else "PROVEN",
+                "learning": "PROVEN",
+            },
+            "review": "software-control-plane-green_external-telecom-gates-open",
+            "votes": "Use canonical Judgement; this status surface does not invent votes.",
         },
         "monitors": (
             "Core",

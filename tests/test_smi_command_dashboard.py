@@ -60,7 +60,8 @@ def test_smi_command_dashboard_route_is_read_only(client):
     assert "Messages" in page
     assert "My Line / eSIM" in page
     assert "OAP Mail" in page
-    assert "Not built" in page
+    assert "Outbound relay built" in page
+    assert "Telecom truth review" in page
     assert "Graphs" in page
     assert "Monitors" in page
     assert 'method="post"' not in page.lower()
@@ -103,7 +104,7 @@ def test_regulated_unlock_matrix_fails_closed_when_evidence_store_unavailable(mo
     assert all(value is False for value in unlock["capabilities"].values())
 
 
-def test_smi_home_has_exactly_seven_unique_doors_and_truthful_mail_gap():
+def test_smi_home_has_exactly_seven_unique_doors_and_truthful_mail_scope():
     command = smi_command_dashboard.status()
     doors = command["doors"]
     assert len(doors) == 7
@@ -115,8 +116,15 @@ def test_smi_home_has_exactly_seven_unique_doors_and_truthful_mail_gap():
     assert command["interaction"]["walkie_talkie"]["built"] is True
     assert command["interaction"]["messages"]["built"] is True
     assert command["interaction"]["my_line"]["built"] is True
-    assert command["interaction"]["oap_mail"]["built"] is False
-    assert command["interaction"]["oap_mail"]["href"] is None
+    assert command["interaction"]["oap_mail"]["built"] is True
+    assert command["interaction"]["oap_mail"]["href"] == "/mail/status"
+    assert command["interaction"]["oap_mail"]["inbox_receive_built"] is False
+    assert command["interaction"]["incoming"]["href"] == "/linkup/incoming"
+    assert command["interaction"]["recents"]["href"] == "/linkup/calls/recents"
+    assert command["telecom"]["validation_passed"] is True
+    assert command["telecom"]["software_control_plane_ready"] is True
+    assert command["telecom"]["seven_stars"]["truth"] == "PROVEN"
+    assert command["telecom"]["seven_stars"]["compliance"] in {"PROVEN", "BLOCKED"}
 
 
 def test_smi_home_cockpit_is_low_noise_and_route_backed():

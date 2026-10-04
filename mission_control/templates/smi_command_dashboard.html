@@ -46,10 +46,28 @@
     <p class="eyebrow">Interaction</p>
     <div class="interaction">
       <a class="item" href="{{ command.interaction.phone.href }}"><strong>📞 Phone</strong><span class="state">Link Call</span></a>
+      <a class="item" href="{{ command.interaction.incoming.href }}"><strong>🚨 Incoming</strong><span class="state">Calls · Link · voice · journey</span></a>
+      <a class="item" href="{{ command.interaction.recents.href }}"><strong>🕘 Recents</strong><span class="state">Calls · missed state</span></a>
       <a class="item" href="{{ command.interaction.walkie_talkie.href }}"><strong>🎙️ Walkie-Talkie</strong><span class="state">PTT</span></a>
       <a class="item" href="{{ command.interaction.messages.href }}"><strong>💬 Messages</strong><span class="state">Link Message</span></a>
+      <a class="item" href="{{ command.interaction.contacts.href }}"><strong>👥 Contacts</strong><span class="state">Accepted Links</span></a>
       <a class="item" href="{{ command.interaction.my_line.href }}"><strong>📱 My Line / eSIM</strong><span class="state">Network Passport · device · recovery</span></a>
-      <div class="item"><strong>✉️ OAP Mail</strong><span class="state">Not built — genuine gap</span></div>
+      <a class="item" href="{{ command.interaction.oap_mail.href }}"><strong>✉️ OAP Mail</strong><span class="state">Outbound relay built · inbox/receive still open</span></a>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Telecom truth review</p>
+    <div class="facts">
+      <span class="pill {{ 'ok' if command.telecom.validation_passed else 'gap' }}">Validation {{ 'PROVEN' if command.telecom.validation_passed else 'BLOCKED' }}</span>
+      <span class="pill {{ 'ok' if command.telecom.software_control_plane_ready else 'gap' }}">Software control plane {{ 'PROVEN' if command.telecom.software_control_plane_ready else 'BLOCKED' }}</span>
+      <span class="pill gap">External tracks {{ command.telecom.external_tracks_proven }}/{{ command.telecom.external_tracks_total }}</span>
+      <span class="pill">Votes: canonical Judgement only</span>
+    </div>
+    <div class="facts" style="margin-top:8px">
+      {% for star, state in command.telecom.seven_stars.items() %}
+      <span class="pill {{ 'ok' if state == 'PROVEN' else 'gap' }}">★ {{ star|title }} · {{ state }}</span>
+      {% endfor %}
     </div>
   </section>
 

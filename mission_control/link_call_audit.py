@@ -344,6 +344,56 @@ def list_active(identity_id: object) -> list[dict[str, Any]]:
     return sessions
 
 
+def list_recent(identity_id: object, *, limit: int = 50) -> list[dict[str, Any]]:
+    """Return bounded metadata-only recent calls for one identity."""
+
+    identity = _uuid(identity_id, "invalid_identity")
+    _require_ready()
+    bounded = max(1, min(int(limit), 100))
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT session_id,initiator_id,recipient_id,mode,state,outcome,
+                          started_at,answered_at,ended_at
+                   FROM link_call_sessions
+                   WHERE (initiator_id=%s OR recipient_id=%s)
+                     AND expires_at>CURRENT_TIMESTAMP
+                   ORDER BY started_at DESC LIMIT %s""",
+                (identity, identity, bounded),
+            ).fetchall()
+    except Exception as exc:
+        raise LinkCallAuditUnavailable("link_call_recent_list_failed") from exc
+
+    sessions: list[dict[str, Any]] = []
+    for row in rows:
+        initiator = str(row[1])
+        recipient = str(row[2])
+        direction = "outgoing" if identity == initiator else "incoming"
+        answered_at = row[7]
+        outcome = str(row[5]) if row[5] is not None else None
+        missed = bool(
+            direction == "incoming"
+            and answered_at is None
+            and str(row[4]) == "ended"
+            and outcome in {"cancelled", "declined", "failed"}
+        )
+        sessions.append(
+            {
+                "session_id": str(row[0]),
+                "peer_id": recipient if identity == initiator else initiator,
+                "direction": direction,
+                "mode": str(row[3]),
+                "state": str(row[4]),
+                "outcome": outcome,
+                "missed": missed,
+                "started_at": row[6].isoformat(),
+                "answered_at": answered_at.isoformat() if answered_at else None,
+                "ended_at": row[8].isoformat() if row[8] else None,
+            }
+        )
+    return sessions
+
+
 def purge_expired() -> int:
     try:
         with postgres_db.connect() as connection:

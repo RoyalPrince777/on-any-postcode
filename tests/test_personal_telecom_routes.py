@@ -39,26 +39,24 @@ def test_my_line_feature_catalog_has_unique_buttons_and_real_targets():
     assert len(ids) == len(set(ids))
     assert len(routes) == len(set(routes))
     assert {
-        "my_card",
-        "link_up",
-        "link_message",
-        "link_call",
+        "phone",
+        "incoming",
+        "recents",
         "ptt",
+        "messages",
+        "contacts",
+        "my_card",
         "passport",
         "gates",
         "install",
         "recovery",
         "status",
     } == set(ids)
-    assert next(item for item in features if item["id"] == "link_call")["route"].startswith(
-        "/linkup"
-    )
-    assert next(item for item in features if item["id"] == "link_message")["route"].startswith(
-        "/linkup"
-    )
-    assert next(item for item in features if item["id"] == "ptt")["route"].startswith(
-        "/linkup"
-    )
+    assert next(item for item in features if item["id"] == "phone")["route"] == "/linkup?intent=link-call"
+    assert next(item for item in features if item["id"] == "messages")["route"] == "/linkup?intent=message"
+    assert next(item for item in features if item["id"] == "ptt")["route"] == "/linkup?intent=ptt"
+    assert next(item for item in features if item["id"] == "incoming")["route"] == "/linkup/incoming"
+    assert next(item for item in features if item["id"] == "recents")["route"] == "/linkup/calls/recents"
 
 
 def test_my_line_surface_reuses_existing_communications_instead_of_duplication(monkeypatch):
@@ -100,7 +98,7 @@ def test_my_line_surface_reuses_existing_communications_instead_of_duplication(m
     surface = personal_telecom_routes.surface_status()
 
     assert surface["front_door"] == "/my-line"
-    assert surface["button_count"] == 10
+    assert surface["button_count"] == 12
     assert surface["services"]["link_call"] == "identity-ready"
     assert surface["external_execution_enabled"] is False
     assert surface["human_authority_final"] is True
