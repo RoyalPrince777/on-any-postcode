@@ -291,7 +291,6 @@ def rank_alternatives(alternatives: object) -> list[dict[str, Any]]:
             raise ValueError("transport_alternative_invalid")
         confidence = item.get("confidence")
         duration = item.get("duration_minutes")
-        disruptions = item.get("disruptions") or []
         if isinstance(confidence, bool) or not isinstance(confidence, int):
             confidence = 0
         if isinstance(duration, bool) or not isinstance(duration, int):
@@ -321,7 +320,7 @@ def close_recovery_case(
     evidence = [str(item).strip() for item in resolved_evidence_ids if str(item).strip()]
     trace = case.get("evidence_trace")
     if not isinstance(trace, dict):
-        raise ValueError("transport_evidence_trace_invalid")
+        raise TypeError("transport_evidence_trace_invalid")
     required = set(trace.get("evidence_ids") or [])
     provided = set(evidence)
     unresolved = list(trace.get("unresolved") or [])
