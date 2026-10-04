@@ -19,6 +19,7 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
 .map-surface{position:absolute;inset:0;background:linear-gradient(#15191f,#0e1217)}
 .oap-mark,.search-card,.map-controls{visibility:visible!important;opacity:1!important}
 .oap-map-boot{position:absolute;left:50%;top:50%;z-index:2;transform:translate(-50%,-50%);padding:10px 14px;border:1px solid #39414b;border-radius:12px;background:#090c10d9;color:#d8dee7;font:700 13px Arial,sans-serif}
+.oap-map-boot[hidden]{display:none!important}
 </style>
 <link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css', v='map-runtime-v4') }}">
 </head>
@@ -129,21 +130,24 @@ const roadLayer=q('#road-layer'),svg=q('#route-svg'),casing=q('#route-casing'),l
 const fromLabel=q('#from-label'),toLabel=q('#to-label');
 let bounds=null,roadRequest=0;
 const roadStatus=q('#road-source-state'),boot=q('#oap-map-boot');
+const setRenderState=state=>{document.body.dataset.mapRenderState=state};
 const clearBoot=()=>{if(boot)boot.hidden=true};
 const showRoadStatus=message=>{roadStatus.textContent=message;roadStatus.hidden=!message};
 const defaultBounds={minX:-.235,maxX:-.13,minY:51.37,maxY:51.43};
 const toast=(text)=>{state.textContent=text;state.hidden=!text;if(text)setTimeout(()=>{if(state.textContent===text)state.hidden=true},2600)};
 function padBounds(coords){const xs=coords.map(c=>+c[0]),ys=coords.map(c=>+c[1]);let minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);const dx=Math.max(maxX-minX,.01),dy=Math.max(maxY-minY,.01);return{minX:minX-dx*.14,maxX:maxX+dx*.14,minY:minY-dy*.18,maxY:maxY+dy*.18}}
 const project=(lon,lat,b)=>{const p=50,dx=b.maxX-b.minX||1,dy=b.maxY-b.minY||1;return[p+((lon-b.minX)/dx)*(1000-p*2),p+(1-(lat-b.minY)/dy)*(700-p*2)]};
-function draw(coords){
+async function draw(coords){
  if(!Array.isArray(coords)||coords.length<2)return false;
  bounds=padBounds(coords);const pts=coords.map(c=>project(+c[0],+c[1],bounds));
  const routePoints=pts.map(x=>x.join(',')).join(' ');line.setAttribute('points',routePoints);casing.setAttribute('points',routePoints);
  start.setAttribute('cx',pts[0][0]);start.setAttribute('cy',pts[0][1]);
  end.setAttribute('cx',pts.at(-1)[0]);end.setAttribute('cy',pts.at(-1)[1]);
+ svg.hidden=true;setRenderState('loading');
+ const roadCount=await loadRoadNetwork(bounds,profile.value);
  svg.hidden=false;
- loadRoadNetwork(bounds,profile.value);
- return true
+ setRenderState(roadCount>0?'stable':'degraded');
+ return roadCount>0
 }
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
 function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
@@ -166,15 +170,18 @@ async function fetchRoadTile(z,x,y,mode){
 }
 async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
  const request=requestToken===null?++roadRequest:requestToken;
- if(batchAttempt===0)roadLayer.innerHTML='';
- showRoadStatus(batchAttempt?'Warming road network…':'Loading road network…');
+ if(batchAttempt===0){
+   setRenderState('loading');
+   if(boot)boot.hidden=false;
+ }
+ showRoadStatus('');
  const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;
  let x0=lon2x(b.minX,z),x1=lon2x(b.maxX,z),y0=lat2y(b.maxY,z),y1=lat2y(b.minY,z);let tiles=[];
  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)tiles.push([x,y]);
  const cx=(x0+x1)/2,cy=(y0+y1)/2;
  tiles.sort((a,b)=>((a[0]-cx)**2+(a[1]-cy)**2)-((b[0]-cx)**2+(b[1]-cy)**2));
  tiles=tiles.slice(0,8);
- let count=0,labelCount=0;const labelled=new Set();
+ let count=0,labelCount=0;const labelled=new Set(),staged=document.createDocumentFragment();
  const renderPayload=d=>{
    if(request!==roadRequest||!d||!Array.isArray(d.lines))return;
    const t=d.tile||{};
@@ -187,37 +194,40 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
      const isSecondary=/(secondary|tertiary)/.test(rawClass);
      const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',pts.map(v=>v.join(',')).join(' '));
      poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local');
-     roadLayer.appendChild(poly);count++;
+     staged.appendChild(poly);count++;
      const name=String(feature.name||'').trim();
-     if(name&&labelCount<32&&!labelled.has(name)&&(isMajor||isSecondary)){
+     if(name&&labelCount<18&&!labelled.has(name)&&(isMajor||isSecondary)){
        const mid=pts[Math.floor(pts.length/2)];
        const text=document.createElementNS('http://www.w3.org/2000/svg','text');
        text.setAttribute('x',mid[0]);text.setAttribute('y',mid[1]);text.setAttribute('class','road-label');
-       text.textContent=name;roadLayer.appendChild(text);labelled.add(name);labelCount++
+       text.textContent=name;staged.appendChild(text);labelled.add(name);labelCount++
      }
    }
-   if(count){showRoadStatus('');clearBoot()}
  };
  try{
    const queue=[...tiles];
    const worker=async()=>{while(queue.length&&request===roadRequest&&count<180){const [x,y]=queue.shift();const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}};
    await Promise.all(Array.from({length:Math.min(2,tiles.length)},worker));
-   if(request===roadRequest&&!count){
+   if(request!==roadRequest)return 0;
+   if(!count){
      if(batchAttempt<3){
-       showRoadStatus('Warming road network…');
        await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
-       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,null);
+       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
      }
-     clearBoot();showRoadStatus('Road network unavailable — route guidance may still work.');
+     clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — route guidance may still work.');
+     return 0
    }
+   roadLayer.replaceChildren(staged);
+   showRoadStatus('');clearBoot();setRenderState('stable');
+   return count
  }catch{
-   if(request===roadRequest&&!count){
-     if(batchAttempt<3){
-       await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
-       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,null);
-     }
-     clearBoot();showRoadStatus('Road network unavailable — check map source.');
+   if(request!==roadRequest)return 0;
+   if(batchAttempt<3){
+     await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
+     if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
    }
+   clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — check map source.');
+   return 0
  }
 }
 function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}
@@ -240,7 +250,7 @@ async function route(options={}){
    const r=await fetch('/map-intelligence/route?'+params.toString(),{credentials:'same-origin',cache:'no-store'});
    const d=await r.json();
    if(!r.ok||!d.route){svg.hidden=true;toast(d?.error?.code==='outside_current_oap_map_coverage'?'Outside current routing coverage':'Route unavailable');return}
-   draw(d.route.geometry?.coordinates||[]);
+   await draw(d.route.geometry?.coordinates||[]);
    distance.textContent=(d.route.distance_m/1000).toFixed(1)+' km';
    eta.textContent=Math.max(1,Math.round(d.route.duration_s/60))+' min';
    const live=d.route.live_road_state||{};
@@ -259,10 +269,9 @@ window.addEventListener('oap-map-reroute-request',event=>{
  const point=event.detail||{};
  if(Number.isFinite(point.latitude)&&Number.isFinite(point.longitude))route({originCoords:point});
 });
-loadRoadNetwork(defaultBounds,profile.value);
-setTimeout(clearBoot,5000);
+setRenderState('loading');
 profile.addEventListener('change',()=>{if(bounds)loadRoadNetwork(bounds,profile.value);else loadRoadNetwork(defaultBounds,profile.value)});
-if(from.value.trim()&&to.value.trim())route();
+if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);
 loadPlaces(from.value.trim());
 })();
 </script>
