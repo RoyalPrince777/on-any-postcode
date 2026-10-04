@@ -122,7 +122,7 @@ def ptt_status():
     return _no_store(
         make_response(
             jsonify(
-                ready=bool(state.get("ready")),
+                ready=bool(state.get("ptt_ready")),
                 first_party=bool(state.get("first_party")),
                 transport="oap_voice_store",
                 push_to_talk=True,
