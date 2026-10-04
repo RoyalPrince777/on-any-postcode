@@ -9,6 +9,7 @@ from . import (
     connectivity_briefs,
     organiser_schedules,
     public_store,
+    smi_archive,
     web_security,
     workspaces,
 )
@@ -53,6 +54,7 @@ def _page(*, error: str = "", form: dict[str, object] | None = None, status: int
             "organiser.html",
             schedules=schedules,
             briefs=briefs,
+            archive=smi_archive.status(),
             error=error or store_error,
             form=form or {},
             imported=request.args.get("imported", ""),
