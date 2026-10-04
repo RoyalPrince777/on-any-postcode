@@ -16,6 +16,7 @@ def test_smi_fixed_navigation_paths_are_registered_get_routes():
 
 def test_smi_public_workspace_tabs_do_not_404(client):
     for path in (
+        "/search?q=OAP",
         "/on-any-place",
         "/oap-map",
         "/movement",
