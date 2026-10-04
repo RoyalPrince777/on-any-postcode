@@ -20,7 +20,7 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
 .oap-mark,.search-card,.map-controls{visibility:visible!important;opacity:1!important}
 .oap-map-boot{position:absolute;left:50%;top:50%;z-index:2;transform:translate(-50%,-50%);padding:10px 14px;border:1px solid #39414b;border-radius:12px;background:#090c10d9;color:#d8dee7;font:700 13px Arial,sans-serif}
 </style>
-<link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css') }}">
+<link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css', v='map-runtime-v4') }}">
 </head>
 <body data-map-mode="explore">
 <main class="map-app">
@@ -266,7 +266,7 @@ if(from.value.trim()&&to.value.trim())route();
 loadPlaces(from.value.trim());
 })();
 </script>
-<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.js') }}"></script>
-<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_os_map_bridge.js') }}"></script>
+<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.js', v='map-runtime-v4') }}"></script>
+<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_os_map_bridge.js', v='map-runtime-v4') }}"></script>
 </body>
 </html>
