@@ -156,7 +156,7 @@ def set_owned_vehicles(character: object, vehicle_ids: object) -> dict[str,Any]:
     if not checked["passed"]:
         raise ValueError(checked["errors"][0])
     if not isinstance(vehicle_ids,list):
-        raise ValueError("character_owned_vehicles_invalid")
+        raise TypeError("character_owned_vehicles_invalid")
     out=copy.deepcopy(character)
     out["owned"]["vehicles"]=list(dict.fromkeys(str(v).strip() for v in vehicle_ids if str(v).strip()))
     return _seal(out)
