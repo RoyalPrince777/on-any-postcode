@@ -298,3 +298,13 @@ def test_bfcache_restore_without_destination_clears_old_route():
     assert "if(!event.persisted)return;" in page
     assert "if(!params.get('to')){" in page
     assert "window.dispatchEvent(new CustomEvent('oap-map-route-clear'));" in page
+
+
+def test_route_failure_falls_back_to_real_road_context_and_clears_boot():
+    page = MAP.read_text(encoding="utf-8")
+    route = page.split("async function route(options={}){", 1)[1].split(
+        "form.addEventListener('submit'", 1
+    )[0]
+    assert "const roadCount=await loadRoadNetwork(defaultBounds,profile.value);" in route
+    assert "setRenderState(roadCount>0?'stable':'degraded')" in route
+    assert route.count("loadRoadNetwork(defaultBounds,profile.value)") >= 2
