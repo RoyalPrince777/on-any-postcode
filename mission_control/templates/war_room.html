@@ -22,9 +22,67 @@
 .review-lens b{display:block;color:#e5d8fc}.review-lens small{color:#b7adc8}
 .review-truth{border-left:3px solid #b39555;padding:12px;background:#1b1720;color:#e4d8c7;margin-top:12px}
 @media(max-width:760px){.review-quarters,.review-judges,.review-lenses{grid-template-columns:1fr}}
-</style></head><body><main class="w">
+</style>
+<style>
+/* Additive status matrix upgrade. Existing War Room controls remain canonical. */
+.wr-status-matrix{background:linear-gradient(145deg,#0b0d13,#09130e 58%,#15101f);border-color:#66518c}
+.wr-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.wr-status-card{border:1px solid var(--l);border-radius:13px;background:#070d09;padding:12px;min-height:108px}
+.wr-status-card strong{display:block;font-size:1.18rem;margin-top:4px}.wr-status-card small{display:block;color:var(--m);margin-top:5px;line-height:1.45}
+.wr-status-card .metric{font-size:1.75rem;font-weight:900;color:#f2d778}.wr-status-card[data-state="green"]{border-color:#2c8c52}.wr-status-card[data-state="purple"]{border-color:#7256aa}.wr-status-card[data-state="yellow"]{border-color:#7a682b}
+.wr-flow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin-top:12px}
+.wr-flow-step{border:1px solid #423851;border-radius:12px;background:#0a0b13;padding:10px;text-align:center;min-height:86px;display:grid;place-items:center}
+.wr-flow-step b{display:block;color:#e7d7ff}.wr-flow-step small{display:block;color:#a99fb7;margin-top:4px}
+.wr-audit{width:100%;border-collapse:collapse;margin-top:12px}.wr-audit th,.wr-audit td{padding:10px;border-bottom:1px solid var(--l);text-align:left;vertical-align:top}.wr-audit th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:#b8c8bd}.wr-audit td:last-child{font-weight:800}
+.wr-audit .ok{color:var(--g)}.wr-audit .review{color:var(--pu)}.wr-audit .locked{color:var(--y)}
+@media(max-width:850px){.wr-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wr-flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.wr-status-grid,.wr-flow{grid-template-columns:1fr}.wr-audit{font-size:.82rem}}
+</style>
+</head><body><main class="w">
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
+
+<section class="panel wr-status-matrix" id="war-room-status-matrix" aria-labelledby="wr-status-title">
+  <div class="ey">🟣 SMI CC · War Room Status Matrix</div>
+  <h2 id="wr-status-title">UI · UX · Buttons · Functions · Proof · Authority</h2>
+  <p class="muted">Additive command view. Nothing below replaces an existing War Room control, council, vote, simulation, recovery proof, receipt or Founder Final boundary.</p>
+  <div class="wr-status-grid">
+    <article class="wr-status-card" data-state="green"><small>UI / UX</small><strong>Preserved + upgraded</strong><small>Responsive Founder-only War Room shell, mission entry, review boards, mobile layout and existing navigation remain intact.</small></article>
+    <article class="wr-status-card" data-state="purple"><small>BUTTONS</small><div class="metric" data-wr-control-count>—</div><strong>Visible controls audited</strong><small>Counted from the rendered War Room. Existing controls are not removed to create this matrix.</small></article>
+    <article class="wr-status-card" data-state="purple"><small>GOVERNED FUNCTIONS</small><div class="metric" data-wr-function-count>—</div><strong>Wired action controls</strong><small>Mission actions, depth, Guardian, Green Gate, recovery and Founder Final hooks counted from real data attributes.</small></article>
+    <article class="wr-status-card" data-state="{{ 'green' if war_room.validation.passed else 'yellow' }}"><small>WAR ROOM VALIDATION</small><strong>{{ '🟢 Passed' if war_room.validation.passed else '🟡 Review required' }}</strong><small>{{ war_room.validation.checks.rated_areas }} rated areas · {{ war_room.validation.checks.categories }} categories.</small></article>
+    <article class="wr-status-card" data-state="purple"><small>EVIDENCE SCORE</small><div class="metric">{{ war_room.summary.overall_evidence_score }}%</div><strong>Portfolio evidence</strong><small>{{ war_room.summary.meaning }}</small></article>
+    <article class="wr-status-card" data-state="purple"><small>RUNTIME VERIFIED</small><div class="metric">{{ war_room.summary.runtime_verified }}/{{ war_room.summary.rated_areas }}</div><strong>Evidence-backed runtime areas</strong><small>Separate from operational certification and from Founder approval.</small></article>
+    <article class="wr-status-card" data-state="yellow"><small>OPERATIONALLY CERTIFIED</small><div class="metric">{{ war_room.summary.operationally_certified }}/{{ war_room.summary.rated_areas }}</div><strong>Do not inflate</strong><small>Only areas reaching the canonical highest evidence stage count here.</small></article>
+    <article class="wr-status-card" data-state="green"><small>GUARDIAN / AEGIS</small><strong>🛡 Preserved</strong><small>Safety, permission and organism boundaries remain outside decorative status.</small></article>
+    <article class="wr-status-card" data-state="yellow"><small>HUMAN AUTHORITY</small><strong>👑 Founder Final</strong><small>{{ war_room.human_authority.message }}</small></article>
+  </div>
+
+  <h3>Seven-link mission command</h3>
+  <div class="wr-flow" aria-label="Canonical seven-link SMI mission flow">
+    <div class="wr-flow-step"><div><b>1 · Mission</b><small>Define the target</small></div></div>
+    <div class="wr-flow-step"><div><b>2 · Continue</b><small>Direct bounded work</small></div></div>
+    <div class="wr-flow-step"><div><b>3 · Risk / Guardian</b><small>Protect the boundary</small></div></div>
+    <div class="wr-flow-step"><div><b>4 · War Room / Judgement</b><small>Challenge and decide</small></div></div>
+    <div class="wr-flow-step"><div><b>5 · Founder Final</b><small>Human Authority</small></div></div>
+    <div class="wr-flow-step"><div><b>6 · Recovery / Rollback</b><small>Return safely</small></div></div>
+    <div class="wr-flow-step"><div><b>7 · Outcome / Learning</b><small>Receipt and improve</small></div></div>
+  </div>
+
+  <table class="wr-audit">
+    <thead><tr><th>Surface</th><th>What remains</th><th>Evidence state</th></tr></thead>
+    <tbody>
+      <tr><td>Mission control</td><td>SMI Auto, Manual 3/7/21, War Room, Challenge, Compare, 7×, Vote Board</td><td class="ok">Preserved</td></tr>
+      <tr><td>Protection</td><td>Guardian / Aegis, Green Gate, fail-closed truth language</td><td class="ok">Preserved</td></tr>
+      <tr><td>Recovery</td><td>25% rollback, 50% runtime guard, 75% isolation, 100% completion gate</td><td class="ok">Preserved</td></tr>
+      <tr><td>Review intelligence</td><td>Seven judges, 21 lenses, councils, debate alignment, simulation chamber</td><td class="ok">Preserved</td></tr>
+      <tr><td>Proof</td><td>Evidence score, seven-star board, receipts, runtime and operational stages</td><td class="review">Evidence-driven</td></tr>
+      <tr><td>Authority</td><td>Founder Final stays separate from votes, stars and automated review</td><td class="locked">Founder-only</td></tr>
+    </tbody>
+  </table>
+  <p class="truth"><strong>Truth mode:</strong> a visible button, high percentage, unanimous vote or attractive dashboard never creates proof. Existing evidence gates remain authoritative.</p>
+</section>
+
 <section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
 <button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><button class="btn js-depth" type="button" data-depth="3">MANUAL 3</button><button class="btn js-depth" type="button" data-depth="7">MANUAL 7</button><button class="btn js-depth" type="button" data-depth="21">MANUAL 21</button><button class="btn primary js-war-mode" type="button">⚔️ WAR ROOM</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a>
@@ -434,4 +492,25 @@
   });
 })();
 </script>
-</main><nav class="bottom"><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav></body></html>
+</main><nav class="bottom"><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav>
+<script>
+(()=>{"use strict";
+ const root=document.querySelector("main.w"); if(!root)return;
+ const controls=[...root.querySelectorAll("button,a.btn,a.chip")].filter(el=>!el.hasAttribute("aria-disabled"));
+ const wired=controls.filter(el=>
+   el.matches("[data-action],[data-depth],[data-proof],[data-step],[data-sim-mode],[data-sim-depth],[data-arena-action]") ||
+   el.classList.contains("js-war-action") ||
+   el.classList.contains("js-depth") ||
+   el.classList.contains("js-war-mode") ||
+   el.classList.contains("js-recovery-proof") ||
+   el.classList.contains("js-complete-green") ||
+   el.classList.contains("js-founder-final") ||
+   el.id==="run-simulation"
+ );
+ const controlNode=root.querySelector("[data-wr-control-count]");
+ const functionNode=root.querySelector("[data-wr-function-count]");
+ if(controlNode)controlNode.textContent=String(controls.length);
+ if(functionNode)functionNode.textContent=String(wired.length);
+})();
+</script>
+</body></html>
