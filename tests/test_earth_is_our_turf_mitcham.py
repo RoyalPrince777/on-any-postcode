@@ -58,3 +58,27 @@ def test_arena_front_door_links_mitcham_world(client):
     html=client.get("/arena").get_data(as_text=True)
     assert 'href="/arena/earth-is-our-turf"' in html
     assert "Enter Mitcham" in html
+
+
+def test_mitcham_streams_named_neighbourhood_chunks_and_environment():
+    state=earth_is_our_turf.new_world()
+    view=earth_is_our_turf.public_state(state)
+    assert view["active_chunk"]=="central"
+    assert "central" in view["loaded_chunks"]
+    assert view["environment"]["live_claim"] is False
+    assert view["environment"]["source"]=="game_environment_simulation_v1"
+
+    state=earth_is_our_turf.action(state,command="navigate",target="lavender-avenue",mode="car")
+    planned=earth_is_our_turf.public_state(state)
+    assert "lavender" in planned["loaded_chunks"]
+
+    state=earth_is_our_turf.action(state,command="travel-route")
+    arrived=earth_is_our_turf.public_state(state)
+    assert arrived["active_chunk"]=="lavender"
+    assert arrived["player"]["node"]=="lavender-avenue"
+
+
+def test_named_mitcham_anchors_are_in_world_catalogue():
+    state=earth_is_our_turf.public_state(earth_is_our_turf.new_world())
+    labels={n["label"] for n in state["nodes"]}
+    assert {"Lavender Avenue","Lavender Park","Phipps Bridge","Armfield Crescent","Laburnum Road"} <= labels
