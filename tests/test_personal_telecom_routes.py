@@ -133,7 +133,10 @@ def test_my_line_front_door_has_all_primary_controls():
 
     assert "My Line" in template
     assert 'routes[button_id]' in template
-    assert "Real-world unlock gates" in template
+    assert "<strong>MY LINE</strong>" in template
+    assert "surface.button_groups" in template
+    assert "Real-world unlock gates" not in template
+    assert "<h2>Services</h2>" not in template
     assert 'href="/my-line"' in my_card
     assert "data-linkup-intent" in linkup_template
     assert 'intent === "link-call"' in messenger
