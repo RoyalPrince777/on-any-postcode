@@ -19,6 +19,7 @@ from mission_control import (
     mtown_build_system,
     mtown_language,
     mtown_living_streets,
+    mtown_vehicle_life,
     mtown_world_position,
 )
 from mission_control import earth_is_our_turf_mitcham_world as mitcham_world
@@ -101,6 +102,7 @@ def new_world() -> dict[str, Any]:
         "active_route":None,
         "world_position":None,
         "living_streets":mtown_living_streets.new_state(),
+        "vehicle_life":mtown_vehicle_life.new_state(),
         "businesses":[
             {"id":"oap-local","label":"ON ANY POSTCODE Local","node":"town-centre","opens":420,"closes":1380,"stock":82,"memory":0},
             {"id":"oap-market","label":"ON ANY POSTCODE Market","node":"town-centre","opens":420,"closes":1320,"stock":90,"memory":0},
@@ -162,6 +164,10 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
         node_to_chunk=node_to_chunk,
     )
     out["living_status"]=mtown_living_streets.status()
+    out["vehicle_life_status"]=mtown_vehicle_life.status()
+    out["npc_routines"]=mtown_vehicle_life.npc_positions(
+        state["vehicle_life"],minute=state["time_minutes"],
+    )
     out["mbs"]=mtown_build_system.build_manifest(
         chunks=mitcham_world.CHUNKS,
         active_chunk=out["active_chunk"],
@@ -236,6 +242,11 @@ def action(
             "segment":copy.deepcopy(moved["segment"]),
             "route_progress":moved["route_progress"],
         })
+        current["living_streets"]=mtown_vehicle_life.sync_active_vehicle(
+            current["vehicle_life"],
+            character=current["character"],
+            living_streets=current["living_streets"],
+        )
         if moved["completed"]:
             current["active_route"]=None
     elif cmd=="travel-route":
@@ -270,6 +281,62 @@ def action(
         current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])
         _node(current,plan["to"])["memory"]+=1
         current["events"].append({"type":"movement","from":here["id"],"to":plan["to"],"mode":travel,"kind":plan["steps"][0]["kind"]})
+    elif cmd=="claim-vehicle":
+        vid=str(target or "").strip()
+        _,character=mtown_vehicle_life.claim_vehicle(
+            current["vehicle_life"],character=current["character"],vehicle_id=vid,
+        )
+        current["character"]=earth_is_our_turf_character.set_owned_vehicles(
+            current["character"],character["owned"]["vehicles"],
+        )
+        current["events"].append({"type":"vehicle_claimed","vehicle_id":vid})
+    elif cmd=="enter-vehicle":
+        life,character,streets=mtown_vehicle_life.enter_vehicle(
+            current["vehicle_life"],
+            character=current["character"],
+            living_streets=current["living_streets"],
+            vehicle_id=target,
+        )
+        current["vehicle_life"]=life
+        current["living_streets"]=streets
+        current["character"]=earth_is_our_turf_character.set_movement(
+            current["character"],mode="car",speed=0,
+        )
+        current["events"].append({"type":"vehicle_entered","vehicle_id":str(target or "")})
+    elif cmd=="exit-vehicle":
+        life,character,streets=mtown_vehicle_life.exit_vehicle(
+            current["vehicle_life"],
+            character=current["character"],
+            living_streets=current["living_streets"],
+        )
+        current["vehicle_life"]=life
+        current["living_streets"]=streets
+        current["character"]=earth_is_our_turf_character.set_movement(
+            current["character"],mode="foot",speed=0,
+        )
+        current["events"].append({"type":"vehicle_exited","node":here["id"]})
+    elif cmd=="park-vehicle":
+        life,character,streets=mtown_vehicle_life.park_active_vehicle(
+            current["vehicle_life"],
+            character=current["character"],
+            living_streets=current["living_streets"],
+            parking_id=target,
+        )
+        current["vehicle_life"]=life
+        current["living_streets"]=streets
+        current["character"]=earth_is_our_turf_character.set_movement(
+            current["character"],mode="foot",speed=0,
+        )
+        current["events"].append({"type":"vehicle_parked","parking_id":str(target or "")})
+    elif cmd=="use-entrance":
+        current["vehicle_life"]=mtown_vehicle_life.use_entrance(
+            current["vehicle_life"],
+            entrance_id=target,
+            entrances=current["living_streets"]["entrances"],
+            node_id=here["id"],
+            mode=current["character"]["movement"]["mode"],
+        )
+        current["events"].append({"type":"entrance_used","entrance_id":str(target or ""),"node":here["id"]})
     elif cmd=="help-local":
         here["memory"]+=2; here["prosperity"]=min(100,here["prosperity"]+2)
         current["player"]["influence"]+=2; current["player"]["reputation"]+=1
