@@ -77,13 +77,8 @@ with sync_playwright() as p:
         page.add_style_tag(content=CSS)
         page.add_script_tag(content=NAV)
         page.add_script_tag(content=OS_MAP)
-        runtime = page.locator("#oap-os-map-runtime")
-        assert runtime.is_visible(), label
-        assert runtime.get_attribute("data-oap-os-map-runtime") == (
-            "android-web" if mobile else "web"
-        ), label
-        assert "native" not in runtime.inner_text().lower(), label
-        assert runtime.get_attribute("data-road-source") == "unverified", label
+        assert page.locator("#oap-os-map-runtime").count() == 0, label
+        assert page.locator('a[aria-label="Manage Certified Merchant listings"]').count() == 0, label
         try:
             page.wait_for_function(
                 "() => document.querySelectorAll('#road-layer polyline').length > 0",
@@ -138,7 +133,6 @@ with sync_playwright() as p:
         assert page.locator("#road-layer polyline").count() > 0, label
         if mobile:
             assert page.locator("#voice-toggle").inner_text() == "Voice on"
-            assert page.locator("#oap-os-map-runtime").get_attribute("data-oap-os-map-runtime") == "android-web"
             assert page.evaluate("() => Array.isArray(window.__oapSpoken)") is True
         assert not errors, (label, errors)
         print(f"OAP_MAP_CHROMIUM_FIXTURE_PASS {label} roads={count} route_failure_retained=true")
