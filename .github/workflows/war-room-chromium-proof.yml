@@ -1,0 +1,35 @@
+name: OAP War Room real Chromium acceptance
+
+on:
+  pull_request:
+    paths:
+      - "mission_control/templates/war_room.html"
+      - "mission_control/views.py"
+      - "mission_control/war_room.py"
+      - "mission_control/war_room_simulation_actions.py"
+      - "mission_control/smi_proof_gate.py"
+      - "tests/war_room_chromium_proof.py"
+      - ".github/workflows/war-room-chromium-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  war-room-real-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OAP_AUTH_REQUIRED: "true"
+      OAP_HUMAN_AUTHORITY_EMAIL: founder@example.test
+      NEON_AUTH_BASE_URL: https://example.neonauth.test/neondb/auth
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install runtime and Chromium
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+      - name: Authenticated War Room interaction proof
+        run: python tests/war_room_chromium_proof.py
