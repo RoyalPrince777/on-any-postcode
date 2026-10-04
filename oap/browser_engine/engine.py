@@ -6,9 +6,9 @@ Android System WebView as first-party OAP technology.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from collections.abc import Iterable
+from dataclasses import asdict, dataclass
 from html.parser import HTMLParser
-from typing import Iterable
 
 
 BLOCK_TAGS = {
