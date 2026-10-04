@@ -15,7 +15,12 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from . import infrastructure_intelligence, live_signals, location_intelligence
+from . import (
+    infrastructure_intelligence,
+    live_signals,
+    location_intelligence,
+    telecom_sovereignty,
+)
 
 LOCKED_INFRASTRUCTURE_MODULES: tuple[dict[str, str], ...] = (
     {
@@ -294,6 +299,7 @@ def get_public_infrastructure() -> dict[str, Any]:
         "proposed_connections": [dict(item) for item in FIRST_PARTY_BUILD_GATES],
         "first_party_build_gates": [dict(item) for item in FIRST_PARTY_BUILD_GATES],
         "first_party_policy": dict(FIRST_PARTY_POLICY),
+        "telecom_sovereignty": telecom_sovereignty.status(),
         "signal_legend": live_signals.public_legend(),
         "validation": validate_infrastructure_scope(),
         "operating_mode": {
