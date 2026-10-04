@@ -218,6 +218,27 @@ def ai_behaviour():
 
 
 
+
+@bp.get("/smi/agents/strength")
+@bp.get("/war-room/agents/strength")
+@web_security.login_required(api=True, founder_only=True)
+def smi_agent_strength():
+    """Return truth-bounded first-party agent strength status."""
+
+    agent = request.args.get("agent")
+    try:
+        payload = (
+            ai_behaviour_protocol.agent_strength_status(agent)
+            if agent
+            else ai_behaviour_protocol.agent_strength_board()
+        )
+    except ValueError as exc:
+        return _no_store(
+            make_response(jsonify({"error": {"code": str(exc)[:160]}}), 400)
+        )
+    return _no_store(make_response(jsonify(payload)))
+
+
 @bp.route("/smi/agent-team/recommend", methods=["GET", "POST"])
 @bp.route("/war-room/agent-team/recommend", methods=["GET", "POST"])
 @web_security.login_required(api=True, founder_only=True)
