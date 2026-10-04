@@ -1,4 +1,4 @@
-"""Founder UI contract for the SMI Organiser."""
+"""Founder UI contract for the SMI Archive organiser surface."""
 import app as app_module
 from mission_control import (
     connectivity_briefs,
@@ -33,7 +33,13 @@ def test_organiser_dashboard_is_founder_only_and_truthful(monkeypatch):
     page = response.get_data(as_text=True)
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert "SMI Organiser" in page
+    assert "SMI Archive" in page
+    assert "History" in page
+    assert "Synthetic Mind Intelligence" in page
+    assert "Sovereign Megaverse Intelligence" in page
+    assert "Synthetic Machine Intelligence" in page
+    assert "The Claw Test" in page
+    assert "What can break this?" in page
     assert "No owner-scoped schedule receipt has reached SMI yet" in page
     assert "No reviewed briefing receipt exists inside OAP" in page
     assert "Automation authority" in page

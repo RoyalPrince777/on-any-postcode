@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SMI Organiser · OAP Private Command</title>
+  <title>SMI Archive · OAP Private Command</title>
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
   <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='private_command.css') }}">
   <style>
@@ -14,9 +14,9 @@
   {% include '_command_nav.html' %}
   <main class="oap-command-dashboard">
     <section class="oap-command-hero-modern">
-      <p class="oap-command-kicker">SMI · ORGANISER · OWNER-SCOPED · AUDITED</p>
-      <h1 class="oap-command-title">SMI Organiser</h1>
-      <p class="oap-command-copy">Private Founder surface for schedule receipts and reviewed connectivity briefs. SMI mirrors timing and evidence; it never runs an external schedule, stores its prompt, or grants execution authority.</p>
+      <p class="oap-command-kicker">SMI · ARCHIVE · OWNER-SCOPED · AUDITED</p>
+      <h1 class="oap-command-title">SMI Archive</h1>
+      <p class="oap-command-copy">Private Founder knowledge and organiser surface. Archive holds SMI lineage, anatomy, council, governance, History, War Room, Mission-to-100, Digital SoC, runtime evidence and lessons. History is the timeline inside Archive; existing schedule and connectivity receipts remain owner-scoped and fail-closed.</p>
       <div class="org-grid">
         <article class="org-card"><div class="org-meta">Schedule mirrors</div><h3>{{ schedules|length }}</h3><div class="org-state org-state--green">Audit read-back required</div></article>
         <article class="org-card"><div class="org-meta">Connectivity briefs</div><h3>{{ briefs|length }}</h3><div class="org-state org-state--locked">Founder review required</div></article>
@@ -25,6 +25,47 @@
       </div>
       {% if error %}<p class="org-boundary org-error"><strong>Fail-closed:</strong> {{ error }}</p>{% endif %}
       {% if imported %}<p class="org-boundary"><strong>Imported for review:</strong> {{ imported }}. This is an audited draft, not Founder approval.</p>{% endif %}
+    </section>
+
+    <section class="mc-panel" id="archive">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">One brain · organised history · no duplicate authority</p><h2>SMI Archive</h2></div><span class="mc-lock-badge">Read only</span></div>
+      <div class="org-grid">
+        {% for section in archive.sections %}
+          <article class="org-card" id="{{ section.id }}">
+            <div class="org-meta">{{ "%02d"|format(loop.index) }}</div>
+            <h3>{{ section.name }}</h3>
+            <p>{{ section.purpose }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="mc-panel" id="history">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Timeline inside Archive</p><h2>History</h2></div><span class="mc-lock-badge">Provenance preserved</span></div>
+      <div class="org-grid">
+        {% for item in archive.lineage %}
+          <article class="org-card">
+            <div class="org-meta">{{ item.position.replace('_', ' ') }}</div>
+            <h3>{{ item.name }}</h3>
+            <p>{{ item.meaning }}</p>
+          </article>
+        {% endfor %}
+      </div>
+      <p class="org-boundary"><strong>Current canonical SMI:</strong> {{ archive.current_name }}. Historical names remain lineage, not parallel brains.</p>
+    </section>
+
+    <section class="mc-panel" id="council">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Distinct review roles</p><h2>SMI Council</h2></div><span class="mc-lock-badge">Founder Final</span></div>
+      <div class="org-grid">
+        {% for member in archive.council %}
+          <article class="org-card">
+            <div class="org-meta">{{ member.role }}</div>
+            <h3>{{ member.name }}</h3>
+            <p>{{ member.boundary }}</p>
+          </article>
+        {% endfor %}
+      </div>
+      <p class="org-boundary"><strong>🐅 {{ archive.shere_khan.mode }}:</strong> {{ archive.shere_khan.opening_question }} · seven survivability checks · Shere Khan present at the beginning and end of major reviews.</p>
     </section>
 
     <section class="mc-panel" id="schedules">
