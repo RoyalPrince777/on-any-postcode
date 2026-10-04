@@ -10,8 +10,6 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
-
 from . import personal_telecom
 
 INSTALL_ROOT_ENV = "OAP_PERSONAL_TELECOM_HOME"
