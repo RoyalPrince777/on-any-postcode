@@ -14,7 +14,7 @@ from typing import Any
 from oap.smi.agi_core import AGICore
 from oap.smi.command_intelligence import CommandIntelligence
 
-from . import all_in_ai, all_in_ai_action_bridge, all_in_ai_mission_store
+from . import (\n    all_in_ai,\n    all_in_ai_action_bridge,\n    all_in_ai_mission_store,\n    smi_73_signal_field,\n)
 
 _MAX_MISSION_LENGTH = 4000
 _ALLOWED_RESEARCH_MODES = {"standard", "alien_research"}
@@ -153,6 +153,8 @@ def status() -> dict[str, Any]:
         "independent_execute": False,
         "independent_approval": False,
         "human_authority_final": True,
+        "mission_to_100": smi_73_signal_field.definition_status(),
+        "mission_review": smi_73_signal_field.evaluate(),
     }
 
 
