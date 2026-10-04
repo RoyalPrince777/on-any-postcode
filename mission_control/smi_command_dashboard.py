@@ -10,6 +10,7 @@ from typing import Any
 from oap.smi.action_risk_router import status as action_risk_status
 
 from . import (
+    ai_behaviour_protocol,
     all_intelligence,
     bank_authorisation,
     bank_authorisation_store,
@@ -17,6 +18,7 @@ from . import (
     brain,
     intelligence_runtime_proof,
     mail_outbound,
+    movement_intelligence,
     personal_telecom,
     prince_sovereign_bank,
     sika_account_engine,
@@ -24,6 +26,7 @@ from . import (
     sika_pay_gateway,
     sika_payment_orchestrator,
     sika_production_evidence_store,
+    smi_73_signal_field,
     war_room,
 )
 
@@ -71,6 +74,8 @@ def status() -> dict[str, Any]:
     unlock_matrix = _regulated_unlock_matrix()
     telecom = personal_telecom.status()
     mail = mail_outbound.status()
+    movement = movement_intelligence.movement_intelligence_status()
+    mission_field = smi_73_signal_field.definition_status()
 
     war_summary = war_status.get("summary") or {}
     war_validation = war_status.get("validation") or {}
@@ -211,6 +216,77 @@ def status() -> dict[str, Any]:
                 "recipient_delivery_proven": bool(mail.get("recipient_delivery_proven")),
                 "inbox_receive_built": False,
             },
+        },
+        "sovereign_ui": {
+            "title": "Sovereign Megaverse Intelligence",
+            "subtitle": "One brain · evidence first · Human Authority final",
+            "primary_route": "/mission/ollama",
+            "software_scope": True,
+            "live_scope_excluded": True,
+            "essential_controls": (
+                {"id": "mission", "label": "Mission", "href": "/mission/ollama", "icon": "◎"},
+                {"id": "intelligence", "label": "Intelligence", "href": "/mission/agents", "icon": "◈"},
+                {"id": "movement", "label": "Movement", "href": "/movement", "icon": "⌁"},
+                {"id": "learning", "label": "Learning", "href": "/mission/ollama#learning", "icon": "↗"},
+                {"id": "memory", "label": "HRM / JOOG", "href": "/mission/ollama", "icon": "◉"},
+                {"id": "guardian", "label": "Guardian", "href": "/mission/war-room", "icon": "◇"},
+                {"id": "war_room", "label": "War Room", "href": "/mission/war-room", "icon": "⚔"},
+                {"id": "recovery", "label": "Recovery", "href": "/mission/war-room", "icon": "↺"},
+            ),
+        },
+        "mission_to_100": {
+            "signal_count": mission_field.get("signal_count"),
+            "major_dimension_count": mission_field.get("major_dimension_count"),
+            "star_gate_count": mission_field.get("star_gate_count"),
+            "reviewer_count": mission_field.get("reviewer_count"),
+            "numeric_architecture": mission_field.get("numeric_architecture"),
+            "truth_mode": bool(mission_field.get("truth_mode")),
+            "upgrade_only": bool(mission_field.get("upgrade_only")),
+            "no_cosmetic_progress": bool(mission_field.get("no_cosmetic_progress")),
+            "software_model_ready": bool(
+                mission_field.get("signal_count") == 73
+                and mission_field.get("major_dimension_count") == 21
+                and mission_field.get("star_gate_count") == 7
+                and mission_field.get("reviewer_count") == 14
+            ),
+        },
+        "movement": {
+            "architecture_ready": bool(movement.get("architecture_passed")),
+            "software_navigation_ready": bool(movement.get("software_navigation_ready")),
+            "component_count": int(movement.get("component_count") or 0),
+            "mode_count": len(movement.get("movement_modes") or ()),
+            "route_geometry_proven": bool(movement.get("route_geometry_proven")),
+            "learning_loop": tuple(movement.get("intelligence_loop") or ()),
+            "href": "/movement",
+        },
+        "learning": {
+            "name": "Learning Intelligence",
+            "source": "HRM + receipts + bounded behaviour learning",
+            "behaviour_dimensions": len(ai_behaviour_protocol.BEHAVIOUR_DIMENSIONS),
+            "receipt_learning_defined": any(
+                part.get("id") == "learn"
+                for part in ai_behaviour_protocol.AI_BEHAVIOUR_PARTS
+            ),
+            "self_applying_change_allowed": False,
+            "human_authority_final": True,
+            "href": "/mission/ollama",
+        },
+        "character": {
+            "name": "SMI Character",
+            "states": ("ready", "listening", "thinking", "speaking", "paused", "stopped"),
+            "movement_bound_to_state": True,
+            "approved_first_party_presence": True,
+            "learning_claimed_from_animation": False,
+            "href": "/mission/ollama",
+        },
+        "alignment": {
+            "one_brain": True,
+            "single_front_door": True,
+            "war_room_separate_review": True,
+            "guardian_separate_protection": True,
+            "hrm_canonical_memory": True,
+            "human_authority_final": True,
+            "noise_reduction_rule": "Primary surface shows only mission, health, intelligence, protection, learning, movement, memory, recovery and Founder Final.",
         },
         "telecom": {
             "validation_passed": bool(telecom.get("validation", {}).get("passed")),

@@ -54,16 +54,17 @@ def test_smi_command_dashboard_route_is_read_only(client):
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert "SMI Home" in page
-    assert "Seven doors" in page
-    assert "Phone" in page
-    assert "Walkie-Talkie" in page
-    assert "Messages" in page
-    assert "My Line / eSIM" in page
-    assert "OAP Mail" in page
-    assert "Outbound relay built" in page
-    assert "Telecom truth review" in page
-    assert "Graphs" in page
-    assert "Monitors" in page
+    assert "Sovereign Megaverse Intelligence" in page
+    assert "Your intelligence, visible without the noise." in page
+    assert "Mission to 100" in page
+    assert "Essential controls" in page
+    assert "Movement Intelligence" in page
+    assert "Learning Intelligence" in page
+    assert "War Room" in page
+    assert "Human Authority final" in page
+    assert "Telecom truth review" not in page
+    assert ">Graphs<" not in page
+    assert ">Monitors<" not in page
     assert 'method="post"' not in page.lower()
     assert client.post("/mission/smi").status_code == 405
 
