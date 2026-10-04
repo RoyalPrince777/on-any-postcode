@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import re
 
-from . import autonomy_levels, smi_brain_protocol
+from . import autonomy_levels, hrm_agent_lifecycle, smi_brain_protocol
 
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
@@ -466,6 +466,16 @@ def agent_strength_status(
         "dimensions": tuple(dimensions),
         "external_model_score_influence": False,
         "founder_can_change_team": True,
+        "lifecycle": hrm_agent_lifecycle.lifecycle_plan(
+            proven_strength,
+            evidence_coverage_percent=evidence_coverage,
+        ),
+        "agent_help": {
+            "enabled": True,
+            "authority_transferred": False,
+            "hrm_receipt_required": True,
+            "rule": "Agents may request bounded help, teach, challenge and review each other without transferring authority.",
+        },
         "rule": (
             "Software readiness is not agent strength. Proven strength requires all "
             "seven OAP-owned mission evidence dimensions; unknown evidence stays Purple."
