@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="oap-csrf-token" content="{{ csrf_token }}"><title>Oware · OAP Arena</title>
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='oware.js') }}" defer></script></head>
 <body><main class="mc-shell arena-game" data-oware-root>
-<section class="card arena-header"><nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a></nav>
+<section class="card arena-header"><nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a> · <a href="/arena/oware/room">Online Room</a></nav>
 <p class="arena-hint">OAP Arena · Ghanaian/Akan strategy game</p><h1>🌰 Oware</h1><p>Sow. Capture. Protect the game.</p>
 <p class="arena-hint">Abapa core: 12 houses, 48 seeds, four per house. Grand-slam captures are forfeited so the opponent is not starved.</p>
 <label class="arena-field">Players (2, separated by comma)<input data-players maxlength="100" value="Player One, Player Two" autocomplete="off"></label>
