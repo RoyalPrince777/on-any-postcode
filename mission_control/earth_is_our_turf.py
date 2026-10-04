@@ -14,9 +14,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from mission_control import earth_is_our_turf_mitcham_world as mitcham_world
 from mission_control import (
     earth_is_our_turf_character,
+    earth_is_our_turf_mitcham_world as mitcham_world,
     mtown_build_system,
     mtown_language,
 )
