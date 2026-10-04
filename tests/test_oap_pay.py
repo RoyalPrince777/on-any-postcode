@@ -178,6 +178,10 @@ def test_oap_pay_bank_status_fails_closed(monkeypatch):
         },
     )
     status = oap_pay.bank_status()
+    assert status["software_scope"] == "software_only"
+    assert 0 <= status["software_percent"] <= 100
+    assert status["software_checks"]
+    assert status["software_external_execution_ready"] is False
     assert status["authorised_bank"] is False
     assert status["application_ready"] is False
     assert status["permission_scope_present"] is False
@@ -203,6 +207,9 @@ def test_oap_pay_bank_page_and_status_are_no_store(client):
     assert status.status_code == 200
     assert status.headers["Cache-Control"] == "no-store"
     payload = status.get_json()
+    assert payload["software_scope"] == "software_only"
+    assert payload["software_checks"]
+    assert payload["software_external_execution_ready"] is False
     assert payload["money_movement_enabled"] is False
 
 
@@ -367,3 +374,11 @@ def test_oap_bank_home_links_to_real_feature_routes(client):
     assert 'href="/pay/bank/cards"' in body
     assert 'href="/pay/bank/rights"' in body
     assert 'href="/pay/bank/control-center"' in body
+
+
+def test_oap_bank_page_shows_canonical_sika_software_readiness(client):
+    body = client.get("/pay/bank").get_data(as_text=True)
+    assert "SIKA software" in body
+    assert "SIKA software readiness" in body
+    assert "external licence/payment rails excluded" in body
+
