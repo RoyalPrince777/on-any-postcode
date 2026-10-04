@@ -397,6 +397,7 @@ def test_smi_cc_auto_maps_agent_board_selects_first_party_best_fit_and_truth_gat
         "Spider",
         "Agent Smith",
         "Twinz",
+        "Shark",
         "Shere Khan",
         "Bagheera",
         "Fox",
