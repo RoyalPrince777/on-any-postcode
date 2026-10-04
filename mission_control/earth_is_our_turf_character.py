@@ -123,6 +123,8 @@ def set_movement(
     node: object|None=None,
     speed: object|None=None,
     heading: object|None=None,
+    segment: object|None=None,
+    offset: object|None=None,
 ) -> dict[str,Any]:
     checked=validate(character)
     if not checked["passed"]:
@@ -143,6 +145,10 @@ def set_movement(
         out["movement"]["speed"]=max(0.0,float(speed))
     if heading is not None:
         out["movement"]["heading"]=float(heading)%360.0
+    if segment is not None:
+        out["movement"]["segment"]=copy.deepcopy(segment)
+    if offset is not None:
+        out["movement"]["offset"]=max(0.0,float(offset))
     return _seal(out)
 
 def adjust_reputation(character: object, *, dimension: object, amount: object) -> dict[str,Any]:

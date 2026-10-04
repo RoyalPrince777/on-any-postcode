@@ -18,6 +18,7 @@ from mission_control import (
     earth_is_our_turf_character,
     mtown_build_system,
     mtown_language,
+    mtown_world_position,
 )
 from mission_control import earth_is_our_turf_mitcham_world as mitcham_world
 
@@ -97,6 +98,7 @@ def new_world() -> dict[str, Any]:
             for a,b,kind,distance,modes in NAV_LINKS
         ],
         "active_route":None,
+        "world_position":None,
         "businesses":[
             {"id":"oap-local","label":"ON ANY POSTCODE Local","node":"town-centre","opens":420,"closes":1380,"stock":82,"memory":0},
             {"id":"oap-market","label":"ON ANY POSTCODE Market","node":"town-centre","opens":420,"closes":1320,"stock":90,"memory":0},
@@ -154,6 +156,7 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
         route_nodes=(state.get("active_route") or {}).get("nodes") if isinstance(state.get("active_route"),dict) else None,
         node_to_chunk=node_to_chunk,
     )
+    out["position_status"]=mtown_world_position.status()
     out["character"]=earth_is_our_turf_character.public_character(state["character"])
     out["language"]={
         "status":mtown_language.status(),
@@ -167,7 +170,14 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
     out["payments"]=False; out["real_world_tracking"]=False
     return out
 
-def action(state: object, *, command: object, target: object=None, mode: object=None) -> dict[str, Any]:
+def action(
+    state: object,
+    *,
+    command: object,
+    target: object=None,
+    mode: object=None,
+    distance: object=None,
+) -> dict[str, Any]:
     checked=validate(state)
     if not checked["passed"]: raise ValueError(checked["errors"][0])
     current=copy.deepcopy(state); cmd=str(command or "").strip()
@@ -177,8 +187,45 @@ def action(state: object, *, command: object, target: object=None, mode: object=
         plan=route(here["id"],target,travel)
         current["player"]["travel_mode"]=travel
         current["active_route"]=plan
+        current["world_position"]=mtown_world_position.start(plan)
         current["loaded_chunks"]=mitcham_world.streamed_chunks(mitcham_world.chunk_for(here["id"]),plan["nodes"])
         current["events"].append({"type":"route_planned","from":here["id"],"to":plan["to"],"mode":travel,"distance_m":plan["distance_m"]})
+    elif cmd=="advance-route":
+        plan=current.get("active_route")
+        position=current.get("world_position")
+        if not isinstance(plan,dict) or not isinstance(position,dict):
+            raise ValueError("eiot_active_route_missing")
+        moved=mtown_world_position.advance(
+            position,
+            plan,
+            distance_m=distance if distance is not None else 50,
+        )
+        current["world_position"]=moved
+        current["player"]["travel_mode"]=plan["mode"]
+        current["character"]=earth_is_our_turf_character.set_movement(
+            current["character"],
+            mode=plan["mode"],
+            node=moved["current_node"],
+            speed=0 if moved["completed"] else 1,
+            segment=moved["segment"],
+            offset=moved["segment"]["offset_m"],
+        )
+        if moved["current_node"]!=current["player"]["node"]:
+            current["player"]["node"]=moved["current_node"]
+            _node(current,moved["current_node"])["memory"]+=1
+        current["active_chunk"]=mitcham_world.chunk_for(current["player"]["node"])
+        current["loaded_chunks"]=mitcham_world.streamed_chunks(
+            current["active_chunk"],
+            mtown_world_position.lookahead_nodes(moved,plan),
+        )
+        current["events"].append({
+            "type":"continuous_movement",
+            "mode":plan["mode"],
+            "segment":copy.deepcopy(moved["segment"]),
+            "route_progress":moved["route_progress"],
+        })
+        if moved["completed"]:
+            current["active_route"]=None
     elif cmd=="travel-route":
         plan=current.get("active_route")
         if not isinstance(plan,dict) or plan.get("from")!=here["id"]: raise ValueError("eiot_active_route_missing")
@@ -195,6 +242,7 @@ def action(state: object, *, command: object, target: object=None, mode: object=
         current["time_minutes"]=(current["time_minutes"]+max(1,plan["distance_m"]//(450 if plan["mode"]=="foot" else 1800 if plan["mode"]=="bike" else 5000)))%(24*60)
         current["events"].append({"type":"travel","from":here["id"],"to":plan["to"],"mode":plan["mode"],"distance_m":plan["distance_m"]})
         current["active_route"]=None
+        current["world_position"]=None
     elif cmd=="move":
         travel=str(mode or current["player"]["travel_mode"]).strip().lower()
         plan=route(here["id"],target,travel)
