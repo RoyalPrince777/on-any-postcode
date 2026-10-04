@@ -14,8 +14,12 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from mission_control import (
+    earth_is_our_turf_character,
+    mtown_build_system,
+    mtown_language,
+)
 from mission_control import earth_is_our_turf_mitcham_world as mitcham_world
-from mission_control import mtown_build_system, mtown_language
 
 SCHEMA = "oap.arena.earth-is-our-turf.mitcham.v3"
 SESSION_KEY = "oap_eiot_mitcham_v1"
@@ -84,6 +88,7 @@ def new_world() -> dict[str, Any]:
         "time_minutes":8*60,
         "day":1,
         "player":{"node":"town-centre","travel_mode":"foot","influence":0,"cash":250,"reputation":0},
+        "character":earth_is_our_turf_character.new_character(),
         "active_chunk":"central",
         "loaded_chunks":["central"],
         "nodes":[dict(n, memory=0, prosperity=50, activity=50) for n in NODES],
@@ -149,6 +154,7 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
         route_nodes=(state.get("active_route") or {}).get("nodes") if isinstance(state.get("active_route"),dict) else None,
         node_to_chunk=node_to_chunk,
     )
+    out["character"]=earth_is_our_turf_character.public_character(state["character"])
     out["language"]={
         "status":mtown_language.status(),
         "place_label":mtown_language.place_label(out["district"]),
@@ -177,6 +183,12 @@ def action(state: object, *, command: object, target: object=None, mode: object=
         plan=current.get("active_route")
         if not isinstance(plan,dict) or plan.get("from")!=here["id"]: raise ValueError("eiot_active_route_missing")
         current["player"]["node"]=plan["to"]
+        current["character"]=earth_is_our_turf_character.set_movement(
+            current["character"],
+            mode=plan["mode"],
+            node=plan["to"],
+            speed=0,
+        )
         current["active_chunk"]=mitcham_world.chunk_for(plan["to"])
         current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])
         _node(current,plan["to"])["memory"]+=1
@@ -188,6 +200,12 @@ def action(state: object, *, command: object, target: object=None, mode: object=
         plan=route(here["id"],target,travel)
         if len(plan["steps"])!=1: raise ValueError("eiot_move_requires_direct_link")
         current["player"]["node"]=plan["to"]; current["player"]["travel_mode"]=travel
+        current["character"]=earth_is_our_turf_character.set_movement(
+            current["character"],
+            mode=travel,
+            node=plan["to"],
+            speed=0,
+        )
         current["active_chunk"]=mitcham_world.chunk_for(plan["to"])
         current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])
         _node(current,plan["to"])["memory"]+=1
@@ -195,6 +213,7 @@ def action(state: object, *, command: object, target: object=None, mode: object=
     elif cmd=="help-local":
         here["memory"]+=2; here["prosperity"]=min(100,here["prosperity"]+2)
         current["player"]["influence"]+=2; current["player"]["reputation"]+=1
+        current["character"]=earth_is_our_turf_character.adjust_reputation(current["character"],dimension="m_town",amount=1)
         current["events"].append({"type":"postcode_memory","node":here["id"],"effect":"community_help"})
     elif cmd=="shop":
         shops=[b for b in current["businesses"] if b["node"]==here["id"] and _business_open(b,current["time_minutes"]) and b["stock"]>0]
