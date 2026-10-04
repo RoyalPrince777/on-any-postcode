@@ -112,6 +112,7 @@ FUNCTION_SPECS = (
 
 SMI_FIXED_NAV_PATHS: tuple[tuple[str, str], ...] = (
     ("oap-front-door", "/"),
+    ("oap-search", "/search"),
     ("map", "/on-any-place"),
     ("map-alias", "/oap-map"),
     ("movement", "/movement"),
