@@ -360,7 +360,7 @@ def test_unknown_agent_strength_fails_closed():
         raise AssertionError("unknown review agent must fail closed")
 
 
-def test_maps_loading_old_routes_uses_founder_requested_seven_review_team():
+def test_maps_loading_old_routes_uses_founder_requested_eight_review_team():
     plan = ai_behaviour_protocol.recommend_agent_team(
         "Maps still loading and showing old routes"
     )
@@ -371,6 +371,7 @@ def test_maps_loading_old_routes_uses_founder_requested_seven_review_team():
         "Agent Smith",
         "Twinz",
         "Octopus",
+        "Spider",
         "Fox",
         "Bee",
     ]
