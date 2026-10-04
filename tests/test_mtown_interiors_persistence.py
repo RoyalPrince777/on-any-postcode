@@ -59,9 +59,10 @@ def test_service_and_energy_restore_persist_in_state():
     state=earth_is_our_turf.action(state,command="claim-vehicle",target="vehicle-oap-001")
     state=earth_is_our_turf.action(state,command="enter-vehicle",target="vehicle-oap-001")
     state=earth_is_our_turf.action(
-        state,command="navigate",target="western-road",mode="car",
+        state,command="navigate",target="lower-mitcham",mode="car",
     )
-    state=earth_is_our_turf.action(state,command="advance-route",distance=500)
+    total=earth_is_our_turf.public_state(state)["active_route"]["distance_m"]
+    state=earth_is_our_turf.action(state,command="advance-route",distance=total)
     state=earth_is_our_turf.action(
         state,command="service-vehicle",target="vehicle-oap-001",
     )
