@@ -138,12 +138,20 @@ def _registered_get_path(url_map: Any, path: str) -> bool:
     """Return True only when a concrete internal GET path resolves in Flask routing."""
 
     clean_path = str(path).split("?", 1)[0]
-    adapter = url_map.bind("localhost")
-    try:
-        adapter.match(clean_path, method="GET")
-    except (MethodNotAllowed, NotFound, RequestRedirect):
-        return False
-    return True
+    bind = getattr(url_map, "bind", None)
+    if callable(bind):
+        adapter = bind("localhost")
+        try:
+            adapter.match(clean_path, method="GET")
+        except (MethodNotAllowed, NotFound, RequestRedirect):
+            return False
+        return True
+
+    return any(
+        getattr(rule, "rule", None) == clean_path
+        and "GET" in set(getattr(rule, "methods", ()) or ())
+        for rule in url_map.iter_rules()
+    )
 
 
 def ui_route_integrity(url_map: Any) -> dict[str, Any]:
