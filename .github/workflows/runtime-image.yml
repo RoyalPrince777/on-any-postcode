@@ -168,6 +168,7 @@ jobs:
           PY
 
       - name: Promote exact published image to existing Core service
+        id: promote_core
         if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
         run: |
           python - <<'PY'
@@ -236,29 +237,71 @@ jobs:
           deploy=req("POST",f"/services/{service_id}/deploys",{"imageUrl":image})
           deploy_id=deploy.get("id") if isinstance(deploy,dict) else None
           if not deploy_id:
-              # A successful Render deploy request can return no JSON receipt.
-              # Health/read-back below remains the release gate.
-              deploy_id="accepted-no-receipt"
+              raise SystemExit("core_deploy_receipt_missing")
+          output=os.environ.get("GITHUB_OUTPUT")
+          if output:
+              with open(output,"a",encoding="utf-8") as handle:
+                  handle.write(f"deploy_id={deploy_id}\n")
           print(json.dumps({"service_id":service_id,"image":image,"deploy_id":deploy_id},sort_keys=True))
           PY
 
-      - name: Verify Core health
+      - name: Verify exact Core deploy is live and healthy
         if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
+        env:
+          DEPLOY_ID: ${{ steps.promote_core.outputs.deploy_id }}
         run: |
           python - <<'PY'
-          import time, urllib.request
-          url="https://on-any-postcode.onrender.com/healthz"
-          for _ in range(24):
-              try:
-                  with urllib.request.urlopen(url,timeout=20) as response:
-                      if 200 <= response.status < 300:
-                          print("core-image-health-pass")
-                          break
-              except Exception:
-                  pass
-              time.sleep(10)
+          import json, os, time, urllib.request, urllib.error
+
+          token=(os.environ.get("OAP_RENDER_API_KEY") or os.environ.get("RENDER_API_KEY") or "").strip()
+          deploy_id=os.environ.get("DEPLOY_ID","").strip()
+          digest=os.environ["IMAGE_DIGEST"].strip()
+          image=f'{os.environ["IMAGE_NAME"]}@{digest}'
+          service_id=os.environ["SERVICE_ID"]
+          api="https://api.render.com/v1"
+          headers={
+              "Accept":"application/json",
+              "Authorization":"Bearer "+token,
+              "User-Agent":"OAP-Core-Exact-Live-Gate/1.0",
+          }
+          if not deploy_id:
+              raise SystemExit("core_deploy_id_missing")
+
+          for _ in range(60):
+              req=urllib.request.Request(api+f"/services/{service_id}/deploys/{deploy_id}",headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  deploy=json.load(response)
+              status=str(deploy.get("status") or "")
+              deploy_image=(deploy.get("image") or {}).get("ref")
+              if status=="live":
+                  if deploy_image!=image:
+                      raise SystemExit(f"core_live_image_mismatch:{deploy_image}")
+                  break
+              if status in {"build_failed","update_failed","canceled","cancelled","deactivated"}:
+                  raise SystemExit(f"core_deploy_failed:{status}")
+              time.sleep(5)
           else:
-              raise SystemExit("core_image_health_not_ready")
+              raise SystemExit("core_exact_deploy_not_live")
+
+          req=urllib.request.Request(api+f"/services/{service_id}",headers=headers)
+          with urllib.request.urlopen(req,timeout=30) as response:
+              service=json.load(response)
+          if service.get("imagePath")!=image:
+              raise SystemExit("core_service_image_binding_mismatch")
+
+          url=os.environ["PUBLIC_URL"].rstrip("/") + os.environ["HEALTH_PATH"]
+          for _ in range(12):
+              try:
+                  req=urllib.request.Request(url,headers={"User-Agent":"OAP-Core-Exact-Live-Gate/1.0"})
+                  with urllib.request.urlopen(req,timeout=20) as response:
+                      if 200 <= response.status < 300:
+                          print(json.dumps({"event":"core_exact_deploy_live","deploy_id":deploy_id,"image":image,"success":True},sort_keys=True))
+                          break
+              except (urllib.error.URLError, TimeoutError):
+                  pass
+              time.sleep(5)
+          else:
+              raise SystemExit("core_exact_image_health_not_ready")
           PY
 
   map-production-browser-proof:
@@ -340,6 +383,7 @@ jobs:
         run: echo "smi-promotion-skipped-render-api-key-not-configured"
 
       - name: Promote exact published image to existing SMI service
+        id: promote_smi
         if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
         run: |
           python - <<'PY'
@@ -413,29 +457,71 @@ jobs:
           deploy=req("POST",f"/services/{service_id}/deploys",{"imageUrl":image})
           deploy_id=deploy.get("id") if isinstance(deploy,dict) else None
           if not deploy_id:
-              # A successful Render deploy request can return no JSON receipt.
-              # Health/read-back below remains the release gate.
-              deploy_id="accepted-no-receipt"
+              raise SystemExit("smi_deploy_receipt_missing")
+          output=os.environ.get("GITHUB_OUTPUT")
+          if output:
+              with open(output,"a",encoding="utf-8") as handle:
+                  handle.write(f"deploy_id={deploy_id}\n")
           print(json.dumps({"service_id":service_id,"image":image,"deploy_id":deploy_id},sort_keys=True))
           PY
 
-      - name: Verify SMI health
+      - name: Verify exact SMI deploy is live and healthy
         if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
+        env:
+          DEPLOY_ID: ${{ steps.promote_smi.outputs.deploy_id }}
         run: |
           python - <<'PY'
-          import time, urllib.request
-          url="https://oap-smi.onrender.com/healthz"
-          for _ in range(24):
-              try:
-                  with urllib.request.urlopen(url,timeout=20) as response:
-                      if 200 <= response.status < 300:
-                          print("smi-image-health-pass")
-                          break
-              except Exception:
-                  pass
-              time.sleep(10)
+          import json, os, time, urllib.request, urllib.error
+
+          token=(os.environ.get("OAP_RENDER_API_KEY") or os.environ.get("RENDER_API_KEY") or "").strip()
+          deploy_id=os.environ.get("DEPLOY_ID","").strip()
+          digest=os.environ["IMAGE_DIGEST"].strip()
+          image=f'{os.environ["IMAGE_NAME"]}@{digest}'
+          service_id=os.environ["SERVICE_ID"]
+          api="https://api.render.com/v1"
+          headers={
+              "Accept":"application/json",
+              "Authorization":"Bearer "+token,
+              "User-Agent":"OAP-SMI-Exact-Live-Gate/1.0",
+          }
+          if not deploy_id:
+              raise SystemExit("smi_deploy_id_missing")
+
+          for _ in range(60):
+              req=urllib.request.Request(api+f"/services/{service_id}/deploys/{deploy_id}",headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  deploy=json.load(response)
+              status=str(deploy.get("status") or "")
+              deploy_image=(deploy.get("image") or {}).get("ref")
+              if status=="live":
+                  if deploy_image!=image:
+                      raise SystemExit(f"smi_live_image_mismatch:{deploy_image}")
+                  break
+              if status in {"build_failed","update_failed","canceled","cancelled","deactivated"}:
+                  raise SystemExit(f"smi_deploy_failed:{status}")
+              time.sleep(5)
           else:
-              raise SystemExit("smi_image_health_not_ready")
+              raise SystemExit("smi_exact_deploy_not_live")
+
+          req=urllib.request.Request(api+f"/services/{service_id}",headers=headers)
+          with urllib.request.urlopen(req,timeout=30) as response:
+              service=json.load(response)
+          if service.get("imagePath")!=image:
+              raise SystemExit("smi_service_image_binding_mismatch")
+
+          url=os.environ["PUBLIC_URL"].rstrip("/") + os.environ["HEALTH_PATH"]
+          for _ in range(12):
+              try:
+                  req=urllib.request.Request(url,headers={"User-Agent":"OAP-SMI-Exact-Live-Gate/1.0"})
+                  with urllib.request.urlopen(req,timeout=20) as response:
+                      if 200 <= response.status < 300:
+                          print(json.dumps({"event":"smi_exact_deploy_live","deploy_id":deploy_id,"image":image,"success":True},sort_keys=True))
+                          break
+              except (urllib.error.URLError, TimeoutError):
+                  pass
+              time.sleep(5)
+          else:
+              raise SystemExit("smi_exact_image_health_not_ready")
           PY
 
   certify-production-release:
