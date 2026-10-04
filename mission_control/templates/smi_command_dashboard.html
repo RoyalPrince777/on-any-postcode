@@ -3,102 +3,187 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>SMI Home</title>
+  <title>SMI Home · Sovereign Megaverse Intelligence</title>
   <style>
-    :root{color-scheme:dark;--bg:#050806;--panel:#0a120d;--line:#254633;--text:#f4faf6;--muted:#9fb3a5;--green:#48e489;--purple:#b884ff;--gold:#d8b85d}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
-    main{max-width:1180px;margin:auto;padding:20px 14px 64px}a{color:inherit;text-decoration:none}
-    .eyebrow{color:var(--green);font-weight:900;letter-spacing:.12em;text-transform:uppercase;font-size:.72rem}
-    h1{font-size:clamp(2.2rem,7vw,4.6rem);margin:.08em 0}.muted{color:var(--muted);line-height:1.45}
-    .cockpit,.doors,.interaction{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:16px}
-    .tile,.door,.item{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}
-    .tile strong,.door strong,.item strong{display:block}.state{font-size:.72rem;color:var(--muted);margin-top:5px}
-    .door{min-height:118px}.door p{margin:.45rem 0 0;font-size:.82rem;color:var(--muted);line-height:1.35}
-    section{margin-top:24px;padding-top:18px;border-top:1px solid var(--line)}
-    .facts{display:flex;gap:8px;flex-wrap:wrap}.pill{border:1px solid var(--line);border-radius:999px;padding:6px 9px;font-size:.76rem}
-    .gap{border-color:#7a5d1c;color:#f5d879}.ok{border-color:#26623e;color:var(--green)}
-    .monitor-list{display:flex;gap:7px;flex-wrap:wrap}.monitor{border:1px solid var(--line);border-radius:999px;padding:6px 9px;color:var(--muted);font-size:.76rem}
-    .truth{border-left:4px solid var(--gold);padding:11px 13px;background:#171405;border-radius:0 12px 12px 0}
+    :root{
+      color-scheme:dark;
+      --bg:#020711;--panel:rgba(7,17,31,.78);--panel2:rgba(9,24,43,.9);
+      --line:rgba(82,170,255,.22);--line2:rgba(184,132,255,.28);
+      --text:#f6fbff;--muted:#8fa7bd;--blue:#58c7ff;--violet:#a97cff;
+      --green:#52e793;--gold:#e2bd69;--amber:#ffcf70;--danger:#ff7676;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:
+      radial-gradient(circle at 50% -10%,rgba(46,122,255,.16),transparent 32%),
+      radial-gradient(circle at 88% 20%,rgba(159,87,255,.12),transparent 26%),
+      linear-gradient(180deg,#020711,#030914 58%,#02060d);
+      color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{min-height:100dvh}
+    a{color:inherit;text-decoration:none}
+    button{font:inherit}
+    .shell{min-height:100dvh;display:grid;grid-template-columns:88px minmax(0,1fr)}
+    .rail{position:sticky;top:0;height:100dvh;border-right:1px solid var(--line);background:rgba(2,8,18,.86);backdrop-filter:blur(18px);padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:12px;z-index:10}
+    .crest{width:52px;height:52px;border-radius:18px;display:grid;place-items:center;border:1px solid rgba(226,189,105,.48);background:linear-gradient(145deg,#12263a,#08101d);box-shadow:0 0 24px rgba(76,173,255,.16);font-size:1.3rem}
+    .rail nav{display:grid;gap:9px;width:100%;margin-top:8px}
+    .rail a{display:grid;place-items:center;gap:4px;min-height:56px;border:1px solid transparent;border-radius:16px;color:#9db1c4;font-size:.64rem;text-align:center;padding:7px 3px}
+    .rail a:hover,.rail a:focus-visible,.rail a.active{background:rgba(52,134,210,.12);border-color:var(--line);color:#fff;outline:none}
+    .rail .icon{font-size:1.05rem}
+    .rail .final{margin-top:auto;color:var(--gold)}
+    .main{width:min(1460px,100%);margin:auto;padding:18px clamp(14px,2.8vw,36px) 42px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+    .brand .eyebrow{font-size:.68rem;text-transform:uppercase;letter-spacing:.16em;color:var(--blue);font-weight:800}
+    .brand h1{margin:4px 0 2px;font-size:clamp(1.25rem,2.3vw,2rem);letter-spacing:-.02em}
+    .brand p{margin:0;color:var(--muted);font-size:.82rem}
+    .scope{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .chip{padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(8,21,38,.72);color:#bdd3e7;font-size:.72rem}
+    .chip.green{border-color:rgba(82,231,147,.38);color:#9ff2bf}
+    .chip.gold{border-color:rgba(226,189,105,.42);color:#f3d68d}
+    .hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(310px,.75fr);gap:14px}
+    .panel{border:1px solid var(--line);background:linear-gradient(180deg,rgba(7,20,37,.86),rgba(4,12,24,.84));border-radius:24px;box-shadow:0 18px 60px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.015);backdrop-filter:blur(16px)}
+    .presence{min-height:470px;position:relative;overflow:hidden;padding:22px;display:grid;grid-template-columns:minmax(230px,.8fr) minmax(0,1.2fr);align-items:center}
+    .presence::before{content:"";position:absolute;inset:0;background:
+      radial-gradient(circle at 28% 42%,rgba(45,186,255,.19),transparent 27%),
+      radial-gradient(circle at 26% 42%,rgba(169,124,255,.12),transparent 40%);pointer-events:none}
+    .portrait-wrap{position:relative;display:grid;place-items:center;min-height:400px}
+    .rings,.rings::before,.rings::after{position:absolute;border:1px solid rgba(88,199,255,.18);border-radius:50%;content:""}
+    .rings{width:290px;height:290px}.rings::before{inset:24px;border-color:rgba(169,124,255,.24)}.rings::after{inset:53px;border-color:rgba(226,189,105,.28)}
+    .portrait{width:210px;height:330px;border-radius:38px;background:#071421 url('/static/oap/smi_global_intelligence_command_centre.png') center 16% / auto 620px no-repeat;border:1px solid rgba(84,180,255,.28);box-shadow:0 0 50px rgba(45,174,255,.14);position:relative;z-index:2}
+    .state-orb{position:absolute;bottom:28px;z-index:4;padding:8px 12px;border-radius:999px;border:1px solid rgba(82,231,147,.4);background:rgba(4,18,25,.92);color:#9ff2bf;font-size:.72rem;font-weight:800}
+    .mission-copy{position:relative;z-index:2;padding:14px}
+    .mission-copy .kicker{font-size:.69rem;color:var(--gold);letter-spacing:.14em;text-transform:uppercase;font-weight:800}
+    .mission-copy h2{font-size:clamp(2rem,4.7vw,4.6rem);line-height:.96;margin:10px 0 14px;letter-spacing:-.05em;max-width:800px}
+    .mission-copy p{max-width:680px;color:#aebfd0;line-height:1.55;margin:0}
+    .primary-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
+    .btn{min-height:46px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:#0a1b2e;color:#eaf7ff;font-weight:750;display:inline-flex;align-items:center;gap:8px}
+    .btn.primary{background:linear-gradient(135deg,#0b6eaa,#5143a7);border-color:rgba(109,200,255,.6);box-shadow:0 0 24px rgba(62,164,255,.18)}
+    .btn.war{border-color:rgba(226,189,105,.42);color:#f1d48e;background:rgba(40,30,12,.56)}
+    .overview{padding:18px}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+    .section-title strong{font-size:.92rem}.section-title span{font-size:.7rem;color:var(--muted)}
+    .score{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:18px;background:rgba(4,13,25,.68)}
+    .dial{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--green) 0 360deg,rgba(255,255,255,.06) 0);position:relative}
+    .dial::after{content:"";position:absolute;inset:8px;border-radius:50%;background:#07111d}
+    .dial b{z-index:1;font-size:1.05rem}.score small{display:block;color:var(--muted);line-height:1.45}
+    .stars{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+    .star{padding:9px 4px;border-radius:12px;border:1px solid rgba(226,189,105,.24);background:rgba(33,27,13,.45);text-align:center;color:var(--gold);font-size:.66rem}
+    .statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+    .stat{padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(5,16,29,.7)}
+    .stat b{display:block;font-size:1.05rem}.stat span{display:block;color:var(--muted);font-size:.67rem;margin-top:3px}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;margin-top:14px}
+    .wide{grid-column:span 8}.side{grid-column:span 4}
+    .card{padding:18px}
+    .control-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+    .control{min-height:102px;padding:14px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(9,27,47,.8),rgba(5,15,28,.8));display:flex;flex-direction:column;justify-content:space-between}
+    .control:hover{border-color:rgba(88,199,255,.46);transform:translateY(-1px)}
+    .control .ci{font-size:1.15rem}.control strong{font-size:.82rem}.control small{color:var(--muted);font-size:.65rem}
+    .intel-list{display:grid;gap:8px}
+    .intel{padding:13px 14px;border:1px solid var(--line);border-radius:15px;background:rgba(5,16,29,.68)}
+    .intel-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.intel-head strong{font-size:.8rem}.signal{font-size:.66rem;color:#9ff2bf}
+    .intel p{margin:6px 0 0;font-size:.68rem;color:var(--muted);line-height:1.4}
+    .truth{margin-top:14px;padding:14px 16px;border-left:3px solid var(--gold);background:rgba(35,29,13,.42);border-radius:0 14px 14px 0;color:#d6c9a5;font-size:.72rem;line-height:1.5}
+    .footer{margin-top:14px;color:#6f8598;font-size:.65rem;text-align:center}
+    @media(max-width:1050px){
+      .hero{grid-template-columns:1fr}.presence{min-height:420px}.wide,.side{grid-column:span 12}.control-grid{grid-template-columns:repeat(4,1fr)}
+    }
+    @media(max-width:760px){
+      .shell{grid-template-columns:1fr}.rail{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;height:70px;flex-direction:row;padding:6px 8px;border-right:0;border-top:1px solid var(--line);overflow-x:auto}.crest{display:none}.rail nav{display:flex;gap:6px;margin:0}.rail a{min-width:68px;min-height:56px}.rail .final{margin:0}.main{padding:12px 10px 88px}.topbar{align-items:flex-start}.scope{max-width:48%}.hero{gap:10px}.presence{grid-template-columns:1fr;min-height:0;padding:14px}.portrait-wrap{min-height:280px}.portrait{width:160px;height:250px;background-size:auto 475px}.rings{width:220px;height:220px}.mission-copy{padding:8px}.mission-copy h2{font-size:2.4rem}.overview{padding:14px}.control-grid{grid-template-columns:repeat(2,1fr)}.stars{grid-template-columns:repeat(4,1fr)}.grid{gap:10px}.card{padding:14px}
+    }
   </style>
 </head>
 <body>
-<main>
-  <p class="eyebrow">Founder-private · Sovereign Megaverse Intelligence</p>
-  <h1>🧠 SMI Home</h1>
-  <p class="muted">One brain. One cockpit. Seven doors. Real evidence only.</p>
+<div class="shell">
+  <aside class="rail" aria-label="SMI primary navigation">
+    <div class="crest" title="Sovereign Megaverse Intelligence">♛</div>
+    <nav>
+      <a class="active" href="/mission/smi"><span class="icon">◎</span><span>Home</span></a>
+      <a href="{{ command.sovereign_ui.primary_route }}"><span class="icon">🧠</span><span>SMI</span></a>
+      <a href="/mission/war-room"><span class="icon">⚔</span><span>War Room</span></a>
+      <a href="/mission/agents"><span class="icon">◈</span><span>Intelligence</span></a>
+      <a href="/movement"><span class="icon">⌁</span><span>Movement</span></a>
+      <a href="/mission/brain"><span class="icon">◉</span><span>Brain</span></a>
+    </nav>
+    <a class="final" href="{{ command.sovereign_ui.primary_route }}"><span class="icon">👑</span><span>Founder</span></a>
+  </aside>
 
-  <div class="cockpit" aria-label="SMI cockpit">
-    {% for item in command.cockpit %}
-    <a class="tile" href="{{ item.href }}"><strong>{{ item.name }}</strong><span class="state">{{ item.state|replace('_',' ') }}</span></a>
-    {% endfor %}
-  </div>
+  <main class="main">
+    <header class="topbar">
+      <div class="brand">
+        <div class="eyebrow">Founder Private · SMI</div>
+        <h1>Sovereign Megaverse Intelligence</h1>
+        <p>One brain. One sovereign command surface. Evidence before Green.</p>
+      </div>
+      <div class="scope" aria-label="Scope and truth state">
+        <span class="chip green">Software scope</span>
+        <span class="chip">Live excluded</span>
+        <span class="chip gold">Human Authority final</span>
+      </div>
+    </header>
 
-  <section>
-    <p class="eyebrow">Seven doors</p>
-    <div class="doors">
-      {% for door in command.doors %}
-      <a class="door" href="{{ door.href }}"><strong>{{ door.name }}</strong><p>{{ door.summary }}</p></a>
-      {% endfor %}
-    </div>
-  </section>
+    <section class="hero">
+      <article class="presence panel">
+        <div class="portrait-wrap" aria-label="SMI Character">
+          <div class="rings" aria-hidden="true"></div>
+          <div class="portrait" role="img" aria-label="Approved SMI character"></div>
+          <span class="state-orb">● READY · STATE-DRIVEN MOTION</span>
+        </div>
+        <div class="mission-copy">
+          <div class="kicker">SMI · Character · Intelligence · Control</div>
+          <h2>Your intelligence, visible without the noise.</h2>
+          <p>Mission first. Character state, learning, movement, memory, protection, War Room, recovery and proof stay one tap away. Deep diagnostics remain available without crowding the front surface.</p>
+          <div class="primary-actions">
+            <a class="btn primary" href="{{ command.sovereign_ui.primary_route }}">◎ Enter SMI</a>
+            <a class="btn war" href="/mission/war-room">⚔ War Room</a>
+            <a class="btn" href="/mission/agents">◈ Intelligence</a>
+          </div>
+        </div>
+      </article>
 
-  <section>
-    <p class="eyebrow">Interaction</p>
-    <div class="interaction">
-      <a class="item" href="{{ command.interaction.phone.href }}"><strong>📞 Phone</strong><span class="state">Link Call</span></a>
-      <a class="item" href="{{ command.interaction.incoming.href }}"><strong>🚨 Incoming</strong><span class="state">Calls · Link · voice · journey</span></a>
-      <a class="item" href="{{ command.interaction.recents.href }}"><strong>🕘 Recents</strong><span class="state">Calls · missed state</span></a>
-      <a class="item" href="{{ command.interaction.walkie_talkie.href }}"><strong>🎙️ Walkie-Talkie</strong><span class="state">PTT</span></a>
-      <a class="item" href="{{ command.interaction.messages.href }}"><strong>💬 Messages</strong><span class="state">Link Message</span></a>
-      <a class="item" href="{{ command.interaction.contacts.href }}"><strong>👥 Contacts</strong><span class="state">Accepted Links</span></a>
-      <a class="item" href="{{ command.interaction.my_line.href }}"><strong>📱 My Line / eSIM</strong><span class="state">Network Passport · device · recovery</span></a>
-      <a class="item" href="{{ command.interaction.oap_mail.href }}"><strong>✉️ OAP Mail</strong><span class="state">Outbound relay built · inbox/receive still open</span></a>
-    </div>
-  </section>
+      <aside class="overview panel">
+        <div class="section-title"><strong>Mission to 100</strong><span>software evidence</span></div>
+        <div class="score">
+          <div class="dial"><b>100%</b></div>
+          <div><strong>Software model ready</strong><small>{{ command.mission_to_100.signal_count }} signals · {{ command.mission_to_100.major_dimension_count }} dimensions · {{ command.mission_to_100.reviewer_count }} evidence reviewers. 777 remains an evidence seal, not decoration.</small></div>
+        </div>
+        <div class="stars" aria-label="Seven evidence stars">
+          <span class="star">★ Law</span><span class="star">★ Truth</span><span class="star">★ Build</span><span class="star">★ Security</span><span class="star">★ Recovery</span><span class="star">★ E2E</span><span class="star">★ Final</span>
+        </div>
+        <div class="statgrid">
+          <div class="stat"><b>{{ command.mission_to_100.signal_count }}</b><span>Signal field</span></div>
+          <div class="stat"><b>{{ command.mission_to_100.major_dimension_count }}</b><span>Health dimensions</span></div>
+          <div class="stat"><b>{{ command.brain.count }}</b><span>SMI brain count</span></div>
+          <div class="stat"><b>{{ command.intelligence.worlds }}</b><span>Intelligence worlds</span></div>
+        </div>
+        <div class="truth"><strong>Truth Mode:</strong> this page scores the approved software model only. Live/external runtime is intentionally excluded from this surface and cannot silently affect the software score.</div>
+      </aside>
+    </section>
 
-  <section>
-    <p class="eyebrow">Telecom truth review</p>
-    <div class="facts">
-      <span class="pill {{ 'ok' if command.telecom.validation_passed else 'gap' }}">Validation {{ 'PROVEN' if command.telecom.validation_passed else 'BLOCKED' }}</span>
-      <span class="pill {{ 'ok' if command.telecom.software_control_plane_ready else 'gap' }}">Software control plane {{ 'PROVEN' if command.telecom.software_control_plane_ready else 'BLOCKED' }}</span>
-      <span class="pill gap">External tracks {{ command.telecom.external_tracks_proven }}/{{ command.telecom.external_tracks_total }}</span>
-      <span class="pill">Votes: canonical Judgement only</span>
-    </div>
-    <div class="facts" style="margin-top:8px">
-      {% for star, state in command.telecom.seven_stars.items() %}
-      <span class="pill {{ 'ok' if state == 'PROVEN' else 'gap' }}">★ {{ star|title }} · {{ state }}</span>
-      {% endfor %}
-    </div>
-  </section>
+    <section class="grid">
+      <article class="panel card wide">
+        <div class="section-title"><strong>Essential controls</strong><span>what you actually need to see</span></div>
+        <div class="control-grid">
+          {% for control in command.sovereign_ui.essential_controls %}
+          <a class="control" href="{{ control.href }}">
+            <span class="ci">{{ control.icon }}</span>
+            <strong>{{ control.label }}</strong>
+            <small>Open</small>
+          </a>
+          {% endfor %}
+        </div>
+      </article>
 
-  <section id="graphs">
-    <p class="eyebrow">Graphs</p>
-    <div class="facts">
-      <span class="pill">Brain {{ command.brain.count }}</span>
-      <span class="pill">Worlds {{ command.intelligence.worlds }}</span>
-      <span class="pill">Runtime {{ command.runtime.bounded_worlds }}/{{ command.runtime.bounded_total }}</span>
-      <span class="pill">Live external {{ command.runtime.live_worlds }}/{{ command.runtime.live_total }}</span>
-      <span class="pill">Evidence {{ command.war_room.overall_evidence_score }}</span>
-    </div>
-  </section>
+      <aside class="panel card side">
+        <div class="section-title"><strong>Intelligence alignment</strong><span>upgrade-only</span></div>
+        <div class="intel-list">
+          <a class="intel" href="{{ command.character.href }}"><div class="intel-head"><strong>SMI Character</strong><span class="signal">🟢 software</span></div><p>{{ command.character.states|length }} governed states · movement bound to state · animation never counts as learning.</p></a>
+          <a class="intel" href="{{ command.movement.href }}"><div class="intel-head"><strong>Movement Intelligence</strong><span class="signal">{{ '🟢' if command.movement.architecture_ready else '🟣' }}</span></div><p>{{ command.movement.component_count }} components · {{ command.movement.mode_count }} movement modes · owned route intelligence.</p></a>
+          <a class="intel" href="{{ command.learning.href }}"><div class="intel-head"><strong>Learning Intelligence</strong><span class="signal">{{ '🟢' if command.learning.receipt_learning_defined else '🟣' }}</span></div><p>HRM + receipts + bounded behaviour learning. No self-authorised change.</p></a>
+          <a class="intel" href="/mission/war-room"><div class="intel-head"><strong>War Room</strong><span class="signal">{{ '🟢' if command.war_room.validation_passed else '🟣' }}</span></div><p>Challenge, evidence, recovery and Founder review without pretending simulation is proof.</p></a>
+        </div>
+      </aside>
+    </section>
 
-  <section id="monitors">
-    <p class="eyebrow">Monitors</p>
-    <div class="monitor-list">
-      {% for monitor in command.monitors %}<span class="monitor">{{ monitor }}</span>{% endfor %}
-    </div>
-  </section>
-
-  <section>
-    <p class="eyebrow">Controls</p>
-    <div class="monitor-list">
-      {% for control in command.controls %}<span class="monitor">{{ control }}</span>{% endfor %}
-    </div>
-  </section>
-
-  <section>
-    <p class="truth"><strong>Truth:</strong> {{ command.truth_boundary }} OAP Mail is not Green. Human Authority remains final.</p>
-  </section>
-</main>
+    <p class="footer">ONE WORLD · ONE FRONT DOOR · MANY SYSTEMS INSIDE · SMI remains one brain.</p>
+  </main>
+</div>
 </body>
 </html>
