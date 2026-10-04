@@ -1,7 +1,7 @@
 """Private OAP Mail outbound routes."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import mail_mailbox, mail_outbound, web_security
 
@@ -12,6 +12,39 @@ def _no_store(response):
     response.headers["Cache-Control"] = "no-store, private"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@bp.get("/mail")
+@web_security.login_required(founder_only=True)
+def mailbox_home():
+    folder = str(request.args.get("folder") or "inbox").strip().casefold()
+    mailbox_state = mail_mailbox.status()
+    items = []
+    error = None
+    if folder not in mail_mailbox.FOLDERS:
+        folder = "inbox"
+        error = "invalid_mail_folder"
+    elif mailbox_state.get("ready"):
+        try:
+            items = mail_mailbox.list_folder(_identity(), folder)
+        except Exception:
+            error = "oap_mail_mailbox_unavailable"
+    else:
+        error = str(mailbox_state.get("error") or "oap_mail_mailbox_unavailable")
+    return _no_store(
+        make_response(
+            render_template(
+                "oap_mail.html",
+                folder=folder,
+                folders=tuple(sorted(mail_mailbox.FOLDERS)),
+                items=items,
+                mailbox=mailbox_state,
+                outbound=mail_outbound.status(),
+                error=error,
+            ),
+            200,
+        )
+    )
 
 
 @bp.get("/mail/status")
