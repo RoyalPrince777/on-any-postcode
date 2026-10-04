@@ -24,7 +24,7 @@ function routePoints(){
 }
 function render(){
  q("[data-time]").textContent=" "+state.time_label;q("[data-day]").textContent=" "+state.day;
- q("[data-influence]").textContent=" "+state.player.influence;q("[data-mode-view]").textContent=" "+state.player.travel_mode;
+ q("[data-influence]").textContent=" "+state.player.influence;q("[data-mode-view]").textContent=" "+state.player.travel_mode;\n const ch=state.character;q("[data-my-card]").innerHTML="<strong>"+esc(ch.my_card.display_name)+" · My Card</strong><br>"+esc(ch.my_card.home)+" · "+esc(ch.my_card.title)+"<br>M Town rep "+ch.reputation.m_town+" · Health "+ch.vitals.health+" · Energy "+ch.vitals.energy;
  q("[data-chunk-view]").textContent=" "+(state.chunks?.[state.active_chunk]?.label||state.active_chunk);
  q("[data-traffic]").textContent=" "+state.environment.traffic;
  const here=state.nodes.find(n=>n.id===state.player.node);q("[data-location]").textContent=here.label;\n q("[data-local-voice]").textContent=state.language?.arrival||"";
