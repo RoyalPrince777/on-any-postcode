@@ -1,4 +1,4 @@
-from mission_control import local_map_intelligence
+from mission_control import local_map_intelligence, offline_routing
 
 
 def test_smi_21_map_intelligence_contract_has_exactly_21_truth_gates():
@@ -11,6 +11,10 @@ def test_smi_21_map_intelligence_contract_has_exactly_21_truth_gates():
     assert len(state["gates"]) == 21
     assert [gate["number"] for gate in state["gates"]] == list(range(1, 22))
     assert state["protocol_complete"] is True
+    assert state["truth_mode"] is True
+    assert state["readiness_percent"] == round((state["passed_gate_count"] / 21) * 100, 1)
+    assert state["green_votes"] + state["purple_votes"] == 21
+    assert len(state["seven_star_review"]) == 7
     assert all(gate["signal"] in {"green", "purple"} for gate in state["gates"])
 
 
@@ -48,3 +52,21 @@ def test_smi_21_endpoint_is_public_safe_and_no_store(client):
     assert payload["no_hidden_tracking"] is True
     assert payload["payment_capture"] is False
     assert payload["automatic_dispatch"] is False
+
+
+def test_smi_21_offline_gate_reads_real_package_evidence(monkeypatch):
+    monkeypatch.setattr(
+        offline_routing,
+        "status",
+        lambda: {
+            "offline_local_routing_package_proven": True,
+            "package_present": True,
+        },
+    )
+
+    state = local_map_intelligence.smi_21_state()
+    by_id = {gate["id"]: gate for gate in state["gates"]}
+
+    assert by_id["offline_local"]["passed"] is True
+    assert by_id["offline_local"]["signal"] == "green"
+    assert "offline_local" not in state["remaining_gate_ids"]
