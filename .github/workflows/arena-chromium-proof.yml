@@ -4,6 +4,10 @@ on:
   pull_request:
     paths:
       - "app.py"
+      - "mission_control/templates/arena.html"
+      - "templates/my_card.html"
+      - "mission_control/arena_intelligence.py"
+      - "mission_control/products.py"
       - "mission_control/connect4.py"
       - "mission_control/chess.py"
       - "mission_control/ludo.py"
@@ -33,6 +37,7 @@ on:
       - "tests/test_route_empire.py"
       - "tests/test_iq_arena.py"
       - "tests/test_arena_games_unified_ui.py"
+      - "tests/test_arena_current_truth_alignment.py"
       - "tests/test_arena_remaining_games_http.py"
       - "tests/test_connect4_http.py"
       - "static/arena_connect4_room.js"
