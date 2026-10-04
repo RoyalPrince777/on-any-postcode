@@ -74,12 +74,13 @@ def test_default_connector_decoration_is_neutral_not_fake_green():
     assert "<span>🟢</span><span>Neon</span>" not in base
 
 
-def test_chat_and_dashboard_sizing_match_chat_first_layout():
+def test_chat_and_dashboard_sizing_support_home_first_layout():
     base = BASE.read_text(encoding="utf-8")
     dashboard = DASHBOARD.read_text(encoding="utf-8")
     assert "grid-template-columns:236px minmax(0,1fr)" in base
     assert "max-width:900px" in base
     assert "border-radius:26px" in base
     assert "min-height:31px;max-height:128px" in base
-    assert "width:min(78vw,720px)!important" in dashboard
-    assert "width:min(96vw,560px)!important" in dashboard
+    assert "width:100vw!important" in dashboard
+    assert "height:100dvh!important" in dashboard
+    assert ".smi-home-actions" in dashboard
