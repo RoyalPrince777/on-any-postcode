@@ -146,7 +146,6 @@ async function draw(coords){
  svg.hidden=true;setRenderState('loading');
  const roadCount=await loadRoadNetwork(bounds,profile.value);
  svg.hidden=false;
- setRenderState(roadCount>0?'stable':'degraded');
  return roadCount>0
 }
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
@@ -218,7 +217,7 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
      return 0
    }
    roadLayer.replaceChildren(staged);
-   showRoadStatus('');clearBoot();setRenderState('stable');
+   showRoadStatus('');clearBoot();
    return count
  }catch{
    if(request!==roadRequest)return 0;
@@ -270,8 +269,11 @@ window.addEventListener('oap-map-reroute-request',event=>{
  if(Number.isFinite(point.latitude)&&Number.isFinite(point.longitude))route({originCoords:point});
 });
 setRenderState('loading');
-profile.addEventListener('change',()=>{if(bounds)loadRoadNetwork(bounds,profile.value);else loadRoadNetwork(defaultBounds,profile.value)});
-if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);
+profile.addEventListener('change',async()=>{
+ const count=await loadRoadNetwork(bounds||defaultBounds,profile.value);
+ setRenderState(count>0?'stable':'degraded');
+});
+if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value).then(count=>setRenderState(count>0?'stable':'degraded'));
 loadPlaces(from.value.trim());
 })();
 </script>
