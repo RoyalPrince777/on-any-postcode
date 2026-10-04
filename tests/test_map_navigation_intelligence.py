@@ -220,3 +220,19 @@ def test_unique_oap_map_door_renders_same_real_map_shell(client):
     assert 'id="map-form"' in body
     assert 'id="oap-map-boot"' in body
     assert "/map-intelligence/assets/oap_map_navigation.css" in body
+
+
+def test_map_runtime_assets_are_versioned_and_revalidated(client):
+    page = client.get("/oap-map")
+    assert page.status_code == 200
+    body = page.get_data(as_text=True)
+    assert "oap_map_navigation.css?v=map-runtime-v4" in body
+    assert "oap_map_navigation.js?v=map-runtime-v4" in body
+    assert "oap_os_map_bridge.js?v=map-runtime-v4" in body
+
+    css = client.get("/map-intelligence/assets/oap_map_navigation.css?v=map-runtime-v4")
+    js = client.get("/map-intelligence/assets/oap_map_navigation.js?v=map-runtime-v4")
+    assert css.status_code == 200
+    assert js.status_code == 200
+    assert css.headers["Cache-Control"] == "no-cache, max-age=0, must-revalidate"
+    assert js.headers["Cache-Control"] == "no-cache, max-age=0, must-revalidate"
