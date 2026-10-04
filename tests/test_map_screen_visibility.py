@@ -78,7 +78,7 @@ def test_road_network_loads_without_successful_route():
         "if(from.value.trim()&&to.value.trim())route();"
     )
     assert 'id="road-source-state"' in template
-    assert "if(request===roadRequest&&!count)showRoadStatus('Road network unavailable" in template
+    assert "if(request===roadRequest&&!count){clearBoot();showRoadStatus('Road network unavailable" in template
 
 
 def test_route_failure_preserves_independent_road_layer():
@@ -118,7 +118,7 @@ def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     assert "finally{clearTimeout(timeout)}" in template
     assert "const renderPayload=d=>" in template
     assert "tiles.map(async([x,y])=>{const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)})" in template
-    assert "if(count)showRoadStatus('');" in template
+    assert "if(count){showRoadStatus('');clearBoot()}" in template
     assert "Road network unavailable — route guidance may still work." in template
 
 
@@ -136,3 +136,12 @@ def test_map_boot_does_not_wait_for_every_road_tile():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
     assert "if(count){showRoadStatus('');clearBoot()}" in template
     assert "setTimeout(clearBoot,5000);" in template
+
+
+def test_road_tiles_are_prioritised_and_bounded_instead_of_flooded():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "tiles.sort((a,b)=>" in template
+    assert "tiles=tiles.slice(0,24);" in template
+    assert "Math.min(4,tiles.length)" in template
+    assert "for(let attempt=0;attempt<3;attempt++)" in template
+    assert "response.status!==503" in template
