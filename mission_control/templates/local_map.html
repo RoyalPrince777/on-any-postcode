@@ -164,7 +164,6 @@ async function fetchRoadTile(z,x,y,mode){
      if(response.status!==503)return null
    }catch{}
    finally{clearTimeout(timeout)}
-   if(attempt<0)await new Promise(resolve=>setTimeout(resolve,250*(attempt+1)))
  }
  return null
 }
