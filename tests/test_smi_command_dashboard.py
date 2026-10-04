@@ -137,3 +137,65 @@ def test_smi_home_cockpit_is_low_noise_and_route_backed():
     assert command["interaction"]["walkie_talkie"]["href"] == "/linkup?intent=ptt"
     assert command["interaction"]["messages"]["href"] == "/linkup?intent=message"
     assert command["interaction"]["my_line"]["href"] == "/my-line"
+
+
+def test_smi_essential_controls_have_clear_labels_functions_owners_and_real_routes(client):
+    command = smi_command_dashboard.status()
+    controls = command["sovereign_ui"]["essential_controls"]
+
+    assert [control["id"] for control in controls] == [
+        "smi_chat",
+        "intelligence",
+        "movement",
+        "learning",
+        "memory",
+        "protection",
+        "war_room",
+        "recovery",
+        "founder_final",
+    ]
+    assert len({control["id"] for control in controls}) == len(controls)
+
+    expected = {
+        "smi_chat": ("Talk to SMI", "/mission/ollama", "SMI"),
+        "intelligence": ("Intelligence", "/mission/agents", "SMI"),
+        "movement": ("Movement", "/movement", "Movement Intelligence"),
+        "learning": ("Learning", "/mission/improvement", "HRM + SMI"),
+        "memory": ("Memory", "/mission/organism", "HRM / JOOG"),
+        "protection": ("Protection", "/mission/war-room", "Guardian"),
+        "war_room": ("War Room", "/mission/war-room", "War Room"),
+        "recovery": ("Recovery", "/mission/war-room", "Recovery"),
+        "founder_final": ("Founder Final", "/mission/judgement", "Human Authority"),
+    }
+
+    for control in controls:
+        label, href, owner = expected[control["id"]]
+        assert control["label"] == label
+        assert control["href"] == href
+        assert control["owner"] == owner
+        assert control["function"].strip()
+        assert control["route_label"].strip()
+        response = client.get(href)
+        assert response.status_code == 200, (control["id"], href, response.status_code)
+
+
+def test_smi_home_renders_clear_control_functions_and_founder_final_route(client):
+    page = client.get("/mission/smi").get_data(as_text=True)
+
+    for label in (
+        "Talk to SMI",
+        "Intelligence",
+        "Movement",
+        "Learning",
+        "Memory",
+        "Protection",
+        "War Room",
+        "Recovery",
+        "Founder Final",
+    ):
+        assert label in page
+
+    assert 'href="/mission/judgement"' in page
+    assert 'href="/mission/improvement"' in page
+    assert 'href="/mission/organism"' in page
+    assert "clear function · real route · named owner" in page
