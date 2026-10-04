@@ -106,6 +106,7 @@ LEXICON: tuple[dict[str, Any], ...] = (
 PLACE_ALIASES = {
     "Mitcham":"M Town",
     "Mitcham / CR4":"M Town · CR4",
+    "Mitcham · CR4":"M Town · CR4",
     "Mitcham Town Centre":"M Town Centre",
 }
 
