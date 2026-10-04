@@ -4,44 +4,59 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="oap-csrf-token" content="{{ oap_csrf_token }}">
   {% include "_oap_install_head.html" %}
-  <title>EARTH IS OUR TURF · Mitcham</title>
+  <title>EARTH IS OUR TURF · Mitcham Navigation</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
   <script src="{{ url_for('static', filename='earth_is_our_turf.js') }}" defer></script>
   <style>
-  .eiot{width:min(1180px,calc(100% - 24px));margin:auto;padding:18px 0 42px}.eiot-hero{border:1px solid var(--mc-line);border-radius:22px;padding:20px;background:radial-gradient(circle at 85% 0,rgba(163,109,255,.28),transparent 38%),var(--mc-panel-soft)}.eiot-title{font-size:clamp(2.2rem,7vw,5.4rem);line-height:.9;margin:.2em 0}.eiot-purple{color:#a36dff}.eiot-grid{display:grid;grid-template-columns:1.4fr .8fr;gap:12px;margin-top:12px}.eiot-map{position:relative;min-height:520px;border:1px solid var(--mc-line);border-radius:20px;overflow:hidden;background:linear-gradient(135deg,#121a20,#162817)}.eiot-map:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(32deg,transparent 0 36px,rgba(255,255,255,.055) 37px 40px,transparent 41px 92px),repeating-linear-gradient(128deg,transparent 0 58px,rgba(255,255,255,.04) 59px 62px,transparent 63px 120px)}.eiot-node{position:relative;z-index:1;display:block;width:calc(100% - 24px);margin:10px 12px;padding:11px 13px;text-align:left;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(8,12,18,.82);color:inherit}.eiot-node[aria-current="true"]{border-color:#a36dff;box-shadow:0 0 0 2px rgba(163,109,255,.18)}.eiot-node small{display:block;color:var(--mc-muted);margin-top:3px}.eiot-panel{border:1px solid var(--mc-line);border-radius:20px;padding:16px;background:var(--mc-panel-soft)}.eiot-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.eiot-stat{padding:10px;border:1px solid var(--mc-line);border-radius:12px}.eiot-actions{display:grid;gap:8px;margin-top:12px}.eiot-actions button{padding:12px;border-radius:12px;border:1px solid var(--mc-line);background:var(--mc-panel-soft);color:inherit;font:inherit}.eiot-actions button:first-child{border-color:#a36dff;background:#6f3ec3;font-weight:800}.eiot-memory{max-height:250px;overflow:auto;padding-left:20px}.eiot-truth{border-left:3px solid #f5c451;padding-left:12px}.eiot-error{color:#ffb7bf}.eiot-business{padding:9px 0;border-bottom:1px solid var(--mc-line)}@media(max-width:760px){.eiot-grid{grid-template-columns:1fr}.eiot-map{min-height:0}}
+  .eiot{width:min(1180px,calc(100% - 24px));margin:auto;padding:18px 0 42px}.eiot-hero{border:1px solid var(--mc-line);border-radius:22px;padding:20px;background:radial-gradient(circle at 85% 0,rgba(163,109,255,.28),transparent 38%),var(--mc-panel-soft)}.eiot-title{font-size:clamp(2.2rem,7vw,5.4rem);line-height:.9;margin:.2em 0}.eiot-purple{color:#a36dff}.eiot-grid{display:grid;grid-template-columns:1.45fr .75fr;gap:12px;margin-top:12px}.eiot-map{position:relative;min-height:620px;border:1px solid var(--mc-line);border-radius:20px;overflow:hidden;background:linear-gradient(135deg,#0b1419,#1b2a1d)}.eiot-map svg{position:absolute;inset:0;width:100%;height:100%}.eiot-road{stroke:rgba(255,255,255,.28);stroke-width:4;fill:none}.eiot-alley{stroke:#a36dff;stroke-width:3;stroke-dasharray:9 7;fill:none}.eiot-footpath{stroke:#f5c451;stroke-width:2;stroke-dasharray:5 6;fill:none}.eiot-route-line{stroke:#fff;stroke-width:7;fill:none;filter:drop-shadow(0 0 5px rgba(163,109,255,.9))}.eiot-pin{position:absolute;z-index:3;transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:8px 10px;background:rgba(5,8,12,.92);color:inherit;font:inherit;white-space:nowrap}.eiot-pin[aria-current="true"]{border-color:#a36dff;box-shadow:0 0 0 3px rgba(163,109,255,.2)}.eiot-panel{border:1px solid var(--mc-line);border-radius:20px;padding:16px;background:var(--mc-panel-soft)}.eiot-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.eiot-stat{padding:10px;border:1px solid var(--mc-line);border-radius:12px}.eiot-actions{display:grid;gap:8px;margin-top:12px}.eiot-actions button,.eiot-nav select{padding:12px;border-radius:12px;border:1px solid var(--mc-line);background:var(--mc-panel-soft);color:inherit;font:inherit}.eiot-actions button:first-child{border-color:#a36dff;background:#6f3ec3;font-weight:800}.eiot-nav{display:grid;gap:8px;margin-top:12px}.eiot-memory{max-height:220px;overflow:auto;padding-left:20px}.eiot-truth{border-left:3px solid #f5c451;padding-left:12px}.eiot-error{color:#ffb7bf}.eiot-business{padding:9px 0;border-bottom:1px solid var(--mc-line)}.eiot-legend{position:absolute;left:12px;bottom:12px;z-index:4;border:1px solid var(--mc-line);border-radius:12px;padding:9px 11px;background:rgba(5,8,12,.88);font-size:.78rem}.eiot-route-card{border:1px solid #a36dff;border-radius:14px;padding:11px;margin-top:10px;background:rgba(163,109,255,.08)}@media(max-width:760px){.eiot-grid{grid-template-columns:1fr}.eiot-map{min-height:540px}.eiot-pin{font-size:.72rem;padding:6px 8px}}
   </style>
 </head>
 <body>
 <main class="eiot" data-eiot-root>
   <nav class="arena-nav"><a href="/arena">← OAP Arena</a> · <a href="/oap-map">On Any Place</a></nav>
   <section class="eiot-hero">
-    <p class="mc-eyebrow">OAP Arena · Living World v1 · Mitcham / CR4</p>
+    <p class="mc-eyebrow">OAP Arena · Living World v2 · Mitcham / CR4</p>
     <h1 class="eiot-title">EARTH IS OUR <span class="eiot-purple">TURF</span></h1>
     <h2>Born Local. Built Global.</h2>
-    <p>Do something in the postcode → the postcode remembers → the world changes.</p>
-    <p class="eiot-truth"><strong>Truth boundary:</strong> recognisable Mitcham place anchors; ON ANY POSTCODE businesses, residents and surveillance are game-world fiction. No precise tracking or real CCTV/blind-spot database.</p>
+    <p>Walk it. Ride it. Drive it. The postcode remembers where you go and what you do.</p>
+    <p class="eiot-truth"><strong>Truth boundary:</strong> recognisable Mitcham districts anchor the game. Exact fine-grained alleys, shortcuts, surveillance and private-access geometry are fictionalised until OAP's road/route proof is independently Green.</p>
   </section>
   <div class="eiot-grid">
-    <section class="eiot-map" aria-label="Mitcham living-world game map" data-map></section>
+    <section class="eiot-map" aria-label="Mitcham in-game navigation map" data-map>
+      <svg viewBox="0 0 1000 760" preserveAspectRatio="none" aria-hidden="true">
+        <g data-links></g><polyline class="eiot-route-line" data-route-line points="" hidden></polyline>
+      </svg>
+      <div class="eiot-legend">Road ━ &nbsp; Alley ┄ &nbsp; Footpath ···<br>Modes: 🚶 Foot · 🚲 Bike · 🚗 Car</div>
+    </section>
     <aside class="eiot-panel">
-      <h2>Mitcham Pulse</h2>
+      <h2>Mitcham Navigation</h2>
       <div class="eiot-stats">
         <div class="eiot-stat">Time<strong data-time></strong></div>
         <div class="eiot-stat">Day<strong data-day></strong></div>
         <div class="eiot-stat">Influence<strong data-influence></strong></div>
-        <div class="eiot-stat">Reputation<strong data-reputation></strong></div>
+        <div class="eiot-stat">Mode<strong data-mode-view></strong></div>
       </div>
       <h3 data-location></h3>
-      <div data-businesses></div>
+      <div class="eiot-nav">
+        <label>Travel mode
+          <select data-mode><option value="foot">🚶 Foot</option><option value="bike">🚲 Bike / e-bike</option><option value="car">🚗 Car</option></select>
+        </label>
+        <label>Destination
+          <select data-destination></select>
+        </label>
+        <button class="arena-control arena-control-primary" type="button" data-action="navigate">Plan route</button>
+      </div>
+      <div class="eiot-route-card" data-route-card hidden></div>
       <div class="eiot-actions">
+        <button type="button" data-action="travel-route">Start route</button>
         <button type="button" data-action="help-local">Help the postcode</button>
         <button type="button" data-action="shop">Use local shop</button>
         <button type="button" data-action="advance-time">Advance 2 hours</button>
       </div>
       <p class="eiot-error" data-error role="alert"></p>
-      <h3>Postcode Memory</h3>
-      <ol class="eiot-memory" data-memory></ol>
+      <h3>Nearby ON ANY POSTCODE</h3><div data-businesses></div>
+      <h3>Postcode Memory</h3><ol class="eiot-memory" data-memory></ol>
     </aside>
   </div>
 </main>
