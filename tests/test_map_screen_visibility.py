@@ -72,16 +72,12 @@ def test_public_map_door_uses_visible_first_party_renderer():
 def test_road_network_loads_without_successful_route():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
 
-    assert "loadRoadNetwork(defaultBounds,profile.value);" in template
-    assert "if(from.value.trim()&&to.value.trim())route();" in template
-    assert template.index("loadRoadNetwork(defaultBounds,profile.value);") < template.index(
-        "if(from.value.trim()&&to.value.trim())route();"
-    )
+    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);" in template
     assert 'id="road-source-state"' in template
-    assert "if(request===roadRequest&&!count){" in template
+    assert "if(request!==roadRequest)return 0;" in template
     assert "if(batchAttempt<3)" in template
-    assert "loadRoadNetwork(b,mode,batchAttempt+1,null)" in template
-    assert "clearBoot();showRoadStatus('Road network unavailable — route guidance may still work.');" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — route guidance may still work.');" in template
 
 
 def test_route_failure_preserves_independent_road_layer():
@@ -92,7 +88,7 @@ def test_route_failure_preserves_independent_road_layer():
 
     assert "roadLayer.innerHTML=''" not in route_section
     assert "if(request!==roadRequest||!d||!Array.isArray(d.lines))return;" in template
-    assert "if(request===roadRequest&&!count)" in template
+    assert "if(request!==roadRequest)return 0;" in template
     assert "profile.addEventListener('change'" in template
 
 
@@ -123,24 +119,26 @@ def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     assert "const queue=[...tiles];" in template
     assert "const worker=async()=>{while(queue.length&&request===roadRequest&&count<180)" in template
     assert "Math.min(2,tiles.length)" in template
-    assert "if(count){showRoadStatus('');clearBoot()}" in template
+    assert "roadLayer.replaceChildren(staged);" in template
+    assert "showRoadStatus('');clearBoot();setRenderState('stable');" in template
     assert "Road network unavailable — route guidance may still work." in template
 
 
 def test_route_draw_preserves_existing_road_layer():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
-    draw_section = template.split("function draw(coords){", 1)[1].split(
+    draw_section = template.split("async function draw(coords){", 1)[1].split(
         "function lon2x", 1
     )[0]
 
-    assert "loadRoadNetwork(bounds,profile.value);" in draw_section
+    assert "await loadRoadNetwork(bounds,profile.value)" in draw_section
     assert "if(!roadLayer.querySelector('polyline'))loadRoadNetwork(bounds,profile.value);" not in draw_section
 
 
-def test_map_boot_does_not_wait_for_every_road_tile():
+def test_map_boot_clears_only_after_terminal_road_state():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
-    assert "if(count){showRoadStatus('');clearBoot()}" in template
-    assert "setTimeout(clearBoot,5000);" in template
+    assert "showRoadStatus('');clearBoot();setRenderState('stable');" in template
+    assert "clearBoot();setRenderState('degraded')" in template
+    assert "setTimeout(clearBoot,5000);" not in template
 
 
 def test_road_tiles_are_prioritised_and_bounded_instead_of_flooded():
@@ -172,8 +170,8 @@ def test_road_network_has_bounded_batch_level_cold_start_recovery():
     assert "request=requestToken===null?++roadRequest:requestToken" in template
     assert "if(batchAttempt<3)" in template
     assert "1000*(batchAttempt+1)" in template
-    assert "loadRoadNetwork(b,mode,batchAttempt+1,null)" in template
-    assert "Warming road network…" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "setRenderState('loading')" in template
 
 
 def test_road_network_does_not_self_cancel_slow_successful_batches():
@@ -183,6 +181,6 @@ def test_road_network_does_not_self_cancel_slow_successful_batches():
     assert "tiles=tiles.slice(0,8)" in template
     assert "Math.min(2,tiles.length)" in template
     assert "request===roadRequest&&count<180" in template
-    assert "loadRoadNetwork(b,mode,batchAttempt+1,null)" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
     assert "},6000):null;" not in template
     assert "if(recoveryTimer)clearTimeout(recoveryTimer);" not in template
