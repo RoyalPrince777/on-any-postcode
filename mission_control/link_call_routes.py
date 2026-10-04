@@ -68,6 +68,16 @@ def active_calls():
         return _failure(exc)
 
 
+@bp.get("/linkup/calls/recents")
+@web_security.login_required(api=True)
+def recent_calls():
+    try:
+        sessions = link_call_audit.list_recent(_identity())
+        return _no_store(make_response(jsonify(sessions=sessions), 200))
+    except Exception as exc:  # noqa: BLE001
+        return _failure(exc)
+
+
 @bp.post("/linkup/calls")
 @web_security.login_required(api=True)
 def start_call():
