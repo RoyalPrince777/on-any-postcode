@@ -87,12 +87,13 @@ def test_screen_controls_have_unique_ids():
     assert "screen.id='screen-button'" not in canonical
 
 
-def test_status_drawer_never_hides_chat_workspace():
+def test_home_dashboard_and_chat_keep_single_control_ownership():
     dashboard = DASHBOARD.read_text(encoding="utf-8")
     css = DASHBOARD_CSS.read_text(encoding="utf-8")
 
-    assert "smi-status-open" in dashboard
+    assert "smi-home-open" in dashboard
     assert "smi-dashboard-mode" not in dashboard
     assert "smi-chat-mode" not in dashboard
-    assert "smi-status-open .workspace-grid{display:grid!important}" in css
-    assert "smi-status-open .smi-dashboard-layer{display:flex!important}" in css
+    assert "smi-home-open .workspace-grid{display:none!important}" in css
+    assert ".smi-home-open .smi-dashboard-layer{display:flex!important}" in css
+    assert "data-smi-chat" in dashboard
