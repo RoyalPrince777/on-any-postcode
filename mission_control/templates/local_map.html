@@ -204,9 +204,13 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
    }
  };
  try{
-   const queue=[...tiles];
-   const worker=async()=>{while(queue.length&&request===roadRequest&&count<180){const [x,y]=queue.shift();const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}};
-   await Promise.all(Array.from({length:Math.min(4,tiles.length)},worker));
+   const MIN_STABLE_ROADS=25;
+   for(const [x,y] of tiles){
+     if(request!==roadRequest||count>=180)break;
+     const d=await fetchRoadTile(z,x,y,mode);
+     renderPayload(d);
+     if(count>=MIN_STABLE_ROADS)break;
+   }
    if(request!==roadRequest)return 0;
    if(!count){
      if(batchAttempt<1){
