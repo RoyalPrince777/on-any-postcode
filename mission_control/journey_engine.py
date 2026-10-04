@@ -22,6 +22,7 @@ GATEWAY_LEVELS = (
 )
 IMPACT_STATES = ("CLEAR", "WATCH", "PREDICTED_IMPACT", "IMPACT_CONFIRMED", "UNKNOWN")
 RECOVERY_STATES = ("NOT_REQUIRED", "REPLAN_REQUIRED", "ALTERNATIVE_AVAILABLE", "BLOCKED", "UNKNOWN")
+DEPENDENCY_TYPES = ("depends_on", "feeds", "connected_to", "routes_through", "affected_by", "alternative_to")
 
 
 def _text(value: object, field: str, *, limit: int = 240) -> str:
@@ -203,7 +204,7 @@ def _impact_state(event: dict[str, Any]) -> str:
     return "UNKNOWN"
 
 
-def assess_disruptions(*, journey: dict[str, Any], events: object) -> dict[str, Any]:
+def assess_disruptions(*, journey: dict[str, Any], events: object, dependencies: object = None) -> dict[str, Any]:
     if not isinstance(journey, dict) or not isinstance(journey.get("legs"), list):
         raise ValueError("transport_journey_invalid")
     if not isinstance(events, list):
@@ -212,6 +213,36 @@ def assess_disruptions(*, journey: dict[str, Any], events: object) -> dict[str, 
     affected_leg_ids = set()
     evidence_ids = []
     overall = "CLEAR"
+    valid_leg_ids = {
+        str(leg.get("leg_id"))
+        for leg in journey["legs"]
+        if isinstance(leg, dict) and leg.get("leg_id")
+    }
+    edges = []
+    if dependencies is not None:
+        if not isinstance(dependencies, list):
+            raise ValueError("transport_dependencies_invalid")
+        for edge in dependencies:
+            if not isinstance(edge, dict):
+                raise ValueError("transport_dependency_invalid")
+            source_leg_id = str(edge.get("from_leg_id") or "")
+            target_leg_id = str(edge.get("to_leg_id") or "")
+            relation = str(edge.get("type") or "")
+            if (
+                source_leg_id not in valid_leg_ids
+                or target_leg_id not in valid_leg_ids
+                or source_leg_id == target_leg_id
+                or relation not in DEPENDENCY_TYPES
+            ):
+                raise ValueError("transport_dependency_invalid")
+            edges.append(
+                {
+                    "from_leg_id": source_leg_id,
+                    "to_leg_id": target_leg_id,
+                    "type": relation,
+                    "evidence_id": str(edge.get("evidence_id") or "")[:160],
+                }
+            )
 
     rank = {
         "CLEAR": 0,
@@ -233,6 +264,24 @@ def assess_disruptions(*, journey: dict[str, Any], events: object) -> dict[str, 
         ]
         if not matched:
             continue
+        direct = set(matched)
+        propagated = set(matched)
+        frontier = list(matched)
+        visited = set(matched)
+        while frontier:
+            current = frontier.pop(0)
+            for edge in edges:
+                if edge["from_leg_id"] != current:
+                    continue
+                target = edge["to_leg_id"]
+                if target in visited:
+                    continue
+                visited.add(target)
+                propagated.add(target)
+                frontier.append(target)
+                if edge["evidence_id"] and edge["evidence_id"] not in evidence_ids:
+                    evidence_ids.append(edge["evidence_id"])
+        matched = sorted(propagated)
         state = _impact_state(event)
         if rank[state] > rank[overall]:
             overall = state
@@ -247,6 +296,8 @@ def assess_disruptions(*, journey: dict[str, Any], events: object) -> dict[str, 
                 "impact_state": state,
                 "severity": event.get("severity"),
                 "affected_leg_ids": matched,
+                "direct_leg_ids": sorted(direct),
+                "dependency_propagated_leg_ids": sorted(set(matched) - direct),
                 "truth_state": (event.get("observation") or {}).get("truth_state"),
                 "freshness": (event.get("observation") or {}).get("freshness"),
                 "confidence": (event.get("observation") or {}).get("confidence"),
@@ -353,9 +404,12 @@ def status() -> dict[str, Any]:
         "map_modes": list(MAP_MODES),
         "truth_states": list(TRUTH_STATES),
         "gateway_levels": list(GATEWAY_LEVELS),
+        "dependency_types": list(DEPENDENCY_TYPES),
         "impact_states": list(IMPACT_STATES),
         "recovery_states": list(RECOVERY_STATES),
         "disruption_propagation": True,
+        "dependency_propagation": True,
+        "dependency_loop_protection": True,
         "alternative_recovery_contract": True,
         "evidence_lineage": True,
         "command_center_projection": True,
