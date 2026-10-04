@@ -70,4 +70,4 @@ def test_dashboard_buttons_route_to_existing_first_party_rooms_only():
     assert "data-smi-tools" in script
     assert "document.getElementById('plus-button')?.click()" in script
     assert "Truth Mode." in script
-    assert "never silently deploy" in script
+    assert "does not silently deploy, spend, dispatch, migrate or approve consequential actions" in script
