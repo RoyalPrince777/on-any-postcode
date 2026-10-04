@@ -98,6 +98,7 @@ def test_status_keeps_boundaries_explicit():
         "connect4_server_actions": True,
         "dot_server_actions": True,
         "chess_server_actions": True,
+        "ludo_server_actions": True,
         "arbitrary_client_game_state_writes": False,
         "chat": False,
         "payments": False,
@@ -262,7 +263,7 @@ def test_dot_room_rejects_wrong_seat(monkeypatch):
 def test_unimplemented_room_games_and_non_two_player_capacity_fail_before_io(monkeypatch):
     connection = _Connection([])
     _patch_connection(monkeypatch, connection)
-    for game in ("ludo", "iq", "route-empire"):
+    for game in ("iq", "route-empire"):
         with pytest.raises(ValueError, match="arena_room_game_invalid"):
             arena_rooms.create_room(game_key=game, host_name="Alpha", capacity=2)
     for game in ("connect4", "dot", "chess"):
@@ -285,6 +286,87 @@ def test_dot_room_malformed_edges_fail_before_database(monkeypatch, a, b):
             action="draw", a=a, b=b,
         )
     assert connection.calls == []
+
+
+
+
+def test_ludo_room_roll_and_move_use_server_engine(monkeypatch):
+    from mission_control import ludo
+
+    room_id = str(uuid.uuid4())
+    initial = ludo.new_game(["Alpha", "Bravo"])
+    initial = ludo.roll(initial, request_id="seed-roll-0001", die_value=6)
+    connection = _Connection([
+        _Result(one=("ludo", "ACTIVE", 2, 0, initial)),
+        _Result(one=(1,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+
+    result = arena_rooms.ludo_action(
+        room_id=room_id,
+        reconnect_token="x" * 40,
+        expected_revision=0,
+        request_id="ludo-room-move-0001",
+        action="move",
+        piece_id="p1-1",
+    )
+
+    assert result["revision"] == 1
+    assert result["status"] == "ACTIVE"
+    moved = result["game_state"]["players"][0]["pieces"][0]
+    assert moved["zone"] == "track"
+    assert moved["progress"] == 0
+    assert connection.commits == 1
+    updated = next(params for sql, params in connection.calls if "UPDATE oap_arena_rooms" in sql)
+    assert ludo.validate(json.loads(updated[0]))["passed"] is True
+
+
+def test_ludo_room_rejects_wrong_seat(monkeypatch):
+    from mission_control import ludo
+
+    room_id = str(uuid.uuid4())
+    initial = ludo.new_game(["Alpha", "Bravo"])
+    connection = _Connection([
+        _Result(one=("ludo", "ACTIVE", 2, 0, initial)),
+        _Result(one=(2,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+    ])
+    _patch_connection(monkeypatch, connection)
+
+    with pytest.raises(ValueError, match="arena_room_not_your_turn"):
+        arena_rooms.ludo_action(
+            room_id=room_id,
+            reconnect_token="y" * 40,
+            expected_revision=0,
+            request_id="ludo-room-roll-0001",
+            action="roll",
+        )
+    assert connection.commits == 0
+
+
+def test_ludo_room_replay_conflict_fails_closed(monkeypatch):
+    room_id = str(uuid.uuid4())
+    connection = _Connection([
+        _Result(one=("ludo", "ACTIVE", 2, 1, {})),
+        _Result(one=(1,)),
+        _Result(one=(1, "0" * 64)),
+    ])
+    _patch_connection(monkeypatch, connection)
+
+    with pytest.raises(ValueError, match="arena_room_idempotency_conflict"):
+        arena_rooms.ludo_action(
+            room_id=room_id,
+            reconnect_token="x" * 40,
+            expected_revision=0,
+            request_id="ludo-room-roll-0001",
+            action="roll",
+        )
+    assert not any("UPDATE oap_arena_rooms" in call[0] for call in connection.calls)
 
 
 
