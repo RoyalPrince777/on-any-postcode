@@ -74,7 +74,10 @@ def mailbox_status():
     return _no_store(make_response(jsonify(mail_mailbox.status()), 200))
 
 
-@bp.get("/mail/<folder>")
+@bp.get("/mail/inbox", defaults={"folder": "inbox"})
+@bp.get("/mail/sent", defaults={"folder": "sent"})
+@bp.get("/mail/draft", defaults={"folder": "draft"})
+@bp.get("/mail/review", defaults={"folder": "review"})
 @web_security.login_required(api=True, founder_only=True)
 def mailbox_folder(folder: str):
     try:
