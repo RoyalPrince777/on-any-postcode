@@ -30,6 +30,20 @@ function render(){
  const here=state.nodes.find(n=>n.id===state.player.node);q("[data-location]").textContent=here.label;\n q("[data-local-voice]").textContent=state.language?.arrival||"";
  q("[data-environment]").innerHTML="<strong>Environment Intelligence</strong><br>Footfall "+state.environment.footfall+" · Shops "+state.environment.shop_activity+" · Parks "+state.environment.park_activity+"<br>"+esc(state.environment.lighting)+" · "+esc(state.environment.soundscape)+" · "+esc(state.environment.visibility)+"<br><small>Game simulation · not live telemetry</small>";
  q("[data-living]").innerHTML="<strong>Living Streets</strong><br>Traffic "+state.living.counts.moving_traffic+" · Pedestrians "+state.living.counts.pedestrians+" · Persistent vehicles "+state.living.counts.persistent_vehicles+" · Entrances "+state.living.counts.entrances+"<br><small>Game simulation · fictionalised fine detail · not live traffic</small>";
+ const hereVehicles=state.living.persistent_vehicles.filter(v=>v.node===state.player.node);
+ const hereEntrances=state.living.entrances.filter(v=>v.node===state.player.node);
+ const hereParking=state.living.parking.filter(v=>v.node===state.player.node);
+ const activeVehicle=state.vehicle_life?.active_vehicle_id;
+ const vehicleActions=hereVehicles.map(v=>{
+  const owned=state.character.owned.vehicles.includes(v.id);
+  if(activeVehicle===v.id)return "<button type=\"button\" data-action=\"exit-vehicle\">Exit "+esc(v.label)+"</button>";
+  if(owned)return "<button type=\"button\" data-action=\"enter-vehicle\" data-target=\""+esc(v.id)+"\">Enter "+esc(v.label)+"</button>";
+  return "<button type=\"button\" data-action=\"claim-vehicle\" data-target=\""+esc(v.id)+"\">Claim "+esc(v.label)+"</button>";
+ }).join(" ");
+ const parkingActions=activeVehicle?hereParking.map(p=>"<button type=\"button\" data-action=\"park-vehicle\" data-target=\""+esc(p.id)+"\">Park · "+esc(p.kind)+"</button>").join(" "):"";
+ const entranceActions=hereEntrances.map(e=>"<button type=\"button\" data-action=\"use-entrance\" data-target=\""+esc(e.id)+"\">Use "+esc(e.label)+"</button>").join(" ");
+ q("[data-vehicle-life]").innerHTML="<strong>Vehicle Life + Entrances</strong><br>"+(vehicleActions||"No persistent vehicle here")+"<br>"+parkingActions+"<br>"+entranceActions;
+
  q("[data-links]").innerHTML=state.navigation_links.map(lineMarkup).join("");
  const routeLine=q("[data-route-line]"),pts=routePoints();routeLine.setAttribute("points",pts);routeLine.hidden=!pts;
  root.querySelectorAll(".eiot-pin").forEach(n=>n.remove());
@@ -58,7 +72,7 @@ root.addEventListener("click",e=>{
  const a=e.target.closest("[data-action]");if(!a)return;
  if(a.dataset.action==="navigate")act("navigate",q("[data-destination]").value,q("[data-mode]").value);
  else if(a.dataset.action==="advance-route")act("advance-route",null,state.player.travel_mode,100);
- else act(a.dataset.action,null,q("[data-mode]").value);
+ else act(a.dataset.action,a.dataset.target||null,q("[data-mode]").value);
 });
 render();
 })();

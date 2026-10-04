@@ -151,6 +151,16 @@ def set_movement(
         out["movement"]["offset"]=max(0.0,float(offset))
     return _seal(out)
 
+def set_owned_vehicles(character: object, vehicle_ids: object) -> dict[str,Any]:
+    checked=validate(character)
+    if not checked["passed"]:
+        raise ValueError(checked["errors"][0])
+    if not isinstance(vehicle_ids,list):
+        raise TypeError("character_owned_vehicles_invalid")
+    out=copy.deepcopy(character)
+    out["owned"]["vehicles"]=list(dict.fromkeys(str(v).strip() for v in vehicle_ids if str(v).strip()))
+    return _seal(out)
+
 def adjust_reputation(character: object, *, dimension: object, amount: object) -> dict[str,Any]:
     checked=validate(character)
     if not checked["passed"]:
