@@ -68,6 +68,7 @@ def status():
                 first_party=bool(state.get("first_party")),
                 max_voice_bytes=state.get("max_voice_bytes"),
                 max_voice_duration_ms=state.get("max_voice_duration_ms"),
+                ptt_supported=True,
             )
         )
     )
@@ -84,9 +85,7 @@ def list_voice():
         return _failure(exc)
 
 
-@bp.post("/linkup/voice")
-@web_security.login_required(api=True)
-def create_voice():
+def _create_voice_kind(kind: str):
     identity = _identity()
     if guarded := _mutation_guard(identity):
         return guarded
@@ -103,10 +102,41 @@ def create_voice():
             media=media,
             mime_type=upload.mimetype,
             duration_ms=request.form.get("duration_ms"),
+            kind=kind,
         )
         return _no_store(make_response(jsonify(created), 201))
     except VOICE_ERRORS as exc:
         return _failure(exc)
+
+
+@bp.post("/linkup/voice")
+@web_security.login_required(api=True)
+def create_voice():
+    return _create_voice_kind("voice")
+
+
+@bp.get("/linkup/ptt/status")
+@web_security.login_required(api=True)
+def ptt_status():
+    state = link_voice.status()
+    return _no_store(
+        make_response(
+            jsonify(
+                ready=bool(state.get("ready")),
+                first_party=bool(state.get("first_party")),
+                transport="oap_voice_store",
+                push_to_talk=True,
+                max_ptt_bytes=state.get("max_voice_bytes"),
+                max_ptt_duration_ms=state.get("max_voice_duration_ms"),
+            )
+        )
+    )
+
+
+@bp.post("/linkup/ptt")
+@web_security.login_required(api=True)
+def create_ptt():
+    return _create_voice_kind("ptt")
 
 
 @bp.get("/linkup/voice/<voice_id>/media")
