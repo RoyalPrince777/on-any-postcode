@@ -48,8 +48,6 @@ def build_manifest(
         if key == "central" or len(background) < 2:
             background.append(key)
 
-    memory=[key for key in chunks if key not in live and key not in preload and key not in background]
-
     tiers={}
     for key in chunks:
         if key in live:
