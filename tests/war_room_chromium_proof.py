@@ -93,7 +93,7 @@ def main() -> None:
             page.on("pageerror", lambda exc: page_errors.append(str(exc)))
 
             page.goto(base_url + "/mission/war-room", wait_until="domcontentloaded")
-            expect(page.get_by_role("heading", name="WAR ROOM")).to_be_visible()
+            expect(page.get_by_role("heading", name="WAR ROOM", exact=True)).to_be_visible()
             expect(page.get_by_role("heading", name="UI · UX · Buttons · Functions · Proof · Authority")).to_be_visible()
 
             control_count = page.locator("[data-wr-control-count]")
