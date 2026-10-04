@@ -5,7 +5,6 @@ The target is the deployed public OAP Bank surface and its canonical status.
 """
 from playwright.sync_api import expect, sync_playwright
 
-
 BASE_URL = "https://on-any-postcode.onrender.com"
 BANK_URL = BASE_URL + "/pay/bank"
 STATUS_URL = BASE_URL + "/pay/bank/status"
