@@ -22,6 +22,8 @@ def test_map_screen_is_low_noise_and_map_first():
     assert "Live Pattern" not in page
     assert "Source intelligence" not in page
     assert "Master Map Intelligence" not in page
+    assert "Manage Certified Merchant listings" not in page
+    assert "OAP OS · Map web runtime" not in page
 
 
 def test_drive_runtime_updates_turns_and_follows_position():
@@ -173,6 +175,7 @@ def test_public_map_uses_allowlisted_public_navigation_assets(client):
     assert "/map-intelligence/assets/oap_map_navigation.css" in body
     assert "/map-intelligence/assets/oap_map_navigation.js" in body
     assert "/map-intelligence/assets/oap_os_map_bridge.js" in body
+    assert 'data-oap-os-map-runtime' not in body
     assert "/mission/static/oap_map_navigation.css" not in body
 
     css = client.get("/map-intelligence/assets/oap_map_navigation.css")
