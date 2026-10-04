@@ -12,9 +12,9 @@ import secrets
 import uuid
 from typing import Any
 
-from . import chess, connect4, dot, postgres_db
+from . import chess, connect4, dot, ludo, oware, postgres_db
 
-SUPPORTED_GAMES = frozenset({"connect4", "dot", "chess"})  # Only games with authoritative shared-room adapters.
+SUPPORTED_GAMES = frozenset({"connect4", "dot", "chess", "ludo", "oware"})  # Only games with authoritative shared-room adapters.
 ROOM_CODE_PATTERN = re.compile(r"^[A-Z2-9]{6}$")
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -222,8 +222,8 @@ def room_state(*, room_id: object, reconnect_token: object) -> dict[str, Any]:
     game_state = room_row[5]
     if isinstance(game_state, str):
         game_state = json.loads(game_state)
-    if str(room_row[1]) in {"connect4", "dot", "chess"} and game_state:
-        engine = {"connect4": connect4, "dot": dot, "chess": chess}[str(room_row[1])]
+    if str(room_row[1]) in {"connect4", "dot", "chess", "ludo", "oware"} and game_state:
+        engine = {"connect4": connect4, "dot": dot, "chess": chess, "ludo": ludo, "oware": oware}[str(room_row[1])]
         game_state = engine.public_state(game_state)
     return {
         "room_id": room,
@@ -259,9 +259,11 @@ def _two_player_action(
     source: object = None,
     target: object = None,
     promotion: object = None,
+    piece_id: object = None,
+    pit: object = None,
 ) -> dict[str, Any]:
     """Shared locked transaction for server-authoritative two-player game moves."""
-    engine = {"connect4": connect4, "dot": dot, "chess": chess}[game_key]
+    engine = {"connect4": connect4, "dot": dot, "chess": chess, "ludo": ludo, "oware": oware}[game_key]
     room = _room_id(room_id)
     token_hash = _token_hash(reconnect_token)
     req = _request_id(request_id)
@@ -289,7 +291,7 @@ def _two_player_action(
             if a is not None or b is not None:
                 raise ValueError("arena_room_action_invalid")
             move_data = None
-    else:
+    elif game_key == "chess":
         if verb not in {"move", "stop"} or column is not None or a is not None or b is not None:
             raise ValueError("arena_room_action_invalid")
         if verb == "move":
@@ -301,6 +303,32 @@ def _two_player_action(
             move_data = [source, target, promotion_value]
         else:
             if source is not None or target is not None or promotion is not None:
+                raise ValueError("arena_room_action_invalid")
+            move_data = None
+    elif game_key == "ludo":
+        if verb not in {"roll", "move", "stop"}:
+            raise ValueError("arena_room_action_invalid")
+        if any(value is not None for value in (column, a, b, source, target, promotion, pit)):
+            raise ValueError("arena_room_action_invalid")
+        if verb == "move":
+            move_data = str(piece_id or "").strip()
+            if not move_data:
+                raise ValueError("ludo_piece_invalid")
+        else:
+            if piece_id is not None:
+                raise ValueError("arena_room_action_invalid")
+            move_data = None
+    else:
+        if verb not in {"move", "stop"}:
+            raise ValueError("arena_room_action_invalid")
+        if any(value is not None for value in (column, a, b, source, target, promotion, piece_id)):
+            raise ValueError("arena_room_action_invalid")
+        if verb == "move":
+            if isinstance(pit, bool) or not isinstance(pit, int) or not 0 <= pit < oware.PIT_COUNT:
+                raise ValueError("oware_pit_invalid")
+            move_data = pit
+        else:
+            if pit is not None:
                 raise ValueError("arena_room_action_invalid")
             move_data = None
     digest = hashlib.sha256(
@@ -357,6 +385,8 @@ def _two_player_action(
                 game_state = stored
             elif game_key == "chess":
                 game_state = chess.new_game()
+            elif game_key in {"ludo", "oware"}:
+                game_state = engine.new_game([players[0][1], players[1][1]])
             else:
                 game_state = engine.new_game(players[0][1], players[1][1])
             current = engine.public_state(game_state)
@@ -365,15 +395,17 @@ def _two_player_action(
                     expected_seat = 1 if current["current_player_id"] == "p1" else 2
                 elif game_key == "dot":
                     expected_seat = 1 if current["turn_player_id"] == "p1" else 2
-                else:
+                elif game_key == "chess":
                     expected_seat = 1 if current["turn"] == "White" else 2
+                else:
+                    expected_seat = 1 if current["current_player_id"] == "p1" else 2
                 if expected_seat != seat:
                     raise ValueError("arena_room_not_your_turn")
                 if game_key == "connect4":
                     next_state = connect4.drop(game_state, column=column, request_id=req)
                 elif game_key == "dot":
                     next_state = dot.draw(game_state, a=a, b=b, request_id=req)
-                else:
+                elif game_key == "chess":
                     next_state = chess.move(
                         game_state,
                         source=source,
@@ -381,6 +413,13 @@ def _two_player_action(
                         promotion=promotion,
                         request_id=req,
                     )
+                elif game_key == "ludo":
+                    if verb == "roll":
+                        next_state = ludo.roll(game_state, request_id=req)
+                    else:
+                        next_state = ludo.move(game_state, piece_id=piece_id, request_id=req)
+                else:
+                    next_state = oware.move(game_state, pit=pit, request_id=req)
             else:
                 next_state = engine.stop(game_state, request_id=req)
             next_view = engine.public_state(next_state)
@@ -474,6 +513,48 @@ def chess_action(
     )
 
 
+def ludo_action(
+    *,
+    room_id: object,
+    reconnect_token: object,
+    expected_revision: object,
+    request_id: object,
+    action: object,
+    piece_id: object = None,
+) -> dict[str, Any]:
+    """Server-authoritative two-player Ludo room action."""
+    return _two_player_action(
+        game_key="ludo",
+        room_id=room_id,
+        reconnect_token=reconnect_token,
+        expected_revision=expected_revision,
+        request_id=request_id,
+        action=action,
+        piece_id=piece_id,
+    )
+
+
+def oware_action(
+    *,
+    room_id: object,
+    reconnect_token: object,
+    expected_revision: object,
+    request_id: object,
+    action: object,
+    pit: object = None,
+) -> dict[str, Any]:
+    """Server-authoritative two-player Oware room action."""
+    return _two_player_action(
+        game_key="oware",
+        room_id=room_id,
+        reconnect_token=reconnect_token,
+        expected_revision=expected_revision,
+        request_id=request_id,
+        action=action,
+        pit=pit,
+    )
+
+
 def update_game_state(*, room_id: object, reconnect_token: object, expected_revision: object,
                       game_state: object, request_id: object) -> dict[str, Any]:
     """Fail closed: multiplayer moves require a server-authoritative game adapter.
@@ -493,6 +574,8 @@ def status() -> dict[str, bool]:
         "connect4_server_actions": True,
         "dot_server_actions": True,
         "chess_server_actions": True,
+        "ludo_server_actions": True,
+        "oware_server_actions": True,
         "arbitrary_client_game_state_writes": False,
         "chat": False,
         "payments": False,
