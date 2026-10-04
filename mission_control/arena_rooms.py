@@ -166,12 +166,23 @@ def join_room(*, room_code: object, display_name: object) -> dict[str, Any]:
                 (room_id, player_id, name, next_seat, token_hash),
             )
             if count + 1 >= 2:
-                connection.execute(
-                    """UPDATE oap_arena_rooms
-                       SET status='ACTIVE',updated_at=CURRENT_TIMESTAMP
-                       WHERE room_id=%s AND status='WAITING'""",
-                    (room_id,),
-                )
+                if str(game_key) in {"ludo", "oware"}:
+                    names = [str(player[1]) for player in existing_players] + [name]
+                    engine = ludo if str(game_key) == "ludo" else oware
+                    initial_state = engine.new_game(names)
+                    connection.execute(
+                        """UPDATE oap_arena_rooms
+                           SET status='ACTIVE',game_state=%s::jsonb,updated_at=CURRENT_TIMESTAMP
+                           WHERE room_id=%s AND status='WAITING'""",
+                        (json.dumps(initial_state, sort_keys=True), room_id),
+                    )
+                else:
+                    connection.execute(
+                        """UPDATE oap_arena_rooms
+                           SET status='ACTIVE',updated_at=CURRENT_TIMESTAMP
+                           WHERE room_id=%s AND status='WAITING'""",
+                        (room_id,),
+                    )
             connection.commit()
     except ValueError:
         raise
