@@ -125,3 +125,96 @@ def test_recovery_plan_revokes_before_rebind_and_preserves_number():
     assert plan.index("revoke old device/profile binding") < plan.index(
         "rebind replacement device/profile"
     )
+
+
+def test_all_remaining_tracks_have_application_packets_and_dependencies():
+    status = personal_telecom.status()
+    remaining = {item["track_id"]: item for item in status["remaining_gates"]}
+
+    assert set(remaining) == {
+        "carrier_profile",
+        "carrier_activation",
+        "private_radio",
+        "public_number",
+    }
+    for item in remaining.values():
+        packet = item["application_packet"]
+        assert packet["contains_credentials"] is False
+        assert packet["performs_submission"] is False
+        assert packet["human_review_required"] is True
+        assert packet["submission_items"]
+        assert packet["routes"]
+
+
+def test_carrier_activation_requires_profile_dependency_and_human_approval():
+    profile_required = personal_telecom.evaluate_track("carrier_profile")["required_evidence"]
+    activation_required = personal_telecom.evaluate_track("carrier_activation")["required_evidence"]
+    evidence = {
+        "carrier_profile": {item: True for item in profile_required},
+        "carrier_activation": {item: True for item in activation_required},
+    }
+
+    blocked = personal_telecom.activation_decision(
+        "carrier_activation", evidence, human_approved=False
+    )
+    allowed = personal_telecom.activation_decision(
+        "carrier_activation", evidence, human_approved=True
+    )
+
+    assert blocked["eligible"] is False
+    assert allowed["eligible"] is True
+    assert allowed["dependencies_complete"] is True
+    assert allowed["execution_enabled"] is False
+
+
+def test_carrier_activation_is_blocked_when_profile_dependency_is_missing():
+    activation_required = personal_telecom.evaluate_track("carrier_activation")["required_evidence"]
+    evidence = {
+        "carrier_activation": {item: True for item in activation_required},
+    }
+
+    decision = personal_telecom.activation_decision(
+        "carrier_activation", evidence, human_approved=True
+    )
+
+    assert decision["external_proof_complete"] is True
+    assert decision["dependencies_complete"] is False
+    assert decision["eligible"] is False
+
+
+def test_evidence_receipt_hashes_reference_and_never_returns_raw_reference():
+    receipt = personal_telecom.build_evidence_receipt(
+        "private_radio",
+        "spectrum_authority",
+        "authority-reference-123",
+        "authorised-body",
+        "2026-10-04T06:30:00Z",
+    )
+
+    assert receipt["track_id"] == "private_radio"
+    assert receipt["evidence_id"] == "spectrum_authority"
+    assert receipt["reference_fingerprint"]
+    assert "authority-reference-123" not in receipt.values()
+
+
+def test_evidence_receipt_rejects_wrong_evidence_item():
+    import pytest
+
+    with pytest.raises(ValueError):
+        personal_telecom.build_evidence_receipt(
+            "public_number",
+            "not_required",
+            "reference",
+            "issuer",
+            "2026-10-04T06:30:00Z",
+        )
+
+
+def test_every_remaining_external_execution_flag_stays_false():
+    assert personal_telecom.PERSONAL_EXECUTION_BOUNDARY == {
+        "real_carrier_profile_installed": False,
+        "real_carrier_activation_enabled": False,
+        "private_radio_transmission_enabled": False,
+        "public_number_assigned": False,
+        "sensitive_material_exposed": False,
+    }

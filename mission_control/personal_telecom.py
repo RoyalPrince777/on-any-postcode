@@ -1,13 +1,15 @@
 """Personal-use first-party OAP telecom control plane.
 
 One owner, one OAP Number and one Network Passport. Four real-world unlock
-tracks are modelled as evidence-gated state machines. The module contains no
-carrier/eUICC authentication material and cannot activate a carrier, transmit
-radio, allocate public numbers or claim certification by itself.
+tracks are modelled as evidence-gated state machines. This module prepares and
+verifies non-sensitive readiness evidence only. It cannot issue production
+carrier credentials, activate a carrier, transmit radio, allocate public
+numbers or claim external certification by itself.
 """
 from __future__ import annotations
 
 from collections.abc import Mapping
+from hashlib import sha256
 from typing import Any
 
 PERSONAL_LINE: dict[str, Any] = {
@@ -99,18 +101,123 @@ UNLOCK_TRACKS: tuple[dict[str, Any], ...] = (
     },
 )
 
+TRACK_DEPENDENCIES: dict[str, tuple[str, ...]] = {
+    "carrier_profile": (),
+    "carrier_activation": ("carrier_profile",),
+    "private_radio": (),
+    "public_number": (),
+}
 
-def evaluate_track(track_id: str, evidence: Mapping[str, bool] | None = None) -> dict[str, Any]:
-    """Evaluate one unlock track from non-sensitive proof flags.
+EXTERNAL_APPLICATION_PACKETS: dict[str, dict[str, Any]] = {
+    "carrier_profile": {
+        "authority": "GSMA eSIM compliance / authorised production profile source",
+        "routes": (
+            "authorised carrier or profile issuer",
+            "OAP SM-DP+ candidate through SAS-SM, functional compliance, declaration and production PKI",
+        ),
+        "submission_items": (
+            "site compliance evidence where OAP operates SM-DP+",
+            "functional compliance evidence",
+            "GSMA compliance declaration/confirmation where applicable",
+            "production PKI/TLS eligibility where applicable",
+            "device/eUICC compatibility evidence",
+        ),
+    },
+    "carrier_activation": {
+        "authority": "authorised mobile-network operator or network authority",
+        "routes": (
+            "carrier subscription activation",
+            "authorised private-network subscriber activation",
+        ),
+        "submission_items": (
+            "subscriber/network entitlement",
+            "profile-to-line binding",
+            "activation receipt",
+            "live network attach evidence",
+            "data-session evidence",
+            "disable/recovery evidence",
+        ),
+    },
+    "private_radio": {
+        "authority": "Ofcom spectrum licensing framework",
+        "routes": (
+            "Shared Access licence",
+            "other lawful spectrum authority evidenced for the exact deployment",
+        ),
+        "submission_items": (
+            "deployment location",
+            "candidate band",
+            "requested frequency/channel",
+            "power class",
+            "antenna characteristics",
+            "equipment frequency-agility evidence",
+            "approved authority reference",
+        ),
+    },
+    "public_number": {
+        "authority": "Ofcom telephone numbering framework",
+        "routes": (
+            "Number Management System allocation for an eligible communications provider",
+            "lawful number adoption/hosting route",
+        ),
+        "submission_items": (
+            "communications-provider or adoption route evidence",
+            "number resource reference",
+            "My Line binding",
+            "incoming route proof",
+            "outgoing presentation/routing proof",
+            "port and recovery state",
+        ),
+    },
+}
 
-    Evidence values only represent whether proof has been independently supplied.
-    They never contain carrier credentials, SIM keys or certificate private keys.
-    """
 
+def _track(track_id: str) -> dict[str, Any]:
     track = next((item for item in UNLOCK_TRACKS if item["id"] == track_id), None)
     if track is None:
         raise ValueError("unknown personal telecom unlock track")
+    return track
 
+
+def build_evidence_receipt(
+    track_id: str,
+    evidence_id: str,
+    reference: str,
+    issuer: str,
+    observed_at: str,
+) -> dict[str, str]:
+    """Create a non-sensitive immutable-style evidence receipt.
+
+    The receipt hashes the supplied reference instead of exposing external
+    account identifiers, credentials, SIM authentication data or certificate
+    private material.
+    """
+
+    track = _track(track_id)
+    if evidence_id not in track["required_evidence"]:
+        raise ValueError("evidence item is not required by this unlock track")
+    if not all(str(value).strip() for value in (reference, issuer, observed_at)):
+        raise ValueError("evidence receipt fields must be non-empty")
+
+    fingerprint = sha256(
+        f"{track_id}|{evidence_id}|{reference}|{issuer}|{observed_at}".encode()
+    ).hexdigest()
+    return {
+        "track_id": track_id,
+        "evidence_id": evidence_id,
+        "issuer": issuer,
+        "observed_at": observed_at,
+        "reference_fingerprint": fingerprint,
+    }
+
+
+def evaluate_track(
+    track_id: str,
+    evidence: Mapping[str, bool] | None = None,
+) -> dict[str, Any]:
+    """Evaluate one unlock track from non-sensitive proof flags."""
+
+    track = _track(track_id)
     supplied = dict(evidence or {})
     required = tuple(track["required_evidence"])
     proven = tuple(item for item in required if supplied.get(item) is True)
@@ -142,10 +249,13 @@ def evaluate_track(track_id: str, evidence: Mapping[str, bool] | None = None) ->
         "evidence_total": len(required),
         "external_proof_complete": external_proof_complete,
         "execution_enabled": execution_enabled,
+        "dependencies": TRACK_DEPENDENCIES[track_id],
     }
 
 
-def unlock_status(evidence_by_track: Mapping[str, Mapping[str, bool]] | None = None) -> tuple[dict[str, Any], ...]:
+def unlock_status(
+    evidence_by_track: Mapping[str, Mapping[str, bool]] | None = None,
+) -> tuple[dict[str, Any], ...]:
     evidence_by_track = evidence_by_track or {}
     return tuple(
         evaluate_track(track["id"], evidence_by_track.get(track["id"]))
@@ -153,13 +263,79 @@ def unlock_status(evidence_by_track: Mapping[str, Mapping[str, bool]] | None = N
     )
 
 
-def can_activate(track_id: str, evidence: Mapping[str, bool] | None = None) -> bool:
-    """Return whether evidence is complete; never performs the activation."""
+def activation_decision(
+    track_id: str,
+    evidence_by_track: Mapping[str, Mapping[str, bool]] | None = None,
+    *,
+    human_approved: bool = False,
+) -> dict[str, Any]:
+    """Evaluate activation eligibility without performing activation."""
+
+    evidence_by_track = evidence_by_track or {}
+    assessment = evaluate_track(track_id, evidence_by_track.get(track_id))
+    dependency_checks = {
+        dependency: evaluate_track(
+            dependency, evidence_by_track.get(dependency)
+        )["external_proof_complete"]
+        for dependency in TRACK_DEPENDENCIES[track_id]
+    }
+    dependencies_complete = all(dependency_checks.values())
+    eligible = bool(
+        assessment["external_proof_complete"]
+        and dependencies_complete
+        and human_approved
+        and not assessment["execution_enabled"]
+    )
+    return {
+        "track_id": track_id,
+        "eligible": eligible,
+        "human_approved": human_approved,
+        "external_proof_complete": assessment["external_proof_complete"],
+        "dependencies_complete": dependencies_complete,
+        "dependency_checks": dependency_checks,
+        "execution_enabled": assessment["execution_enabled"],
+        "decision": "eligible-for-explicit-external-activation" if eligible else "blocked",
+    }
+
+
+def can_activate(
+    track_id: str,
+    evidence: Mapping[str, bool] | None = None,
+) -> bool:
+    """Compatibility helper: proof complete, execution still closed."""
 
     assessment = evaluate_track(track_id, evidence)
     return bool(
         assessment["external_proof_complete"]
         and not assessment["execution_enabled"]
+    )
+
+
+def application_packet(track_id: str) -> dict[str, Any]:
+    """Return a submission-ready requirements manifest, not an application."""
+
+    _track(track_id)
+    packet = EXTERNAL_APPLICATION_PACKETS[track_id]
+    return {
+        "track_id": track_id,
+        "authority": packet["authority"],
+        "routes": tuple(packet["routes"]),
+        "submission_items": tuple(packet["submission_items"]),
+        "contains_credentials": False,
+        "performs_submission": False,
+        "human_review_required": True,
+    }
+
+
+def remaining_gates() -> tuple[dict[str, Any], ...]:
+    return tuple(
+        {
+            "track_id": track["id"],
+            "name": track["name"],
+            "application_packet": application_packet(track["id"]),
+            "assessment": evaluate_track(track["id"]),
+        }
+        for track in UNLOCK_TRACKS
     )
 
 
@@ -206,6 +382,10 @@ def validate() -> dict[str, Any]:
         "public_number",
     }:
         errors.append("Personal telecom must retain all four canonical unlock tracks")
+    if set(TRACK_DEPENDENCIES) != set(track_ids):
+        errors.append("Every unlock track must have an explicit dependency contract")
+    if set(EXTERNAL_APPLICATION_PACKETS) != set(track_ids):
+        errors.append("Every unlock track must have an external application packet")
 
     return {
         "passed": not errors,
@@ -213,6 +393,7 @@ def validate() -> dict[str, Any]:
         "single_owner": True,
         "single_primary_line": True,
         "unlock_track_count": len(UNLOCK_TRACKS),
+        "application_packet_count": len(EXTERNAL_APPLICATION_PACKETS),
     }
 
 
@@ -234,12 +415,14 @@ def status() -> dict[str, Any]:
         },
         "execution": dict(PERSONAL_EXECUTION_BOUNDARY),
         "unlock_tracks": unlock_status(),
+        "remaining_gates": remaining_gates(),
         "recovery_plan": recovery_plan(),
         "validation": validate(),
         "truth_boundary": (
-            "Software can prepare, evaluate and preserve evidence for each unlock "
-            "track. Production carrier profiles, carrier activation, radio "
-            "transmission and public-number operation require real external proof "
-            "and explicit activation outside this read-only status contract."
+            "OAP software now prepares and verifies the complete non-sensitive "
+            "readiness contract for each remaining personal telecom gate. Real "
+            "carrier profiles, network activation, radio transmission and public "
+            "number operation still require external authority/evidence and "
+            "explicit human-approved activation."
         ),
     }
