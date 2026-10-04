@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-AUTO_VERSION = 3
+AUTO_VERSION = 4
 AUTO_LIGHT = "purple"
 BASE_LENSES = ("truth", "evidence", "alignment")
 WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
@@ -186,5 +186,148 @@ def public_status() -> dict[str, object]:
         "consequential_actions_escalate": True,
         "execution_granted": False,
         "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
+# Canonical named-review routing. These are evidence lenses inside SMI Auto,
+# not separate brains, model providers or autonomous authorities.
+REVIEW_ROLE_LENSES: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("Neo", ("neo",), "true path, execution coherence and recovery"),
+    ("Shere Khan", ("shere khan", "claw test"), "adversarial stress, weakest link and survivability"),
+    ("Bagheera", ("bagheera",), "protection, balance and reversible judgement"),
+    ("Agent Smith", ("agent smith", "smith"), "duplication, corruption, bypass and false-green detection"),
+    ("Morpheus", ("morpheus",), "mission clarity and alignment"),
+    ("Trinity", ("trinity",), "integration and continuity"),
+    ("Oracle", ("oracle",), "accuracy, uncertainty and adaptation"),
+    ("Architect", ("architect",), "architecture, maintainability and dependency structure"),
+    ("Keymaker", ("keymaker",), "access paths, routing and boundary integrity"),
+    ("Seraph", ("seraph",), "security and alignment"),
+    ("Owl", ("owl",), "evidence quality and wisdom"),
+    ("Bee", ("bee",), "coordination and evidence gathering"),
+    ("Elephant", ("elephant",), "memory, provenance and continuity"),
+    ("Panther", ("panther",), "adaptation, gaps and security"),
+    ("Eagle", ("eagle",), "whole-system view"),
+    ("Falcon", ("falcon",), "speed and smallest bounded next gate"),
+    ("Gorilla", ("gorilla",), "protection and pressure resistance"),
+)
+
+DEFAULT_AUTO_REVIEW = (
+    "Neo",
+    "Shere Khan",
+    "Bagheera",
+    "Agent Smith",
+    "Owl",
+    "Guardian",
+    "Green Gate",
+)
+
+
+def explicit_review_roles(message: object) -> tuple[str, ...]:
+    """Resolve Founder-typed names to canonical SMI review lenses."""
+
+    import re
+
+    text = str(message or "").casefold()
+    selected: list[str] = []
+    for name, aliases, _ in REVIEW_ROLE_LENSES:
+        if any(re.search(rf"(?<!\w){re.escape(alias)}(?!\w)", text) for alias in aliases):
+            selected.append(name)
+    return tuple(dict.fromkeys(selected))
+
+
+def review_lens(name: str) -> str:
+    for role_name, _, lens in REVIEW_ROLE_LENSES:
+        if role_name == name:
+            return lens
+    return "governed evidence review"
+
+
+def selected_review_roles(message: object, *, auto_mode: bool) -> tuple[str, ...]:
+    explicit = explicit_review_roles(message)
+    if explicit:
+        return explicit
+    if auto_mode:
+        return DEFAULT_AUTO_REVIEW
+    return ()
+
+
+def build_evidence_vote_board(
+    *,
+    roles: tuple[str, ...],
+    brain: dict[str, object],
+    coherence: dict[str, object],
+    judgement: dict[str, object],
+    guardian_outcome: str,
+) -> dict[str, object]:
+    """Classify current evidence for active reviewers without simulated opinions."""
+
+    if not roles:
+        return {
+            "automatic": False,
+            "roles": (),
+            "votes": (),
+            "summary": {"PASS": 0, "FAIL": 0, "CONDITIONAL": 0},
+            "authority_granted": False,
+            "human_authority_final": True,
+        }
+
+    blocked = str(guardian_outcome).upper() == "BLOCKED"
+    coherent = bool(coherence.get("passed"))
+    constitution = bool(judgement.get("constitution_consistent"))
+    provider_ready = bool(brain.get("passed"))
+    high_impact = bool(brain.get("high_impact"))
+    review_required = bool(
+        not coherent
+        or not constitution
+        or high_impact
+        or str(guardian_outcome).upper() == "REVIEW_REQUIRED"
+    )
+    if blocked:
+        base_vote = "FAIL"
+    elif provider_ready and coherent and constitution and not review_required:
+        base_vote = "PASS"
+    else:
+        base_vote = "CONDITIONAL"
+
+    votes: list[dict[str, object]] = []
+    for reviewer in roles:
+        vote = base_vote
+        reason = "Current governed evidence supports the recommendation."
+        if reviewer == "Shere Khan" and (high_impact or not coherent):
+            vote = "FAIL" if blocked else "CONDITIONAL"
+            reason = "Claw Test holds until survivability, weak-link and recovery evidence are strong."
+        elif reviewer in {"Guardian", "Green Gate"}:
+            if blocked:
+                vote = "FAIL"
+                reason = "Protection/evidence gate is blocked."
+            elif review_required:
+                vote = "CONDITIONAL"
+                reason = "Protection/evidence gate requires further proof."
+        elif reviewer == "Agent Smith" and not constitution:
+            vote = "FAIL" if blocked else "CONDITIONAL"
+            reason = "Integrity review detected an unresolved governance/coherence condition."
+
+        votes.append(
+            {
+                "reviewer": reviewer,
+                "lens": review_lens(reviewer),
+                "vote": vote,
+                "reason": reason,
+                "deterministic_evidence_review": True,
+                "independent_personality_claimed": False,
+            }
+        )
+
+    summary = {
+        state: sum(1 for item in votes if item["vote"] == state)
+        for state in ("PASS", "FAIL", "CONDITIONAL")
+    }
+    return {
+        "automatic": True,
+        "roles": roles,
+        "votes": tuple(votes),
+        "summary": summary,
+        "authority_granted": False,
         "human_authority_final": True,
     }
