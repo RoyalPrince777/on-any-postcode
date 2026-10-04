@@ -512,8 +512,10 @@ def get_public_arena_hub(state: Mapping[str, Any] | None = None) -> dict[str, An
         "boundary": dict(PUBLIC_BOUNDARY),
         "status": status(),
         "truth": (
-            "This release is a real session-scoped, non-ranked Challenge Engine. "
-            "Multiplayer, durable profiles, rankings, payments, prizes, external "
-            "distribution and live A7 signals remain locked."
+            "The embedded Challenge Engine remains session-scoped and non-ranked. "
+            "Arena-wide multiplayer rooms are exposed for Connect 4, Dot and Chess; "
+            "durable player-profile and ranking foundations exist behind explicit migration. "
+            "Remaining game-room exposure, full My Card competition projection, payments, "
+            "prizes, external distribution and live A7 signals remain separately gated."
         ),
     }
