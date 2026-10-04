@@ -33,6 +33,7 @@ def test_global_transport_public_routes_are_registered():
     assert "/transport/status" in rules
     assert "/transport/capabilities" in rules
     assert "/transport/journey/status" in rules
+    assert "/transport/control/status" in rules
     assert "/transport/shared-bikes/status" in rules
     assert "/transport/shared-bikes/mitcham" in rules
 
@@ -241,3 +242,15 @@ def test_journey_status_exposes_truth_and_authority_boundaries():
     assert payload["predicted_is_not_observed"] is True
     assert payload["execution_authorised"] is False
     assert payload["payment_authorised"] is False
+
+
+def test_transport_control_status_is_fail_closed_and_recovery_ready():
+    payload = _app().test_client().get("/transport/control/status").get_json()
+    assert payload["product"] == "OAP Global Transport Control"
+    assert payload["journey_engine"]["disruption_propagation"] is True
+    assert payload["journey_engine"]["alternative_recovery_contract"] is True
+    assert "impact" in payload["actions"]
+    assert "evidence" in payload["actions"]
+    assert payload["automatic_execution"] is False
+    assert payload["payment_action_authorised"] is False
+    assert payload["human_authority_final"] is True
