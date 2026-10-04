@@ -886,6 +886,26 @@ def arena_chess_room_page():
     return response
 
 
+@app.get("/arena/ludo/room")
+def arena_ludo_room_page():
+    response = make_response(
+        render_template("arena_ludo_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.get("/arena/oware/room")
+def arena_oware_room_page():
+    response = make_response(
+        render_template("arena_oware_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.post("/arena/rooms/dot/action")
 def arena_room_dot_action():
     denied = _arena_write_allowed()
@@ -923,6 +943,46 @@ def arena_room_chess_action():
             source=payload.get("source"),
             target=payload.get("target"),
             promotion=payload.get("promotion"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/ludo/action")
+def arena_room_ludo_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.ludo_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            piece_id=payload.get("piece_id"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/oware/action")
+def arena_room_oware_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.oware_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            pit=payload.get("pit"),
         )
     except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
         return _arena_error(exc)
