@@ -66,6 +66,86 @@ DOMAINS: dict[str, dict[str, Any]] = {
     },
 }
 
+
+DOMAIN_COMMANDS: dict[str, dict[str, tuple[str, ...]]] = {
+    "underground": {
+        "observe": ("geology", "groundwater", "seismic activity"),
+        "assets": ("tunnels", "buried utilities", "foundations"),
+        "risks": ("subsidence", "sinkholes", "contamination"),
+        "forecasts": ("ground movement", "water-table change", "infrastructure stress"),
+        "dependencies": ("land", "water", "energy", "cyber"),
+    },
+    "water": {
+        "observe": ("rivers", "oceans", "reservoirs"),
+        "assets": ("ports", "dams", "subsea cables"),
+        "risks": ("flooding", "erosion", "water quality"),
+        "forecasts": ("tides", "flood risk", "coastal change"),
+        "dependencies": ("land", "air", "energy", "cyber"),
+    },
+    "land": {
+        "observe": ("terrain", "postcodes", "land use"),
+        "assets": ("roads", "buildings", "agriculture"),
+        "risks": ("surface disruption", "wildfire", "infrastructure damage"),
+        "forecasts": ("mobility pressure", "land-use change", "environmental stress"),
+        "dependencies": ("underground", "water", "air", "energy", "cyber"),
+    },
+    "air": {
+        "observe": ("weather", "air quality", "aviation"),
+        "assets": ("airspace", "airports", "airborne sensors"),
+        "risks": ("storms", "poor visibility", "pollution"),
+        "forecasts": ("wind", "storm path", "atmospheric conditions"),
+        "dependencies": ("land", "water", "space", "spectrum", "cyber"),
+    },
+    "space": {
+        "observe": ("satellites", "orbits", "space weather"),
+        "assets": ("earth observation", "GNSS", "communications"),
+        "risks": ("debris", "signal loss", "space-weather disruption"),
+        "forecasts": ("orbital conjunction", "coverage windows", "space weather"),
+        "dependencies": ("air", "spectrum", "energy", "cyber"),
+    },
+    "spectrum": {
+        "observe": ("RF", "radar", "cellular"),
+        "assets": ("5G/6G", "ISAC", "GNSS signals"),
+        "risks": ("interference", "coverage loss", "signal congestion"),
+        "forecasts": ("propagation", "capacity pressure", "interference risk"),
+        "dependencies": ("air", "space", "energy", "cyber"),
+    },
+    "energy": {
+        "observe": ("generation", "grid", "storage"),
+        "assets": ("renewables", "fuel", "charging"),
+        "risks": ("outage", "capacity shortfall", "supply disruption"),
+        "forecasts": ("demand", "resilience", "generation balance"),
+        "dependencies": ("land", "water", "spectrum", "cyber"),
+    },
+}
+
+CROSS_DOMAIN_RELATIONSHIPS = (
+    {
+        "id": "storm-flood-grid",
+        "name": "Storm → Flood → Grid",
+        "domains": ("air", "water", "land", "energy"),
+        "purpose": "Correlate atmospheric hazards with flooding, surface disruption and energy resilience.",
+    },
+    {
+        "id": "space-spectrum-navigation",
+        "name": "Space → Spectrum → Navigation",
+        "domains": ("space", "spectrum", "land", "air"),
+        "purpose": "Correlate satellite, RF and navigation dependencies across surface and aviation systems.",
+    },
+    {
+        "id": "groundwater-infrastructure",
+        "name": "Groundwater → Underground → Land",
+        "domains": ("water", "underground", "land"),
+        "purpose": "Correlate groundwater change with subsurface and surface infrastructure risk.",
+    },
+    {
+        "id": "energy-cyber-dependency",
+        "name": "Energy ↔ Cyber Dependency",
+        "domains": ("energy", "spectrum", "land"),
+        "purpose": "Represent the physical dependencies behind digitally controlled energy systems.",
+    },
+)
+
 CYBER_FABRIC = {
     "name": "Cyber Fabric",
     "icon": "💻",
@@ -105,9 +185,12 @@ def domain_status(domain_id: str) -> dict[str, Any]:
     if domain_id not in DOMAINS:
         raise KeyError(domain_id)
     domain = DOMAINS[domain_id]
+    command = DOMAIN_COMMANDS[domain_id]
     return {
         "id": domain_id,
         **domain,
+        "command": command,
+        "command_sections": tuple(command),
         "architecture_ready": True,
         "architecture_light": "🟢",
         "dashboard_ready": True,
@@ -131,6 +214,8 @@ def status() -> dict[str, Any]:
         "component": "OAP Planetary Intelligence",
         "operational_domain_count": len(domains),
         "operational_domains": domains,
+        "cross_domain_relationship_count": len(CROSS_DOMAIN_RELATIONSHIPS),
+        "cross_domain_relationships": CROSS_DOMAIN_RELATIONSHIPS,
         "cyber_fabric": {
             **CYBER_FABRIC,
             "cross_cutting": True,
