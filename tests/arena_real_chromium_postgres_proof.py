@@ -70,21 +70,19 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
     assert_layout(host)
     assert_layout(guest)
     if game == "connect4":
-        for unavailable in ("iq", "route-empire"):
-            rejected = host.evaluate(
-                """async game => {
-                    const csrf = document.querySelector('meta[name="oap-csrf-token"]').content;
-                    const response = await fetch('/arena/rooms/create', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json', 'X-OAP-CSRF': csrf},
-                        body: JSON.stringify({game_key:game,host_name:'Rejected Room',capacity:2})
-                    });
-                    return {status:response.status, result:await response.json()};
-                }""",
-                unavailable,
-            )
-            assert rejected["status"] == 400, rejected
-            assert rejected["result"]["error"]["code"] == "arena_room_game_invalid"
+        rejected = host.evaluate(
+            """async () => {
+                const csrf = document.querySelector('meta[name="oap-csrf-token"]').content;
+                const response = await fetch('/arena/rooms/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-OAP-CSRF': csrf},
+                    body: JSON.stringify({game_key:'unknown-game',host_name:'Rejected Room',capacity:2})
+                });
+                return {status:response.status, result:await response.json()};
+            }"""
+        )
+        assert rejected["status"] == 400, rejected
+        assert rejected["result"]["error"]["code"] == "arena_room_game_invalid"
 
     host.locator("[data-host]").fill("Alpha " + game)
     host.locator("[data-create]").click()
@@ -216,6 +214,69 @@ def play_added_room(browser, game, host_viewport, guest_viewport):
     print("ARENA_REAL_CHROMIUM_POSTGRES_PASS", game)
     host_context.close(); guest_context.close()
 
+
+def play_final_room(browser, game, host_viewport, guest_viewport):
+    web_security.PUBLIC_WRITE_LIMITER.reset()
+    host_context = browser.new_context(viewport=host_viewport)
+    guest_context = browser.new_context(viewport=guest_viewport)
+    host, guest = host_context.new_page(), guest_context.new_page()
+    errors = []
+    host.on("pageerror", lambda e: errors.append("host: " + str(e)))
+    guest.on("pageerror", lambda e: errors.append("guest: " + str(e)))
+    route = "/arena/iq/room" if game == "iq" else "/arena/route-empire/room"
+    host.goto(BASE + route, wait_until="domcontentloaded")
+    guest.goto(BASE + route, wait_until="domcontentloaded")
+    assert_layout(host); assert_layout(guest)
+
+    host.locator("[data-host]").fill("Alpha " + game)
+    host.locator("[data-create]").click()
+    expect(host.locator("[data-room]")).to_be_visible()
+    room_code = host.locator("[data-code]").inner_text()
+    assert len(room_code) == 6
+
+    guest.locator("[data-join-code]").fill(room_code)
+    guest.locator("[data-guest]").fill("Bravo " + game)
+    guest.locator("[data-join]").click()
+    expect(guest.locator("[data-room]")).to_be_visible()
+    expect(guest.locator("[data-status]")).to_have_text("ACTIVE")
+    host.locator("[data-refresh]").click()
+    expect(host.locator("[data-status]")).to_have_text("ACTIVE")
+
+    if game == "iq":
+        expect(host.locator("[data-choices] button").first).to_be_enabled()
+        host.locator("[data-choices] button").first.click()
+        expect(host.locator("[data-revision]")).to_have_text("1")
+        expect(host.locator("[data-wait]")).to_contain_text("Answer locked")
+        guest.locator("[data-refresh]").click()
+        expect(guest.locator("[data-revision]")).to_have_text("1")
+        expect(guest.locator("[data-choices] button").first).to_be_enabled()
+        guest.locator("[data-choices] button").nth(1).click()
+        expect(guest.locator("[data-revision]")).to_have_text("2")
+        host.locator("[data-refresh]").click()
+        expect(host.locator("[data-revision]")).to_have_text("2")
+        expect(host.locator("[data-progress]")).to_contain_text("Question 2")
+    else:
+        expect(host.locator("[data-nodes] button").first).to_be_enabled()
+        host.locator("[data-nodes] button").first.click()
+        expect(host.locator("[data-revision]")).to_have_text("1")
+        host.locator("[data-end-turn]").click()
+        expect(host.locator("[data-revision]")).to_have_text("2")
+        guest.locator("[data-refresh]").click()
+        expect(guest.locator("[data-revision]")).to_have_text("2")
+        expect(guest.locator("[data-nodes] button").filter(has_text="Claim").nth(1)).to_be_enabled()
+        guest.locator("[data-nodes] button").filter(has_text="Claim").nth(1).click()
+        expect(guest.locator("[data-revision]")).to_have_text("3")
+        host.locator("[data-refresh]").click()
+        expect(host.locator("[data-revision]")).to_have_text("3")
+
+    host.locator("[data-stop]").click()
+    expect(host.locator("[data-status]")).to_have_text("STOPPED")
+    guest.locator("[data-refresh]").click()
+    expect(guest.locator("[data-status]")).to_have_text("STOPPED")
+    assert not errors, errors
+    print("ARENA_REAL_CHROMIUM_POSTGRES_PASS", game)
+    host_context.close(); guest_context.close()
+
 def main():
     prepare()
     server = make_server("127.0.0.1", 8768, app_module.app, threaded=True)
@@ -230,6 +291,8 @@ def main():
             play_two_seats(browser, "dot", desktop, mobile)
             play_added_room(browser, "ludo", mobile, desktop)
             play_added_room(browser, "oware", desktop, mobile)
+            play_final_room(browser, "iq", mobile, desktop)
+            play_final_room(browser, "route-empire", desktop, mobile)
             browser.close()
     finally:
         server.shutdown()
