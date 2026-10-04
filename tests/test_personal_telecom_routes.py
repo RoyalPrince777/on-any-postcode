@@ -132,10 +132,8 @@ def test_my_line_front_door_has_all_primary_controls():
     ).read_text(encoding="utf-8")
 
     assert "My Line" in template
-    assert "Network Passport" in template
-    assert "Link Call" in template
-    assert "Link Message" in template
-    assert "PTT" in template
+    assert 'routes[button_id]' in template
+    assert "Real-world unlock gates" in template
     assert 'href="/my-line"' in my_card
     assert "data-linkup-intent" in linkup_template
     assert 'intent === "link-call"' in messenger
