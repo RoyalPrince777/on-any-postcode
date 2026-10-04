@@ -125,7 +125,7 @@ def test_arena_public_routes_and_controls_are_real(anonymous_client):
         assert "OAP <span class=\"arena-gold\">ARENA</span>" in page
         assert "OAP Challenge Engine" in page
         assert "One Combined Global Arena" in page
-        assert "session-scoped, non-ranked Challenge Engine" in page
+        assert "Challenge Engine remains session-scoped and non-ranked" in page
         assert "arena_intelligence.js" in page
         assert 'data-endpoint="/arena/session/start"' in page
         assert 'data-endpoint="/arena/session/stop"' in page
