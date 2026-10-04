@@ -1,7 +1,10 @@
 """Deterministic endless-cell generator for EARTH IS OUR TURF."""
 from __future__ import annotations
-import hashlib, json
+
+import hashlib
+import json
 from typing import Any
+
 SCHEMA="oap.eiot.endless-cells.v1"
 CELL_METRES=512
 BIOMES=("urban_high_street","urban_residential","estate","park","industrial","suburban")
