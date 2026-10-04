@@ -297,6 +297,13 @@ def map_intelligence_mobility_providers():
     return response
 
 
+@bp.get("/map-intelligence/smi-21")
+def map_intelligence_smi_21():
+    response = jsonify(local_map_intelligence.smi_21_state())
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @bp.get("/map-intelligence/status")
 def map_intelligence_status():
     route_status = routing.status()
