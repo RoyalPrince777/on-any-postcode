@@ -23,6 +23,7 @@ from . import (
     postgres_db,
     smi_cancellation,
     smi_founder_assets,
+    smi_auto_review,
     studio_intelligence,
 )
 
@@ -121,6 +122,8 @@ def _provider(
             {
                 "task_type": (brain or {}).get("task_type"),
                 "approved_advisors": (brain or {}).get("advisor_ids", []),
+                "active_reviewers": (brain or {}).get("active_reviewers", []),
+                "active_review_lenses": (brain or {}).get("active_review_lenses", {}),
                 "signal_level": (brain or {}).get("signal_level"),
                 "war_room_triggered": (brain or {})
                 .get("war_room", {})
@@ -650,12 +653,15 @@ def _founder_shorthand(message: object) -> dict[str, object]:
     smi_21 = bool(re.search(r"\bsmi\s*21\b", text))
     truth_mode = bool(re.search(r"\btruth\s+mode\b", text))
     red_team = bool(re.search(r"\bred\s+team\b", text))
+    smi_auto = bool(re.search(r"(?<!\w)smi(?!\w)", text)) and not smi_21
     return {
         "deep_dive": bool(smi_21 or truth_mode or red_team),
         "force_war_room": red_team,
+        "auto_mode": smi_auto,
         "signals": tuple(
             name
             for name, active in (
+                ("SMI_AUTO", smi_auto),
                 ("SMI_21", smi_21),
                 ("TRUTH_MODE", truth_mode),
                 ("RED_TEAM", red_team),
@@ -679,6 +685,8 @@ def _auto_runtime_mode(
 
     requested = _requested_runtime_mode(requested_level)
     shorthand = _founder_shorthand(message)
+    if shorthand["auto_mode"] and not shorthand["deep_dive"]:
+        requested = "auto"
     if requested == "auto" and shorthand["deep_dive"]:
         requested = "deep_dive"
 
@@ -861,9 +869,20 @@ def chat(
             brain["thinking_level"] = level
             brain["resolved_depth"] = {"instant": 3, "think": 7, "deep_dive": 21}.get(level, resolved_depth)
         brain["requested_mode"] = requested_mode
-        brain["auto_selected"] = requested_mode == "auto"
+        brain["auto_selected"] = bool(
+            requested_mode == "auto" or shorthand.get("auto_mode")
+        )
         brain["founder_shorthand_signals"] = shorthand["signals"]
         brain["founder_shorthand_war_room"] = bool(shorthand["force_war_room"])
+        active_reviewers = smi_auto_review.selected_roles(
+            clean,
+            auto_mode=bool(brain["auto_selected"]),
+        )
+        brain["active_reviewers"] = active_reviewers
+        brain["active_review_lenses"] = {
+            reviewer: smi_auto_review.lens_for(reviewer)
+            for reviewer in active_reviewers
+        }
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
         memory_rows = connection.execute(
             """SELECT summary FROM smi_memory_records
@@ -985,6 +1004,8 @@ def chat(
                         "thinking_level": level,
                         "studio_mode": bool(studio_mode),
                         "continuation": continuation,
+                        "active_reviewers": list(brain.get("active_reviewers") or ()),
+                        "auto_review": auto_review,
                     }
                 ),
                 json.dumps(processing_states),
@@ -996,6 +1017,13 @@ def chat(
             coherence=coherence,
             provider_completed=provider_completed,
             provider_id=PROVIDER,
+        )
+        auto_review = smi_auto_review.build_vote_board(
+            roles=tuple(brain.get("active_reviewers") or ()),
+            brain=brain,
+            coherence=coherence,
+            judgement=judgement_review,
+            guardian_outcome=outcome,
         )
         judgement.persist(
             connection,
@@ -1049,6 +1077,8 @@ def chat(
             "mission_continuation": bool(continuation["active"]),
             "resumed_request_id": continuation["resumed_request_id"],
             "resumed_output_state": continuation["resumed_output_state"],
+            "active_reviewers": list(brain.get("active_reviewers") or ()),
+            "auto_review_summary": auto_review["summary"],
         }
         _write_audit(
             connection,
@@ -1084,6 +1114,8 @@ def chat(
         "authority": brain["authority"],
         "war_room": brain["war_room"],
         "continuation": continuation,
+        "active_reviewers": list(brain.get("active_reviewers") or ()),
+        "auto_review": auto_review,
         "can_execute": False,
         "adaptive": {"active": True, "hrm_lessons": len(adaptive_memory)},
         "media": {
