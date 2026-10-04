@@ -18,6 +18,11 @@ on:
       - "mission_control/journey_engine.py"
       - "static/oap-os.js"
       - "tests/transport_real_chromium_proof.py"
+      - "tests/test_global_transport_views.py"
+      - "tests/test_oap_ride_runtime.py"
+      - "tests/test_oap_ride_payment_guardian_bridge.py"
+      - "tests/test_oap_ride_commercial.py"
+      - "tests/test_oap_ride_ops.py"
       - ".github/workflows/transport-chromium-proof.yml"
 
 permissions:
@@ -36,7 +41,15 @@ jobs:
           python-version: "3.12"
       - name: Install actual runtime and Chromium
         run: |
-          python -m pip install -r requirements.txt 'playwright>=1.50,<2'
+          python -m pip install -r requirements.txt 'playwright>=1.50,<2' pytest
           python -m playwright install --with-deps chromium
+      - name: Prove Transport lifecycle, Guardian, accessibility and payment binding
+        run: |
+          python -m pytest -q \
+            tests/test_global_transport_views.py \
+            tests/test_oap_ride_runtime.py \
+            tests/test_oap_ride_payment_guardian_bridge.py \
+            tests/test_oap_ride_commercial.py \
+            tests/test_oap_ride_ops.py
       - name: Prove Transport front door and dashboard button routes
         run: python tests/transport_real_chromium_proof.py
