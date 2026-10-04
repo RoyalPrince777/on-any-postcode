@@ -17,6 +17,12 @@ def test_operator_gateway_is_first_party_and_fail_closed(monkeypatch):
     assert state["provider_count"] == 0
     assert state["external_operator_control"] is False
     assert state["read_only_by_default"] is True
+    assert state["network_transport_modes"] == ["bus", "rail", "metro", "tram", "ferry", "coach"]
+    assert state["ride_modes"] == ["car", "e-bike"]
+    assert state["map_modes"] == ["walk", "bicycle"]
+    assert state["gateway_levels"][-1] == "ACTION_AUTHORISED"
+    assert state["data_available_does_not_mean_action_authorised"] is True
+    assert state["scheduled_is_not_live"] is True
     assert state["human_authority_final"] is True
 
 
