@@ -141,7 +141,7 @@ function draw(coords){
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
 function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
 function tilePointLonLat(tx,ty,z,u,v){const n=Math.pow(2,z),wx=(tx+u)/n,wy=(ty+v)/n;return[wx*360-180,Math.atan(Math.sinh(Math.PI*(1-2*wy)))*180/Math.PI]}
-const ROAD_TILE_TIMEOUT_MS=15000;
+const ROAD_TILE_TIMEOUT_MS=8000;
 async function fetchRoadTile(z,x,y,mode){
  const url='/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode);
  for(let attempt=0;attempt<3;attempt++){
@@ -161,6 +161,9 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
  const request=requestToken===null?++roadRequest:requestToken;
  if(batchAttempt===0)roadLayer.innerHTML='';
  showRoadStatus(batchAttempt?'Warming road network…':'Loading road network…');
+ const recoveryTimer=batchAttempt<3?setTimeout(()=>{
+   if(request===roadRequest&&!roadLayer.querySelector('polyline'))loadRoadNetwork(b,mode,batchAttempt+1,null);
+ },6000):null;
  const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;
  let x0=lon2x(b.minX,z),x1=lon2x(b.maxX,z),y0=lat2y(b.maxY,z),y1=lat2y(b.minY,z);let tiles=[];
  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)tiles.push([x,y]);
@@ -199,7 +202,7 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
      if(batchAttempt<3){
        showRoadStatus('Warming road network…');
        await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
-       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
+       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,null);
      }
      clearBoot();showRoadStatus('Road network unavailable — route guidance may still work.');
    }
@@ -207,10 +210,12 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
    if(request===roadRequest&&!count){
      if(batchAttempt<3){
        await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
-       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
+       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,null);
      }
      clearBoot();showRoadStatus('Road network unavailable — check map source.');
    }
+ }finally{
+   if(recoveryTimer)clearTimeout(recoveryTimer);
  }
 }
 function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}
