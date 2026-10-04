@@ -170,7 +170,7 @@ def map_intelligence_asset(filename: str):
     if safe_name not in _PUBLIC_MAP_ASSETS:
         return make_response("", 404)
     response = make_response(send_from_directory(_PUBLIC_MAP_ASSET_DIR, safe_name))
-    response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60"
+    response.headers["Cache-Control"] = "no-cache, max-age=0, must-revalidate"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
