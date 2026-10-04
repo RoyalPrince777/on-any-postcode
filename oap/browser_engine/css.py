@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 from .dom import Node
 
-
 ALLOWED_PROPERTIES = frozenset({
     "color",
     "background-color",
