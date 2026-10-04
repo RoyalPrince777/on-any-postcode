@@ -49,6 +49,13 @@ def main() -> None:
         assert payload["software_percent"] == 100
         assert payload["software_checks"]
         assert all(payload["software_checks"].values())
+        for required_check in (
+            "account_owner_resolution",
+            "canonical_balance_engine",
+            "payment_reservations",
+            "atomic_payment_creation",
+        ):
+            assert payload["software_checks"][required_check] is True
         assert payload["software_external_execution_ready"] is False
         assert payload["money_movement_enabled"] is False
 
