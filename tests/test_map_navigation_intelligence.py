@@ -243,10 +243,10 @@ def test_map_render_is_atomic_and_has_no_timeout_fake_ready():
 
     assert "roadLayer.replaceChildren(staged)" in page
     assert "document.createDocumentFragment()" in page
-    assert "setRenderState('stable')" in page
+    assert "setRenderState(roadReady?'stable':'degraded')" in page
     assert "setRenderState('degraded')" in page
     assert "await loadRoadNetwork(bounds,profile.value)" in page
-    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value)" in page
+    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value).then(count=>setRenderState(count>0?'stable':'degraded'))" in page
     assert "setTimeout(clearBoot,5000)" not in page
     assert ".oap-map-boot[hidden]{display:none!important}" in page
 
@@ -257,4 +257,7 @@ def test_route_waits_for_road_context_before_exposing_complete_map():
     assert "svg.hidden=true;setRenderState('loading')" in page
     assert "const roadCount=await loadRoadNetwork(bounds,profile.value)" in page
     assert "svg.hidden=false" in page
-    assert "setRenderState(roadCount>0?'stable':'degraded')" in page
+    assert "const roadReady=await draw(d.route.geometry?.coordinates||[])" in page
+    assert "window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}))" in page
+    assert "setRenderState(roadReady?'stable':'degraded')" in page
+    assert page.index("window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}))") < page.index("setRenderState(roadReady?'stable':'degraded')")

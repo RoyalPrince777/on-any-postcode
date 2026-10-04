@@ -146,7 +146,6 @@ async function draw(coords){
  svg.hidden=true;setRenderState('loading');
  const roadCount=await loadRoadNetwork(bounds,profile.value);
  svg.hidden=false;
- setRenderState(roadCount>0?'stable':'degraded');
  return roadCount>0
 }
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
@@ -218,7 +217,7 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
      return 0
    }
    roadLayer.replaceChildren(staged);
-   showRoadStatus('');clearBoot();setRenderState('stable');
+   showRoadStatus('');clearBoot();
    return count
  }catch{
    if(request!==roadRequest)return 0;
@@ -250,7 +249,7 @@ async function route(options={}){
    const r=await fetch('/map-intelligence/route?'+params.toString(),{credentials:'same-origin',cache:'no-store'});
    const d=await r.json();
    if(!r.ok||!d.route){svg.hidden=true;toast(d?.error?.code==='outside_current_oap_map_coverage'?'Outside current routing coverage':'Route unavailable');return}
-   await draw(d.route.geometry?.coordinates||[]);
+   const roadReady=await draw(d.route.geometry?.coordinates||[]);
    distance.textContent=(d.route.distance_m/1000).toFixed(1)+' km';
    eta.textContent=Math.max(1,Math.round(d.route.duration_s/60))+' min';
    const live=d.route.live_road_state||{};
@@ -262,6 +261,7 @@ async function route(options={}){
    renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);
    window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}));
    history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
+   setRenderState(roadReady?'stable':'degraded');
  }catch{svg.hidden=true;toast('Route temporarily unavailable')}
 }
 form.addEventListener('submit',e=>{e.preventDefault();route()});
@@ -270,8 +270,11 @@ window.addEventListener('oap-map-reroute-request',event=>{
  if(Number.isFinite(point.latitude)&&Number.isFinite(point.longitude))route({originCoords:point});
 });
 setRenderState('loading');
-profile.addEventListener('change',()=>{if(bounds)loadRoadNetwork(bounds,profile.value);else loadRoadNetwork(defaultBounds,profile.value)});
-if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);
+profile.addEventListener('change',async()=>{
+ const count=await loadRoadNetwork(bounds||defaultBounds,profile.value);
+ setRenderState(count>0?'stable':'degraded');
+});
+if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value).then(count=>setRenderState(count>0?'stable':'degraded'));
 loadPlaces(from.value.trim());
 })();
 </script>
