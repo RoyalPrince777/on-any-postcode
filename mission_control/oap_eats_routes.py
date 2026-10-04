@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template_string, request
 
-from . import oap_eats, oap_eats_store, web_security
+from . import oap_eats, oap_eats_fulfilment, oap_eats_store, web_security
 
 bp = Blueprint("oap_eats", __name__)
 
@@ -107,3 +107,59 @@ def transition_order(order_id: str):
         return _error(str(exc) or "invalid_eats_transition", 400)
     except Exception:
         return _error("eats_store_unavailable", 503)
+
+
+@bp.post("/eats/orders/<order_id>/payment")
+@web_security.login_required(api=True)
+def bind_order_payment(order_id: str):
+    identity = web_security.authenticated_identity()
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", 403)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error("json_object_required", 400)
+    try:
+        result = oap_eats_fulfilment.bind_payment(
+            order_id=order_id,
+            customer_identity_id=identity,
+            payment_id=body.get("payment_id"),
+        )
+        return _no_store(make_response(jsonify(result), 200))
+    except PermissionError as exc:
+        return _error(str(exc) or "eats_access_denied", 403)
+    except ValueError as exc:
+        return _error(str(exc) or "invalid_eats_payment", 400)
+    except Exception:
+        return _error("eats_payment_bridge_unavailable", 503)
+
+
+@bp.post("/eats/orders/<order_id>/delivery")
+@web_security.login_required(api=True)
+def create_order_delivery(order_id: str):
+    identity = web_security.authenticated_identity()
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", 403)
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _error("json_object_required", 400)
+    try:
+        result = oap_eats_fulfilment.create_delivery(
+            order_id=order_id,
+            customer_identity_id=identity,
+            pickup=body.get("pickup"),
+            destination=body.get("destination"),
+            idempotency_key=request.headers.get("Idempotency-Key"),
+        )
+        return _no_store(make_response(jsonify(result), 201))
+    except PermissionError as exc:
+        return _error(str(exc) or "eats_access_denied", 403)
+    except ValueError as exc:
+        code = str(exc) or "invalid_eats_delivery"
+        return _error(code, 409 if code == "idempotency_conflict" else 400)
+    except Exception:
+        return _error("eats_delivery_bridge_unavailable", 503)
+
+
+@bp.get("/eats/fulfilment-status")
+def eats_fulfilment_status():
+    return _no_store(make_response(jsonify(oap_eats_fulfilment.status()), 200))
