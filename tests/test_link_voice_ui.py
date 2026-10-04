@@ -18,6 +18,8 @@ def test_linkup_surface_exposes_voice_without_unlocking_generic_share():
     assert "data-oap-voice-stop" in template
     assert "data-oap-voice-list" in template
     assert "data-oap-voice-status" in template
+    assert "data-oap-ptt-control" in template
+    assert "data-oap-ptt-stop" in template
     assert 'title="Share"' in template
     assert " Share</button>" in template
     assert "Share <small>locked</small>" not in template
@@ -33,7 +35,7 @@ def test_voice_controller_is_explicit_audio_only_same_origin_and_bounded():
     assert "state.maxDurationMs = Number(status.max_voice_duration_ms)" in script
     assert "window.setTimeout(finishRecording, state.maxDurationMs)" in script
     assert "5 * 1024 * 1024" in script
-    assert 'fetch("/linkup/voice"' in script
+    assert 'const endpoint = kind === "ptt" ? "/linkup/ptt" : "/linkup/voice"' in script
     assert "credentials: \"same-origin\"" in script
     assert "cache: \"no-store\"" in script
     assert "http://" not in script
@@ -45,8 +47,9 @@ def test_voice_controller_is_explicit_audio_only_same_origin_and_bounded():
 def test_voice_permission_is_requested_from_click_path_not_page_load():
     script = SCRIPT.read_text(encoding="utf-8")
 
-    assert "const startRecording = async (control) =>" in script
-    assert 'control.addEventListener("click", () => startRecording(control))' in script
+    assert 'const startRecording = async (control, kind = "voice") =>' in script
+    assert 'control.addEventListener("click", () => startRecording(control, "voice"))' in script
+    assert 'startRecording(control, "ptt")' in script
     assert "getUserMedia" in script
     assert 'apiJson("/linkup/voice/status")' in script
 
@@ -62,3 +65,14 @@ def test_voice_browser_controller_has_valid_javascript_syntax():
         capture_output=True,
         text=True,
     )
+
+
+def test_ptt_controller_is_press_release_and_reuses_first_party_voice_transport():
+    script = SCRIPT.read_text(encoding="utf-8")
+
+    assert "data-oap-ptt-control" in script
+    assert 'control.addEventListener("pointerdown", begin)' in script
+    assert 'control.addEventListener("pointerup", finish)' in script
+    assert 'kind === "ptt"' in script
+    assert '"/linkup/ptt"' in script
+    assert "navigator.mediaDevices.getUserMedia({ audio: true, video: false })" in script

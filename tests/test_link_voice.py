@@ -71,7 +71,7 @@ def test_voice_schema_is_explicit_first_party_and_bounded():
     dry_run = link_voice.init_schema(dry_run=True)
     joined = "\n".join(dry_run["statements"])
 
-    assert dry_run["version"] == "link_voice_v1"
+    assert dry_run["version"] == "link_voice_v2"
     assert dry_run["applied"] is False
     assert "link_voice_notes" in joined
     assert "media BYTEA NOT NULL" in joined
@@ -168,6 +168,7 @@ def test_create_voice_enforces_quota_and_sha256(monkeypatch):
             assert params[3] == len(media)
             assert params[5] == hashlib.sha256(media).hexdigest()
             assert params[6] == media
+            assert params[7] == "voice"
             return _Result(row=(voice_id, created_at))
         raise AssertionError(f"unexpected query: {query}")
 
@@ -205,7 +206,7 @@ def test_voice_list_is_exact_pair_and_never_returns_bytes(monkeypatch):
     created_at = datetime.now(timezone.utc)
     connection = _Connection(
         lambda _query, _params: _Result(
-            rows=[(voice_id, identity, peer, "audio/webm", 99, 800, created_at)]
+            rows=[(voice_id, identity, peer, "audio/webm", 99, 800, created_at, "voice")]
         )
     )
     monkeypatch.setattr(
@@ -319,3 +320,63 @@ def test_voice_media_route_is_pair_scoped_and_no_store(client, monkeypatch):
     assert response.headers["Content-Type"].startswith("audio/webm")
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-OAP-Content-SHA256"] == digest
+
+
+def test_ptt_kind_is_validated_and_persisted(monkeypatch):
+    _allow_link(monkeypatch)
+    sender = str(uuid.uuid4())
+    recipient = str(uuid.uuid4())
+    voice_id = str(uuid.uuid4())
+    created_at = datetime.now(timezone.utc)
+    media = _webm()
+
+    def handler(query, params):
+        if query.startswith("SELECT COALESCE(SUM(byte_size),0)"):
+            return _Result(row=(0,))
+        if query.startswith("INSERT INTO link_voice_notes"):
+            assert params[7] == "ptt"
+            return _Result(row=(voice_id, created_at))
+        raise AssertionError(f"unexpected query: {query}")
+
+    connection = _Connection(handler)
+    monkeypatch.setattr(
+        link_voice.postgres_db, "connect", lambda *args, **kwargs: _Context(connection)
+    )
+
+    result = link_voice.create_voice(
+        sender,
+        recipient,
+        media=media,
+        mime_type="audio/webm",
+        duration_ms=900,
+        kind="ptt",
+    )
+
+    assert result["kind"] == "ptt"
+
+
+def test_ptt_kind_rejects_unknown_mode_before_storage(monkeypatch):
+    _allow_link(monkeypatch)
+    monkeypatch.setattr(
+        link_voice.postgres_db,
+        "connect",
+        lambda *args, **kwargs: pytest.fail("database must not receive invalid PTT kind"),
+    )
+
+    with pytest.raises(ValueError, match="invalid_voice_kind"):
+        link_voice.create_voice(
+            uuid.uuid4(),
+            uuid.uuid4(),
+            media=_webm(),
+            mime_type="audio/webm",
+            kind="radio-copy",
+        )
+
+
+def test_ptt_routes_are_registered_and_protected(anonymous_client):
+    response = anonymous_client.get("/linkup/ptt/status")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
+
+    response = anonymous_client.post("/linkup/ptt")
+    assert response.status_code == 401

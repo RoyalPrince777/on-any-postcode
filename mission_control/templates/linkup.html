@@ -36,7 +36,7 @@
   <script src="{{ url_for('static', filename='linkup_network.js') }}" defer></script>
 </head>
 <body>
-<div class="linkup-app" data-linkup-app data-chat-open="false" data-network="online">
+<div class="linkup-app" data-linkup-app data-chat-open="false" data-network="online" data-linkup-intent="{{ linkup_intent or '' }}">
   <section class="linkup-install-network" aria-label="Link Up app status">
     <span data-oap-linkup-network-status role="status" aria-live="polite">Checking connection…</span>
     <button type="button" data-oap-install hidden>Install Link Up</button>
@@ -269,6 +269,8 @@
                   </details>
                   <button class="mc-secondary" type="button" disabled data-oap-voice-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="Voice">{{ motion_icon('voice', 'oap-motion-voice') }}</button>
                   <button class="mc-secondary" type="button" hidden disabled data-oap-voice-stop data-recipient-id="{{ thread.other_identity_id }}" aria-label="Stop Voice">■</button>
+                  <button class="mc-secondary" type="button" disabled data-oap-ptt-control data-recipient-id="{{ thread.other_identity_id }}" aria-label="PTT">PTT</button>
+                  <button class="mc-secondary" type="button" hidden disabled data-oap-ptt-stop data-recipient-id="{{ thread.other_identity_id }}" aria-label="Stop PTT">■ PTT</button>
                   <button class="mc-primary linkup-send" type="submit">Link</button>
                 </div>
                 <div class="linkup-tray" data-oap-tray data-open="false">

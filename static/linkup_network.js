@@ -10,6 +10,8 @@
     "[data-oap-call-control]",
     "[data-oap-voice-control]",
     "[data-oap-voice-stop]",
+    "[data-oap-ptt-control]",
+    "[data-oap-ptt-stop]",
     "[data-oap-share-spot-control]",
     "[data-oap-around-control]",
     "[data-oap-live-spot-control]",

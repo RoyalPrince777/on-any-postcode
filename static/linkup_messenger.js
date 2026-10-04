@@ -53,4 +53,27 @@
   } else if (!first && panels.some((panel) => panel.dataset.linkupPanel === "new")) {
     openPanel("new");
   }
+
+  const intent = (app.dataset.linkupIntent || "").trim();
+  if (!intent) return;
+
+  const activePanel = () => panels.find((panel) => panel.dataset.active === "true") || null;
+  window.requestAnimationFrame(() => {
+    const panel = activePanel();
+    if (!panel) return;
+    if (intent === "message") {
+      panel.querySelector("textarea")?.focus({ preventScroll: true });
+      return;
+    }
+    const selector =
+      intent === "link-call"
+        ? '[data-oap-call-control][data-call-mode="face_up"]'
+        : intent === "ptt"
+          ? "[data-oap-ptt-control]"
+          : "";
+    const control = selector ? panel.querySelector(selector) : null;
+    if (!control) return;
+    control.scrollIntoView({ block: "center", behavior: "smooth" });
+    control.focus({ preventScroll: true });
+  });
 })();

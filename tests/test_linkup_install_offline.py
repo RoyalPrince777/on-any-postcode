@@ -24,6 +24,7 @@ def test_linkup_network_guard_never_queues_private_actions_offline():
     assert "[data-oap-link-composer]" in NETWORK
     assert "[data-oap-call-control]" in NETWORK
     assert "[data-oap-voice-control]" in NETWORK
+    assert "[data-oap-ptt-control]" in NETWORK
     assert "[data-oap-share-spot-control]" in NETWORK
     assert "[data-oap-live-spot-control]" in NETWORK
     assert "event.preventDefault()" in NETWORK

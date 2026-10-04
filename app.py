@@ -2689,6 +2689,9 @@ def linkup_front_door():
     link_runtime["live_gate"] = all(link_runtime.values())
     seven_star_gate = linkup.linkup_seven_star_status(link_runtime)
 
+    raw_linkup_intent = str(request.args.get("intent") or "").strip().casefold()
+    linkup_intent = raw_linkup_intent if raw_linkup_intent in {"message", "link-call", "ptt"} else ""
+
     response = make_response(
         render_template(
             "linkup.html",
@@ -2700,6 +2703,7 @@ def linkup_front_door():
             relationships_ready=relationships_ready,
             seven_star_gate=seven_star_gate,
             private_unavailable=unavailable,
+            linkup_intent=linkup_intent,
         )
     )
     response.headers["Cache-Control"] = "no-store"
