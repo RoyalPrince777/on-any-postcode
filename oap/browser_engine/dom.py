@@ -4,7 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 
-
 VOID_ELEMENTS = {
     "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta",
     "param", "source", "track", "wbr",
