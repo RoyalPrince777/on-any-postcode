@@ -85,6 +85,79 @@ def ranking(*, limit: int = 100) -> list[dict[str, Any]]:
     ]
 
 
+def match_history(identity_id: object, *, limit: int = 25) -> list[dict[str, Any]]:
+    identity = _uuid(identity_id)
+    bounded = max(1, min(int(limit), 100))
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT m.match_id,m.player_a_id,m.player_b_id,
+                          COALESCE(ua.display_name,ua.username),
+                          COALESCE(ub.display_name,ub.username),
+                          m.player_a_score,m.player_b_score,m.receipt_hash,
+                          m.created_at
+                   FROM oap_arena_matches m
+                   JOIN users ua ON ua.id=m.player_a_id
+                   JOIN users ub ON ub.id=m.player_b_id
+                   WHERE (m.player_a_id=%s OR m.player_b_id=%s)
+                     AND ua.status='active' AND ub.status='active'
+                   ORDER BY m.created_at DESC,m.match_id DESC
+                   LIMIT %s""",
+                (identity, identity, bounded),
+            ).fetchall()
+    except Exception as exc:
+        raise ArenaStoreUnavailable("arena_match_history_read_failed") from exc
+    result = []
+    for row in rows:
+        is_a = str(row[1]) == identity
+        own_score = int(row[5] if is_a else row[6])
+        opponent_score = int(row[6] if is_a else row[5])
+        result.append(
+            {
+                "match_id": str(row[0]),
+                "opponent_id": str(row[2] if is_a else row[1]),
+                "opponent_name": str(row[4] if is_a else row[3]),
+                "score_for": own_score,
+                "score_against": opponent_score,
+                "outcome": (
+                    "WIN" if own_score > opponent_score
+                    else "LOSS" if own_score < opponent_score
+                    else "DRAW"
+                ),
+                "receipt_hash": str(row[7]),
+                "created_at": row[8].isoformat(),
+            }
+        )
+    return result
+
+
+def ranking_position(identity_id: object) -> dict[str, Any] | None:
+    identity = _uuid(identity_id)
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """WITH ranked AS (
+                       SELECT p.identity_id,
+                              ROW_NUMBER() OVER (
+                                  ORDER BY p.points DESC,p.wins DESC,
+                                           p.matches_played ASC,p.identity_id ASC
+                              ) AS rank,
+                              COUNT(*) OVER () AS total_players
+                       FROM oap_arena_player_profiles p
+                       JOIN users u ON u.id=p.identity_id
+                       WHERE u.status='active'
+                   )
+                   SELECT rank,total_players
+                   FROM ranked WHERE identity_id=%s LIMIT 1""",
+                (identity,),
+            ).fetchone()
+    except Exception as exc:
+        raise ArenaStoreUnavailable("arena_ranking_position_read_failed") from exc
+    if row is None:
+        return None
+    return {"rank": int(row[0]), "total_players": int(row[1])}
+
+
 def record_completed_match(
     *,
     match_id: object,
@@ -203,6 +276,8 @@ def status() -> dict[str, bool]:
         "durable_profiles": True,
         "durable_match_history": True,
         "rankings": True,
+        "ranking_position": True,
+        "match_history": True,
         "explicit_migration_required": True,
         "payments": False,
         "prizes": False,
