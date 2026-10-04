@@ -73,6 +73,131 @@ def _room_code() -> str:
     return "".join(secrets.choice(ALPHABET) for _ in range(6))
 
 
+
+def matchmake(*, game_key: object, display_name: object) -> dict[str, Any]:
+    """Atomically join the oldest compatible waiting match or create one."""
+    game = _game(game_key)
+    name = _name(display_name)
+    player_id = str(uuid.uuid4())
+    token = _token()
+    token_hash = _token_hash(token)
+
+    try:
+        with postgres_db.connect() as connection:
+            waiting = connection.execute(
+                """SELECT r.room_id,r.room_code
+                   FROM oap_arena_rooms r
+                   WHERE r.game_key=%s AND r.status='WAITING' AND r.capacity=2
+                     AND NOT EXISTS (
+                         SELECT 1 FROM oap_arena_room_players p
+                         WHERE p.room_id=r.room_id
+                           AND lower(p.display_name)=lower(%s)
+                     )
+                     AND (
+                         SELECT COUNT(*) FROM oap_arena_room_players p
+                         WHERE p.room_id=r.room_id
+                     ) < 2
+                   ORDER BY r.created_at ASC,r.room_id ASC
+                   FOR UPDATE SKIP LOCKED
+                   LIMIT 1""",
+                (game, name),
+            ).fetchone()
+
+            if waiting is None:
+                room_id = str(uuid.uuid4())
+                for _ in range(8):
+                    code = _room_code()
+                    inserted = connection.execute(
+                        """INSERT INTO oap_arena_rooms
+                           (room_id,room_code,game_key,status,capacity,revision,game_state)
+                           VALUES (%s,%s,%s,'WAITING',2,0,'{}'::jsonb)
+                           ON CONFLICT (room_code) DO NOTHING
+                           RETURNING room_code""",
+                        (room_id, code, game),
+                    ).fetchone()
+                    if inserted is not None:
+                        break
+                else:
+                    raise ArenaRoomUnavailable("arena_room_code_exhausted")
+                connection.execute(
+                    """INSERT INTO oap_arena_room_players
+                       (room_id,player_id,display_name,seat,reconnect_token_hash)
+                       VALUES (%s,%s,%s,1,%s)""",
+                    (room_id, player_id, name, token_hash),
+                )
+                connection.commit()
+                return {
+                    "room_id": room_id,
+                    "room_code": code,
+                    "player_id": player_id,
+                    "reconnect_token": token,
+                    "game_key": game,
+                    "seat": 1,
+                    "status": "WAITING",
+                    "matched": False,
+                    "matchmaking": True,
+                }
+
+            room_id, code = waiting
+            players = connection.execute(
+                """SELECT seat,display_name FROM oap_arena_room_players
+                   WHERE room_id=%s ORDER BY seat ASC
+                   FOR UPDATE""",
+                (room_id,),
+            ).fetchall()
+            if len(players) != 1 or int(players[0][0]) != 1:
+                raise ArenaRoomUnavailable("arena_matchmaking_room_state_invalid")
+            connection.execute(
+                """INSERT INTO oap_arena_room_players
+                   (room_id,player_id,display_name,seat,reconnect_token_hash)
+                   VALUES (%s,%s,%s,2,%s)""",
+                (room_id, player_id, name, token_hash),
+            )
+            if game in {"ludo", "oware", "iq", "route-empire"}:
+                names = [str(players[0][1]), name]
+                if game == "ludo":
+                    initial_state = ludo.new_game(names)
+                elif game == "oware":
+                    initial_state = oware.new_game(names)
+                elif game == "iq":
+                    initial_state = iq_duel.new_game(names)
+                else:
+                    initial_state = route_empire.new_game(
+                        location="OAP Arena Matchmaking",
+                        players=names,
+                    )
+                connection.execute(
+                    """UPDATE oap_arena_rooms
+                       SET status='ACTIVE',game_state=%s::jsonb,updated_at=CURRENT_TIMESTAMP
+                       WHERE room_id=%s AND status='WAITING'""",
+                    (json.dumps(initial_state, sort_keys=True), room_id),
+                )
+            else:
+                connection.execute(
+                    """UPDATE oap_arena_rooms
+                       SET status='ACTIVE',updated_at=CURRENT_TIMESTAMP
+                       WHERE room_id=%s AND status='WAITING'""",
+                    (room_id,),
+                )
+            connection.commit()
+    except ArenaRoomUnavailable:
+        raise
+    except Exception as exc:
+        raise ArenaRoomUnavailable("arena_matchmaking_failed") from exc
+
+    return {
+        "room_id": str(room_id),
+        "room_code": str(code),
+        "player_id": player_id,
+        "reconnect_token": token,
+        "game_key": game,
+        "seat": 2,
+        "status": "ACTIVE",
+        "matched": True,
+        "matchmaking": True,
+    }
+
+
 def create_room(*, game_key: object, host_name: object, capacity: object = 2) -> dict[str, Any]:
     game = _game(game_key)
     name = _name(host_name)
@@ -755,7 +880,7 @@ def status() -> dict[str, bool]:
     return {
         "durable_rooms": True,
         "playable_room_games_only": True,
-        "invite_codes": True,
+        "invite_codes": True,\n        "quick_matchmaking": True,\n        "matchmaking_games": sorted(SUPPORTED_GAMES),
         "reconnect_tokens": True,
         "revision_conflict_guard": True,
         "connect4_server_actions": True,
