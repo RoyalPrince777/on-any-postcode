@@ -208,6 +208,11 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
         "best_for": "request chains, dependency graphs, route-to-render paths, hidden coupling and handoff tracing",
         "authority": "advisory_review_only",
     },
+    "Shark": {
+        "role": "Deep-risk / hidden-threat / momentum reviewer",
+        "best_for": "buried failure signals, deep dependency risk, operational momentum and weak signals below the visible surface",
+        "authority": "advisory_review_only",
+    },
     "Elephant": {
         "role": "Memory / history reviewer",
         "best_for": "history, provenance, prior decisions, long-memory consistency",
@@ -228,7 +233,7 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
 _AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
     (
         ("map loading", "loading map", "old route", "old routes", "map route", "route loading", "maps still loading"),
-        ("Shere Khan", "Bagheera", "Agent Smith", "Twinz", "Octopus", "Spider", "Fox", "Bee"),
+        ("Shere Khan", "Bagheera", "Agent Smith", "Twinz", "Octopus", "Spider", "Fox", "Shark", "Bee"),
         "Map stability mission: adversarial, recovery, integrity, dual-state, dependency, tactical and coordination review.",
     ),
     (
@@ -287,6 +292,7 @@ MAP_BUILD_AUTO_TEAM: tuple[str, ...] = (
     "Shere Khan",
     "Bagheera",
     "Fox",
+    "Shark",
     "Bee",
 )
 
@@ -298,6 +304,7 @@ MAP_BUILD_FIT_CAPABILITIES: dict[str, tuple[str, ...]] = {
     "Shere Khan": ("failure_pressure", "false_green", "weakest_link", "survivability"),
     "Bagheera": ("recovery_paths", "rollback", "safe_path", "last_known_good"),
     "Fox": ("edge_cases", "alternate_fixes", "constraint_paths", "tactical_options"),
+    "Shark": ("hidden_risk", "weak_signals", "momentum", "deep_dependencies", "failure_pressure"),
     "Bee": ("coordination", "work_distribution", "evidence_flow", "handoffs"),
 }
 
