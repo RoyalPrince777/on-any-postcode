@@ -358,3 +358,70 @@ def test_unknown_agent_strength_fails_closed():
         assert str(exc) == "unknown_review_agent:Not An OAP Agent"
     else:
         raise AssertionError("unknown review agent must fail closed")
+
+
+def test_maps_loading_old_routes_uses_founder_requested_eight_review_team():
+    plan = ai_behaviour_protocol.recommend_agent_team(
+        "Maps still loading and showing old routes"
+    )
+
+    assert [item["name"] for item in plan["recommended_team"]] == [
+        "Shere Khan",
+        "Bagheera",
+        "Agent Smith",
+        "Twinz",
+        "Octopus",
+        "Spider",
+        "Fox",
+        "Shark",
+        "Bee",
+    ]
+    assert plan["active_team"] == plan["recommended_team"]
+    assert plan["coverage_warnings"] == ()
+    assert all(item["authority"] == "advisory_review_only" for item in plan["active_team"])
+
+
+def test_smi_cc_auto_maps_agent_board_selects_first_party_best_fit_and_truth_gates_strength():
+    board = ai_behaviour_protocol.map_build_agent_board("Build Maps routing render reliability")
+
+    assert board["mode"] == "AUTO"
+    assert board["first_party_only"] is True
+    assert board["best_fit_agent"] == "Octopus"
+    assert board["votes_are_binding"] is False
+    assert board["votes_grant_authority"] is False
+    assert board["founder_final"] is True
+
+    names = [item["agent"] for item in board["team"]]
+    assert names == [
+        "Octopus",
+        "Spider",
+        "Agent Smith",
+        "Twinz",
+        "Shark",
+        "Shere Khan",
+        "Bagheera",
+        "Fox",
+        "Bee",
+    ]
+    assert all(item["rating_kind"] == "software_role_fit_not_runtime_strength" for item in board["team"])
+    assert all(item["runtime_strength_percent"] is None for item in board["team"])
+    assert all(item["runtime_strength_stars"] is None for item in board["team"])
+
+
+def test_maps_peer_votes_are_deterministic_evidence_reviews_not_fake_agent_opinions():
+    board = ai_behaviour_protocol.map_build_agent_board()
+
+    assert len(board["peer_votes"]) == 72
+    assert all(vote["deterministic_evidence_review"] is True for vote in board["peer_votes"])
+    assert all(vote["independent_agent_opinion"] is False for vote in board["peer_votes"])
+    assert all(vote["authority_granted"] is False for vote in board["peer_votes"])
+    assert all(vote["decision"] in {"PASS", "CONDITIONAL", "ABSTAIN"} for vote in board["peer_votes"])
+
+
+def test_smi_status_auto_exposes_maps_board_only_for_map_target():
+    status = ai_behaviour_protocol.status("Maps build")
+    assert status["smi_cc_auto"]["enabled"] is True
+    assert status["smi_cc_auto"]["map_build_board"]["best_fit_agent"] == "Octopus"
+
+    generic = ai_behaviour_protocol.status("SMI")
+    assert generic["smi_cc_auto"]["map_build_board"] is None

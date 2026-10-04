@@ -239,6 +239,18 @@ def smi_agent_strength():
     return _no_store(make_response(jsonify(payload)))
 
 
+@bp.get("/smi/agents/map-build-board")
+@bp.get("/war-room/agents/map-build-board")
+@web_security.login_required(api=True, founder_only=True)
+def smi_map_build_agent_board():
+    """Return SMI CC AUTO best-fit Maps team, stars and peer evidence votes."""
+
+    mission = request.args.get("mission") or request.args.get("q") or "Build and harden OAP Maps"
+    return _no_store(
+        make_response(jsonify(ai_behaviour_protocol.map_build_agent_board(mission)))
+    )
+
+
 @bp.route("/smi/agent-team/recommend", methods=["GET", "POST"])
 @bp.route("/war-room/agent-team/recommend", methods=["GET", "POST"])
 @web_security.login_required(api=True, founder_only=True)

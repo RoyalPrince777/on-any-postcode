@@ -156,10 +156,16 @@ function startLocation(){
    status.textContent=err.code===1?'Location permission blocked':'Location unavailable';status.hidden=false;locate?.classList.remove('active');
  },{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
 }
+function clearRoute(){
+ currentRoute=null;currentGeometry=[];offRouteSamples=0;lastSpokenKey='';cancelGuidanceVoice();
+ if(turnCard)turnCard.hidden=true;
+ if(tripBar)tripBar.hidden=true;
+ if(status){status.textContent='';status.hidden=true}
+}
 function renderRoute(d){
  currentRoute=d?.route||null;currentGeometry=currentRoute?.geometry?.coordinates||[];
  offRouteSamples=0;
- if(!currentRoute)return;
+ if(!currentRoute){clearRoute();return}
  turnCard.hidden=false;tripBar.hidden=false;
  etaClock.textContent=formatEta(currentRoute.duration_s);
  etaRemain.textContent=Math.max(1,Math.round((+currentRoute.duration_s||0)/60))+' min';
@@ -175,6 +181,7 @@ locate?.addEventListener('click',startLocation);
 recenter?.addEventListener('click',()=>{if(lastProjected){viewCenter=lastProjected;applyView()}else{viewCenter=[500,350];applyView()}});
 zoomIn?.addEventListener('click',()=>setZoom(zoom+.45));
 zoomOut?.addEventListener('click',()=>setZoom(zoom-.45));
+window.addEventListener('oap-map-route-clear',clearRoute);
 window.addEventListener('oap-map-route-ready',e=>renderRoute(e.detail||{}));
 window.addEventListener('pagehide',()=>{if(watchId!==null)navigator.geolocation?.clearWatch(watchId);cancelGuidanceVoice()});
 window.OAP_MAP_NAVIGATION={version:'3.0',product:'On Any Postcode Maps',lowNoise:true,driveFollow:true,perspectiveDriveCamera:true,routeCasing:true,progressiveTurnGuidance:true,voiceTurnGuidance:true,voiceUserControlled:true,voiceAudioStored:false,offRouteReroute:true,consentLocation:true,storesPreciseLocation:false,individualPeopleTracking:false};

@@ -563,7 +563,16 @@ def local_map(query: object = None, *, category: object = None, start: object = 
     generated_at = _now()
     area_key = canonical(query or start or "Mitcham")
     points = points_for(area_key, category=category)
-    route = route_proof(start or area_key, end or "London Bridge", profile=profile)
+    route = route_proof(start or area_key, end or area_key, profile=profile)
+    if not _clean(end):
+        route = dict(route)
+        route.update({
+            "to": "",
+            "distance_km": None,
+            "eta_minutes": None,
+            "proof_state": "idle",
+            "seed_preview_only": False,
+        })
     return {
         "component": PROGRAMS["places"],
         "parent": PROGRAMS["map_intelligence"],

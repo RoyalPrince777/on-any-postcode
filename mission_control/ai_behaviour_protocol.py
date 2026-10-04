@@ -15,7 +15,7 @@ from . import autonomy_levels, hrm_agent_lifecycle, smi_brain_protocol
 
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
-PROTOCOL_VERSION = 5
+PROTOCOL_VERSION = 6
 
 
 HUMAN_AI_BOUNDARY = {
@@ -193,6 +193,26 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
         "best_for": "multi-agent coordination and bounded work distribution",
         "authority": "advisory_review_only",
     },
+    "Octopus": {
+        "role": "Multi-system dependency / interface reviewer",
+        "best_for": "connected subsystems, async dependencies, interface timing, fan-out and recovery paths",
+        "authority": "advisory_review_only",
+    },
+    "Fox": {
+        "role": "Tactical options / edge-case reviewer",
+        "best_for": "alternate bounded fixes, hidden edge cases, constraint-aware path selection",
+        "authority": "advisory_review_only",
+    },
+    "Spider": {
+        "role": "Network pattern / dependency-path reviewer",
+        "best_for": "request chains, dependency graphs, route-to-render paths, hidden coupling and handoff tracing",
+        "authority": "advisory_review_only",
+    },
+    "Shark": {
+        "role": "Deep-risk / hidden-threat / momentum reviewer",
+        "best_for": "buried failure signals, deep dependency risk, operational momentum and weak signals below the visible surface",
+        "authority": "advisory_review_only",
+    },
     "Elephant": {
         "role": "Memory / history reviewer",
         "best_for": "history, provenance, prior decisions, long-memory consistency",
@@ -211,6 +231,11 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
 }
 
 _AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
+    (
+        ("map loading", "loading map", "old route", "old routes", "map route", "route loading", "maps still loading"),
+        ("Shere Khan", "Bagheera", "Agent Smith", "Twinz", "Octopus", "Spider", "Fox", "Shark", "Bee"),
+        "Map stability mission: adversarial, recovery, integrity, dual-state, dependency, tactical and coordination review.",
+    ),
     (
         ("cache", "stale", "new then old", "new-then-old", "race", "split", "diverg", "state conflict"),
         ("Twinz", "Agent Smith", "Shere Khan", "Bagheera"),
@@ -258,6 +283,108 @@ DEFAULT_REVIEW_TEAM: tuple[str, ...] = (
     "Shere Khan",
     "Bagheera",
 )
+
+MAP_BUILD_AUTO_TEAM: tuple[str, ...] = (
+    "Octopus",
+    "Spider",
+    "Agent Smith",
+    "Twinz",
+    "Shere Khan",
+    "Bagheera",
+    "Fox",
+    "Shark",
+    "Bee",
+)
+
+MAP_BUILD_FIT_CAPABILITIES: dict[str, tuple[str, ...]] = {
+    "Octopus": ("orchestration", "dependencies", "interfaces", "parallel_work", "route_render_handoff", "recovery_paths", "coordination"),
+    "Spider": ("dependencies", "interfaces", "route_render_handoff", "hidden_coupling", "request_chain", "state_paths"),
+    "Agent Smith": ("state_integrity", "stale_state", "duplication", "contract_drift", "route_render_handoff"),
+    "Twinz": ("concurrency", "state_divergence", "fresh_vs_existing", "race_conditions", "alternate_paths"),
+    "Shere Khan": ("failure_pressure", "false_green", "weakest_link", "survivability"),
+    "Bagheera": ("recovery_paths", "rollback", "safe_path", "last_known_good"),
+    "Fox": ("edge_cases", "alternate_fixes", "constraint_paths", "tactical_options"),
+    "Shark": ("hidden_risk", "weak_signals", "momentum", "deep_dependencies", "failure_pressure"),
+    "Bee": ("coordination", "work_distribution", "evidence_flow", "handoffs"),
+}
+
+
+def map_build_agent_board(mission: object = "Build and harden OAP Maps") -> dict[str, object]:
+    """Return SMI CC AUTO map-build fit, peer evidence votes and star ratings.
+
+    Ratings are software role-fit only. They are not runtime strength claims.
+    Peer votes are deterministic evidence reviews of declared first-party role
+    coverage, not simulated independent opinions and never grant authority.
+    """
+
+    mission_text = " ".join(str(mission or "").strip().split())[:800] or "Build and harden OAP Maps"
+    rows: list[dict[str, object]] = []
+    for name in MAP_BUILD_AUTO_TEAM:
+        capabilities = MAP_BUILD_FIT_CAPABILITIES[name]
+        coverage_count = min(len(capabilities), 7)
+        fit_percent = round((coverage_count / 7) * 100, 1)
+        fit_stars = hrm_agent_lifecycle.stars_for_score(fit_percent)
+        strength = agent_strength_status(name)
+        rows.append({
+            "agent": name,
+            "role": REVIEW_AGENT_CATALOG[name]["role"],
+            "best_for": REVIEW_AGENT_CATALOG[name]["best_for"],
+            "fit_capabilities": capabilities,
+            "fit_percent": fit_percent,
+            "fit_stars": fit_stars,
+            "rating_kind": "software_role_fit_not_runtime_strength",
+            "runtime_strength_percent": strength["proven_strength_percent"],
+            "runtime_strength_stars": (
+                hrm_agent_lifecycle.stars_for_score(strength["proven_strength_percent"])
+                if strength["proven_strength_percent"] is not None
+                else None
+            ),
+            "runtime_strength_state": strength["strength_label"],
+        })
+
+    rows.sort(key=lambda row: (-row["fit_percent"], MAP_BUILD_AUTO_TEAM.index(row["agent"])))
+    best_fit = rows[0]["agent"]
+
+    votes: list[dict[str, object]] = []
+    for reviewer in MAP_BUILD_AUTO_TEAM:
+        for candidate in MAP_BUILD_AUTO_TEAM:
+            if reviewer == candidate:
+                continue
+            candidate_row = next(row for row in rows if row["agent"] == candidate)
+            decision = "PASS" if candidate_row["fit_stars"] >= 6 else "CONDITIONAL"
+            votes.append({
+                "reviewer": reviewer,
+                "candidate": candidate,
+                "decision": decision,
+                "deterministic_evidence_review": True,
+                "independent_agent_opinion": False,
+                "authority_granted": False,
+            })
+
+    vote_summary: dict[str, dict[str, int]] = {}
+    for candidate in MAP_BUILD_AUTO_TEAM:
+        candidate_votes = [vote for vote in votes if vote["candidate"] == candidate]
+        vote_summary[candidate] = {
+            "PASS": sum(1 for vote in candidate_votes if vote["decision"] == "PASS"),
+            "CONDITIONAL": sum(1 for vote in candidate_votes if vote["decision"] == "CONDITIONAL"),
+            "ABSTAIN": sum(1 for vote in candidate_votes if vote["decision"] == "ABSTAIN"),
+        }
+
+    return {
+        "component": "SMI CC AUTO · Maps Agent Board",
+        "mission": mission_text,
+        "mode": "AUTO",
+        "first_party_only": True,
+        "best_fit_agent": best_fit,
+        "best_fit_reason": "Highest deterministic map-build software role coverage; Founder can override.",
+        "team": tuple(rows),
+        "peer_votes": tuple(votes),
+        "vote_summary": vote_summary,
+        "votes_are_binding": False,
+        "votes_grant_authority": False,
+        "strength_truth_rule": "Fit stars describe declared software role coverage only. Runtime strength stays unrated until first-party evidence proves it.",
+        "founder_final": True,
+    }
 
 
 def recommend_agent_team(
@@ -925,6 +1052,11 @@ def status(target: object = "SMI") -> dict[str, object]:
             "smi_can_silently_override_founder": False,
             "catalog": REVIEW_AGENT_CATALOG,
             "default_recommendation": recommend_agent_team(target),
+        },
+        "smi_cc_auto": {
+            "enabled": True,
+            "map_build_board": map_build_agent_board(target) if "map" in str(target or "").casefold() else None,
+            "rule": "Best-fit selection, fit stars and peer evidence votes are automatic; runtime strength remains evidence-gated and Founder Final remains human.",
         },
         "rating_rules": RATING_RULES,
         "twenty_one_laws": TWENTY_ONE_LAWS,

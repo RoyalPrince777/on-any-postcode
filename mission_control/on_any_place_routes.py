@@ -463,7 +463,7 @@ def canonical_on_any_place():
         values.get("location") or values.get("area") or "Mitcham",
         category=values.get("category") or "all",
         start=values.get("from"),
-        end=values.get("to") or "London Bridge",
+        end=values.get("to"),
         profile=values.get("profile") or "driving",
     )
     response = _no_store(make_response(render_template("local_map.html", local_map=local_map)))
