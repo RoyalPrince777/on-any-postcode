@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Competition Center · OAP Arena</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
+<style>
+.comp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.comp-stat{border:1px solid var(--mc-line);border-radius:14px;padding:14px;background:var(--mc-panel-soft)}
+.comp-stat strong{display:block;font-size:1.35rem}.comp-table{width:100%;border-collapse:collapse}
+.comp-table th,.comp-table td{padding:9px;border-bottom:1px solid var(--mc-line);text-align:left}
+.comp-scroll{overflow-x:auto}
+</style></head>
+<body><main class="mc-shell arena-game">
+<section class="card arena-header">
+<nav class="arena-nav"><a href="/arena">← OAP Arena</a> · <a href="/my-card">My Card</a></nav>
+<p class="arena-hint">First-party competition projection · authenticated My Card</p>
+<h1>🏆 Competition Center</h1>
+<p>Your durable Arena record, ranking and recent result receipts. The competition engines remain non-financial.</p>
+</section>
+
+<section class="card"><h2>My Arena Record</h2>
+{% if not store_available %}
+<p class="arena-error">Durable Arena profile storage is not available on this runtime. No record is invented.</p>
+{% elif profile %}
+<div class="comp-grid">
+<div class="comp-stat"><span>Rank</span><strong>{% if rank %}#{{ rank.rank }}{% else %}—{% endif %}</strong>{% if rank %}<small>of {{ rank.total_players }}</small>{% endif %}</div>
+<div class="comp-stat"><span>Played</span><strong>{{ profile.matches_played }}</strong></div>
+<div class="comp-stat"><span>Wins</span><strong>{{ profile.wins }}</strong></div>
+<div class="comp-stat"><span>Losses</span><strong>{{ profile.losses }}</strong></div>
+<div class="comp-stat"><span>Draws</span><strong>{{ profile.draws }}</strong></div>
+<div class="comp-stat"><span>Points</span><strong>{{ profile.points }}</strong></div>
+</div>
+{% else %}
+<p>No ranked match has been recorded for this My Card yet.</p>
+{% endif %}
+</section>
+
+<section class="card"><h2>Recent Match History</h2>
+{% if history %}<div class="comp-scroll"><table class="comp-table"><thead><tr><th>Outcome</th><th>Opponent</th><th>Score</th><th>Receipt</th></tr></thead><tbody>
+{% for match in history %}<tr><td>{{ match.outcome }}</td><td>{{ match.opponent_name }}</td><td>{{ match.score_for }}–{{ match.score_against }}</td><td><code>{{ match.receipt_hash[:12] }}…</code></td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p>No completed ranked match history to show.</p>{% endif %}
+</section>
+
+<section class="card"><h2>Top Rankings</h2>
+{% if rankings %}<div class="comp-scroll"><table class="comp-table"><thead><tr><th>Rank</th><th>Player</th><th>Played</th><th>W</th><th>D</th><th>L</th><th>Points</th></tr></thead><tbody>
+{% for row in rankings %}<tr><td>#{{ row.rank }}</td><td>{{ row.display_name }}</td><td>{{ row.matches_played }}</td><td>{{ row.wins }}</td><td>{{ row.draws }}</td><td>{{ row.losses }}</td><td>{{ row.points }}</td></tr>{% endfor %}
+</tbody></table></div>{% elif store_available %}<p>No ranked players yet.</p>{% endif %}
+</section>
+
+<section class="card"><h2>Competition Systems</h2>
+<div class="comp-grid">
+<div class="comp-stat"><span>Leagues</span><strong>Ready</strong><small>Open → Bronze → Silver → Gold → Elite</small></div>
+<div class="comp-stat"><span>Progression</span><strong>Ready</strong><small>Postcode → Borough/Region → Country → Continent → Global</small></div>
+<div class="comp-stat"><span>Spectator</span><strong>Read-only</strong><small>Never controls match state</small></div>
+<div class="comp-stat"><span>Disputes</span><strong>Governed</strong><small>Open disputes hold progression</small></div>
+<div class="comp-stat"><span>Teams</span><strong>Ready</strong><small>Duplicate-player protection</small></div>
+<div class="comp-stat"><span>Tournaments</span><strong>4-team</strong><small>Receipt-backed knockout engine</small></div>
+</div>
+<p class="arena-hint"><strong>Money boundary:</strong> payments and prizes are disabled in this competition layer.</p>
+</section>
+</main></body></html>
