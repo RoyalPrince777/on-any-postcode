@@ -76,6 +76,7 @@
     .control{min-height:102px;padding:14px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(9,27,47,.8),rgba(5,15,28,.8));display:flex;flex-direction:column;justify-content:space-between}
     .control:hover{border-color:rgba(88,199,255,.46);transform:translateY(-1px)}
     .control .ci{font-size:1.15rem}.control strong{font-size:.82rem}.control small{color:var(--muted);font-size:.65rem}
+    .control-copy{display:grid;gap:5px}.control-function{color:#aebfd0;font-size:.67rem;line-height:1.35}.control-meta{display:flex;justify-content:space-between;gap:8px;color:#71899f;font-size:.6rem}
     .intel-list{display:grid;gap:8px}
     .intel{padding:13px 14px;border:1px solid var(--line);border-radius:15px;background:rgba(5,16,29,.68)}
     .intel-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.intel-head strong{font-size:.8rem}.signal{font-size:.66rem;color:#9ff2bf}
@@ -95,14 +96,14 @@
   <aside class="rail" aria-label="SMI primary navigation">
     <div class="crest" title="Sovereign Megaverse Intelligence">♛</div>
     <nav>
-      <a class="active" href="/mission/smi"><span class="icon">◎</span><span>Home</span></a>
-      <a href="{{ command.sovereign_ui.primary_route }}"><span class="icon">🧠</span><span>SMI</span></a>
-      <a href="/mission/war-room"><span class="icon">⚔</span><span>War Room</span></a>
-      <a href="/mission/agents"><span class="icon">◈</span><span>Intelligence</span></a>
-      <a href="/movement"><span class="icon">⌁</span><span>Movement</span></a>
-      <a href="/mission/brain"><span class="icon">◉</span><span>Brain</span></a>
+      <a class="active" href="/mission/smi" aria-label="Open SMI Home"><span class="icon">◎</span><span>SMI Home</span></a>
+      <a href="{{ command.sovereign_ui.primary_route }}" aria-label="Talk to SMI"><span class="icon">🧠</span><span>Talk to SMI</span></a>
+      <a href="/mission/war-room" aria-label="Open War Room review"><span class="icon">⚔</span><span>War Room</span></a>
+      <a href="/mission/agents" aria-label="Open Intelligence directory"><span class="icon">◈</span><span>Intelligence</span></a>
+      <a href="/movement" aria-label="Open Movement Intelligence"><span class="icon">⌁</span><span>Movement</span></a>
+      <a href="/mission/brain" aria-label="Open SMI Brain status"><span class="icon">◉</span><span>SMI Brain</span></a>
     </nav>
-    <a class="final" href="{{ command.sovereign_ui.primary_route }}"><span class="icon">👑</span><span>Founder</span></a>
+    <a class="final" href="/mission/war-room" aria-label="Open Founder Final gate"><span class="icon">👑</span><span>Founder Final</span></a>
   </aside>
 
   <main class="main">
@@ -159,13 +160,16 @@
 
     <section class="grid">
       <article class="panel card wide">
-        <div class="section-title"><strong>Essential controls</strong><span>what you actually need to see</span></div>
+        <div class="section-title"><strong>Essential controls</strong><span>clear function · real route · named owner</span></div>
         <div class="control-grid">
           {% for control in command.sovereign_ui.essential_controls %}
-          <a class="control" href="{{ control.href }}">
+          <a class="control" href="{{ control.href }}" aria-label="{{ control.label }} — {{ control.function }}">
             <span class="ci">{{ control.icon }}</span>
-            <strong>{{ control.label }}</strong>
-            <small>Open</small>
+            <span class="control-copy">
+              <strong>{{ control.label }}</strong>
+              <span class="control-function">{{ control.function }}</span>
+            </span>
+            <span class="control-meta"><span>{{ control.owner }}</span><span>{{ control.route_label }}</span></span>
           </a>
           {% endfor %}
         </div>
