@@ -37,15 +37,15 @@ bp.register_blueprint(oap_eats_bp)
 bp.register_blueprint(travel_transport_booking_bp)
 
 PUBLIC_DOORS = (
-    ("Journey", "End-to-end multimodal journey planning"),
-    ("Move", "Movement, disruption and route state"),
-    ("Ride", "Governed ride-request capability"),
-    ("Transit", "Bus, rail, metro, tram and ferry"),
-    ("Drive", "Personal vehicle and road journey layer"),
-    ("Fly", "Air journey and airport layer"),
-    ("Cargo", "Freight and cross-border planning"),
-    ("Deliver", "Local and global delivery layer"),
-    ("Fleet", "Commercial vehicle and driver operations"),
+    ("Journey", "End-to-end multimodal journey planning", "/travel"),
+    ("Move", "Movement, disruption and route state", "/movement/workspace"),
+    ("Ride", "Governed ride-request capability", "/transport/ride"),
+    ("Transit", "Bus, rail, metro, tram and ferry", "/travel"),
+    ("Drive", "Personal vehicle and road journey layer", "/oap-map?profile=driving"),
+    ("Fly", "Air journey and airport layer", "/travel"),
+    ("Cargo", "Freight and cross-border planning", "/distribution"),
+    ("Deliver", "Local and global delivery layer", "/movement/workspace#book-title"),
+    ("Fleet", "Commercial vehicle and driver operations", "/transport/ride/driver"),
 )
 
 CAPABILITIES = (
@@ -145,7 +145,8 @@ def status() -> dict[str, object]:
         "architecture": "One World -> One Front Door -> Many Transport Systems Inside",
         "software_surface_install_ready": True,
         "first_party_surface": True,
-        "public_doors": [name.lower() for name, _ in PUBLIC_DOORS],
+        "public_doors": [name.lower() for name, _, _ in PUBLIC_DOORS],
+        "public_routes": {name.lower(): href for name, _, href in PUBLIC_DOORS},
         "capability_count": len(CAPABILITIES),
         "capabilities": list(CAPABILITIES),
         "integrations": list(INTEGRATIONS),
@@ -207,8 +208,8 @@ small{display:block;margin-top:18px;color:#777}
 </div>
 </section>
 <section class="grid">
-{% for name, description in doors %}
-<a class="card" href="{{ '/transport/ride' if name == 'Ride' else '/transport/status#' ~ name|lower }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
+{% for name, description, href in doors %}
+<a class="card" href="{{ href }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
 {% endfor %}
 </section>
 <small>Software + digital coordination only. Physical transport operations remain evidence-gated. Human Authority remains final.</small>
