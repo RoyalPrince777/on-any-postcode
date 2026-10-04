@@ -100,7 +100,7 @@ def public_state(state: object, *, seat: int | None = None) -> dict[str, Any]:
             "id": raw["id"], "domain": raw["domain"], "prompt": raw["prompt"],
             "choices": copy.deepcopy(raw["choices"]), "number": current["question_index"] + 1,
         }
-    answered_seats = sorted(int(value) for value in current["pending_answers"].keys())
+    answered_seats = sorted(int(value) for value in current["pending_answers"])
     return {
         "started": True,
         "status": current["status"],
