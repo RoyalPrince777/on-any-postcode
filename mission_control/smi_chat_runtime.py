@@ -29,6 +29,7 @@ from . import smi_chat_runtime_core as _core
 from . import smi_communication_style as _communication_style
 from . import smi_receipt_backend as _receipts
 from . import smi_thinking_process as _thinking
+from . import smi_73_signal_field as _mission_field
 from . import world_crisis_intelligence as _world_crisis
 from .smi_chat_runtime_core import *
 
@@ -144,6 +145,9 @@ def health() -> dict:
         snapshot["governed_memory"] = governed_memory_status()
         snapshot["memory_sync"] = memory_sync_status()
         snapshot["health_probe"] = {"coalesced_concurrent_checks": True}
+        snapshot["mission_to_100"] = _mission_field.evaluate(
+            _mission_field.evidence_from_smi_health(snapshot)
+        )
     except Exception:
         with _health_probe_condition:
             _health_probe_running = False
