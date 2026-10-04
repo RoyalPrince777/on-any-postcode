@@ -269,3 +269,16 @@ def test_route_sets_loading_before_async_fetch_to_prevent_stale_stable_race():
     loading_index = route.index("setRenderState('loading')")
     fetch_index = route.index("fetch('/map-intelligence/route?")
     assert loading_index < fetch_index
+
+
+def test_clean_oap_map_opens_without_old_route(client):
+    response = client.get("/oap-map")
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert 'id="map-to" value=""' in body
+    assert "London Bridge" not in body.split('id="map-to"', 1)[1].split(">", 1)[0]
+
+
+def test_clean_map_does_not_auto_route_without_explicit_destination():
+    page = MAP.read_text(encoding="utf-8")
+    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);" in page
