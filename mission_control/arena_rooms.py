@@ -880,7 +880,9 @@ def status() -> dict[str, Any]:
     return {
         "durable_rooms": True,
         "playable_room_games_only": True,
-        "invite_codes": True,\n        "quick_matchmaking": True,\n        "matchmaking_games": sorted(SUPPORTED_GAMES),
+        "invite_codes": True,
+        "quick_matchmaking": True,
+        "matchmaking_games": sorted(SUPPORTED_GAMES),
         "reconnect_tokens": True,
         "revision_conflict_guard": True,
         "connect4_server_actions": True,
