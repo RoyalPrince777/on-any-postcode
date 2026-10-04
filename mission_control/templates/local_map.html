@@ -120,7 +120,8 @@ const state=q('#route-state'),distance=q('#distance'),eta=q('#eta'),roads=q('#ro
 const roadLayer=q('#road-layer'),svg=q('#route-svg'),line=q('#route-line'),start=q('#route-start'),end=q('#route-end'),coverage=q('#coverage');
 const fromLabel=q('#from-label'),toLabel=q('#to-label');
 let bounds=null,roadRequest=0;
-const roadStatus=q('#road-source-state');
+const roadStatus=q('#road-source-state'),boot=q('#oap-map-boot');
+const clearBoot=()=>{if(boot)boot.hidden=true};
 const showRoadStatus=message=>{roadStatus.textContent=message;roadStatus.hidden=!message};
 const defaultBounds={minX:-.235,maxX:-.13,minY:51.37,maxY:51.43};
 const toast=(text)=>{state.textContent=text;state.hidden=!text;if(text)setTimeout(()=>{if(state.textContent===text)state.hidden=true},2600)};
@@ -133,7 +134,7 @@ function draw(coords){
  start.setAttribute('cx',pts[0][0]);start.setAttribute('cy',pts[0][1]);
  end.setAttribute('cx',pts.at(-1)[0]);end.setAttribute('cy',pts.at(-1)[1]);
  svg.hidden=false;
- if(!roadLayer.querySelector('polyline'))loadRoadNetwork(bounds,profile.value);
+ loadRoadNetwork(bounds,profile.value);
  return true
 }
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
@@ -176,12 +177,12 @@ async function loadRoadNetwork(b,mode){
        text.textContent=name;roadLayer.appendChild(text);labelled.add(name);labelCount++
      }
    }
-   if(count)showRoadStatus('');
+   if(count){showRoadStatus('');clearBoot()}
  };
  try{
    await Promise.all(tiles.map(async([x,y])=>{const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}));
-   if(request===roadRequest&&!count)showRoadStatus('Road network unavailable — route guidance may still work.');
- }catch{if(request===roadRequest&&!count){showRoadStatus('Road network unavailable — check map source.')}}
+   if(request===roadRequest&&!count){clearBoot();showRoadStatus('Road network unavailable — route guidance may still work.')}
+ }catch{if(request===roadRequest&&!count){clearBoot();showRoadStatus('Road network unavailable — check map source.')}}
 }
 function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}
 function renderSteps(items){directions.innerHTML='';(items||[]).forEach(step=>{const row=document.createElement('div');row.className='step';const a=document.createElement('b');a.textContent=(step.modifier||'').includes('left')?'↰':(step.modifier||'').includes('right')?'↱':step.type==='arrive'?'●':'↑';const b=document.createElement('span');b.textContent=step.type==='arrive'?'Arrive':(step.name?'Continue on '+step.name:'Continue');const c=document.createElement('small');c.textContent=Math.round(step.distance_m||0)+' m';row.append(a,b,c);directions.appendChild(row)})}
@@ -222,9 +223,8 @@ window.addEventListener('oap-map-reroute-request',event=>{
  const point=event.detail||{};
  if(Number.isFinite(point.latitude)&&Number.isFinite(point.longitude))route({originCoords:point});
 });
-const boot=q('#oap-map-boot');
-const initialRoadLoad=loadRoadNetwork(defaultBounds,profile.value);
-initialRoadLoad.finally(()=>{if(boot)boot.hidden=true});
+loadRoadNetwork(defaultBounds,profile.value);
+setTimeout(clearBoot,5000);
 profile.addEventListener('change',()=>{if(bounds)loadRoadNetwork(bounds,profile.value);else loadRoadNetwork(defaultBounds,profile.value)});
 if(from.value.trim()&&to.value.trim())route();
 loadPlaces(from.value.trim());
