@@ -8,6 +8,7 @@ OSRM-compatible endpoints; this never dispatches, charges, or silently tracks an
 from __future__ import annotations
 
 import hashlib
+from http.client import IncompleteRead
 import json
 import math
 import os
@@ -200,21 +201,52 @@ def _request_bytes(url: str, *, expected_host: str, max_bytes: int) -> tuple[byt
     parsed = urlparse.urlparse(url)
     if parsed.scheme != "https" or parsed.hostname != expected_host:
         raise RoutingUnavailable("routing_endpoint_rejected")
-    request = urlrequest.Request(url, headers={"Accept":"application/x-protobuf","User-Agent":"ON-ANY-POSTCODE-Map/1.0"})
-    try:
-        with urlrequest.urlopen(request, timeout=ROUTE_TIMEOUT_SECONDS) as response:
-            final = urlparse.urlparse(response.geturl())
-            if final.scheme != "https" or final.hostname != expected_host:
-                _mark_error("routing_redirect_rejected"); raise RoutingUnavailable("routing_redirect_rejected")
-            body = response.read(max_bytes + 1)
-            content_type = str(response.headers.get("Content-Type") or "application/x-protobuf").split(";", 1)[0].strip()
-    except RoutingUnavailable:
-        raise
-    except (OSError, TimeoutError) as exc:
-        _mark_error(type(exc).__name__); raise RoutingUnavailable("routing_provider_unavailable") from exc
+    body = b""
+    content_type = "application/x-protobuf"
+    for attempt in range(ROUTE_RATE_LIMIT_RETRIES + 1):
+        request = urlrequest.Request(
+            url,
+            headers={"Accept": "application/x-protobuf", "User-Agent": "ON-ANY-POSTCODE-Map/1.0"},
+        )
+        try:
+            with urlrequest.urlopen(request, timeout=ROUTE_TIMEOUT_SECONDS) as response:
+                final = urlparse.urlparse(response.geturl())
+                if final.scheme != "https" or final.hostname != expected_host:
+                    _mark_error("routing_redirect_rejected")
+                    raise RoutingUnavailable("routing_redirect_rejected")
+                body = response.read(max_bytes + 1)
+                content_type = str(
+                    response.headers.get("Content-Type") or "application/x-protobuf"
+                ).split(";", 1)[0].strip()
+            break
+        except RoutingUnavailable:
+            raise
+        except urlerror.HTTPError as exc:
+            code = int(exc.code)
+            if code == 429 and attempt < ROUTE_RATE_LIMIT_RETRIES:
+                retry_after = str(exc.headers.get("Retry-After") or "").strip()
+                try:
+                    wait_seconds = float(retry_after)
+                except ValueError:
+                    wait_seconds = ROUTE_RATE_LIMIT_BACKOFF_SECONDS * (attempt + 1)
+                time.sleep(min(max(wait_seconds, ROUTE_RATE_LIMIT_BACKOFF_SECONDS), 3.0))
+                continue
+            _mark_error(f"routing_http_{code}")
+            raise RoutingUnavailable("routing_provider_unavailable") from exc
+        except IncompleteRead as exc:
+            if attempt < ROUTE_RATE_LIMIT_RETRIES:
+                time.sleep(ROUTE_RATE_LIMIT_BACKOFF_SECONDS * (attempt + 1))
+                continue
+            _mark_error("routing_incomplete_read")
+            raise RoutingUnavailable("routing_provider_unavailable") from exc
+        except (OSError, TimeoutError) as exc:
+            _mark_error(type(exc).__name__)
+            raise RoutingUnavailable("routing_provider_unavailable") from exc
     if len(body) > max_bytes:
-        _mark_error("routing_tile_too_large"); raise RoutingUnavailable("routing_tile_too_large")
+        _mark_error("routing_tile_too_large")
+        raise RoutingUnavailable("routing_tile_too_large")
     if not body:
+        _mark_error("routing_tile_empty")
         raise RoutingUnavailable("routing_tile_empty")
     _mark_success()
     return body, content_type
