@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Line · OAP</title>
+<style>
+:root{color-scheme:dark;background:#060706;color:#f7f3e8;font-family:Arial,sans-serif}
+body{margin:0;background:#060706;color:#f7f3e8}
+header,main{max-width:980px;margin:auto;padding:18px}
+header{display:flex;justify-content:space-between;gap:12px;align-items:center}
+a{color:inherit;text-decoration:none}
+.hero,.panel{border:1px solid #3d3520;border-radius:18px;background:#10110f;padding:18px;margin-bottom:16px}
+.hero h1{margin:4px 0 8px;font-size:2rem}
+.muted{color:#b9b39f}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.button{display:block;border:1px solid #5c4d24;border-radius:14px;padding:14px;background:#171711}
+.button strong{display:block;margin-bottom:4px}
+.pill{display:inline-block;border:1px solid #4b432d;border-radius:999px;padding:5px 9px;margin:3px 5px 3px 0;font-size:.85rem}
+.ok{font-weight:700}
+.locked{color:#d8c98c}
+small{color:#aaa58f}
+</style>
+</head>
+<body>
+<header>
+<a href="/my-card">← My Card</a>
+<strong>ON ANY POSTCODE</strong>
+<a href="/linkup">Link Up →</a>
+</header>
+<main>
+<section class="hero">
+<small>MY CARD → MY LINE → OAP NUMBER → NETWORK PASSPORT</small>
+<h1>📱 My Line</h1>
+<p><strong>{{ telecom.line.oap_number }}</strong></p>
+<p class="muted">One OAP communications identity across Link Message, Link Call and PTT. External carrier, radio and public-number execution remains evidence-gated.</p>
+<span class="pill">Passport {{ telecom.line.network_passport.status }}</span>
+<span class="pill">My Phone {{ telecom.line.device_binding.binding_status }}</span>
+<span class="pill">Human Authority Final</span>
+</section>
+
+{% for group in surface.button_groups %}
+<section class="panel">
+<h2>{{ group.name }}</h2>
+<div class="grid">
+{% for button_id in group.buttons %}
+{% set item = routes[button_id] %}
+<a class="button" href="{{ item.route }}">
+<strong>{{ item.name }}</strong>
+<span class="muted">{{ item.kind|replace('_',' ')|title }}</span>
+</a>
+{% endfor %}
+</div>
+</section>
+{% endfor %}
+
+<section class="panel">
+<h2>Services</h2>
+<div class="grid">
+{% for name,state in telecom.line.services.items() %}
+<div class="button"><strong>{{ name|replace('_',' ')|title }}</strong><span class="ok">{{ state }}</span></div>
+{% endfor %}
+</div>
+</section>
+
+<section class="panel">
+<h2>Real-world unlock gates</h2>
+{% for track in telecom.unlock_tracks %}
+<div class="button" style="margin-bottom:10px">
+<strong>{{ track.name }}</strong>
+<span class="locked">{{ track.state }}</span><br>
+<small>{{ track.evidence_count }} / {{ track.evidence_total }} evidence items proven · execution {{ "on" if track.execution_enabled else "off" }}</small>
+</div>
+{% endfor %}
+</section>
+
+<section class="panel">
+<h2>Truth boundary</h2>
+<p class="muted">{{ telecom.truth_boundary }}</p>
+</section>
+</main>
+</body>
+</html>
