@@ -80,7 +80,7 @@ def test_road_network_loads_without_successful_route():
     assert 'id="road-source-state"' in template
     assert "if(request===roadRequest&&!count){" in template
     assert "if(batchAttempt<3)" in template
-    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,null)" in template
     assert "clearBoot();showRoadStatus('Road network unavailable — route guidance may still work.');" in template
 
 
@@ -115,7 +115,7 @@ def test_oap_os_generation_zero_map_binding_stays_non_visual_and_consent_safe():
 def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
 
-    assert "const ROAD_TILE_TIMEOUT_MS=15000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=8000;" in template
     assert "const controller=new AbortController();" in template
     assert "signal:controller.signal" in template
     assert "finally{clearTimeout(timeout)}" in template
@@ -172,7 +172,7 @@ def test_road_network_has_bounded_batch_level_cold_start_recovery():
     assert "request=requestToken===null?++roadRequest:requestToken" in template
     assert "if(batchAttempt<3)" in template
     assert "1000*(batchAttempt+1)" in template
-    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,null)" in template
     assert "Warming road network…" in template
 
 
