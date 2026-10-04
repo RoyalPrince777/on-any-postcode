@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import oap_library, oap_library_learning, web_security
+from . import essential_life_systems, oap_library, oap_library_learning, web_security
 
 bp = Blueprint("oap_library", __name__)
 
@@ -69,6 +69,36 @@ def library_home():
                 query=query,
             )
         )
+    )
+
+
+@bp.get("/library/essential-life-systems")
+def essential_life_systems_page():
+    """Render the public knowledge view without claiming live telemetry."""
+
+    validation = essential_life_systems.validate_registry()
+    if validation["passed"] is not True:
+        return _library_page(
+            make_response(render_template("oap_library_unavailable.html"), 503)
+        )
+    return _library_page(
+        make_response(
+            render_template(
+                "oap_essential_life_systems.html",
+                bands=essential_life_systems.BANDS,
+                systems=essential_life_systems.SYSTEMS,
+            )
+        )
+    )
+
+
+@bp.get("/mission/smi/essential-life-systems")
+@web_security.login_required(api=True)
+def essential_life_systems_smi():
+    """Expose the evidence-bounded SMI registry to authenticated operators."""
+
+    return _library_page(
+        make_response(jsonify(essential_life_systems.smi_snapshot()))
     )
 
 
