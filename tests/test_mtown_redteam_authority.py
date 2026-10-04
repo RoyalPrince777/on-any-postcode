@@ -4,12 +4,13 @@ import pytest
 from mission_control import earth_is_our_turf
 
 
-def test_redteam_car_travel_requires_entered_vehicle():
+def test_redteam_car_execution_requires_entered_vehicle():
     state=earth_is_our_turf.new_world()
+    state=earth_is_our_turf.action(
+        state,command="navigate",target="western-road",mode="car",
+    )
     with pytest.raises(ValueError,match="mtown_vehicle_required_for_car_travel"):
-        earth_is_our_turf.action(
-            state,command="navigate",target="western-road",mode="car",
-        )
+        earth_is_our_turf.action(state,command="advance-route",distance=100)
 
 
 def test_redteam_claim_rejects_unknown_vehicle():
@@ -30,6 +31,10 @@ def test_redteam_claim_rejects_remote_vehicle():
 
 def test_redteam_claim_rejects_nonworld_owned_vehicle():
     state=earth_is_our_turf.new_world()
+    state=earth_is_our_turf.action(
+        state,command="navigate",target="lower-mitcham",mode="foot",
+    )
+    state=earth_is_our_turf.action(state,command="travel-route")
     with pytest.raises(ValueError,match="mtown_vehicle_claim_forbidden"):
         earth_is_our_turf.action(
             state,command="claim-vehicle",target="vehicle-oap-003",
@@ -86,7 +91,7 @@ def test_redteam_service_requires_correct_location():
         )
 
 
-def test_redteam_exit_vehicle_before_foot_route():
+def test_redteam_exit_vehicle_before_foot_execution():
     state=earth_is_our_turf.new_world()
     state=earth_is_our_turf.action(
         state,command="claim-vehicle",target="vehicle-oap-001",
@@ -94,7 +99,8 @@ def test_redteam_exit_vehicle_before_foot_route():
     state=earth_is_our_turf.action(
         state,command="enter-vehicle",target="vehicle-oap-001",
     )
+    state=earth_is_our_turf.action(
+        state,command="navigate",target="figges-marsh",mode="foot",
+    )
     with pytest.raises(ValueError,match="mtown_exit_vehicle_before_noncar_travel"):
-        earth_is_our_turf.action(
-            state,command="navigate",target="figges-marsh",mode="foot",
-        )
+        earth_is_our_turf.action(state,command="advance-route",distance=100)
