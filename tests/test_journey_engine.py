@@ -389,3 +389,216 @@ def test_recovery_case_exposes_only_governed_actions():
     assert case["automatic_execution"] is False
     assert case["operator_action_authorised"] is False
     assert case["payment_action_authorised"] is False
+
+
+def test_independent_source_count_deduplicates_same_source_group():
+    a = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="feed A",
+            source_id="a1",
+            source_group="operator-x",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=90,
+        ),
+        severity=80,
+    )
+    b = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="feed B",
+            source_id="a2",
+            source_group="operator-x",
+            observed_at="2026-10-04T05:03:00+01:00",
+            freshness="fresh",
+            confidence=91,
+        ),
+        severity=82,
+    )
+    c_event = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="independent verifier",
+            source_id="v1",
+            source_group="verifier-y",
+            observed_at="2026-10-04T05:04:00+01:00",
+            freshness="fresh",
+            confidence=94,
+        ),
+        severity=84,
+    )
+    assert journey_engine.independent_source_count([a, b, c_event]) == 2
+
+
+def test_event_supersession_removes_old_event_from_active_impact():
+    journey = _sample_journey()
+    old = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=95,
+        ),
+        severity=90,
+        evidence_ids=["ev-old"],
+    )
+    replacement = journey_engine.disruption_event(
+        event_type="rail clear",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator",
+            observed_at="2026-10-04T05:10:00+01:00",
+            freshness="fresh",
+            confidence=98,
+        ),
+        severity=0,
+        evidence_ids=["ev-new"],
+        supersedes_event_id=old["event_id"],
+    )
+    reconciled = journey_engine.reconcile_event_lineage([old, replacement])
+    assert reconciled[0]["lineage_state"] == "SUPERSEDED"
+    assert reconciled[1]["lineage_state"] == "ACTIVE"
+    assessment = journey_engine.assess_disruptions(
+        journey=journey,
+        events=[old, replacement],
+    )
+    assert all(item["event_id"] != old["event_id"] for item in assessment["impacts"])
+
+
+def test_contradiction_registry_blocks_clean_trace():
+    journey = _sample_journey()
+    blocked = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="source-a",
+            source_group="a",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=95,
+        ),
+        severity=90,
+        evidence_ids=["ev-a"],
+    )
+    clear = journey_engine.disruption_event(
+        event_type="rail clear",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="source-b",
+            source_group="b",
+            observed_at="2026-10-04T05:03:00+01:00",
+            freshness="fresh",
+            confidence=95,
+        ),
+        severity=0,
+        evidence_ids=["ev-b"],
+    )
+    assessment = journey_engine.assess_disruptions(
+        journey=journey,
+        events=[blocked, clear],
+    )
+    recovery = journey_engine.recovery_plan(journey=journey, assessment=assessment)
+    trace = journey_engine.evidence_trace(
+        journey=journey,
+        assessment=assessment,
+        recovery=recovery,
+    )
+    assert assessment["contradiction_free"] is False
+    assert "contradiction_unresolved" in trace["unresolved"]
+    assert trace["trace_complete"] is False
+
+
+def test_alternative_ranking_is_deterministic():
+    base_obs = journey_engine.transport_observation(
+        truth_state="PREDICTED",
+        source="operator",
+        observed_at="2026-10-04T05:03:00+01:00",
+        freshness="fresh",
+        confidence=90,
+    )
+    fast = journey_engine.compose_journey(
+        origin="A", destination="C",
+        legs=[journey_engine.journey_leg(
+            mode="bus", origin="A", destination="C",
+            observation=base_obs, duration_minutes=20,
+        )],
+    )
+    slow = journey_engine.compose_journey(
+        origin="A", destination="C",
+        legs=[journey_engine.journey_leg(
+            mode="bus", origin="A", destination="C",
+            observation=base_obs, duration_minutes=40,
+        )],
+    )
+    ranked = journey_engine.rank_alternatives([slow, fast])
+    assert ranked[0]["journey_id"] == fast["journey_id"]
+
+
+def test_recovery_closure_requires_evidence_and_operator_confirmation():
+    journey = _sample_journey()
+    event = journey_engine.disruption_event(
+        event_type="rail blocked",
+        affected_modes=["rail"],
+        observation=journey_engine.transport_observation(
+            truth_state="OBSERVED",
+            source="operator",
+            observed_at="2026-10-04T05:02:00+01:00",
+            freshness="fresh",
+            confidence=98,
+        ),
+        severity=95,
+        evidence_ids=["ev-close-1"],
+    )
+    assessment = journey_engine.assess_disruptions(journey=journey, events=[event])
+    alternative = journey_engine.compose_journey(
+        origin="A", destination="C",
+        legs=[journey_engine.journey_leg(
+            mode="bus", origin="A", destination="C",
+            observation=journey_engine.transport_observation(
+                truth_state="PREDICTED",
+                source="operator",
+                observed_at="2026-10-04T05:03:00+01:00",
+                freshness="fresh",
+                confidence=90,
+            ),
+            duration_minutes=30,
+        )],
+    )
+    recovery = journey_engine.recovery_plan(
+        journey=journey,
+        assessment=assessment,
+        alternatives=[alternative],
+    )
+    case = journey_engine.recovery_case(
+        journey=journey,
+        assessment=assessment,
+        recovery=recovery,
+    )
+    assert case["closed"] is False
+    still_open = journey_engine.close_recovery_case(
+        case=case,
+        resolved_evidence_ids=["ev-close-1"],
+        operator_state_confirmed=False,
+    )
+    assert still_open["closed"] is False
+    closed = journey_engine.close_recovery_case(
+        case=case,
+        resolved_evidence_ids=["ev-close-1"],
+        operator_state_confirmed=True,
+    )
+    assert closed["closed"] is True
+    assert closed["operator_action_authorised"] is False
+    assert closed["payment_action_authorised"] is False
