@@ -24,6 +24,19 @@ button{margin-top:14px;padding:12px 16px;border:0;border-radius:12px;background:
 <a class="action" href="{{ url_for('linkup_front_door') }}"><strong>💬 Link Up</strong><br><span class="muted">Open private messages and calls.</span></a>
 <a class="action" href="/arena"><strong>🏟️ OAP Arena</strong><br><span class="muted">Play, compete and carry your Arena record on this My Card.</span></a>
 </section>
+<section class="card"><h2>🏟️ Arena Record</h2>
+{% if not auth_user %}<p class="muted">Secure sign-in is required for a durable Arena competition record.</p>
+{% elif not arena_record_available %}<p class="muted">Arena record storage is unavailable on this runtime. No score or rank is invented.</p>
+{% elif arena_record %}
+<div class="grid">
+<div class="action"><strong>{% if arena_rank %}#{{ arena_rank.rank }}{% else %}—{% endif %}</strong><br><span class="muted">Global Arena rank{% if arena_rank %} · {{ arena_rank.total_players }} ranked{% endif %}</span></div>
+<div class="action"><strong>{{ arena_record.matches_played }}</strong><br><span class="muted">Games played</span></div>
+<div class="action"><strong>{{ arena_record.wins }} / {{ arena_record.draws }} / {{ arena_record.losses }}</strong><br><span class="muted">Wins / Draws / Losses</span></div>
+<div class="action"><strong>{{ arena_record.points }}</strong><br><span class="muted">Competition points</span></div>
+</div>
+<p><a class="action" href="/arena/competition"><strong>🏆 Open Competition Center</strong><br><span class="muted">Rankings, match history, leagues, teams, tournaments, spectator and disputes.</span></a></p>
+{% else %}<p class="muted">No ranked Arena match has been recorded yet.</p><p><a href="/arena/competition">Open Competition Center</a></p>{% endif %}
+</section>
 <section class="card"><h2>Contacts</h2>{% if auth_user and contacts %}<ul>{% for contact in contacts %}<li><strong>{{ contact.display_name }}</strong> · {{ contact.card_id }}</li>{% endfor %}</ul>{% elif auth_user %}<p class="muted">No accepted Links yet. Discover someone, send a Link Request, then accepted Links appear here.</p>{% else %}<p class="muted">Contacts are private. Add secure sign-in before accepted Links can appear here.</p>{% endif %}</section>
 <section class="card"><h2>Settings · Theme · My Emojis</h2><form method="post" action="{{ url_for('my_card_preferences') }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
 <label for="theme">Theme</label><select id="theme" name="theme"><option value="royal" {% if theme=="royal" %}selected{% endif %}>Royal</option><option value="earth" {% if theme=="earth" %}selected{% endif %}>Earth</option><option value="midnight" {% if theme=="midnight" %}selected{% endif %}>Midnight</option></select>
