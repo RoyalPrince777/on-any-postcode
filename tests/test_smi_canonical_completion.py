@@ -373,6 +373,7 @@ def test_maps_loading_old_routes_uses_founder_requested_eight_review_team():
         "Octopus",
         "Spider",
         "Fox",
+        "Shark",
         "Bee",
     ]
     assert plan["active_team"] == plan["recommended_team"]
@@ -409,7 +410,7 @@ def test_smi_cc_auto_maps_agent_board_selects_first_party_best_fit_and_truth_gat
 def test_maps_peer_votes_are_deterministic_evidence_reviews_not_fake_agent_opinions():
     board = ai_behaviour_protocol.map_build_agent_board()
 
-    assert len(board["peer_votes"]) == 56
+    assert len(board["peer_votes"]) == 72
     assert all(vote["deterministic_evidence_review"] is True for vote in board["peer_votes"])
     assert all(vote["independent_agent_opinion"] is False for vote in board["peer_votes"])
     assert all(vote["authority_granted"] is False for vote in board["peer_votes"])
