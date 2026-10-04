@@ -68,10 +68,11 @@ def test_real_unlock_tracks_are_open_but_not_falsely_activated():
         "public_number",
     }
     assert all(track["state"] == "readiness-open" for track in tracks.values())
-    assert all(track["software_owned"] is True for track in tracks.values())
-    assert all(track["activation_proven"] is False for track in tracks.values())
+    assert all(track["software_control_plane_ready"] is True for track in tracks.values())
+    assert all(track["external_proof_complete"] is False for track in tracks.values())
+    assert all(track["execution_enabled"] is False for track in tracks.values())
     assert all(track["external_gate"] for track in tracks.values())
-    assert all(track["evidence_required"] for track in tracks.values())
+    assert all(track["required_evidence"] for track in tracks.values())
 
 
 def test_personal_telecom_is_exposed_by_canonical_infrastructure_owner():
@@ -81,3 +82,46 @@ def test_personal_telecom_is_exposed_by_canonical_infrastructure_owner():
     assert personal["system"] == "OAP Personal Telecom"
     assert personal["validation"]["passed"] is True
     assert "My Card -> My Line -> OAP Number" in personal["path"]
+
+
+def test_carrier_profile_state_machine_counts_real_evidence_without_activating():
+    required = personal_telecom.evaluate_track("carrier_profile")["required_evidence"]
+    evidence = {item: True for item in required}
+    assessment = personal_telecom.evaluate_track("carrier_profile", evidence)
+
+    assert assessment["external_proof_complete"] is True
+    assert assessment["state"] == "proof-complete-awaiting-explicit-activation"
+    assert assessment["execution_enabled"] is False
+    assert personal_telecom.can_activate("carrier_profile", evidence) is True
+
+
+def test_partial_external_evidence_never_turns_execution_on():
+    assessment = personal_telecom.evaluate_track(
+        "carrier_activation", {"network_entitlement": True}
+    )
+
+    assert assessment["state"] == "evidence-in-progress"
+    assert assessment["evidence_count"] == 1
+    assert assessment["external_proof_complete"] is False
+    assert assessment["execution_enabled"] is False
+    assert personal_telecom.can_activate(
+        "carrier_activation", {"network_entitlement": True}
+    ) is False
+
+
+def test_unknown_unlock_track_fails_closed():
+    import pytest
+
+    with pytest.raises(ValueError):
+        personal_telecom.evaluate_track("not-a-real-track")
+
+
+def test_recovery_plan_revokes_before_rebind_and_preserves_number():
+    plan = personal_telecom.recovery_plan()
+
+    assert plan.index("preserve OAP Number") < plan.index(
+        "rebind replacement device/profile"
+    )
+    assert plan.index("revoke old device/profile binding") < plan.index(
+        "rebind replacement device/profile"
+    )
