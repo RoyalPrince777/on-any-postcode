@@ -147,3 +147,17 @@ def test_road_tiles_are_prioritised_and_bounded_instead_of_flooded():
     assert "Math.min(4,tiles.length)" in template
     assert "for(let attempt=0;attempt<3;attempt++)" in template
     assert "response.status!==503" in template
+
+
+def test_on_any_postcode_maps_public_identity_and_navigation_camera():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    css = Path("mission_control/static/oap_map_navigation.css").read_text(encoding="utf-8")
+    nav = Path("mission_control/static/oap_map_navigation.js").read_text(encoding="utf-8")
+    assert "<title>On Any Postcode Maps</title>" in template
+    assert 'aria-label="On Any Postcode Maps"' in template
+    assert 'id="route-casing"' in template
+    assert "history.replaceState(null,'','/oap-map?" in template
+    assert "perspective(900px) rotateX(22deg)" in nav
+    assert "perspectiveDriveCamera:true" in nav
+    assert "routeCasing:true" in nav
+    assert ".route-svg #route-casing" in css
