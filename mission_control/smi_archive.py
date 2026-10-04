@@ -72,6 +72,37 @@ CORE_LAW: tuple[str, ...] = (
     "Founder Final remains final.",
 )
 
+MISSION_TO_100_PROTOCOL: tuple[dict[str, str], ...] = (
+    {
+        "id": "direct-work",
+        "rule": "Do the smallest real work that closes the measured gap; do not add stages, demos or duplicate reports.",
+    },
+    {
+        "id": "exact-artifact-parity",
+        "rule": "The artifact tested and approved must match the artifact bound to the target runtime before production Green.",
+    },
+    {
+        "id": "target-runtime-proof",
+        "rule": "A passing branch, build or sibling service cannot prove the target service; target health and binding must be read back.",
+    },
+    {
+        "id": "no-average-away",
+        "rule": "A failed or unknown mandatory final gate cannot be averaged into 100 by strong scores elsewhere.",
+    },
+    {
+        "id": "dissent-survives",
+        "rule": "Material dissent, Claw Test findings and unresolved evidence remain visible until resolved or explicitly held by Human Authority.",
+    },
+    {
+        "id": "rollback-before-promotion",
+        "rule": "A known-good recovery path must exist before replacing a proven runtime artifact.",
+    },
+    {
+        "id": "founder-final",
+        "rule": "Green Gate evidence informs the decision; Founder Final remains the consequential human authority.",
+    },
+)
+
 
 def status() -> dict[str, Any]:
     """Return the canonical archive projection without creating new authority."""
@@ -93,6 +124,9 @@ def status() -> dict[str, Any]:
             "beginning_and_end_review_presence": True,
         },
         "core_law": CORE_LAW,
+        "mission_to_100_protocol": tuple(dict(item) for item in MISSION_TO_100_PROTOCOL),
+        "exact_artifact_parity_required_for_production_green": True,
+        "mandatory_gate_can_be_averaged_away": False,
         "history_is_timeline_inside_archive": True,
         "new_brain_created": False,
         "new_memory_engine_created": False,
