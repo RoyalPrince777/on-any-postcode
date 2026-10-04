@@ -57,6 +57,23 @@ def test_real_carrier_public_number_and_radio_execution_remain_fail_closed():
     assert all(value is False for value in execution.values())
 
 
+def test_real_unlock_tracks_are_open_but_not_falsely_activated():
+    status = personal_telecom.status()
+    tracks = {track["id"]: track for track in status["unlock_tracks"]}
+
+    assert set(tracks) == {
+        "carrier_profile",
+        "carrier_activation",
+        "private_radio",
+        "public_number",
+    }
+    assert all(track["state"] == "readiness-open" for track in tracks.values())
+    assert all(track["software_owned"] is True for track in tracks.values())
+    assert all(track["activation_proven"] is False for track in tracks.values())
+    assert all(track["external_gate"] for track in tracks.values())
+    assert all(track["evidence_required"] for track in tracks.values())
+
+
 def test_personal_telecom_is_exposed_by_canonical_infrastructure_owner():
     projection = infrastructure.get_public_infrastructure()
     personal = projection["personal_telecom"]
