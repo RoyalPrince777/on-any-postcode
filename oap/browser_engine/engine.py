@@ -4,13 +4,11 @@ This is intentionally not a standards-complete browser engine. It proves an
 OAP-owned parsing/layout/render contract that can grow without misrepresenting
 Android System WebView as first-party OAP technology.
 """
-
 from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 from html.parser import HTMLParser
-
 
 BLOCK_TAGS = {
     "article", "aside", "blockquote", "div", "footer", "form", "h1", "h2", "h3",
