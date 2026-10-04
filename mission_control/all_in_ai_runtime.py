@@ -14,7 +14,12 @@ from typing import Any
 from oap.smi.agi_core import AGICore
 from oap.smi.command_intelligence import CommandIntelligence
 
-from . import (\n    all_in_ai,\n    all_in_ai_action_bridge,\n    all_in_ai_mission_store,\n    smi_73_signal_field,\n)
+from . import (
+    all_in_ai,
+    all_in_ai_action_bridge,
+    all_in_ai_mission_store,
+    smi_73_signal_field,
+)
 
 _MAX_MISSION_LENGTH = 4000
 _ALLOWED_RESEARCH_MODES = {"standard", "alien_research"}
