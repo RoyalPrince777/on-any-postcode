@@ -19,7 +19,9 @@ from mission_control import earth_is_our_turf_mitcham_world as mitcham_world
 SCHEMA = "oap.arena.earth-is-our-turf.mitcham.v3"
 SESSION_KEY = "oap_eiot_mitcham_v1"
 
-NODES = mitcham_world.NODES\nNAV_LINKS = mitcham_world.NAV_LINKS\n
+NODES = mitcham_world.NODES
+NAV_LINKS = mitcham_world.NAV_LINKS
+
 def _canonical(value: object) -> str:
     return json.dumps(value, separators=(",",":"), sort_keys=True, ensure_ascii=False)
 
@@ -29,7 +31,8 @@ def _digest(value: object) -> str:
 def _seal(state: dict[str, Any]) -> dict[str, Any]:
     out=copy.deepcopy(state); out.pop("checkpoint",None); out["checkpoint"]=_digest(out); return out
 
-def _node_row(node_id: str) -> dict[str, Any]:\n    return mitcham_world.node_row(node_id)
+def _node_row(node_id: str) -> dict[str, Any]:
+    return mitcham_world.node_row(node_id)
 
 def _graph(mode: str) -> dict[str,list[tuple[str,int,str]]]:
     if mode not in {"car","bike","foot"}: raise ValueError("eiot_navigation_mode_invalid")
@@ -79,7 +82,9 @@ def new_world() -> dict[str, Any]:
         "fine_geometry_claimed":False,
         "time_minutes":8*60,
         "day":1,
-        "player":{"node":"town-centre","travel_mode":"foot","influence":0,"cash":250,"reputation":0},\n        "active_chunk":"central",\n        "loaded_chunks":["central"],
+        "player":{"node":"town-centre","travel_mode":"foot","influence":0,"cash":250,"reputation":0},
+        "active_chunk":"central",
+        "loaded_chunks":["central"],
         "nodes":[dict(n, memory=0, prosperity=50, activity=50) for n in NODES],
         "navigation_links":[
             {"from":a,"to":b,"kind":kind,"distance_m":distance,"modes":list(modes)}
@@ -148,11 +153,16 @@ def action(state: object, *, command: object, target: object=None, mode: object=
         travel=str(mode or current["player"]["travel_mode"]).strip().lower()
         plan=route(here["id"],target,travel)
         current["player"]["travel_mode"]=travel
-        current["active_route"]=plan\n        current["loaded_chunks"]=mitcham_world.streamed_chunks(mitcham_world.chunk_for(here["id"]),plan["nodes"])\n        current["events"].append({"type":"route_planned","from":here["id"],"to":plan["to"],"mode":travel,"distance_m":plan["distance_m"]})
+        current["active_route"]=plan
+        current["loaded_chunks"]=mitcham_world.streamed_chunks(mitcham_world.chunk_for(here["id"]),plan["nodes"])
+        current["events"].append({"type":"route_planned","from":here["id"],"to":plan["to"],"mode":travel,"distance_m":plan["distance_m"]})
     elif cmd=="travel-route":
         plan=current.get("active_route")
         if not isinstance(plan,dict) or plan.get("from")!=here["id"]: raise ValueError("eiot_active_route_missing")
-        current["player"]["node"]=plan["to"]\n        current["active_chunk"]=mitcham_world.chunk_for(plan["to"])\n        current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])\n        _node(current,plan["to"])["memory"]+=1
+        current["player"]["node"]=plan["to"]
+        current["active_chunk"]=mitcham_world.chunk_for(plan["to"])
+        current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])
+        _node(current,plan["to"])["memory"]+=1
         current["time_minutes"]=(current["time_minutes"]+max(1,plan["distance_m"]//(450 if plan["mode"]=="foot" else 1800 if plan["mode"]=="bike" else 5000)))%(24*60)
         current["events"].append({"type":"travel","from":here["id"],"to":plan["to"],"mode":plan["mode"],"distance_m":plan["distance_m"]})
         current["active_route"]=None
@@ -160,7 +170,9 @@ def action(state: object, *, command: object, target: object=None, mode: object=
         travel=str(mode or current["player"]["travel_mode"]).strip().lower()
         plan=route(here["id"],target,travel)
         if len(plan["steps"])!=1: raise ValueError("eiot_move_requires_direct_link")
-        current["player"]["node"]=plan["to"]; current["player"]["travel_mode"]=travel\n        current["active_chunk"]=mitcham_world.chunk_for(plan["to"])\n        current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])
+        current["player"]["node"]=plan["to"]; current["player"]["travel_mode"]=travel
+        current["active_chunk"]=mitcham_world.chunk_for(plan["to"])
+        current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])
         _node(current,plan["to"])["memory"]+=1
         current["events"].append({"type":"movement","from":here["id"],"to":plan["to"],"mode":travel,"kind":plan["steps"][0]["kind"]})
     elif cmd=="help-local":
