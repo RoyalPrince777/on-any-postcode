@@ -183,6 +183,12 @@ def action(state: object, *, command: object, target: object=None, mode: object=
         plan=current.get("active_route")
         if not isinstance(plan,dict) or plan.get("from")!=here["id"]: raise ValueError("eiot_active_route_missing")
         current["player"]["node"]=plan["to"]
+        current["character"]=earth_is_our_turf_character.set_movement(
+            current["character"],
+            mode=plan["mode"],
+            node=plan["to"],
+            speed=0,
+        )
         current["active_chunk"]=mitcham_world.chunk_for(plan["to"])
         current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])
         _node(current,plan["to"])["memory"]+=1
@@ -194,6 +200,12 @@ def action(state: object, *, command: object, target: object=None, mode: object=
         plan=route(here["id"],target,travel)
         if len(plan["steps"])!=1: raise ValueError("eiot_move_requires_direct_link")
         current["player"]["node"]=plan["to"]; current["player"]["travel_mode"]=travel
+        current["character"]=earth_is_our_turf_character.set_movement(
+            current["character"],
+            mode=travel,
+            node=plan["to"],
+            speed=0,
+        )
         current["active_chunk"]=mitcham_world.chunk_for(plan["to"])
         current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])
         _node(current,plan["to"])["memory"]+=1
