@@ -21,9 +21,9 @@ from . import (
     media_intelligence,
     oap_inference_gateway,
     postgres_db,
+    smi_auto,
     smi_cancellation,
     smi_founder_assets,
-    smi_auto,
     studio_intelligence,
 )
 
@@ -1005,7 +1005,6 @@ def chat(
                         "studio_mode": bool(studio_mode),
                         "continuation": continuation,
                         "active_reviewers": list(brain.get("active_reviewers") or ()),
-                        "auto_review": auto_review,
                     }
                 ),
                 json.dumps(processing_states),
