@@ -358,3 +358,22 @@ def test_unknown_agent_strength_fails_closed():
         assert str(exc) == "unknown_review_agent:Not An OAP Agent"
     else:
         raise AssertionError("unknown review agent must fail closed")
+
+
+def test_maps_loading_old_routes_uses_founder_requested_seven_review_team():
+    plan = ai_behaviour_protocol.recommend_agent_team(
+        "Maps still loading and showing old routes"
+    )
+
+    assert [item["name"] for item in plan["recommended_team"]] == [
+        "Shere Khan",
+        "Bagheera",
+        "Agent Smith",
+        "Twinz",
+        "Octopus",
+        "Fox",
+        "Bee",
+    ]
+    assert plan["active_team"] == plan["recommended_team"]
+    assert plan["coverage_warnings"] == ()
+    assert all(item["authority"] == "advisory_review_only" for item in plan["active_team"])
