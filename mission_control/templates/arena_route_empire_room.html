@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="oap-csrf-token" content="{{ csrf_token }}"><meta name="referrer" content="no-referrer">
+<title>Route Empire Room · OAP Arena</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
+<script src="{{ url_for('static', filename='arena_route_empire_room.js') }}" defer></script></head>
+<body><main class="mc-shell arena-game" data-route-room><section class="card room-panel">
+<nav class="arena-nav"><a href="/arena">← All games</a> · <a href="/arena/route-empire">Local Route Empire</a></nav>
+<p class="arena-hint">OAP Arena · First-party two-player room</p><h1>🌍 Route Empire · Room</h1>
+<p>Synthetic game board only. No real property rights, precise-location use, payment or prize execution.</p>
+<div data-entry><h2>Create</h2><label>Your name <input data-host maxlength="40"></label><button data-create type="button">Create Room</button>
+<h2>Join</h2><label>Room code <input data-join-code maxlength="6" autocapitalize="characters"></label><label>Your name <input data-guest maxlength="40"></label><button data-join type="button">Join Room</button>
+<h2>Reconnect</h2><label>Room ID <input data-reconnect-id></label><label>Private token <input data-reconnect-token type="password"></label><button data-reconnect type="button">Reconnect</button></div>
+<section data-room hidden><p>Code: <strong data-code></strong> · Status: <strong data-status></strong> · Revision: <strong data-revision></strong></p>
+<details><summary>Private reconnect details</summary><p>Room ID: <span data-id></span></p><p>Token: <span data-token></span></p></details>
+<p data-players></p><p data-turn></p><div data-nodes class="arena-game-content"></div>
+<div class="arena-row"><label>From<select data-from></select></label><label>To<select data-to></select></label><button data-build-route type="button">Build Route</button></div>
+<div class="arena-actions"><button data-end-turn type="button">End Turn</button><button data-refresh type="button">Refresh Match</button><button data-stop type="button">STOP</button></div></section>
+<p data-error role="alert"></p></section></main></body></html>

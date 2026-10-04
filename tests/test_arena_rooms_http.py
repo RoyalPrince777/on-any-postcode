@@ -195,3 +195,125 @@ def test_multiplayer_clients_serialize_entry_and_fail_closed_on_uncertain_moves(
         assert "if(membership!==current)return;" in js or "if(me!==current)return;" in js
         assert "Retry Refresh before" in js or "Refresh before another action" in js
         assert 'q("[data-refresh]").disabled=true' in js
+
+
+
+def test_ludo_and_oware_room_pages_and_actions(client, csrf, monkeypatch):
+    import app as app_module
+
+    for route, asset, root in (
+        ("/arena/ludo/room", "arena_ludo_room.js", "data-ludo-room"),
+        ("/arena/oware/room", "arena_oware_room.js", "data-oware-room"),
+    ):
+        page = client.get(route)
+        html = page.get_data(as_text=True)
+        assert page.status_code == 200
+        assert asset in html
+        assert root in html
+        for marker in ("data-create", "data-join", "data-reconnect", "data-refresh", "data-stop"):
+            assert marker in html
+        assert page.headers["Referrer-Policy"] == "no-referrer"
+
+    expected_room = "00000000-0000-0000-0000-000000000001"
+    monkeypatch.setattr(
+        app_module.arena_rooms,
+        "ludo_action",
+        lambda **kwargs: {
+            "room_id": expected_room, "revision": 1, "duplicate": False,
+            "status": "ACTIVE", "game_state": {"pending_roll": 4},
+        },
+    )
+    ludo_payload = {
+        "room_id": expected_room, "reconnect_token": "x" * 40,
+        "expected_revision": 0, "request_id": "http-ludo-room-0001",
+        "action": "roll",
+    }
+    assert client.post("/arena/rooms/ludo/action", json=ludo_payload).status_code == 403
+    response = client.post(
+        "/arena/rooms/ludo/action", json=ludo_payload,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["revision"] == 1
+
+    monkeypatch.setattr(
+        app_module.arena_rooms,
+        "oware_action",
+        lambda **kwargs: {
+            "room_id": expected_room, "revision": 1, "duplicate": False,
+            "status": "ACTIVE", "game_state": {"pits": [0, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4]},
+        },
+    )
+    oware_payload = {
+        "room_id": expected_room, "reconnect_token": "x" * 40,
+        "expected_revision": 0, "request_id": "http-oware-room-0001",
+        "action": "move", "pit": 0,
+    }
+    assert client.post("/arena/rooms/oware/action", json=oware_payload).status_code == 403
+    response = client.post(
+        "/arena/rooms/oware/action", json=oware_payload,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["revision"] == 1
+
+
+
+def test_iq_and_route_empire_room_pages_and_actions(client, csrf, monkeypatch):
+    import app as app_module
+
+    for route, asset, root in (
+        ("/arena/iq/room", "arena_iq_room.js", "data-iq-room"),
+        ("/arena/route-empire/room", "arena_route_empire_room.js", "data-route-room"),
+    ):
+        page = client.get(route)
+        html = page.get_data(as_text=True)
+        assert page.status_code == 200
+        assert asset in html
+        assert root in html
+        for marker in ("data-create", "data-join", "data-reconnect", "data-refresh", "data-stop"):
+            assert marker in html
+        assert page.headers["Referrer-Policy"] == "no-referrer"
+
+    expected_room = "00000000-0000-0000-0000-000000000001"
+    monkeypatch.setattr(
+        app_module.arena_rooms,
+        "iq_action",
+        lambda **kwargs: {
+            "room_id": expected_room, "revision": 1, "duplicate": False,
+            "status": "ACTIVE", "game_state": {"your_answer_locked": True},
+        },
+    )
+    iq_payload = {
+        "room_id": expected_room, "reconnect_token": "x" * 40,
+        "expected_revision": 0, "request_id": "http-iq-room-0001",
+        "action": "answer", "choice_id": "b",
+    }
+    assert client.post("/arena/rooms/iq/action", json=iq_payload).status_code == 403
+    response = client.post(
+        "/arena/rooms/iq/action", json=iq_payload,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["revision"] == 1
+
+    monkeypatch.setattr(
+        app_module.arena_rooms,
+        "route_empire_action",
+        lambda **kwargs: {
+            "room_id": expected_room, "revision": 1, "duplicate": False,
+            "status": "ACTIVE", "game_state": {"round": 1},
+        },
+    )
+    route_payload = {
+        "room_id": expected_room, "reconnect_token": "x" * 40,
+        "expected_revision": 0, "request_id": "http-route-room-0001",
+        "action": "claim", "node_id": "north",
+    }
+    assert client.post("/arena/rooms/route-empire/action", json=route_payload).status_code == 403
+    response = client.post(
+        "/arena/rooms/route-empire/action", json=route_payload,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["revision"] == 1
