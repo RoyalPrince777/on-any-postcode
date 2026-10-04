@@ -10,7 +10,7 @@
 html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;color:#f8fafc}
 .map-app,.map-wrap{position:relative;width:100%;height:100vh;min-height:100vh;overflow:hidden}
 .map-surface{position:absolute;inset:0;background:linear-gradient(#15191f,#0e1217)}
-.oap-mark,.search-card,.map-controls,.oap-os-map-runtime{visibility:visible!important;opacity:1!important}
+.oap-mark,.search-card,.map-controls{visibility:visible!important;opacity:1!important}
 .oap-map-boot{position:absolute;left:50%;top:50%;z-index:2;transform:translate(-50%,-50%);padding:10px 14px;border:1px solid #39414b;border-radius:12px;background:#090c10d9;color:#d8dee7;font:700 13px Arial,sans-serif}
 </style>
 <link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css') }}">
@@ -56,10 +56,7 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
 
     <div id="route-state" class="map-toast" hidden></div>
     <div id="road-source-state" role="status" aria-live="polite" class="map-toast" hidden></div>
-    <div id="oap-os-map-runtime" role="status" aria-live="polite" data-oap-os-map-runtime="web" class="oap-os-map-runtime">OAP OS · Map web runtime</div>
-
     <div class="map-controls">
-      <a class="map-float-btn" href="/the-spot/market" aria-label="Manage Certified Merchant listings">🏪</a>
       <button class="map-float-btn" id="zoom-in" type="button" aria-label="Zoom in">＋</button>
       <button class="map-float-btn" id="zoom-out" type="button" aria-label="Zoom out">−</button>
       <button class="map-float-btn" id="recenter" type="button" aria-label="Recenter">⌖</button>
