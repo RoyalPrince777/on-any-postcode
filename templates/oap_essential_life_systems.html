@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="OAP Library guide to the Essential Life Systems that keep people and communities functioning.">
+  <title>Essential Life Systems · OAP Library</title>
+  {% include "_oap_install_head.html" %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='oap/oap_library.css') }}">
+</head>
+<body>
+  <header class="library-topbar">
+    <a class="library-brand" href="/library"><span class="library-brand-mark">OAP</span><span>LIBRARY</span></a>
+    <nav aria-label="Essential Life Systems navigation">
+      <a href="/library">Library</a><a href="/the-spot">The Spot</a><a href="/">OAP World</a>
+    </nav>
+  </header>
+  <main>
+    <section class="library-intro">
+      <div class="library-opening">
+        <p class="library-kicker">KNOW · LEARN · MANAGE · PROTECT</p>
+        <h1>Essential Life Systems</h1>
+        <p class="library-lead">The systems human life and everyday civilisation depend on.</p>
+        <p>Public Library knowledge explains the systems. Live operational status stays inside governed SMI / Control Center evidence routes.</p>
+      </div>
+    </section>
+    <section class="library-collections">
+      <div class="section-heading"><div><p class="library-kicker">7 RESILIENCE BANDS</p><h2>Life to Protect</h2></div></div>
+      <div class="collection-grid">
+        {% for band in bands %}
+        <article class="collection-card">
+          <p class="collection-name">{{ band.name }}</p>
+          <h3>{{ band.systems|join(" · ")|title }}</h3>
+          <p>Connected to OAP Library, Academy, Organiser, World, LAB, SMI, Guardian and Control Center by role.</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="library-collections">
+      <div class="section-heading"><div><p class="library-kicker">10 SYSTEMS</p><h2>What must keep working</h2></div></div>
+      <div class="collection-grid">
+        {% for system in systems %}
+        <article class="collection-card">
+          <p class="collection-name">{{ system.band|title }}</p>
+          <h3>{{ system.name }}</h3>
+          <p>Monitor: {{ system.monitors|join(" · ") }}</p>
+          <p>Depends on: {% if system.depends_on %}{{ system.depends_on|join(" · ") }}{% else %}no registry dependency{% endif %}</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    <aside class="library-boundary">
+      <strong>Truth Mode boundary.</strong>
+      <span>This page is a knowledge registry, not a claim of live infrastructure telemetry.</span>
+    </aside>
+  </main>
+</body>
+</html>
