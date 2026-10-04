@@ -17,6 +17,7 @@ from typing import Any
 from mission_control import (
     earth_is_our_turf_character,
     mtown_build_system,
+    mtown_interiors_persistence,
     mtown_language,
     mtown_living_streets,
     mtown_vehicle_life,
@@ -103,6 +104,7 @@ def new_world() -> dict[str, Any]:
         "world_position":None,
         "living_streets":mtown_living_streets.new_state(),
         "vehicle_life":mtown_vehicle_life.new_state(),
+        "interiors":mtown_interiors_persistence.new_state(),
         "businesses":[
             {"id":"oap-local","label":"ON ANY POSTCODE Local","node":"town-centre","opens":420,"closes":1380,"stock":82,"memory":0},
             {"id":"oap-market","label":"ON ANY POSTCODE Market","node":"town-centre","opens":420,"closes":1320,"stock":90,"memory":0},
@@ -165,6 +167,7 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
     )
     out["living_status"]=mtown_living_streets.status()
     out["vehicle_life_status"]=mtown_vehicle_life.status()
+    out["interior_status"]=mtown_interiors_persistence.status()
     out["npc_routines"]=mtown_vehicle_life.npc_positions(
         state["vehicle_life"],minute=state["time_minutes"],
     )
@@ -247,6 +250,16 @@ def action(
             character=current["character"],
             living_streets=current["living_streets"],
         )
+        if current["vehicle_life"].get("inside_vehicle") and current["vehicle_life"].get("active_vehicle_id"):
+            active_vehicle=next(
+                v for v in current["living_streets"]["vehicles"]
+                if v["id"]==current["vehicle_life"]["active_vehicle_id"]
+            )
+            current["interiors"]=mtown_interiors_persistence.drive_vehicle(
+                current["interiors"],
+                vehicle=active_vehicle,
+                distance_m=distance if distance is not None else 50,
+            )
         if moved["completed"]:
             current["active_route"]=None
     elif cmd=="travel-route":
@@ -336,7 +349,27 @@ def action(
             node_id=here["id"],
             mode=current["character"]["movement"]["mode"],
         )
+        current["interiors"]=mtown_interiors_persistence.enter(
+            current["interiors"],
+            entrance_id=target,
+            node_id=here["id"],
+        )
         current["events"].append({"type":"entrance_used","entrance_id":str(target or ""),"node":here["id"]})
+    elif cmd=="exit-interior":
+        current["interiors"]=mtown_interiors_persistence.exit(current["interiors"])
+        current["events"].append({"type":"interior_exited","node":here["id"]})
+    elif cmd=="service-vehicle":
+        vid=str(target or current["vehicle_life"].get("active_vehicle_id") or "").strip()
+        current["interiors"]=mtown_interiors_persistence.service_vehicle(
+            current["interiors"],vehicle_id=vid,
+        )
+        current["events"].append({"type":"vehicle_serviced","vehicle_id":vid})
+    elif cmd=="restore-vehicle-energy":
+        vid=str(target or current["vehicle_life"].get("active_vehicle_id") or "").strip()
+        current["interiors"]=mtown_interiors_persistence.refuel_vehicle(
+            current["interiors"],vehicle_id=vid,
+        )
+        current["events"].append({"type":"vehicle_energy_restored","vehicle_id":vid})
     elif cmd=="help-local":
         here["memory"]+=2; here["prosperity"]=min(100,here["prosperity"]+2)
         current["player"]["influence"]+=2; current["player"]["reputation"]+=1
