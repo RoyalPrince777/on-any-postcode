@@ -205,10 +205,6 @@ def action(
     here=_node(current,current["player"]["node"])
     if cmd=="navigate":
         travel=str(mode or current["player"]["travel_mode"]).strip().lower()
-        if travel=="car" and not current["vehicle_life"].get("inside_vehicle"):
-            raise ValueError("mtown_vehicle_required_for_car_travel")
-        if current["vehicle_life"].get("inside_vehicle") and travel!="car":
-            raise ValueError("mtown_exit_vehicle_before_noncar_travel")
         plan=route(here["id"],target,travel)
         current["player"]["travel_mode"]=travel
         current["active_route"]=plan
