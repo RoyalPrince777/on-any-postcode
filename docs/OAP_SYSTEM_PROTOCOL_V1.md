@@ -47,3 +47,20 @@ Promotion, permanent termination, constitutional/authority changes and other maj
 ## Truth protocol
 
 Unproven runtime capability is LOCKED/UNKNOWN, not LIVE. External actions require a real authenticated execution path and evidence receipt. No agent, formation, family, OMNI, HYBRID or Civilisation layer can bypass Guardian, HRM or Human Authority.
+
+## Mission-to-100 direct execution law
+
+Mission-to-100 is not a stage generator. It is a proof discipline for closing the smallest real remaining gap.
+
+- Do the smallest bounded change that closes the measured gap.
+- Do not add demo work, duplicate reports, repeated approvals or cosmetic percentage movement.
+- A branch test, image build or sibling service never proves the target runtime by itself.
+- **Exact-artifact parity is mandatory:** the artifact that passed the required proof must be the artifact bound to the intended target service before production Green.
+- Target-service health, artifact binding and required receipts must be read back after promotion.
+- A blocked or unknown mandatory final gate cannot be averaged into 100% by stronger scores elsewhere.
+- Material dissent, unresolved Claw Test findings and minority reports remain visible until resolved or explicitly held by Human Authority.
+- A known-good recovery path must exist before replacing a proven runtime artifact.
+- Founder Final remains the consequential Human Authority boundary.
+
+This law adds no extra workflow stage. It sharpens the existing 25/50/75/100 protocol so that 100% means exact tested release + exact target runtime + Green Gate + Founder Final, not merely successful source or CI evidence.
+
