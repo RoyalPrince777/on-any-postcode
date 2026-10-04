@@ -4,9 +4,10 @@ from mission_control import sika_software_readiness
 def test_software_readiness_is_separate_from_external_execution():
     result = sika_software_readiness.assess()
     assert result.external_execution_ready is False
-    assert result.percent >= 0
-    assert result.percent <= 100
+    assert result.ready is True
+    assert result.percent == 100
     assert result.checks
+    assert all(result.checks.values())
 
 
 def test_status_excludes_external_responsibilities_without_bypassing_gate():
@@ -33,3 +34,8 @@ def test_software_ready_requires_every_internal_check(monkeypatch):
     result = sika_software_readiness.assess()
     assert result.ready is False
     assert result.percent < 100
+
+
+def test_treasury_is_part_of_canonical_software_readiness():
+    result = sika_software_readiness.assess()
+    assert result.checks["treasury_controls"] is True
