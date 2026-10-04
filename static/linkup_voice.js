@@ -124,7 +124,7 @@
   const refreshControls = () => {
     recordControls.forEach((control) => {
       const peerId = recipientFor(control);
-      control.disabled = !state.pttReady || !browserReady() || !peerId || Boolean(state.current);
+      control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current);
       const marker = control.querySelector("small");
       if (marker) {
         marker.textContent = control.disabled ? "locked" : "ready";
@@ -140,7 +140,7 @@
     });
     pttControls.forEach((control) => {
       const peerId = recipientFor(control);
-      control.disabled = !state.ready || !browserReady() || !peerId || Boolean(state.current);
+      control.disabled = !state.pttReady || !browserReady() || !peerId || Boolean(state.current);
     });
     pttStopControls.forEach((control) => {
       const peerId = recipientFor(control);
