@@ -98,6 +98,8 @@ def test_status_keeps_boundaries_explicit():
         "connect4_server_actions": True,
         "dot_server_actions": True,
         "chess_server_actions": True,
+        "ludo_server_actions": True,
+        "oware_server_actions": True,
         "arbitrary_client_game_state_writes": False,
         "chat": False,
         "payments": False,
