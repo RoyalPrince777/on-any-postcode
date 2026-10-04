@@ -157,8 +157,11 @@ async function fetchRoadTile(z,x,y,mode){
  }
  return null
 }
-async function loadRoadNetwork(b,mode){
- const request=++roadRequest;roadLayer.innerHTML='';showRoadStatus('Loading road network…');const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;
+async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
+ const request=requestToken===null?++roadRequest:requestToken;
+ if(batchAttempt===0)roadLayer.innerHTML='';
+ showRoadStatus(batchAttempt?'Warming road network…':'Loading road network…');
+ const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;
  let x0=lon2x(b.minX,z),x1=lon2x(b.maxX,z),y0=lat2y(b.maxY,z),y1=lat2y(b.minY,z);let tiles=[];
  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)tiles.push([x,y]);
  const cx=(x0+x1)/2,cy=(y0+y1)/2;
@@ -192,8 +195,23 @@ async function loadRoadNetwork(b,mode){
    const queue=[...tiles];
    const worker=async()=>{while(queue.length&&request===roadRequest){const [x,y]=queue.shift();const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}};
    await Promise.all(Array.from({length:Math.min(4,tiles.length)},worker));
-   if(request===roadRequest&&!count){clearBoot();showRoadStatus('Road network unavailable — route guidance may still work.')}
- }catch{if(request===roadRequest&&!count){clearBoot();showRoadStatus('Road network unavailable — check map source.')}}
+   if(request===roadRequest&&!count){
+     if(batchAttempt<3){
+       showRoadStatus('Warming road network…');
+       await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
+       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
+     }
+     clearBoot();showRoadStatus('Road network unavailable — route guidance may still work.');
+   }
+ }catch{
+   if(request===roadRequest&&!count){
+     if(batchAttempt<3){
+       await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
+       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
+     }
+     clearBoot();showRoadStatus('Road network unavailable — check map source.');
+   }
+ }
 }
 function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}
 function renderSteps(items){directions.innerHTML='';(items||[]).forEach(step=>{const row=document.createElement('div');row.className='step';const a=document.createElement('b');a.textContent=(step.modifier||'').includes('left')?'↰':(step.modifier||'').includes('right')?'↱':step.type==='arrive'?'●':'↑';const b=document.createElement('span');b.textContent=step.type==='arrive'?'Arrive':(step.name?'Continue on '+step.name:'Continue');const c=document.createElement('small');c.textContent=Math.round(step.distance_m||0)+' m';row.append(a,b,c);directions.appendChild(row)})}
