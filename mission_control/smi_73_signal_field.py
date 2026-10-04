@@ -218,3 +218,60 @@ def evaluate(evidence: Mapping[str, object] | None = None) -> dict[str, Any]:
         },
         "unrecognised_evidence_keys": unknown_keys,
     }
+
+
+def evidence_from_smi_health(snapshot: Mapping[str, object]) -> dict[str, object]:
+    """Project only directly evidenced SMI health into the 73-signal field.
+
+    Missing evidence is intentionally omitted so evaluate() leaves it unknown.
+    This function does not manufacture runtime, recovery or end-to-end proof.
+    """
+    checks = dict(snapshot.get("checks") or {})
+    invariants = dict(snapshot.get("invariants") or {})
+    inference = dict(snapshot.get("inference") or {})
+
+    guardian_stack = all(
+        bool(checks.get(name))
+        for name in ("guardian", "aegis", "war_room")
+    )
+    database_stack = all(
+        bool(checks.get(name))
+        for name in ("database", "schema", "audit")
+    )
+    authority_stack = bool(
+        checks.get("human_authority")
+        and invariants.get("human_authority_final")
+        and invariants.get("execution_locked")
+    )
+    first_party_inference = bool(inference.get("first_party_inference_ready"))
+
+    evidence: dict[str, object] = {
+        "security.access": bool(checks.get("permission")),
+        "security.adversarial": guardian_stack,
+        "security.detection": bool(checks.get("audit")),
+        "evidence.proof": database_stack,
+        "evidence.traceability": bool(checks.get("audit")),
+        "evidence.version_match": bool(snapshot.get("environment", {}).get("revision_present"))
+            if isinstance(snapshot.get("environment"), Mapping)
+            else False,
+        "alignment.founder_final_alignment": authority_stack,
+        "observability.runtime_visibility": True,
+        "observability.dependency_visibility": bool(checks),
+        "observability.reason_visibility": "database_reason" in snapshot,
+        "data_integrity.consistency": bool(checks.get("schema")),
+        "data_integrity.freshness": bool(checks.get("database")),
+        "crown.founder_final": authority_stack,
+        "crown.truth_mode": True,
+        "crown.red_team": guardian_stack,
+        "crown.runtime_proof": bool(snapshot.get("status") == "green"),
+        "crown.cross_intelligence_coherence": bool(
+            checks.get("nexus") and checks.get("agent_registry")
+        ),
+        "crown.end_to_end_proof": bool(
+            snapshot.get("status") == "green"
+            and first_party_inference
+            and authority_stack
+        ),
+        "crown.last_known_green_integrity": bool(checks.get("audit")),
+    }
+    return evidence

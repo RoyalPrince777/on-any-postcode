@@ -23,6 +23,7 @@ from oap.smi.memory_sync import status as memory_sync_status
 from . import ai_behaviour_protocol as _behaviour
 from . import intelligence_lenses as _intelligence
 from . import oap_inference_gateway as _inference
+from . import smi_73_signal_field as _mission_field
 from . import smi_cancellation as _cancellation
 from . import smi_chat_grounded as _grounded
 from . import smi_chat_runtime_core as _core
@@ -144,6 +145,9 @@ def health() -> dict:
         snapshot["governed_memory"] = governed_memory_status()
         snapshot["memory_sync"] = memory_sync_status()
         snapshot["health_probe"] = {"coalesced_concurrent_checks": True}
+        snapshot["mission_to_100"] = _mission_field.evaluate(
+            _mission_field.evidence_from_smi_health(snapshot)
+        )
     except Exception:
         with _health_probe_condition:
             _health_probe_running = False
