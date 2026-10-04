@@ -6,6 +6,7 @@ The target must be the deployed public /oap-map route.
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit
 
 from playwright.sync_api import sync_playwright
 
@@ -90,7 +91,11 @@ with sync_playwright() as p:
     )
 
     for asset in required_assets:
-        matches = [status for url, status in asset_status.items() if url.endswith("/" + asset)]
+        matches = [
+            status
+            for url, status in asset_status.items()
+            if urlsplit(url).path.endswith("/" + asset)
+        ]
         assert matches and all(status == 200 for status in matches), (asset, matches)
 
     road_count = page.locator("#road-layer polyline").count()
