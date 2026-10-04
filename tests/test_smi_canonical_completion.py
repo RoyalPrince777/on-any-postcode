@@ -227,3 +227,70 @@ def test_completion_contract_reflects_governed_a5_a6_runtime_state(monkeypatch):
     assert status["hard_locks"]["a5_enabled"] is True
     assert status["hard_locks"]["a6_enabled"] is True
     assert status["hard_locks"]["a7_enabled"] is False
+
+
+def test_smi_recommends_smallest_fit_team_for_state_divergence():
+    plan = ai_behaviour_protocol.recommend_agent_team(
+        "Map shows the new runtime then old cached state takes over"
+    )
+
+    assert plan["selection_mode"] == "smi_recommended"
+    assert [item["name"] for item in plan["recommended_team"]] == [
+        "Twinz",
+        "Agent Smith",
+        "Shere Khan",
+        "Bagheera",
+    ]
+    assert plan["active_team"] == plan["recommended_team"]
+    assert plan["founder_can_change"] is True
+    assert plan["smi_can_silently_override_founder"] is False
+    assert plan["coverage_warnings"] == ()
+
+
+def test_founder_manual_agent_selection_overrides_smi_without_silent_additions():
+    plan = ai_behaviour_protocol.recommend_agent_team(
+        "Map cache divergence",
+        founder_selection=["Bagheera", "Twinz"],
+    )
+
+    assert plan["selection_mode"] == "founder_manual_override"
+    assert plan["founder_override_applied"] is True
+    assert [item["name"] for item in plan["active_team"]] == [
+        "Bagheera",
+        "Twinz",
+    ]
+    assert [item["name"] for item in plan["recommended_team"]] == [
+        "Twinz",
+        "Agent Smith",
+        "Shere Khan",
+        "Bagheera",
+    ]
+    assert "No dedicated adversarial failure-hunter selected." in plan["coverage_warnings"]
+    assert plan["smi_can_silently_override_founder"] is False
+    assert "Guardian" in plan["mandatory_gates_unchanged"]
+
+
+def test_founder_can_change_smi_pick_but_unknown_review_roles_fail_closed():
+    try:
+        ai_behaviour_protocol.recommend_agent_team(
+            "Map cache divergence",
+            founder_selection=["Unknown Agent"],
+        )
+    except ValueError as exc:
+        assert str(exc) == "unknown_review_agent:Unknown Agent"
+    else:
+        raise AssertionError("unknown review role must fail closed")
+
+
+def test_behaviour_status_exposes_auto_plus_founder_override_contract():
+    status = ai_behaviour_protocol.status("map cache divergence")
+    selection = status["agent_team_selection"]
+
+    assert status["version"] >= 4
+    assert selection["mode"] == "automatic_with_founder_override"
+    assert selection["founder_can_change"] is True
+    assert selection["smi_can_silently_override_founder"] is False
+    assert "Twinz" in selection["catalog"]
+    assert "Agent Smith" in selection["catalog"]
+    assert "Shere Khan" in selection["catalog"]
+    assert "Bagheera" in selection["catalog"]
