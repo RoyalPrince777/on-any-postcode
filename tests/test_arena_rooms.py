@@ -6,7 +6,7 @@ import uuid
 
 import pytest
 
-from mission_control import arena_rooms, chess, connect4
+from mission_control import arena_rooms, chess, connect4, ludo, oware
 
 
 class _Result:
@@ -262,10 +262,10 @@ def test_dot_room_rejects_wrong_seat(monkeypatch):
 def test_unimplemented_room_games_and_non_two_player_capacity_fail_before_io(monkeypatch):
     connection = _Connection([])
     _patch_connection(monkeypatch, connection)
-    for game in ("ludo", "iq", "route-empire"):
+    for game in ("iq", "route-empire"):
         with pytest.raises(ValueError, match="arena_room_game_invalid"):
             arena_rooms.create_room(game_key=game, host_name="Alpha", capacity=2)
-    for game in ("connect4", "dot", "chess"):
+    for game in ("connect4", "dot", "chess", "ludo", "oware"):
         with pytest.raises(ValueError, match="arena_room_requires_two_seats"):
             arena_rooms.create_room(game_key=game, host_name="Alpha", capacity=4)
     assert connection.calls == []
@@ -400,3 +400,89 @@ def test_chess_room_stop_is_server_authoritative(monkeypatch):
     assert result["revision"] == 3
     assert result["status"] == "STOPPED"
     assert result["game_state"]["status"] == "stopped"
+
+
+
+def test_ludo_room_roll_and_move_use_server_engine(monkeypatch):
+    room_id = str(uuid.uuid4())
+    connection = _Connection([
+        _Result(one=("ludo", "ACTIVE", 2, 0, {})),
+        _Result(one=(1,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+    monkeypatch.setattr(ludo.secrets, "randbelow", lambda _n: 5)
+    rolled = arena_rooms.ludo_action(
+        room_id=room_id, reconnect_token="x" * 40,
+        expected_revision=0, request_id="ludo-room-roll-0001", action="roll",
+    )
+    assert rolled["revision"] == 1
+    assert rolled["game_state"]["pending_roll"] == 6
+    state = ludo.new_game(["Alpha", "Bravo"])
+    state = ludo.roll(state, request_id="seed-ludo-roll-0001", die_value=6)
+    connection = _Connection([
+        _Result(one=("ludo", "ACTIVE", 2, 1, state)),
+        _Result(one=(1,)),
+        _Result(one=None),
+        _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+    moved = arena_rooms.ludo_action(
+        room_id=room_id, reconnect_token="x" * 40,
+        expected_revision=1, request_id="ludo-room-move-0001",
+        action="move", piece_id="p1-1",
+    )
+    assert moved["revision"] == 2
+    assert moved["game_state"]["players"][0]["pieces"][0]["zone"] == "track"
+
+
+def test_oware_room_move_uses_server_engine(monkeypatch):
+    room_id = str(uuid.uuid4())
+    connection = _Connection([
+        _Result(one=("oware", "ACTIVE", 2, 0, {})),
+        _Result(one=(1,)),
+        _Result(one=None),
+        _Result(many=[(1, "Ama"), (2, "Kojo")]),
+        _Result(),
+        _Result(),
+    ])
+    _patch_connection(monkeypatch, connection)
+    result = arena_rooms.oware_action(
+        room_id=room_id, reconnect_token="x" * 40,
+        expected_revision=0, request_id="oware-room-move-0001",
+        action="move", pit=0,
+    )
+    assert result["revision"] == 1
+    assert result["status"] == "ACTIVE"
+    assert result["game_state"]["current_player_id"] == "p2"
+    assert result["game_state"]["pits"] != [4] * 12
+
+
+def test_ludo_and_oware_wrong_seat_fail_closed(monkeypatch):
+    cases = (
+        ("ludo", ludo.new_game(["Alpha", "Bravo"]), lambda room: arena_rooms.ludo_action(
+            room_id=room, reconnect_token="y" * 40, expected_revision=0,
+            request_id="ludo-wrong-seat-0001", action="roll",
+        )),
+        ("oware", oware.new_game(["Ama", "Kojo"]), lambda room: arena_rooms.oware_action(
+            room_id=room, reconnect_token="y" * 40, expected_revision=0,
+            request_id="oware-wrong-seat-0001", action="move", pit=0,
+        )),
+    )
+    for game, state, call in cases:
+        room_id = str(uuid.uuid4())
+        connection = _Connection([
+            _Result(one=(game, "ACTIVE", 2, 0, state)),
+            _Result(one=(2,)),
+            _Result(one=None),
+            _Result(many=[(1, "Alpha"), (2, "Bravo")]),
+        ])
+        _patch_connection(monkeypatch, connection)
+        with pytest.raises(ValueError, match="arena_room_not_your_turn"):
+            call(room_id)
+        assert connection.commits == 0
