@@ -33,7 +33,13 @@ def test_organiser_dashboard_is_founder_only_and_truthful(monkeypatch):
     page = response.get_data(as_text=True)
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert "SMI Archive" in page\n    assert "History" in page\n    assert "Synthetic Mind Intelligence" in page\n    assert "Sovereign Megaverse Intelligence" in page\n    assert "Synthetic Machine Intelligence" in page\n    assert "The Claw Test" in page\n    assert "What can break this?" in page
+    assert "SMI Archive" in page
+    assert "History" in page
+    assert "Synthetic Mind Intelligence" in page
+    assert "Sovereign Megaverse Intelligence" in page
+    assert "Synthetic Machine Intelligence" in page
+    assert "The Claw Test" in page
+    assert "What can break this?" in page
     assert "No owner-scoped schedule receipt has reached SMI yet" in page
     assert "No reviewed briefing receipt exists inside OAP" in page
     assert "Automation authority" in page
