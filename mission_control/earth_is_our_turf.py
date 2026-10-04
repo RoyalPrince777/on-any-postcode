@@ -217,6 +217,8 @@ def action(
         if not isinstance(plan,dict) or not isinstance(position,dict):
             raise ValueError("eiot_active_route_missing")
         move_distance=distance if distance is not None else 50
+        if current["vehicle_life"].get("inside_vehicle") and plan["mode"]!="car":
+            raise ValueError("mtown_exit_vehicle_before_noncar_travel")
         if plan["mode"]=="car":
             vid=current["vehicle_life"].get("active_vehicle_id")
             if not current["vehicle_life"].get("inside_vehicle") or not vid:
@@ -274,6 +276,10 @@ def action(
     elif cmd=="travel-route":
         plan=current.get("active_route")
         if not isinstance(plan,dict) or plan.get("from")!=here["id"]: raise ValueError("eiot_active_route_missing")
+        if plan["mode"]=="car" and not current["vehicle_life"].get("inside_vehicle"):
+            raise ValueError("mtown_vehicle_required_for_car_travel")
+        if current["vehicle_life"].get("inside_vehicle") and plan["mode"]!="car":
+            raise ValueError("mtown_exit_vehicle_before_noncar_travel")
         current["player"]["node"]=plan["to"]
         current["character"]=earth_is_our_turf_character.set_movement(
             current["character"],
