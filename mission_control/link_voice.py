@@ -12,7 +12,7 @@ from typing import Any
 
 from . import link_relationships, link_youth_safety, linkup_safety, postgres_db
 
-SCHEMA_VERSION = "link_voice_v1"
+SCHEMA_VERSION = "link_voice_v2"
 MAX_VOICE_BYTES = 5 * 1024 * 1024
 MAX_VOICE_DURATION_MS = 120_000
 MAX_SENDER_STORAGE_BYTES = 100 * 1024 * 1024
@@ -33,8 +33,10 @@ SCHEMA_SQL = (
         duration_ms INTEGER CHECK (duration_ms IS NULL OR (duration_ms >= 0 AND duration_ms <= 120000)),
         sha256 CHAR(64) NOT NULL,
         media BYTEA NOT NULL,
+        kind TEXT NOT NULL DEFAULT 'voice' CHECK (kind IN ('voice','ptt')),
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CHECK (sender_id <> recipient_id))""",
+    "ALTER TABLE link_voice_notes ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'voice' CHECK (kind IN ('voice','ptt'))",
     "CREATE INDEX IF NOT EXISTS idx_link_voice_recipient_created ON link_voice_notes(recipient_id,created_at DESC)",
     "CREATE INDEX IF NOT EXISTS idx_link_voice_sender_created ON link_voice_notes(sender_id,created_at DESC)",
 )
@@ -80,6 +82,13 @@ def _guardian_validate(media: bytes, mime_type: object) -> str:
     if not valid_magic:
         raise ValueError("voice_content_mismatch")
     return mime
+
+
+def _kind(value: object) -> str:
+    kind = str(value or "voice").strip().casefold()
+    if kind not in {"voice", "ptt"}:
+        raise ValueError("invalid_voice_kind")
+    return kind
 
 
 def _duration(value: object) -> int | None:
@@ -159,10 +168,12 @@ def create_voice(
     media: bytes,
     mime_type: object,
     duration_ms: object = None,
+    kind: object = "voice",
 ) -> dict[str, object]:
     sender, recipient = _peer_guard(sender_id, recipient_id)
     mime = _guardian_validate(media, mime_type)
     duration = _duration(duration_ms)
+    voice_kind = _kind(kind)
     try:
         link_youth_safety.require_contact_allowed(sender, recipient)
     except ValueError:
@@ -182,9 +193,9 @@ def create_voice(
                 raise ValueError("voice_storage_quota_reached")
             row = connection.execute(
                 """INSERT INTO link_voice_notes(
-                       sender_id,recipient_id,mime_type,byte_size,duration_ms,sha256,media)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id,created_at""",
-                (sender, recipient, mime, size, duration, digest, media),
+                       sender_id,recipient_id,mime_type,byte_size,duration_ms,sha256,media,kind)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id,created_at""",
+                (sender, recipient, mime, size, duration, digest, media, voice_kind),
             ).fetchone()
             connection.commit()
     except ValueError:
@@ -198,6 +209,7 @@ def create_voice(
         "duration_ms": duration,
         "sha256": digest,
         "created_at": row[1].isoformat(),
+        "kind": voice_kind,
     }
 
 
@@ -207,7 +219,7 @@ def list_voice(identity_id: object, peer_id: object, *, limit: int = 100) -> lis
     try:
         with postgres_db.connect(readonly=True) as connection:
             rows = connection.execute(
-                """SELECT id,sender_id,recipient_id,mime_type,byte_size,duration_ms,created_at
+                """SELECT id,sender_id,recipient_id,mime_type,byte_size,duration_ms,created_at,kind
                    FROM link_voice_notes
                    WHERE (sender_id=%s AND recipient_id=%s)
                       OR (sender_id=%s AND recipient_id=%s)
@@ -224,6 +236,7 @@ def list_voice(identity_id: object, peer_id: object, *, limit: int = 100) -> lis
             "byte_size": int(row[4]),
             "duration_ms": None if row[5] is None else int(row[5]),
             "created_at": row[6].isoformat(),
+            "kind": str(row[7] or "voice"),
         }
         for row in rows
     ]
