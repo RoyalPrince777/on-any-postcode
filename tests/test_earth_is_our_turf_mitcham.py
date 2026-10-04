@@ -6,7 +6,8 @@ def test_mitcham_world_action_memory_and_consequence():
     state=earth_is_our_turf.new_world()
     before=earth_is_our_turf.public_state(state)
     assert before["district"]=="Mitcham · CR4"
-    assert before["player"]["node"]=="town-centre"\n    assert before["player"]["travel_mode"]=="foot"
+    assert before["player"]["node"]=="town-centre"
+    assert before["player"]["travel_mode"]=="foot"
     changed=earth_is_our_turf.action(state,command="help-local")
     after=earth_is_our_turf.public_state(changed)
     assert after["player"]["influence"]==2
@@ -50,7 +51,10 @@ def test_mitcham_arena_surface_is_exposed(client):
     assert "EARTH IS OUR TURF" in html
     assert "Born Local. Built Global." in html
     assert "Mitcham / CR4" in html
-    assert "earth_is_our_turf.js" in html\n    assert "Mitcham Navigation" in html\n    assert "Travel mode" in html\n    assert "Foot" in html and "Bike / e-bike" in html and "Car" in html
+    assert "earth_is_our_turf.js" in html
+    assert "Mitcham Navigation" in html
+    assert "Travel mode" in html
+    assert "Foot" in html and "Bike / e-bike" in html and "Car" in html
     assert "No precise tracking" in html
 
 
