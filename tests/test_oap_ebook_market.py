@@ -8,6 +8,7 @@ import pytest
 from mission_control import oap_ebook_market as market
 
 SELLER = str(uuid.UUID("6bf94814-e8b4-422d-b3b1-d69063ba491c"))
+BUYER = str(uuid.UUID("11111111-1111-4111-8111-111111111111"))
 PRODUCT = str(uuid.UUID("5d0af9ce-a6df-40f7-b837-36fbeaa71cf1"))
 
 
@@ -116,3 +117,51 @@ def test_public_product_hides_unavailable_listing(monkeypatch):
     wire(monkeypatch, connection)
 
     assert market.public_product("book", "v1") is None
+
+
+
+def test_unlock_intent_is_digital_only_and_does_not_grant_ownership(monkeypatch):
+    order_id = str(uuid.uuid4())
+    intent_id = str(uuid.uuid4())
+    connection = FakeConnection([
+        (1,),
+        (PRODUCT, SELLER, "My Book", 750, "GBP"),
+        None,
+        (order_id, "PAYMENT_PROVIDER_REQUIRED"),
+        (intent_id, "PROVIDER_REQUIRED"),
+    ])
+    wire(monkeypatch, connection)
+
+    result = market.create_unlock_intent(
+        BUYER,
+        book_id="book",
+        edition_id="v1",
+        idempotency_key="ebook-unlock-0001",
+    )
+
+    assert result["order_id"] == order_id
+    assert result["payment_intent_id"] == intent_id
+    assert result["order_state"] == "PAYMENT_PROVIDER_REQUIRED"
+    assert result["payment_state"] == "PROVIDER_REQUIRED"
+    assert result["payment_capture_performed"] is False
+    assert result["provider_called"] is False
+    assert result["fulfilment_intent_created"] is False
+    assert result["entitlement_issued"] is False
+    assert result["ownership_granted"] is False
+    sql = "\n".join(call[0] for call in connection.calls)
+    assert "INSERT INTO oap_commerce_orders" in sql
+    assert "INSERT INTO oap_commerce_payment_intents" in sql
+    assert "oap_commerce_fulfilment_intents" not in sql
+
+
+def test_unlock_intent_rejects_unavailable_buyer(monkeypatch):
+    connection = FakeConnection([None])
+    wire(monkeypatch, connection)
+
+    with pytest.raises(PermissionError, match="buyer_unavailable"):
+        market.create_unlock_intent(
+            BUYER,
+            book_id="book",
+            edition_id="v1",
+            idempotency_key="ebook-unlock-0002",
+        )
