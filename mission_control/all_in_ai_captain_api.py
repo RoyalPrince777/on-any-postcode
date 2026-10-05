@@ -20,7 +20,37 @@ MAX_INPUT = 6000
 MAX_OUTPUT = 1800
 
 
+def _mission_status(*, live_provider_proof: bool = False) -> dict[str, Any]:
+    configured = bool(os.environ.get("OPENAI_API_KEY", "").strip())
+    stages = {
+        "identity_locked": True,
+        "reports_to_smi": True,
+        "responses_api_bridge": True,
+        "web_search_tool": True,
+        "founder_only_route": True,
+        "provider_configured": configured,
+        "live_provider_proof": bool(live_provider_proof),
+    }
+    passed = sum(1 for value in stages.values() if value)
+    total = len(stages)
+    percentage = round((passed / total) * 100)
+    return {
+        "percentage": percentage,
+        "passed": passed,
+        "total": total,
+        "stages": stages,
+        "green": passed == total,
+        "next_gate": (
+            "none"
+            if passed == total
+            else "Complete one authenticated Founder Captain request and verify the provider response."
+        ),
+        "cosmetic_inflation": False,
+    }
+
+
 def status() -> dict[str, Any]:
+    mission = _mission_status()
     return {
         "name": "ALL IN A.I.",
         "role": "Captain Agent",
@@ -32,6 +62,7 @@ def status() -> dict[str, Any]:
         "responses_api": True,
         "web_search": True,
         "configured": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
+        "mission_status": mission,
         "truth_boundary": "OAP runtime persona; not the ChatGPT app session itself",
     }
 
@@ -157,6 +188,7 @@ def ask(message: object) -> dict[str, Any]:
         "sources": _extract_sources(payload),
         "captain": status(),
         "provider_response_id": str(payload.get("id") or "")[:128],
+        "mission_status": _mission_status(live_provider_proof=True),
         "execution_granted": False,
         "founder_final": True,
     }

@@ -29,6 +29,12 @@ def test_captain_status_keeps_authority_boundary(monkeypatch):
     assert state["responses_api"] is True
     assert state["web_search"] is True
     assert state["configured"] is True
+    assert state["mission_status"]["percentage"] == 86
+    assert state["mission_status"]["passed"] == 6
+    assert state["mission_status"]["total"] == 7
+    assert state["mission_status"]["green"] is False
+    assert state["mission_status"]["stages"]["live_provider_proof"] is False
+    assert state["mission_status"]["cosmetic_inflation"] is False
     assert "not the ChatGPT app session" in state["truth_boundary"]
 
 
@@ -88,3 +94,6 @@ def test_captain_uses_responses_api_and_extracts_sources(monkeypatch):
     assert result["sources"][0]["url"] == "https://openai.com/"
     assert result["execution_granted"] is False
     assert result["founder_final"] is True
+    assert result["mission_status"]["percentage"] == 100
+    assert result["mission_status"]["green"] is True
+    assert result["mission_status"]["stages"]["live_provider_proof"] is True
