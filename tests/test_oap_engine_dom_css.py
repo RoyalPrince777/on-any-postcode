@@ -39,12 +39,12 @@ def test_css_cascade_prefers_id_over_class_over_tag_and_inline_over_all():
     assert style["font-weight"] == "900"
 
 
-def test_css_ignores_unsupported_properties_and_complex_selectors_in_v0():
+def test_css_ignores_unsupported_properties_and_pseudo_selectors_but_supports_descendants():
     rules = parse_stylesheet(
         "p { position:fixed; color:white }"
         "main p { color:red }"
         ".card:hover { color:blue }"
     )
-    assert len(rules) == 1
-    assert rules[0].selector == "p"
+    assert [rule.selector for rule in rules] == ["p", "main p"]
     assert rules[0].declarations == (("color", "white"),)
+    assert rules[1].declarations == (("color", "red"),)
