@@ -144,7 +144,8 @@ def test_map_boot_clears_only_after_terminal_road_state():
 def test_road_tiles_are_prioritised_and_bounded_instead_of_flooded():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
     assert "tiles.sort((a,b)=>" in template
-    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template\n    assert "tiles=tiles.slice(batchStart,batchStart+batchSize);" in template
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+    assert "tiles=tiles.slice(batchStart,batchStart+batchSize);" in template
     assert "Math.min(4,tiles.length)" in template
     assert "for(let attempt=0;attempt<1;attempt++)" in template
     assert "response.status!==503" in template
@@ -178,7 +179,8 @@ def test_road_network_does_not_self_cancel_slow_successful_batches():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
     assert "const ROAD_TILE_TIMEOUT_MS=3000;" in template
     assert "recoveryTimer" not in template
-    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template\n    assert "tiles=tiles.slice(batchStart,batchStart+batchSize)" in template
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+    assert "tiles=tiles.slice(batchStart,batchStart+batchSize)" in template
     assert "Math.min(4,tiles.length)" in template
     assert "request===roadRequest&&count<180" in template
     assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
