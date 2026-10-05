@@ -56,12 +56,14 @@ body{min-height:100dvh;overscroll-behavior:none}
 .game-shell:fullscreen,.game-shell:-webkit-full-screen{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important}
 .game-shell:fullscreen .game-stage,.game-shell:-webkit-full-screen .game-stage{width:100vw!important;height:100vh!important}
 ::backdrop{background:#061019}
+.game-shell.is-booting{visibility:hidden;opacity:0}
+.game-shell.is-ready{visibility:visible;opacity:1;transition:opacity .08s linear}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script src="{{ url_for('static',filename='ludo.js') }}" defer></script>
 </head>
 <body>
-<main class="game-shell" data-ludo-root>
+<main class="game-shell is-booting" data-ludo-root aria-busy="true">
   <header class="game-topbar">
     <div class="brand-lockup"><strong>🎲 OAP Ludo</strong><span>Powered by ON ANY POSTCODE</span></div>
     <div style="display:flex;gap:6px"><button class="settings-btn" type="button" data-fullscreen>⛶</button><button class="settings-btn" type="button" data-open-settings>⚙ Settings</button></div>
