@@ -38,7 +38,6 @@ class CookieJar:
             raise ValueError("invalid_cookie_header")
 
         origin = parse_origin(url)
-        parsed_url = urlsplit(str(url))
         parser = SimpleCookie()
         try:
             parser.load(raw_header)
