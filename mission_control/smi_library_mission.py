@@ -1,11 +1,7 @@
 """Canonical evidence-backed SMI mission status for OAP Library."""
 
-from __future__ import annotations
 
-from typing import Any
-
-
-CHECKS: tuple[dict[str, Any], ...] = (
+CHECKS: tuple[dict[str, object], ...] = (
     {"id": "library_front_door", "label": "Library front door", "passed": True},
     {"id": "books_route", "label": "Books route", "passed": True},
     {"id": "my_library", "label": "Owner-scoped My Library", "passed": True},
@@ -23,7 +19,7 @@ CHECKS: tuple[dict[str, Any], ...] = (
 )
 
 
-def status() -> dict[str, Any]:
+def status() -> dict[str, object]:
     passed = sum(1 for item in CHECKS if item["passed"])
     total = len(CHECKS)
     return {
