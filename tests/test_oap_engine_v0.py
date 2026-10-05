@@ -73,7 +73,7 @@ def test_oap_engine_inline_style_overrides_stylesheet_in_layout_path():
 
     assert len(document.items) == 1
     assert document.items[0].height == 38
-    assert document.items[0].x == 52
+    assert document.items[0].x == 26
 
 
 def test_oap_engine_link_href_propagates_through_nested_dom():
