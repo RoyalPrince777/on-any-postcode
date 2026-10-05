@@ -615,6 +615,8 @@ def home():
     if public_store.status()["configured"]:
         try:
             market_products = product_store.list_products()
+            for item in market_products:
+                item["shop_slug"] = _shop_slug(item.get("seller"))
             seen = set()
             for item in market_products:
                 seller = str(item.get("seller") or "").strip()
