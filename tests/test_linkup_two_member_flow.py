@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timezone
+import uuid
 
 import app as app_module
 from mission_control import link_message_routes, neon_auth, web_security
