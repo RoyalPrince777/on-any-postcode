@@ -6,7 +6,12 @@ import uuid
 
 from flask import Flask, jsonify, request
 
-from mission_control import mtown_endless_world, mtown_persistence, mtown_world_server
+from mission_control import (
+    mtown_endless_world,
+    mtown_persistence,
+    mtown_persistence_broker,
+    mtown_world_server,
+)
 
 app=Flask(__name__)
 _LOCK=threading.RLock()
@@ -25,7 +30,10 @@ def healthz():
         "service":"eiot-mtown-world-server",
         "authoritative":True,
         "active_worlds":len(_WORLDS),
-        "persistence":mtown_persistence.status(),
+        "persistence":{
+            "local":mtown_persistence.status(),
+            "broker":mtown_persistence_broker.status(),
+        },
     })
 
 @app.post("/v1/worlds")
@@ -70,7 +78,13 @@ def save_world(world_id:str):
         with _LOCK:
             current=_WORLDS.get(world_id)
             if current is None:return jsonify({"error":"eiot_world_not_found"}),404
-            saved=mtown_world_server.save(session=current,player_ref=player_ref)
+            if mtown_persistence.status()["durable_ready"]:
+                saved=mtown_world_server.save(session=current,player_ref=player_ref)
+            else:
+                saved=mtown_persistence_broker.save(
+                    player_ref=player_ref,
+                    state=current["world"],
+                )
         return jsonify(saved),201
     except (TypeError,ValueError,RuntimeError) as exc:
         return jsonify({"error":str(exc)}),400
@@ -79,7 +93,19 @@ def save_world(world_id:str):
 def reconnect_world():
     try:
         payload=_payload()
-        restored=mtown_world_server.reconnect(token=payload.get("reconnect_token"))
+        if mtown_persistence.status()["durable_ready"]:
+            restored=mtown_world_server.reconnect(token=payload.get("reconnect_token"))
+        else:
+            loaded=mtown_persistence_broker.reconnect(token=payload.get("reconnect_token"))
+            restored={
+                "world":loaded["world_state"],
+                "server":{"authoritative":True,"tick":0},
+                "save":{
+                    "save_id":loaded["save_id"],
+                    "revision":loaded["revision"],
+                    "player_ref":loaded["player_ref"],
+                },
+            }
         world_id=str(restored["world"]["world_id"])
         with _LOCK:_WORLDS[world_id]={"world":restored["world"],"server":restored["server"]}
         return jsonify({"world_id":world_id,**restored})
