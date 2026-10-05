@@ -1,4 +1,5 @@
 """Canonical evidence-backed SMI mission status for OAP Library."""
+
 from __future__ import annotations
 
 from typing import Any
