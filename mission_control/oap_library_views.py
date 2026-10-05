@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import essential_life_systems, oap_book_entitlements, oap_library, oap_library_learning, web_security
+from . import essential_life_systems, oap_book_entitlements, oap_ebook_creator_store, oap_library, oap_library_learning, web_security
 
 bp = Blueprint("oap_library", __name__)
 
@@ -100,6 +100,79 @@ def my_library():
             )
         )
     )
+
+
+@bp.get("/library/create")
+@bp.get("/library/sell")
+@web_security.login_required()
+def library_creator():
+    """Render the signed-in digital ebook creator/seller workspace."""
+
+    identity, _user = _identity()
+    try:
+        drafts = oap_ebook_creator_store.list_drafts(identity)
+        store_state = "ready"
+    except oap_ebook_creator_store.EbookCreatorStoreUnavailable:
+        drafts = ()
+        store_state = "unavailable"
+    return _library_page(
+        make_response(
+            render_template(
+                "oap_library_creator.html",
+                drafts=drafts,
+                store_state=store_state,
+                csrf_token=web_security.csrf_token(),
+            )
+        )
+    )
+
+
+@bp.post("/library/create")
+@web_security.login_required(api=True)
+def library_create_draft():
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(f"library-create:{identity}"):
+        return _error("rate_limited", "Please wait before creating another draft.", 429)
+    try:
+        payload = _payload()
+        draft = oap_ebook_creator_store.create_draft(
+            identity,
+            book_id=payload.get("book_id"),
+            edition_id=payload.get("edition_id"),
+            title=payload.get("title"),
+            description=payload.get("description"),
+            language=payload.get("language"),
+            price_minor=payload.get("price_minor"),
+            pages=payload.get("pages"),
+        )
+        return _library_page(make_response(jsonify(draft=draft), 201))
+    except (TypeError, ValueError):
+        return _error("invalid_draft", "Check the ebook draft and try again.", 400)
+    except oap_ebook_creator_store.EbookCreatorStoreUnavailable:
+        return _error("creator_store_unavailable", "Digital ebook creation is unavailable.", 503)
+
+
+@bp.post("/library/seller/books/<draft_id>/submit")
+@web_security.login_required(api=True)
+def library_submit_draft(draft_id: str):
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    try:
+        payload = _payload()
+        draft = oap_ebook_creator_store.submit_for_review(
+            identity, draft_id, rights_attested=payload.get("rights_attested")
+        )
+        return _library_page(make_response(jsonify(draft=draft)))
+    except PermissionError as exc:
+        code = str(exc) or "permission_denied"
+        return _error(code, "This draft cannot be submitted.", 403)
+    except (TypeError, ValueError):
+        return _error("invalid_draft", "Check the ebook draft and try again.", 400)
+    except oap_ebook_creator_store.EbookCreatorStoreUnavailable:
+        return _error("creator_store_unavailable", "Digital ebook creation is unavailable.", 503)
 
 
 @bp.get("/library/essential-life-systems")
