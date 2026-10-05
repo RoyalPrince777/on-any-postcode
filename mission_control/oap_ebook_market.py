@@ -178,3 +178,54 @@ def publish_approved_ebook(
         "payment_capture_performed": False,
         "entitlement_issued": False,
     }
+
+
+
+def public_product(book_id: object, edition_id: object) -> dict[str, Any] | None:
+    """Return one public digital ebook product only when every gate is still valid."""
+
+    book = _selector(book_id, "book_id")
+    edition = _selector(edition_id, "edition_id")
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT m.book_id,m.edition_id,m.product_id,m.state,
+                          p.name,p.description,p.price_minor,p.currency,
+                          COALESCE(u.display_name,u.username),
+                          e.creator_id,e.publisher_authority_id
+                   FROM oap_ebook_market_products m
+                   JOIN products p ON p.id=m.product_id
+                   JOIN users u ON u.id=m.seller_identity_id
+                   JOIN oap_ebook_editions e
+                     ON e.book_id=m.book_id AND e.edition_id=m.edition_id
+                   WHERE m.book_id=%s AND m.edition_id=%s
+                     AND m.state='ACTIVE'
+                     AND p.active=TRUE
+                     AND u.status='active'
+                     AND e.status='APPROVED'
+                     AND e.private IS FALSE
+                     AND e.rights_verified IS TRUE
+                     AND e.manuscript_approved IS TRUE
+                     AND e.public_release_approved IS TRUE
+                   LIMIT 1""",
+                (book, edition),
+            ).fetchone()
+    except Exception as exc:
+        raise EbookMarketUnavailable("ebook_market_read_failed") from exc
+    if row is None:
+        return None
+    return {
+        "book_id": str(row[0]),
+        "edition_id": str(row[1]),
+        "product_id": str(row[2]),
+        "state": str(row[3]),
+        "title": str(row[4]),
+        "description": str(row[5] or ""),
+        "price_minor": int(row[6]),
+        "currency": str(row[7]),
+        "seller": str(row[8]),
+        "creator_id": str(row[9]),
+        "publisher_authority_id": str(row[10]),
+        "physical_product": False,
+        "payment_capture_performed": False,
+    }
