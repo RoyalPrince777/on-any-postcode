@@ -7,54 +7,73 @@
 {% include "_oap_install_head.html" %}
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <style>
-:root{color-scheme:dark;--bg:#080806;--panel:#12110d;--line:#302b1d;--gold:#efc85d;--text:#fffaf0;--muted:#a9a392}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}a{text-decoration:none;color:inherit}
-.shell{max-width:760px;margin:auto;padding:18px 16px calc(94px + env(safe-area-inset-bottom))}
-.top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 0 20px}
-.brand{font-weight:950;letter-spacing:.04em}.brand small{display:block;color:var(--muted);font-weight:600;letter-spacing:0;margin-top:3px}
-.account,.install{padding:10px 13px;border:1px solid var(--line);border-radius:13px;background:var(--panel);font-size:.84rem;color:var(--text)}.top-actions{display:flex;gap:8px;align-items:center}.install{cursor:pointer;font-weight:800}.install[hidden]{display:none}.install-status{margin:-8px 0 14px;color:var(--muted);font-size:.76rem}
-.hero{padding:26px 0 20px}.hero h1{font-size:clamp(2.6rem,11vw,5rem);line-height:.92;margin:0;letter-spacing:-.055em}.hero p{color:var(--muted);font-size:1.02rem;line-height:1.45;max-width:540px}
-.search{display:grid;grid-template-columns:1fr auto;gap:8px;margin:6px 0 22px}.search input{min-width:0;padding:15px;border:1px solid var(--line);border-radius:15px;background:var(--panel);color:var(--text);font:inherit}.search button{border:0;border-radius:15px;padding:0 18px;background:var(--gold);color:#161208;font-weight:900}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{min-height:142px;padding:18px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#181610,#0f0e0b);display:flex;flex-direction:column;justify-content:space-between}.card.primary{background:var(--gold);color:#161208;border-color:#ffe38a}.card .icon{font-size:1.8rem}.card strong{font-size:1.15rem}.card span{display:block;margin-top:5px;color:var(--muted);font-size:.84rem;line-height:1.35}.card.primary span{color:#4b3c19}
-.section{margin-top:28px}.section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:11px}.section-head h2{font-size:1.05rem;margin:0}.section-head a{font-size:.8rem;color:var(--gold)}.row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.small{padding:13px 8px;text-align:center;border:1px solid var(--line);border-radius:14px;background:var(--panel);font-size:.82rem;font-weight:800}
-.shop-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(160px,42%);gap:10px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x proximity}.shop-tile{scroll-snap-align:start;padding:15px;border:1px solid var(--line);border-radius:19px;background:var(--panel)}.shop-logo{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:var(--gold);color:#17130a;font-size:1.25rem;font-weight:950;margin-bottom:12px}.shop-tile strong{display:block}.shop-tile small{display:block;color:var(--muted);margin-top:5px}
-.product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.product-card{padding:12px;border:1px solid var(--line);border-radius:18px;background:var(--panel)}.product-image{aspect-ratio:1.15;border-radius:14px;background:linear-gradient(145deg,#201d15,#0d0c09);display:grid;place-items:center;font-size:2rem;margin-bottom:10px}.product-card strong{display:block}.product-card small{display:block;color:var(--muted);margin:5px 0 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.price{font-weight:950}.empty{padding:22px;border:1px dashed var(--line);border-radius:18px;color:var(--muted);text-align:center}
-.truth{margin-top:24px;color:var(--muted);font-size:.76rem;line-height:1.4}
-.bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(760px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#0b0a08f2;backdrop-filter:blur(14px)}
-.bottom a{padding:8px 2px;text-align:center;border-radius:11px;color:var(--muted);font-size:.7rem}.bottom b{display:block;font-size:1.1rem;color:var(--gold);margin-bottom:2px}
-@media(min-width:650px){.grid{grid-template-columns:repeat(4,1fr)}.card{min-height:170px}}
+:root{color-scheme:dark;--bg:#080806;--panel:#13120e;--panel2:#1a1811;--line:#3a3423;--gold:#efc85d;--ticket:#ffe26d;--ticketText:#17130a;--text:#fffaf0;--muted:#aaa38e;--green:#64d98b}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}a{text-decoration:none;color:inherit}button,input{font:inherit}
+.shell{max-width:900px;margin:auto;padding:0 14px calc(92px + env(safe-area-inset-bottom))}
+.shop-sign{position:sticky;top:0;z-index:10;margin:0 -14px;padding:10px 14px;border-bottom:1px solid var(--line);background:#090907ee;backdrop-filter:blur(14px)}
+.sign-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.brand{font-weight:1000;letter-spacing:.045em;font-size:.95rem}.brand small{display:block;color:var(--muted);font-size:.66rem;font-weight:700;letter-spacing:.02em;margin-top:2px}
+.top-actions{display:flex;align-items:center;gap:7px}.account,.install{padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font-size:.74rem;font-weight:850}.install{cursor:pointer}.install[hidden]{display:none}.install-status{margin:7px 0 0;color:var(--muted);font-size:.68rem}
+.counter{padding:18px 0 13px}.counter-box{border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#1b180f,#100f0b);overflow:hidden}.counter-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px}.counter h1{font-size:clamp(2rem,8vw,4rem);line-height:.88;margin:0;letter-spacing:-.055em}.counter p{margin:8px 0 0;color:var(--muted);max-width:540px;line-height:1.4}.counter-badge{flex:0 0 auto;border:1px solid #6f5f2a;border-radius:999px;padding:8px 10px;color:var(--gold);font-size:.68rem;font-weight:900}
+.search{display:grid;grid-template-columns:1fr auto;margin:0;border-top:1px solid var(--line);background:#0b0a07}.search input{min-width:0;padding:15px 14px;border:0;background:transparent;color:var(--text);outline:none}.search button{border:0;border-left:1px solid var(--line);padding:0 18px;background:var(--ticket);color:var(--ticketText);font-weight:950}
+.aisles{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;scrollbar-width:none}.aisles::-webkit-scrollbar{display:none}.aisle{white-space:nowrap;padding:10px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:.76rem;font-weight:900}.aisle:first-child{background:var(--gold);color:#17130a;border-color:#ffe08a}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 18px}.quick a{min-height:82px;padding:11px 9px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:flex;flex-direction:column;justify-content:space-between}.quick b{font-size:1.1rem}.quick strong{font-size:.79rem}.quick span{font-size:.66rem;color:var(--muted)}
+.section{margin-top:19px}.section-head{display:flex;justify-content:space-between;align-items:end;margin:0 1px 9px}.section-head h2{font-size:1rem;margin:0}.section-head a{font-size:.74rem;color:var(--gold);font-weight:900}
+.shop-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,38%);gap:9px;overflow-x:auto;padding-bottom:3px;scroll-snap-type:x proximity}.shop-tile{scroll-snap-align:start;padding:13px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.shop-logo{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:var(--gold);color:#17130a;font-weight:1000;margin-bottom:10px}.shop-tile strong{display:block;font-size:.88rem}.shop-tile small{display:block;color:var(--muted);margin-top:4px;font-size:.7rem}
+.shelf{position:relative;border-top:5px solid #3d3520;padding-top:9px}.product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.product-card{position:relative;padding:10px;border:1px solid var(--line);border-radius:14px;background:#f0ead9;color:#16140f;min-width:0;box-shadow:inset 0 -8px 0 #d7cfb9}.product-image{aspect-ratio:1.1;border-radius:10px;background:linear-gradient(145deg,#fff,#ddd5c3);display:grid;place-items:center;font-size:2rem;margin-bottom:8px}.product-card strong{display:block;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.product-card small{display:block;color:#5d584a;margin:4px 0 8px;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.price-ticket{display:inline-block;padding:6px 8px;background:var(--ticket);color:var(--ticketText);border:1px solid #bda844;border-radius:7px;font-size:.93rem;font-weight:1000;transform:rotate(-1deg)}.empty{padding:20px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center}
+.nearby{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.nearby a{padding:13px 8px;text-align:center;border:1px solid var(--line);border-radius:13px;background:var(--panel);font-size:.77rem;font-weight:900}
+.truth{margin:20px 2px 4px;color:var(--muted);font-size:.69rem;line-height:1.4}
+.bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(900px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:7px 9px calc(7px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#0a0907f2;backdrop-filter:blur(14px);z-index:12}.bottom a{padding:7px 2px;text-align:center;border-radius:10px;color:var(--muted);font-size:.66rem}.bottom b{display:block;font-size:1.05rem;color:var(--gold);margin-bottom:2px}
+@media(min-width:700px){.product-grid{grid-template-columns:repeat(4,1fr)}.shop-row{grid-auto-columns:minmax(170px,24%)}}
 </style>
 </head>
 <body>
 <main class="shell">
-<header class="top">
-<div class="brand">ON ANY POSTCODE<small>Shop local. Sell local.</small></div>
+<header class="shop-sign">
+<div class="sign-row">
+<div class="brand">ON ANY POSTCODE<small>LOCAL SHOP · BORN LOCAL. BUILT GLOBAL.</small></div>
 <div class="top-actions">
 <button class="install" type="button" data-oap-install hidden>Install</button>
 <a class="account" href="/enter-my-world?next=/">Enter My World</a>
 </div>
-</header>
+</div>
 <p class="install-status" data-oap-install-status aria-live="polite"></p>
+</header>
 
-<section class="hero">
+<section class="counter">
+<div class="counter-box">
+<div class="counter-top">
+<div>
 <h1>YOUR LOCAL<br>MARKETPLACE.</h1>
-<p>Walk in, find a shop, choose what you need and buy. Shop owners can sell, manage orders and get paid from the same place.</p>
+<p>Walk in, grab what you need, check the price, add to basket and go.</p>
+</div>
+<span class="counter-badge">OAP LOCAL</span>
+</div>
+<form class="search" method="get" action="/the-spot/market">
+<input name="q" aria-label="Search shops and products" placeholder="Search the shop…">
+<button type="submit">Find</button>
+</form>
+</div>
 </section>
 
-<form class="search" method="get" action="/the-spot/market">
-<input name="q" aria-label="Search shops and products" placeholder="Search shops, products or postcode">
-<button type="submit">Search</button>
-</form>
+<nav class="aisles" aria-label="Shop aisles">
+<a class="aisle" href="/the-spot/market">All</a>
+<a class="aisle" href="/the-spot/market?q=drinks">🥤 Drinks</a>
+<a class="aisle" href="/the-spot/market?q=snacks">🍫 Snacks</a>
+<a class="aisle" href="/the-spot/market?q=food">🥫 Food</a>
+<a class="aisle" href="/the-spot/market?q=household">🧻 Household</a>
+<a class="aisle" href="/the-spot/market?q=toiletries">🧴 Toiletries</a>
+<a class="aisle" href="/the-spot/market?q=clothing">👕 Clothing</a>
+</nav>
 
-<section class="grid" aria-label="Customer and shop actions">
-<a class="card primary" href="/the-spot/market"><span class="icon">🛍️</span><div><strong>Shop</strong><span>Browse products and local sellers.</span></div></a>
-<a class="card" href="/sell"><span class="icon">🏪</span><div><strong>Sell</strong><span>List products and manage your shop.</span></div></a>
-<a class="card" href="/orders"><span class="icon">📦</span><div><strong>Orders</strong><span>View customer and seller order activity.</span></div></a>
-<a class="card" href="/pay/bank"><span class="icon">🪙</span><div><strong>Pay</strong><span>Open SIKA payment and receipt tools.</span></div></a>
+<section class="quick" aria-label="Customer and shop actions">
+<a href="/the-spot/market"><b>🛍️</b><div><strong>Shop</strong><span>Browse shelves</span></div></a>
+<a href="/sell"><b>🏪</b><div><strong>Sell</strong><span>Run your shop</span></div></a>
+<a href="/orders"><b>📦</b><div><strong>Orders</strong><span>Check orders</span></div></a>
+<a href="/basket"><b>🧺</b><div><strong>Basket</strong><span>Ready to go</span></div></a>
 </section>
 
 <section class="section">
-<div class="section-head"><h2>Shops</h2><a href="/the-spot/market">See all</a></div>
+<div class="section-head"><h2>Local shops</h2><a href="/the-spot/market">See all</a></div>
 {% if featured_shops %}
 <div class="shop-row">
 {% for shop in featured_shops %}
@@ -71,7 +90,8 @@
 </section>
 
 <section class="section">
-<div class="section-head"><h2>Featured products</h2><a href="/the-spot/market">Shop all</a></div>
+<div class="section-head"><h2>On the shelf</h2><a href="/the-spot/market">Shop all</a></div>
+<div class="shelf">
 {% if market_products %}
 <div class="product-grid">
 {% for product in market_products[:8] %}
@@ -79,25 +99,26 @@
 <div class="product-image">🛍️</div>
 <strong>{{ product.name }}</strong>
 <small>{{ product.seller }}</small>
-<div class="price">{{ product.currency }} {{ product.price }}</div>
+<div class="price-ticket">{{ product.currency }} {{ product.price }}</div>
 </a>
 {% endfor %}
 </div>
 {% else %}
 <div class="empty">No active products are available right now.</div>
 {% endif %}
-</section>
-
-<section class="section">
-<div class="section-head"><h2>Need something nearby?</h2></div>
-<div class="row">
-<a class="small" href="/eats">🍲 Eats</a>
-<a class="small" href="/oap-map">📍 Map</a>
-<a class="small" href="/transport/ride">🚗 Delivery / Ride</a>
 </div>
 </section>
 
-<p class="truth">Protected buying, selling and account actions ask you to Enter My World. Public browsing stays open.</p>
+<section class="section">
+<div class="section-head"><h2>More local</h2></div>
+<div class="nearby">
+<a href="/eats">🍲 Eats</a>
+<a href="/oap-map">📍 Map</a>
+<a href="/transport/ride">🚗 Ride</a>
+</div>
+</section>
+
+<p class="truth">Public browsing stays open. Buying, selling, orders and account actions may ask you to Enter My World.</p>
 </main>
 
 <nav class="bottom" aria-label="Commerce navigation">
