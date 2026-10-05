@@ -184,3 +184,14 @@ def test_road_network_does_not_self_cancel_slow_successful_batches():
     assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
     assert "},6000):null;" not in template
     assert "if(recoveryTimer)clearTimeout(recoveryTimer);" not in template
+
+
+def test_nearby_place_requests_cannot_restore_stale_results():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "placeRequest=0,placeController=null" in template
+    assert "const request=++placeRequest;" in template
+    assert "if(placeController)placeController.abort();" in template
+    assert "cache:'no-store',signal:placeController.signal" in template
+    assert "if(request!==placeRequest)return;" in template
+    assert "error?.name==='AbortError'||request!==placeRequest" in template
+    assert "places.replaceChildren();" in template
