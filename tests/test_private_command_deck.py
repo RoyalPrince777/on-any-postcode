@@ -35,12 +35,24 @@ def test_a7_certification_screen_is_proof_only_not_activation():
     assert "execution authority automatically" in page
 
 
-def test_my_world_is_profile_not_twelve_workspace_menu():
+def test_my_world_is_seven_door_founder_home_not_workspace_menu():
     page = _text("templates/my_world.html")
     assert "Your 12 private workspaces" not in page
     assert "for workspace in workspaces" not in page
-    assert "travel_supply.founder_dashboard" in page
-    assert "mission_control.mission_workspace" in page
+    assert "👑 Founder Home" in page
+    assert 'aria-label="Founder Home doors"' in page
+    for label in ("World", "Business", "Money", "People", "Systems", "Evidence", "Final"):
+        assert f"<strong>{label}</strong>" in page
+    assert page.count('class="door') + page.count('class="door final') == 7
+    assert 'href="/oap-map"' in page
+    assert 'href="/the-spot/market#sell"' in page
+    assert 'href="/pay/bank"' in page
+    assert "workspace_id='identity'" in page
+    assert "mission_control.infrastructure_dashboard" in page
+    assert 'href="/smi/brain/receipts"' in page
+    assert "mission_control.judgement_dashboard" in page
+    assert "mission_control.ollama_chat_dashboard" in page
+    assert "mission_control.war_room_dashboard" in page
     assert "auth_sign_out" in page
     assert "method=\"post\"" in page
 
