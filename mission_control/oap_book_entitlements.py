@@ -267,3 +267,99 @@ def grant_from_verified_capture(
         "payment_capture_performed_here": False,
         "provider_called_here": False,
     }
+
+
+
+def reconcile_verified_refund(
+    *,
+    authenticated_identity_id: str,
+    order_id: str,
+) -> dict[str, object]:
+    """Revoke or restore ebook access from durable provider refund evidence only."""
+
+    try:
+        identity = str(uuid.UUID(authenticated_identity_id))
+        order = str(uuid.UUID(order_id))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError("invalid_refund_reconcile_selector") from exc
+
+    try:
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """SELECT e.entitlement_id,e.book_id,e.edition_id,e.revoked,
+                          e.payment_receipt_id,p.state,p.provider_reference,
+                          r.receipt_id,r.provider_state,r.provider_reference
+                   FROM oap_commerce_orders o
+                   JOIN oap_commerce_payment_intents p ON p.order_id=o.order_id
+                   JOIN oap_book_entitlements e
+                     ON e.identity_id=o.buyer_identity_id
+                    AND e.payment_receipt_id=p.intent_id::text
+                   JOIN oap_commerce_provider_receipts r
+                     ON r.subject_id=p.intent_id::text
+                    AND r.kind='payment_refund'
+                    AND r.owner_identity_id=o.buyer_identity_id
+                   WHERE o.order_id=%s AND o.buyer_identity_id=%s
+                   ORDER BY r.created_at DESC
+                   LIMIT 1
+                   FOR UPDATE OF e,p""",
+                (order, identity),
+            ).fetchone()
+            if row is None:
+                raise PermissionError("verified_refund_not_found")
+
+            entitlement_id = str(row[0])
+            book_id = str(row[1])
+            edition_id = str(row[2])
+            payment_receipt_id = str(row[4])
+            payment_state = str(row[5])
+            payment_provider_reference = str(row[6] or "")
+            refund_receipt_id = str(row[7])
+            refund_state = str(row[8]).upper()
+            refund_provider_reference = str(row[9] or "")
+
+            if not refund_provider_reference:
+                raise PermissionError("refund_provider_reference_missing")
+
+            if refund_state in {"REFUNDED", "SUCCEEDED", "SETTLED"}:
+                revoked = True
+                lifecycle_state = "REFUNDED"
+            elif refund_state in {"REVERSED", "CANCELLED"}:
+                if payment_state != "CAPTURED" or not payment_provider_reference:
+                    raise PermissionError("refund_restore_capture_not_verified")
+                revoked = False
+                lifecycle_state = "OWNED"
+            else:
+                raise PermissionError("refund_state_not_final")
+
+            updated = connection.execute(
+                """UPDATE oap_book_entitlements
+                   SET revoked=%s
+                   WHERE entitlement_id=%s
+                     AND identity_id=%s
+                     AND payment_receipt_id=%s
+                   RETURNING entitlement_id,revoked,payment_verified""",
+                (revoked, entitlement_id, identity, payment_receipt_id),
+            ).fetchone()
+            if updated is None:
+                raise BookEntitlementsUnavailable("entitlement_refund_update_failed")
+            connection.commit()
+    except (PermissionError, ValueError):
+        raise
+    except BookEntitlementsUnavailable:
+        raise
+    except Exception as exc:
+        raise BookEntitlementsUnavailable("entitlement_refund_reconcile_failed") from exc
+
+    return {
+        "entitlement_id": str(updated[0]),
+        "book_id": book_id,
+        "edition_id": edition_id,
+        "order_id": order,
+        "refund_receipt_id": refund_receipt_id,
+        "refund_state": refund_state,
+        "revoked": bool(updated[1]),
+        "payment_verified": bool(updated[2]),
+        "state": lifecycle_state,
+        "provider_called_here": False,
+        "refund_executed_here": False,
+    }
