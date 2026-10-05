@@ -14,7 +14,7 @@ CHECKS: tuple[dict[str, Any], ...] = (
     {"id": "creator_drafts", "label": "Durable creator drafts", "passed": True},
     {"id": "creator_review", "label": "Rights-attested review submission", "passed": True},
     {"id": "market_bridge", "label": "Approved ebook to Market bridge", "passed": True},
-    {"id": "product_page", "label": "Public ebook product page", "passed": False},
+    {"id": "product_page", "label": "Public ebook product page", "passed": True},
     {"id": "unlock", "label": "Unlock / checkout intent", "passed": False},
     {"id": "payment_verification", "label": "Independent captured-payment verification", "passed": False},
     {"id": "entitlement_issuance", "label": "Payment to entitlement issuance", "passed": False},
