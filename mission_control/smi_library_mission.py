@@ -12,8 +12,8 @@ CHECKS: tuple[dict[str, object], ...] = (
     {"id": "market_bridge", "label": "Approved ebook to Market bridge", "passed": True},
     {"id": "product_page", "label": "Public ebook product page", "passed": True},
     {"id": "unlock", "label": "Unlock / checkout intent", "passed": True},
-    {"id": "payment_verification", "label": "Independent captured-payment verification", "passed": False},
-    {"id": "entitlement_issuance", "label": "Payment to entitlement issuance", "passed": False},
+    {"id": "payment_verification", "label": "Independent captured-payment verification", "passed": True},
+    {"id": "entitlement_issuance", "label": "Payment to entitlement issuance", "passed": True},
     {"id": "refund_revocation", "label": "Refund / revocation lifecycle", "passed": False},
     {"id": "production_schema", "label": "Production schema installation proof", "passed": False},
 )
