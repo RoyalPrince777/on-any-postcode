@@ -22,6 +22,7 @@ def status() -> dict[str, object]:
             "accessibility_engine": "BOUNDED_METADATA",
             "accessibility_android": "PAGE_SUMMARY_PLUS_VIRTUAL_DISPLAY_ITEM_TREE_BOUNDED",
             "forms": "MODEL_PLUS_CERTIFIED_GET_SEARCH_SUBMISSION",
+            "android_native_search_form": "CERTIFIED_GET_SEARCH_Q_CONTROL_BOUNDED",
             "response_cache": "IN_MEMORY_LRU_BOUNDED",
             "cookies": "HOST_ONLY_BOUNDED",
             "network_request_policy": "HTTP_HTTPS_GET_HEAD_POST_BOUNDED",
