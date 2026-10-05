@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
     .events-shell{display:grid;gap:16px}.events-hero{display:grid;gap:10px}.events-hero h1,.events-hero h2{margin:0}
-    .events-actions,.events-tabs{display:flex;gap:8px;flex-wrap:wrap}.events-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .events-actions,.events-tabs,.events-door-nav{display:flex;gap:8px;flex-wrap:wrap}.events-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.events-door-nav{position:sticky;top:8px;z-index:2;padding:8px;border-radius:16px;background:rgba(7,20,13,.92);backdrop-filter:blur(10px)}.events-door-nav a[aria-current="page"]{border-color:#d7b759;box-shadow:0 0 0 1px rgba(215,183,89,.35)}
     .event-card{padding:16px;border:1px solid rgba(126,240,163,.18);border-radius:18px;background:rgba(7,20,13,.66)}
     .event-card h3{margin:.2rem 0 .45rem}.event-kicker{font-size:.82rem;color:#d7b759;text-transform:uppercase;letter-spacing:.06em}
     .pulse-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.pulse-card{padding:14px;border-radius:16px;background:rgba(255,255,255,.035)}
@@ -32,6 +32,14 @@
   </header>
 
   <main class="mc-workspace events-shell">
+    {% set events_view = request.args.get('view', 'discover') %}
+    <nav class="events-door-nav" aria-label="OAP Events">
+      <a class="mc-secondary-link" href="/events" {% if events_view == 'discover' %}aria-current="page"{% endif %}>Discover</a>
+      <a class="mc-secondary-link" href="/events/mine" {% if events_view == 'mine' %}aria-current="page"{% endif %}>Mine</a>
+      <a class="mc-secondary-link" href="/events/organise" {% if events_view == 'organise' %}aria-current="page"{% endif %}>Organise</a>
+    </nav>
+
+    {% if events_view == 'discover' %}
     <section class="mc-panel events-hero" aria-labelledby="events-discover">
       <p class="mc-eyebrow">👀 See What’s Poppin’</p>
       <h2 id="events-discover">What’s Going On?</h2>
@@ -49,6 +57,32 @@
       </div>
     </section>
 
+    </section>
+    {% elif events_view == 'mine' %}
+    <section class="mc-panel events-hero" aria-labelledby="events-mine-title">
+      <p class="mc-eyebrow">🟢 Mine</p>
+      <h2 id="events-mine-title">Where I’m Going</h2>
+      <div class="events-grid">
+        <article class="event-card"><h3>What’s Coming</h3><p>Your confirmed future events belong here once real booking records are connected.</p></article>
+        <article class="event-card"><h3>My Entry</h3><p>Digital access appears only after a confirmed entitlement exists.</p></article>
+        <article class="event-card"><h3>Watching This 👀</h3><p>Explicit interest stays separate from bookings and capacity.</p></article>
+      </div>
+      <p class="truth"><strong>Truth lock:</strong> OAP does not invent bookings, entries, invitations or attendance. Empty state is valid until measured records exist.</p>
+    </section>
+    {% elif events_view == 'organise' %}
+    <section class="mc-panel events-hero" aria-labelledby="events-organise-title">
+      <p class="mc-eyebrow">🔌 The Plug</p>
+      <h2 id="events-organise-title">Make It Happen</h2>
+      <div class="events-grid">
+        <article class="event-card"><h3>Event Pulse 📊</h3><p>Ram, Watching and Momentum read measured event data only.</p></article>
+        <article class="event-card"><h3>Who’s Pulling Up</h3><p>Confirmed people, invitations and waitlist remain separate.</p></article>
+        <article class="event-card"><h3>What Came In</h3><p>Booked value, captured value, pending and refunds remain separate records.</p></article>
+      </div>
+      <p class="truth"><strong>Current boundary:</strong> organiser creation, editing, broadcasts, People Flow writes and financial actions stay hidden until their persistent stores and permissions are connected.</p>
+    </section>
+    {% endif %}
+
+    {% if events_view == 'discover' %}
     <section class="mc-panel" aria-labelledby="event-pulse-title">
       <p class="mc-eyebrow">📊 Event Pulse</p>
       <h2 id="event-pulse-title">Ram · Watching · Momentum</h2>
@@ -86,6 +120,7 @@
       </div>
       <p class="truth"><strong>Current boundary:</strong> this first-class Events surface is live product UI. Persistent event creation, measured Event Pulse data, regulated payment capture and entitlement issuance stay gated until their real stores and proofs are connected.</p>
     </section>
+    {% endif %}
   </main>
 </body>
 </html>
