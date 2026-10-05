@@ -42,3 +42,45 @@ def test_oap_android_truth_boundary_does_not_fake_custom_rom():
     assert state["oap_rendering_engine_standards_complete"] is False
     assert state["generation_0"]["renderer"] == "Android System WebView"
     assert state["generation_1"]["status"] == "ARCHITECTURE_ONLY"
+
+
+
+def test_oap_engine_main_path_applies_stylesheet_layout():
+    document = render_html(
+        "<html><head><title>Styled</title><style>"
+        "#lead { margin: 12px; padding: 8px; font-size: 24px; text-align:center }"
+        ".hidden { display:none }"
+        "</style></head><body>"
+        "<p id='lead'>Centered OAP</p>"
+        "<p class='hidden'>Do not render</p>"
+        "</body></html>",
+        viewport_width=320,
+    )
+
+    assert document.title == "Styled"
+    assert [item.text for item in document.items] == ["Centered OAP"]
+    item = document.items[0]
+    assert item.height == 32
+    assert item.x > 36
+
+
+def test_oap_engine_inline_style_overrides_stylesheet_in_layout_path():
+    document = render_html(
+        "<style>p { font-size: 12px; margin: 2px }</style>"
+        "<p style='font-size:30px;margin:10px'>Large text</p>",
+        viewport_width=320,
+    )
+
+    assert len(document.items) == 1
+    assert document.items[0].height == 38
+    assert document.items[0].x == 26
+
+
+def test_oap_engine_link_href_propagates_through_nested_dom():
+    document = render_html(
+        "<p><a href='https://example.com'><strong>Open web</strong></a></p>",
+        viewport_width=320,
+    )
+    assert len(document.items) == 1
+    assert document.items[0].kind == "link"
+    assert document.items[0].href == "https://example.com"
