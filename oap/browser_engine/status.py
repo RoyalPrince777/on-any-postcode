@@ -27,6 +27,8 @@ def status() -> dict[str, object]:
             "network_request_policy": "HTTP_HTTPS_GET_HEAD_POST_BOUNDED",
             "first_party_fetch_pipeline": "CERTIFIED_GET_HEAD_PUBLIC_ROUTES_BOUNDED",
             "android_native_surface": True,
+            "android_native_history": "BACK_FORWARD_BOUNDED",
+            "android_stale_navigation_protection": "GENERATION_GUARDED",
             "supported_page_auto_routing": ("/", "/world", "/search"),
             "webview_fallback": True,
             "malformed_input_stress_proof": True,
