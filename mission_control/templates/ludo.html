@@ -63,6 +63,17 @@ body{min-height:100dvh}
         </div>
       </div>
 
+      <div class="result-overlay" data-results hidden style="position:absolute;inset:14%;z-index:30;display:grid;place-items:center;background:rgba(5,14,23,.94);border:1px solid #36566f;border-radius:22px;padding:18px;text-align:center">
+        <div>
+          <div class="hud-label">Results</div>
+          <h2 data-result-title style="margin:.35rem 0 1rem">Arena Winner</h2>
+          <div class="settings-grid">
+            <button class="game-btn roll-btn" type="button" data-rematch>REMATCH</button>
+            <a class="game-btn" href="/arena" style="display:grid;place-items:center;text-decoration:none">OAP ARENA</a>
+          </div>
+        </div>
+      </div>
+
       <div class="hud">
         <div class="hud-left">
           <button class="die" type="button" data-roll data-roll-value disabled aria-label="Roll dice">⚄</button>
