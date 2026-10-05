@@ -35,12 +35,25 @@ def test_a7_certification_screen_is_proof_only_not_activation():
     assert "execution authority automatically" in page
 
 
-def test_my_world_is_profile_not_twelve_workspace_menu():
+def test_my_world_is_seven_door_founder_home_not_workspace_menu():
     page = _text("templates/my_world.html")
     assert "Your 12 private workspaces" not in page
     assert "for workspace in workspaces" not in page
-    assert "travel_supply.founder_dashboard" in page
-    assert "mission_control.mission_workspace" in page
+    assert "👑 Founder Home" in page
+    assert 'aria-label="Founder Home doors"' in page
+    for label in ("World", "Business", "Money", "People", "Systems", "Evidence", "Final"):
+        assert f"<strong>{label}</strong>" in page
+    assert page.count('<a class="door"') == 6
+    assert page.count('<a class="door final"') == 1
+    assert 'href="/oap-map"' in page
+    assert 'href="/sell"' in page
+    assert 'href="/pay/bank"' in page
+    assert "workspace_id='identity'" in page
+    assert "mission_control.infrastructure_dashboard" in page
+    assert "workspace_id='hrm-memory'" in page
+    assert "mission_control.judgement_dashboard" in page
+    assert "mission_control.ollama_chat_dashboard" in page
+    assert "mission_control.war_room_dashboard" in page
     assert "auth_sign_out" in page
     assert "method=\"post\"" in page
 
@@ -95,3 +108,28 @@ def test_sovereignty_deck_does_not_fake_execution_controls():
     assert "Human Authority" in page
     assert "this UI does not fake a toggle" in page
     assert "dashboard click never silently deploys" in page
+
+
+
+def test_founder_home_buttons_do_not_404(client):
+    response = client.get("/my-world")
+    assert response.status_code == 200
+
+    for path in (
+        "/",
+        "/oap-map",
+        "/the-spot/market",
+        "/sell",
+        "/orders",
+        "/basket",
+        "/pay/bank",
+        "/my-world/identity",
+        "/my-world/hrm-memory",
+        "/mission/infrastructure",
+        "/mission/judgement",
+        "/mission/ollama",
+        "/mission/war-room",
+    ):
+        result = client.get(path, follow_redirects=False)
+        assert result.status_code != 404, path
+        assert result.status_code != 405, path

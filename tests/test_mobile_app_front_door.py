@@ -6,8 +6,8 @@ def test_mobile_app_front_door_exposes_only_commerce_controls():
 
     assert 'aria-label="Commerce navigation"' in template
     assert 'href="/the-spot/market"' in template
-    assert 'href="/the-spot/market#sell"' in template
-    assert 'href="/the-spot/market#orders"' in template
+    assert 'href="/sell"' in template
+    assert 'href="/orders"' in template
     assert 'href="/pay/bank"' in template
     assert 'href="/eats"' in template
     assert 'href="/oap-map"' in template
