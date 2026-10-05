@@ -55,7 +55,7 @@
 <a class="door" href="{{ url_for('mission_control.infrastructure_dashboard') }}">
 <span class="icon">🏗️</span><div><strong>Systems</strong><span>Runtime, infrastructure, routes and service readiness.</span></div>
 </a>
-<a class="door" href="/smi/brain/receipts">
+<a class="door" href="{{ url_for('my_world_workspace', workspace_id='hrm-memory') }}">
 <span class="icon">🧾</span><div><strong>Evidence</strong><span>OAP Data, receipts, continuity and audit evidence.</span></div>
 </a>
 <a class="door final" href="{{ url_for('mission_control.judgement_dashboard') }}">
