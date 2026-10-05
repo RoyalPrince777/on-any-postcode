@@ -37,7 +37,7 @@ body{min-height:100dvh}
 .hud-actions{display:grid;grid-template-columns:repeat(2,minmax(72px,1fr));gap:6px}.game-btn{padding:0 10px}.roll-btn{background:linear-gradient(135deg,#f6c453,#e79c17);color:#07111b;border:none}.move-panel{position:absolute;left:14px;right:14px;top:14px;z-index:14;pointer-events:none}.move-panel-inner{display:none;pointer-events:auto;background:rgba(5,14,23,.86);backdrop-filter:blur(10px);border:1px solid #29465e;border-radius:16px;padding:8px;max-height:28vh;overflow:auto}.move-panel-inner.active{display:block}
 .arena-game-content{display:grid;gap:6px}.player-entry{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:7px 9px;border:1px solid #28455d;border-radius:12px}.player-entry span{font-size:.78rem;color:var(--muted)}
 .status-strip{padding:7px 12px calc(8px + env(safe-area-inset-bottom));font-size:.82rem;color:var(--muted);text-align:center;min-height:38px}
-.settings-drawer{position:fixed;inset:0;z-index:50;display:none;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);padding:12px}.settings-drawer[open]{display:grid;place-items:end center}.settings-card{width:min(100%,520px);background:#0b1824;border:1px solid #31516a;border-radius:22px;padding:16px;box-shadow:0 25px 80px rgba(0,0,0,.5)}.settings-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.settings-card input{width:100%;margin:8px 0 12px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.settings-grid>*{min-height:46px}
+.settings-drawer{position:fixed;inset:0;z-index:50;display:none;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);padding:12px}.settings-drawer[open]{display:grid;place-items:end center}.settings-card{width:min(100%,520px);background:#0b1824;border:1px solid #31516a;border-radius:22px;padding:16px;box-shadow:0 25px 80px rgba(0,0,0,.5)}.settings-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.settings-card input,.settings-card select{width:100%;margin:8px 0 12px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.settings-grid>*{min-height:46px}
 .arena-error{color:#ffb2b2;min-height:20px}
 @media(min-width:900px){.board-stage{width:min(78vw,calc(100dvh - 125px),860px)}.hud{inset:auto 18px 18px 18px}}
 @media(max-width:600px){.game-topbar{padding-inline:8px}.board-stage{width:min(100%,calc(100dvh - 140px));border-radius:16px;padding:5px}.ludo-board{border-radius:12px}.hud{inset:auto 8px 8px 8px}.hud-left,.hud-actions{padding:6px}.die{width:46px;height:46px}.game-btn{min-height:42px;font-size:.78rem}.move-panel{left:8px;right:8px;top:8px}.settings-grid{grid-template-columns:1fr}}
@@ -65,7 +65,7 @@ body{min-height:100dvh}
 
       <div class="hud">
         <div class="hud-left">
-          <div class="die" data-roll-value>⚄</div>
+          <button class="die" type="button" data-roll data-roll-value disabled aria-label="Roll dice">⚄</button>
           <div class="hud-copy">
             <div class="hud-label">Turn</div>
             <div class="hud-turn" data-turn>—</div>
@@ -73,8 +73,8 @@ body{min-height:100dvh}
           </div>
         </div>
         <div class="hud-actions">
-          <button class="game-btn roll-btn" type="button" data-roll disabled>ROLL</button>
           <button class="game-btn" type="button" data-open-settings>⚙</button>
+          <a class="game-btn" href="/arena" style="display:grid;place-items:center;text-decoration:none">←</a>
         </div>
       </div>
     </div>
@@ -88,8 +88,30 @@ body{min-height:100dvh}
         <div><div class="hud-label">Game Setup</div><strong>OAP Ludo Settings</strong></div>
         <button class="icon-btn" type="button" data-close-settings>✕</button>
       </div>
-      <label class="hud-label" for="players">Players</label>
+      <label class="hud-label" for="mode">Opponent</label>
+      <select id="mode" data-mode>
+        <option value="1a">1 Player + Arena Agent</option>
+        <option value="2a">2 Players + 2 Arena Agents</option>
+        <option value="4h">4 Players</option>
+      </select>
+      <label class="hud-label" for="players">Player names</label>
       <input id="players" data-players maxlength="180" value="Player One, Player Two" autocomplete="off">
+      <label class="hud-label" for="difficulty">Arena Agent</label>
+      <select id="difficulty" data-difficulty>
+        <option value="easy">Easy</option>
+        <option value="sharp" selected>Sharp</option>
+        <option value="ruthless">Ruthless</option>
+      </select>
+      <label class="hud-label" for="speed">Game speed</label>
+      <select id="speed" data-speed>
+        <option value="slow">Slow</option>
+        <option value="normal" selected>Normal</option>
+        <option value="fast">Fast</option>
+      </select>
+      <div class="settings-grid" style="margin:10px 0">
+        <label class="game-btn" style="display:flex;align-items:center;gap:8px"><input type="checkbox" data-sound checked> Sound</label>
+        <label class="game-btn" style="display:flex;align-items:center;gap:8px"><input type="checkbox" data-haptics checked> Haptics</label>
+      </div>
       <div class="settings-grid">
         <button class="game-btn roll-btn" type="button" data-start>START MATCH</button>
         <a class="game-btn" href="/arena/ludo/room" style="display:grid;place-items:center;text-decoration:none">LINK IN</a>
@@ -107,6 +129,7 @@ document.addEventListener("DOMContentLoaded",()=>{
  root.querySelectorAll("[data-open-settings]").forEach(b=>b.addEventListener("click",()=>dlg.showModal()));
  root.querySelector("[data-close-settings]")?.addEventListener("click",()=>dlg.close());
  dlg?.addEventListener("click",e=>{if(e.target===dlg)dlg.close()});
+ if(dlg&&!dlg.open)dlg.showModal();
 });
 </script>
 </body>
