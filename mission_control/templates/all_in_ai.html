@@ -45,6 +45,7 @@
         <button class="btn" id="captain-ask" type="button">🟣 Ask Captain</button>
       </div>
     </div>
+    <div class="result" id="captain-status" aria-live="polite">Mission Status: {{ captain_api.mission_status.percentage }}% · {{ captain_api.mission_status.passed }}/{{ captain_api.mission_status.total }} evidence gates · {{ '🟢 Green' if captain_api.mission_status.green else '🟣 live provider proof pending' }}</div>
     <div class="result" id="captain-result" aria-live="polite">Captain API {{ 'ready' if captain_api.configured else 'not configured' }} · {{ captain_api.model }}</div>
     <div class="result" id="captain-sources" aria-live="polite">Sources will appear here when web search is used.</div>
   </section>
@@ -131,6 +132,7 @@ const latestUrl={{ url_for('all_in_ai.all_in_ai_mission_latest')|tojson }};
 const form=document.getElementById('mission-form');
 const captainMessage=document.getElementById('captain-message');
 const captainAsk=document.getElementById('captain-ask');
+const captainStatus=document.getElementById('captain-status');
 const captainResult=document.getElementById('captain-result');
 const captainSources=document.getElementById('captain-sources');
 const result=document.getElementById('result');
@@ -288,6 +290,12 @@ captainAsk.addEventListener('click',async()=>{
       body:JSON.stringify({message}),
     });
     captainResult.textContent=body.answer||'No Captain answer returned.';
+    const missionStatus=body.mission_status||{};
+    if(Number.isInteger(missionStatus.percentage)){
+      captainStatus.textContent='Mission Status: '+missionStatus.percentage+'% · '+
+        String(missionStatus.passed||0)+'/'+String(missionStatus.total||0)+
+        ' evidence gates · '+(missionStatus.green?'🟢 Green':'🟣 '+String(missionStatus.next_gate||'next gate pending'));
+    }
     const sources=Array.isArray(body.sources)?body.sources:[];
     captainSources.textContent=sources.length
       ?'Sources:\n'+sources.map((item,index)=>(index+1)+'. '+String(item.title||item.url)+'\n'+String(item.url||'')).join('\n')
