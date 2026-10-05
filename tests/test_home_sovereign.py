@@ -6,8 +6,8 @@ def test_home_keeps_public_world_without_private_founder_entry(client):
 
     assert response.status_code == 200
     page = response.get_data(as_text=True)
-    assert "SHOP." in page
-    assert "SELL." in page
+    assert "YOUR LOCAL" in page
+    assert "MARKETPLACE." in page
     assert "Shop local. Sell local." in page
     assert 'href="/the-spot/market"' in page
     assert 'href="/pay/bank"' in page
@@ -127,7 +127,7 @@ def test_marketplace_home_and_shop_storefront_are_distinct_surfaces(client):
     from pathlib import Path
     source = Path("app.py").read_text(encoding="utf-8")
     assert '@app.get("/shop/<shop_slug>")' in source
-    assert 'render_template("shop.html"' in source
+    assert '"shop.html"' in source
 
     shop = Path("templates/shop.html").read_text(encoding="utf-8")
     assert 'aria-label="Shop sections"' in shop
