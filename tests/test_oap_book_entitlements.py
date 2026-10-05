@@ -230,3 +230,85 @@ def test_verified_capture_rejects_provider_reference_mismatch(monkeypatch):
             authenticated_identity_id=OWNER,
             order_id=order_id,
         )
+
+
+
+def test_verified_refund_revokes_owned_ebook(monkeypatch):
+    order_id = str(uuid.uuid4())
+    entitlement_id = str(uuid.uuid4())
+    refund_receipt_id = str(uuid.uuid4())
+    connection = FakeConnection([
+        (
+            entitlement_id, "book", "v1", False,
+            "payment-intent-1", "CAPTURED", "capture-ref-1",
+            refund_receipt_id, "REFUNDED", "refund-ref-1",
+        ),
+        (entitlement_id, True, True),
+    ])
+
+    @contextmanager
+    def connect(*, readonly=False):
+        yield connection
+
+    monkeypatch.setattr(entitlements.postgres_db, "connect", connect)
+
+    result = entitlements.reconcile_verified_refund(
+        authenticated_identity_id=OWNER,
+        order_id=order_id,
+    )
+
+    assert result["state"] == "REFUNDED"
+    assert result["revoked"] is True
+    assert result["refund_executed_here"] is False
+    assert result["provider_called_here"] is False
+    assert connection.committed is True
+
+
+def test_verified_refund_reversal_restores_only_captured_payment(monkeypatch):
+    order_id = str(uuid.uuid4())
+    entitlement_id = str(uuid.uuid4())
+    connection = FakeConnection([
+        (
+            entitlement_id, "book", "v1", True,
+            "payment-intent-1", "CAPTURED", "capture-ref-1",
+            str(uuid.uuid4()), "REVERSED", "refund-ref-1",
+        ),
+        (entitlement_id, False, True),
+    ])
+
+    @contextmanager
+    def connect(*, readonly=False):
+        yield connection
+
+    monkeypatch.setattr(entitlements.postgres_db, "connect", connect)
+
+    result = entitlements.reconcile_verified_refund(
+        authenticated_identity_id=OWNER,
+        order_id=order_id,
+    )
+
+    assert result["state"] == "OWNED"
+    assert result["revoked"] is False
+
+
+def test_refund_reversal_without_captured_payment_fails_closed(monkeypatch):
+    order_id = str(uuid.uuid4())
+    connection = FakeConnection([
+        (
+            str(uuid.uuid4()), "book", "v1", True,
+            "payment-intent-1", "AUTHORIZED", "",
+            str(uuid.uuid4()), "REVERSED", "refund-ref-1",
+        )
+    ])
+
+    @contextmanager
+    def connect(*, readonly=False):
+        yield connection
+
+    monkeypatch.setattr(entitlements.postgres_db, "connect", connect)
+
+    with pytest.raises(PermissionError, match="refund_restore_capture_not_verified"):
+        entitlements.reconcile_verified_refund(
+            authenticated_identity_id=OWNER,
+            order_id=order_id,
+        )
