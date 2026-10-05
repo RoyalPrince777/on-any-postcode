@@ -700,8 +700,9 @@ def home():
 
 
 @app.get("/sell")
+@web_security.login_required()
 def public_sell_front_door():
-    return redirect("/the-spot/market#sell", code=302)
+    return redirect("/the-spot/market?mine=1#sell", code=302)
 
 
 @app.get("/basket")
@@ -712,7 +713,7 @@ def public_basket_front_door():
 @app.get("/orders")
 @web_security.login_required()
 def public_orders_front_door():
-    return redirect("/the-spot/market#orders", code=302)
+    return redirect("/the-spot/market?mine=1#orders", code=302)
 
 
 @app.get("/shop/<shop_slug>")
@@ -3102,7 +3103,7 @@ def market_listing_create():
         market_supplier_network.SupplierNetworkUnavailable,
     ):
         return jsonify(error={"code": "market_unavailable"}), 503
-    return redirect(url_for("spot_capability_front_door", capability_slug="market"))
+    return redirect("/the-spot/market?mine=1#sell", code=302)
 
 
 @app.post("/sika/contributions")
