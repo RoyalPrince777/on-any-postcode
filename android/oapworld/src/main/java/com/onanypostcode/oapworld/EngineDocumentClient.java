@@ -61,7 +61,7 @@ public final class EngineDocumentClient {
                 String renderer = connection.getHeaderField("X-OAP-Renderer");
                 if (!"OAP_ENGINE".equals(renderer)) {
                     connection.disconnect();
-                    postFallback(callback, sourcePath);
+                    postFallback(callback, sourcePath, requestGeneration);
                     return;
                 }
 
