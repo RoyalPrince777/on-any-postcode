@@ -13,6 +13,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class EngineDocumentClient {
     public interface Callback {
@@ -27,12 +28,14 @@ public final class EngineDocumentClient {
     private final String origin;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final AtomicInteger generation = new AtomicInteger();
 
     public EngineDocumentClient(String origin) {
         this.origin = origin;
     }
 
     public void fetch(String sourcePath, int viewportWidth, Callback callback) {
+        final int requestGeneration = generation.incrementAndGet();
         executor.execute(() -> {
             try {
                 String endpoint = origin
@@ -51,7 +54,7 @@ public final class EngineDocumentClient {
                 int status = connection.getResponseCode();
                 if (status != 200) {
                     connection.disconnect();
-                    postFallback(callback, sourcePath);
+                    postFallback(callback, sourcePath, requestGeneration);
                     return;
                 }
 
@@ -69,15 +72,23 @@ public final class EngineDocumentClient {
                     connection.disconnect();
                 }
 
-                mainHandler.post(() -> callback.onEngineDocument(body, sourcePath));
+                mainHandler.post(() -> {
+                    if (generation.get() == requestGeneration) {
+                        callback.onEngineDocument(body, sourcePath);
+                    }
+                });
             } catch (IOException | RuntimeException error) {
                 postFallback(callback, sourcePath);
             }
         });
     }
 
-    private void postFallback(Callback callback, String sourcePath) {
-        mainHandler.post(() -> callback.onFallback(sourcePath));
+    private void postFallback(Callback callback, String sourcePath, int requestGeneration) {
+        mainHandler.post(() -> {
+            if (generation.get() == requestGeneration) {
+                callback.onFallback(sourcePath);
+            }
+        });
     }
 
     private static String readBounded(InputStream input) throws IOException {
@@ -100,6 +111,7 @@ public final class EngineDocumentClient {
     }
 
     public void close() {
+        generation.incrementAndGet();
         executor.shutdownNow();
     }
 }
