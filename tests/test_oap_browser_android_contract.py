@@ -13,7 +13,7 @@ def test_oap_browser_keeps_oap_as_home_and_routes_search_first_party():
 def test_oap_browser_opens_direct_web_addresses_without_accepting_arbitrary_schemes():
     source = SOURCE.read_text(encoding="utf-8")
     assert '"https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)' in source
-    assert 'webView.loadUrl("https://" + input)' in source
+    assert 'loadWebViewUrl("https://" + input)' in source
     assert 'return !("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme));' in source
 
 
@@ -46,7 +46,7 @@ def test_oap_browser_has_real_navigation_controls():
 def test_oap_android_has_native_engine_surface_and_explicit_webview_fallback():
     source = SOURCE.read_text(encoding="utf-8")
     assert "private OapEngineView engineView;" in source
-    assert "void showOapEngineDocument(String displayListJson, String sourceUrl)" in source
+    assert "void showOapEngineDocument(String displayListJson, String sourcePath)" in source
     assert "engineView.setDisplayListJson(displayListJson)" in source
     assert "private void showWebViewFallback()" in source
     assert "engineScrollView.setVisibility(View.VISIBLE)" in source
