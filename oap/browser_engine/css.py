@@ -5,6 +5,10 @@ from dataclasses import dataclass
 
 from .dom import Node
 
+MAX_CSS_CHARS = 512_000
+MAX_CSS_RULES = 10_000
+MAX_DECLARATIONS_PER_RULE = 64
+
 ALLOWED_PROPERTIES = frozenset({
     "color",
     "background-color",
@@ -35,7 +39,9 @@ class Rule:
 
 def parse_declarations(raw: str) -> tuple[tuple[str, str], ...]:
     result: list[tuple[str, str]] = []
-    for part in raw.split(";"):
+    for index, part in enumerate(raw.split(";")):
+        if index >= MAX_DECLARATIONS_PER_RULE:
+            raise ValueError("css_declaration_limit")
         if ":" not in part:
             continue
         name, value = part.split(":", 1)
@@ -47,6 +53,8 @@ def parse_declarations(raw: str) -> tuple[tuple[str, str], ...]:
 
 
 def parse_stylesheet(css: str) -> tuple[Rule, ...]:
+    if len(css) > MAX_CSS_CHARS:
+        raise ValueError("css_input_too_large")
     rules: list[Rule] = []
     order = 0
     for chunk in css.split("}"):
@@ -60,6 +68,8 @@ def parse_stylesheet(css: str) -> tuple[Rule, ...]:
             selector = selector.strip()
             if not selector or any(token in selector for token in (" ", ">", "+", "~", "[", ":")):
                 continue
+            if len(rules) >= MAX_CSS_RULES:
+                raise ValueError("css_rule_limit")
             rules.append(Rule(selector=selector, declarations=declarations, order=order))
             order += 1
     return tuple(rules)
