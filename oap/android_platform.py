@@ -60,6 +60,8 @@ def status() -> dict[str, object]:
         "oap_engine_android_native_surface_exists": True,
         "oap_engine_supported_page_auto_routing": True,
         "oap_engine_supported_paths": ("/", "/world", "/search"),
+        "oap_engine_android_accessibility_summary": True,
+        "oap_engine_android_durable_origin_storage": True,
         "oap_engine_default_renderer": False,
         "oap_rendering_engine_standards_complete": False,
     }
