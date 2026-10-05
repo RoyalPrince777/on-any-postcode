@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import essential_life_systems, oap_book_entitlements, oap_ebook_creator_store, oap_library, oap_library_learning, web_security
+from . import (
+    essential_life_systems,
+    oap_book_entitlements,
+    oap_ebook_creator_store,
+    oap_library,
+    oap_library_learning,
+    web_security,
+)
 
 bp = Blueprint("oap_library", __name__)
 
