@@ -106,3 +106,18 @@ def test_network_request_policy_allows_only_bounded_web_requests_and_same_origin
         build_request("https://oap.example/api", method="GET", body=b"x")
     with pytest.raises(ValueError):
         build_request("file:///tmp/x")
+
+
+
+def test_cookie_path_matching_does_not_leak_to_prefix_sibling():
+    jar = CookieJar()
+    jar.set_cookie("https://oap.example/foo", "scope=x; Path=/foo; Secure")
+    assert jar.cookie_header("https://oap.example/foo") == "scope=x"
+    assert jar.cookie_header("https://oap.example/foo/bar") == "scope=x"
+    assert jar.cookie_header("https://oap.example/foobar") == ""
+
+
+def test_secure_cookie_cannot_be_set_from_http_origin():
+    jar = CookieJar()
+    with pytest.raises(ValueError, match="secure_cookie_requires_https_origin"):
+        jar.set_cookie("http://oap.example/", "sid=x; Secure")
