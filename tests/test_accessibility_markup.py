@@ -57,9 +57,8 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     languages = client.get("/world/languages").get_data(as_text=True)
     carnival = client.get("/world/carnival").get_data(as_text=True)
 
-    assert 'aria-label="OAP World navigation"' in home
-    assert 'aria-label="OAP World systems"' in home
-    assert 'aria-label="OAP World quick actions"' in home
+    assert 'aria-label="Commerce navigation"' in home
+    assert 'aria-label="Customer and shop actions"' in home
     assert 'aria-label="Mission Control modes"' in mission
     assert 'aria-current="page"' in mission
     assert 'aria-label="OAP Intelligence families"' in agents
