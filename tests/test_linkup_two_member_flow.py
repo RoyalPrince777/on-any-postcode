@@ -227,5 +227,3 @@ def test_two_member_http_flow_landed_lit_and_cursor_no_duplicate(monkeypatch):
     assert reconnect.status_code == 200
     assert reconnect.get_json()["messages"] == []
 
-    sender.close()
-    receiver.close()
