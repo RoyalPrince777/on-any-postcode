@@ -43,7 +43,8 @@ def test_my_world_is_seven_door_founder_home_not_workspace_menu():
     assert 'aria-label="Founder Home doors"' in page
     for label in ("World", "Business", "Money", "People", "Systems", "Evidence", "Final"):
         assert f"<strong>{label}</strong>" in page
-    assert page.count('class="door') + page.count('class="door final') == 7
+    assert page.count('<a class="door"') == 6
+    assert page.count('<a class="door final"') == 1
     assert 'href="/oap-map"' in page
     assert 'href="/sell"' in page
     assert 'href="/pay/bank"' in page
