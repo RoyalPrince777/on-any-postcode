@@ -113,3 +113,34 @@ def test_legacy_dashboard_urls_redirect_instead_of_404(client):
         response = client.get(source, follow_redirects=False)
         assert response.status_code == 302
         assert response.headers["Location"].endswith(target)
+
+
+
+def test_marketplace_home_and_shop_storefront_are_distinct_surfaces(client):
+    home = client.get("/").get_data(as_text=True)
+    assert "YOUR LOCAL" in home
+    assert "MARKETPLACE." in home
+    assert "Shops" in home
+    assert "Featured products" in home
+    assert 'aria-label="Commerce navigation"' in home
+
+    from pathlib import Path
+    source = Path("app.py").read_text(encoding="utf-8")
+    assert '@app.get("/shop/<shop_slug>")' in source
+    assert 'render_template("shop.html"' in source
+
+    shop = Path("templates/shop.html").read_text(encoding="utf-8")
+    assert 'aria-label="Shop sections"' in shop
+    assert 'aria-label="Shop navigation"' in shop
+    assert 'oap-market-basket-v1' in shop
+    assert 'class="buy market-add"' in shop
+    assert 'href="/the-spot/market#basket"' in shop
+
+
+def test_marketplace_home_uses_canonical_shop_slug():
+    from pathlib import Path
+    source = Path("app.py").read_text(encoding="utf-8")
+    home = Path("templates/home.html").read_text(encoding="utf-8")
+    assert 'item["shop_slug"] = _shop_slug(item.get("seller"))' in source
+    assert 'href="/shop/{{ shop.slug }}"' in home
+    assert 'href="/shop/{{ product.shop_slug }}"' in home
