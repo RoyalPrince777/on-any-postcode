@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 from flask import Blueprint, current_app, jsonify, request
 
 from oap.browser_engine.android_route import render_supported_target
+from oap.browser_engine.status import status as engine_status
 
 bp = Blueprint("oap_engine_android", __name__)
 
@@ -52,4 +53,12 @@ def oap_engine_document():
     response = jsonify(document)
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-OAP-Renderer"] = "OAP_ENGINE"
+    return response
+
+
+
+@bp.get("/api/oap-engine/status")
+def oap_engine_status():
+    response = jsonify(engine_status())
+    response.headers["Cache-Control"] = "no-store"
     return response
