@@ -8,6 +8,7 @@ from . import (
     essential_life_systems,
     oap_book_entitlements,
     oap_ebook_creator_store,
+    oap_ebook_market,
     oap_library,
     oap_library_learning,
     web_security,
@@ -180,6 +181,30 @@ def library_submit_draft(draft_id: str):
         return _error("invalid_draft", "Check the ebook draft and try again.", 400)
     except oap_ebook_creator_store.EbookCreatorStoreUnavailable:
         return _error("creator_store_unavailable", "Digital ebook creation is unavailable.", 503)
+
+
+@bp.post("/library/seller/books/<book_id>/<edition_id>/publish-market")
+@web_security.login_required(api=True)
+def library_publish_ebook_to_market(book_id: str, edition_id: str):
+    """Publish one already-approved digital ebook into OAP Market."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    try:
+        result = oap_ebook_market.publish_approved_ebook(
+            identity,
+            book_id=book_id,
+            edition_id=edition_id,
+        )
+        return _library_page(make_response(jsonify(product=result), 201 if result["created"] else 200))
+    except PermissionError as exc:
+        code = str(exc) or "permission_denied"
+        return _error(code, "This ebook cannot be published to Market.", 403)
+    except ValueError:
+        return _error("invalid_ebook", "Check the ebook and try again.", 400)
+    except oap_ebook_market.EbookMarketUnavailable:
+        return _error("ebook_market_unavailable", "Ebook Market publishing is unavailable.", 503)
 
 
 @bp.get("/library/essential-life-systems")
