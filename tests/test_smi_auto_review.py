@@ -21,9 +21,16 @@ def test_auto_mode_uses_stable_review_pack_when_no_name_was_requested():
     )
 
 
-def test_explicit_name_beats_default_auto_pack():
-    roles = smi_auto.selected_review_roles("Bagheera review this", auto_mode=True)
-    assert roles == ("Bagheera",)
+def test_explicit_name_augments_permanent_auto_core_pack():
+    roles = smi_auto.selected_review_roles("Octopus and Fox review this", auto_mode=True)
+    assert roles[:3] == ("Neo", "Shere Khan", "Bagheera")
+    assert "Octopus" in roles
+    assert "Fox" in roles
+
+
+def test_manual_mode_uses_only_explicit_named_reviewers():
+    roles = smi_auto.selected_review_roles("Spider review this", auto_mode=False)
+    assert roles == ("Spider",)
 
 
 def test_vote_board_is_evidence_classification_not_personality_simulation():
@@ -38,3 +45,18 @@ def test_vote_board_is_evidence_classification_not_personality_simulation():
     assert board["authority_granted"] is False
     assert all(item["deterministic_evidence_review"] for item in board["votes"])
     assert not any(item["independent_personality_claimed"] for item in board["votes"])
+
+
+def test_smi_v5_exposes_permanent_core_and_captain_auto_protocol():
+    status = smi_auto.public_status()
+    assert status["version"] == 5
+    assert status["core_auto_review"] == ("Neo", "Shere Khan", "Bagheera")
+    assert status["captain_auto_protocol"] == "SMI_FIRST_CORE_REVIEW_THEN_SPECIALISTS"
+
+
+def test_octopus_spider_fox_are_canonical_review_lenses():
+    roles = smi_auto.explicit_review_roles("Octopus Spider Fox")
+    assert roles == ("Octopus", "Spider", "Fox")
+    assert "systems integration" in smi_auto.review_lens("Octopus")
+    assert "route mesh" in smi_auto.review_lens("Spider")
+    assert "optimisation" in smi_auto.review_lens("Fox")
