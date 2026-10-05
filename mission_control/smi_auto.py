@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-AUTO_VERSION = 4
+AUTO_VERSION = 5
 AUTO_LIGHT = "purple"
 BASE_LENSES = ("truth", "evidence", "alignment")
 WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
@@ -178,6 +178,8 @@ def public_status() -> dict[str, object]:
         "light": AUTO_LIGHT,
         "mode": "automatic_low_noise",
         "base_lenses": BASE_LENSES,
+        "core_auto_review": CORE_AUTO_REVIEW,
+        "captain_auto_protocol": "SMI_FIRST_CORE_REVIEW_THEN_SPECIALISTS",
         "selector": "surface+action+mission",
         "semantic_routing": True,
         "adaptive_levels": ("A1", "A2", "A3", "A4", "A5", "A6", "A7"),
@@ -211,12 +213,19 @@ REVIEW_ROLE_LENSES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Eagle", ("eagle",), "whole-system view"),
     ("Falcon", ("falcon",), "speed and smallest bounded next gate"),
     ("Gorilla", ("gorilla",), "protection and pressure resistance"),
+    ("Octopus", ("octopus",), "systems integration, multi-route coordination and dependency reach"),
+    ("Spider", ("spider",), "route mesh, connection integrity and hidden dependency detection"),
+    ("Fox", ("fox",), "optimisation, loophole detection and edge-case efficiency"),
 )
 
-DEFAULT_AUTO_REVIEW = (
+CORE_AUTO_REVIEW = (
     "Neo",
     "Shere Khan",
     "Bagheera",
+)
+
+DEFAULT_AUTO_REVIEW = (
+    *CORE_AUTO_REVIEW,
     "Agent Smith",
     "Owl",
     "Guardian",
@@ -244,11 +253,11 @@ def review_lens(name: str) -> str:
 
 def selected_review_roles(message: object, *, auto_mode: bool) -> tuple[str, ...]:
     explicit = explicit_review_roles(message)
-    if explicit:
-        return explicit
     if auto_mode:
-        return DEFAULT_AUTO_REVIEW
-    return ()
+        selected: list[str] = list(DEFAULT_AUTO_REVIEW)
+        _add(selected, explicit)
+        return tuple(selected)
+    return explicit
 
 
 def build_evidence_vote_board(
