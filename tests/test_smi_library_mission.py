@@ -11,8 +11,8 @@ def test_library_mission_percentage_is_computed_not_hand_entered():
     assert status["passed"] == passed
     assert status["total"] == total
     assert status["evidence_percentage"] == round((passed / total) * 100)
-    assert status["ci_green"] is True
-    assert status["runtime_image_green"] is True
-    assert status["governed_checks_green"] is True
+    assert status["ci_green"] is False
+    assert status["runtime_image_green"] is False
+    assert status["governed_checks_green"] is False
     assert status["live_payment_claimed"] is False
     assert status["production_green"] is False
