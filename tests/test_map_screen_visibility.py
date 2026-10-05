@@ -184,3 +184,29 @@ def test_road_network_does_not_self_cancel_slow_successful_batches():
     assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
     assert "},6000):null;" not in template
     assert "if(recoveryTimer)clearTimeout(recoveryTimer);" not in template
+
+
+def test_nearby_place_requests_cannot_restore_stale_results():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "placeRequest=0,placeController=null" in template
+    assert "const request=++placeRequest;" in template
+    assert "if(placeController)placeController.abort();" in template
+    assert "cache:'no-store',signal:placeController.signal" in template
+    assert "if(request!==placeRequest)return;" in template
+    assert "error?.name==='AbortError'||request!==placeRequest" in template
+    assert "places.replaceChildren();" in template
+
+
+def test_map_master_visibility_contract():
+    css = Path("mission_control/static/oap_map_navigation.css").read_text(encoding="utf-8")
+    assert "--route:#ffd85a" in css
+    assert ".road-svg polyline.local{stroke:#4d5966;stroke-width:2.2;opacity:.9}" in css
+    assert ".road-svg polyline.secondary{stroke:#758290;stroke-width:3.2;opacity:.96}" in css
+    assert ".road-svg polyline.major{stroke:#a4afb9;stroke-width:4.4;opacity:1}" in css
+    assert ".road-label{fill:#f1f4f7;stroke:#07090c;stroke-width:4px;" in css
+    assert ".route-svg #route-casing{stroke:#090d12;stroke-width:16;opacity:.98}" in css
+    assert ".route-svg #route-line{stroke:var(--route);stroke-width:9}" in css
+    assert "body[data-map-mode=\"drive\"] .road-label{opacity:.78;font-size:12px}" in css
+    assert ".map-float-btn{width:48px;height:48px" in css
+    assert "outline:3px solid #ffd85a" in css
+    assert "@media(max-width:700px){.road-svg polyline.local{stroke-width:2.5}" in css
