@@ -211,3 +211,10 @@ Truth boundary: this is not a general internet fetch stack. Arbitrary origins, u
 The bounded engine now supports compound selectors such as `main#world`, chained classes, descendant selectors and direct-child `>` selectors with bounded CSS specificity. Layout additionally consumes side-specific margin/padding, width/min-width/max-width and line-height values. `<img>` nodes now emit bounded native display-list image semantics with alt text, geometry and safe HTTP/HTTPS source normalization; Android accepts the `image` display item kind and paints a native placeholder carrying the alt label.
 
 Truth boundary: this is not full CSS layout or decoded media. Flexbox, Grid, advanced positioning, transforms, floats, intrinsic image decoding, fonts, audio/video and GPU compositing remain outside this Green scope.
+
+
+## Android accessibility virtual tree v1
+
+`OapEngineView` now exposes a bounded native `AccessibilityNodeProvider` with up to 256 virtual display-item children. Text, link and image items expose scaled bounds, semantic Android class names, accessibility focus/clear-focus actions and searchable text. Link children expose an accessibility click action that uses the existing safe-link listener; image children expose alt text as content description.
+
+Truth boundary: the virtual tree is based on bounded OAP display items. It is not a claim of complete browser accessibility semantics, ARIA implementation, WCAG conformance or standards parity with Chromium/Gecko.
