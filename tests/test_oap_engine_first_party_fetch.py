@@ -16,7 +16,8 @@ def test_first_party_target_is_relative_certified_and_query_bounded():
         canonical_first_party_target("/mission/ollama")
 
 
-def test_first_party_fetch_reads_public_oap_route_and_uses_cache(client, app):
+def test_first_party_fetch_reads_public_oap_route_and_uses_cache(client):
+    app = client.application
     cache = ResponseCache()
     first = fetch_first_party(app, "/search?q=music", cache=cache)
     assert first.status_code == 200
@@ -29,7 +30,8 @@ def test_first_party_fetch_reads_public_oap_route_and_uses_cache(client, app):
     assert second.from_cache is True
 
 
-def test_first_party_fetch_rejects_write_methods(app):
+def test_first_party_fetch_rejects_write_methods(client):
+    app = client.application
     with pytest.raises(ValueError, match="unsupported_first_party_fetch_method"):
         fetch_first_party(app, "/search", method="POST")
 
