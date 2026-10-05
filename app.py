@@ -550,6 +550,17 @@ def _local_public_snapshot():
     }
 
 
+def _shop_slug(value):
+    text = str(value or "").strip().lower()
+    slug = "-".join(
+        part for part in "".join(
+            character if character.isalnum() else " " for character in text
+        ).split()
+        if part
+    )
+    return slug[:120] or "shop"
+
+
 def _load_public_snapshot():
     if not public_store.status()["configured"]:
         return _local_public_snapshot()
@@ -599,6 +610,33 @@ def public_studio_chat():
 @app.get("/world")
 def home():
     public = _load_public_snapshot()
+    market_products = []
+    featured_shops = []
+    if public_store.status()["configured"]:
+        try:
+            market_products = product_store.list_products()
+            seen = set()
+            for item in market_products:
+                seller = str(item.get("seller") or "").strip()
+                if not seller:
+                    continue
+                slug = _shop_slug(seller)
+                if slug in seen:
+                    continue
+                seen.add(slug)
+                featured_shops.append(
+                    {
+                        "name": seller,
+                        "slug": slug,
+                        "postcode": item.get("postcode") or "",
+                        "borough": item.get("borough") or "",
+                    }
+                )
+                if len(featured_shops) >= 8:
+                    break
+        except product_store.ProductStoreUnavailable:
+            market_products = []
+            featured_shops = []
     return render_template(
         "home.html",
         location_levels=LOCATION_LEVELS,
@@ -606,7 +644,55 @@ def home():
         team_messages=public["team_messages"],
         flag_counts=public["flag_counts"],
         public_persistence=public["durable"],
+        market_products=market_products[:12],
+        featured_shops=featured_shops,
     )
+
+
+@app.get("/shop/<shop_slug>")
+def public_shop(shop_slug):
+    products_for_shop = []
+    shop_name = ""
+    shop_location = ""
+    if public_store.status()["configured"]:
+        try:
+            for item in product_store.list_products():
+                seller = str(item.get("seller") or "").strip()
+                if _shop_slug(seller) != shop_slug:
+                    continue
+                shop_name = seller
+                shop_location = str(
+                    item.get("postcode")
+                    or item.get("borough")
+                    or item.get("country")
+                    or ""
+                )
+                products_for_shop.append(item)
+        except product_store.ProductStoreUnavailable:
+            products_for_shop = []
+    if not products_for_shop:
+        response = make_response(
+            render_template(
+                "shop.html",
+                shop_name="Shop unavailable",
+                shop_location="",
+                shop_slug=shop_slug,
+                shop_products=[],
+            ),
+            404,
+        )
+    else:
+        response = make_response(
+            render_template(
+                "shop.html",
+                shop_name=shop_name,
+                shop_location=shop_location,
+                shop_slug=shop_slug,
+                shop_products=products_for_shop,
+            )
+        )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/sika")
