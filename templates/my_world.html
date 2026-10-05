@@ -1,61 +1,98 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My World · OAP</title>
-  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
-  <style>
-    :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#06120b;color:#f5fff7;font-family:Arial,sans-serif}header,main{width:min(1080px,calc(100% - 32px));margin:auto}header{padding:28px 0 10px}nav{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}nav a,.button{display:inline-block;background:#27c267;color:#021;text-decoration:none;font-weight:800;padding:11px 14px;border:0;border-radius:9px}.secondary{background:#8ed7ff!important;color:#04131c!important}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;padding:12px 0 40px}.card{background:#10281a;border:1px solid #2d7044;border-radius:18px;padding:20px}.private{background:#0c2430;border-color:#4b9abe}.badge{display:inline-block;background:#8ed7ff;color:#04131c;padding:5px 9px;border-radius:999px;font-weight:800}label{display:block;margin-top:12px;font-weight:700}input{width:100%;padding:11px;margin-top:7px;border:0;border-radius:9px;font:inherit;background:#f7fff9;color:#06120b}button{cursor:pointer;font:inherit}.danger{background:#4a2528!important;color:#fff!important}.error{background:#461b21;border:1px solid #ff7582;padding:13px;border-radius:10px}.small{opacity:.82;line-height:1.5}.command-card{border-color:#3c8253;background:linear-gradient(145deg,#0c2516,#0b1a11)}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Founder Home · ON ANY POSTCODE</title>
+<link rel="stylesheet" href="{{ url_for('mission_control.static', filename='mission_control.css') }}">
+<style>
+:root{color-scheme:dark;--bg:#070705;--panel:#11110d;--line:#312b1c;--gold:#efc85d;--text:#fffaf0;--muted:#aaa38e;--danger:#4a2528}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}a{text-decoration:none;color:inherit}
+.shell{max-width:980px;margin:auto;padding:18px 16px calc(100px + env(safe-area-inset-bottom))}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.badge{display:inline-flex;padding:7px 10px;border:1px solid #6b5726;border-radius:999px;color:var(--gold);font-size:.73rem;font-weight:900;letter-spacing:.08em}.public{padding:10px 12px;border:1px solid var(--line);border-radius:13px;background:var(--panel);font-size:.8rem}
+.hero{padding:28px 0 20px}.hero h1{font-size:clamp(2.4rem,9vw,5rem);margin:0;line-height:.93;letter-spacing:-.05em}.hero p{max-width:620px;color:var(--muted);line-height:1.5}
+.identity{display:flex;gap:12px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:17px;background:var(--panel);margin-bottom:18px}.avatar{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:var(--gold);color:#17130a;font-size:1.25rem;font-weight:950}.identity strong,.identity span{display:block}.identity span{color:var(--muted);font-size:.8rem;margin-top:3px}
+.doors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.door{min-height:155px;padding:17px;border:1px solid var(--line);border-radius:21px;background:linear-gradient(145deg,#19170f,#0e0d0a);display:flex;flex-direction:column;justify-content:space-between}.door.final{background:var(--gold);color:#17130a;border-color:#ffe08a}.door .icon{font-size:1.7rem}.door strong{font-size:1.12rem}.door span{display:block;margin-top:5px;color:var(--muted);font-size:.8rem;line-height:1.35}.door.final span{color:#514119}
+.profile{margin-top:22px;padding:17px;border:1px solid var(--line);border-radius:20px;background:var(--panel)}.profile summary{cursor:pointer;font-weight:900;color:var(--gold)}.profile form{margin-top:15px}.profile label{display:block;margin-top:10px;font-weight:700}.profile input{width:100%;margin-top:6px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#090906;color:var(--text);font:inherit}.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.btn{padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:#181610;color:var(--text);font:800 .84rem system-ui}.btn.primary{background:var(--gold);color:#17130a;border-color:#ffe08a}.btn.danger{background:var(--danger);color:#fff}
+.truth{margin-top:18px;color:var(--muted);font-size:.76rem;line-height:1.45}
+.bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(980px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#0b0a08f2;backdrop-filter:blur(14px)}.bottom a{padding:7px 2px;text-align:center;color:var(--muted);font-size:.68rem}.bottom b{display:block;color:var(--gold);font-size:1.05rem;margin-bottom:2px}
+@media(min-width:760px){.doors{grid-template-columns:repeat(4,minmax(0,1fr))}.door.final{grid-column:span 2}}
+</style>
 </head>
 <body>
-  <header>
-    <span class="badge">PRIVATE · FOUNDER SESSION</span>
-    <h1>👤 My World</h1>
-    <p><strong>Your private identity and profile.</strong> Operational work now lives in Mission Control instead of cluttering Profile.</p>
-    <nav aria-label="Private My World navigation">
-      <a href="{{ url_for('mission_control.mission_workspace') }}">👑 Mission Control</a>
-      <a href="{{ url_for('travel_supply.founder_dashboard') }}">🏨 Booking & Supply</a>
-      <a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI Chat</a>
-      <a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔️ War Room</a>
-      <a href="{{ url_for('mission_control.judgement_dashboard') }}">⚖️ Judgement</a>
-      <a href="{{ url_for('mission_control.infrastructure_dashboard') }}">🏗️ Infrastructure</a>
-      <a class="secondary" href="https://on-any-postcode.onrender.com/">🌍 Public OAP World ↗</a>
-    </nav>
-  </header>
+<main class="shell">
+<header class="top">
+<span class="badge">PRIVATE · FOUNDER</span>
+<a class="public" href="/">Public OAP World ↗</a>
+</header>
 
-  <main class="grid">
-    <section class="card private" aria-labelledby="profile-title">
-      <h2 id="profile-title">Private profile</h2>
-      {% if private_store_unavailable %}
-      <p class="error" role="alert">Your private Neon profile is temporarily unavailable. No fallback copy was published.</p>
-      {% else %}
-      <form method="post" action="{{ url_for('myworld') }}">
-        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-        <label for="my-world-nickname">Nickname</label>
-        <input id="my-world-nickname" name="nickname" value="{{ profile.nickname }}" maxlength="80" required>
-        {% if profile.country %}<p class="small">Country / flag: <strong>{{ profile.country }}</strong></p>{% endif %}
-        <button class="button" type="submit">Save My World</button>
-      </form>
-      {% endif %}
-    </section>
+<section class="hero">
+<h1>👑 Founder Home</h1>
+<p>One private control layer above the public world. Customers and shops keep a clean experience; Founder authority, evidence and systems stay here.</p>
+</section>
 
-    <section class="card command-card" aria-labelledby="command-title">
-      <h2 id="command-title">Private command</h2>
-      <p class="small">Booking, SMI, War Room, Judgement and Infrastructure are controlled from Mission Control. Your existing workspace records are preserved; they are simply removed from this Profile surface.</p>
-      <a class="button" href="{{ url_for('mission_control.mission_workspace') }}">Open Mission Control</a>
-    </section>
+<section class="identity" aria-label="Founder identity">
+<div class="avatar">{{ (profile.nickname or auth_user.name or 'F')[:1]|upper }}</div>
+<div>
+<strong>{{ profile.nickname or auth_user.name }}</strong>
+<span>Founder · ON ANY POSTCODE{% if profile.postcode %} · {{ profile.postcode }}{% endif %}</span>
+</div>
+</section>
 
-    <section class="card" aria-labelledby="boundary-title">
-      <h2 id="boundary-title">Security boundary</h2>
-      <p class="small">The managed identity service verifies the opaque session on each private request. Database reads use your verified UUID, and SMI conversation queries are restricted to that same owner ID.</p>
-      <p>Founder authority: <strong>confirmed</strong></p>
-      <form method="post" action="{{ url_for('auth_sign_out') }}">
-        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-        <button class="button danger" type="submit">Sign out of My World</button>
-      </form>
-    </section>
-  </main>
+<nav class="doors" aria-label="Founder Home doors">
+<a class="door" href="/oap-map">
+<span class="icon">🌍</span><div><strong>World</strong><span>Maps, Eats, Rides, travel and movement.</span></div>
+</a>
+<a class="door" href="/the-spot/market#sell">
+<span class="icon">🏪</span><div><strong>Business</strong><span>Shops, products, orders and merchant activity.</span></div>
+</a>
+<a class="door" href="/pay/bank">
+<span class="icon">🪙</span><div><strong>Money</strong><span>SIKA, payments, receipts and value controls.</span></div>
+</a>
+<a class="door" href="{{ url_for('my_world_workspace', workspace_id='identity') }}">
+<span class="icon">👥</span><div><strong>People</strong><span>My Card, identity, Certified roles and people records.</span></div>
+</a>
+<a class="door" href="{{ url_for('mission_control.infrastructure_dashboard') }}">
+<span class="icon">🏗️</span><div><strong>Systems</strong><span>Runtime, infrastructure, routes and service readiness.</span></div>
+</a>
+<a class="door" href="/smi/brain/receipts">
+<span class="icon">🧾</span><div><strong>Evidence</strong><span>OAP Data, receipts, continuity and audit evidence.</span></div>
+</a>
+<a class="door final" href="{{ url_for('mission_control.judgement_dashboard') }}">
+<span class="icon">👑</span><div><strong>Final</strong><span>Founder judgement, approvals and final authority.</span></div>
+</a>
+</nav>
+
+<details class="profile">
+<summary>My Card & private account</summary>
+{% if private_store_unavailable %}
+<p role="alert">Private profile storage is temporarily unavailable. No fallback profile was published.</p>
+{% else %}
+<form method="post" action="{{ url_for('myworld') }}">
+<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+<label for="my-world-nickname">Name on My Card</label>
+<input id="my-world-nickname" name="nickname" value="{{ profile.nickname }}" maxlength="80" required>
+<div class="row">
+<button class="btn primary" type="submit">Save My Card</button>
+<a class="btn" href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a>
+<a class="btn" href="{{ url_for('mission_control.war_room_dashboard') }}">⚔️ War Room</a>
+</div>
+</form>
+{% endif %}
+<form method="post" action="{{ url_for('auth_sign_out') }}">
+<input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+<div class="row"><button class="btn danger" type="submit">Leave My World</button></div>
+</form>
+</details>
+
+<p class="truth">Founder access is private and founder-gated. These doors reuse existing OAP systems; they do not expose private controls to public users or grant automatic execution authority.</p>
+</main>
+
+<nav class="bottom" aria-label="Founder quick navigation">
+<a href="/oap-map"><b>🌍</b>World</a>
+<a href="/the-spot/market#sell"><b>🏪</b>Business</a>
+<a href="{{ url_for('mission_control.infrastructure_dashboard') }}"><b>🏗️</b>Systems</a>
+<a href="{{ url_for('mission_control.judgement_dashboard') }}"><b>👑</b>Final</a>
+</nav>
 </body>
 </html>
