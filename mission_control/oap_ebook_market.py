@@ -8,12 +8,14 @@ edition with verified rights and manuscript approval.
 from __future__ import annotations
 
 import hashlib
+import re
 import uuid
 from typing import Any
 
 from . import postgres_db
 
 MIGRATION_VERSION = "oap_ebook_market_v1"
+_IDEMPOTENCY = re.compile(r"^[A-Za-z0-9._:-]{8,160}$")
 SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_ebook_market_products (
         book_id TEXT NOT NULL,
@@ -228,4 +230,142 @@ def public_product(book_id: object, edition_id: object) -> dict[str, Any] | None
         "publisher_authority_id": str(row[10]),
         "physical_product": False,
         "payment_capture_performed": False,
+    }
+
+
+
+def create_unlock_intent(
+    buyer_identity_id: object,
+    *,
+    book_id: object,
+    edition_id: object,
+    idempotency_key: object,
+) -> dict[str, Any]:
+    """Create a digital-only commerce order and payment intent.
+
+    This performs no provider call, capture, fulfilment, entitlement issuance or
+    ownership change. Reusing the same idempotency key with different terms fails.
+    """
+
+    buyer = _uuid(buyer_identity_id, "buyer_identity_id")
+    book = _selector(book_id, "book_id")
+    edition = _selector(edition_id, "edition_id")
+    key = str(idempotency_key or "").strip()
+    if not _IDEMPOTENCY.fullmatch(key):
+        raise ValueError("invalid_idempotency_key")
+    try:
+        with postgres_db.connect() as connection:
+            identity = connection.execute(
+                """SELECT 1 FROM users u
+                   JOIN oap_identities i ON i.identity_id=u.id
+                   WHERE u.id=%s AND u.status='active' AND i.status='ACTIVE'
+                   LIMIT 1""",
+                (buyer,),
+            ).fetchone()
+            if identity is None:
+                raise PermissionError("buyer_unavailable")
+
+            listing = connection.execute(
+                """SELECT m.product_id,m.seller_identity_id,p.name,p.price_minor,p.currency
+                   FROM oap_ebook_market_products m
+                   JOIN products p ON p.id=m.product_id
+                   JOIN oap_ebook_editions e
+                     ON e.book_id=m.book_id AND e.edition_id=m.edition_id
+                   WHERE m.book_id=%s AND m.edition_id=%s
+                     AND m.state='ACTIVE' AND p.active=TRUE
+                     AND e.status='APPROVED' AND e.private IS FALSE
+                     AND e.rights_verified IS TRUE
+                     AND e.manuscript_approved IS TRUE
+                     AND e.public_release_approved IS TRUE
+                   FOR SHARE OF m,p,e""",
+                (book, edition),
+            ).fetchone()
+            if listing is None:
+                raise PermissionError("ebook_unavailable")
+            product_id = str(listing[0])
+            seller = str(listing[1])
+            if seller == buyer:
+                raise ValueError("cannot_unlock_own_ebook")
+            title = str(listing[2])
+            amount = int(listing[3])
+            currency = str(listing[4])
+            if currency != "GBP" or amount < 0:
+                raise ValueError("ebook_price_invalid")
+
+            existing = connection.execute(
+                """SELECT o.order_id,o.state,o.currency,o.subtotal_minor,
+                          i.product_id,i.quantity,p.intent_id,p.state
+                   FROM oap_commerce_orders o
+                   JOIN oap_commerce_order_items i ON i.order_id=o.order_id
+                   JOIN oap_commerce_payment_intents p ON p.order_id=o.order_id
+                   WHERE o.buyer_identity_id=%s AND o.idempotency_key=%s
+                   LIMIT 1""",
+                (buyer, key),
+            ).fetchone()
+            if existing is not None:
+                if (
+                    str(existing[2]) != currency
+                    or int(existing[3]) != amount
+                    or str(existing[4]) != product_id
+                    or int(existing[5]) != 1
+                ):
+                    raise ValueError("idempotency_key_reused")
+                order_id = str(existing[0])
+                order_state = str(existing[1])
+                intent_id = str(existing[6])
+                intent_state = str(existing[7])
+                created = False
+            else:
+                order = connection.execute(
+                    """INSERT INTO oap_commerce_orders(
+                           buyer_identity_id,seller_identity_id,state,currency,
+                           subtotal_minor,idempotency_key)
+                       VALUES (%s,%s,'PAYMENT_PROVIDER_REQUIRED',%s,%s,%s)
+                       RETURNING order_id,state""",
+                    (buyer, seller, currency, amount, key),
+                ).fetchone()
+                if order is None:
+                    raise EbookMarketUnavailable("ebook_unlock_order_create_failed")
+                order_id = str(order[0])
+                order_state = str(order[1])
+                connection.execute(
+                    """INSERT INTO oap_commerce_order_items(
+                           order_id,product_id,quantity,unit_price_minor,product_name)
+                       VALUES (%s,%s,1,%s,%s)""",
+                    (order_id, product_id, amount, title),
+                )
+                intent = connection.execute(
+                    """INSERT INTO oap_commerce_payment_intents(
+                           order_id,amount_minor,currency,state)
+                       VALUES (%s,%s,%s,'PROVIDER_REQUIRED')
+                       RETURNING intent_id,state""",
+                    (order_id, amount, currency),
+                ).fetchone()
+                if intent is None:
+                    raise EbookMarketUnavailable("ebook_unlock_payment_intent_failed")
+                intent_id = str(intent[0])
+                intent_state = str(intent[1])
+                created = True
+            connection.commit()
+    except (PermissionError, ValueError):
+        raise
+    except EbookMarketUnavailable:
+        raise
+    except Exception as exc:
+        raise EbookMarketUnavailable("ebook_unlock_intent_failed") from exc
+
+    return {
+        "book_id": book,
+        "edition_id": edition,
+        "product_id": product_id,
+        "order_id": order_id,
+        "order_state": order_state,
+        "payment_intent_id": intent_id,
+        "payment_state": intent_state,
+        "created": created,
+        "payment_capture_performed": False,
+        "provider_called": False,
+        "fulfilment_intent_created": False,
+        "entitlement_issued": False,
+        "ownership_granted": False,
     }
