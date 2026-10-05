@@ -65,7 +65,7 @@ def test_two_member_http_flow_landed_lit_and_cursor_no_duplicate(monkeypatch):
 
     app_module.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
     monkeypatch.setattr(neon_auth, "get_session", _auth)
-    monkeypatch.setenv("NEON_AUTH_BASE_URL", "https://example.neonauth.test/neondb/auth")
+    monkeypatch.setenv(\n        "NEON_AUTH_BASE_URL",\n        "https://example.neonauth.test/neondb/auth",\n    )
     monkeypatch.setenv("OAP_AUTH_REQUIRED", "true")
     web_security.PUBLIC_WRITE_LIMITER.reset()
 
@@ -95,7 +95,7 @@ def test_two_member_http_flow_landed_lit_and_cursor_no_duplicate(monkeypatch):
         )
         return message_id
 
-    def peer_messages_since(identity_id, peer_id, *, after=None, after_id=None, limit=100):
+    def peer_messages_since(\n        identity_id, peer_id, *, after=None, after_id=None, limit=100\n    ):
         pair = [
             item
             for item in messages
@@ -111,7 +111,7 @@ def test_two_member_http_flow_landed_lit_and_cursor_no_duplicate(monkeypatch):
         return [
             {
                 "message_id": item["message_id"],
-                "direction": "sent" if item["sender_id"] == identity_id else "received",
+                "direction": (\n                    "sent" if item["sender_id"] == identity_id else "received"\n                ),
                 "sender_id": item["sender_id"],
                 "recipient_id": item["recipient_id"],
                 "body": item["body"],
@@ -144,14 +144,14 @@ def test_two_member_http_flow_landed_lit_and_cursor_no_duplicate(monkeypatch):
             if item["sender_id"] == identity_id and item["recipient_id"] == peer_id
         ]
 
-    monkeypatch.setattr(link_message_routes.product_store, "send_message", send_message)
+    monkeypatch.setattr(\n        link_message_routes.product_store, "send_message", send_message\n    )
     monkeypatch.setattr(
         link_message_routes.product_store, "peer_messages_since", peer_messages_since
     )
     monkeypatch.setattr(
         link_message_routes.product_store, "mark_message_read", mark_message_read
     )
-    monkeypatch.setattr(link_message_routes.product_store, "message_states", message_states)
+    monkeypatch.setattr(\n        link_message_routes.product_store, "message_states", message_states\n    )
 
     sender = _client(COOKIE_A, "a-session", CSRF_A)
     receiver = _client(COOKIE_B, "b-session", CSRF_B)
