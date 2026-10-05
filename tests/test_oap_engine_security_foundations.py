@@ -3,6 +3,7 @@ import pytest
 from oap.browser_engine import (
     OriginStorage,
     build_accessibility_tree,
+    extract_forms,
     parse_html_document,
     parse_origin,
     parse_stylesheet,
@@ -84,3 +85,36 @@ def test_css_parser_enforces_input_and_declaration_limits():
     declarations = ";".join(f"color:v{i}" for i in range(MAX_DECLARATIONS_PER_RULE + 1))
     with pytest.raises(ValueError, match="css_declaration_limit"):
         parse_stylesheet("p{" + declarations + "}")
+
+
+
+def test_form_model_extracts_controls_and_same_origin_action_without_submitting():
+    root = parse_html_document(
+        "<form method='post' action='/search'>"
+        "<input name='q' value='music' required>"
+        "<input type='password' name='secret' value='do-not-project'>"
+        "<button name='go'>Search</button>"
+        "</form>"
+    )
+    forms = extract_forms(root, base_url="https://on-any-postcode.onrender.com/world")
+    assert len(forms) == 1
+    form = forms[0]
+    assert form.method == "POST"
+    assert form.action == "https://on-any-postcode.onrender.com/search"
+    assert form.same_origin_action is True
+    assert [control.name for control in form.controls] == ["q", "secret", "go"]
+    assert form.controls[0].required is True
+    assert form.controls[1].control_type == "password"
+    assert form.controls[1].value == ""
+
+
+def test_form_model_marks_cross_origin_action_and_rejects_non_http_action():
+    root = parse_html_document(
+        "<form action='https://elsewhere.example/pay'><input name='x'></form>"
+        "<form action='javascript:alert(1)'><input name='y'></form>"
+    )
+    forms = extract_forms(root, base_url="https://on-any-postcode.onrender.com/")
+    assert forms[0].action == "https://elsewhere.example/pay"
+    assert forms[0].same_origin_action is False
+    assert forms[1].action is None
+    assert forms[1].same_origin_action is False
