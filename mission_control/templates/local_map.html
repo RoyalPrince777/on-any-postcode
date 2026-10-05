@@ -206,8 +206,10 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
    if(request!==roadRequest||!d||!Array.isArray(d.lines))return;
    const t=d.tile||{};
    for(const feature of d.lines){if(count>=900)break;
-     const pts=(feature.points||[]).map(p=>tilePointLonLat(+t.x,+t.y,+t.z,+p[0],+p[1]))
-       .filter(ll=>ll[0]>=b.minX-.02&&ll[0]<=b.maxX+.02&&ll[1]>=b.minY-.02&&ll[1]<=b.maxY+.02).map(ll=>project(ll[0],ll[1],b));
+     const pts=(feature.points||[])
+       .map(p=>tilePointLonLat(+t.x,+t.y,+t.z,+p[0],+p[1]))
+       .filter(ll=>Number.isFinite(ll[0])&&Number.isFinite(ll[1]))
+       .map(ll=>project(ll[0],ll[1],b));
      if(pts.length<2)continue;
      const rawClass=String(feature.class||feature.layer||'road').toLowerCase();
      const isMajor=feature.is_small===false||(+feature.speed||0)>=50||/(motorway|trunk|primary)/.test(rawClass);
