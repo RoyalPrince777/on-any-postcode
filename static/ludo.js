@@ -101,8 +101,22 @@ function setupRoster(){
  else{for(let i=0;i<4;i++)names.push(raw[i]||"Player "+(i+1))}
  lastSetup={...s,names};return names
 }
+async function enterFullscreen(){
+ const target=root;
+ if(document.fullscreenElement)return true;
+ try{
+   if(target.requestFullscreen){await target.requestFullscreen({navigationUI:"hide"});return true}
+   if(target.webkitRequestFullscreen){target.webkitRequestFullscreen();return true}
+ }catch{}
+ try{
+   if(document.documentElement.requestFullscreen){await document.documentElement.requestFullscreen({navigationUI:"hide"});return true}
+ }catch{}
+ return false
+}
 async function startGame(){
- if(document.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch{}}
+ const dlg=q("[data-settings]");if(dlg?.open)dlg.close();
+ await enterFullscreen();
+ fitScreen();
  const names=setupRoster();await action("/arena/ludo/start",{players:names},{silent:true});
  agentIds=new Set();
  if(state){if(lastSetup.mode==="1a")agentIds.add(state.players[1]?.id);if(lastSetup.mode==="2a"){agentIds.add(state.players[2]?.id);agentIds.add(state.players[3]?.id)}}
@@ -160,6 +174,12 @@ if(roll)roll.onclick=rollHuman;
 root.addEventListener("click",e=>{const btn=e.target.closest("[data-piece]");if(btn&&!btn.disabled&&!isAgentTurn())action("/arena/ludo/move",{piece_id:btn.dataset.piece,request_id:requestId()})});
 q("[data-stop]").onclick=()=>action("/arena/ludo/stop",{request_id:requestId()});
 q("[data-rematch]")?.addEventListener("click",()=>{state=null;agentIds.clear();q("[data-results]").hidden=true;q("[data-results]").style.display="none";const dlg=q("[data-settings]");if(dlg&&!dlg.open)dlg.showModal()});
-qa("[data-fullscreen]").forEach(b=>b.addEventListener("click",async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}catch{}}));
+qa("[data-fullscreen]").forEach(b=>b.addEventListener("click",async()=>{
+ try{
+   if(document.fullscreenElement){await document.exitFullscreen()}
+   else{await enterFullscreen()}
+ }catch{}
+ setTimeout(fitScreen,100)
+}));
 buildBoard();fitScreen();renderBoard();
 })();
