@@ -24,6 +24,7 @@ def status() -> dict[str, object]:
             "response_cache": "IN_MEMORY_LRU_BOUNDED",
             "cookies": "HOST_ONLY_BOUNDED",
             "network_request_policy": "HTTP_HTTPS_GET_HEAD_POST_BOUNDED",
+            "first_party_fetch_pipeline": "CERTIFIED_GET_HEAD_PUBLIC_ROUTES_BOUNDED",
             "android_native_surface": True,
             "supported_page_auto_routing": ("/", "/world", "/search"),
             "webview_fallback": True,
