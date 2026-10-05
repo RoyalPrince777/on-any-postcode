@@ -121,3 +121,19 @@ Implemented layout effects include:
 - stylesheet collection from document style nodes.
 
 This is still a bounded subset. It does not claim full CSS box layout, flexbox, grid, floats, positioning, transforms, generated content, JavaScript, raster/compositor ownership, accessibility, media, networking, cookies/storage, sandboxing, or standards completeness.
+
+
+## Android native OAP Engine bridge v1
+
+Android now contains a first-party OAP Engine display-list surface. The Python engine emits a versioned contract (`engine = OAP_ENGINE`, `contract_version = 1`) and Android validates that contract before drawing it natively.
+
+Bridge properties:
+- native Canvas-based OAP display-list rendering surface;
+- strict document and item count/geometry limits;
+- text and link item allow-list;
+- HTTP/HTTPS-only link handoff;
+- no JavaScript interface or privileged WebView bridge;
+- explicit WebView fallback remains available;
+- the native surface is not yet the default general-web renderer.
+
+This closes the first Android embedding foundation only. It does not yet provide a transport that automatically supplies arbitrary supported pages to the native surface, and it does not make OAP Engine standards-complete. System WebView remains the general-web renderer until compatibility, security and page-support evidence justifies changing that boundary.

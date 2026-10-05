@@ -62,6 +62,8 @@ class RenderDocument:
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "engine": "OAP_ENGINE",
+            "contract_version": 1,
             "title": self.title,
             "width": self.width,
             "height": self.height,

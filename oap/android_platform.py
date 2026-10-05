@@ -7,9 +7,12 @@ GENERATION_0 = {
     "kernel": "Android/Linux upstream host",
     "framework": "Android upstream host",
     "renderer": "Android System WebView",
+    "native_engine_surface": "OAP Engine display-list view for supported documents",
     "oap_owned": (
         "OAP World application shell",
         "OAP Browser product layer",
+        "native OAP Engine display-list surface",
+        "versioned OAP Engine Android bridge contract",
         "OAP service integration",
         "OAP security policy",
     ),
@@ -54,5 +57,7 @@ def status() -> dict[str, object]:
         "generation_1": GENERATION_1,
         "generation_2": GENERATION_2,
         "custom_android_os_exists": False,
+        "oap_engine_android_native_surface_exists": True,
+        "oap_engine_default_renderer": False,
         "oap_rendering_engine_standards_complete": False,
     }
