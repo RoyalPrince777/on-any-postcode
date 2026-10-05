@@ -42,6 +42,11 @@ def test_smi_command_dashboard_composes_canonical_sources():
         "GOVERNANCE",
         "BLOCK",
     )
+    assert command["oap_data"]["canonical"] is True
+    assert command["oap_data"]["mutates_repository"] is False
+    assert command["oap_data"]["approves_changes"] is False
+    assert command["oap_data"]["deploys"] is False
+    assert command["oap_data"]["source"] == "PR → OAP Data Change Record"
     assert command["execution_granted"] is False
     assert command["approval_granted"] is False
     assert command["human_authority_final"] is True
@@ -61,6 +66,8 @@ def test_smi_command_dashboard_route_is_read_only(client):
     assert "Movement Intelligence" in page
     assert "Learning Intelligence" in page
     assert "War Room" in page
+    assert "OAP Data" in page
+    assert "PR → OAP Data Change Record" in page
     assert "Human Authority final" in page
     assert "Telecom truth review" not in page
     assert ">Graphs<" not in page
