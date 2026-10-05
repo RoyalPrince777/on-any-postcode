@@ -3,6 +3,22 @@
 const root=document.querySelector("[data-ludo-root]");if(!root)return;
 const q=s=>root.querySelector(s),qa=s=>[...root.querySelectorAll(s)];
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
+function fitScreen(){
+ const vv=window.visualViewport,w=Math.max(1,Math.round(vv?.width||window.innerWidth)),h=Math.max(1,Math.round(vv?.height||window.innerHeight));
+ const board=Math.max(280,Math.min(w,h));
+ const portrait=h>=w,compact=Math.min(w,h)<430;
+ const style=document.documentElement.style;
+ style.setProperty("--screen-w",w+"px");style.setProperty("--screen-h",h+"px");style.setProperty("--board-size",board+"px");
+ style.setProperty("--board-left",portrait?Math.round((w-board)/2)+"px":"0px");
+ style.setProperty("--board-top",portrait?Math.round((h-board)/2)+"px":"0px");
+ root.classList.toggle("screen-portrait",portrait);root.classList.toggle("screen-landscape",!portrait);root.classList.toggle("screen-compact",compact);
+ requestAnimationFrame(()=>renderBoard());
+}
+window.addEventListener("resize",fitScreen,{passive:true});
+window.addEventListener("orientationchange",()=>setTimeout(fitScreen,120),{passive:true});
+document.addEventListener("fullscreenchange",()=>setTimeout(fitScreen,80));
+window.visualViewport?.addEventListener("resize",fitScreen,{passive:true});
+window.visualViewport?.addEventListener("scroll",fitScreen,{passive:true});
 let state=null,busy=false,agentIds=new Set(),agentDifficulty="sharp",agentTimer=null,lastSetup=null;
 const requestId=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
 const error=e=>{const n=q("[data-error]");if(n)n.textContent=e?.message||String(e)};
@@ -145,5 +161,5 @@ root.addEventListener("click",e=>{const btn=e.target.closest("[data-piece]");if(
 q("[data-stop]").onclick=()=>action("/arena/ludo/stop",{request_id:requestId()});
 q("[data-rematch]")?.addEventListener("click",()=>{state=null;agentIds.clear();q("[data-results]").hidden=true;q("[data-results]").style.display="none";const dlg=q("[data-settings]");if(dlg&&!dlg.open)dlg.showModal()});
 qa("[data-fullscreen]").forEach(b=>b.addEventListener("click",async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}catch{}}));
-buildBoard();renderBoard();
+buildBoard();fitScreen();renderBoard();
 })();
