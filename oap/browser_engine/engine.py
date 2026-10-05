@@ -14,6 +14,7 @@ from .accessibility import AccessibilityNode, build_accessibility_tree
 from .css import Rule, computed_style, parse_stylesheet
 from .dom import HIDDEN_ELEMENTS, Node, parse_html_document
 from .forms import FormModel, extract_forms
+from .origin import resolve_http_url
 from .paint import is_bold_font_weight, parse_css_color
 
 BLOCK_TAGS = {
@@ -54,6 +55,7 @@ class DisplayItem:
     color: str | None = None
     background_color: str | None = None
     bold: bool = False
+    src: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -115,6 +117,18 @@ def _font_size_px(value: str | None) -> int:
     return max(8, min(72, size))
 
 
+def _box_length(style: dict[str, str], kind: str, side: str) -> int:
+    return _length_px(style.get(f"{kind}-{side}"), _length_px(style.get(kind), 0))
+
+
+def _line_height_px(style: dict[str, str], font_size: int) -> int:
+    return max(font_size, _length_px(style.get("line-height"), font_size + 8))
+
+
+def _attribute_px(node: Node, name: str, default: int) -> int:
+    return _length_px(node.attrs.get(name), default)
+
+
 def _style_rules(root: Node) -> tuple[Rule, ...]:
     chunks = [
         node.text
@@ -152,7 +166,24 @@ def _effective_style(
     for name in ("color", "font-size", "font-weight", "text-align"):
         if name in local:
             style[name] = local[name]
-    for name in ("display", "margin", "padding", "background-color"):
+    for name in (
+        "display",
+        "margin",
+        "margin-top",
+        "margin-right",
+        "margin-bottom",
+        "margin-left",
+        "padding",
+        "padding-top",
+        "padding-right",
+        "padding-bottom",
+        "padding-left",
+        "width",
+        "min-width",
+        "max-width",
+        "line-height",
+        "background-color",
+    ):
         if name in local:
             style[name] = local[name]
         else:
@@ -197,18 +228,52 @@ def render_html(
             return
 
         is_block = _is_block(node, style)
-        margin = _length_px(style.get("margin"))
-        padding = _length_px(style.get("padding"))
+        margin_top = _box_length(style, "margin", "top")
+        margin_right = _box_length(style, "margin", "right")
+        margin_bottom = _box_length(style, "margin", "bottom")
+        margin_left = _box_length(style, "margin", "left")
+        padding_top = _box_length(style, "padding", "top")
+        padding_right = _box_length(style, "padding", "right")
+        padding_bottom = _box_length(style, "padding", "bottom")
+        padding_left = _box_length(style, "padding", "left")
         font_size = _font_size_px(style.get("font-size"))
-        line_height = max(16, font_size + 8)
+        line_height = max(16, _line_height_px(style, font_size))
         char_width = max(4, round(font_size * 0.5))
-        local_x = x_offset + margin + padding
-        local_width = max(1, available_width - (2 * (margin + padding)))
+
+        outer_available = max(1, available_width - margin_left - margin_right)
+        requested_width = _length_px(style.get("width"), outer_available)
+        min_width = _length_px(style.get("min-width"), 1)
+        max_width = _length_px(style.get("max-width"), outer_available)
+        box_width = min(outer_available, max(min_width, min(requested_width, max_width)))
+        local_x = x_offset + margin_left + padding_left
+        local_width = max(1, box_width - padding_left - padding_right)
         max_chars = max(1, local_width // char_width)
         href = node.attrs.get("href") if node.tag == "a" else inherited_href
 
         if is_block and items:
-            y += margin
+            y += margin_top
+        y += padding_top
+
+        if node.tag == "img":
+            alt = " ".join(node.attrs.get("alt", "").split()) or "Image"
+            image_width = min(local_width, _attribute_px(node, "width", min(local_width, 240)))
+            image_height = _attribute_px(node, "height", max(80, min(180, image_width)))
+            src = resolve_http_url(base_url, node.attrs.get("src", "")) if base_url else None
+            items.append(
+                DisplayItem(
+                    kind="image",
+                    text=alt[:2048],
+                    x=local_x,
+                    y=y,
+                    width=image_width,
+                    height=image_height,
+                    color=parse_css_color(style.get("color")),
+                    background_color=parse_css_color(style.get("background-color")),
+                    bold=False,
+                    src=src,
+                )
+            )
+            y += image_height
 
         if node.text:
             for line in _wrap_words(node.text, max_chars):
@@ -244,8 +309,8 @@ def render_html(
                 available_width=local_width,
             )
 
-        if is_block and (node.text or node.children):
-            y += margin + padding
+        if is_block and (node.text or node.children or node.tag == "img"):
+            y += padding_bottom + margin_bottom
 
     for child in root.children:
         render_node(
