@@ -10,9 +10,9 @@
 <style>
 :root{--bg:#061019;--panel:rgba(7,17,27,.88);--line:#28475f;--text:#f8fbff;--muted:#9eb3c4;--gold:#f6c453;--screen-w:100vw;--screen-h:100dvh;--board-size:min(100vw,100dvh);--board-left:calc((100vw - var(--board-size))/2);--board-top:calc((100dvh - var(--board-size))/2);--ui-scale:1}
 *{box-sizing:border-box}
-html,body{margin:0;min-height:100%;background:#061019;color:var(--text);overflow-x:hidden}
+html,body{margin:0;width:100%;height:100%;min-height:100%;background:#061019;color:var(--text);overflow:hidden}
 body{min-height:100dvh;overscroll-behavior:none}
-.game-shell{width:var(--screen-w);height:var(--screen-h);min-height:0;overflow:hidden;background:radial-gradient(circle at top,#173047,#061019 58%)}
+.game-shell{position:fixed;inset:0;width:var(--screen-w);height:var(--screen-h);min-height:0;overflow:hidden;background:radial-gradient(circle at top,#173047,#061019 58%)}
 .game-topbar{position:fixed;top:0;left:0;width:var(--screen-w);display:flex;align-items:center;justify-content:space-between;gap:8px;padding:max(8px,env(safe-area-inset-top)) 10px 8px;position:relative;z-index:20}
 .brand-lockup{display:flex;align-items:center;gap:8px}.brand-lockup strong{font-size:1rem}.brand-lockup span{font-size:.72rem;color:var(--muted)}
 .icon-btn,.game-btn,.settings-btn{min-height:44px;border:1px solid #36566f;border-radius:14px;background:#0d1b28;color:#fff;font-weight:900;padding:0 14px}
@@ -51,6 +51,11 @@ body{min-height:100dvh;overscroll-behavior:none}
 .screen-portrait .board-stage{left:var(--board-left);top:var(--board-top)}
 .screen-compact .brand-lockup span{display:none}
 .screen-compact .settings-btn{padding:0 10px;min-height:40px}
+:fullscreen{width:100vw!important;height:100vh!important;margin:0!important;padding:0!important;background:#061019!important}
+:-webkit-full-screen{width:100vw!important;height:100vh!important;margin:0!important;padding:0!important;background:#061019!important}
+.game-shell:fullscreen,.game-shell:-webkit-full-screen{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important}
+.game-shell:fullscreen .game-stage,.game-shell:-webkit-full-screen .game-stage{width:100vw!important;height:100vh!important}
+::backdrop{background:#061019}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script src="{{ url_for('static',filename='ludo.js') }}" defer></script>
