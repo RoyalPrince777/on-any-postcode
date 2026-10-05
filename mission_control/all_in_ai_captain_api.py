@@ -147,7 +147,7 @@ def ask(message: object) -> dict[str, Any]:
         raise RuntimeError("captain_provider_unavailable") from exc
 
     if not isinstance(payload, dict):
-        raise RuntimeError("captain_provider_invalid")
+        raise TypeError("captain_provider_invalid")
     answer = _extract_text(payload)
     if not answer:
         raise RuntimeError("captain_provider_empty")
