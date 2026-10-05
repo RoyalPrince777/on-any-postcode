@@ -42,43 +42,154 @@
     <button type="button" data-oap-install hidden>Install Link Up</button>
     <span data-oap-install-status role="status">Checking install support…</span>
   </section>
+  {% if auth_user and linkup_intent %}
   <header class="linkup-topbar">
-    <a href="{{ url_for('the_link_front_door') }}" aria-label="Back to The Link">‹</a>
+    <a href="{{ url_for('linkup_page') }}" aria-label="Back to Link Up Home">‹</a>
     <h1>{{ motion_icon('link-up', 'oap-motion-link') }} Link Up</h1>
     <a href="{{ url_for('home') }}" aria-label="OAP World">OAP</a>
   </header>
+  {% endif %}
 
-  {% if not auth_user %}
+  {% if not auth_user or not linkup_intent %}
     <main class="linkup-royal-home" aria-label="Link Up app">
-      <section class="linkup-royal-hero" aria-label="Link Up public home">
+      <section class="linkup-royal-hero" aria-label="Link Up master home">
         <div class="linkup-orbit" aria-hidden="true"></div>
         <div class="linkup-royal-brand">
           <span class="linkup-crown" aria-hidden="true">♛</span>
           <h2>LINK <span>UP</span></h2>
           <strong>OAP</strong>
-          <p>PRIVATE CHAT · SIMPLE · LINKED</p>
+          <p>PUBLIC · CONNECT · CREATE</p>
         </div>
-        {% if my_card and not auth_user %}
-        <div class="linkup-create-card" aria-label="Basic My Card active">
+
+        <form class="linkup-royal-search" method="get" action="{{ url_for('the_link_front_door') }}" role="search">
+          <span aria-hidden="true">⌕</span>
+          <input name="q" type="search" placeholder="Search people, interests, or opportunities…" aria-label="Search people, interests, or opportunities">
+          <a href="{{ url_for('the_link_front_door') }}" aria-label="Open discovery filters">☷</a>
+        </form>
+
+        {% if auth_user and my_card %}
+        <a class="linkup-create-card" href="{{ url_for('my_card_page') }}">
           <span aria-hidden="true">▤✓</span>
           <span>
-            <strong>{{ my_card.display_name }}</strong>
-            <small>{{ my_card.card_id }} · Basic My Card active. No password required. Private Link Up stays locked until secure sign-in is added.</small>
+            <strong>My Card</strong>
+            <small>{{ my_card.display_name }} · Show the world who you are. Connect. Create. Grow.</small>
           </span>
-          <b aria-hidden="true">🔒</b>
-        </div>
+          <b aria-hidden="true">›</b>
+        </a>
         {% else %}
         <a class="linkup-create-card" href="{{ url_for('my_card_create_page') }}">
           <span aria-hidden="true">▤＋</span>
-          <span><strong>Create My Card</strong><small>Optional for private features. Public Link Up needs no email, password or sign-in.</small></span>
+          <span>
+            <strong>Create My Card</strong>
+            <small>Show the world who you are. Connect. Create. Grow.</small>
+          </span>
           <b aria-hidden="true">›</b>
         </a>
         {% endif %}
       </section>
 
-      <section class="linkup-public-welcome" aria-label="Link Up private communication">
-        <p><strong>Simple private chat.</strong> Create My Card, Link with someone, then keep the conversation inside Link Up.</p>
+      <nav class="linkup-royal-tools" aria-label="Link Up master tools">
+        <a href="{{ '/linkup?intent=message' if auth_user else url_for('my_card_create_page') }}">
+          <span class="royal-symbol">💬</span><strong>Messages</strong><small>Chat &amp; Connect</small>
+        </a>
+        <a href="{{ url_for('the_link_front_door') }}">
+          <span class="royal-symbol royal-world">🌐</span><strong>Discovery</strong><small>Find People</small>
+        </a>
+        <a href="{{ url_for('my_card_page') if auth_user else url_for('my_card_create_page') }}">
+          <span class="royal-symbol royal-green">✓</span><strong>Certified</strong><small>Trusted Members</small>
+        </a>
+        <a href="#linkup-safety">
+          <span class="royal-symbol royal-gold">!</span><strong>Safety</strong><small>Stay Safe</small>
+        </a>
+        <a href="#linkup-private">
+          <span class="royal-symbol royal-shield">♛</span><strong>Private</strong><small>Your Space</small>
+        </a>
+        <a href="#linkup-public">
+          <span class="royal-symbol royal-shield">🔓</span><strong>Public</strong><small>Open to All</small>
+        </a>
+        <a href="#linkup-opportunities">
+          <span class="royal-symbol royal-rocket">🚀</span><strong>Opportunities</strong><small>Work &amp; Collab</small>
+        </a>
+        <a href="#linkup-spotlight">
+          <span class="royal-symbol royal-star">✦</span><strong>Spotlight</strong><small>Featured</small>
+        </a>
+        <a href="{{ url_for('my_card_page') if auth_user else url_for('my_card_create_page') }}">
+          <span class="royal-symbol royal-scroll">▤</span><strong>Identity</strong><small>Build Trust</small>
+        </a>
+      </nav>
+
+      <section class="linkup-royal-stream" aria-label="Link Up discovery">
+        <a class="linkup-royal-card" href="{{ url_for('the_link_front_door') }}">
+          <span class="royal-card-art">📍</span>
+          <span>
+            <strong>Nearby People</strong>
+            <small>Real people. Real connections in your area.</small>
+          </span>
+          <b aria-hidden="true">›</b>
+        </a>
+
+        <a class="linkup-royal-card" id="linkup-opportunities" href="{{ url_for('the_link_front_door') }}">
+          <span class="royal-card-art">♛</span>
+          <span>
+            <strong>Opportunities</strong>
+            <small>Discover collabs, projects, events, creators and work.</small>
+          </span>
+          <b aria-hidden="true">›</b>
+        </a>
+
+        <a class="linkup-royal-card" id="linkup-spotlight" href="{{ url_for('the_link_front_door') }}">
+          <span class="royal-card-art">✦</span>
+          <span>
+            <strong>Spotlight</strong>
+            <small>Featured people, creators, opportunities and talent.</small>
+          </span>
+          <b aria-hidden="true">›</b>
+        </a>
+
+        <a class="linkup-royal-card" href="{{ url_for('home') }}">
+          <span class="royal-card-art">📊</span>
+          <span>
+            <strong>Community Signals</strong>
+            <small>See what’s happening across the OAP community.</small>
+          </span>
+          <b aria-hidden="true">›</b>
+        </a>
+
+        <section class="linkup-royal-card" id="linkup-safety" aria-label="Link Up Safety">
+          <span class="royal-card-art">🛡️</span>
+          <span>
+            <strong>Safety</strong>
+            <small>Block, report, Guardian protection and private-by-default controls stay attached to your Links.</small>
+          </span>
+          <b aria-hidden="true">✓</b>
+        </section>
+
+        <section class="linkup-royal-card" id="linkup-private" aria-label="Private Link Up">
+          <span class="royal-card-art">🔒</span>
+          <span>
+            <strong>Private</strong>
+            <small>Private Link Messages, Voice and Link Call stay between approved Links.</small>
+          </span>
+          <b aria-hidden="true">✓</b>
+        </section>
+
+        <section class="linkup-royal-card" id="linkup-public" aria-label="Public Link Up">
+          <span class="royal-card-art">🌍</span>
+          <span>
+            <strong>Public</strong>
+            <small>My Card discovery and opportunity information can be public without exposing private conversations.</small>
+          </span>
+          <b aria-hidden="true">✓</b>
+        </section>
       </section>
+
+      <nav class="linkup-royal-bottom" aria-label="Link Up bottom navigation">
+        <a href="{{ url_for('linkup_page') }}" aria-current="page">⌂<span>Home</span></a>
+        <a href="{{ url_for('the_link_front_door') }}">👥<span>People</span></a>
+        <a class="linkup-oap-home" href="{{ url_for('home') }}" aria-label="OAP World">♛<span>OAP</span></a>
+        <a href="{{ '/linkup?intent=message' if auth_user else url_for('my_card_create_page') }}">💬<span>Messages</span></a>
+        <a href="{{ url_for('my_card_page') if auth_user else url_for('my_card_create_page') }}">▤<span>My Card</span></a>
+      </nav>
     </main>
   {% else %}
     <main class="linkup-shell" aria-label="Private Link Up messenger">
