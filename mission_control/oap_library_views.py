@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import essential_life_systems, oap_library, oap_library_learning, web_security
+from . import essential_life_systems, oap_book_entitlements, oap_library, oap_library_learning, web_security
 
 bp = Blueprint("oap_library", __name__)
 
@@ -78,14 +78,25 @@ def library_home():
 def my_library():
     """Render the signed-in member's real Library access surface."""
 
+    identity, _user = _identity()
     member_collections = tuple(
         dict(item) for item in oap_library.COLLECTIONS if item.get("access") == "member"
     )
+    try:
+        owned_ebooks = oap_book_entitlements.list_verified_purchases(
+            authenticated_identity_id=identity
+        )
+        owned_state = "ready"
+    except oap_book_entitlements.BookEntitlementsUnavailable:
+        owned_ebooks = ()
+        owned_state = "unavailable"
     return _library_page(
         make_response(
             render_template(
                 "oap_my_library.html",
                 collections=member_collections,
+                owned_ebooks=owned_ebooks,
+                owned_state=owned_state,
             )
         )
     )
