@@ -48,6 +48,7 @@ def _payload() -> dict[str, object]:
 
 
 @bp.get("/library")
+@bp.get("/library/books")
 def library_home():
     """Render the public, first-party OAP knowledge catalogue."""
 
@@ -67,6 +68,24 @@ def library_home():
                 collections=oap_library.filter_collections(query),
                 journey=oap_library.LIBRARY_JOURNEY,
                 query=query,
+            )
+        )
+    )
+
+
+@bp.get("/library/my-library")
+@web_security.login_required()
+def my_library():
+    """Render the signed-in member's real Library access surface."""
+
+    member_collections = tuple(
+        dict(item) for item in oap_library.COLLECTIONS if item.get("access") == "member"
+    )
+    return _library_page(
+        make_response(
+            render_template(
+                "oap_my_library.html",
+                collections=member_collections,
             )
         )
     )
