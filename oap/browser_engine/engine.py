@@ -1,20 +1,42 @@
-"""OAP Engine v0: bounded first-party HTML-to-display-list renderer.
+"""OAP Engine v1: bounded first-party DOM/CSS-to-display-list renderer.
 
-This is intentionally not a standards-complete browser engine. It proves an
-OAP-owned parsing/layout/render contract that can grow without misrepresenting
-Android System WebView as first-party OAP technology.
+This remains intentionally smaller than a standards-complete browser engine.
+The important boundary is architectural: the main render path now consumes the
+OAP-owned DOM and CSS cascade rather than a parallel flat HTML parser.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from html.parser import HTMLParser
+
+from .css import Rule, computed_style, parse_stylesheet
+from .dom import HIDDEN_ELEMENTS, Node, parse_html_document
 
 BLOCK_TAGS = {
-    "article", "aside", "blockquote", "div", "footer", "form", "h1", "h2", "h3",
-    "h4", "h5", "h6", "header", "li", "main", "nav", "ol", "p", "section", "ul",
+    "article",
+    "aside",
+    "blockquote",
+    "body",
+    "div",
+    "footer",
+    "form",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "header",
+    "li",
+    "main",
+    "nav",
+    "ol",
+    "p",
+    "section",
+    "ul",
 }
-IGNORED_TAGS = {"script", "style", "noscript", "template"}
+NON_RENDERED_TAGS = HIDDEN_ELEMENTS | {"head", "title"}
 
 
 @dataclass(frozen=True)
@@ -47,58 +69,6 @@ class RenderDocument:
         }
 
 
-class _OapHtmlParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.title = ""
-        self._title_depth = 0
-        self._ignore_depth = 0
-        self._href_stack: list[str | None] = []
-        self.tokens: list[tuple[str, str | None, bool]] = []
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        tag = tag.lower()
-        if tag in IGNORED_TAGS:
-            self._ignore_depth += 1
-            return
-        if self._ignore_depth:
-            return
-        if tag == "title":
-            self._title_depth += 1
-        href = None
-        if tag == "a":
-            href = dict(attrs).get("href")
-        self._href_stack.append(href)
-        if tag in BLOCK_TAGS:
-            self.tokens.append(("\n", None, True))
-
-    def handle_endtag(self, tag: str) -> None:
-        tag = tag.lower()
-        if tag in IGNORED_TAGS:
-            self._ignore_depth = max(0, self._ignore_depth - 1)
-            return
-        if self._ignore_depth:
-            return
-        if tag == "title":
-            self._title_depth = max(0, self._title_depth - 1)
-        if tag in BLOCK_TAGS:
-            self.tokens.append(("\n", None, True))
-        if self._href_stack:
-            self._href_stack.pop()
-
-    def handle_data(self, data: str) -> None:
-        if self._ignore_depth:
-            return
-        text = " ".join(data.split())
-        if not text:
-            return
-        if self._title_depth:
-            self.title = (self.title + " " + text).strip()
-            return
-        href = next((value for value in reversed(self._href_stack) if value), None)
-        self.tokens.append((text, href, False))
-
-
 def _wrap_words(text: str, max_chars: int) -> Iterable[str]:
     words = text.split()
     line = ""
@@ -117,52 +87,158 @@ def _wrap_words(text: str, max_chars: int) -> Iterable[str]:
         yield line
 
 
-def render_html(html: str, viewport_width: int = 390) -> RenderDocument:
-    """Render a safe text-first subset of HTML to an OAP display list.
+def _length_px(value: str | None, default: int = 0) -> int:
+    """Parse the bounded integer/px CSS length subset used by Engine v1."""
 
-    v0 deliberately implements no CSS cascade, JavaScript, forms, media,
-    networking, cookies, storage, accessibility tree, or compositing.
-    """
+    if not value:
+        return default
+    match = re.fullmatch(r"\s*(-?\d{1,4})(?:px)?\s*", value, flags=re.IGNORECASE)
+    if match is None:
+        return default
+    return max(0, min(1000, int(match.group(1))))
+
+
+def _font_size_px(value: str | None) -> int:
+    size = _length_px(value, 16)
+    return max(8, min(72, size))
+
+
+def _style_rules(root: Node) -> tuple[Rule, ...]:
+    chunks = [
+        node.text
+        for node in root.descendants()
+        if node.tag == "style" and node.text
+    ]
+    return parse_stylesheet("\n".join(chunks))
+
+
+def _document_title(root: Node) -> str:
+    for node in root.descendants():
+        if node.tag == "title":
+            title = node.text_content().strip()
+            if title:
+                return title
+    return "Untitled"
+
+
+def _is_block(node: Node, style: dict[str, str]) -> bool:
+    display = style.get("display", "").strip().lower()
+    if display == "block":
+        return True
+    if display == "inline":
+        return False
+    return node.tag in BLOCK_TAGS
+
+
+def _effective_style(
+    node: Node,
+    rules: tuple[Rule, ...],
+    inherited: dict[str, str],
+) -> dict[str, str]:
+    style = dict(inherited)
+    local = computed_style(node, rules)
+    for name in ("color", "font-size", "font-weight", "text-align"):
+        if name in local:
+            style[name] = local[name]
+    for name in ("display", "margin", "padding", "background-color"):
+        if name in local:
+            style[name] = local[name]
+        else:
+            style.pop(name, None)
+    return style
+
+
+def render_html(html: str, viewport_width: int = 390) -> RenderDocument:
+    """Render the OAP-owned HTML/DOM/CSS subset to a deterministic display list."""
+
     if viewport_width < 160:
         raise ValueError("viewport_width must be at least 160")
 
-    parser = _OapHtmlParser()
-    parser.feed(html)
-    parser.close()
+    root = parse_html_document(html)
+    rules = _style_rules(root)
 
-    margin = 16
-    line_height = 24
-    char_width = 8
-    content_width = max(1, viewport_width - (margin * 2))
-    max_chars = max(1, content_width // char_width)
-    y = margin
+    outer_margin = 16
+    content_width = max(1, viewport_width - (outer_margin * 2))
+    y = outer_margin
     items: list[DisplayItem] = []
 
-    pending_break = False
-    for text, href, is_break in parser.tokens:
-        if is_break:
-            pending_break = True
-            continue
-        if pending_break and items:
-            y += 8
-        pending_break = False
-        for line in _wrap_words(text, max_chars):
-            items.append(
-                DisplayItem(
-                    kind="link" if href else "text",
-                    text=line,
-                    x=margin,
-                    y=y,
-                    width=min(content_width, len(line) * char_width),
-                    height=line_height,
-                    href=href,
+    def render_node(
+        node: Node,
+        *,
+        inherited: dict[str, str],
+        inherited_href: str | None,
+        x_offset: int,
+        available_width: int,
+    ) -> None:
+        nonlocal y
+
+        if node.tag in NON_RENDERED_TAGS:
+            return
+
+        style = _effective_style(node, rules, inherited)
+        if style.get("display", "").strip().lower() == "none":
+            return
+
+        is_block = _is_block(node, style)
+        margin = _length_px(style.get("margin"))
+        padding = _length_px(style.get("padding"))
+        font_size = _font_size_px(style.get("font-size"))
+        line_height = max(16, font_size + 8)
+        char_width = max(4, round(font_size * 0.5))
+        local_x = x_offset + margin + padding
+        local_width = max(1, available_width - (2 * (margin + padding)))
+        max_chars = max(1, local_width // char_width)
+        href = node.attrs.get("href") if node.tag == "a" else inherited_href
+
+        if is_block and items:
+            y += margin
+
+        if node.text:
+            for line in _wrap_words(node.text, max_chars):
+                width = min(local_width, len(line) * char_width)
+                align = style.get("text-align", "").strip().lower()
+                x = local_x
+                if align == "center":
+                    x += max(0, (local_width - width) // 2)
+                elif align == "right":
+                    x += max(0, local_width - width)
+                items.append(
+                    DisplayItem(
+                        kind="link" if href else "text",
+                        text=line,
+                        x=x,
+                        y=y,
+                        width=width,
+                        height=line_height,
+                        href=href,
+                    )
                 )
+                y += line_height
+
+        for child in node.children:
+            render_node(
+                child,
+                inherited=style,
+                inherited_href=href,
+                x_offset=local_x,
+                available_width=local_width,
             )
-            y += line_height
+
+        if is_block and (node.text or node.children):
+            y += margin + padding
+
+    for child in root.children:
+        render_node(
+            child,
+            inherited={},
+            inherited_href=None,
+            x_offset=outer_margin,
+            available_width=content_width,
+        )
 
     return RenderDocument(
-        title=parser.title or "Untitled",
+        title=_document_title(root),
         width=viewport_width,
-        height=max(y + margin, line_height + margin * 2),
+        height=max(y + outer_margin, 24 + outer_margin * 2),
         items=tuple(items),
     )
