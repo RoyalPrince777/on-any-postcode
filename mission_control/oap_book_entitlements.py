@@ -80,3 +80,51 @@ def lookup_verified_purchase(
         payment_receipt_id=receipt_id,
         payment_verified=True,
     )
+
+
+
+def list_verified_purchases(*, authenticated_identity_id: str) -> tuple[dict[str, object], ...]:
+    """List only durable, non-revoked ebook entitlements owned by one member.
+
+    This is a read projection. It never creates ownership and never trusts
+    browser-supplied payment state.
+    """
+    try:
+        identity = str(uuid.UUID(authenticated_identity_id))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError("invalid_authenticated_identity") from exc
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT e.entitlement_id,e.book_id,e.edition_id,
+                          e.payment_receipt_id,e.verification_receipt_id,e.created_at,
+                          c.creator_id,c.publisher_authority_id,c.manuscript_sha256
+                   FROM oap_book_entitlements e
+                   JOIN oap_ebook_editions c
+                     ON c.book_id=e.book_id AND c.edition_id=e.edition_id
+                   WHERE e.identity_id=%s
+                     AND e.payment_verified IS TRUE
+                     AND e.revoked IS FALSE
+                     AND e.verification_receipt_id <> ''
+                     AND c.status='APPROVED'
+                     AND c.public_release_approved IS TRUE
+                   ORDER BY e.created_at DESC""",
+                (identity,),
+            ).fetchall()
+    except Exception as exc:
+        raise BookEntitlementsUnavailable("entitlement_library_read_failed") from exc
+    return tuple(
+        {
+            "entitlement_id": str(row[0]),
+            "book_id": str(row[1]),
+            "edition_id": str(row[2]),
+            "payment_receipt_id": str(row[3]),
+            "verification_receipt_id": str(row[4]),
+            "created_at": row[5].isoformat(),
+            "creator_id": str(row[6]),
+            "publisher_authority_id": str(row[7]),
+            "manuscript_sha256": str(row[8]),
+            "state": "OWNED",
+        }
+        for row in rows
+    )
