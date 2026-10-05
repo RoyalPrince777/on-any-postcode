@@ -40,6 +40,7 @@
   </style>
 </head>
 <body class="mc-workspace-body">
+  {% set mine_view = auth_user and request.args.get('mine') == '1' %}
   <header class="mc-workspace-header">
     <div>
       <p class="mc-eyebrow">OAP World / Market</p>
@@ -48,8 +49,10 @@
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
-      {% if auth_user %}
-      <a class="mc-secondary-link" href="#sell">＋ Sell</a>
+      {% if mine_view %}
+      <a class="mc-secondary-link" href="{{ request.path }}">Public Market</a>
+      {% elif auth_user %}
+      <a class="mc-secondary-link" href="{{ request.path }}?mine=1">My Market</a>
       {% else %}
       <a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Enter My World</a>
       {% endif %}
@@ -57,9 +60,19 @@
   </header>
 
   <main class="mc-workspace market-shell">
+    {% if mine_view %}
+    <section class="mc-panel market-notice" aria-label="My Market private view">
+      <strong>My Market</strong> · Your private order and merchant controls. Public shoppers do not see this management view.
+      <div class="market-actions" style="margin-top:10px">
+        <a class="mc-secondary-link" href="#orders">My Orders</a>
+        <a class="mc-secondary-link" href="#sell">Sell on OAP</a>
+        <a class="mc-secondary-link" href="{{ request.path }}">View Public Market</a>
+      </div>
+    </section>
+    {% endif %}
     <section class="mc-panel market-hero" aria-labelledby="market-browse-title">
-      <p class="mc-eyebrow">Browse · Local · Trusted</p>
-      <h2 id="market-browse-title">Find what you need</h2>
+      <p class="mc-eyebrow">{{ 'My Market · Orders · Seller' if mine_view else 'Browse · Local · Trusted' }}</p>
+      <h2 id="market-browse-title">{{ 'Your Market workspace' if mine_view else 'Find what you need' }}</h2>
       <form class="market-toolbar" method="get" action="{{ request.path }}">
         <label class="sr-only" for="market-search">Search Market</label>
         <input id="market-search" name="q" value="{{ request.args.get('q','') }}" placeholder="Search products, sellers or places">
@@ -165,7 +178,7 @@
       {% endif %}
     </section>
 
-    {% if auth_user %}
+    {% if mine_view %}
     <section id="orders" class="mc-panel" aria-labelledby="market-orders-title">
       <p class="mc-eyebrow">Orders</p>
       <h2 id="market-orders-title">My Orders</h2>
@@ -183,10 +196,11 @@
     </section>
     {% endif %}
 
+    {% if mine_view %}
     <section id="sell" class="mc-panel market-sell" aria-labelledby="market-sell-title">
       <p class="mc-eyebrow">Seller</p>
       <h2 id="market-sell-title">Sell on OAP</h2>
-      {% if auth_user and merchant_certified %}
+      {% if merchant_certified %}
         <p class="market-notice"><strong>Certified Merchant active.</strong> You can publish listings.</p>
         <form method="post" action="{{ url_for('market_listing_create') }}">
           <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
@@ -223,15 +237,13 @@
           </details>
           <button class="mc-primary" type="submit">Publish listing</button>
         </form>
-      {% elif auth_user and merchant_certification_unavailable %}
+      {% elif merchant_certification_unavailable %}
         <p class="market-notice"><strong>Certification unavailable.</strong> Try again later.</p>
-      {% elif auth_user %}
-        <p class="market-notice"><strong>Certified Merchant required.</strong> Browsing remains open.</p>
       {% else %}
-        <p class="market-notice">Browsing is public. Sign in only when you want to use a protected seller action.</p>
-        <a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path ~ '#sell') }}">Enter My World to sell →</a>
+        <p class="market-notice"><strong>Certified Merchant required.</strong> Public browsing remains open.</p>
       {% endif %}
     </section>
+    {% endif %}
 
   </main>
   <script>
@@ -346,6 +358,7 @@
     });
 
     async function refreshOrders() {
+      if (!ordersList) return;
       ordersList.innerHTML = '<div class="market-empty">Loading…</div>';
       try {
         const data = await jsonFetch('/mission/organs/market/orders');
@@ -419,7 +432,7 @@
 
     document.getElementById('market-refresh-orders')?.addEventListener('click', refreshOrders);
     renderBasket();
-    refreshOrders();
+    if (ordersList) refreshOrders();
   })();
   </script>
 </body>
