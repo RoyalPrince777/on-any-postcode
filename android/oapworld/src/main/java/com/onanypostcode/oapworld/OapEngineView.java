@@ -38,6 +38,7 @@ public final class OapEngineView extends View {
         final String color;
         final String backgroundColor;
         final boolean bold;
+        final String src;
 
         Item(
                 String kind,
@@ -49,7 +50,8 @@ public final class OapEngineView extends View {
                 String href,
                 String color,
                 String backgroundColor,
-                boolean bold
+                boolean bold,
+                String src
         ) {
             this.kind = kind;
             this.text = text;
@@ -61,6 +63,7 @@ public final class OapEngineView extends View {
             this.color = color;
             this.backgroundColor = backgroundColor;
             this.bold = bold;
+            this.src = src;
         }
     }
 
@@ -126,7 +129,7 @@ public final class OapEngineView extends View {
         for (int index = 0; index < rawItems.length(); index++) {
             JSONObject rawItem = rawItems.getJSONObject(index);
             String kind = rawItem.optString("kind", "text");
-            if (!"text".equals(kind) && !"link".equals(kind)) {
+            if (!"text".equals(kind) && !"link".equals(kind) && !"image".equals(kind)) {
                 throw new JSONException("unsupported display item kind");
             }
 
@@ -150,6 +153,10 @@ public final class OapEngineView extends View {
             String color = safeHexColor(rawItem.optString("color", null));
             String backgroundColor = safeHexColor(rawItem.optString("background_color", null));
             boolean bold = rawItem.optBoolean("bold", false);
+            String src = rawItem.isNull("src") ? null : rawItem.optString("src", null);
+            if (src != null && !isSafeHttpLink(src)) {
+                throw new JSONException("unsafe image source scheme");
+            }
             parsed.add(
                     new Item(
                             kind,
@@ -161,7 +168,8 @@ public final class OapEngineView extends View {
                             href,
                             color,
                             backgroundColor,
-                            bold
+                            bold,
+                            src
                     )
             );
         }
@@ -249,6 +257,34 @@ public final class OapEngineView extends View {
         canvas.save();
         canvas.scale(scale, scale);
         for (Item item : items) {
+            if ("image".equals(item.kind)) {
+                backgroundPaint.setColor(
+                        item.backgroundColor != null
+                                ? Color.parseColor(item.backgroundColor)
+                                : Color.rgb(18, 28, 23)
+                );
+                canvas.drawRect(
+                        item.x,
+                        item.y,
+                        item.x + item.width,
+                        item.y + item.height,
+                        backgroundPaint
+                );
+                textPaint.setColor(
+                        item.color != null
+                                ? Color.parseColor(item.color)
+                                : Color.rgb(190, 205, 196)
+                );
+                textPaint.setFakeBoldText(false);
+                textPaint.setTextSize(14f);
+                canvas.drawText(
+                        item.text,
+                        item.x + 8f,
+                        item.y + Math.min(item.height - 8f, 24f),
+                        textPaint
+                );
+                continue;
+            }
             if (item.backgroundColor != null) {
                 backgroundPaint.setColor(Color.parseColor(item.backgroundColor));
                 canvas.drawRect(
