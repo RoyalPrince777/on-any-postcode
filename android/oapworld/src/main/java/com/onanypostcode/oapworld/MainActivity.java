@@ -18,6 +18,7 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.TextView;
 
 import androidx.activity.ComponentActivity;
 
@@ -30,19 +31,19 @@ import java.util.List;
 
 public final class MainActivity extends ComponentActivity {
     private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com";
+    private static final String OAP_WORLD_PATH = "/world";
     private WebView webView;
     private OapEngineView engineView;
     private EngineDocumentClient engineClient;
     private ScrollView engineScrollView;
     private LinearLayout engineNativeHost;
-    private LinearLayout engineFormBar;
-    private EditText engineSearchInput;
-    private Button engineSearchButton;
     private boolean engineActive;
+    private boolean certifiedSearchFormActive;
     private String engineSourcePath;
     private EditText omnibox;
     private Button backButton;
-    private Button forwardButton;
+    private Button worldButton;
+    private TextView trustState;
     private final List<String> engineHistory = new ArrayList<>();
     private int engineHistoryIndex = -1;
 
@@ -61,10 +62,13 @@ public final class MainActivity extends ComponentActivity {
         toolbar.setPadding(8, 8, 8, 8);
 
         backButton = navButton("‹");
-        forwardButton = navButton("›");
-        Button homeButton = navButton("OAP");
-        Button reloadButton = navButton("↻");
-        Button goButton = navButton("Go");
+        worldButton = navButton("OAP World");
+
+        trustState = new TextView(this);
+        trustState.setText("OAP WORLD");
+        trustState.setTextColor(Color.rgb(185, 206, 194));
+        trustState.setGravity(Gravity.CENTER_VERTICAL);
+        trustState.setPadding(10, 0, 10, 0);
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
@@ -80,14 +84,12 @@ public final class MainActivity extends ComponentActivity {
         );
 
         toolbar.addView(backButton);
-        toolbar.addView(forwardButton);
-        toolbar.addView(homeButton);
-        toolbar.addView(reloadButton);
+        toolbar.addView(worldButton);
         toolbar.addView(
                 omnibox,
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         );
-        toolbar.addView(goButton);
+        toolbar.addView(trustState);
 
         webView = new WebView(this);
         engineClient = new EngineDocumentClient(OAP_ORIGIN);
@@ -100,37 +102,9 @@ public final class MainActivity extends ComponentActivity {
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
-        engineFormBar = new LinearLayout(this);
-        engineFormBar.setOrientation(LinearLayout.HORIZONTAL);
-        engineFormBar.setGravity(Gravity.CENTER_VERTICAL);
-        engineFormBar.setPadding(12, 8, 12, 8);
-        engineFormBar.setVisibility(View.GONE);
-
-        engineSearchInput = new EditText(this);
-        engineSearchInput.setSingleLine(true);
-        engineSearchInput.setHint("Search OAP");
-        engineSearchInput.setTextColor(Color.WHITE);
-        engineSearchInput.setHintTextColor(Color.rgb(150, 170, 158));
-        engineSearchInput.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
-        engineSearchInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
-
-        engineSearchButton = navButton("Search");
-        engineFormBar.addView(
-                engineSearchInput,
-                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        );
-        engineFormBar.addView(engineSearchButton);
-
         engineNativeHost = new LinearLayout(this);
         engineNativeHost.setOrientation(LinearLayout.VERTICAL);
         engineNativeHost.setVisibility(View.GONE);
-        engineNativeHost.addView(
-                engineFormBar,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-        );
         engineNativeHost.addView(
                 engineScrollView,
                 new LinearLayout.LayoutParams(
@@ -189,7 +163,8 @@ public final class MainActivity extends ComponentActivity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                omnibox.setText(url);
+                omnibox.setText(isOapUrl(url) ? "" : url);
+                updateTrustState(url);
                 refreshNavigationState();
             }
         });
@@ -202,41 +177,23 @@ public final class MainActivity extends ComponentActivity {
                 webView.goBack();
             }
         });
-        forwardButton.setOnClickListener(v -> {
-            if (engineActive && engineHistoryIndex + 1 < engineHistory.size()) {
-                engineHistoryIndex++;
-                openFirstPartyPath(engineHistory.get(engineHistoryIndex), false);
-            } else if (!engineActive && webView.canGoForward()) {
-                webView.goForward();
-            }
-        });
-        homeButton.setOnClickListener(v -> openFirstPartyPath("/"));
-        reloadButton.setOnClickListener(v -> {
-            if (engineActive && engineSourcePath != null) {
-                openFirstPartyPath(engineSourcePath);
-            } else {
-                webView.reload();
-            }
-        });
-        goButton.setOnClickListener(v -> navigate(omnibox.getText().toString()));
-        engineSearchButton.setOnClickListener(v -> submitNativeSearch());
-        engineSearchInput.setOnEditorActionListener((view, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                submitNativeSearch();
-                return true;
-            }
-            return false;
-        });
+        worldButton.setOnClickListener(v -> openFirstPartyPath(OAP_WORLD_PATH));
         omnibox.setOnEditorActionListener((view, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_GO) {
-                navigate(omnibox.getText().toString());
+            if (actionId == EditorInfo.IME_ACTION_GO
+                    || actionId == EditorInfo.IME_ACTION_SEARCH) {
+                String input = omnibox.getText().toString();
+                if (certifiedSearchFormActive && !looksLikeWebAddress(input)) {
+                    submitCertifiedSearchFromOmnibox(input);
+                } else {
+                    navigate(input);
+                }
                 return true;
             }
             return false;
         });
 
         if (state == null) {
-            openFirstPartyPath("/");
+            openFirstPartyPath(OAP_WORLD_PATH);
         }
         refreshNavigationState();
     }
@@ -248,6 +205,35 @@ public final class MainActivity extends ComponentActivity {
         button.setMinWidth(0);
         button.setMinimumWidth(0);
         return button;
+    }
+
+    private boolean looksLikeWebAddress(String rawInput) {
+        String input = rawInput == null ? "" : rawInput.trim();
+        if (input.isEmpty()) {
+            return false;
+        }
+        Uri parsed = Uri.parse(input);
+        String scheme = parsed.getScheme();
+        if ("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)) {
+            return true;
+        }
+        return !input.contains(" ") && input.contains(".") && !input.startsWith(".");
+    }
+
+    private boolean isOapUrl(String rawUrl) {
+        if (rawUrl == null || rawUrl.isEmpty()) {
+            return false;
+        }
+        Uri uri = Uri.parse(rawUrl);
+        Uri oapOrigin = Uri.parse(OAP_ORIGIN);
+        return "https".equalsIgnoreCase(uri.getScheme())
+                && oapOrigin.getHost() != null
+                && oapOrigin.getHost().equalsIgnoreCase(uri.getHost())
+                && uri.getPort() == -1;
+    }
+
+    private void updateTrustState(String rawUrl) {
+        trustState.setText(isOapUrl(rawUrl) ? "OAP WORLD" : "OPEN WEB");
     }
 
     private void navigate(String rawInput) {
@@ -282,10 +268,7 @@ public final class MainActivity extends ComponentActivity {
             return;
         }
 
-        boolean looksLikeHost = !input.contains(" ")
-                && input.contains(".")
-                && !input.startsWith(".");
-        if (looksLikeHost) {
+        if (looksLikeWebAddress(input)) {
             loadWebViewUrl("https://" + input);
             return;
         }
@@ -347,7 +330,10 @@ public final class MainActivity extends ComponentActivity {
                     engineHistoryIndex = engineHistory.size() - 1;
                 }
             }
-            omnibox.setText(sourcePath == null ? "OAP Engine" : OAP_ORIGIN + sourcePath);
+            updateTrustState(OAP_ORIGIN + (sourcePath == null ? OAP_WORLD_PATH : sourcePath));
+            if (!certifiedSearchFormActive) {
+                omnibox.setText("");
+            }
             refreshNavigationState();
         } catch (org.json.JSONException error) {
             loadWebViewUrl(OAP_ORIGIN + (sourcePath == null ? "/" : sourcePath));
@@ -355,8 +341,7 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void configureNativeSearchForm(String displayListJson) throws JSONException {
-        engineFormBar.setVisibility(View.GONE);
-        engineSearchInput.setText("");
+        certifiedSearchFormActive = false;
 
         JSONObject document = new JSONObject(displayListJson);
         JSONArray forms = document.optJSONArray("forms");
@@ -387,7 +372,6 @@ public final class MainActivity extends ComponentActivity {
         if (controls == null) {
             return;
         }
-        boolean foundQuery = false;
         for (int index = 0; index < controls.length(); index++) {
             JSONObject control = controls.optJSONObject(index);
             if (control == null) {
@@ -398,21 +382,19 @@ public final class MainActivity extends ComponentActivity {
             if ("q".equals(name)
                     && !control.optBoolean("disabled", false)
                     && ("text".equals(type) || "search".equals(type))) {
-                engineSearchInput.setText(control.optString("value", ""));
-                foundQuery = true;
-                break;
+                certifiedSearchFormActive = true;
+                omnibox.setText(control.optString("value", ""));
+                omnibox.setSelection(omnibox.getText().length());
+                return;
             }
-        }
-        if (foundQuery) {
-            engineFormBar.setVisibility(View.VISIBLE);
         }
     }
 
-    private void submitNativeSearch() {
-        if (!engineActive || engineFormBar.getVisibility() != View.VISIBLE) {
+    private void submitCertifiedSearchFromOmnibox(String rawQuery) {
+        if (!engineActive || !certifiedSearchFormActive) {
             return;
         }
-        String query = engineSearchInput.getText().toString().trim();
+        String query = rawQuery == null ? "" : rawQuery.trim();
         if (query.length() > 120) {
             return;
         }
@@ -438,9 +420,7 @@ public final class MainActivity extends ComponentActivity {
         if (engineNativeHost != null) {
             engineNativeHost.setVisibility(View.GONE);
         }
-        if (engineFormBar != null) {
-            engineFormBar.setVisibility(View.GONE);
-        }
+        certifiedSearchFormActive = false;
         if (webView != null) {
             webView.setVisibility(View.VISIBLE);
         }
@@ -450,11 +430,9 @@ public final class MainActivity extends ComponentActivity {
     private void refreshNavigationState() {
         if (engineActive) {
             backButton.setEnabled(engineHistoryIndex > 0);
-            forwardButton.setEnabled(engineHistoryIndex + 1 < engineHistory.size());
             return;
         }
         backButton.setEnabled(webView != null && webView.canGoBack());
-        forwardButton.setEnabled(webView != null && webView.canGoForward());
     }
 
     @Override

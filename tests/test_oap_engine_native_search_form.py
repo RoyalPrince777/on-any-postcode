@@ -15,7 +15,7 @@ def test_native_search_form_is_visible_only_for_certified_same_origin_get_search
     assert '"/search".equals(action.getPath())' in source
     assert 'action.getQuery() == null' in source
     assert 'action.getFragment() == null' in source
-    assert 'engineFormBar.setVisibility(View.VISIBLE)' in source
+    assert "certifiedSearchFormActive = true" in source
 
 
 def test_native_search_form_only_promotes_safe_q_text_control():
@@ -42,8 +42,12 @@ def test_native_search_submission_keeps_generation_guard():
     assert 'callback.onEngineDocument(responseBody, resolvedPath)' in source
 
 
-def test_main_activity_binds_native_search_submit_and_ime_action():
+def test_main_activity_reuses_single_omnibox_for_certified_search_submit():
     source = MAIN.read_text(encoding="utf-8")
-    assert "engineSearchButton.setOnClickListener(v -> submitNativeSearch())" in source
+    assert "certifiedSearchFormActive" in source
+    assert "submitCertifiedSearchFromOmnibox(input)" in source
     assert "EditorInfo.IME_ACTION_SEARCH" in source
     assert "engineClient.submitCertifiedSearch(query, viewportWidth" in source
+    assert "engineFormBar" not in source
+    assert "engineSearchButton" not in source
+    assert "engineSearchInput" not in source

@@ -234,3 +234,12 @@ Truth boundary: this is in-memory session history only. It does not yet persist 
 The Android OAP Engine surface now exposes one native editable Search control only when the engine document contains exactly one same-origin GET form whose certified action resolves to `/search` and whose `q` control is a non-disabled text/search field. The native Search button and IME Search action submit through `/api/oap-engine/submit`; the returned document must still carry the `X-OAP-Renderer: OAP_ENGINE` contract before it is displayed. Submission keeps the existing generation guard so stale responses cannot replace newer navigation.
 
 Truth boundary: this is not a general native HTML form runtime. Arbitrary actions, POST forms, passwords, hidden credentials, multipart/file controls and unsupported control types are not promoted into native Android controls and remain outside this Green scope.
+
+
+## OAP World minimal browser shell v1
+
+The Android browser shell now opens OAP World (`/world`) as its home/front door and strips duplicated browser chrome. The visible top surface is bounded to Back, OAP World, one omnibox and an origin-based trust state. Forward, Reload, Go, duplicate native Search controls and tab UI are removed from this bounded shell. The single omnibox handles OAP searches, certified native Search submission and direct web addresses.
+
+The trust state is based on origin rather than renderer: OAP-origin pages show `OAP WORLD` whether rendered natively or through a controlled WebView fallback; external origins show `OPEN WEB`.
+
+Truth boundary: this is a deliberately minimal single-surface shell, not a tabbed multi-window browser. Full tab management, persistent sessions, advanced browser menus and Chrome/Edge-class browser chrome are outside this Green scope.
