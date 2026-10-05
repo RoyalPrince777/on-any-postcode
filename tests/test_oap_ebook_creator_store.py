@@ -29,6 +29,9 @@ class FakeCursor:
     def fetchall(self):
         return self.rows
 
+    def commit(self):
+        return None
+
 
 def connect_with(monkeypatch, cursor):
     @contextmanager
