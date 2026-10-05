@@ -308,3 +308,29 @@ def test_route_failure_falls_back_to_real_road_context_and_clears_boot():
     assert "const roadCount=await loadRoadNetwork(defaultBounds,profile.value);" in route
     assert "setRenderState(roadCount>0?'stable':'degraded')" in route
     assert route.count("loadRoadNetwork(defaultBounds,profile.value)") >= 2
+
+
+
+def test_map_exposes_travel_and_movement_actions_after_route():
+    page = MAP.read_text(encoding="utf-8")
+    for marker in (
+        'id="movement-actions"',
+        'id="map-travel-link"',
+        'id="map-movement-link"',
+        'id="map-ride-link"',
+        'href="/transport/ride/current"',
+        "syncMovementLinks",
+        "clearMovementLinks",
+        "movementActions.hidden=false",
+    ):
+        assert marker in page
+
+
+def test_map_carries_route_into_travel_and_movement_links():
+    page = MAP.read_text(encoding="utf-8")
+    assert "new URLSearchParams({from:a,to:b})" in page
+    assert "travelLink.href='/travel?'+params.toString()" in page
+    assert "movementLink.href='/movement/workspace?'+params.toString()+'#book-title'" in page
+    assert "params.set('service','ride')" in page
+    assert "rideLink.href='/movement/workspace?'+params.toString()+'#book-title'" in page
+    assert "syncMovementLinks(d.origin?.label||a,d.destination?.label||b)" in page

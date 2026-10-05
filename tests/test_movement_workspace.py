@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from mission_control import (
     location_intelligence,
     movement_operations,
@@ -179,3 +181,16 @@ def test_public_movement_links_to_private_workspace(client):
     assert response.status_code == 200
     assert 'href="/movement/workspace"' in html
     assert "My Movement" in html
+
+
+
+def test_movement_workspace_accepts_map_route_prefill():
+    source = Path("mission_control/templates/movement_workspace.html").read_text(encoding="utf-8")
+    assert 'id="movement-map-link"' in source
+    assert 'params.get("from")' in source
+    assert 'params.get("to")' in source
+    assert 'params.get("service")' in source
+    assert 'pickupInput.value = fromParam' in source
+    assert 'destinationInput.value = toParam' in source
+    assert '["ride","ebike","delivery"].includes(serviceParam)' in source
+    assert 'mapLink.href = "/oap-map?" + mapParams.toString()' in source

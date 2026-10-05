@@ -20,6 +20,9 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
 .oap-mark,.search-card,.map-controls{visibility:visible!important;opacity:1!important}
 .oap-map-boot{position:absolute;left:50%;top:50%;z-index:2;transform:translate(-50%,-50%);padding:10px 14px;border:1px solid #39414b;border-radius:12px;background:#090c10d9;color:#d8dee7;font:700 13px Arial,sans-serif}
 .oap-map-boot[hidden]{display:none!important}
+.movement-actions{position:absolute;left:50%;bottom:88px;z-index:8;transform:translateX(-50%);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;width:min(94vw,680px);padding:8px;border:1px solid #303943;border-radius:18px;background:#0b0f14e8;backdrop-filter:blur(14px)}
+.movement-actions[hidden]{display:none!important}.movement-actions a{min-width:0;padding:10px 8px;border-radius:12px;text-align:center;text-decoration:none;color:#eef3f7;background:#151b22;border:1px solid #2d3742;font:800 12px system-ui}.movement-actions a.primary{background:#e7bf55;color:#17130a;border-color:#f1d477}
+@media(max-width:520px){.movement-actions{grid-template-columns:repeat(2,minmax(0,1fr));bottom:82px}}
 </style>
 <link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css', v='map-runtime-v4') }}">
 </head>
@@ -61,6 +64,13 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
       <div class="turn-icon" id="turn-icon">↑</div>
       <div class="turn-copy"><strong id="turn-road">Route ready</strong><span id="turn-sub">Next turn</span></div>
       <b id="turn-distance">—</b>
+    </section>
+
+    <section id="movement-actions" class="movement-actions" aria-label="Travel and movement actions" hidden>
+      <a id="map-travel-link" href="/travel">Travel</a>
+      <a id="map-movement-link" href="/movement/workspace#book-title">Movement</a>
+      <a id="map-ride-link" class="primary" href="/movement/workspace?service=ride#book-title">Request Ride</a>
+      <a href="/transport/ride/current">Current Journey</a>
     </section>
 
     <div id="route-state" class="map-toast" hidden></div>
@@ -128,6 +138,16 @@ const form=q('#map-form'),from=q('#map-from'),to=q('#map-to'),profile=q('#map-pr
 const state=q('#route-state'),distance=q('#distance'),eta=q('#eta'),roads=q('#roads'),directions=q('#directions'),places=q('#places'),trafficState=q('#traffic-state');
 const roadLayer=q('#road-layer'),svg=q('#route-svg'),casing=q('#route-casing'),line=q('#route-line'),start=q('#route-start'),end=q('#route-end'),coverage=q('#coverage');
 const fromLabel=q('#from-label'),toLabel=q('#to-label');
+const movementActions=q('#movement-actions'),travelLink=q('#map-travel-link'),movementLink=q('#map-movement-link'),rideLink=q('#map-ride-link');
+const syncMovementLinks=(a,b)=>{
+ const params=new URLSearchParams({from:a,to:b});
+ travelLink.href='/travel?'+params.toString();
+ movementLink.href='/movement/workspace?'+params.toString()+'#book-title';
+ params.set('service','ride');
+ rideLink.href='/movement/workspace?'+params.toString()+'#book-title';
+ movementActions.hidden=false;
+};
+const clearMovementLinks=()=>{movementActions.hidden=true};
 let bounds=null,roadRequest=0,routeRequest=0,routeController=null;
 const roadStatus=q('#road-source-state'),boot=q('#oap-map-boot');
 const setRenderState=state=>{document.body.dataset.mapRenderState=state};
@@ -245,6 +265,7 @@ async function route(options={}){
  const signal=routeController.signal;
  setRenderState('loading');
  svg.hidden=true;
+ clearMovementLinks();
  window.dispatchEvent(new CustomEvent('oap-map-route-clear'));
  toast(options.originCoords?'Recalculating route…':'Finding route…');
  try{
@@ -274,6 +295,7 @@ async function route(options={}){
    fromLabel.textContent=d.origin?.label||a;toLabel.textContent=d.destination?.label||b;
    coverage.textContent=d.coverage?.selected_label||'Greater London';
    renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);
+   syncMovementLinks(d.origin?.label||a,d.destination?.label||b);
    window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}));
    history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
  }catch(error){
@@ -291,6 +313,7 @@ window.addEventListener('pageshow',event=>{
    if(routeController)routeController.abort();
    svg.hidden=true;
    window.dispatchEvent(new CustomEvent('oap-map-route-clear'));
+   clearMovementLinks();
    setRenderState('loading');
    loadRoadNetwork(defaultBounds,profile.value);
  }
