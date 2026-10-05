@@ -45,7 +45,7 @@ function cellCenter(rc){
 function piecePoint(playerIndex,piece){
  const color=["green","red","yellow","blue"][playerIndex];
  if(piece.zone==="yard"){
-   const slot=q('[data-yard="'+color+'-'+piece.id.split("-").at(-1)+'"]');
+   const yardIndex=Math.max(0,Number(piece.id.split("-").at(-1))-1); const slot=q('[data-yard="'+color+'-'+yardIndex+'"]');
    if(slot){const b=q("[data-visual-board]").getBoundingClientRect(),s=slot.getBoundingClientRect();return {left:((s.left+s.width/2-b.left)/b.width)*100,top:((s.top+s.height/2-b.top)/b.height)*100}}
  }
  if(piece.zone==="track"){
@@ -83,7 +83,14 @@ function render(){
   const left=document.createElement("div");const title=document.createElement("strong");title.textContent=player.name;
   const meta=document.createElement("span");meta.textContent=player.finished+"/4 home";
   left.append(title,meta);
-  const pieces=document.createElement("span");pieces.textContent=player.pieces.map(p=>pieceLabel(p)).join(" · ");
+  const pieces=document.createElement("div");pieces.style.display="grid";pieces.style.gap="6px";
+  for(const piece of player.pieces){
+    const legal=state.status==="active"&&player.id===state.current_player_id&&state.pending_roll!==null&&state.movable_piece_ids.includes(piece.id);
+    const b=document.createElement("button");b.type="button";b.dataset.piece=piece.id;
+    b.textContent=(legal?"MOVE · ":"")+pieceLabel(piece);b.disabled=!legal||busy;
+    if(legal){b.className="arena-primary";b.style.minHeight="42px";}
+    pieces.append(b);
+  }
   row.append(left,pieces);view.append(row);
  }
  const active=state.status==="active",pending=state.pending_roll!==null;
@@ -91,9 +98,9 @@ function render(){
  const feedback=q("[data-feedback]");
  if(state.status==="completed"){feedback.textContent="👑 Arena Winner: "+(state.winner_name||state.players.find(p=>p.id===state.winner_id)?.name||"—");}
  else if(state.status==="stopped"){feedback.textContent="Match stopped.";}
- else if(pending&&state.movable_piece_ids.length){feedback.textContent="Rolled "+state.pending_roll+" · choose a highlighted piece.";}
+ else if(pending&&state.movable_piece_ids.length){feedback.textContent="🎯 Rolled "+state.pending_roll+" · tap a glowing piece or a MOVE button.";}
  else if(pending){feedback.textContent="Rolled "+state.pending_roll+".";}
- else{feedback.textContent="Roll when it is your move.";}
+ else{feedback.textContent="Roll when it is your move. You need a 6 to bring a piece out of the yard.";}
 }
 async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;render();}}
 q("[data-start]").onclick=()=>action("/arena/ludo/start",{players:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean)});
