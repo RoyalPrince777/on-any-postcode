@@ -49,7 +49,7 @@ def test_my_world_is_seven_door_founder_home_not_workspace_menu():
     assert 'href="/pay/bank"' in page
     assert "workspace_id='identity'" in page
     assert "mission_control.infrastructure_dashboard" in page
-    assert 'href="/smi/brain/receipts"' in page
+    assert "workspace_id='hrm-memory'" in page
     assert "mission_control.judgement_dashboard" in page
     assert "mission_control.ollama_chat_dashboard" in page
     assert "mission_control.war_room_dashboard" in page
@@ -107,3 +107,25 @@ def test_sovereignty_deck_does_not_fake_execution_controls():
     assert "Human Authority" in page
     assert "this UI does not fake a toggle" in page
     assert "dashboard click never silently deploys" in page
+
+
+
+def test_founder_home_buttons_do_not_404(client):
+    response = client.get("/my-world")
+    assert response.status_code == 200
+
+    for path in (
+        "/",
+        "/oap-map",
+        "/the-spot/market",
+        "/pay/bank",
+        "/my-world/identity",
+        "/my-world/hrm-memory",
+        "/mission/infrastructure",
+        "/mission/judgement",
+        "/mission/ollama",
+        "/mission/war-room",
+    ):
+        result = client.get(path, follow_redirects=False)
+        assert result.status_code != 404, path
+        assert result.status_code != 405, path
