@@ -44,7 +44,7 @@
   </section>
   {% if auth_user and linkup_intent %}
   <header class="linkup-topbar">
-    <a href="{{ url_for('linkup_page') }}" aria-label="Back to Link Up Home">‹</a>
+    <a href="{{ url_for('linkup_front_door') }}" aria-label="Back to Link Up Home">‹</a>
     <h1>{{ motion_icon('link-up', 'oap-motion-link') }} Link Up</h1>
     <a href="{{ url_for('home') }}" aria-label="OAP World">OAP</a>
   </header>
@@ -184,7 +184,7 @@
       </section>
 
       <nav class="linkup-royal-bottom" aria-label="Link Up bottom navigation">
-        <a href="{{ url_for('linkup_page') }}" aria-current="page">⌂<span>Home</span></a>
+        <a href="{{ url_for('linkup_front_door') }}" aria-current="page">⌂<span>Home</span></a>
         <a href="{{ url_for('the_link_front_door') }}">👥<span>People</span></a>
         <a class="linkup-oap-home" href="{{ url_for('home') }}" aria-label="OAP World">♛<span>OAP</span></a>
         <a href="{{ '/linkup?intent=message' if auth_user else url_for('my_card_create_page') }}">💬<span>Messages</span></a>
