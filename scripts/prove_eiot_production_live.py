@@ -41,7 +41,13 @@ def main()->int:
     broker=persistence.get("broker") or {}
     _require(broker.get("configured") is True,"broker_not_configured")
     _require(proof.get("attempted") is True,"persistence_proof_not_attempted")
-    _require(proof.get("ready") is True,"persistence_proof_not_ready")
+    _require(
+        proof.get("ready") is True,
+        "persistence_proof_not_ready:"
+        + str(proof.get("error") or "none")
+        + ":"
+        + str(proof.get("backend") or "none"),
+    )
 
     status,cells=_request("/v1/world/cells?x=250000&y=-250000&radius=1")
     _require(status==200,"cells_status")
