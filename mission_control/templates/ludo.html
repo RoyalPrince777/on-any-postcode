@@ -2,101 +2,112 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="oap-csrf-token" content="{{ csrf_token }}">
 <title>Ludo · OAP Arena</title>
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
 <style>
-:root{--bg:#07111b;--panel:#0d1b28;--line:#254157;--text:#f8fbff;--muted:#9eb3c4;--gold:#f6c453}
-body{background:radial-gradient(circle at top,#142536,#07111b 60%);color:var(--text)}
-.ludo-shell{max-width:1180px;margin:0 auto;padding:14px}
-.ludo-top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
-.ludo-top h1{margin:0;font-size:clamp(1.5rem,4vw,2.5rem)}
-.ludo-badge{border:1px solid #3e627d;background:#0b1824;padding:7px 10px;border-radius:999px;font-weight:800}
-.ludo-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}
-.ludo-board-wrap{background:linear-gradient(145deg,#102538,#09141e);border:1px solid #29465e;border-radius:24px;padding:12px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
-.ludo-board{position:relative;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);aspect-ratio:1;background:#e8edf2;border-radius:18px;overflow:hidden;border:5px solid #07111b}
-.ludo-cell{border:1px solid rgba(8,20,30,.16);background:#f5f7f9;position:relative}
+:root{--bg:#061019;--panel:rgba(7,17,27,.88);--line:#28475f;--text:#f8fbff;--muted:#9eb3c4;--gold:#f6c453}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#061019;color:var(--text);overflow-x:hidden}
+body{min-height:100dvh}
+.game-shell{min-height:100dvh;display:grid;grid-template-rows:auto 1fr auto;background:radial-gradient(circle at top,#173047,#061019 58%)}
+.game-topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:max(8px,env(safe-area-inset-top)) 10px 8px;position:relative;z-index:20}
+.brand-lockup{display:flex;align-items:center;gap:8px}.brand-lockup strong{font-size:1rem}.brand-lockup span{font-size:.72rem;color:var(--muted)}
+.icon-btn,.game-btn,.settings-btn{min-height:44px;border:1px solid #36566f;border-radius:14px;background:#0d1b28;color:#fff;font-weight:900;padding:0 14px}
+.settings-btn{background:#102435}
+.game-stage{display:grid;place-items:center;min-height:0;padding:0 8px 8px}
+.board-stage{position:relative;width:min(100%,calc(100dvh - 150px),820px);aspect-ratio:1;background:linear-gradient(145deg,#102538,#09141e);border:1px solid #29465e;border-radius:22px;padding:8px;box-shadow:0 18px 50px rgba(0,0,0,.42)}
+.ludo-board{position:relative;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);width:100%;height:100%;background:#e8edf2;border-radius:16px;overflow:hidden;border:4px solid #07111b}
+.ludo-cell{border:1px solid rgba(8,20,30,.16);background:#f5f7f9;position:relative}.ludo-cell.track{background:#fff}
 .ludo-cell.safe::after{content:"★";position:absolute;inset:0;display:grid;place-items:center;font-size:.72em;color:#344d62}
-.ludo-cell.track{background:#fff}
 .ludo-cell.green-lane{background:#8ee2ac}.ludo-cell.red-lane{background:#f5a0a0}.ludo-cell.yellow-lane{background:#f5e37d}.ludo-cell.blue-lane{background:#94c8f5}
-.home-zone{position:absolute;width:40%;height:40%;display:grid;place-items:center;padding:6%;box-sizing:border-box}
-.home-zone .yard{width:100%;height:100%;background:rgba(255,255,255,.9);border-radius:18%;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box}
+.home-zone{position:absolute;width:40%;height:40%;display:grid;place-items:center;padding:6%}.home-zone .yard{width:100%;height:100%;background:rgba(255,255,255,.92);border-radius:18%;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%}
 .home-zone.green{left:0;top:0;background:#168f43}.home-zone.red{right:0;top:0;background:#ce2d33}.home-zone.yellow{left:0;bottom:0;background:#e5b915}.home-zone.blue{right:0;bottom:0;background:#287dce}
-.yard-slot{border-radius:50%;background:#e9eef3;border:3px solid rgba(0,0,0,.15);display:grid;place-items:center}
-.center-home{position:absolute;left:40%;top:40%;width:20%;height:20%;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:conic-gradient(#cf3036 0 25%,#287dce 0 50%,#e5b915 0 75%,#168f43 0);display:grid;place-items:center;z-index:2}
-.center-home span{background:#07111b;color:#fff;border-radius:999px;padding:4px 7px;font-size:clamp(.45rem,1vw,.72rem);font-weight:900}
-.board-piece{position:absolute;width:5.2%;aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5);z-index:8;transform:translate(-50%,-50%);transition:left .22s ease,top .22s ease,transform .15s ease}
-.board-piece.selectable{outline:3px solid var(--gold);outline-offset:2px;cursor:pointer;animation:pulsePiece 1s infinite}
+.yard-slot{border-radius:50%;background:#e9eef3;border:3px solid rgba(0,0,0,.15)}
+.center-home{position:absolute;left:40%;top:40%;width:20%;height:20%;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:conic-gradient(#cf3036 0 25%,#287dce 0 50%,#e5b915 0 75%,#168f43 0);display:grid;place-items:center;z-index:2}.center-home span{background:#07111b;color:#fff;border-radius:999px;padding:4px 7px;font-size:clamp(.42rem,1.4vw,.72rem);font-weight:950}
+.board-piece{position:absolute;width:5.4%;aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.55);z-index:8;transform:translate(-50%,-50%);transition:left .22s ease,top .22s ease,transform .15s ease}.board-piece.selectable{outline:3px solid var(--gold);outline-offset:2px;cursor:pointer;animation:pulsePiece 1s infinite}
 .board-piece.green{background:#19aa53}.board-piece.red{background:#e24449}.board-piece.yellow{background:#f3ca24}.board-piece.blue{background:#3694eb}
-@keyframes pulsePiece{50%{transform:translate(-50%,-50%) scale(1.14)}}
-.side-panel{display:grid;gap:10px}
-.panel-card{background:linear-gradient(145deg,#102538,#0b1721);border:1px solid #29465e;border-radius:20px;padding:14px}
-.turn-card{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
-.turn-label{font-size:.78rem;color:var(--muted);text-transform:uppercase;font-weight:900;letter-spacing:.08em}
-.turn-value{font-size:1.25rem;font-weight:950}
-.die{width:72px;height:72px;border-radius:18px;background:#fff;color:#07111b;display:grid;place-items:center;font-size:2.1rem;font-weight:950;box-shadow:inset 0 0 0 4px #dfe7ee}
-.arena-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.arena-actions button,.arena-primary{min-height:48px;border-radius:14px;font-weight:900}
-.arena-primary{background:linear-gradient(135deg,#f6c453,#e79c17);color:#07111b;border:none}
-.player-entry{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:9px 10px;border:1px solid #28455d;border-radius:14px;margin-top:7px}
-.player-entry strong{display:block}.player-entry span{color:var(--muted);font-size:.85rem}
-.mobile-status{font-size:.9rem;color:var(--muted);margin-top:8px}
-@media(max-width:900px){.ludo-layout{grid-template-columns:1fr}.side-panel{grid-template-columns:1fr 1fr}.side-panel .panel-card:first-child{grid-column:1/-1}}
-@media(max-width:600px){.ludo-shell{padding:8px}.ludo-board-wrap{padding:7px;border-radius:16px}.side-panel{grid-template-columns:1fr}.arena-actions{grid-template-columns:1fr}.die{width:62px;height:62px}}
+@keyframes pulsePiece{50%{transform:translate(-50%,-50%) scale(1.18)}}
+.hud{position:absolute;inset:auto 14px 14px 14px;z-index:15;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;pointer-events:none}
+.hud-left,.hud-actions{pointer-events:auto;background:rgba(5,14,23,.88);backdrop-filter:blur(10px);border:1px solid #29465e;border-radius:16px;padding:8px}
+.hud-left{display:flex;align-items:center;gap:10px;min-width:0}.hud-copy{min-width:0}.hud-label{font-size:.67rem;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.08em}.hud-turn{font-size:.95rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.die{width:52px;height:52px;border-radius:15px;background:#fff;color:#07111b;display:grid;place-items:center;font-size:1.5rem;font-weight:950;box-shadow:inset 0 0 0 3px #dfe7ee}
+.hud-actions{display:grid;grid-template-columns:repeat(2,minmax(72px,1fr));gap:6px}.game-btn{padding:0 10px}.roll-btn{background:linear-gradient(135deg,#f6c453,#e79c17);color:#07111b;border:none}.move-panel{position:absolute;left:14px;right:14px;top:14px;z-index:14;pointer-events:none}.move-panel-inner{display:none;pointer-events:auto;background:rgba(5,14,23,.86);backdrop-filter:blur(10px);border:1px solid #29465e;border-radius:16px;padding:8px;max-height:28vh;overflow:auto}.move-panel-inner.active{display:block}
+.arena-game-content{display:grid;gap:6px}.player-entry{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:7px 9px;border:1px solid #28455d;border-radius:12px}.player-entry span{font-size:.78rem;color:var(--muted)}
+.status-strip{padding:7px 12px calc(8px + env(safe-area-inset-bottom));font-size:.82rem;color:var(--muted);text-align:center;min-height:38px}
+.settings-drawer{position:fixed;inset:0;z-index:50;display:none;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);padding:12px}.settings-drawer[open]{display:grid;place-items:end center}.settings-card{width:min(100%,520px);background:#0b1824;border:1px solid #31516a;border-radius:22px;padding:16px;box-shadow:0 25px 80px rgba(0,0,0,.5)}.settings-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.settings-card input{width:100%;margin:8px 0 12px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.settings-grid>*{min-height:46px}
+.arena-error{color:#ffb2b2;min-height:20px}
+@media(min-width:900px){.board-stage{width:min(78vw,calc(100dvh - 125px),860px)}.hud{inset:auto 18px 18px 18px}}
+@media(max-width:600px){.game-topbar{padding-inline:8px}.board-stage{width:min(100%,calc(100dvh - 140px));border-radius:16px;padding:5px}.ludo-board{border-radius:12px}.hud{inset:auto 8px 8px 8px}.hud-left,.hud-actions{padding:6px}.die{width:46px;height:46px}.game-btn{min-height:42px;font-size:.78rem}.move-panel{left:8px;right:8px;top:8px}.settings-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <script src="{{ url_for('static',filename='ludo.js') }}" defer></script>
 </head>
 <body>
-<main class="ludo-shell" data-ludo-root>
-  <div class="ludo-top">
-    <div>
-      <div class="turn-label">OAP Arena</div>
-      <h1>🎲 Ludo</h1>
-    </div>
-    <div class="ludo-badge">Born Local. Built Global.</div>
-  </div>
+<main class="game-shell" data-ludo-root>
+  <header class="game-topbar">
+    <div class="brand-lockup"><strong>🎲 OAP Ludo</strong><span>OAP Arena</span></div>
+    <button class="settings-btn" type="button" data-open-settings>⚙ Settings</button>
+  </header>
 
-  <section class="ludo-layout">
-    <div class="ludo-board-wrap">
+  <section class="game-stage">
+    <div class="board-stage">
       <div class="ludo-board" data-visual-board aria-label="OAP Arena Ludo board"></div>
-      <p class="mobile-status" data-feedback aria-live="polite">Start a match to enter the board.</p>
-    </div>
 
-    <aside class="side-panel">
-      <section class="panel-card">
-        <nav aria-label="Arena navigation"><a href="/arena">← OAP Arena</a> · <a href="/arena/ludo/room">Online Room</a></nav>
-        <div class="turn-card" style="margin-top:12px">
-          <div>
-            <div class="turn-label">Turn</div>
-            <div class="turn-value" data-turn>—</div>
-            <div class="turn-label" style="margin-top:8px">Status</div>
-            <div data-status>Open</div>
-          </div>
+      <div class="move-panel">
+        <div class="move-panel-inner" data-move-panel data-game hidden>
+          <div class="hud-label">Choose Piece</div>
+          <div class="arena-game-content" data-players-view></div>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="hud-left">
           <div class="die" data-roll-value>⚄</div>
+          <div class="hud-copy">
+            <div class="hud-label">Turn</div>
+            <div class="hud-turn" data-turn>—</div>
+            <div class="hud-label" data-status>Open</div>
+          </div>
         </div>
-      </section>
-
-      <section class="panel-card">
-        <label class="turn-label" for="players">Players</label>
-        <input id="players" data-players maxlength="180" value="Player One, Player Two" autocomplete="off" style="width:100%;box-sizing:border-box;margin:7px 0 10px">
-        <div class="arena-actions">
-          <button class="arena-primary" type="button" data-start>START MATCH</button>
-          <button type="button" data-roll disabled>ROLL</button>
-          <button type="button" data-stop disabled>LEAVE MATCH</button>
-          <a href="/arena/ludo/room" style="display:grid;place-items:center;border:1px solid #36566f;border-radius:14px;text-decoration:none;font-weight:900">LINK IN</a>
+        <div class="hud-actions">
+          <button class="game-btn roll-btn" type="button" data-roll disabled>ROLL</button>
+          <button class="game-btn" type="button" data-open-settings>⚙</button>
         </div>
-        <p class="arena-error" role="alert" data-error></p>
-      </section>
-
-      <section class="panel-card" data-game hidden>
-        <div class="turn-label">Pieces</div>
-        <div class="arena-game-content" data-players-view></div>
-      </section>
-    </aside>
+      </div>
+    </div>
   </section>
+
+  <div class="status-strip" data-feedback aria-live="polite">Open Settings to start a match.</div>
+
+  <dialog class="settings-drawer" data-settings>
+    <section class="settings-card">
+      <div class="settings-head">
+        <div><div class="hud-label">Game Setup</div><strong>OAP Ludo Settings</strong></div>
+        <button class="icon-btn" type="button" data-close-settings>✕</button>
+      </div>
+      <label class="hud-label" for="players">Players</label>
+      <input id="players" data-players maxlength="180" value="Player One, Player Two" autocomplete="off">
+      <div class="settings-grid">
+        <button class="game-btn roll-btn" type="button" data-start>START MATCH</button>
+        <a class="game-btn" href="/arena/ludo/room" style="display:grid;place-items:center;text-decoration:none">LINK IN</a>
+        <button class="game-btn" type="button" data-stop disabled>LEAVE MATCH</button>
+        <a class="game-btn" href="/arena" style="display:grid;place-items:center;text-decoration:none">OAP ARENA</a>
+      </div>
+      <p class="arena-error" role="alert" data-error></p>
+    </section>
+  </dialog>
 </main>
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+ const root=document.querySelector("[data-ludo-root]"); if(!root)return;
+ const dlg=root.querySelector("[data-settings]");
+ root.querySelectorAll("[data-open-settings]").forEach(b=>b.addEventListener("click",()=>dlg.showModal()));
+ root.querySelector("[data-close-settings]")?.addEventListener("click",()=>dlg.close());
+ dlg?.addEventListener("click",e=>{if(e.target===dlg)dlg.close()});
+});
+</script>
 </body>
 </html>
