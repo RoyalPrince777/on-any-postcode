@@ -36,11 +36,9 @@ def test_home_exposes_oap_os_install_contract(client):
 
     assert response.status_code == 200
     assert 'rel="manifest" href="/manifest.webmanifest"' in page
-    assert 'data-oap-install hidden' in page
-    assert 'src="/assets/oap-os.js"' in page
-    assert "OAP OPERATING SYSTEM · GENERATION 0" in page
-    assert 'data-oap-install-status role="status"' in page
-    assert "Checking install support" in page
+    assert 'data-oap-install hidden' not in page
+    assert "OAP OPERATING SYSTEM · GENERATION 0" not in page
+    assert "Checking install support" not in page
     assert "protected records" not in page
 
 

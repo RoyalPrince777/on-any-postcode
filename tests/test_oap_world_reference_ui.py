@@ -7,29 +7,32 @@ HOME = ROOT / "templates" / "home.html"
 def test_oap_world_reference_ui_contract():
     page = HOME.read_text(encoding="utf-8")
     for marker in (
-        "OAP WORLD",
+        "ON ANY POSTCODE",
+        "YOUR LOCAL",
+        "MARKETPLACE.",
+        "Shop local. Sell local.",
+        "Shop",
+        "Sell",
+        "Orders",
+        "Pay",
+        "Eats",
+        "Map",
+    ):
+        assert marker in page
+
+    for removed in (
         "STRIP OF NOISE",
-        "Search the world... any postcode...",
-        "On Any Postcode Maps",
-        "The Spot",
+        "OAP WORLD",
+        "Quick Actions",
         "The Link",
-        "Market",
         "Media",
         "OAP Store",
-        "SIKA",
         "HRM",
         "Guardian",
         "Settings",
-        "PEOPLE",
-        "PLACES",
-        "POSSIBILITIES",
         "WITHOUT LIMITS",
-        "Choose Place",
-        "Quick Actions",
-        "EXPLORE THE WORLD",
-        "Connect People. Power Places. Create Possibilities.",
     ):
-        assert marker in page
+        assert removed not in page
 
 
 def test_public_oap_world_exposes_no_founder_entry():

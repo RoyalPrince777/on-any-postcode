@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ shop_name }} · ON ANY POSTCODE</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+{% include "_oap_install_head.html" %}
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<style>
+:root{color-scheme:dark;--bg:#080806;--panel:#12110d;--line:#302b1d;--gold:#efc85d;--text:#fffaf0;--muted:#a9a392}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}a{text-decoration:none;color:inherit}
+.shell{max-width:920px;margin:auto;padding:16px 16px calc(92px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}.back,.basket{padding:10px 12px;border:1px solid var(--line);border-radius:13px;background:var(--panel);font-size:.84rem}.basket{color:var(--gold);font-weight:900}
+.hero{margin-top:16px;padding:24px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(145deg,#1b1811,#0f0e0b)}.hero .mark{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;background:var(--gold);color:#17130a;font-size:1.7rem;font-weight:950}.hero h1{font-size:clamp(2rem,8vw,4rem);line-height:.95;margin:18px 0 7px}.hero p{margin:0;color:var(--muted)}
+.tabs{display:flex;gap:8px;margin:16px 0 22px;overflow:auto}.tabs a{white-space:nowrap;padding:10px 13px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:.84rem}.tabs a:first-child{background:var(--gold);color:#17130a;border-color:#ffe38a;font-weight:900}
+.section-head{display:flex;justify-content:space-between;align-items:end;margin:0 2px 12px}.section-head h2{margin:0;font-size:1.15rem}.section-head span{color:var(--muted);font-size:.8rem}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.product{min-height:210px;padding:14px;border:1px solid var(--line);border-radius:20px;background:var(--panel);display:flex;flex-direction:column}.image{aspect-ratio:1.2;border-radius:15px;background:linear-gradient(145deg,#211f18,#0d0c09);display:grid;place-items:center;font-size:2rem;margin-bottom:12px}.product h3{margin:0;font-size:1rem}.product p{color:var(--muted);font-size:.8rem;line-height:1.35;flex:1}.price{font-weight:950;margin:8px 0 10px}.actions{display:grid;grid-template-columns:1fr auto;gap:7px}.buy,.view{padding:11px;border-radius:12px;border:1px solid var(--line);font:800 .82rem system-ui}.buy{background:var(--gold);color:#17130a;border-color:#ffe38a}.view{background:#0d0c09;color:var(--text)}
+.empty{padding:26px;border:1px dashed var(--line);border-radius:18px;color:var(--muted);text-align:center}
+.toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);padding:11px 14px;border-radius:13px;background:#17150f;border:1px solid #665526;color:#ffe291;font-size:.82rem;display:none;z-index:8}.toast.show{display:block}
+.bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(920px,100%);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#0b0a08f2;border-top:1px solid var(--line);backdrop-filter:blur(14px)}.bottom a{padding:7px 2px;text-align:center;color:var(--muted);font-size:.68rem}.bottom b{display:block;color:var(--gold);font-size:1.05rem;margin-bottom:2px}
+@media(min-width:720px){.grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="top">
+<a class="back" href="/">‹ Marketplace</a>
+<a class="basket" href="/the-spot/market#basket">Basket</a>
+</header>
+<section class="hero">
+<div class="mark">{{ (shop_name or 'S')[:1]|upper }}</div>
+<h1>{{ shop_name }}</h1>
+<p>{% if shop_location %}📍 {{ shop_location }} · {% endif %}Shop on ON ANY POSTCODE</p>
+</section>
+<nav class="tabs" aria-label="Shop sections">
+<a href="#products">Shop</a>
+<a href="#products">Products</a>
+<a href="/the-spot/market#orders">Orders</a>
+<a href="/pay/bank">Pay</a>
+</nav>
+<section id="products">
+<div class="section-head"><h2>Products</h2><span>{{ shop_products|length }} item{{ '' if shop_products|length == 1 else 's' }}</span></div>
+{% if shop_products %}
+<div class="grid">
+{% for product in shop_products %}
+<article class="product">
+<div class="image">🛍️</div>
+<h3>{{ product.name }}</h3>
+<p>{{ product.description }}</p>
+<div class="price">{{ product.currency }} {{ product.price }}</div>
+<div class="actions">
+<button class="buy market-add" type="button" data-product-id="{{ product.product_id }}" data-name="{{ product.name|e }}" data-price="{{ product.price }}" data-currency="{{ product.currency }}">Add</button>
+<a class="view" href="/the-spot/market?product={{ product.product_id }}">View</a>
+</div>
+</article>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty">This shop has no active products right now.</div>
+{% endif %}
+</section>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite">Added to basket</div>
+<nav class="bottom" aria-label="Shop navigation">
+<a href="/"><b>⌂</b>Home</a>
+<a href="#products"><b>🛍️</b>Shop</a>
+<a href="/the-spot/market#basket"><b>🧺</b>Basket</a>
+<a href="/pay/bank"><b>🪙</b>Pay</a>
+</nav>
+<script>
+(()=>{
+ const key='oap-market-basket-v1';
+ const toast=document.getElementById('toast');
+ const load=()=>{try{const v=JSON.parse(sessionStorage.getItem(key)||'[]');return Array.isArray(v)?v:[]}catch{return[]}};
+ const save=v=>sessionStorage.setItem(key,JSON.stringify(v.slice(0,20)));
+ document.querySelectorAll('.market-add').forEach(button=>{
+   button.addEventListener('click',()=>{
+     const basket=load();
+     const found=basket.find(item=>item.product_id===button.dataset.productId);
+     if(found) found.quantity=Math.min(99,(found.quantity||1)+1);
+     else basket.push({product_id:button.dataset.productId,name:button.dataset.name,price:button.dataset.price,currency:button.dataset.currency,quantity:1});
+     save(basket);
+     toast.classList.add('show');
+     setTimeout(()=>toast.classList.remove('show'),1200);
+   });
+ });
+})();
+</script>
+</body>
+</html>

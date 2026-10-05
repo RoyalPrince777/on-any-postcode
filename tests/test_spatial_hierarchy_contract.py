@@ -57,8 +57,7 @@ def test_world_front_door_routes_to_spatial_map_and_keeps_football_separate():
     html = Path("templates/home.html").read_text(encoding="utf-8")
 
     assert 'href="/oap-map"' in html
-    assert "On Any Postcode Maps" in html
-    assert "Search the world... any postcode..." in html
-    assert 'href="/the-spot"' in html
+    assert ">📍 Map</a>" in html
+    assert 'href="/the-spot"' not in html
     assert 'href="/world-cup"' not in html
     assert "url_for('world_cup')" not in html

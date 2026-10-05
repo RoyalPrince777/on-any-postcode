@@ -41,8 +41,8 @@ def test_public_library_opens_without_authentication(anonymous_client):
     )
 
     home = anonymous_client.get("/").get_data(as_text=True)
-    assert 'href="/library"' in home
-    assert "Open OAP Library" in home
+    assert 'href="/library"' not in home
+    assert "Open OAP Library" not in home
 
 
 def test_public_library_search_returns_only_matching_working_collections(
