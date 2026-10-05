@@ -24,6 +24,9 @@ class FakeConnection:
     def fetchone(self):
         return self.row
 
+    def fetchall(self):
+        return self.row if isinstance(self.row, list) else ([] if self.row is None else [self.row])
+
 
 def store(monkeypatch, row):
     connection = FakeConnection(row)
@@ -97,3 +100,38 @@ def test_empty_receipt_is_rejected(monkeypatch):
         entitlements.lookup_verified_purchase(
             authenticated_identity_id=OWNER, book_id="book", edition_id="v1"
         )
+
+
+
+def test_verified_purchase_library_only_returns_owned_approved_rows(monkeypatch):
+    from datetime import datetime, timezone
+
+    created = datetime(2026, 10, 5, tzinfo=timezone.utc)
+    row = (
+        str(uuid.uuid4()), "book", "v1", "provider-receipt",
+        "verification-receipt", created, "creator-1", "publisher-1", "a" * 64,
+    )
+    connection, observed = store(monkeypatch, [row])
+
+    books = entitlements.list_verified_purchases(
+        authenticated_identity_id=OWNER
+    )
+
+    assert len(books) == 1
+    assert books[0]["book_id"] == "book"
+    assert books[0]["edition_id"] == "v1"
+    assert books[0]["state"] == "OWNED"
+    assert connection.parameters == (OWNER,)
+    assert "payment_verified IS TRUE" in connection.sql
+    assert "revoked IS FALSE" in connection.sql
+    assert "public_release_approved IS TRUE" in connection.sql
+    assert observed == [True]
+
+
+def test_verified_purchase_library_fails_closed_when_store_unavailable(monkeypatch):
+    def broken(*, readonly=False):
+        raise RuntimeError("offline")
+
+    monkeypatch.setattr(entitlements.postgres_db, "connect", broken)
+    with pytest.raises(entitlements.BookEntitlementsUnavailable):
+        entitlements.list_verified_purchases(authenticated_identity_id=OWNER)
