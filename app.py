@@ -2675,11 +2675,9 @@ def spot_capability_front_door(capability_slug):
                 workspaces.WorkspaceUnavailable,
             ):
                 context["private_unavailable"] = True
-        template_name = (
-            "market.html" if capability_slug == "market"
-            else "events.html" if capability_slug == "events"
-            else "spot_capability.html"
-        )
+        template_name = "market.html" if capability_slug == "market" else "spot_capability.html"
+        if capability_slug == "events":
+            template_name = "events.html"
         response = make_response(
             render_template(
                 template_name,
