@@ -172,7 +172,7 @@ async function draw(coords){
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
 function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
 function tilePointLonLat(tx,ty,z,u,v){const n=Math.pow(2,z),wx=(tx+u)/n,wy=(ty+v)/n;return[wx*360-180,Math.atan(Math.sinh(Math.PI*(1-2*wy)))*180/Math.PI]}
-const ROAD_TILE_TIMEOUT_MS=8000;
+const ROAD_TILE_TIMEOUT_MS=6000;
 async function fetchRoadTile(z,x,y,mode){
  const url='/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode);
  for(let attempt=0;attempt<1;attempt++){
@@ -229,7 +229,7 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
  try{
    const queue=[...tiles];
    const worker=async()=>{while(queue.length&&request===roadRequest&&count<180){const [x,y]=queue.shift();const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}};
-   await Promise.all(Array.from({length:Math.min(4,tiles.length)},worker));
+   await Promise.all(Array.from({length:Math.min(2,tiles.length)},worker));
    if(request!==roadRequest)return 0;
    if(!count){
      if(batchAttempt<1){
