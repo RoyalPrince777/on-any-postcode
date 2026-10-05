@@ -1,3 +1,4 @@
+import hmac
 import json
 import logging
 import os
@@ -50,6 +51,7 @@ from mission_control import (
     location_intelligence,
     ludo,
     market_supplier_network,
+    mtown_persistence,
     neon_auth,
     oware,
     product_store,
@@ -122,6 +124,52 @@ def _form_secret(name, max_length):
 def _prepend_bounded(records, item):
     records.insert(0, item)
     del records[MAX_PUBLIC_RECORDS:]
+
+
+
+def _eiot_service_allowed():
+    expected=os.environ.get("OAP_EIOT_SERVICE_KEY","").strip()
+    supplied=request.headers.get("X-EIOT-Service-Key","")
+    return bool(expected and supplied and hmac.compare_digest(expected,supplied))
+
+
+@app.post("/internal/eiot/persistence/init")
+def eiot_persistence_init():
+    if not _eiot_service_allowed():
+        return jsonify({"error":"eiot_service_forbidden"}),403
+    mtown_persistence.ensure_schema()
+    return jsonify({"ok":True,**mtown_persistence.status()})
+
+
+@app.post("/internal/eiot/persistence/save")
+def eiot_persistence_save():
+    if not _eiot_service_allowed():
+        return jsonify({"error":"eiot_service_forbidden"}),403
+    payload=request.get_json(silent=True) or {}
+    if not isinstance(payload,dict):
+        return jsonify({"error":"invalid_request"}),400
+    try:
+        result=mtown_persistence.create_save(
+            player_ref=payload.get("player_ref"),
+            state=payload.get("state"),
+        )
+    except (TypeError,ValueError,RuntimeError) as exc:
+        return jsonify({"error":str(exc)}),400
+    return jsonify(result),201
+
+
+@app.post("/internal/eiot/persistence/reconnect")
+def eiot_persistence_reconnect():
+    if not _eiot_service_allowed():
+        return jsonify({"error":"eiot_service_forbidden"}),403
+    payload=request.get_json(silent=True) or {}
+    if not isinstance(payload,dict):
+        return jsonify({"error":"invalid_request"}),400
+    try:
+        result=mtown_persistence.load_by_token(token=payload.get("reconnect_token"))
+    except (TypeError,ValueError,RuntimeError) as exc:
+        return jsonify({"error":str(exc)}),400
+    return jsonify(result)
 
 
 @app.before_request
