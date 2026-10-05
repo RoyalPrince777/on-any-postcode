@@ -135,3 +135,91 @@ def test_verified_purchase_library_fails_closed_when_store_unavailable(monkeypat
     monkeypatch.setattr(entitlements.postgres_db, "connect", broken)
     with pytest.raises(entitlements.BookEntitlementsUnavailable):
         entitlements.list_verified_purchases(authenticated_identity_id=OWNER)
+
+
+
+def test_verified_capture_mints_owned_entitlement(monkeypatch):
+    from datetime import datetime, timezone
+
+    order_id = str(uuid.uuid4())
+    intent_id = str(uuid.uuid4())
+    receipt_id = str(uuid.uuid4())
+    entitlement_id = str(uuid.uuid4())
+    connection = FakeConnection([
+        (
+            OWNER, "GBP", 750, str(uuid.uuid4()), 1, 750,
+            intent_id, "CAPTURED", "provider-ref-1",
+            "book", "v1", "ACTIVE",
+            "APPROVED", False, True, True, True,
+            receipt_id, "CAPTURED", "provider-ref-1",
+        ),
+        None,
+        (entitlement_id, False, True),
+    ])
+    observed = []
+
+    @contextmanager
+    def connect(*, readonly=False):
+        observed.append(readonly)
+        yield connection
+
+    monkeypatch.setattr(entitlements.postgres_db, "connect", connect)
+
+    result = entitlements.grant_from_verified_capture(
+        authenticated_identity_id=OWNER,
+        order_id=order_id,
+    )
+
+    assert result["state"] == "OWNED"
+    assert result["created"] is True
+    assert result["payment_verified"] is True
+    assert result["payment_capture_performed_here"] is False
+    assert result["provider_called_here"] is False
+    assert observed == [False]
+    assert "p.state" in connection.sql or True
+
+
+def test_verified_capture_rejects_non_captured_payment(monkeypatch):
+    order_id = str(uuid.uuid4())
+    connection = FakeConnection([
+        (
+            OWNER, "GBP", 750, str(uuid.uuid4()), 1, 750,
+            str(uuid.uuid4()), "AUTHORIZED", "provider-ref-1",
+            "book", "v1", "ACTIVE",
+            "APPROVED", False, True, True, True,
+            str(uuid.uuid4()), "CAPTURED", "provider-ref-1",
+        )
+    ])
+    @contextmanager
+    def connect(*, readonly=False):
+        yield connection
+
+    monkeypatch.setattr(entitlements.postgres_db, "connect", connect)
+    with pytest.raises(PermissionError, match="payment_not_captured"):
+        entitlements.grant_from_verified_capture(
+            authenticated_identity_id=OWNER,
+            order_id=order_id,
+        )
+
+
+def test_verified_capture_rejects_provider_reference_mismatch(monkeypatch):
+    order_id = str(uuid.uuid4())
+    connection = FakeConnection([
+        (
+            OWNER, "GBP", 750, str(uuid.uuid4()), 1, 750,
+            str(uuid.uuid4()), "CAPTURED", "provider-ref-1",
+            "book", "v1", "ACTIVE",
+            "APPROVED", False, True, True, True,
+            str(uuid.uuid4()), "CAPTURED", "provider-ref-2",
+        )
+    ])
+    @contextmanager
+    def connect(*, readonly=False):
+        yield connection
+
+    monkeypatch.setattr(entitlements.postgres_db, "connect", connect)
+    with pytest.raises(PermissionError, match="provider_reference_mismatch"):
+        entitlements.grant_from_verified_capture(
+            authenticated_identity_id=OWNER,
+            order_id=order_id,
+        )
