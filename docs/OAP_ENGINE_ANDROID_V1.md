@@ -190,3 +190,10 @@ Android now consumes the engine contract's accessibility metadata into a bounded
 Android also now contains durable app-local per-origin storage using private SharedPreferences, with normalized HTTP/HTTPS origin keys, a 64 KiB per-origin quota, key-count and key/value-size ceilings, and clear/remove operations.
 
 Truth boundary: the accessibility implementation is a page-level summary, not a complete per-node virtual accessibility tree. The durable storage is private app-local persistence, not an encrypted vault and not yet exposed through a JavaScript localStorage/sessionStorage API. Physical/device proof remains excluded.
+
+
+## Certified form submission v1
+
+OAP Engine now has a bounded first-party form submission runtime for the certified OAP Search GET flow. `/api/oap-engine/submit` accepts a JSON submission request, permits only the relative `/search` action, bounds field count/name/value sizes, rejects sensitive field names, rejects arbitrary origins and pre-populated action queries, and returns a fresh versioned OAP Engine document for the resulting search page.
+
+Truth boundary: this is not a general HTML form runtime. Arbitrary actions, cross-origin submission, POST body submission, password/secret transport, multipart upload, file inputs and general form controls remain unsupported and fall outside this Green scope.
