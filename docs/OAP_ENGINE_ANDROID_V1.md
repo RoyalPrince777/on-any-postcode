@@ -197,3 +197,10 @@ Truth boundary: the accessibility implementation is a page-level summary, not a 
 OAP Engine now has a bounded first-party form submission runtime for the certified OAP Search GET flow. `/api/oap-engine/submit` accepts a JSON submission request, permits only the relative `/search` action, bounds field count/name/value sizes, rejects sensitive field names, rejects arbitrary origins and pre-populated action queries, and returns a fresh versioned OAP Engine document for the resulting search page.
 
 Truth boundary: this is not a general HTML form runtime. Arbitrary actions, cross-origin submission, POST body submission, password/secret transport, multipart upload, file inputs and general form controls remain unsupported and fall outside this Green scope.
+
+
+## Certified first-party fetch pipeline v1
+
+The native OAP Engine render path now uses a bounded first-party fetch pipeline rather than directly dispatching pages ad hoc. Certified public OAP GET/HEAD targets are normalized as relative paths, query fields are bounded, response bodies are capped, redirects are not followed automatically, and successful HTML/JSON GET responses can use the bounded in-memory response cache. The Android renderer consumes this pipeline for certified native pages.
+
+Truth boundary: this is not a general internet fetch stack. Arbitrary origins, unregistered OAP paths, write methods and cross-origin redirects remain unsupported in this Green scope; the open web continues to use WebView fallback.

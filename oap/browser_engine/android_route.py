@@ -5,10 +5,13 @@ from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 
 from flask import Flask
 
+from .cache import ResponseCache
 from .engine import render_html
+from .first_party_fetch import fetch_first_party
 
 SUPPORTED_PATHS = frozenset({"/", "/world", "/search"})
 MAX_QUERY_LENGTH = 120
+_DOCUMENT_CACHE = ResponseCache()
 
 
 def canonical_supported_target(raw_target: object) -> str | None:
@@ -73,20 +76,20 @@ def render_supported_target(
     if viewport_width < 160 or viewport_width > 2048:
         raise ValueError("viewport_width must be between 160 and 2048")
 
-    with app.test_client() as client:
-        response = client.get(
-            target,
-            headers={"X-OAP-Engine-Internal": "1"},
-            follow_redirects=False,
-        )
+    response = fetch_first_party(
+        app,
+        target,
+        method="GET",
+        cache=_DOCUMENT_CACHE,
+        cache_origin=base_url.rstrip("/"),
+    )
     if response.status_code != 200:
         return None
-    content_type = response.headers.get("Content-Type", "")
-    if "text/html" not in content_type:
+    if "text/html" not in response.content_type:
         return None
 
     document = render_html(
-        response.get_data(as_text=True),
+        response.body.decode("utf-8", errors="replace"),
         viewport_width=viewport_width,
         base_url=urljoin(base_url, target),
     ).to_dict()
