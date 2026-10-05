@@ -204,3 +204,10 @@ Truth boundary: this is not a general HTML form runtime. Arbitrary actions, cros
 The native OAP Engine render path now uses a bounded first-party fetch pipeline rather than directly dispatching pages ad hoc. Certified public OAP GET/HEAD targets are normalized as relative paths, query fields are bounded, response bodies are capped, redirects are not followed automatically, and successful HTML/JSON GET responses can use the bounded in-memory response cache. The Android renderer consumes this pipeline for certified native pages.
 
 Truth boundary: this is not a general internet fetch stack. Arbitrary origins, unregistered OAP paths, write methods and cross-origin redirects remain unsupported in this Green scope; the open web continues to use WebView fallback.
+
+
+## CSS/layout depth and image semantics v1
+
+The bounded engine now supports compound selectors such as `main#world`, chained classes, descendant selectors and direct-child `>` selectors with bounded CSS specificity. Layout additionally consumes side-specific margin/padding, width/min-width/max-width and line-height values. `<img>` nodes now emit bounded native display-list image semantics with alt text, geometry and safe HTTP/HTTPS source normalization; Android accepts the `image` display item kind and paints a native placeholder carrying the alt label.
+
+Truth boundary: this is not full CSS layout or decoded media. Flexbox, Grid, advanced positioning, transforms, floats, intrinsic image decoding, fonts, audio/video and GPU compositing remain outside this Green scope.
