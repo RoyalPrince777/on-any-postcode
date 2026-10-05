@@ -137,3 +137,38 @@ def test_private_command_navigation_opens_public_library_without_conflating_asse
     assert "oap_library.library_home" in command_nav
     assert "📚 Library" in command_nav
     assert "Founder Library" not in command_nav
+
+
+def test_books_alias_is_a_real_library_front_door(anonymous_client):
+    response = anonymous_client.get("/library/books")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Explore the Library" in body
+    assert 'href="/library/my-library"' in body
+
+
+def test_my_library_requires_authentication_and_shows_real_member_access(
+    anonymous_client, client
+):
+    protected = anonymous_client.get("/library/my-library", follow_redirects=False)
+    assert protected.status_code in (302, 303, 401, 403)
+
+    response = client.get("/library/my-library")
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "My Library" in body
+    assert "Food Book" in body
+    assert "No fake ownership." in body
+
+
+def test_ebook_reader_route_is_registered_and_fails_closed_without_catalogue(
+    anonymous_client,
+):
+    response = anonymous_client.get(
+        "/library/ebooks/not-a-real-book/not-a-real-edition/pages/0"
+    )
+    assert response.status_code in (404, 503)
+    payload = response.get_json()
+    assert payload["error"] in {"book_unavailable", "reader_unavailable"}
+    assert response.headers["X-Frame-Options"] == "DENY"
