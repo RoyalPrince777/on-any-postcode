@@ -16,6 +16,53 @@ from mission_control import (
 app=Flask(__name__)
 _LOCK=threading.RLock()
 _WORLDS:dict[str,dict]={}
+_PERSISTENCE_BOOT={
+    "attempted":False,
+    "ready":False,
+    "backend":"none",
+    "error":None,
+}
+
+
+def _boot_persistence() -> None:
+    if mtown_persistence.status()["durable_ready"]:
+        _PERSISTENCE_BOOT.update({
+            "attempted":True,
+            "ready":True,
+            "backend":"local-postgresql",
+            "error":None,
+        })
+        return
+    if not mtown_persistence_broker.configured():
+        return
+    _PERSISTENCE_BOOT["attempted"]=True
+    _PERSISTENCE_BOOT["backend"]="oap-core-postgresql-broker"
+    try:
+        initialized=mtown_persistence_broker.initialize()
+        if not initialized.get("durable_ready"):
+            raise RuntimeError("eiot_broker_not_durable")
+        probe_state={
+            "world_id":"00000000-0000-0000-0000-00000000e107",
+            "probe":"eiot-persistence-v1",
+        }
+        saved=mtown_persistence_broker.save(
+            player_ref="__eiot_boot_proof__",
+            state=probe_state,
+        )
+        restored=mtown_persistence_broker.reconnect(
+            token=saved["reconnect_token"],
+        )
+        if restored.get("world_state")!=probe_state:
+            raise RuntimeError("eiot_persistence_roundtrip_mismatch")
+        _PERSISTENCE_BOOT["ready"]=True
+        _PERSISTENCE_BOOT["error"]=None
+    except Exception as exc:
+        _PERSISTENCE_BOOT["ready"]=False
+        _PERSISTENCE_BOOT["error"]=type(exc).__name__
+
+
+_boot_persistence()
+
 
 def _payload()->dict:
     value=request.get_json(silent=True) or {}
@@ -33,6 +80,7 @@ def healthz():
         "persistence":{
             "local":mtown_persistence.status(),
             "broker":mtown_persistence_broker.status(),
+            "proof":dict(_PERSISTENCE_BOOT),
         },
     })
 
@@ -124,4 +172,8 @@ def world_cells():
 
 @app.get("/v1/world/persistence/status")
 def persistence_status():
-    return jsonify(mtown_persistence.status())
+    return jsonify({
+        "local":mtown_persistence.status(),
+        "broker":mtown_persistence_broker.status(),
+        "proof":dict(_PERSISTENCE_BOOT),
+    })

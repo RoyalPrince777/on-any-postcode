@@ -39,8 +39,11 @@ def create_save(*,player_ref:object,state:dict[str,Any])->dict[str,Any]:
     with postgres_db.connect() as c:
         row=c.execute("""INSERT INTO oap_eiot_world_saves(world_id,player_ref,reconnect_token_hash,world_state)
         VALUES (%s,%s,%s,%s::jsonb)
-        ON CONFLICT(world_id,player_ref) DO UPDATE SET world_state=EXCLUDED.world_state,
-        revision=oap_eiot_world_saves.revision+1,updated_at=CURRENT_TIMESTAMP
+        ON CONFLICT(world_id,player_ref) DO UPDATE SET
+        reconnect_token_hash=EXCLUDED.reconnect_token_hash,
+        world_state=EXCLUDED.world_state,
+        revision=oap_eiot_world_saves.revision+1,
+        updated_at=CURRENT_TIMESTAMP
         RETURNING save_id,world_id,revision""",(state["world_id"],player,_hash(token),payload)).fetchone()
         c.commit()
     return {"save_id":str(row[0]),"world_id":str(row[1]),"revision":int(row[2]),"reconnect_token":token}
