@@ -63,6 +63,8 @@ class CookieJar:
             path = "/"
 
         secure = bool(morsel["secure"])
+        if secure and origin.scheme != "https":
+            raise ValueError("secure_cookie_requires_https_origin")
         http_only = bool(morsel["httponly"])
         same_site = morsel["samesite"].strip().lower() or "lax"
         if same_site not in {"strict", "lax", "none"}:
@@ -84,6 +86,14 @@ class CookieJar:
             same_site=same_site,
         )
 
+    @staticmethod
+    def _path_matches(cookie_path: str, request_path: str) -> bool:
+        if cookie_path == "/":
+            return True
+        if request_path == cookie_path:
+            return True
+        return request_path.startswith(cookie_path.rstrip("/") + "/")
+
     def cookie_header(self, url: object, *, include_http_only: bool = False) -> str:
         origin = parse_origin(url)
         parsed = urlsplit(str(url))
@@ -94,7 +104,7 @@ class CookieJar:
                 continue
             if cookie.http_only and not include_http_only:
                 continue
-            if not request_path.startswith(cookie.path):
+            if not self._path_matches(cookie.path, request_path):
                 continue
             pairs.append(f"{cookie.name}={cookie.value}")
         return "; ".join(sorted(pairs))
