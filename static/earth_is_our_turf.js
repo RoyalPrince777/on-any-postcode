@@ -1,6 +1,36 @@
 (()=>{"use strict";
-const root=document.querySelector("[data-eiot-root]");if(!root)return;
-const q=s=>root.querySelector(s);let state=JSON.parse(document.querySelector("#eiot-initial-state").textContent),busy=false;
+const root=document.querySelector("[data-eiot-root]");
+const recovery=document.querySelector("[data-eiot-recovery]");
+const recoveryMessage=document.querySelector("[data-eiot-recovery-message]");
+function showRecovery(message){
+ if(recovery)recovery.hidden=false;
+ if(recoveryMessage)recoveryMessage.textContent=message||"M Town screen recovery needed.";
+ if(root)root.dataset.eiotReady="false";
+}
+function hideRecovery(){
+ if(recovery)recovery.hidden=true;
+ if(root)root.dataset.eiotReady="true";
+}
+if(!root){showRecovery("M Town screen could not start.");return;}
+const q=s=>root.querySelector(s);
+const validState=value=>!!(
+ value&&typeof value==="object"&&value.player&&value.character&&value.environment&&
+ value.living&&Array.isArray(value.nodes)&&Array.isArray(value.navigation_links)&&
+ Array.isArray(value.businesses)&&Array.isArray(value.events)
+);
+let state,busy=false;
+try{
+ const initial=document.querySelector("#eiot-initial-state");
+ if(!initial)throw new Error("eiot_initial_state_missing");
+ state=JSON.parse(initial.textContent||"");
+ if(!validState(state))throw new Error("eiot_initial_state_invalid");
+}catch(error){
+ console.error("EIOT boot guard",error);
+ showRecovery("M Town could not load its world data. Retry the world.");
+ return;
+}
+window.addEventListener("error",()=>showRecovery("M Town hit a screen error. Retry the world."));
+window.addEventListener("unhandledrejection",()=>showRecovery("M Town hit a screen error. Retry the world."));
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 const POS={
  "phipps-bridge":[90,120],"wandle-path":[65,200],"phipps-bridge-road":[155,195],"phipps-cut":[115,235],
@@ -22,7 +52,7 @@ function routePoints(){
  if(!state.active_route?.nodes?.length)return "";
  return state.active_route.nodes.map(id=>p(id).join(",")).join(" ");
 }
-function render(){
+function renderUnsafe(){
  q("[data-time]").textContent=" "+state.time_label;q("[data-day]").textContent=" "+state.day;
  q("[data-influence]").textContent=" "+state.player.influence;q("[data-mode-view]").textContent=" "+state.player.travel_mode;
  const ch=state.character;q("[data-my-card]").innerHTML="<strong>"+esc(ch.my_card.display_name)+" · My Card</strong><br>"+esc(ch.my_card.home)+" · "+esc(ch.my_card.title)+"<br>M Town rep "+ch.reputation.m_town+" · Health "+ch.vitals.health+" · Energy "+ch.vitals.energy;
@@ -72,13 +102,22 @@ function render(){
  root.querySelectorAll("button").forEach(b=>b.disabled=busy);
  const travel=q('[data-action="advance-route"]');if(travel)travel.disabled=busy||!state.active_route;
 }
+function render(){
+ try{
+  renderUnsafe();
+  hideRecovery();
+ }catch(error){
+  console.error("EIOT render guard",error);
+  showRecovery("M Town screen could not finish drawing. Retry the world.");
+ }
+}
 async function act(command,target,mode,distance=null){
- if(busy)return;busy=true;q("[data-error]").textContent="";render();
+ if(busy)return;busy=true;const errorBox=q("[data-error]");if(errorBox)errorBox.textContent="";render();
  try{
   const token=document.querySelector('meta[name="oap-csrf-token"]').content;
   const r=await fetch("/arena/earth-is-our-turf/action",{method:"POST",headers:{"Content-Type":"application/json","X-OAP-CSRF-Token":token},body:JSON.stringify({command,target,mode,distance})});
   const data=await r.json();if(!r.ok)throw new Error(data.error||"World action failed");state=data;
- }catch(e){q("[data-error]").textContent=e.message||String(e)}finally{busy=false;render()}
+ }catch(e){const errorBox=q("[data-error]");if(errorBox)errorBox.textContent=e.message||String(e);showRecovery("M Town action failed safely. Retry the world.");}finally{busy=false;render()}
 }
 function showPanel(name,forceOpen=true){
  const side=q("[data-side]");if(!side)return;
