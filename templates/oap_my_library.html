@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Your signed-in OAP Library access.">
+  <title>My Library · ON ANY POSTCODE</title>
+  {% include "_oap_install_head.html" %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='oap/oap_library.css') }}">
+</head>
+<body>
+  <header class="library-topbar">
+    <a class="library-brand" href="/library" aria-label="OAP Library">
+      <span class="library-brand-mark">OAP</span><span>LIBRARY</span>
+    </a>
+    <nav aria-label="Library navigation">
+      <a href="/library/books">Books</a>
+      <a href="/library/my-library" aria-current="page">My Library</a>
+      <a href="/">OAP World</a>
+    </nav>
+  </header>
+  <main class="library-collections">
+    <div class="section-heading">
+      <div>
+        <p class="library-kicker">SIGNED IN · OWNER-SCOPED</p>
+        <h1>My Library</h1>
+      </div>
+    </div>
+    {% if collections %}
+    <div class="collection-grid">
+      {% for collection in collections %}
+      <article class="collection-card" data-access="{{ collection.access }}">
+        <div class="collection-symbol" aria-hidden="true">{{ collection.symbol }}</div>
+        <p class="collection-name">{{ collection.collection }}</p>
+        <h2>{{ collection.name }}</h2>
+        <p>{{ collection.description }}</p>
+        <a href="{{ collection.route }}">Read <span aria-hidden="true">→</span></a>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="library-empty">
+      <h2>Your Library is empty.</h2>
+      <p>Only verified access is shown here. Paid ebooks will appear after a verified entitlement exists.</p>
+      <a href="/library/books">Browse books</a>
+    </div>
+    {% endif %}
+    <aside class="library-boundary" aria-label="Ownership boundary">
+      <strong>No fake ownership.</strong>
+      <span>My Library only shows access the signed-in member actually has. A checkout screen alone never creates ownership.</span>
+    </aside>
+  </main>
+  <footer><span>BORN LOCAL. BUILT GLOBAL. EARTH IS OUR TURF.</span><span>ON ANY POSTCODE</span></footer>
+</body>
+</html>
