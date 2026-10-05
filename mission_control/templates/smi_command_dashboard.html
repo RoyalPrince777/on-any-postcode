@@ -182,6 +182,7 @@
           <a class="intel" href="{{ command.movement.href }}"><div class="intel-head"><strong>Movement Intelligence</strong><span class="signal">{{ '🟢' if command.movement.architecture_ready else '🟣' }}</span></div><p>{{ command.movement.component_count }} components · {{ command.movement.mode_count }} movement modes · owned route intelligence.</p></a>
           <a class="intel" href="{{ command.learning.href }}"><div class="intel-head"><strong>Learning Intelligence</strong><span class="signal">{{ '🟢' if command.learning.receipt_learning_defined else '🟣' }}</span></div><p>HRM + receipts + bounded behaviour learning. No self-authorised change.</p></a>
           <a class="intel" href="/mission/war-room"><div class="intel-head"><strong>War Room</strong><span class="signal">{{ '🟢' if command.war_room.validation_passed else '🟣' }}</span></div><p>Challenge, evidence, recovery and Founder review without pretending simulation is proof.</p></a>
+          <div class="intel" id="oap-data"><div class="intel-head"><strong>OAP Data</strong><span class="signal">{{ '🟢' if command.oap_data.canonical else '🟣' }}</span></div><p>PR → OAP Data Change Record · {{ command.oap_data.required_evidence|length }} evidence fields · read-only projection. Green Gate, HRM, Guardian, War Room and Human Authority remain proof authorities.</p></div>
         </div>
       </aside>
     </section>

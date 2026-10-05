@@ -20,6 +20,7 @@ from . import (
     mail_mailbox,
     mail_outbound,
     movement_intelligence,
+    oap_data_change_records,
     personal_telecom,
     prince_sovereign_bank,
     sika_account_engine,
@@ -78,6 +79,7 @@ def status() -> dict[str, Any]:
     mailbox = mail_mailbox.status()
     movement = movement_intelligence.movement_intelligence_status()
     mission_field = smi_73_signal_field.definition_status()
+    oap_data = oap_data_change_records.status()
 
     war_summary = war_status.get("summary") or {}
     war_validation = war_status.get("validation") or {}
@@ -116,6 +118,17 @@ def status() -> dict[str, Any]:
             "overall_evidence_score": int(war_summary.get("overall_evidence_score") or 0),
             "runtime_verified": int(war_summary.get("runtime_verified") or 0),
             "operationally_certified": int(war_summary.get("operationally_certified") or 0),
+        },
+        "oap_data": {
+            "name": oap_data.get("name"),
+            "canonical": bool(oap_data.get("canonical")),
+            "mutates_repository": bool(oap_data.get("mutates_repository")),
+            "approves_changes": bool(oap_data.get("approves_changes")),
+            "deploys": bool(oap_data.get("deploys")),
+            "green_gate_states": tuple(oap_data.get("green_gate_states") or ()),
+            "required_evidence": tuple(oap_data.get("required_evidence") or ()),
+            "source": "PR → OAP Data Change Record",
+            "proof_authorities": ("Git history", "HRM", "Guardian", "War Room", "Green Gate", "Human Authority"),
         },
         "risk_router": risk,
         "bank": {
