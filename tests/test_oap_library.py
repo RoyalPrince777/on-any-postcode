@@ -172,3 +172,38 @@ def test_ebook_reader_route_is_registered_and_fails_closed_without_catalogue(
     payload = response.get_json()
     assert payload["error"] in {"book_unavailable", "reader_unavailable"}
     assert response.headers["X-Frame-Options"] == "DENY"
+
+
+
+def test_public_ebook_product_page_is_governed(anonymous_client, monkeypatch):
+    from mission_control import oap_ebook_market
+
+    monkeypatch.setattr(
+        oap_ebook_market,
+        "public_product",
+        lambda book_id, edition_id: {
+            "book_id": book_id,
+            "edition_id": edition_id,
+            "product_id": "00000000-0000-4000-8000-000000000001",
+            "state": "ACTIVE",
+            "title": "My Book",
+            "description": "A digital OAP ebook.",
+            "price_minor": 750,
+            "currency": "GBP",
+            "seller": "OAP Seller",
+            "creator_id": "creator-1",
+            "publisher_authority_id": "publisher-1",
+            "physical_product": False,
+            "payment_capture_performed": False,
+        },
+    )
+
+    response = anonymous_client.get("/library/books/my-book/v1")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "My Book" in body
+    assert "Preview" in body
+    assert "Unlock is payment-proof gated." in body
+    assert "/library/ebooks/my-book/v1/pages/0?preview=1" in body
+    assert "Returning from a payment screen will never create ownership" in body
