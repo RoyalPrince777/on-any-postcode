@@ -21,6 +21,9 @@ import android.widget.ScrollView;
 
 import androidx.activity.ComponentActivity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public final class MainActivity extends ComponentActivity {
     private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com";
     private WebView webView;
@@ -32,6 +35,8 @@ public final class MainActivity extends ComponentActivity {
     private EditText omnibox;
     private Button backButton;
     private Button forwardButton;
+    private final List<String> engineHistory = new ArrayList<>();
+    private int engineHistoryIndex = -1;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -143,12 +148,18 @@ public final class MainActivity extends ComponentActivity {
         });
 
         backButton.setOnClickListener(v -> {
-            if (webView.canGoBack()) {
+            if (engineActive && engineHistoryIndex > 0) {
+                engineHistoryIndex--;
+                openFirstPartyPath(engineHistory.get(engineHistoryIndex), false);
+            } else if (!engineActive && webView.canGoBack()) {
                 webView.goBack();
             }
         });
         forwardButton.setOnClickListener(v -> {
-            if (webView.canGoForward()) {
+            if (engineActive && engineHistoryIndex + 1 < engineHistory.size()) {
+                engineHistoryIndex++;
+                openFirstPartyPath(engineHistory.get(engineHistoryIndex), false);
+            } else if (!engineActive && webView.canGoForward()) {
                 webView.goForward();
             }
         });
@@ -228,6 +239,10 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void openFirstPartyPath(String sourcePath) {
+        openFirstPartyPath(sourcePath, true);
+    }
+
+    private void openFirstPartyPath(String sourcePath, boolean recordHistory) {
         final String path = sourcePath == null || sourcePath.isEmpty() ? "/" : sourcePath;
         int viewportWidth = engineScrollView != null && engineScrollView.getWidth() > 0
                 ? engineScrollView.getWidth()
@@ -235,7 +250,7 @@ public final class MainActivity extends ComponentActivity {
         engineClient.fetch(path, viewportWidth, new EngineDocumentClient.Callback() {
             @Override
             public void onEngineDocument(String json, String resolvedPath) {
-                showOapEngineDocument(json, resolvedPath);
+                showOapEngineDocument(json, resolvedPath, recordHistory);
             }
 
             @Override
@@ -251,6 +266,14 @@ public final class MainActivity extends ComponentActivity {
     }
 
     void showOapEngineDocument(String displayListJson, String sourcePath) {
+        showOapEngineDocument(displayListJson, sourcePath, true);
+    }
+
+    private void showOapEngineDocument(
+            String displayListJson,
+            String sourcePath,
+            boolean recordHistory
+    ) {
         try {
             engineView.setDisplayListJson(displayListJson);
             engineScrollView.scrollTo(0, 0);
@@ -258,6 +281,16 @@ public final class MainActivity extends ComponentActivity {
             webView.setVisibility(View.GONE);
             engineActive = true;
             engineSourcePath = sourcePath;
+            if (recordHistory && sourcePath != null) {
+                while (engineHistory.size() > engineHistoryIndex + 1) {
+                    engineHistory.remove(engineHistory.size() - 1);
+                }
+                if (engineHistoryIndex < 0
+                        || !sourcePath.equals(engineHistory.get(engineHistoryIndex))) {
+                    engineHistory.add(sourcePath);
+                    engineHistoryIndex = engineHistory.size() - 1;
+                }
+            }
             omnibox.setText(sourcePath == null ? "OAP Engine" : OAP_ORIGIN + sourcePath);
             refreshNavigationState();
         } catch (org.json.JSONException error) {
@@ -278,13 +311,21 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void refreshNavigationState() {
-        backButton.setEnabled(!engineActive && webView != null && webView.canGoBack());
-        forwardButton.setEnabled(!engineActive && webView != null && webView.canGoForward());
+        if (engineActive) {
+            backButton.setEnabled(engineHistoryIndex > 0);
+            forwardButton.setEnabled(engineHistoryIndex + 1 < engineHistory.size());
+            return;
+        }
+        backButton.setEnabled(webView != null && webView.canGoBack());
+        forwardButton.setEnabled(webView != null && webView.canGoForward());
     }
 
     @Override
     public void onBackPressed() {
-        if (engineActive) {
+        if (engineActive && engineHistoryIndex > 0) {
+            engineHistoryIndex--;
+            openFirstPartyPath(engineHistory.get(engineHistoryIndex), false);
+        } else if (engineActive) {
             showWebViewFallback();
         } else if (webView != null && webView.canGoBack()) {
             webView.goBack();
