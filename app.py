@@ -699,6 +699,22 @@ def home():
     )
 
 
+@app.get("/sell")
+def public_sell_front_door():
+    return redirect("/the-spot/market#sell", code=302)
+
+
+@app.get("/basket")
+def public_basket_front_door():
+    return redirect("/the-spot/market#basket", code=302)
+
+
+@app.get("/orders")
+@web_security.login_required()
+def public_orders_front_door():
+    return redirect("/the-spot/market#orders", code=302)
+
+
 @app.get("/shop/<shop_slug>")
 def public_shop(shop_slug):
     products_for_shop = []
