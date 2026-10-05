@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.CookieManager;
@@ -14,13 +15,18 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 
 import androidx.activity.ComponentActivity;
 
 public final class MainActivity extends ComponentActivity {
     private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com";
     private WebView webView;
+    private OapEngineView engineView;
+    private ScrollView engineScrollView;
+    private boolean engineActive;
     private EditText omnibox;
     private Button backButton;
     private Button forwardButton;
@@ -69,11 +75,31 @@ public final class MainActivity extends ComponentActivity {
         toolbar.addView(goButton);
 
         webView = new WebView(this);
+        engineView = new OapEngineView(this);
+        engineView.setLinkListener(this::navigate);
+        engineScrollView = new ScrollView(this);
+        engineScrollView.setFillViewport(true);
+        engineScrollView.addView(engineView, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        engineScrollView.setVisibility(View.GONE);
+
+        FrameLayout renderHost = new FrameLayout(this);
+        renderHost.addView(webView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        renderHost.addView(engineScrollView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+
         root.addView(toolbar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
-        root.addView(webView, new LinearLayout.LayoutParams(
+        root.addView(renderHost, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
                 1f
@@ -123,8 +149,18 @@ public final class MainActivity extends ComponentActivity {
                 webView.goForward();
             }
         });
-        homeButton.setOnClickListener(v -> webView.loadUrl(OAP_ORIGIN + "/"));
-        reloadButton.setOnClickListener(v -> webView.reload());
+        homeButton.setOnClickListener(v -> {
+            showWebViewFallback();
+            webView.loadUrl(OAP_ORIGIN + "/");
+        });
+        reloadButton.setOnClickListener(v -> {
+            if (engineActive) {
+                showWebViewFallback();
+                webView.loadUrl(omnibox.getText().toString());
+            } else {
+                webView.reload();
+            }
+        });
         goButton.setOnClickListener(v -> navigate(omnibox.getText().toString()));
         omnibox.setOnEditorActionListener((view, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_GO) {
@@ -154,6 +190,7 @@ public final class MainActivity extends ComponentActivity {
         if (input.isEmpty()) {
             return;
         }
+        showWebViewFallback();
 
         if (input.startsWith("/")) {
             webView.loadUrl(OAP_ORIGIN + input);
@@ -178,14 +215,41 @@ public final class MainActivity extends ComponentActivity {
         webView.loadUrl(OAP_ORIGIN + "/search?q=" + Uri.encode(input));
     }
 
+    void showOapEngineDocument(String displayListJson, String sourceUrl) {
+        try {
+            engineView.setDisplayListJson(displayListJson);
+            engineScrollView.scrollTo(0, 0);
+            engineScrollView.setVisibility(View.VISIBLE);
+            webView.setVisibility(View.GONE);
+            engineActive = true;
+            omnibox.setText(sourceUrl == null ? "OAP Engine" : sourceUrl);
+            refreshNavigationState();
+        } catch (org.json.JSONException error) {
+            showWebViewFallback();
+        }
+    }
+
+    private void showWebViewFallback() {
+        engineActive = false;
+        if (engineScrollView != null) {
+            engineScrollView.setVisibility(View.GONE);
+        }
+        if (webView != null) {
+            webView.setVisibility(View.VISIBLE);
+        }
+        refreshNavigationState();
+    }
+
     private void refreshNavigationState() {
-        backButton.setEnabled(webView != null && webView.canGoBack());
-        forwardButton.setEnabled(webView != null && webView.canGoForward());
+        backButton.setEnabled(!engineActive && webView != null && webView.canGoBack());
+        forwardButton.setEnabled(!engineActive && webView != null && webView.canGoForward());
     }
 
     @Override
     public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) {
+        if (engineActive) {
+            showWebViewFallback();
+        } else if (webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
             super.onBackPressed();
