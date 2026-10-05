@@ -58,7 +58,7 @@ def build_certified_get_target(
     if parsed.query:
         raise ValueError("form_action_query_not_allowed")
     if not isinstance(fields, dict):
-        raise ValueError("form_fields_must_be_object")
+        raise TypeError("form_fields_must_be_object")
     if len(fields) > MAX_FIELDS:
         raise ValueError("form_field_limit")
 
