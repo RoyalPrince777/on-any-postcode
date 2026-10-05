@@ -32,19 +32,17 @@ def test_public_main_menu_uses_locked_oap_world_reference_items(client):
 
     expected = (
         ("/", "Home"),
-        ("/oap-map", "On Any Postcode Maps"),
+        ("/oap-map", "Maps"),
+        ("/eats", "Eats"),
+        ("/transport/ride", "Rides"),
         ("/the-spot", "The Spot"),
-        ("/the-link", "The Link"),
-        ("/studio", "OAP Studio Intelligence"),
+        ("/linkup", "Link Up"),
         ("/the-spot/market", "Market"),
-        ("/the-spot/tv-media", "Media"),
-        ("/store", "OAP Store"),
-        ("/sika", "SIKA"),
-        ("/hrm", "HRM"),
-        ("/guardian", "Guardian"),
-        ("/settings", "Settings"),
+        ("/library", "Library"),
+        ("/studio", "Studio"),
+        ("/pay/bank", "SIKA"),
     )
-    assert nav.count("<a ") == 12
+    assert nav.count("<a ") == 10
     for href, label in expected:
         assert f'href="{href}"' in nav
         assert label in nav
@@ -89,3 +87,42 @@ def test_gateway_shows_seven_oap_intelligence_families(client):
 
     assert "GPT Intelligence" not in page
     assert "Ollama Local Intelligence" not in page
+
+
+
+def test_public_dashboard_strips_noise_and_dead_links(client):
+    page = client.get("/").get_data(as_text=True)
+    assert "STRIP OF NOISE" not in page
+    assert 'href="/sika"' not in page
+    assert 'href="/hrm"' not in page
+    assert 'href="/guardian"' not in page
+    assert 'href="/settings"' not in page
+    assert 'href="/status"' not in page
+    assert 'href="/healthz"' in page
+    assert "Travel & Movement" in page
+    for href in (
+        "/oap-map",
+        "/eats",
+        "/transport/ride",
+        "/the-spot",
+        "/linkup",
+        "/the-spot/market",
+        "/library",
+        "/studio",
+        "/pay/bank",
+    ):
+        assert f'href="{href}"' in page
+
+
+def test_legacy_dashboard_urls_redirect_instead_of_404(client):
+    expected = {
+        "/sika": "/pay/bank",
+        "/guardian": "/transport/ride",
+        "/settings": "/enter-my-world?next=/my-world/settings",
+        "/hrm": "/enter-my-world?next=/mission",
+        "/status": "/healthz",
+    }
+    for source, target in expected.items():
+        response = client.get(source, follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith(target)
