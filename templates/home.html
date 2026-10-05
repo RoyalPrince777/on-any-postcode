@@ -71,7 +71,7 @@
 {% if market_products %}
 <div class="product-grid">
 {% for product in market_products[:8] %}
-<a class="product-card" href="/shop/{{ product.seller|lower|replace(' ','-') }}">
+<a class="product-card" href="/shop/{{ product.shop_slug }}">
 <div class="product-image">🛍️</div>
 <strong>{{ product.name }}</strong>
 <small>{{ product.seller }}</small>
