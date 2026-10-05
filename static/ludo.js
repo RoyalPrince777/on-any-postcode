@@ -192,5 +192,5 @@ qa("[data-fullscreen]").forEach(b=>b.addEventListener("click",async()=>{
  }catch{}
  setTimeout(fitScreen,100)
 }));
-buildBoard();fitScreen();renderBoard();
+buildBoard();fitScreen();renderBoard();requestAnimationFrame(()=>{root.classList.remove("is-booting");root.classList.add("is-ready");root.setAttribute("aria-busy","false")});
 })();
