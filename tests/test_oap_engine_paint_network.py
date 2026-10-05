@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from oap.browser_engine import CookieJar, ResponseCache, parse_css_color, render_html
+from oap.browser_engine import (
+    CookieJar,
+    ResponseCache,
+    build_request,
+    parse_css_color,
+    render_html,
+)
 from oap.browser_engine.cache import MAX_CACHE_ENTRY_BYTES
 
 
@@ -76,3 +82,27 @@ def test_cookie_jar_rejects_cross_host_domain_and_insecure_samesite_none():
         jar.set_cookie("https://oap.example/", "sid=x; Domain=evil.example")
     with pytest.raises(ValueError, match="samesite_none_requires_secure"):
         jar.set_cookie("https://oap.example/", "sid=x; SameSite=None")
+
+
+
+def test_network_request_policy_allows_only_bounded_web_requests_and_same_origin_credentials():
+    request = build_request(
+        "https://oap.example/api",
+        method="POST",
+        body=b"ok",
+        initiator_url="https://oap.example/world",
+    )
+    assert request.include_credentials is True
+
+    cross_origin = build_request(
+        "https://other.example/api",
+        initiator_url="https://oap.example/world",
+    )
+    assert cross_origin.include_credentials is False
+
+    with pytest.raises(ValueError, match="unsupported_request_method"):
+        build_request("https://oap.example/api", method="DELETE")
+    with pytest.raises(ValueError, match="request_body_not_allowed"):
+        build_request("https://oap.example/api", method="GET", body=b"x")
+    with pytest.raises(ValueError):
+        build_request("file:///tmp/x")
