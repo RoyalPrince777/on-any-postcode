@@ -220,3 +220,11 @@ def test_road_network_second_batch_uses_new_nearby_tiles():
     assert "tiles=tiles.slice(batchStart,batchStart+batchSize);" in template
     assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
     assert "if(batchAttempt<1)" in template
+
+
+def test_selected_road_tiles_are_not_discarded_by_viewport_prefilter():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert ".filter(ll=>Number.isFinite(ll[0])&&Number.isFinite(ll[1]))" in template
+    assert "ll[0]>=b.minX-.02" not in template
+    assert "ll[1]>=b.minY-.02" not in template
+    assert ".map(ll=>project(ll[0],ll[1],b));" in template
