@@ -21,6 +21,16 @@ def test_endless_ring_has_expected_cell_count():
     assert len({(row["x"],row["y"]) for row in cells})==25
 
 
+def test_persistence_status_distinguishes_capability_from_readiness(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL",raising=False)
+    monkeypatch.delenv("OAP_PRIMARY_DATABASE_URL",raising=False)
+    monkeypatch.delenv("OAP_PRIMARY_DATABASE_URL_B64",raising=False)
+    status=__import__("mission_control.mtown_persistence",fromlist=["status"]).status()
+    assert status["durable_supported"] is True
+    assert status["durable_ready"] is False
+    assert status["configured"] is False
+
+
 def test_world_server_facade_is_authoritative():
     session=mtown_world_server.new_session()
     assert session["server"]["authoritative"] is True

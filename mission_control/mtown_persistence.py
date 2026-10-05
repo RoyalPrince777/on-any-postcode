@@ -68,4 +68,12 @@ def save_existing(*,token:object,state:dict[str,Any],expected_revision:object)->
     return {"save_id":str(row[0]),"revision":int(row[1])}
 
 def status()->dict[str,Any]:
-    return {"backend":"postgresql","durable":True,"reconnect_tokens_hashed":True,"optimistic_revision":True}
+    configured=postgres_db.configured()
+    return {
+        "backend":"postgresql",
+        "configured":configured,
+        "durable_supported":True,
+        "durable_ready":configured,
+        "reconnect_tokens_hashed":True,
+        "optimistic_revision":True,
+    }
