@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% include "_oap_install_head.html" %}
+  <title>OAP Events — What’s Going On?</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <style>
+    .events-shell{display:grid;gap:16px}.events-hero{display:grid;gap:10px}.events-hero h1,.events-hero h2{margin:0}
+    .events-actions,.events-tabs{display:flex;gap:8px;flex-wrap:wrap}.events-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .event-card{padding:16px;border:1px solid rgba(126,240,163,.18);border-radius:18px;background:rgba(7,20,13,.66)}
+    .event-card h3{margin:.2rem 0 .45rem}.event-kicker{font-size:.82rem;color:#d7b759;text-transform:uppercase;letter-spacing:.06em}
+    .pulse-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.pulse-card{padding:14px;border-radius:16px;background:rgba(255,255,255,.035)}
+    .pulse-card strong,.pulse-card span{display:block}.pulse-card span{margin-top:5px;color:#b8d6c0;font-size:.88rem}
+    .truth{padding:12px 14px;border-left:4px solid #d7b759;background:#211b0b;border-radius:0 12px 12px 0;color:#e6dcb7}
+    @media(max-width:780px){.events-grid,.pulse-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">OAP World / Events</p>
+      <h1>What’s Going On?</h1>
+      <p>{{ capability.purpose }}</p>
+      <p>Find it. Watch it. Lock it in. OAP Events keeps interest, bookings and access separate so the numbers stay truthful.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">Back to The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace events-shell">
+    <section class="mc-panel events-hero" aria-labelledby="events-discover">
+      <p class="mc-eyebrow">👀 See What’s Poppin’</p>
+      <h2 id="events-discover">What’s Going On?</h2>
+      <div class="events-tabs" aria-label="OAP Events discovery">
+        <span class="mc-secondary-link">🔥 Going Off</span>
+        <span class="mc-secondary-link">👀 Watching This</span>
+        <span class="mc-secondary-link">🌍 From Anywhere</span>
+        <span class="mc-secondary-link">🧠 Level Up</span>
+        <span class="mc-secondary-link">🎵 Sounds</span>
+      </div>
+      <div class="events-actions">
+        <a class="mc-primary" href="/travel/direct?category=event">Lock Me In</a>
+        <a class="mc-secondary-link" href="/travel/direct?category=activity">Activities</a>
+        <a class="mc-secondary-link" href="/travel/direct?category=attraction">Attractions</a>
+      </div>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="event-pulse-title">
+      <p class="mc-eyebrow">📊 Event Pulse</p>
+      <h2 id="event-pulse-title">Ram · Watching · Momentum</h2>
+      <div class="pulse-grid">
+        <article class="pulse-card"><strong>🔥 Ram Meter</strong><span>Confirmed bookings only. Seven stages: Quiet For Now → Warming Up → Getting Ram → Ram → Proper Ram → About To Be Ram Out → RAM OUT.</span></article>
+        <article class="pulse-card"><strong>👀 Watching This</strong><span>Interest before commitment. Watching never increases booked capacity.</span></article>
+        <article class="pulse-card"><strong>🔥 Momentum</strong><span>Five-stage movement signal. It describes pace, not how full the event is.</span></article>
+        <article class="pulse-card"><strong>🔌 The Plug</strong><span>The event owner / organiser. Ownership and permissions remain separate from public hype.</span></article>
+        <article class="pulse-card"><strong>🟣 Make It Happen</strong><span>The Plug’s planning and control area: setup, access, price, people, updates and Event Pulse.</span></article>
+        <article class="pulse-card"><strong>↔ People Flow</strong><span>Optional to activate: Off, Entry Only or Full Flow. Exit safety never depends on tracking.</span></article>
+      </div>
+      <p class="truth"><strong>Truth lock:</strong> no fake Ram status, watcher count, momentum, money, occupancy or sell-out claim is shown without measured source data.</p>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="events-access-title">
+      <p class="mc-eyebrow">🎟️ OAP Direct · first-party booking boundary</p>
+      <h2 id="events-access-title">Discover it. Check availability. Request the booking.</h2>
+      <p>Activity / Adventure · OAP Direct remains connected underneath OAP Events. Certified supplier inventory remains the source of truth.</p>
+      <div class="events-grid">
+        <article class="event-card"><p class="event-kicker">Get Access</p><h3>Lock Me In</h3><p>Choose a real active event slot and begin the governed booking journey.</p></article>
+        <article class="event-card"><p class="event-kicker">Confirmation</p><h3>You’re In 🟢</h3><p>Only after supplier confirmation. Interest, holds and pending payment are not called confirmed.</p></article>
+        <article class="event-card"><p class="event-kicker">Full</p><h3>RAM OUT 🔥</h3><p>Only when confirmed capacity is genuinely full. Then the waitlist path can take over.</p></article>
+      </div>
+      <p><strong>Quote → hold → human-confirmed reservation request → supplier confirmation</strong> before anything is called confirmed.</p>
+      <p>Payment capture and Pass issuance remain separately gated.</p>
+    </section>
+
+    <section class="mc-panel" aria-labelledby="make-it-happen-title">
+      <p class="mc-eyebrow">🔌 The Plug</p>
+      <h2 id="make-it-happen-title">Make It Happen</h2>
+      <div class="events-grid">
+        <article class="event-card"><h3>Who’s Pulling Up</h3><p>Confirmed people, invitations and waitlist stay distinct.</p></article>
+        <article class="event-card"><h3>Tell Everybody</h3><p>Event updates can route through Incoming once the notification path is connected.</p></article>
+        <article class="event-card"><h3>What Came In</h3><p>Booked value, captured value, pending and refunds must remain separate records.</p></article>
+      </div>
+      <p class="truth"><strong>Current boundary:</strong> this first-class Events surface is live product UI. Persistent event creation, measured Event Pulse data, regulated payment capture and entitlement issuance stay gated until their real stores and proofs are connected.</p>
+    </section>
+  </main>
+</body>
+</html>
