@@ -1,6 +1,4 @@
 """Regression coverage for EIOT first-party persistence broker."""
-import os
-
 import app as core_app
 import eiot_world_server
 from mission_control import mtown_persistence_broker
