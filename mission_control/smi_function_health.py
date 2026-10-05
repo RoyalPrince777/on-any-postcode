@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from werkzeug.exceptions import MethodNotAllowed, NotFound
+from werkzeug.routing import RequestRedirect
+
 from . import (
     agents,
     brain,
@@ -108,6 +111,71 @@ FUNCTION_SPECS = (
     {"id": "routes", "name": "Routes", "endpoint": "alignment.smi_route_status", "path": "/mission/smi/routes"},
     {"id": "green-gate", "name": "Green Gate", "endpoint": "alignment.green_gate_status", "path": "/mission/smi/green-gate"},
 )
+
+
+SMI_FIXED_NAV_PATHS: tuple[tuple[str, str], ...] = (
+    ("oap-front-door", "/"),
+    ("oap-search", "/search"),
+    ("map", "/on-any-place"),
+    ("map-alias", "/oap-map"),
+    ("movement", "/movement"),
+    ("travel-direct", "/travel/direct"),
+    ("map-status", "/map-intelligence/status"),
+    ("smi-chat", "/mission/ollama"),
+    ("war-room", "/mission/war-room"),
+    ("brain", "/mission/brain"),
+    ("agents", "/mission/agents"),
+    ("infrastructure", "/mission/infrastructure"),
+    ("judgement", "/mission/judgement"),
+    ("improvement", "/mission/improvement"),
+    ("function-health", "/mission/smi/function-health"),
+    ("routes", "/mission/smi/routes"),
+    ("green-gate", "/mission/smi/green-gate"),
+)
+
+
+def _registered_get_path(url_map: Any, path: str) -> bool:
+    """Return True only when a concrete internal GET path resolves in Flask routing."""
+
+    clean_path = str(path).split("?", 1)[0]
+    bind = getattr(url_map, "bind", None)
+    if callable(bind):
+        adapter = bind("localhost")
+        try:
+            adapter.match(clean_path, method="GET")
+        except (MethodNotAllowed, NotFound, RequestRedirect):
+            return False
+        return True
+
+    return any(
+        getattr(rule, "rule", None) == clean_path
+        and "GET" in set(getattr(rule, "methods", ()) or ())
+        for rule in url_map.iter_rules()
+    )
+
+
+def ui_route_integrity(url_map: Any) -> dict[str, Any]:
+    """Audit fixed SMI navigation paths so buttons/tabs cannot silently target 404s."""
+
+    paths = tuple(
+        {
+            "id": route_id,
+            "path": path,
+            "registered": _registered_get_path(url_map, path),
+        }
+        for route_id, path in SMI_FIXED_NAV_PATHS
+    )
+    registered_count = sum(1 for item in paths if item["registered"])
+    return {
+        "component": "SMI UI Route Integrity",
+        "paths": paths,
+        "registered_count": registered_count,
+        "expected_count": len(paths),
+        "availability_percent": _percent(registered_count, len(paths)),
+        "all_registered": registered_count == len(paths),
+        "no_404_routing_gap": registered_count == len(paths),
+        "human_authority_final": True,
+    }
 
 
 def _now() -> str:
@@ -432,8 +500,11 @@ def function_health(url_map: Any) -> dict[str, Any]:
     if not isinstance(improvement_proof, Mapping):
         improvement_proof = {}
 
+    ui_routes = ui_route_integrity(url_map)
     route_integrity = bool(
-        routes["all_registered"] and routes["duplicate_primary_paths"] == 0
+        routes["all_registered"]
+        and routes["duplicate_primary_paths"] == 0
+        and ui_routes["all_registered"]
     )
 
     proofs: dict[str, dict[str, Any]] = {
@@ -579,6 +650,7 @@ def function_health(url_map: Any) -> dict[str, Any]:
         "proof_required_count": expected_count - runtime_ready_count,
         "all_proof_sources_checked": proof_checked_count == expected_count,
         "all_primary_routes_registered": routes["all_registered"],
+        "ui_route_integrity": ui_routes,
         "duplicate_primary_paths": routes["duplicate_primary_paths"],
         "green_gate": gate,
         "interaction_certification": interaction_certification(),
