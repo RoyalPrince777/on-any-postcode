@@ -285,6 +285,28 @@ def library_finalize_ebook_order(order_id: str):
         return _error("entitlement_unavailable", "Ebook ownership is unavailable.", 503)
 
 
+@bp.post("/library/orders/<order_id>/reconcile-refund")
+@web_security.login_required(api=True)
+def library_reconcile_ebook_refund(order_id: str):
+    """Revoke or restore ebook access from durable provider refund evidence."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    try:
+        result = oap_book_entitlements.reconcile_verified_refund(
+            authenticated_identity_id=identity,
+            order_id=order_id,
+        )
+        return _library_page(make_response(jsonify(entitlement=result)))
+    except PermissionError as exc:
+        return _error(str(exc) or "permission_denied", "Refund state cannot be reconciled.", 403)
+    except ValueError as exc:
+        return _error(str(exc) or "invalid_order", "Check the order and try again.", 400)
+    except oap_book_entitlements.BookEntitlementsUnavailable:
+        return _error("entitlement_unavailable", "Ebook access reconciliation is unavailable.", 503)
+
+
 @bp.get("/library/essential-life-systems")
 def essential_life_systems_page():
     """Render the public knowledge view without claiming live telemetry."""
