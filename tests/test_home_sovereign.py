@@ -8,7 +8,7 @@ def test_home_keeps_public_world_without_private_founder_entry(client):
     page = response.get_data(as_text=True)
     assert "YOUR LOCAL" in page
     assert "MARKETPLACE." in page
-    assert "Shop local. Sell local." in page
+    assert "LOCAL SHOP" in page
     assert 'href="/the-spot/market"' in page
     assert 'href="/pay/bank"' in page
     assert "Enter My World" in page
@@ -120,8 +120,8 @@ def test_marketplace_home_and_shop_storefront_are_distinct_surfaces(client):
     home = client.get("/").get_data(as_text=True)
     assert "YOUR LOCAL" in home
     assert "MARKETPLACE." in home
-    assert "Shops" in home
-    assert "Featured products" in home
+    assert "Local shops" in home
+    assert "On the shelf" in home
     assert 'aria-label="Commerce navigation"' in home
 
     from pathlib import Path
@@ -197,3 +197,27 @@ def test_marketplace_home_exposes_real_install_control(client):
     assert icon192.status_code == 200
     assert icon512.status_code == 200
     assert "application/manifest+json" in manifest.content_type
+
+
+
+def test_marketplace_uses_local_shop_retail_ux():
+    from pathlib import Path
+    home = Path("templates/home.html").read_text(encoding="utf-8")
+    shop = Path("templates/shop.html").read_text(encoding="utf-8")
+
+    for marker in (
+        'aria-label="Shop aisles"',
+        "Local shops",
+        "On the shelf",
+        "price-ticket",
+        "Search the shop",
+    ):
+        assert marker in home
+
+    for marker in (
+        "ON ANY POSTCODE LOCAL SHOP",
+        "On the shelves",
+        "Add to basket",
+        'aria-label="Shop sections"',
+    ):
+        assert marker in shop
