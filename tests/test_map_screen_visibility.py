@@ -235,3 +235,15 @@ def test_cold_road_fetch_budget_remains_bounded():
     assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
     assert "if(batchAttempt<1)" in template
     assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+
+
+def test_route_draw_preserves_proven_road_context_on_refresh_failure():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    draw_section = template.split("async function draw(coords){", 1)[1].split(
+        "function lon2x", 1
+    )[0]
+
+    assert "const retainedRoadCount=roadLayer.querySelectorAll('polyline').length;" in draw_section
+    assert "const usableRoadCount=roadCount>0?roadCount:retainedRoadCount;" in draw_section
+    assert "if(usableRoadCount>0){showRoadStatus('');setRenderState('stable');return true}" in draw_section
+    assert "setRenderState('degraded');return false" in draw_section
