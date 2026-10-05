@@ -86,6 +86,7 @@ function setupRoster(){
  lastSetup={...s,names};return names
 }
 async function startGame(){
+ if(document.fullscreenEnabled&&!document.fullscreenElement){try{await document.documentElement.requestFullscreen()}catch{}}
  const names=setupRoster();await action("/arena/ludo/start",{players:names},{silent:true});
  agentIds=new Set();
  if(state){if(lastSetup.mode==="1a")agentIds.add(state.players[1]?.id);if(lastSetup.mode==="2a"){agentIds.add(state.players[2]?.id);agentIds.add(state.players[3]?.id)}}
@@ -143,5 +144,6 @@ if(roll)roll.onclick=rollHuman;
 root.addEventListener("click",e=>{const btn=e.target.closest("[data-piece]");if(btn&&!btn.disabled&&!isAgentTurn())action("/arena/ludo/move",{piece_id:btn.dataset.piece,request_id:requestId()})});
 q("[data-stop]").onclick=()=>action("/arena/ludo/stop",{request_id:requestId()});
 q("[data-rematch]")?.addEventListener("click",()=>{state=null;agentIds.clear();q("[data-results]").hidden=true;q("[data-results]").style.display="none";const dlg=q("[data-settings]");if(dlg&&!dlg.open)dlg.showModal()});
+qa("[data-fullscreen]").forEach(b=>b.addEventListener("click",async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}catch{}}));
 buildBoard();renderBoard();
 })();
