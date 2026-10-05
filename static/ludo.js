@@ -153,8 +153,11 @@ function scheduleAgent(){
  agentTimer=setTimeout(async()=>{
    if(!isAgentTurn()||busy)return;
    if(state.pending_roll===null){
-     const die=q("[data-roll]");if(die){die.classList.remove("rolling");void die.offsetWidth;die.classList.add("rolling");setTimeout(()=>die.classList.remove("rolling"),620)}
-     await action("/arena/ludo/roll",{request_id:requestId()},{silent:true});return
+     const die=q("[data-roll]"),faces=["⚀","⚁","⚂","⚃","⚄","⚅"];
+     if(die){die.classList.remove("landed","rolling");void die.offsetWidth;die.classList.add("rolling")}
+     await action("/arena/ludo/roll",{request_id:requestId()},{silent:true});
+     if(die){die.textContent=state?.pending_roll?faces[state.pending_roll-1]:"🎲";die.classList.remove("rolling");void die.offsetWidth;die.classList.add("landed");setTimeout(()=>die.classList.remove("landed"),650)}
+     return
    }
    const piece=chooseAgentPiece();if(piece)await action("/arena/ludo/move",{piece_id:piece.id,request_id:requestId()},{silent:true})
  },delayMs())
@@ -164,11 +167,19 @@ q("[data-start]").onclick=startGame;
 const roll=q("[data-roll]");
 async function rollHuman(){
  if(!roll||isAgentTurn()||busy)return;
- roll.classList.remove("rolling"); void roll.offsetWidth; roll.classList.add("rolling");
+ roll.classList.remove("landed","rolling"); void roll.offsetWidth; roll.classList.add("rolling");
  const faces=["⚀","⚁","⚂","⚃","⚄","⚅"]; let ticks=0;
- const spin=setInterval(()=>{roll.textContent=faces[ticks++%faces.length]},70);
- try{await action("/arena/ludo/roll",{request_id:requestId()})}
- finally{clearInterval(spin);setTimeout(()=>roll.classList.remove("rolling"),80)}
+ const spin=setInterval(()=>{roll.textContent=faces[ticks++%faces.length]},85);
+ try{
+   await action("/arena/ludo/roll",{request_id:requestId()});
+   const finalFace=state?.pending_roll?faces[state.pending_roll-1]:"🎲";
+   roll.textContent=finalFace;
+   roll.classList.remove("rolling"); void roll.offsetWidth; roll.classList.add("landed");
+   setTimeout(()=>roll.classList.remove("landed"),650);
+ } finally{
+   clearInterval(spin);
+   if(roll.classList.contains("rolling"))roll.classList.remove("rolling")
+ }
 }
 if(roll)roll.onclick=rollHuman;
 root.addEventListener("click",e=>{const btn=e.target.closest("[data-piece]");if(btn&&!btn.disabled&&!isAgentTurn())action("/arena/ludo/move",{piece_id:btn.dataset.piece,request_id:requestId()})});
