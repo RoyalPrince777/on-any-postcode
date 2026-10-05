@@ -10,8 +10,10 @@ import re
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 
+from .accessibility import AccessibilityNode, build_accessibility_tree
 from .css import Rule, computed_style, parse_stylesheet
 from .dom import HIDDEN_ELEMENTS, Node, parse_html_document
+from .forms import FormModel, extract_forms
 
 BLOCK_TAGS = {
     "article",
@@ -59,6 +61,8 @@ class RenderDocument:
     width: int
     height: int
     items: tuple[DisplayItem, ...]
+    accessibility: tuple[AccessibilityNode, ...]
+    forms: tuple[FormModel, ...]
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -68,6 +72,8 @@ class RenderDocument:
             "width": self.width,
             "height": self.height,
             "items": [item.to_dict() for item in self.items],
+            "accessibility": [node.to_dict() for node in self.accessibility],
+            "forms": [form.to_dict() for form in self.forms],
         }
 
 
@@ -150,8 +156,13 @@ def _effective_style(
     return style
 
 
-def render_html(html: str, viewport_width: int = 390) -> RenderDocument:
-    """Render the OAP-owned HTML/DOM/CSS subset to a deterministic display list."""
+def render_html(
+    html: str,
+    viewport_width: int = 390,
+    *,
+    base_url: str | None = None,
+) -> RenderDocument:
+    """Render the OAP-owned HTML/DOM/CSS subset to one deterministic contract."""
 
     if viewport_width < 160:
         raise ValueError("viewport_width must be at least 160")
@@ -238,9 +249,14 @@ def render_html(html: str, viewport_width: int = 390) -> RenderDocument:
             available_width=content_width,
         )
 
+    accessibility = build_accessibility_tree(root, rules)
+    forms = extract_forms(root, base_url=base_url) if base_url else ()
+
     return RenderDocument(
         title=_document_title(root),
         width=viewport_width,
         height=max(y + outer_margin, 24 + outer_margin * 2),
         items=tuple(items),
+        accessibility=accessibility,
+        forms=forms,
     )
