@@ -78,7 +78,7 @@ public final class EngineDocumentClient {
                     }
                 });
             } catch (IOException | RuntimeException error) {
-                postFallback(callback, sourcePath);
+                postFallback(callback, sourcePath, requestGeneration);
             }
         });
     }
