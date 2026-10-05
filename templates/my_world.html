@@ -35,7 +35,7 @@
 <div class="avatar">{{ (profile.nickname or auth_user.name or 'F')[:1]|upper }}</div>
 <div>
 <strong>{{ profile.nickname or auth_user.name }}</strong>
-<span>Founder · ON ANY POSTCODE{% if profile.postcode %} · {{ profile.postcode }}{% endif %}</span>
+<span>Founder · ON ANY POSTCODE{% if profile.postcode %} · {{ profile.postcode }}{% endif %}{% if profile.country %} · {{ profile.country }}{% endif %}</span>
 </div>
 </section>
 
