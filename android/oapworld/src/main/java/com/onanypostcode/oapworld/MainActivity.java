@@ -21,6 +21,10 @@ import android.widget.ScrollView;
 
 import androidx.activity.ComponentActivity;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +34,10 @@ public final class MainActivity extends ComponentActivity {
     private OapEngineView engineView;
     private EngineDocumentClient engineClient;
     private ScrollView engineScrollView;
+    private LinearLayout engineNativeHost;
+    private LinearLayout engineFormBar;
+    private EditText engineSearchInput;
+    private Button engineSearchButton;
     private boolean engineActive;
     private String engineSourcePath;
     private EditText omnibox;
@@ -91,14 +99,53 @@ public final class MainActivity extends ComponentActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
-        engineScrollView.setVisibility(View.GONE);
+
+        engineFormBar = new LinearLayout(this);
+        engineFormBar.setOrientation(LinearLayout.HORIZONTAL);
+        engineFormBar.setGravity(Gravity.CENTER_VERTICAL);
+        engineFormBar.setPadding(12, 8, 12, 8);
+        engineFormBar.setVisibility(View.GONE);
+
+        engineSearchInput = new EditText(this);
+        engineSearchInput.setSingleLine(true);
+        engineSearchInput.setHint("Search OAP");
+        engineSearchInput.setTextColor(Color.WHITE);
+        engineSearchInput.setHintTextColor(Color.rgb(150, 170, 158));
+        engineSearchInput.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
+        engineSearchInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT);
+
+        engineSearchButton = navButton("Search");
+        engineFormBar.addView(
+                engineSearchInput,
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        );
+        engineFormBar.addView(engineSearchButton);
+
+        engineNativeHost = new LinearLayout(this);
+        engineNativeHost.setOrientation(LinearLayout.VERTICAL);
+        engineNativeHost.setVisibility(View.GONE);
+        engineNativeHost.addView(
+                engineFormBar,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+        );
+        engineNativeHost.addView(
+                engineScrollView,
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        0,
+                        1f
+                )
+        );
 
         FrameLayout renderHost = new FrameLayout(this);
         renderHost.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
-        renderHost.addView(engineScrollView, new FrameLayout.LayoutParams(
+        renderHost.addView(engineNativeHost, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
@@ -172,6 +219,14 @@ public final class MainActivity extends ComponentActivity {
             }
         });
         goButton.setOnClickListener(v -> navigate(omnibox.getText().toString()));
+        engineSearchButton.setOnClickListener(v -> submitNativeSearch());
+        engineSearchInput.setOnEditorActionListener((view, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                submitNativeSearch();
+                return true;
+            }
+            return false;
+        });
         omnibox.setOnEditorActionListener((view, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_GO) {
                 navigate(omnibox.getText().toString());
@@ -276,8 +331,9 @@ public final class MainActivity extends ComponentActivity {
     ) {
         try {
             engineView.setDisplayListJson(displayListJson);
+            configureNativeSearchForm(displayListJson);
             engineScrollView.scrollTo(0, 0);
-            engineScrollView.setVisibility(View.VISIBLE);
+            engineNativeHost.setVisibility(View.VISIBLE);
             webView.setVisibility(View.GONE);
             engineActive = true;
             engineSourcePath = sourcePath;
@@ -298,11 +354,92 @@ public final class MainActivity extends ComponentActivity {
         }
     }
 
+    private void configureNativeSearchForm(String displayListJson) throws JSONException {
+        engineFormBar.setVisibility(View.GONE);
+        engineSearchInput.setText("");
+
+        JSONObject document = new JSONObject(displayListJson);
+        JSONArray forms = document.optJSONArray("forms");
+        if (forms == null || forms.length() != 1) {
+            return;
+        }
+        JSONObject form = forms.optJSONObject(0);
+        if (form == null
+                || !"GET".equals(form.optString("method"))
+                || !form.optBoolean("same_origin_action", false)) {
+            return;
+        }
+
+        Uri action = Uri.parse(form.optString("action", ""));
+        Uri oapOrigin = Uri.parse(OAP_ORIGIN);
+        boolean certifiedAction = "https".equalsIgnoreCase(action.getScheme())
+                && oapOrigin.getHost() != null
+                && oapOrigin.getHost().equalsIgnoreCase(action.getHost())
+                && action.getPort() == -1
+                && "/search".equals(action.getPath())
+                && action.getQuery() == null
+                && action.getFragment() == null;
+        if (!certifiedAction) {
+            return;
+        }
+
+        JSONArray controls = form.optJSONArray("controls");
+        if (controls == null) {
+            return;
+        }
+        boolean foundQuery = false;
+        for (int index = 0; index < controls.length(); index++) {
+            JSONObject control = controls.optJSONObject(index);
+            if (control == null) {
+                continue;
+            }
+            String name = control.optString("name", "");
+            String type = control.optString("control_type", "").toLowerCase();
+            if ("q".equals(name)
+                    && !control.optBoolean("disabled", false)
+                    && ("text".equals(type) || "search".equals(type))) {
+                engineSearchInput.setText(control.optString("value", ""));
+                foundQuery = true;
+                break;
+            }
+        }
+        if (foundQuery) {
+            engineFormBar.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void submitNativeSearch() {
+        if (!engineActive || engineFormBar.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        String query = engineSearchInput.getText().toString().trim();
+        if (query.length() > 120) {
+            return;
+        }
+        int viewportWidth = engineScrollView != null && engineScrollView.getWidth() > 0
+                ? engineScrollView.getWidth()
+                : getResources().getDisplayMetrics().widthPixels;
+        engineClient.submitCertifiedSearch(query, viewportWidth, new EngineDocumentClient.Callback() {
+            @Override
+            public void onEngineDocument(String json, String resolvedPath) {
+                showOapEngineDocument(json, resolvedPath, true);
+            }
+
+            @Override
+            public void onFallback(String resolvedPath) {
+                loadWebViewUrl(OAP_ORIGIN + resolvedPath);
+            }
+        });
+    }
+
     private void showWebViewFallback() {
         engineActive = false;
         engineSourcePath = null;
-        if (engineScrollView != null) {
-            engineScrollView.setVisibility(View.GONE);
+        if (engineNativeHost != null) {
+            engineNativeHost.setVisibility(View.GONE);
+        }
+        if (engineFormBar != null) {
+            engineFormBar.setVisibility(View.GONE);
         }
         if (webView != null) {
             webView.setVisibility(View.VISIBLE);
