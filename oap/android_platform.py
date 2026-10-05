@@ -6,7 +6,8 @@ GENERATION_0 = {
     "status": "ACTIVE_REFERENCE",
     "kernel": "Android/Linux upstream host",
     "framework": "Android upstream host",
-    "renderer": "Android System WebView for general web; native OAP Engine display-list surface available for supported documents",
+    "renderer": "Android System WebView",
+    "native_engine_surface": "OAP Engine display-list view for supported documents",
     "oap_owned": (
         "OAP World application shell",
         "OAP Browser product layer",
