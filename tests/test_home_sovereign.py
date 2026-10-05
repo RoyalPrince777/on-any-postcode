@@ -6,11 +6,11 @@ def test_home_keeps_public_world_without_private_founder_entry(client):
 
     assert response.status_code == 200
     page = response.get_data(as_text=True)
-    assert 'id="signal"' in page
-    assert "OAP WORLD" in page
-    assert "The Spot" in page
-    assert "The Link" in page
-    assert "On Any Postcode Maps" in page
+    assert "SHOP." in page
+    assert "SELL." in page
+    assert "Shop local. Sell local." in page
+    assert 'href="/the-spot/market"' in page
+    assert 'href="/pay/bank"' in page
     assert "Enter My World" in page
     assert 'href="/auth"' not in page
     assert 'href="/mission"' not in page
@@ -26,40 +26,34 @@ def test_home_keeps_public_world_without_private_founder_entry(client):
     assert "🇬🇭 Ghana" in sport
 
 
-def test_public_main_menu_uses_locked_oap_world_reference_items(client):
+def test_public_main_menu_is_commerce_only(client):
     page = client.get("/").get_data(as_text=True)
-    nav = page.split('<nav class="rail-nav">', 1)[1].split("</nav>", 1)[0]
+    nav = page.split('<nav class="bottom"', 1)[1].split("</nav>", 1)[0]
 
     expected = (
-        ("/", "Home"),
-        ("/oap-map", "Maps"),
-        ("/eats", "Eats"),
-        ("/transport/ride", "Rides"),
-        ("/the-spot", "The Spot"),
-        ("/linkup", "Link Up"),
-        ("/the-spot/market", "Market"),
-        ("/library", "Library"),
-        ("/studio", "Studio"),
-        ("/pay/bank", "SIKA"),
+        ("/the-spot/market", "Shop"),
+        ("/the-spot/market#sell", "Sell"),
+        ("/the-spot/market#orders", "Orders"),
+        ("/pay/bank", "Pay"),
     )
-    assert nav.count("<a ") == 10
+    assert nav.count("<a ") == 4
     for href, label in expected:
         assert f'href="{href}"' in nav
         assert label in nav
 
-    assert "Founder" not in nav
-    assert 'href="/auth"' not in nav
-    assert 'href="/mission"' not in nav
+    for noise in ("The Spot", "Link Up", "Library", "Studio", "HRM", "Guardian", "Settings"):
+        assert noise not in nav
+
 
 def test_public_home_and_sport_keep_only_public_post_forms(client):
     home = client.get("/").get_data(as_text=True)
     sport = client.get("/world-cup").get_data(as_text=True)
 
-    assert 'method="post" action="/signal"' in home
+    assert 'method="post" action="/signal"' not in home
     for route in ("/room", "/flag"):
         assert f'method="post" action="{route}"' in sport
     assert 'method="post" action="/myworld"' not in home + sport
-    assert home.count('name="csrf_token"') == 1
+    assert home.count('name="csrf_token"') == 0
     assert sport.count('name="csrf_token"') == 96
 
 
@@ -90,26 +84,19 @@ def test_gateway_shows_seven_oap_intelligence_families(client):
 
 
 
-def test_public_dashboard_strips_noise_and_dead_links(client):
+def test_public_dashboard_strips_to_shop_customer_jobs(client):
     page = client.get("/").get_data(as_text=True)
     assert "STRIP OF NOISE" not in page
-    assert 'href="/sika"' not in page
-    assert 'href="/hrm"' not in page
-    assert 'href="/guardian"' not in page
-    assert 'href="/settings"' not in page
-    assert 'href="/status"' not in page
-    assert 'href="/healthz"' in page
-    assert "Travel & Movement" in page
+    for text in ("Signal", "Quick Actions", "OAP Status", "Library", "Studio", "Link Up", "Guardian", "HRM"):
+        assert text not in page
     for href in (
-        "/oap-map",
-        "/eats",
-        "/transport/ride",
-        "/the-spot",
-        "/linkup",
         "/the-spot/market",
-        "/library",
-        "/studio",
+        "/the-spot/market#sell",
+        "/the-spot/market#orders",
         "/pay/bank",
+        "/eats",
+        "/oap-map",
+        "/transport/ride",
     ):
         assert f'href="{href}"' in page
 
