@@ -267,10 +267,10 @@ def test_oap_tv_media_aliases_resolve_to_one_public_front_door(client):
         assert page.count("Studio Intelligence") == 1
 
 
-def test_home_media_link_targets_canonical_tv_media_route(client):
+def test_media_route_remains_reachable_without_homepage_noise(client):
     home = client.get("/").get_data(as_text=True)
 
-    assert 'href="/the-spot/tv-media"' in home
+    assert 'href="/the-spot/tv-media"' not in home
     assert 'href="/media"' not in home
 
     response = client.get("/the-spot/tv-media")
