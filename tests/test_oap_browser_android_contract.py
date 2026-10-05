@@ -49,7 +49,8 @@ def test_oap_android_has_native_engine_surface_and_explicit_webview_fallback():
     assert "void showOapEngineDocument(String displayListJson, String sourcePath)" in source
     assert "engineView.setDisplayListJson(displayListJson)" in source
     assert "private void showWebViewFallback()" in source
-    assert "engineScrollView.setVisibility(View.VISIBLE)" in source
+    assert "engineNativeHost.setVisibility(View.VISIBLE)" in source
+    assert "engineNativeHost.setVisibility(View.GONE)" in source
     assert "webView.setVisibility(View.GONE)" in source
     assert "webView.setVisibility(View.VISIBLE)" in source
 
