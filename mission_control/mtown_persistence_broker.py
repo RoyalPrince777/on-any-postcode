@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any
 from urllib import request as urlrequest
+from typing import Any
 
 def configured() -> bool:
     return bool(os.environ.get("OAP_EIOT_PERSISTENCE_URL","").strip() and os.environ.get("OAP_EIOT_SERVICE_KEY","").strip())
@@ -27,7 +27,7 @@ def _post(path:str,payload:dict[str,Any]) -> dict[str,Any]:
     except Exception as exc:
         raise RuntimeError("eiot_persistence_broker_unavailable") from exc
     if not isinstance(data,dict):
-        raise RuntimeError("eiot_persistence_broker_invalid")
+        raise TypeError("eiot_persistence_broker_invalid")
     if data.get("error"):
         raise RuntimeError(str(data["error"]))
     return data
