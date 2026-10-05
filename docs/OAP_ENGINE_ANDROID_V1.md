@@ -177,6 +177,7 @@ The bounded OAP Engine contract now carries supported CSS paint state into Andro
 The engine also now contains:
 - an LRU-style bounded in-memory response cache with URL validation, per-entry and total byte ceilings;
 - a host-only, per-origin cookie jar foundation with path matching, Secure, HttpOnly and SameSite handling, cookie count/header/name/value limits, and rejection of cross-host Domain cookies;
+- a bounded request-policy object that permits only HTTP/HTTPS GET/HEAD/POST, limits request bodies, rejects URL credentials and only permits credential inclusion for same-origin requests;
 - regression tests proving paint propagation, native Android paint handling, cache eviction/limits, cookie origin isolation and SameSite=None+Secure enforcement.
 
 Truth boundary: the cache and cookie jar are engine foundations and are not yet wired into a general arbitrary-web network fetch pipeline or durable cross-session persistence. They do not make the engine standards-complete.
