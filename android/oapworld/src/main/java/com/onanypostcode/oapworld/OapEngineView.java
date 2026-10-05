@@ -33,8 +33,22 @@ public final class OapEngineView extends View {
         final float width;
         final float height;
         final String href;
+        final String color;
+        final String backgroundColor;
+        final boolean bold;
 
-        Item(String kind, String text, float x, float y, float width, float height, String href) {
+        Item(
+                String kind,
+                String text,
+                float x,
+                float y,
+                float width,
+                float height,
+                String href,
+                String color,
+                String backgroundColor,
+                boolean bold
+        ) {
             this.kind = kind;
             this.text = text;
             this.x = x;
@@ -42,10 +56,14 @@ public final class OapEngineView extends View {
             this.width = width;
             this.height = height;
             this.href = href;
+            this.color = color;
+            this.backgroundColor = backgroundColor;
+            this.bold = bold;
         }
     }
 
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final List<Item> items = new ArrayList<>();
     private int documentWidth = 390;
     private int documentHeight = 1;
@@ -124,7 +142,23 @@ public final class OapEngineView extends View {
             if (href != null && !isSafeHttpLink(href)) {
                 throw new JSONException("unsafe display-list link scheme");
             }
-            parsed.add(new Item(kind, text, x, y, itemWidth, itemHeight, href));
+            String color = safeHexColor(rawItem.optString("color", null));
+            String backgroundColor = safeHexColor(rawItem.optString("background_color", null));
+            boolean bold = rawItem.optBoolean("bold", false);
+            parsed.add(
+                    new Item(
+                            kind,
+                            text,
+                            x,
+                            y,
+                            itemWidth,
+                            itemHeight,
+                            href,
+                            color,
+                            backgroundColor,
+                            bold
+                    )
+            );
         }
 
         items.clear();
@@ -133,6 +167,13 @@ public final class OapEngineView extends View {
         documentHeight = height;
         requestLayout();
         invalidate();
+    }
+
+    private static String safeHexColor(String value) {
+        if (value == null || !value.matches("^#[0-9A-Fa-f]{6}$")) {
+            return null;
+        }
+        return value.toUpperCase();
     }
 
     private static boolean isSafeHttpLink(String href) {
@@ -169,9 +210,24 @@ public final class OapEngineView extends View {
         canvas.save();
         canvas.scale(scale, scale);
         for (Item item : items) {
-            textPaint.setColor("link".equals(item.kind)
-                    ? Color.rgb(105, 190, 255)
-                    : Color.WHITE);
+            if (item.backgroundColor != null) {
+                backgroundPaint.setColor(Color.parseColor(item.backgroundColor));
+                canvas.drawRect(
+                        item.x,
+                        item.y,
+                        item.x + item.width,
+                        item.y + item.height,
+                        backgroundPaint
+                );
+            }
+            if (item.color != null) {
+                textPaint.setColor(Color.parseColor(item.color));
+            } else {
+                textPaint.setColor("link".equals(item.kind)
+                        ? Color.rgb(105, 190, 255)
+                        : Color.WHITE);
+            }
+            textPaint.setFakeBoldText(item.bold);
             float fontSize = Math.max(8f, item.height - 8f);
             textPaint.setTextSize(fontSize);
             canvas.drawText(item.text, item.x, item.y + item.height - 6f, textPaint);
