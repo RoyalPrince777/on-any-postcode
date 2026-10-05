@@ -56,6 +56,9 @@ def test_mitcham_arena_surface_is_exposed(client):
     assert "Travel mode" in html
     assert "Foot" in html and "Bike / e-bike" in html and "Car" in html
     assert "No precise tracking" in html
+    assert "M Town is loading" in html
+    assert 'data-eiot-recovery' in html
+    assert 'href="/arena/earth-is-our-turf">Retry world</a>' in html
 
 
 def test_arena_front_door_links_mitcham_world(client):
@@ -86,3 +89,14 @@ def test_named_mitcham_anchors_are_in_world_catalogue():
     state=earth_is_our_turf.public_state(earth_is_our_turf.new_world())
     labels={n["label"] for n in state["nodes"]}
     assert {"Lavender Avenue","Lavender Park","Phipps Bridge","Armfield Crescent","Laburnum Road"} <= labels
+
+
+def test_mitcham_browser_has_blank_screen_guards(client):
+    script=client.get("/static/earth_is_our_turf.js").get_data(as_text=True)
+    assert "validState" in script
+    assert "eiot_initial_state_missing" in script
+    assert "eiot_initial_state_invalid" in script
+    assert "function renderUnsafe()" in script
+    assert "EIOT render guard" in script
+    assert "unhandledrejection" in script
+    assert "showRecovery" in script
