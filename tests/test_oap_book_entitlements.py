@@ -145,8 +145,6 @@ def test_verified_purchase_library_fails_closed_when_store_unavailable(monkeypat
 
 
 def test_verified_capture_mints_owned_entitlement(monkeypatch):
-    from datetime import datetime, timezone
-
     order_id = str(uuid.uuid4())
     intent_id = str(uuid.uuid4())
     receipt_id = str(uuid.uuid4())
