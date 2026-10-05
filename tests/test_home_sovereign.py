@@ -32,8 +32,8 @@ def test_public_main_menu_is_commerce_only(client):
 
     expected = (
         ("/the-spot/market", "Shop"),
-        ("/the-spot/market#sell", "Sell"),
-        ("/the-spot/market#orders", "Orders"),
+        ("/sell", "Sell"),
+        ("/orders", "Orders"),
         ("/pay/bank", "Pay"),
     )
     assert nav.count("<a ") == 4
@@ -91,8 +91,8 @@ def test_public_dashboard_strips_to_shop_customer_jobs(client):
         assert text not in page
     for href in (
         "/the-spot/market",
-        "/the-spot/market#sell",
-        "/the-spot/market#orders",
+        "/sell",
+        "/orders",
         "/pay/bank",
         "/eats",
         "/oap-map",
@@ -134,7 +134,7 @@ def test_marketplace_home_and_shop_storefront_are_distinct_surfaces(client):
     assert 'aria-label="Shop navigation"' in shop
     assert 'oap-market-basket-v1' in shop
     assert 'class="buy market-add"' in shop
-    assert 'href="/the-spot/market#basket"' in shop
+    assert 'href="/basket"' in shop
 
 
 def test_marketplace_home_uses_canonical_shop_slug():
@@ -144,3 +144,37 @@ def test_marketplace_home_uses_canonical_shop_slug():
     assert 'item["shop_slug"] = _shop_slug(item.get("seller"))' in source
     assert 'href="/shop/{{ shop.slug }}"' in home
     assert 'href="/shop/{{ product.shop_slug }}"' in home
+
+
+
+def test_public_commerce_buttons_do_not_404(anonymous_client):
+    for path in (
+        "/",
+        "/the-spot/market",
+        "/sell",
+        "/orders",
+        "/basket",
+        "/pay/bank",
+        "/eats",
+        "/oap-map",
+        "/transport/ride",
+        "/enter-my-world?next=/",
+    ):
+        response = anonymous_client.get(path, follow_redirects=False)
+        assert response.status_code != 404, path
+        assert response.status_code != 405, path
+
+
+def test_public_marketplace_uses_clean_commerce_doors():
+    from pathlib import Path
+    home = Path("templates/home.html").read_text(encoding="utf-8")
+    shop = Path("templates/shop.html").read_text(encoding="utf-8")
+    source = Path("app.py").read_text(encoding="utf-8")
+
+    for route in ('href="/sell"', 'href="/orders"', 'href="/basket"'):
+        assert route in home + shop
+    assert 'href="/the-spot/market#orders"' not in home + shop
+    assert 'href="/the-spot/market#basket"' not in home + shop
+    assert '@app.get("/sell")' in source
+    assert '@app.get("/basket")' in source
+    assert '@app.get("/orders")' in source
