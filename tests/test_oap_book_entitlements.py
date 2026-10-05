@@ -112,8 +112,6 @@ def test_empty_receipt_is_rejected(monkeypatch):
 
 
 def test_verified_purchase_library_only_returns_owned_approved_rows(monkeypatch):
-    from datetime import datetime, timezone
-
     created = datetime(2026, 10, 5, tzinfo=timezone.utc)
     row = (
         str(uuid.uuid4()), "book", "v1", "provider-receipt",
