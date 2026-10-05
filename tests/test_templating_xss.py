@@ -7,7 +7,7 @@ def test_legacy_user_content_is_escaped(client, csrf):
     attack = '<script>alert("legacy")</script>'
     client.post("/signal", data={**csrf, "name": attack, "body": attack})
 
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/the-spot/signal").get_data(as_text=True)
 
     assert attack not in page
     assert "&lt;script&gt;alert" in page
