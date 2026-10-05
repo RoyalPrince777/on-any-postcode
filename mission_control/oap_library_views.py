@@ -207,6 +207,33 @@ def library_publish_ebook_to_market(book_id: str, edition_id: str):
         return _error("ebook_market_unavailable", "Ebook Market publishing is unavailable.", 503)
 
 
+@bp.get("/library/books/<book_id>/<edition_id>")
+def library_ebook_product(book_id: str, edition_id: str):
+    """Render one public digital ebook product from governed Market evidence."""
+
+    try:
+        product = oap_ebook_market.public_product(book_id, edition_id)
+    except (ValueError, oap_ebook_market.EbookMarketUnavailable):
+        return _library_page(make_response(render_template("oap_library_unavailable.html"), 503))
+    if product is None:
+        return _library_page(make_response(render_template("oap_library_unavailable.html"), 404))
+    return _library_page(
+        make_response(
+            render_template(
+                "oap_ebook_product.html",
+                product=product,
+            )
+        )
+    )
+
+
+@bp.get("/library/books/<book_id>/<edition_id>/preview")
+def library_ebook_preview(book_id: str, edition_id: str):
+    """Open the governed preview page through the protected reader."""
+
+    return library_ebook_product(book_id, edition_id)
+
+
 @bp.get("/library/essential-life-systems")
 def essential_life_systems_page():
     """Render the public knowledge view without claiming live telemetry."""
