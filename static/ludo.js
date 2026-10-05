@@ -74,18 +74,16 @@ function showResults(){
 function render(){
  renderBoard();if(!state)return;
  q("[data-game]").hidden=false;
- const movePanel=q("[data-move-panel]");if(movePanel)movePanel.classList.toggle("active",!isAgentTurn()&&state.status==="active"&&state.pending_roll!==null&&state.movable_piece_ids.length>0);
+ 
  q("[data-turn]").textContent=state.status==="active"?(isAgentTurn()?"🤖 "+state.current_player_name:state.current_player_name):"—";
  q("[data-roll-value]").textContent=state.pending_roll??"🎲";q("[data-status]").textContent=state.status==="completed"?"Complete":state.status;
- const view=q("[data-players-view]");view.replaceChildren();
- for(const player of state.players){const row=document.createElement("section");row.className="player-entry";const left=document.createElement("div"),title=document.createElement("strong"),meta=document.createElement("span");title.textContent=(agentIds.has(player.id)?"🤖 ":"")+player.name;meta.textContent=player.finished+"/4 home";left.append(title,meta);const pieces=document.createElement("div");pieces.style.display="grid";pieces.style.gap="6px";for(const piece of player.pieces){const legal=!isAgentTurn()&&state.status==="active"&&player.id===state.current_player_id&&state.pending_roll!==null&&state.movable_piece_ids.includes(piece.id);const b=document.createElement("button");b.type="button";b.dataset.piece=piece.id;b.textContent=(legal?"MOVE · ":"")+pieceLabel(piece);b.disabled=!legal||busy;if(legal){b.className="arena-primary";b.style.minHeight="42px"}pieces.append(b)}row.append(left,pieces);view.append(row)}
  const active=state.status==="active",pending=state.pending_roll!==null,roll=q("[data-roll]");
  q("[data-start]").disabled=busy||active;q("[data-players]").disabled=busy||active;if(roll)roll.disabled=busy||!active||pending||isAgentTurn();q("[data-stop]").disabled=busy||!active;
  const feedback=q("[data-feedback]");
  if(state.status==="completed")feedback.textContent="👑 Arena Winner: "+(state.winner_name||"—");
  else if(state.status==="stopped")feedback.textContent="Match stopped.";
  else if(isAgentTurn())feedback.textContent="🤖 "+state.current_player_name+" is thinking…";
- else if(pending&&state.movable_piece_ids.length)feedback.textContent="🎯 Rolled "+state.pending_roll+" · tap a glowing piece.";
+ else if(pending&&state.movable_piece_ids.length)feedback.textContent="🎯 Rolled "+state.pending_roll+" · tap a glowing piece on the board.";
  else if(pending)feedback.textContent="Rolled "+state.pending_roll+".";
  else feedback.textContent="Tap the dice. You need a 6 to bring a piece out.";
  showResults();scheduleAgent()
