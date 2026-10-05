@@ -3,8 +3,6 @@
 This module does not fetch GitHub, approve merges, deploy code, or invent proof.
 It only normalises evidence already supplied by governed callers.
 """
-from __future__ import annotations
-
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 
