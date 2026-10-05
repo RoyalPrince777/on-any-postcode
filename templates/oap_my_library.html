@@ -26,6 +26,28 @@
         <h1>My Library</h1>
       </div>
     </div>
+    {% if owned_ebooks %}
+    <section aria-labelledby="owned-books-title">
+      <div class="section-heading"><div><p class="library-kicker">OWNED · VERIFIED</p><h2 id="owned-books-title">Owned ebooks</h2></div></div>
+      <div class="collection-grid">
+        {% for book in owned_ebooks %}
+        <article class="collection-card" data-access="owned">
+          <div class="collection-symbol" aria-hidden="true">📘</div>
+          <p class="collection-name">Owned ebook</p>
+          <h3>{{ book.book_id }}</h3>
+          <p>Edition {{ book.edition_id }} · verified entitlement</p>
+          <a href="/library/ebooks/{{ book.book_id }}/{{ book.edition_id }}/pages/0">Read <span aria-hidden="true">→</span></a>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% elif owned_state == "unavailable" %}
+    <div class="library-empty">
+      <h2>Owned ebooks are temporarily unavailable.</h2>
+      <p>Your access is not guessed or recreated from the browser. OAP will only show durable verified entitlements.</p>
+    </div>
+    {% endif %}
+
     {% if collections %}
     <div class="collection-grid">
       {% for collection in collections %}
