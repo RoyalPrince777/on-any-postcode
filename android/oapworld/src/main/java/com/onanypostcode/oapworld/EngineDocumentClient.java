@@ -4,10 +4,13 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -79,6 +82,73 @@ public final class EngineDocumentClient {
                 });
             } catch (IOException | RuntimeException error) {
                 postFallback(callback, sourcePath, requestGeneration);
+            }
+        });
+    }
+
+    public void submitCertifiedSearch(String query, int viewportWidth, Callback callback) {
+        final int requestGeneration = generation.incrementAndGet();
+        final String safeQuery = query == null ? "" : query.trim();
+        if (safeQuery.length() > 120) {
+            postFallback(callback, "/search", requestGeneration);
+            return;
+        }
+        executor.execute(() -> {
+            try {
+                String endpoint = origin + "/api/oap-engine/submit";
+                JSONObject fields = new JSONObject();
+                fields.put("q", safeQuery);
+                JSONObject payload = new JSONObject();
+                payload.put("action", "/search");
+                payload.put("viewport", Math.max(160, Math.min(2048, viewportWidth)));
+                payload.put("fields", fields);
+                byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
+
+                HttpURLConnection connection = (HttpURLConnection) new URL(endpoint).openConnection();
+                connection.setRequestMethod("POST");
+                connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+                connection.setReadTimeout(READ_TIMEOUT_MS);
+                connection.setInstanceFollowRedirects(false);
+                connection.setDoOutput(true);
+                connection.setRequestProperty("Accept", "application/json");
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                connection.setRequestProperty("X-OAP-Renderer-Request", "OAP_ENGINE_ANDROID");
+                connection.setFixedLengthStreamingMode(body.length);
+                try (OutputStream output = connection.getOutputStream()) {
+                    output.write(body);
+                }
+
+                int status = connection.getResponseCode();
+                if (status != 200) {
+                    connection.disconnect();
+                    postFallback(callback, "/search?q=" + Uri.encode(safeQuery), requestGeneration);
+                    return;
+                }
+                String renderer = connection.getHeaderField("X-OAP-Renderer");
+                if (!"OAP_ENGINE".equals(renderer)) {
+                    connection.disconnect();
+                    postFallback(callback, "/search?q=" + Uri.encode(safeQuery), requestGeneration);
+                    return;
+                }
+
+                String responseBody;
+                try (InputStream input = connection.getInputStream()) {
+                    responseBody = readBounded(input);
+                } finally {
+                    connection.disconnect();
+                }
+                JSONObject document = new JSONObject(responseBody);
+                String resolvedPath = document.optString(
+                        "source_path",
+                        "/search?q=" + Uri.encode(safeQuery)
+                );
+                mainHandler.post(() -> {
+                    if (generation.get() == requestGeneration) {
+                        callback.onEngineDocument(responseBody, resolvedPath);
+                    }
+                });
+            } catch (Exception error) {
+                postFallback(callback, "/search?q=" + Uri.encode(safeQuery), requestGeneration);
             }
         });
     }
