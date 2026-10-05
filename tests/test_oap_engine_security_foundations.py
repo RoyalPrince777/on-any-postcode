@@ -38,7 +38,7 @@ def test_origin_storage_isolated_by_scheme_host_port_and_quota():
     assert store.get_item("http://oap.example/", "theme") is None
     assert store.get_item("https://other.example/", "theme") is None
     with pytest.raises(ValueError, match="origin_storage_quota_exceeded"):
-        store.set_item("https://oap.example/", "large", "x" * 1010)
+        store.set_item("https://oap.example/", "large", "x" * 1011)
     assert store.snapshot("https://oap.example/") == {"theme": "dark"}
 
 
