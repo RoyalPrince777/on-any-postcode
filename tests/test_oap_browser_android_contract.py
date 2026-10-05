@@ -6,7 +6,8 @@ SOURCE = Path("android/oapworld/src/main/java/com/onanypostcode/oapworld/MainAct
 def test_oap_browser_keeps_oap_as_home_and_routes_search_first_party():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com"' in source
-    assert 'openFirstPartyPath("/")' in source
+    assert 'private static final String OAP_WORLD_PATH = "/world"' in source
+    assert 'openFirstPartyPath(OAP_WORLD_PATH)' in source
     assert 'openFirstPartyPath("/search?q=" + Uri.encode(input))' in source
 
 
@@ -27,19 +28,25 @@ def test_oap_browser_retains_host_security_controls():
     assert "cookieManager.setAcceptThirdPartyCookies(webView, false)" in source
 
 
-def test_oap_browser_has_real_navigation_controls():
+def test_oap_browser_shell_is_stripped_to_world_back_omnibox_and_trust_state():
     source = SOURCE.read_text(encoding="utf-8")
     for marker in (
         'navButton("‹")',
+        'navButton("OAP World")',
+        'trustState.setText("OAP WORLD")',
+        '"OPEN WEB"',
+        "webView.goBack()",
+    ):
+        assert marker in source
+    for noise in (
         'navButton("›")',
-        'navButton("OAP")',
         'navButton("↻")',
         'navButton("Go")',
-        "webView.goBack()",
+        "forwardButton",
         "webView.goForward()",
         "webView.reload()",
     ):
-        assert marker in source
+        assert noise not in source
 
 
 
@@ -95,3 +102,18 @@ def test_oap_browser_engine_transport_is_background_bounded_and_same_origin():
     assert "setReadTimeout(READ_TIMEOUT_MS)" in client_source
     assert "MAX_DOCUMENT_BYTES" in client_source
     assert '"OAP_ENGINE".equals(renderer)' in client_source
+
+
+def test_oap_browser_trust_state_is_origin_based_not_renderer_based():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "private boolean isOapUrl(String rawUrl)" in source
+    assert 'trustState.setText(isOapUrl(rawUrl) ? "OAP WORLD" : "OPEN WEB")' in source
+
+
+def test_oap_browser_has_no_duplicate_native_search_bar_or_tab_surface():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "engineFormBar" not in source
+    assert "engineSearchButton" not in source
+    assert "engineSearchInput" not in source
+    assert "TabLayout" not in source
+    assert "tabs" not in source.lower()
