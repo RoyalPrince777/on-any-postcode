@@ -50,3 +50,18 @@ def test_oap_engine_android_document_normalizes_relative_links(client):
     hrefs = [item.get("href") for item in payload["items"] if item.get("href")]
     assert hrefs
     assert all(href.startswith(("https://", "http://")) for href in hrefs)
+
+
+
+def test_oap_engine_android_links_ignore_untrusted_host_header(client):
+    response = client.get(
+        "/api/oap-engine/document",
+        query_string={"path": "/", "viewport": "390"},
+        headers={"Host": "attacker.example"},
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    hrefs = [item.get("href") for item in payload["items"] if item.get("href")]
+    assert hrefs
+    assert all("attacker.example" not in href for href in hrefs)
+    assert all(href.startswith("https://on-any-postcode.onrender.com/") for href in hrefs)
