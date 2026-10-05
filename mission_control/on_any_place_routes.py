@@ -485,7 +485,6 @@ def canonical_on_any_place():
 
 @bp.get("/places")
 @bp.get("/spots")
-@bp.get("/events")
 @bp.get("/on-any-route")
 @bp.get("/routes")
 @bp.get("/on-any-ride")
