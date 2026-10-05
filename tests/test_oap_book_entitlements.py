@@ -15,17 +15,25 @@ class FakeConnection:
         self.row = row
         self.parameters = None
         self.sql = ""
+        self.calls = []
+        self.committed = False
 
     def execute(self, sql, parameters):
         self.sql = sql
         self.parameters = parameters
+        self.calls.append((sql, parameters))
         return self
 
     def fetchone(self):
+        if isinstance(self.row, list):
+            return self.row.pop(0) if self.row else None
         return self.row
 
     def fetchall(self):
         return self.row if isinstance(self.row, list) else ([] if self.row is None else [self.row])
+
+    def commit(self):
+        self.committed = True
 
 
 def store(monkeypatch, row):
@@ -176,7 +184,10 @@ def test_verified_capture_mints_owned_entitlement(monkeypatch):
     assert result["payment_capture_performed_here"] is False
     assert result["provider_called_here"] is False
     assert observed == [False]
-    assert "p.state" in connection.sql or True
+    assert connection.committed is True
+    joined_sql = "\n".join(sql for sql, _params in connection.calls)
+    assert "oap_commerce_provider_receipts" in joined_sql
+    assert "INSERT INTO oap_book_entitlements" in joined_sql
 
 
 def test_verified_capture_rejects_non_captured_payment(monkeypatch):
