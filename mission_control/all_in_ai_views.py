@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 from . import (
     all_in_ai,
     all_in_ai_action_bridge,
+    all_in_ai_captain_api,
     all_in_ai_mission_store,
     all_in_ai_runtime,
     web_security,
@@ -61,6 +62,7 @@ def all_in_ai_app():
                 "all_in_ai.html",
                 identity=all_in_ai.status(),
                 runtime=all_in_ai_runtime.status(),
+                captain_api=all_in_ai_captain_api.status(),
                 oap_csrf_token=web_security.csrf_token(),
             )
         )
@@ -75,10 +77,47 @@ def all_in_ai_status():
             jsonify(
                 identity=all_in_ai.status(),
                 runtime=all_in_ai_runtime.status(),
+                captain_api=all_in_ai_captain_api.status(),
             )
         )
     )
 
+
+
+
+@bp.post("/all-in-ai/captain/ask")
+@web_security.login_required(api=True, founder_only=True)
+def all_in_ai_captain_ask():
+    """Ask the deployed Captain Agent through the server-side OpenAI Responses API."""
+
+    csrf_error = _require_csrf()
+    if csrf_error is not None:
+        return csrf_error
+    if _founder_id() is None:
+        return _error("authentication_required", "Founder sign-in required.", 401)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = all_in_ai_captain_api.ask(payload.get("message"))
+    except ValueError as exc:
+        return _error(str(exc), "Captain request failed validation.", 400)
+    except RuntimeError as exc:
+        code = str(exc)
+        if code == "captain_provider_key_missing":
+            return _error(code, "Captain API provider is not configured.", 503)
+        logger.warning("oap_all_in_ai_captain_provider_error code=%s", code)
+        return _error(
+            "captain_provider_unavailable",
+            "Captain API is temporarily unavailable.",
+            503,
+        )
+
+    logger.info(
+        "oap_all_in_ai_captain_answered sources=%s execution_granted=false founder_final=true",
+        len(result.get("sources", [])),
+    )
+    return _no_store(make_response(jsonify(result)))
 
 @bp.post("/all-in-ai/mission")
 @web_security.login_required(api=True, founder_only=True)
