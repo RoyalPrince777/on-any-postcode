@@ -181,3 +181,12 @@ The engine also now contains:
 - regression tests proving paint propagation, native Android paint handling, cache eviction/limits, cookie origin isolation and SameSite=None+Secure enforcement.
 
 Truth boundary: the cache and cookie jar are engine foundations and are not yet wired into a general arbitrary-web network fetch pipeline or durable cross-session persistence. They do not make the engine standards-complete.
+
+
+## Android state and accessibility foundations v1
+
+Android now consumes the engine contract's accessibility metadata into a bounded native screen-reader summary and marks the OAP Engine view as an accessibility-important focusable surface. The summary is capped by node count and character count to avoid unbounded accessibility payloads.
+
+Android also now contains durable app-local per-origin storage using private SharedPreferences, with normalized HTTP/HTTPS origin keys, a 64 KiB per-origin quota, key-count and key/value-size ceilings, and clear/remove operations.
+
+Truth boundary: the accessibility implementation is a page-level summary, not a complete per-node virtual accessibility tree. The durable storage is private app-local persistence, not an encrypted vault and not yet exposed through a JavaScript localStorage/sessionStorage API. Physical/device proof remains excluded.
