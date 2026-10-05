@@ -81,12 +81,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Smoke-test Core and SMI from the same image
+      - name: Smoke-test Core, SMI, and local voice from the same image
         if: github.event_name == 'pull_request'
         run: |
           docker run --rm "${IMAGE_NAME}:${GITHUB_SHA}" python -c "import app; import smi_gateway; print('oap-runtime-imports-ok')"
           docker run --rm -e OAP_RUNTIME_TARGET=app:app "${IMAGE_NAME}:${GITHUB_SHA}" sh -c 'python -c "import app; assert hasattr(app, \"app\")"'
           docker run --rm -e OAP_RUNTIME_TARGET=smi_gateway:app "${IMAGE_NAME}:${GITHUB_SHA}" sh -c 'python -c "import smi_gateway; assert hasattr(smi_gateway, \"app\")"'
+          docker run --rm "${IMAGE_NAME}:${GITHUB_SHA}" python -c "from mission_control.smi_reply_voice_local import render_reply; r=render_reply('SMI lip sync proof'); a=r['alignment']; assert r['engine']=='self_hosted_espeak' and r['phonemeIssuedBySynth'] is True and r['audio_wav'][:4]==b'RIFF' and a['source']=='decoded_audio_phoneme_timeline' and len(a['cues'])>=3 and a['cues'][0]['viseme']=='silence' and a['cues'][-1]['viseme']=='silence'; print('oap-local-voice-viseme-proof-ok')"
 
       - name: Build and publish exact runtime image
         id: publish
@@ -100,6 +101,16 @@ jobs:
           tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Prove local voice and viseme timeline in exact published image
+        if: github.event_name != 'pull_request'
+        env:
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
+        run: |
+          set -euo pipefail
+          test -n "$IMAGE_DIGEST"
+          docker pull "${IMAGE_NAME}@${IMAGE_DIGEST}"
+          docker run --rm "${IMAGE_NAME}@${IMAGE_DIGEST}" python -c "from mission_control.smi_reply_voice_local import render_reply; r=render_reply('SMI production lip sync proof'); a=r['alignment']; assert r['engine']=='self_hosted_espeak' and r['phonemeIssuedBySynth'] is True and r['audio_wav'][:4]==b'RIFF' and a['source']=='decoded_audio_phoneme_timeline' and len(a['cues'])>=3 and a['cues'][0]['viseme']=='silence' and a['cues'][-1]['viseme']=='silence'; print('oap-published-local-voice-viseme-proof-ok')"
 
   promote-core:
     if: github.event_name == 'push'
