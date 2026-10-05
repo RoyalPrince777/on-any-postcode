@@ -12,7 +12,7 @@
 .shell{max-width:760px;margin:auto;padding:18px 16px calc(94px + env(safe-area-inset-bottom))}
 .top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:8px 0 20px}
 .brand{font-weight:950;letter-spacing:.04em}.brand small{display:block;color:var(--muted);font-weight:600;letter-spacing:0;margin-top:3px}
-.account{padding:10px 13px;border:1px solid var(--line);border-radius:13px;background:var(--panel);font-size:.84rem}
+.account,.install{padding:10px 13px;border:1px solid var(--line);border-radius:13px;background:var(--panel);font-size:.84rem;color:var(--text)}.top-actions{display:flex;gap:8px;align-items:center}.install{cursor:pointer;font-weight:800}.install[hidden]{display:none}.install-status{margin:-8px 0 14px;color:var(--muted);font-size:.76rem}
 .hero{padding:26px 0 20px}.hero h1{font-size:clamp(2.6rem,11vw,5rem);line-height:.92;margin:0;letter-spacing:-.055em}.hero p{color:var(--muted);font-size:1.02rem;line-height:1.45;max-width:540px}
 .search{display:grid;grid-template-columns:1fr auto;gap:8px;margin:6px 0 22px}.search input{min-width:0;padding:15px;border:1px solid var(--line);border-radius:15px;background:var(--panel);color:var(--text);font:inherit}.search button{border:0;border-radius:15px;padding:0 18px;background:var(--gold);color:#161208;font-weight:900}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{min-height:142px;padding:18px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,#181610,#0f0e0b);display:flex;flex-direction:column;justify-content:space-between}.card.primary{background:var(--gold);color:#161208;border-color:#ffe38a}.card .icon{font-size:1.8rem}.card strong{font-size:1.15rem}.card span{display:block;margin-top:5px;color:var(--muted);font-size:.84rem;line-height:1.35}.card.primary span{color:#4b3c19}
@@ -29,8 +29,12 @@
 <main class="shell">
 <header class="top">
 <div class="brand">ON ANY POSTCODE<small>Shop local. Sell local.</small></div>
+<div class="top-actions">
+<button class="install" type="button" data-oap-install hidden>Install</button>
 <a class="account" href="/enter-my-world?next=/">Enter My World</a>
+</div>
 </header>
+<p class="install-status" data-oap-install-status aria-live="polite"></p>
 
 <section class="hero">
 <h1>YOUR LOCAL<br>MARKETPLACE.</h1>
