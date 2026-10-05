@@ -102,3 +102,22 @@ OAP Engine now also contains:
 
 This materially advances the source foundation, but it still does not make OAP
 Engine standards-complete or the default renderer for arbitrary websites.
+
+
+## Engine v1 main render path
+
+The main OAP Engine renderer now consumes the OAP-owned DOM and CSS modules directly:
+
+HTML → OAP DOM → OAP CSS cascade → bounded layout → deterministic display list.
+
+Implemented layout effects include:
+- display:none suppression;
+- block/inline selection;
+- integer/px margin and padding;
+- inherited font-size, font-weight, color and text-align;
+- font-size-driven line geometry and wrapping;
+- left/center/right text alignment;
+- nested link href propagation;
+- stylesheet collection from document style nodes.
+
+This is still a bounded subset. It does not claim full CSS box layout, flexbox, grid, floats, positioning, transforms, generated content, JavaScript, raster/compositor ownership, accessibility, media, networking, cookies/storage, sandboxing, or standards completeness.
