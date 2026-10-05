@@ -144,7 +144,8 @@ def test_map_boot_clears_only_after_terminal_road_state():
 def test_road_tiles_are_prioritised_and_bounded_instead_of_flooded():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
     assert "tiles.sort((a,b)=>" in template
-    assert "tiles=tiles.slice(0,4);" in template
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+    assert "tiles=tiles.slice(batchStart,batchStart+batchSize);" in template
     assert "Math.min(4,tiles.length)" in template
     assert "for(let attempt=0;attempt<1;attempt++)" in template
     assert "response.status!==503" in template
@@ -178,7 +179,8 @@ def test_road_network_does_not_self_cancel_slow_successful_batches():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
     assert "const ROAD_TILE_TIMEOUT_MS=3000;" in template
     assert "recoveryTimer" not in template
-    assert "tiles=tiles.slice(0,4)" in template
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+    assert "tiles=tiles.slice(batchStart,batchStart+batchSize)" in template
     assert "Math.min(4,tiles.length)" in template
     assert "request===roadRequest&&count<180" in template
     assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
@@ -210,3 +212,11 @@ def test_map_master_visibility_contract():
     assert ".map-float-btn{width:48px;height:48px" in css
     assert "outline:3px solid #ffd85a" in css
     assert "@media(max-width:700px){.road-svg polyline.local{stroke-width:2.5}" in css
+
+
+def test_road_network_second_batch_uses_new_nearby_tiles():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+    assert "tiles=tiles.slice(batchStart,batchStart+batchSize);" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "if(batchAttempt<1)" in template

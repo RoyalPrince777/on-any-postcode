@@ -199,7 +199,8 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)tiles.push([x,y]);
  const cx=(x0+x1)/2,cy=(y0+y1)/2;
  tiles.sort((a,b)=>((a[0]-cx)**2+(a[1]-cy)**2)-((b[0]-cx)**2+(b[1]-cy)**2));
- tiles=tiles.slice(0,4);
+ const batchSize=4,batchStart=batchAttempt*batchSize;
+ tiles=tiles.slice(batchStart,batchStart+batchSize);
  let count=0,labelCount=0;const labelled=new Set(),staged=document.createDocumentFragment();
  const renderPayload=d=>{
    if(request!==roadRequest||!d||!Array.isArray(d.lines))return;
