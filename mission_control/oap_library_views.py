@@ -234,6 +234,33 @@ def library_ebook_preview(book_id: str, edition_id: str):
     return library_ebook_product(book_id, edition_id)
 
 
+@bp.post("/library/books/<book_id>/<edition_id>/unlock")
+@web_security.login_required(api=True)
+def library_ebook_unlock(book_id: str, edition_id: str):
+    """Create a digital-only Unlock order/payment intent without ownership."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Unlock request must be a JSON object.", 400)
+    try:
+        result = oap_ebook_market.create_unlock_intent(
+            identity,
+            book_id=book_id,
+            edition_id=edition_id,
+            idempotency_key=payload.get("idempotency_key"),
+        )
+        return _library_page(make_response(jsonify(unlock=result), 201 if result["created"] else 200))
+    except PermissionError as exc:
+        return _error(str(exc) or "permission_denied", "This ebook cannot be unlocked.", 403)
+    except ValueError as exc:
+        return _error(str(exc) or "invalid_unlock", "Check the Unlock request and try again.", 400)
+    except oap_ebook_market.EbookMarketUnavailable:
+        return _error("ebook_unlock_unavailable", "Ebook Unlock is unavailable.", 503)
+
+
 @bp.get("/library/essential-life-systems")
 def essential_life_systems_page():
     """Render the public knowledge view without claiming live telemetry."""
