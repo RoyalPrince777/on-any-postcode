@@ -20,6 +20,7 @@ def oap_engine_document():
             current_app,
             target,
             viewport_width=viewport_width,
+            base_url=request.url_root,
         )
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
