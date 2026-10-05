@@ -5,8 +5,8 @@ It only normalises evidence already supplied by governed callers.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from typing import Iterable
 
 
 ALLOWED_GATE_STATES = {
