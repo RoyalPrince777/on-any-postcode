@@ -168,3 +168,16 @@ The first-party engine now includes additional bounded software foundations:
 - the canonical RenderDocument contract now carries paint items, accessibility metadata and form models together.
 
 Truth boundary: storage is not yet durable browser storage; forms are modelled but are not submitted by OAP Engine; Android does not yet expose a full native accessibility virtual-view tree; these foundations do not constitute a JavaScript VM, GPU compositor, media stack, arbitrary-web sandbox or standards-complete engine.
+
+
+## Paint, cache and cookie foundations v1
+
+The bounded OAP Engine contract now carries supported CSS paint state into Android native drawing: normalized text color, background color and bold font-weight are represented on display items and painted by OapEngineView with a strict six-digit hex-color boundary.
+
+The engine also now contains:
+- an LRU-style bounded in-memory response cache with URL validation, per-entry and total byte ceilings;
+- a host-only, per-origin cookie jar foundation with path matching, Secure, HttpOnly and SameSite handling, cookie count/header/name/value limits, and rejection of cross-host Domain cookies;
+- a bounded request-policy object that permits only HTTP/HTTPS GET/HEAD/POST, limits request bodies, rejects URL credentials and only permits credential inclusion for same-origin requests;
+- regression tests proving paint propagation, native Android paint handling, cache eviction/limits, cookie origin isolation and SameSite=None+Secure enforcement.
+
+Truth boundary: the cache and cookie jar are engine foundations and are not yet wired into a general arbitrary-web network fetch pipeline or durable cross-session persistence. They do not make the engine standards-complete.
