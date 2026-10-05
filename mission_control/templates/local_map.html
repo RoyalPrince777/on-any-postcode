@@ -148,7 +148,7 @@ const syncMovementLinks=(a,b)=>{
  movementActions.hidden=false;
 };
 const clearMovementLinks=()=>{movementActions.hidden=true};
-let bounds=null,roadRequest=0,routeRequest=0,routeController=null;
+let bounds=null,roadRequest=0,routeRequest=0,routeController=null,placeRequest=0,placeController=null;
 const roadStatus=q('#road-source-state'),boot=q('#oap-map-boot');
 const setRenderState=state=>{document.body.dataset.mapRenderState=state};
 const clearBoot=()=>{if(boot)boot.hidden=true};
@@ -252,10 +252,26 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
 function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}
 function renderSteps(items){directions.innerHTML='';(items||[]).forEach(step=>{const row=document.createElement('div');row.className='step';const a=document.createElement('b');a.textContent=(step.modifier||'').includes('left')?'↰':(step.modifier||'').includes('right')?'↱':step.type==='arrive'?'●':'↑';const b=document.createElement('span');b.textContent=step.type==='arrive'?'Arrive':(step.name?'Continue on '+step.name:'Continue');const c=document.createElement('small');c.textContent=Math.round(step.distance_m||0)+' m';row.append(a,b,c);directions.appendChild(row)})}
 async function loadPlaces(term){
- if(!term||term.trim().length<2)return;
- try{const r=await fetch('/map-intelligence/places?q='+encodeURIComponent(term));const d=await r.json();places.innerHTML='';
+ const query=String(term||'').trim();
+ if(query.length<2){
+   placeRequest++;
+   if(placeController)placeController.abort();
+   places.replaceChildren();
+   return
+ }
+ const request=++placeRequest;
+ if(placeController)placeController.abort();
+ placeController=new AbortController();
+ try{
+   const r=await fetch('/map-intelligence/places?q='+encodeURIComponent(query),{credentials:'same-origin',cache:'no-store',signal:placeController.signal});
+   const d=await r.json();
+   if(request!==placeRequest)return;
+   places.replaceChildren();
    (d.results||[]).slice(0,6).forEach(item=>{const row=document.createElement('div');row.className='place';const strong=document.createElement('strong');strong.textContent=item.name||'Place';const small=document.createElement('small');small.textContent=item.category||'place';row.append(strong,small);places.appendChild(row)});
- }catch{places.textContent='Nearby places unavailable'}
+ }catch(error){
+   if(error?.name==='AbortError'||request!==placeRequest)return;
+   places.textContent='Nearby places unavailable'
+ }
 }
 async function route(options={}){
  const a=from.value.trim(),b=to.value.trim();if((!options.originCoords&&a.length<2)||b.length<2)return;
