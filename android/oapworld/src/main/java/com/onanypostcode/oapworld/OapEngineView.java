@@ -24,6 +24,8 @@ public final class OapEngineView extends View {
     private static final int CONTRACT_VERSION = 1;
     private static final int MAX_ITEMS = 5000;
     private static final int MAX_TEXT_LENGTH = 8192;
+    private static final int MAX_ACCESSIBILITY_SUMMARY_NODES = 50;
+    private static final int MAX_ACCESSIBILITY_SUMMARY_CHARS = 4096;
 
     private static final class Item {
         final String kind;
@@ -83,6 +85,8 @@ public final class OapEngineView extends View {
         setBackgroundColor(Color.rgb(5, 8, 7));
         textPaint.setColor(Color.WHITE);
         textPaint.setTextSize(16f);
+        setFocusable(true);
+        setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
     }
 
     public void setLinkListener(LinkListener listener) {
@@ -93,6 +97,7 @@ public final class OapEngineView extends View {
         items.clear();
         documentWidth = 390;
         documentHeight = 1;
+        setContentDescription(null);
         requestLayout();
         invalidate();
     }
@@ -165,8 +170,42 @@ public final class OapEngineView extends View {
         items.addAll(parsed);
         documentWidth = width;
         documentHeight = height;
+        setContentDescription(accessibilitySummary(document.optJSONArray("accessibility")));
         requestLayout();
         invalidate();
+    }
+
+    private static String accessibilitySummary(JSONArray nodes) {
+        if (nodes == null) {
+            return null;
+        }
+        StringBuilder summary = new StringBuilder();
+        int count = Math.min(nodes.length(), MAX_ACCESSIBILITY_SUMMARY_NODES);
+        for (int index = 0; index < count; index++) {
+            JSONObject node = nodes.optJSONObject(index);
+            if (node == null) {
+                continue;
+            }
+            String name = node.optString("name", "").trim();
+            if (name.isEmpty()) {
+                continue;
+            }
+            String role = node.optString("role", "").trim();
+            String part = role.isEmpty() ? name : role + ": " + name;
+            int remaining = MAX_ACCESSIBILITY_SUMMARY_CHARS - summary.length();
+            if (remaining <= 0) {
+                break;
+            }
+            if (summary.length() > 0) {
+                summary.append(". ");
+                remaining -= 2;
+            }
+            if (remaining <= 0) {
+                break;
+            }
+            summary.append(part, 0, Math.min(part.length(), remaining));
+        }
+        return summary.length() == 0 ? null : summary.toString();
     }
 
     private static String safeHexColor(String value) {
