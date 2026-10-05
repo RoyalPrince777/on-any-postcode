@@ -2540,6 +2540,36 @@ def oap_tv_media_front_door():
     )
 
 
+@app.get("/events")
+def oap_events_front_door():
+    """Public OAP Events door: canonical discovery surface."""
+
+    return redirect(
+        url_for("spot_capability_front_door", capability_slug="events"),
+        code=302,
+    )
+
+
+@app.get("/events/mine")
+def oap_events_mine_front_door():
+    """Personal Events door without inventing booking state."""
+
+    return redirect(
+        url_for("spot_capability_front_door", capability_slug="events", view="mine"),
+        code=302,
+    )
+
+
+@app.get("/events/organise")
+def oap_events_organise_front_door():
+    """The Plug organiser door; persistent organiser actions remain separately gated."""
+
+    return redirect(
+        url_for("spot_capability_front_door", capability_slug="events", view="organise"),
+        code=302,
+    )
+
+
 @app.get("/the-spot")
 def the_spot_front_door():
     """Render the public postcode-community product without internal details."""
