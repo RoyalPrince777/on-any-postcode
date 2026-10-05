@@ -75,7 +75,7 @@ function pieceLabel(piece){if(piece.zone==="yard")return "Yard";if(piece.zone===
 function render(){
  renderBoard();
  if(!state)return;
- q("[data-game]").hidden=false;q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
+ q("[data-game]").hidden=false;const movePanel=q("[data-move-panel]");if(movePanel)movePanel.classList.toggle("active",state.status==="active"&&state.pending_roll!==null&&state.movable_piece_ids.length>0);q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
  q("[data-roll-value]").textContent=state.pending_roll??"⚄";q("[data-status]").textContent=state.status==="completed"?"Complete":state.status;
  const view=q("[data-players-view]");view.replaceChildren();
  for(const player of state.players){
@@ -102,7 +102,7 @@ function render(){
  else if(pending){feedback.textContent="Rolled "+state.pending_roll+".";}
  else{feedback.textContent="Roll when it is your move. You need a 6 to bring a piece out of the yard.";}
 }
-async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;render();}}
+async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();if(path==="/arena/ludo/start"){const dlg=q("[data-settings]");if(dlg?.open)dlg.close();}}catch(e){error(e);}finally{busy=false;render();}}
 q("[data-start]").onclick=()=>action("/arena/ludo/start",{players:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean)});
 q("[data-roll]").onclick=()=>action("/arena/ludo/roll",{request_id:requestId()});
 root.addEventListener("click",e=>{const btn=e.target.closest("[data-piece]");if(btn&&!btn.disabled)action("/arena/ludo/move",{piece_id:btn.dataset.piece,request_id:requestId()});});
