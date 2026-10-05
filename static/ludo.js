@@ -121,13 +121,25 @@ function scheduleAgent(){
  clearTimeout(agentTimer);if(!isAgentTurn()||busy)return;
  agentTimer=setTimeout(async()=>{
    if(!isAgentTurn()||busy)return;
-   if(state.pending_roll===null){await action("/arena/ludo/roll",{request_id:requestId()},{silent:true});return}
+   if(state.pending_roll===null){
+     const die=q("[data-roll]");if(die){die.classList.remove("rolling");void die.offsetWidth;die.classList.add("rolling");setTimeout(()=>die.classList.remove("rolling"),620)}
+     await action("/arena/ludo/roll",{request_id:requestId()},{silent:true});return
+   }
    const piece=chooseAgentPiece();if(piece)await action("/arena/ludo/move",{piece_id:piece.id,request_id:requestId()},{silent:true})
  },delayMs())
 }
 
 q("[data-start]").onclick=startGame;
-const roll=q("[data-roll]");if(roll)roll.onclick=()=>{if(!isAgentTurn())action("/arena/ludo/roll",{request_id:requestId()})};
+const roll=q("[data-roll]");
+async function rollHuman(){
+ if(!roll||isAgentTurn()||busy)return;
+ roll.classList.remove("rolling"); void roll.offsetWidth; roll.classList.add("rolling");
+ const faces=["⚀","⚁","⚂","⚃","⚄","⚅"]; let ticks=0;
+ const spin=setInterval(()=>{roll.textContent=faces[ticks++%faces.length]},70);
+ try{await action("/arena/ludo/roll",{request_id:requestId()})}
+ finally{clearInterval(spin);setTimeout(()=>roll.classList.remove("rolling"),80)}
+}
+if(roll)roll.onclick=rollHuman;
 root.addEventListener("click",e=>{const btn=e.target.closest("[data-piece]");if(btn&&!btn.disabled&&!isAgentTurn())action("/arena/ludo/move",{piece_id:btn.dataset.piece,request_id:requestId()})});
 q("[data-stop]").onclick=()=>action("/arena/ludo/stop",{request_id:requestId()});
 q("[data-rematch]")?.addEventListener("click",()=>{state=null;agentIds.clear();q("[data-results]").hidden=true;q("[data-results]").style.display="none";const dlg=q("[data-settings]");if(dlg&&!dlg.open)dlg.showModal()});
