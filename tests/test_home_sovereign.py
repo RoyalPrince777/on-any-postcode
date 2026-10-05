@@ -178,3 +178,22 @@ def test_public_marketplace_uses_clean_commerce_doors():
     assert '@app.get("/sell")' in source
     assert '@app.get("/basket")' in source
     assert '@app.get("/orders")' in source
+
+
+
+def test_marketplace_home_exposes_real_install_control(client):
+    page = client.get("/").get_data(as_text=True)
+    assert 'data-oap-install' in page
+    assert 'data-oap-install-status' in page
+    assert 'href="/manifest.webmanifest"' in page
+    assert 'src="/assets/oap-os.js"' in page
+
+    manifest = client.get("/manifest.webmanifest")
+    worker = client.get("/service-worker.js")
+    icon192 = client.get("/assets/oap-os-icon-192.png")
+    icon512 = client.get("/assets/oap-os-icon-512.png")
+    assert manifest.status_code == 200
+    assert worker.status_code == 200
+    assert icon192.status_code == 200
+    assert icon512.status_code == 200
+    assert "application/manifest+json" in manifest.content_type
