@@ -24,10 +24,12 @@ function routePoints(){
 }
 function render(){
  q("[data-time]").textContent=" "+state.time_label;q("[data-day]").textContent=" "+state.day;
- q("[data-influence]").textContent=" "+state.player.influence;q("[data-mode-view]").textContent=" "+state.player.travel_mode;\n const ch=state.character;q("[data-my-card]").innerHTML="<strong>"+esc(ch.my_card.display_name)+" · My Card</strong><br>"+esc(ch.my_card.home)+" · "+esc(ch.my_card.title)+"<br>M Town rep "+ch.reputation.m_town+" · Health "+ch.vitals.health+" · Energy "+ch.vitals.energy;
+ q("[data-influence]").textContent=" "+state.player.influence;q("[data-mode-view]").textContent=" "+state.player.travel_mode;
+ const ch=state.character;q("[data-my-card]").innerHTML="<strong>"+esc(ch.my_card.display_name)+" · My Card</strong><br>"+esc(ch.my_card.home)+" · "+esc(ch.my_card.title)+"<br>M Town rep "+ch.reputation.m_town+" · Health "+ch.vitals.health+" · Energy "+ch.vitals.energy;
  q("[data-chunk-view]").textContent=" "+(state.chunks?.[state.active_chunk]?.label||state.active_chunk);
  q("[data-traffic]").textContent=" "+state.environment.traffic;
- const here=state.nodes.find(n=>n.id===state.player.node);q("[data-location]").textContent=here.label;\n q("[data-local-voice]").textContent=state.language?.arrival||"";
+ const here=state.nodes.find(n=>n.id===state.player.node);q("[data-location]").textContent=here.label;
+ q("[data-local-voice]").textContent=state.language?.arrival||"";
  q("[data-environment]").innerHTML="<strong>Environment Intelligence</strong><br>Footfall "+state.environment.footfall+" · Shops "+state.environment.shop_activity+" · Parks "+state.environment.park_activity+"<br>"+esc(state.environment.lighting)+" · "+esc(state.environment.soundscape)+" · "+esc(state.environment.visibility)+"<br><small>Game simulation · not live telemetry</small>";
  q("[data-living]").innerHTML="<strong>Living Streets</strong><br>Traffic "+state.living.counts.moving_traffic+" · Pedestrians "+state.living.counts.pedestrians+" · Persistent vehicles "+state.living.counts.persistent_vehicles+" · Entrances "+state.living.counts.entrances+"<br><small>Game simulation · fictionalised fine detail · not live traffic</small>";
  const hereVehicles=state.living.persistent_vehicles.filter(v=>v.node===state.player.node);
@@ -78,12 +80,24 @@ async function act(command,target,mode,distance=null){
   const data=await r.json();if(!r.ok)throw new Error(data.error||"World action failed");state=data;
  }catch(e){q("[data-error]").textContent=e.message||String(e)}finally{busy=false;render()}
 }
+function showPanel(name,forceOpen=true){
+ const side=q("[data-side]");if(!side)return;
+ root.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==name);
+ root.querySelectorAll("[data-ui-panel]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.uiPanel===name)));
+ if(forceOpen)side.dataset.open="true";
+}
+function closeSheet(){const side=q("[data-side]");if(side)side.dataset.open="false"}
 root.addEventListener("click",e=>{
- const pin=e.target.closest("[data-node]");if(pin&&pin.dataset.node!==state.player.node){q("[data-destination]").value=pin.dataset.node;act("navigate",pin.dataset.node,q("[data-mode]").value);return}
+ const ui=e.target.closest("[data-ui-panel]");if(ui){
+  const side=q("[data-side]"),same=ui.getAttribute("aria-selected")==="true"&&side?.dataset.open==="true";
+  if(same){closeSheet();return}
+  showPanel(ui.dataset.uiPanel,true);return;
+ }
+ const pin=e.target.closest("[data-node]");if(pin&&pin.dataset.node!==state.player.node){showPanel("travel",true);q("[data-destination]").value=pin.dataset.node;act("navigate",pin.dataset.node,q("[data-mode]").value);return}
  const a=e.target.closest("[data-action]");if(!a)return;
  if(a.dataset.action==="navigate")act("navigate",q("[data-destination]").value,q("[data-mode]").value);
  else if(a.dataset.action==="advance-route")act("advance-route",null,state.player.travel_mode,100);
  else act(a.dataset.action,a.dataset.target||null,q("[data-mode]").value);
 });
-render();
+showPanel("travel",window.matchMedia("(min-width:861px)").matches);render();
 })();

@@ -72,6 +72,7 @@ jobs:
         run: |
           for script in \
             static/arena_intelligence.js \
+            static/earth_is_our_turf.js \
             static/route_empire.js \
             static/iq_arena.js \
             static/ludo.js \
@@ -124,7 +125,7 @@ jobs:
           combined="$(printf '%s\n' 'OAP ephemeral combined-main proof' | git -c user.name='OAP CI' -c user.email='ci@localhost' commit-tree "$tree" -p HEAD -p origin/main)"
           git worktree add --detach /tmp/oap-combined-main "$combined"
           cd /tmp/oap-combined-main
-          for script in static/arena_intelligence.js static/route_empire.js \
+          for script in static/arena_intelligence.js static/earth_is_our_turf.js static/route_empire.js \
             static/iq_arena.js static/ludo.js static/chess.js static/dot.js \
             static/connect4.js static/arena_connect4_room.js \
             static/arena_dot_room.js; do node --check "$script"; done
