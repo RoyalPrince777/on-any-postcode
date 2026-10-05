@@ -88,6 +88,7 @@ def render_supported_target(
     document = render_html(
         response.get_data(as_text=True),
         viewport_width=viewport_width,
+        base_url=urljoin(base_url, target),
     ).to_dict()
     _normalize_links(document, base_url)
     document["source_path"] = target
