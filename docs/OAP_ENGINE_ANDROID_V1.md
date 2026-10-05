@@ -227,3 +227,10 @@ The Android OAP Engine surface now maintains its own bounded in-app Back/Forward
 `EngineDocumentClient` also generation-stamps requests so callbacks from stale navigation attempts are ignored after a newer request starts or the client closes. This prevents an older native page response from overwriting a newer navigation result.
 
 Truth boundary: this is in-memory session history only. It does not yet persist tabs/history across process death or implement a full browser session-restore system.
+
+
+## Native certified Search form v1
+
+The Android OAP Engine surface now exposes one native editable Search control only when the engine document contains exactly one same-origin GET form whose certified action resolves to `/search` and whose `q` control is a non-disabled text/search field. The native Search button and IME Search action submit through `/api/oap-engine/submit`; the returned document must still carry the `X-OAP-Renderer: OAP_ENGINE` contract before it is displayed. Submission keeps the existing generation guard so stale responses cannot replace newer navigation.
+
+Truth boundary: this is not a general native HTML form runtime. Arbitrary actions, POST forms, passwords, hidden credentials, multipart/file controls and unsupported control types are not promoted into native Android controls and remain outside this Green scope.
