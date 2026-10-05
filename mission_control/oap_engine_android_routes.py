@@ -8,6 +8,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from oap.browser_engine.android_route import render_supported_target
 from oap.browser_engine.status import status as engine_status
+from oap.browser_engine.submit import build_certified_get_target
 
 bp = Blueprint("oap_engine_android", __name__)
 
@@ -61,4 +62,46 @@ def oap_engine_document():
 def oap_engine_status():
     response = jsonify(engine_status())
     response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+
+@bp.post("/api/oap-engine/submit")
+def oap_engine_submit():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "invalid_json"}), 400
+
+    try:
+        target = build_certified_get_target(
+            payload.get("action", ""),
+            payload.get("fields", {}),
+        )
+        viewport_width = int(payload.get("viewport", 390))
+        document = render_supported_target(
+            current_app,
+            target,
+            viewport_width=viewport_width,
+            base_url=_public_origin(),
+        )
+    except (TypeError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    if document is None:
+        return jsonify(
+            {
+                "error": "unsupported_oap_engine_submission",
+                "fallback": "WEBVIEW",
+                "human_authority_final": True,
+            }
+        ), 404
+
+    document["submission"] = {
+        "method": "GET",
+        "certified": True,
+        "action": "/search",
+    }
+    response = jsonify(document)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-OAP-Renderer"] = "OAP_ENGINE"
     return response
