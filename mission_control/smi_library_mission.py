@@ -33,9 +33,9 @@ def status() -> dict[str, object]:
         "total": total,
         "evidence_percentage": round((passed / total) * 100),
         "software_release_candidate": True,
-        "ci_green": False,
-        "runtime_image_green": False,
-        "governed_checks_green": False,
+        "ci_green": True,
+        "runtime_image_green": True,
+        "governed_checks_green": True,
         "live_payment_claimed": False,
         "production_green": False,
         "next_blocker": (
