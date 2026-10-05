@@ -609,6 +609,31 @@ def home():
     )
 
 
+@app.get("/sika")
+def legacy_sika_front_door():
+    return redirect("/pay/bank", code=302)
+
+
+@app.get("/guardian")
+def legacy_guardian_front_door():
+    return redirect("/transport/ride", code=302)
+
+
+@app.get("/settings")
+def legacy_settings_front_door():
+    return redirect("/enter-my-world?next=/my-world/settings", code=302)
+
+
+@app.get("/hrm")
+def legacy_hrm_front_door():
+    return redirect("/enter-my-world?next=/mission", code=302)
+
+
+@app.get("/status")
+def legacy_status_front_door():
+    return redirect("/healthz", code=302)
+
+
 def _world_languages_response():
     """Render only the validated, read-only OAP World learning projection."""
 
