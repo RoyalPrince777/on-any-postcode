@@ -148,12 +148,12 @@ def test_books_alias_is_a_real_library_front_door(anonymous_client):
     assert 'href="/library/my-library"' in body
 
 
-def test_my_library_requires_authentication_and_shows_real_member_access(
-    anonymous_client, client
-):
+def test_my_library_requires_authentication(anonymous_client):
     protected = anonymous_client.get("/library/my-library", follow_redirects=False)
     assert protected.status_code in (302, 303, 401, 403)
 
+
+def test_my_library_shows_real_member_access(client):
     response = client.get("/library/my-library")
     body = response.get_data(as_text=True)
     assert response.status_code == 200
