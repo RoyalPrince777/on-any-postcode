@@ -106,6 +106,7 @@ def init_app(app: Flask) -> None:
     from .oap_pay import bp as oap_pay_bp
     from .personal_telecom_routes import bp as personal_telecom_bp
     from .oap_store import bp as oap_store_bp
+    from .oap_engine_android_routes import bp as oap_engine_android_bp
     from .on_any_place_routes import bp as on_any_place_bp
     from .organiser_views import bp as smi_organiser_bp
     from .product_core_views import bp as product_core_bp
@@ -1435,6 +1436,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(mail_store_catalog_bp)
     app.register_blueprint(bank_store_catalog_bp)
     app.register_blueprint(oap_store_bp)
+    app.register_blueprint(oap_engine_android_bp)
     app.register_blueprint(travel_supply_bp)
     app.register_blueprint(global_transport_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")

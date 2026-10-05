@@ -137,3 +137,19 @@ Bridge properties:
 - the native surface is not yet the default general-web renderer.
 
 This closes the first Android embedding foundation only. It does not yet provide a transport that automatically supplies arbitrary supported pages to the native surface, and it does not make OAP Engine standards-complete. System WebView remains the general-web renderer until compatibility, security and page-support evidence justifies changing that boundary.
+
+
+## Automatic supported-page routing v1
+
+Android now attempts the native OAP Engine path automatically for same-origin OAP navigation. The server is the certification owner: only the allow-listed public paths `/`, `/world`, and `/search` currently return native OAP Engine documents. Unsupported paths return an explicit WebView fallback signal.
+
+Routing boundary:
+- same-origin OAP navigation asks `/api/oap-engine/document` first;
+- the endpoint renders the actual current public OAP HTML through the canonical OAP Engine rather than maintaining duplicate native-page copy;
+- relative page links are normalized to safe absolute HTTP/HTTPS URLs;
+- Android fetches the versioned contract on a background executor with connection/read/document-size bounds;
+- a missing, unsupported, invalid or failed engine document falls back automatically to WebView;
+- external web addresses bypass the engine endpoint and stay on the WebView path;
+- the general web renderer remains Android System WebView.
+
+This makes the native engine automatic for the certified supported OAP slice only. It is not a claim that all OAP routes or arbitrary websites are OAP Engine compatible.
