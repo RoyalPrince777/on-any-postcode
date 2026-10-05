@@ -29,24 +29,24 @@ body{min-height:100dvh;overscroll-behavior:none}
 .center-home{position:absolute;left:40%;top:40%;width:20%;height:20%;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:conic-gradient(#cf3036 0 25%,#287dce 0 50%,#e5b915 0 75%,#168f43 0);display:grid;place-items:center;z-index:2}.center-home span{background:#07111b;color:#fff;border-radius:999px;padding:4px 7px;font-size:clamp(.42rem,1.4vw,.72rem);font-weight:950}
 .board-piece{position:absolute;width:5.4%;aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.55);z-index:8;transform:translate(-50%,-50%);transition:left .22s ease,top .22s ease,transform .15s ease}.board-piece.selectable{outline:3px solid var(--gold);outline-offset:2px;cursor:pointer;animation:pulsePiece 1s infinite}
 .board-piece.green{background:#19aa53}.board-piece.red{background:#e24449}.board-piece.yellow{background:#f3ca24}.board-piece.blue{background:#3694eb}
-@keyframes pulsePiece{50%{transform:translate(-50%,-50%) scale(1.18)}}@keyframes diceRoll{0%{transform:rotate(0deg) scale(1)}25%{transform:rotate(90deg) scale(1.08)}50%{transform:rotate(180deg) scale(.94)}75%{transform:rotate(270deg) scale(1.08)}100%{transform:rotate(360deg) scale(1)}}.die.rolling{animation:diceRoll .55s ease}
-.hud{position:absolute;inset:auto 14px 14px 14px;z-index:15;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;pointer-events:none}
+@keyframes pulsePiece{50%{transform:translate(-50%,-50%) scale(1.18)}}@keyframes diceRoll{0%{transform:translate(0,0) rotate(0) scale(1)}15%{transform:translate(-5px,2px) rotate(-18deg) scale(1.06)}30%{transform:translate(5px,-3px) rotate(32deg) scale(.96)}45%{transform:translate(-4px,-2px) rotate(88deg) scale(1.08)}60%{transform:translate(4px,3px) rotate(170deg) scale(.98)}80%{transform:translate(-2px,0) rotate(270deg) scale(1.05)}100%{transform:translate(0,0) rotate(360deg) scale(1)}}@keyframes diceLanded{0%{box-shadow:inset 0 0 0 4px #dfe7ee,0 8px 20px rgba(0,0,0,.32)}50%{box-shadow:inset 0 0 0 4px #f6c453,0 0 0 6px rgba(246,196,83,.24),0 10px 24px rgba(0,0,0,.38)}100%{box-shadow:inset 0 0 0 4px #dfe7ee,0 8px 20px rgba(0,0,0,.32)}}.die.rolling{animation:diceRoll .72s cubic-bezier(.2,.7,.2,1)}.die.landed{animation:diceLanded .6s ease}
+.hud{position:absolute;inset:auto 14px 14px 14px;z-index:15;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;pointer-events:none}.dice-dock{position:absolute;right:14px;top:72px;z-index:16;pointer-events:auto;background:rgba(5,14,23,.88);backdrop-filter:blur(10px);border:1px solid #29465e;border-radius:18px;padding:8px;display:grid;gap:5px;justify-items:center}.dice-caption{font-size:.65rem;color:var(--muted);font-weight:900;letter-spacing:.08em;text-transform:uppercase}
 .hud-left,.hud-actions{pointer-events:auto;background:rgba(5,14,23,.88);backdrop-filter:blur(10px);border:1px solid #29465e;border-radius:16px;padding:8px}
 .hud-left{display:flex;align-items:center;gap:10px;min-width:0}.hud-copy{min-width:0}.hud-label{font-size:.67rem;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.08em}.hud-turn{font-size:.95rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.die{width:52px;height:52px;border-radius:15px;transition:transform .12s ease;transform-origin:center;background:#fff;color:#07111b;display:grid;place-items:center;font-size:1.5rem;font-weight:950;box-shadow:inset 0 0 0 3px #dfe7ee}
+.die{width:68px;height:68px;border-radius:18px;transition:transform .12s ease,box-shadow .18s ease;transform-origin:center;background:#fff;color:#07111b;display:grid;place-items:center;font-size:2.15rem;font-weight:950;box-shadow:inset 0 0 0 4px #dfe7ee,0 8px 20px rgba(0,0,0,.32)}
 .hud-actions{display:grid;grid-template-columns:repeat(2,minmax(72px,1fr));gap:6px}.game-btn{padding:0 10px}.roll-btn{background:linear-gradient(135deg,#f6c453,#e79c17);color:#07111b;border:none}.move-panel{position:absolute;left:14px;right:14px;top:14px;z-index:14;pointer-events:none}.move-panel-inner{display:none;pointer-events:auto;background:rgba(5,14,23,.86);backdrop-filter:blur(10px);border:1px solid #29465e;border-radius:16px;padding:8px;max-height:28vh;overflow:auto}.move-panel-inner.active{display:block}
 .arena-game-content{display:grid;gap:6px}.player-entry{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:7px 9px;border:1px solid #28455d;border-radius:12px}.player-entry span{font-size:.78rem;color:var(--muted)}
 .status-strip{position:fixed;left:0;width:var(--screen-w);bottom:0;z-index:20;padding:7px 12px calc(8px + env(safe-area-inset-bottom));font-size:.82rem;color:var(--muted);text-align:center;min-height:38px;background:linear-gradient(transparent,rgba(6,16,25,.9))}
 .settings-drawer{position:fixed;inset:0;z-index:50;display:none;background:rgba(0,0,0,.62);backdrop-filter:blur(6px);padding:12px}.settings-drawer[open]{display:grid;place-items:end center}.settings-card{width:min(100%,520px);background:#0b1824;border:1px solid #31516a;border-radius:22px;padding:16px;box-shadow:0 25px 80px rgba(0,0,0,.5)}.settings-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.settings-card input,.settings-card select{width:100%;margin:8px 0 12px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.settings-grid>*{min-height:46px}
 .arena-error{color:#ffb2b2;min-height:20px}
 @media(min-width:900px){.hud{inset:auto 18px 18px 18px}}
-@media(max-width:600px){.game-topbar{padding-inline:8px}.board-stage{border-radius:0;padding:0}.ludo-board{border-radius:12px}.hud{inset:auto 8px 8px 8px}.hud-left,.hud-actions{padding:6px}.die{width:46px;height:46px}.game-btn{min-height:42px;font-size:.78rem}.move-panel{left:8px;right:8px;top:8px}.settings-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.game-topbar{padding-inline:8px}.board-stage{border-radius:0;padding:0}.ludo-board{border-radius:12px}.hud{inset:auto 8px 8px 8px}.hud-left,.hud-actions{padding:6px}.dice-dock{right:8px;top:62px;padding:6px}.die{width:62px;height:62px;font-size:1.95rem}.game-btn{min-height:42px;font-size:.78rem}.move-panel{left:8px;right:8px;top:8px}.settings-grid{grid-template-columns:1fr}}
 .screen-landscape .board-stage{left:0;top:0}
 .screen-landscape .game-topbar{left:var(--board-size);width:calc(var(--screen-w) - var(--board-size));right:auto;flex-direction:column;align-items:stretch;background:rgba(6,16,25,.84);backdrop-filter:blur(8px);padding:10px}
 .screen-landscape .brand-lockup{flex-direction:column;align-items:flex-start}
 .screen-landscape .status-strip{left:var(--board-size);width:calc(var(--screen-w) - var(--board-size));bottom:0}
-.screen-landscape .hud{left:calc(var(--board-size) + 10px);right:10px;bottom:68px;grid-template-columns:1fr}
-.screen-landscape .move-panel{left:calc(var(--board-size) + 10px);right:10px;top:110px}
+.screen-landscape .hud{left:calc(var(--board-size) + 10px);right:10px;bottom:68px;grid-template-columns:1fr}.screen-landscape .dice-dock{left:calc(var(--board-size) + 10px);right:10px;top:110px;justify-items:stretch}.screen-landscape .die{width:100%;height:72px}
+.screen-landscape .move-panel{left:calc(var(--board-size) + 10px);right:10px;top:205px}
 .screen-landscape .hud-actions{grid-template-columns:1fr 1fr}
 .screen-portrait .board-stage{left:var(--board-left);top:var(--board-top)}
 .screen-compact .brand-lockup span{display:none}
@@ -89,9 +89,10 @@ body{min-height:100dvh;overscroll-behavior:none}
         </div>
       </div>
 
+      <div class="dice-dock"><div class="dice-caption">Tap to roll</div><button class="die" type="button" data-roll data-roll-value disabled aria-label="Roll dice">⚄</button></div>
+
       <div class="hud">
         <div class="hud-left">
-          <button class="die" type="button" data-roll data-roll-value disabled aria-label="Roll dice">⚄</button>
           <div class="hud-copy">
             <div class="hud-label">Turn</div>
             <div class="hud-turn" data-turn>—</div>
