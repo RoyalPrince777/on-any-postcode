@@ -218,3 +218,12 @@ Truth boundary: this is not full CSS layout or decoded media. Flexbox, Grid, adv
 `OapEngineView` now exposes a bounded native `AccessibilityNodeProvider` with up to 256 virtual display-item children. Text, link and image items expose scaled bounds, semantic Android class names, accessibility focus/clear-focus actions and searchable text. Link children expose an accessibility click action that uses the existing safe-link listener; image children expose alt text as content description.
 
 Truth boundary: the virtual tree is based on bounded OAP display items. It is not a claim of complete browser accessibility semantics, ARIA implementation, WCAG conformance or standards parity with Chromium/Gecko.
+
+
+## Native history and stale-navigation protection v1
+
+The Android OAP Engine surface now maintains its own bounded in-app Back/Forward history for native OAP Engine pages. History entries are committed only after a valid engine document is accepted, forward history is truncated on a new branch, and toolbar/system Back uses native history before falling back to the WebView surface.
+
+`EngineDocumentClient` also generation-stamps requests so callbacks from stale navigation attempts are ignored after a newer request starts or the client closes. This prevents an older native page response from overwriting a newer navigation result.
+
+Truth boundary: this is in-memory session history only. It does not yet persist tabs/history across process death or implement a full browser session-restore system.
