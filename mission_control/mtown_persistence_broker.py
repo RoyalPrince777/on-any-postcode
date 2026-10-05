@@ -6,6 +6,7 @@ import os
 from typing import Any
 from urllib import request as urlrequest
 
+
 def configured() -> bool:
     return bool(os.environ.get("OAP_EIOT_PERSISTENCE_URL","").strip() and os.environ.get("OAP_EIOT_SERVICE_KEY","").strip())
 
