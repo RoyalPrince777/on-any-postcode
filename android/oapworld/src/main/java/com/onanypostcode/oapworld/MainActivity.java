@@ -25,8 +25,10 @@ public final class MainActivity extends ComponentActivity {
     private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com";
     private WebView webView;
     private OapEngineView engineView;
+    private EngineDocumentClient engineClient;
     private ScrollView engineScrollView;
     private boolean engineActive;
+    private String engineSourcePath;
     private EditText omnibox;
     private Button backButton;
     private Button forwardButton;
@@ -75,6 +77,7 @@ public final class MainActivity extends ComponentActivity {
         toolbar.addView(goButton);
 
         webView = new WebView(this);
+        engineClient = new EngineDocumentClient(OAP_ORIGIN);
         engineView = new OapEngineView(this);
         engineView.setLinkListener(this::navigate);
         engineScrollView = new ScrollView(this);
@@ -149,14 +152,10 @@ public final class MainActivity extends ComponentActivity {
                 webView.goForward();
             }
         });
-        homeButton.setOnClickListener(v -> {
-            showWebViewFallback();
-            webView.loadUrl(OAP_ORIGIN + "/");
-        });
+        homeButton.setOnClickListener(v -> openFirstPartyPath("/"));
         reloadButton.setOnClickListener(v -> {
-            if (engineActive) {
-                showWebViewFallback();
-                webView.loadUrl(omnibox.getText().toString());
+            if (engineActive && engineSourcePath != null) {
+                openFirstPartyPath(engineSourcePath);
             } else {
                 webView.reload();
             }
@@ -171,7 +170,7 @@ public final class MainActivity extends ComponentActivity {
         });
 
         if (state == null) {
-            webView.loadUrl(OAP_ORIGIN + "/");
+            openFirstPartyPath("/");
         }
         refreshNavigationState();
     }
@@ -190,17 +189,30 @@ public final class MainActivity extends ComponentActivity {
         if (input.isEmpty()) {
             return;
         }
-        showWebViewFallback();
 
         if (input.startsWith("/")) {
-            webView.loadUrl(OAP_ORIGIN + input);
+            openFirstPartyPath(input);
             return;
         }
 
         Uri parsed = Uri.parse(input);
         String scheme = parsed.getScheme();
         if ("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)) {
-            webView.loadUrl(input);
+            Uri oapOrigin = Uri.parse(OAP_ORIGIN);
+            boolean sameOrigin = "https".equalsIgnoreCase(parsed.getScheme())
+                    && oapOrigin.getHost() != null
+                    && oapOrigin.getHost().equalsIgnoreCase(parsed.getHost())
+                    && parsed.getPort() == -1;
+            if (sameOrigin) {
+                String path = parsed.getEncodedPath();
+                if (path == null || path.isEmpty()) {
+                    path = "/";
+                }
+                String query = parsed.getEncodedQuery();
+                openFirstPartyPath(query == null ? path : path + "?" + query);
+            } else {
+                loadWebViewUrl(input);
+            }
             return;
         }
 
@@ -208,29 +220,54 @@ public final class MainActivity extends ComponentActivity {
                 && input.contains(".")
                 && !input.startsWith(".");
         if (looksLikeHost) {
-            webView.loadUrl("https://" + input);
+            loadWebViewUrl("https://" + input);
             return;
         }
 
-        webView.loadUrl(OAP_ORIGIN + "/search?q=" + Uri.encode(input));
+        openFirstPartyPath("/search?q=" + Uri.encode(input));
     }
 
-    void showOapEngineDocument(String displayListJson, String sourceUrl) {
+    private void openFirstPartyPath(String sourcePath) {
+        final String path = sourcePath == null || sourcePath.isEmpty() ? "/" : sourcePath;
+        int viewportWidth = engineScrollView != null && engineScrollView.getWidth() > 0
+                ? engineScrollView.getWidth()
+                : getResources().getDisplayMetrics().widthPixels;
+        engineClient.fetch(path, viewportWidth, new EngineDocumentClient.Callback() {
+            @Override
+            public void onEngineDocument(String json, String resolvedPath) {
+                showOapEngineDocument(json, resolvedPath);
+            }
+
+            @Override
+            public void onFallback(String resolvedPath) {
+                loadWebViewUrl(OAP_ORIGIN + resolvedPath);
+            }
+        });
+    }
+
+    private void loadWebViewUrl(String url) {
+        showWebViewFallback();
+        webView.loadUrl(url);
+    }
+
+    void showOapEngineDocument(String displayListJson, String sourcePath) {
         try {
             engineView.setDisplayListJson(displayListJson);
             engineScrollView.scrollTo(0, 0);
             engineScrollView.setVisibility(View.VISIBLE);
             webView.setVisibility(View.GONE);
             engineActive = true;
-            omnibox.setText(sourceUrl == null ? "OAP Engine" : sourceUrl);
+            engineSourcePath = sourcePath;
+            omnibox.setText(sourcePath == null ? "OAP Engine" : OAP_ORIGIN + sourcePath);
             refreshNavigationState();
         } catch (org.json.JSONException error) {
-            showWebViewFallback();
+            loadWebViewUrl(OAP_ORIGIN + (sourcePath == null ? "/" : sourcePath));
         }
     }
 
     private void showWebViewFallback() {
         engineActive = false;
+        engineSourcePath = null;
         if (engineScrollView != null) {
             engineScrollView.setVisibility(View.GONE);
         }
@@ -254,5 +291,13 @@ public final class MainActivity extends ComponentActivity {
         } else {
             super.onBackPressed();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (engineClient != null) {
+            engineClient.close();
+        }
+        super.onDestroy();
     }
 }
