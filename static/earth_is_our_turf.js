@@ -72,6 +72,15 @@ function render(){
  root.querySelectorAll("button").forEach(b=>b.disabled=busy);
  const travel=q('[data-action="advance-route"]');if(travel)travel.disabled=busy||!state.active_route;
 }
+function render(){
+ try{
+  renderUnsafe();
+  hideRecovery();
+ }catch(error){
+  console.error("EIOT render guard",error);
+  showRecovery("M Town screen could not finish drawing. Retry the world.");
+ }
+}
 async function act(command,target,mode,distance=null){
  if(busy)return;busy=true;q("[data-error]").textContent="";render();
  try{
