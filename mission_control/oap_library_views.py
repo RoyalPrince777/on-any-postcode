@@ -4,7 +4,15 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import essential_life_systems, oap_library, oap_library_learning, web_security
+from . import (
+    essential_life_systems,
+    oap_book_entitlements,
+    oap_ebook_creator_store,
+    oap_ebook_market,
+    oap_library,
+    oap_library_learning,
+    web_security,
+)
 
 bp = Blueprint("oap_library", __name__)
 
@@ -48,6 +56,7 @@ def _payload() -> dict[str, object]:
 
 
 @bp.get("/library")
+@bp.get("/library/books")
 def library_home():
     """Render the public, first-party OAP knowledge catalogue."""
 
@@ -70,6 +79,232 @@ def library_home():
             )
         )
     )
+
+
+@bp.get("/library/my-library")
+@web_security.login_required()
+def my_library():
+    """Render the signed-in member's real Library access surface."""
+
+    identity, _user = _identity()
+    member_collections = tuple(
+        dict(item) for item in oap_library.COLLECTIONS if item.get("access") == "member"
+    )
+    try:
+        owned_ebooks = oap_book_entitlements.list_verified_purchases(
+            authenticated_identity_id=identity
+        )
+        owned_state = "ready"
+    except oap_book_entitlements.BookEntitlementsUnavailable:
+        owned_ebooks = ()
+        owned_state = "unavailable"
+    return _library_page(
+        make_response(
+            render_template(
+                "oap_my_library.html",
+                collections=member_collections,
+                owned_ebooks=owned_ebooks,
+                owned_state=owned_state,
+            )
+        )
+    )
+
+
+@bp.get("/library/create")
+@bp.get("/library/sell")
+@web_security.login_required()
+def library_creator():
+    """Render the signed-in digital ebook creator/seller workspace."""
+
+    identity, _user = _identity()
+    try:
+        drafts = oap_ebook_creator_store.list_drafts(identity)
+        store_state = "ready"
+    except oap_ebook_creator_store.EbookCreatorStoreUnavailable:
+        drafts = ()
+        store_state = "unavailable"
+    return _library_page(
+        make_response(
+            render_template(
+                "oap_library_creator.html",
+                drafts=drafts,
+                store_state=store_state,
+                csrf_token=web_security.csrf_token(),
+            )
+        )
+    )
+
+
+@bp.post("/library/create")
+@web_security.login_required(api=True)
+def library_create_draft():
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(f"library-create:{identity}"):
+        return _error("rate_limited", "Please wait before creating another draft.", 429)
+    try:
+        payload = _payload()
+        draft = oap_ebook_creator_store.create_draft(
+            identity,
+            book_id=payload.get("book_id"),
+            edition_id=payload.get("edition_id"),
+            title=payload.get("title"),
+            description=payload.get("description"),
+            language=payload.get("language"),
+            price_minor=payload.get("price_minor"),
+            pages=payload.get("pages"),
+        )
+        return _library_page(make_response(jsonify(draft=draft), 201))
+    except (TypeError, ValueError):
+        return _error("invalid_draft", "Check the ebook draft and try again.", 400)
+    except oap_ebook_creator_store.EbookCreatorStoreUnavailable:
+        return _error("creator_store_unavailable", "Digital ebook creation is unavailable.", 503)
+
+
+@bp.post("/library/seller/books/<draft_id>/submit")
+@web_security.login_required(api=True)
+def library_submit_draft(draft_id: str):
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    try:
+        payload = _payload()
+        draft = oap_ebook_creator_store.submit_for_review(
+            identity, draft_id, rights_attested=payload.get("rights_attested")
+        )
+        return _library_page(make_response(jsonify(draft=draft)))
+    except PermissionError as exc:
+        code = str(exc) or "permission_denied"
+        return _error(code, "This draft cannot be submitted.", 403)
+    except (TypeError, ValueError):
+        return _error("invalid_draft", "Check the ebook draft and try again.", 400)
+    except oap_ebook_creator_store.EbookCreatorStoreUnavailable:
+        return _error("creator_store_unavailable", "Digital ebook creation is unavailable.", 503)
+
+
+@bp.post("/library/seller/books/<book_id>/<edition_id>/publish-market")
+@web_security.login_required(api=True)
+def library_publish_ebook_to_market(book_id: str, edition_id: str):
+    """Publish one already-approved digital ebook into OAP Market."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    try:
+        result = oap_ebook_market.publish_approved_ebook(
+            identity,
+            book_id=book_id,
+            edition_id=edition_id,
+        )
+        return _library_page(make_response(jsonify(product=result), 201 if result["created"] else 200))
+    except PermissionError as exc:
+        code = str(exc) or "permission_denied"
+        return _error(code, "This ebook cannot be published to Market.", 403)
+    except ValueError:
+        return _error("invalid_ebook", "Check the ebook and try again.", 400)
+    except oap_ebook_market.EbookMarketUnavailable:
+        return _error("ebook_market_unavailable", "Ebook Market publishing is unavailable.", 503)
+
+
+@bp.get("/library/books/<book_id>/<edition_id>")
+def library_ebook_product(book_id: str, edition_id: str):
+    """Render one public digital ebook product from governed Market evidence."""
+
+    try:
+        product = oap_ebook_market.public_product(book_id, edition_id)
+    except (ValueError, oap_ebook_market.EbookMarketUnavailable):
+        return _library_page(make_response(render_template("oap_library_unavailable.html"), 503))
+    if product is None:
+        return _library_page(make_response(render_template("oap_library_unavailable.html"), 404))
+    return _library_page(
+        make_response(
+            render_template(
+                "oap_ebook_product.html",
+                product=product,
+            )
+        )
+    )
+
+
+@bp.get("/library/books/<book_id>/<edition_id>/preview")
+def library_ebook_preview(book_id: str, edition_id: str):
+    """Open the governed preview page through the protected reader."""
+
+    return library_ebook_product(book_id, edition_id)
+
+
+@bp.post("/library/books/<book_id>/<edition_id>/unlock")
+@web_security.login_required(api=True)
+def library_ebook_unlock(book_id: str, edition_id: str):
+    """Create a digital-only Unlock order/payment intent without ownership."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Unlock request must be a JSON object.", 400)
+    try:
+        result = oap_ebook_market.create_unlock_intent(
+            identity,
+            book_id=book_id,
+            edition_id=edition_id,
+            idempotency_key=payload.get("idempotency_key"),
+        )
+        return _library_page(make_response(jsonify(unlock=result), 201 if result["created"] else 200))
+    except PermissionError as exc:
+        return _error(str(exc) or "permission_denied", "This ebook cannot be unlocked.", 403)
+    except ValueError as exc:
+        return _error(str(exc) or "invalid_unlock", "Check the Unlock request and try again.", 400)
+    except oap_ebook_market.EbookMarketUnavailable:
+        return _error("ebook_unlock_unavailable", "Ebook Unlock is unavailable.", 503)
+
+
+@bp.post("/library/orders/<order_id>/finalize")
+@web_security.login_required(api=True)
+def library_finalize_ebook_order(order_id: str):
+    """Create Owned only from verified captured-payment evidence."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    try:
+        entitlement = oap_book_entitlements.grant_from_verified_capture(
+            authenticated_identity_id=identity,
+            order_id=order_id,
+        )
+        return _library_page(
+            make_response(jsonify(entitlement=entitlement), 201 if entitlement["created"] else 200)
+        )
+    except PermissionError as exc:
+        return _error(str(exc) or "permission_denied", "Ownership cannot be granted.", 403)
+    except ValueError as exc:
+        return _error(str(exc) or "invalid_order", "Check the order and try again.", 400)
+    except oap_book_entitlements.BookEntitlementsUnavailable:
+        return _error("entitlement_unavailable", "Ebook ownership is unavailable.", 503)
+
+
+@bp.post("/library/orders/<order_id>/reconcile-refund")
+@web_security.login_required(api=True)
+def library_reconcile_ebook_refund(order_id: str):
+    """Revoke or restore ebook access from durable provider refund evidence."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    try:
+        result = oap_book_entitlements.reconcile_verified_refund(
+            authenticated_identity_id=identity,
+            order_id=order_id,
+        )
+        return _library_page(make_response(jsonify(entitlement=result)))
+    except PermissionError as exc:
+        return _error(str(exc) or "permission_denied", "Refund state cannot be reconciled.", 403)
+    except ValueError as exc:
+        return _error(str(exc) or "invalid_order", "Check the order and try again.", 400)
+    except oap_book_entitlements.BookEntitlementsUnavailable:
+        return _error("entitlement_unavailable", "Ebook access reconciliation is unavailable.", 503)
 
 
 @bp.get("/library/essential-life-systems")

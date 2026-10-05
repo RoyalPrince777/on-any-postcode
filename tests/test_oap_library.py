@@ -137,3 +137,73 @@ def test_private_command_navigation_opens_public_library_without_conflating_asse
     assert "oap_library.library_home" in command_nav
     assert "📚 Library" in command_nav
     assert "Founder Library" not in command_nav
+
+
+def test_books_alias_is_a_real_library_front_door(anonymous_client):
+    response = anonymous_client.get("/library/books")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "Explore the Library" in body
+    assert 'href="/library/my-library"' in body
+
+
+def test_my_library_requires_authentication(anonymous_client):
+    protected = anonymous_client.get("/library/my-library", follow_redirects=False)
+    assert protected.status_code in (302, 303, 401, 403)
+
+
+def test_my_library_shows_real_member_access(client):
+    response = client.get("/library/my-library")
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "My Library" in body
+    assert "Food Book" in body
+    assert "No fake ownership." in body
+
+
+def test_ebook_reader_route_is_registered_and_fails_closed_without_catalogue(
+    anonymous_client,
+):
+    response = anonymous_client.get(
+        "/library/ebooks/not-a-real-book/not-a-real-edition/pages/0"
+    )
+    assert response.status_code in (404, 503)
+    payload = response.get_json()
+    assert payload["error"] in {"book_unavailable", "reader_unavailable"}
+    assert response.headers["X-Frame-Options"] == "DENY"
+
+
+
+def test_public_ebook_product_page_is_governed(anonymous_client, monkeypatch):
+    from mission_control import oap_ebook_market
+
+    monkeypatch.setattr(
+        oap_ebook_market,
+        "public_product",
+        lambda book_id, edition_id: {
+            "book_id": book_id,
+            "edition_id": edition_id,
+            "product_id": "00000000-0000-4000-8000-000000000001",
+            "state": "ACTIVE",
+            "title": "My Book",
+            "description": "A digital OAP ebook.",
+            "price_minor": 750,
+            "currency": "GBP",
+            "seller": "OAP Seller",
+            "creator_id": "creator-1",
+            "publisher_authority_id": "publisher-1",
+            "physical_product": False,
+            "payment_capture_performed": False,
+        },
+    )
+
+    response = anonymous_client.get("/library/books/my-book/v1")
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "My Book" in body
+    assert "Preview" in body
+    assert "Unlock is payment-proof gated." in body
+    assert "/library/ebooks/my-book/v1/pages/0?preview=1" in body
+    assert "Returning from a payment screen will never create ownership" in body

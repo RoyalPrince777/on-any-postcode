@@ -28,6 +28,7 @@ from . import (
     sika_payment_orchestrator,
     sika_production_evidence_store,
     smi_73_signal_field,
+    smi_library_mission,
     war_room,
 )
 
@@ -312,6 +313,7 @@ def status() -> dict[str, Any]:
                 },
             ),
         },
+        "library_mission": smi_library_mission.status(),
         "mission_to_100": {
             "signal_count": mission_field.get("signal_count"),
             "major_dimension_count": mission_field.get("major_dimension_count"),
