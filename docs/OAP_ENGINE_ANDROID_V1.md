@@ -153,3 +153,18 @@ Routing boundary:
 - the general web renderer remains Android System WebView.
 
 This makes the native engine automatic for the certified supported OAP slice only. It is not a claim that all OAP routes or arbitrary websites are OAP Engine compatible.
+
+
+## Engine security/runtime foundations v1
+
+The first-party engine now includes additional bounded software foundations:
+- normalized HTTP/HTTPS origin identity and same-origin checks;
+- safe URL resolution that fails closed outside web schemes;
+- per-origin in-process storage with key/value/count/quota limits;
+- accessibility projection for landmarks, headings, links, lists and common controls;
+- bounded form/control modelling with GET/POST method normalization, action resolution, same-origin classification, required/disabled state and password-value suppression;
+- hard HTML input, DOM node/depth, CSS input/rule/declaration ceilings;
+- deterministic malformed-HTML stress coverage;
+- the canonical RenderDocument contract now carries paint items, accessibility metadata and form models together.
+
+Truth boundary: storage is not yet durable browser storage; forms are modelled but are not submitted by OAP Engine; Android does not yet expose a full native accessibility virtual-view tree; these foundations do not constitute a JavaScript VM, GPU compositor, media stack, arbitrary-web sandbox or standards-complete engine.
