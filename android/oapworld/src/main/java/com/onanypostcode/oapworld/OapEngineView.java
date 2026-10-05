@@ -4,10 +4,15 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.view.accessibility.AccessibilityNodeProvider;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,6 +31,7 @@ public final class OapEngineView extends View {
     private static final int MAX_TEXT_LENGTH = 8192;
     private static final int MAX_ACCESSIBILITY_SUMMARY_NODES = 50;
     private static final int MAX_ACCESSIBILITY_SUMMARY_CHARS = 4096;
+    private static final int MAX_ACCESSIBILITY_VIRTUAL_ITEMS = 256;
 
     private static final class Item {
         final String kind;
@@ -73,6 +79,8 @@ public final class OapEngineView extends View {
     private int documentWidth = 390;
     private int documentHeight = 1;
     private LinkListener linkListener;
+    private AccessibilityNodeProvider accessibilityNodeProvider;
+    private int accessibilityFocusedVirtualId = -1;
 
     public OapEngineView(Context context) {
         super(context);
@@ -90,6 +98,7 @@ public final class OapEngineView extends View {
         textPaint.setTextSize(16f);
         setFocusable(true);
         setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        accessibilityNodeProvider = new EngineAccessibilityNodeProvider();
     }
 
     public void setLinkListener(LinkListener listener) {
@@ -101,8 +110,10 @@ public final class OapEngineView extends View {
         documentWidth = 390;
         documentHeight = 1;
         setContentDescription(null);
+        accessibilityFocusedVirtualId = -1;
         requestLayout();
         invalidate();
+        sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED);
     }
 
     public void setDisplayListJson(String rawJson) throws JSONException {
@@ -179,8 +190,182 @@ public final class OapEngineView extends View {
         documentWidth = width;
         documentHeight = height;
         setContentDescription(accessibilitySummary(document.optJSONArray("accessibility")));
+        accessibilityFocusedVirtualId = -1;
         requestLayout();
         invalidate();
+        sendAccessibilityEvent(AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED);
+    }
+
+    @Override
+    public AccessibilityNodeProvider getAccessibilityNodeProvider() {
+        return accessibilityNodeProvider;
+    }
+
+    private int accessibleItemCount() {
+        return Math.min(items.size(), MAX_ACCESSIBILITY_VIRTUAL_ITEMS);
+    }
+
+    private String accessibilityClassName(Item item) {
+        if ("link".equals(item.kind)) {
+            return "android.widget.Button";
+        }
+        if ("image".equals(item.kind)) {
+            return "android.widget.ImageView";
+        }
+        return "android.widget.TextView";
+    }
+
+    private Rect accessibilityBounds(Item item) {
+        float scale = scale();
+        return new Rect(
+                Math.round(item.x * scale),
+                Math.round(item.y * scale),
+                Math.round((item.x + item.width) * scale),
+                Math.round((item.y + item.height) * scale)
+        );
+    }
+
+    private void sendVirtualAccessibilityEvent(int virtualId, int eventType) {
+        if (virtualId < 0 || virtualId >= accessibleItemCount()) {
+            return;
+        }
+        Item item = items.get(virtualId);
+        AccessibilityEvent event = AccessibilityEvent.obtain(eventType);
+        event.setPackageName(getContext().getPackageName());
+        event.setClassName(accessibilityClassName(item));
+        event.setSource(this, virtualId);
+        if (!item.text.isEmpty()) {
+            event.getText().add(item.text);
+        }
+        getParent().requestSendAccessibilityEvent(this, event);
+    }
+
+    private final class EngineAccessibilityNodeProvider extends AccessibilityNodeProvider {
+        @Override
+        public AccessibilityNodeInfo createAccessibilityNodeInfo(int virtualViewId) {
+            if (virtualViewId == AccessibilityNodeProvider.HOST_VIEW_ID) {
+                AccessibilityNodeInfo info = AccessibilityNodeInfo.obtain(OapEngineView.this);
+                OapEngineView.this.onInitializeAccessibilityNodeInfo(info);
+                int count = accessibleItemCount();
+                for (int index = 0; index < count; index++) {
+                    info.addChild(OapEngineView.this, index);
+                }
+                return info;
+            }
+
+            if (virtualViewId < 0 || virtualViewId >= accessibleItemCount()) {
+                return null;
+            }
+
+            Item item = items.get(virtualViewId);
+            AccessibilityNodeInfo info = AccessibilityNodeInfo.obtain();
+            info.setSource(OapEngineView.this, virtualViewId);
+            info.setParent(OapEngineView.this);
+            info.setPackageName(getContext().getPackageName());
+            info.setClassName(accessibilityClassName(item));
+            info.setBoundsInParent(accessibilityBounds(item));
+            info.setVisibleToUser(true);
+            info.setEnabled(true);
+            info.setFocusable(true);
+            info.setText(item.text);
+            if ("image".equals(item.kind)) {
+                info.setContentDescription(item.text);
+            }
+            if (item.href != null) {
+                info.setClickable(true);
+                info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK);
+            }
+
+            boolean focused = accessibilityFocusedVirtualId == virtualViewId;
+            info.setAccessibilityFocused(focused);
+            info.addAction(
+                    focused
+                            ? AccessibilityNodeInfo.AccessibilityAction.ACTION_CLEAR_ACCESSIBILITY_FOCUS
+                            : AccessibilityNodeInfo.AccessibilityAction.ACTION_ACCESSIBILITY_FOCUS
+            );
+            return info;
+        }
+
+        @Override
+        public boolean performAction(int virtualViewId, int action, Bundle arguments) {
+            if (virtualViewId == AccessibilityNodeProvider.HOST_VIEW_ID) {
+                return OapEngineView.this.performAccessibilityAction(action, arguments);
+            }
+            if (virtualViewId < 0 || virtualViewId >= accessibleItemCount()) {
+                return false;
+            }
+
+            if (action == AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS) {
+                if (accessibilityFocusedVirtualId == virtualViewId) {
+                    return false;
+                }
+                int previous = accessibilityFocusedVirtualId;
+                accessibilityFocusedVirtualId = virtualViewId;
+                if (previous >= 0) {
+                    sendVirtualAccessibilityEvent(
+                            previous,
+                            AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUS_CLEARED
+                    );
+                }
+                sendVirtualAccessibilityEvent(
+                        virtualViewId,
+                        AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED
+                );
+                invalidate();
+                return true;
+            }
+
+            if (action == AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS) {
+                if (accessibilityFocusedVirtualId != virtualViewId) {
+                    return false;
+                }
+                accessibilityFocusedVirtualId = -1;
+                sendVirtualAccessibilityEvent(
+                        virtualViewId,
+                        AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUS_CLEARED
+                );
+                invalidate();
+                return true;
+            }
+
+            if (action == AccessibilityNodeInfo.ACTION_CLICK) {
+                Item item = items.get(virtualViewId);
+                if (item.href == null || linkListener == null) {
+                    return false;
+                }
+                linkListener.onSafeLink(item.href);
+                sendVirtualAccessibilityEvent(
+                        virtualViewId,
+                        AccessibilityEvent.TYPE_VIEW_CLICKED
+                );
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public List<AccessibilityNodeInfo> findAccessibilityNodeInfosByText(
+                String searched,
+                int virtualViewId
+        ) {
+            List<AccessibilityNodeInfo> matches = new ArrayList<>();
+            String needle = searched == null ? "" : searched.toLowerCase();
+            if (needle.isEmpty()) {
+                return matches;
+            }
+            int count = accessibleItemCount();
+            for (int index = 0; index < count; index++) {
+                Item item = items.get(index);
+                if (item.text.toLowerCase().contains(needle)) {
+                    AccessibilityNodeInfo info = createAccessibilityNodeInfo(index);
+                    if (info != null) {
+                        matches.add(info);
+                    }
+                }
+            }
+            return matches;
+        }
     }
 
     private static String accessibilitySummary(JSONArray nodes) {
