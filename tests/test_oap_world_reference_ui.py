@@ -8,9 +8,8 @@ def test_oap_world_reference_ui_contract():
     page = HOME.read_text(encoding="utf-8")
     for marker in (
         "ON ANY POSTCODE",
-        "SHOP.",
-        "SELL.",
-        "LOCAL.",
+        "YOUR LOCAL",
+        "MARKETPLACE.",
         "Shop local. Sell local.",
         "Shop",
         "Sell",
