@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 import app as app_module
 from mission_control import link_message_routes, neon_auth, web_security
 
-
 USER_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 USER_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 COOKIE_A = "oap.a.session"
