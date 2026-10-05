@@ -78,12 +78,24 @@ async function act(command,target,mode,distance=null){
   const data=await r.json();if(!r.ok)throw new Error(data.error||"World action failed");state=data;
  }catch(e){q("[data-error]").textContent=e.message||String(e)}finally{busy=false;render()}
 }
+function showPanel(name,forceOpen=true){
+ const side=q("[data-side]");if(!side)return;
+ root.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==name);
+ root.querySelectorAll("[data-ui-panel]").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.uiPanel===name)));
+ if(forceOpen)side.dataset.open="true";
+}
+function closeSheet(){const side=q("[data-side]");if(side)side.dataset.open="false"}
 root.addEventListener("click",e=>{
- const pin=e.target.closest("[data-node]");if(pin&&pin.dataset.node!==state.player.node){q("[data-destination]").value=pin.dataset.node;act("navigate",pin.dataset.node,q("[data-mode]").value);return}
+ const ui=e.target.closest("[data-ui-panel]");if(ui){
+  const side=q("[data-side]"),same=ui.getAttribute("aria-selected")==="true"&&side?.dataset.open==="true";
+  if(same){closeSheet();return}
+  showPanel(ui.dataset.uiPanel,true);return;
+ }
+ const pin=e.target.closest("[data-node]");if(pin&&pin.dataset.node!==state.player.node){showPanel("travel",true);q("[data-destination]").value=pin.dataset.node;act("navigate",pin.dataset.node,q("[data-mode]").value);return}
  const a=e.target.closest("[data-action]");if(!a)return;
  if(a.dataset.action==="navigate")act("navigate",q("[data-destination]").value,q("[data-mode]").value);
  else if(a.dataset.action==="advance-route")act("advance-route",null,state.player.travel_mode,100);
  else act(a.dataset.action,a.dataset.target||null,q("[data-mode]").value);
 });
-render();
+showPanel("travel",window.matchMedia("(min-width:861px)").matches);render();
 })();
