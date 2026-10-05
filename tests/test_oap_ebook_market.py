@@ -89,3 +89,30 @@ def test_existing_market_link_is_idempotent(monkeypatch):
     assert result["product_id"] == PRODUCT
     assert result["created"] is False
     assert result["payment_capture_performed"] is False
+
+
+
+def test_public_product_requires_active_approved_digital_listing(monkeypatch):
+    connection = FakeConnection([(
+        "book", "v1", PRODUCT, "ACTIVE", "My Book", "Digital description",
+        750, "GBP", "OAP Seller", "creator-1", "publisher-1",
+    )])
+    wire(monkeypatch, connection)
+
+    product = market.public_product("book", "v1")
+
+    assert product is not None
+    assert product["product_id"] == PRODUCT
+    assert product["title"] == "My Book"
+    assert product["physical_product"] is False
+    assert product["payment_capture_performed"] is False
+    sql = connection.calls[0][0]
+    assert "m.state='ACTIVE'" in sql
+    assert "e.public_release_approved IS TRUE" in sql
+
+
+def test_public_product_hides_unavailable_listing(monkeypatch):
+    connection = FakeConnection([None])
+    wire(monkeypatch, connection)
+
+    assert market.public_product("book", "v1") is None
