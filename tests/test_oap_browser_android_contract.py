@@ -40,3 +40,35 @@ def test_oap_browser_has_real_navigation_controls():
         "webView.reload()",
     ):
         assert marker in source
+
+
+
+def test_oap_android_has_native_engine_surface_and_explicit_webview_fallback():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "private OapEngineView engineView;" in source
+    assert "void showOapEngineDocument(String displayListJson, String sourceUrl)" in source
+    assert "engineView.setDisplayListJson(displayListJson)" in source
+    assert "private void showWebViewFallback()" in source
+    assert "engineScrollView.setVisibility(View.VISIBLE)" in source
+    assert "webView.setVisibility(View.GONE)" in source
+    assert "webView.setVisibility(View.VISIBLE)" in source
+
+
+def test_oap_android_engine_bridge_does_not_use_javascript_interface():
+    source = SOURCE.read_text(encoding="utf-8")
+    engine_view = Path(
+        "android/oapworld/src/main/java/com/onanypostcode/oapworld/OapEngineView.java"
+    ).read_text(encoding="utf-8")
+    assert "addJavascriptInterface" not in source
+    assert "addJavascriptInterface" not in engine_view
+    assert '"https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)' in engine_view
+
+
+def test_oap_engine_display_list_contract_is_versioned_for_android():
+    from oap.browser_engine import render_html
+
+    document = render_html("<p>Native OAP Engine</p>", viewport_width=320).to_dict()
+    assert document["engine"] == "OAP_ENGINE"
+    assert document["contract_version"] == 1
+    assert document["width"] == 320
+    assert document["items"][0]["text"] == "Native OAP Engine"
