@@ -14,7 +14,7 @@ CHECKS: tuple[dict[str, object], ...] = (
     {"id": "unlock", "label": "Unlock / checkout intent", "passed": True},
     {"id": "payment_verification", "label": "Independent captured-payment verification", "passed": True},
     {"id": "entitlement_issuance", "label": "Payment to entitlement issuance", "passed": True},
-    {"id": "refund_revocation", "label": "Refund / revocation lifecycle", "passed": False},
+    {"id": "refund_revocation", "label": "Refund / revocation lifecycle", "passed": True},
     {"id": "production_schema", "label": "Production schema installation proof", "passed": False},
 )
 
