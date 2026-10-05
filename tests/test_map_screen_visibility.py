@@ -111,7 +111,7 @@ def test_oap_os_generation_zero_map_binding_stays_non_visual_and_consent_safe():
 def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
 
-    assert "const ROAD_TILE_TIMEOUT_MS=3000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=8000;" in template
     assert "const controller=new AbortController();" in template
     assert "signal:controller.signal" in template
     assert "finally{clearTimeout(timeout)}" in template
@@ -177,7 +177,7 @@ def test_road_network_has_bounded_batch_level_cold_start_recovery():
 
 def test_road_network_does_not_self_cancel_slow_successful_batches():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
-    assert "const ROAD_TILE_TIMEOUT_MS=3000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=8000;" in template
     assert "recoveryTimer" not in template
     assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
     assert "tiles=tiles.slice(batchStart,batchStart+batchSize)" in template
@@ -228,3 +228,10 @@ def test_selected_road_tiles_are_not_discarded_by_viewport_prefilter():
     assert "ll[0]>=b.minX-.02" not in template
     assert "ll[1]>=b.minY-.02" not in template
     assert ".map(ll=>project(ll[0],ll[1],b));" in template
+
+
+def test_cold_road_fetch_budget_remains_bounded():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "const ROAD_TILE_TIMEOUT_MS=8000;" in template
+    assert "if(batchAttempt<1)" in template
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
