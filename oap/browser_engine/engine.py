@@ -14,6 +14,7 @@ from .accessibility import AccessibilityNode, build_accessibility_tree
 from .css import Rule, computed_style, parse_stylesheet
 from .dom import HIDDEN_ELEMENTS, Node, parse_html_document
 from .forms import FormModel, extract_forms
+from .paint import is_bold_font_weight, parse_css_color
 
 BLOCK_TAGS = {
     "article",
@@ -50,6 +51,9 @@ class DisplayItem:
     width: int
     height: int
     href: str | None = None
+    color: str | None = None
+    background_color: str | None = None
+    bold: bool = False
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -224,6 +228,9 @@ def render_html(
                         width=width,
                         height=line_height,
                         href=href,
+                        color=parse_css_color(style.get("color")),
+                        background_color=parse_css_color(style.get("background-color")),
+                        bold=is_bold_font_weight(style.get("font-weight")),
                     )
                 )
                 y += line_height
