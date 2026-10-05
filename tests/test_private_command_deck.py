@@ -45,7 +45,7 @@ def test_my_world_is_seven_door_founder_home_not_workspace_menu():
         assert f"<strong>{label}</strong>" in page
     assert page.count('class="door') + page.count('class="door final') == 7
     assert 'href="/oap-map"' in page
-    assert 'href="/the-spot/market#sell"' in page
+    assert 'href="/sell"' in page
     assert 'href="/pay/bank"' in page
     assert "workspace_id='identity'" in page
     assert "mission_control.infrastructure_dashboard" in page
@@ -118,6 +118,9 @@ def test_founder_home_buttons_do_not_404(client):
         "/",
         "/oap-map",
         "/the-spot/market",
+        "/sell",
+        "/orders",
+        "/basket",
         "/pay/bank",
         "/my-world/identity",
         "/my-world/hrm-memory",
