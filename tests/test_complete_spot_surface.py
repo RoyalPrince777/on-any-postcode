@@ -59,7 +59,7 @@ def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
         "🔗 The Link",
         "📰 OAP Chronicle",
         "🌿 Nature",
-        "🎪 Activity / Adventure",
+        "🎪 Events",
         "🧭 Explorer",
         "🏪 Market",
         "👤 My World",
