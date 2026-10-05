@@ -261,6 +261,30 @@ def library_ebook_unlock(book_id: str, edition_id: str):
         return _error("ebook_unlock_unavailable", "Ebook Unlock is unavailable.", 503)
 
 
+@bp.post("/library/orders/<order_id>/finalize")
+@web_security.login_required(api=True)
+def library_finalize_ebook_order(order_id: str):
+    """Create Owned only from verified captured-payment evidence."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    identity, _user = _identity()
+    try:
+        entitlement = oap_book_entitlements.grant_from_verified_capture(
+            authenticated_identity_id=identity,
+            order_id=order_id,
+        )
+        return _library_page(
+            make_response(jsonify(entitlement=entitlement), 201 if entitlement["created"] else 200)
+        )
+    except PermissionError as exc:
+        return _error(str(exc) or "permission_denied", "Ownership cannot be granted.", 403)
+    except ValueError as exc:
+        return _error(str(exc) or "invalid_order", "Check the order and try again.", 400)
+    except oap_book_entitlements.BookEntitlementsUnavailable:
+        return _error("entitlement_unavailable", "Ebook ownership is unavailable.", 503)
+
+
 @bp.get("/library/essential-life-systems")
 def essential_life_systems_page():
     """Render the public knowledge view without claiming live telemetry."""
