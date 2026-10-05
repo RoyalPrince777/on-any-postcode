@@ -1,12 +1,102 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="oap-csrf-token" content="{{ csrf_token }}"><title>Ludo · OAP Arena</title>
-<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='ludo.js') }}" defer></script></head>
-<body><main class="mc-shell arena-game" data-ludo-root>
-<section class="card arena-header"><nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a> · <a href="/arena/ludo/room">Online Room</a></nav>
-<p class="arena-hint">OAP Arena · Local pass-and-play</p><h1>🎲 Ludo</h1><p>Roll. Enter. Capture. Bring all four home.</p>
-<p class="arena-hint">OAP standard rules: server die, four pieces each, enter on 6, 52-space shared track, safe squares, capture, exact home finish. Sixes and captures earn another turn.</p>
-<label class="arena-field">Players (2–4, separated by commas)<input data-players maxlength="180" value="Player One, Player Two" autocomplete="off"></label>
-<div class="arena-actions"><button class="arena-primary" type="button" data-start>Start match</button><button type="button" data-roll disabled>Roll die</button><button class="arena-stop" type="button" data-stop disabled>STOP</button></div>
-<p class="arena-error" role="alert" data-error></p></section>
-<section class="card" data-game hidden><div class="arena-metrics" aria-live="polite"><span>Turn: <strong data-turn></strong></span><span>Roll: <strong data-roll-value>—</strong></span><span>Status: <strong data-status></strong></span></div>
-<h2>Four-piece race</h2><div class="arena-game-content" data-players-view></div>
-<p class="arena-feedback" role="status" aria-live="polite" data-feedback></p></section></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="oap-csrf-token" content="{{ csrf_token }}">
+<title>Ludo · OAP Arena</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
+<style>
+:root{--bg:#07111b;--panel:#0d1b28;--line:#254157;--text:#f8fbff;--muted:#9eb3c4;--gold:#f6c453}
+body{background:radial-gradient(circle at top,#142536,#07111b 60%);color:var(--text)}
+.ludo-shell{max-width:1180px;margin:0 auto;padding:14px}
+.ludo-top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.ludo-top h1{margin:0;font-size:clamp(1.5rem,4vw,2.5rem)}
+.ludo-badge{border:1px solid #3e627d;background:#0b1824;padding:7px 10px;border-radius:999px;font-weight:800}
+.ludo-layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:start}
+.ludo-board-wrap{background:linear-gradient(145deg,#102538,#09141e);border:1px solid #29465e;border-radius:24px;padding:12px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.ludo-board{position:relative;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);aspect-ratio:1;background:#e8edf2;border-radius:18px;overflow:hidden;border:5px solid #07111b}
+.ludo-cell{border:1px solid rgba(8,20,30,.16);background:#f5f7f9;position:relative}
+.ludo-cell.safe::after{content:"★";position:absolute;inset:0;display:grid;place-items:center;font-size:.72em;color:#344d62}
+.ludo-cell.track{background:#fff}
+.ludo-cell.green-lane{background:#8ee2ac}.ludo-cell.red-lane{background:#f5a0a0}.ludo-cell.yellow-lane{background:#f5e37d}.ludo-cell.blue-lane{background:#94c8f5}
+.home-zone{position:absolute;width:40%;height:40%;display:grid;place-items:center;padding:6%;box-sizing:border-box}
+.home-zone .yard{width:100%;height:100%;background:rgba(255,255,255,.9);border-radius:18%;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10%;padding:10%;box-sizing:border-box}
+.home-zone.green{left:0;top:0;background:#168f43}.home-zone.red{right:0;top:0;background:#ce2d33}.home-zone.yellow{left:0;bottom:0;background:#e5b915}.home-zone.blue{right:0;bottom:0;background:#287dce}
+.yard-slot{border-radius:50%;background:#e9eef3;border:3px solid rgba(0,0,0,.15);display:grid;place-items:center}
+.center-home{position:absolute;left:40%;top:40%;width:20%;height:20%;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:conic-gradient(#cf3036 0 25%,#287dce 0 50%,#e5b915 0 75%,#168f43 0);display:grid;place-items:center;z-index:2}
+.center-home span{background:#07111b;color:#fff;border-radius:999px;padding:4px 7px;font-size:clamp(.45rem,1vw,.72rem);font-weight:900}
+.board-piece{position:absolute;width:5.2%;aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.5);z-index:8;transform:translate(-50%,-50%);transition:left .22s ease,top .22s ease,transform .15s ease}
+.board-piece.selectable{outline:3px solid var(--gold);outline-offset:2px;cursor:pointer;animation:pulsePiece 1s infinite}
+.board-piece.green{background:#19aa53}.board-piece.red{background:#e24449}.board-piece.yellow{background:#f3ca24}.board-piece.blue{background:#3694eb}
+@keyframes pulsePiece{50%{transform:translate(-50%,-50%) scale(1.14)}}
+.side-panel{display:grid;gap:10px}
+.panel-card{background:linear-gradient(145deg,#102538,#0b1721);border:1px solid #29465e;border-radius:20px;padding:14px}
+.turn-card{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.turn-label{font-size:.78rem;color:var(--muted);text-transform:uppercase;font-weight:900;letter-spacing:.08em}
+.turn-value{font-size:1.25rem;font-weight:950}
+.die{width:72px;height:72px;border-radius:18px;background:#fff;color:#07111b;display:grid;place-items:center;font-size:2.1rem;font-weight:950;box-shadow:inset 0 0 0 4px #dfe7ee}
+.arena-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.arena-actions button,.arena-primary{min-height:48px;border-radius:14px;font-weight:900}
+.arena-primary{background:linear-gradient(135deg,#f6c453,#e79c17);color:#07111b;border:none}
+.player-entry{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:9px 10px;border:1px solid #28455d;border-radius:14px;margin-top:7px}
+.player-entry strong{display:block}.player-entry span{color:var(--muted);font-size:.85rem}
+.mobile-status{font-size:.9rem;color:var(--muted);margin-top:8px}
+@media(max-width:900px){.ludo-layout{grid-template-columns:1fr}.side-panel{grid-template-columns:1fr 1fr}.side-panel .panel-card:first-child{grid-column:1/-1}}
+@media(max-width:600px){.ludo-shell{padding:8px}.ludo-board-wrap{padding:7px;border-radius:16px}.side-panel{grid-template-columns:1fr}.arena-actions{grid-template-columns:1fr}.die{width:62px;height:62px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script src="{{ url_for('static',filename='ludo.js') }}" defer></script>
+</head>
+<body>
+<main class="ludo-shell" data-ludo-root>
+  <div class="ludo-top">
+    <div>
+      <div class="turn-label">OAP Arena</div>
+      <h1>🎲 Ludo</h1>
+    </div>
+    <div class="ludo-badge">Born Local. Built Global.</div>
+  </div>
+
+  <section class="ludo-layout">
+    <div class="ludo-board-wrap">
+      <div class="ludo-board" data-visual-board aria-label="OAP Arena Ludo board"></div>
+      <p class="mobile-status" data-feedback aria-live="polite">Start a match to enter the board.</p>
+    </div>
+
+    <aside class="side-panel">
+      <section class="panel-card">
+        <nav aria-label="Arena navigation"><a href="/arena">← OAP Arena</a> · <a href="/arena/ludo/room">Online Room</a></nav>
+        <div class="turn-card" style="margin-top:12px">
+          <div>
+            <div class="turn-label">Turn</div>
+            <div class="turn-value" data-turn>—</div>
+            <div class="turn-label" style="margin-top:8px">Status</div>
+            <div data-status>Open</div>
+          </div>
+          <div class="die" data-roll-value>⚄</div>
+        </div>
+      </section>
+
+      <section class="panel-card">
+        <label class="turn-label" for="players">Players</label>
+        <input id="players" data-players maxlength="180" value="Player One, Player Two" autocomplete="off" style="width:100%;box-sizing:border-box;margin:7px 0 10px">
+        <div class="arena-actions">
+          <button class="arena-primary" type="button" data-start>START MATCH</button>
+          <button type="button" data-roll disabled>ROLL</button>
+          <button type="button" data-stop disabled>LEAVE MATCH</button>
+          <a href="/arena/ludo/room" style="display:grid;place-items:center;border:1px solid #36566f;border-radius:14px;text-decoration:none;font-weight:900">LINK IN</a>
+        </div>
+        <p class="arena-error" role="alert" data-error></p>
+      </section>
+
+      <section class="panel-card" data-game hidden>
+        <div class="turn-label">Pieces</div>
+        <div class="arena-game-content" data-players-view></div>
+      </section>
+    </aside>
+  </section>
+</main>
+</body>
+</html>
