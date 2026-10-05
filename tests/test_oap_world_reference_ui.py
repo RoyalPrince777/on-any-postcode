@@ -10,13 +10,15 @@ def test_oap_world_reference_ui_contract():
         "ON ANY POSTCODE",
         "YOUR LOCAL",
         "MARKETPLACE.",
-        "Shop local. Sell local.",
+        "LOCAL SHOP",
         "Shop",
         "Sell",
         "Orders",
         "Pay",
         "Eats",
         "Map",
+        "Local shops",
+        "On the shelf",
     ):
         assert marker in page
 
