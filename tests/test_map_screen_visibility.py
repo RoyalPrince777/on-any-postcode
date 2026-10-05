@@ -111,14 +111,14 @@ def test_oap_os_generation_zero_map_binding_stays_non_visual_and_consent_safe():
 def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
 
-    assert "const ROAD_TILE_TIMEOUT_MS=8000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
     assert "const controller=new AbortController();" in template
     assert "signal:controller.signal" in template
     assert "finally{clearTimeout(timeout)}" in template
     assert "const renderPayload=d=>" in template
     assert "const queue=[...tiles];" in template
     assert "const worker=async()=>{while(queue.length&&request===roadRequest&&count<180)" in template
-    assert "Math.min(4,tiles.length)" in template
+    assert "Math.min(2,tiles.length)" in template
     assert "roadLayer.replaceChildren(staged);" in template
     assert "showRoadStatus('');clearBoot();setRenderState('stable');" in template
     assert "Road network unavailable — route guidance may still work." in template
@@ -146,7 +146,7 @@ def test_road_tiles_are_prioritised_and_bounded_instead_of_flooded():
     assert "tiles.sort((a,b)=>" in template
     assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
     assert "tiles=tiles.slice(batchStart,batchStart+batchSize);" in template
-    assert "Math.min(4,tiles.length)" in template
+    assert "Math.min(2,tiles.length)" in template
     assert "for(let attempt=0;attempt<1;attempt++)" in template
     assert "response.status!==503" in template
 
@@ -177,11 +177,11 @@ def test_road_network_has_bounded_batch_level_cold_start_recovery():
 
 def test_road_network_does_not_self_cancel_slow_successful_batches():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
-    assert "const ROAD_TILE_TIMEOUT_MS=8000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
     assert "recoveryTimer" not in template
     assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
     assert "tiles=tiles.slice(batchStart,batchStart+batchSize)" in template
-    assert "Math.min(4,tiles.length)" in template
+    assert "Math.min(2,tiles.length)" in template
     assert "request===roadRequest&&count<180" in template
     assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
     assert "},6000):null;" not in template
@@ -232,6 +232,6 @@ def test_selected_road_tiles_are_not_discarded_by_viewport_prefilter():
 
 def test_cold_road_fetch_budget_remains_bounded():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
-    assert "const ROAD_TILE_TIMEOUT_MS=8000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
     assert "if(batchAttempt<1)" in template
     assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template

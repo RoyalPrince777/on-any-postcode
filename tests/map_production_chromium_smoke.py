@@ -59,6 +59,15 @@ with sync_playwright() as p:
         "oap_os_map_bridge.js",
     )
 
+    page.wait_for_function(
+        "() => document.querySelector('#oap-map-boot')?.hidden === true",
+        timeout=30000,
+    )
+    page.wait_for_function(
+        "() => document.querySelectorAll('#road-layer polyline').length > 0",
+        timeout=30000,
+    )
+
     api_line_counts = page.evaluate(
         """async () => {
           const urls = [
@@ -81,14 +90,6 @@ with sync_playwright() as p:
         }"""
     )
     assert any(count > 0 for count in api_line_counts), ("road_geometry_api_empty", api_line_counts)
-    page.wait_for_function(
-        "() => document.querySelector('#oap-map-boot')?.hidden === true",
-        timeout=30000,
-    )
-    page.wait_for_function(
-        "() => document.querySelectorAll('#road-layer polyline').length > 0",
-        timeout=30000,
-    )
 
     for asset in required_assets:
         matches = [
