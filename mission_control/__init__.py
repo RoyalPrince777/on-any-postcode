@@ -545,6 +545,49 @@ def init_app(app: Flask) -> None:
             )
             raise
 
+    if os.environ.get("OAP_LIBRARY_EBOOK_SCHEMA_PROOF_ON_BOOT", "").strip() == "1":
+        try:
+            ebook_schema_proof = oap_library_ebook_schema.readback()
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_readback",
+                        "success": True,
+                        "schema_ready": bool(
+                            ebook_schema_proof.get("schema_ready")
+                        ),
+                        "prerequisites_ready": bool(
+                            ebook_schema_proof.get("prerequisites_ready")
+                        ),
+                        "tables": ebook_schema_proof.get("tables"),
+                        "prerequisites": ebook_schema_proof.get("prerequisites"),
+                        "member_rows_read": False,
+                        "payment_rows_read": False,
+                        "payment_capture_performed": False,
+                        "ownership_created": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_readback",
+                        "success": False,
+                        "schema_ready": False,
+                        "error": "library_ebook_schema_readback_failed",
+                        "member_rows_read": False,
+                        "payment_rows_read": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+
     if os.environ.get("OAP_LIBRARY_EBOOK_SCHEMA_AUTO_APPLY", "").strip() == "1":
         try:
             ebook_schema = oap_library_ebook_schema.install(
