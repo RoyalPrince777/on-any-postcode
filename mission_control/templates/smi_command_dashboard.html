@@ -45,6 +45,14 @@
     .signal-card.ready{border-color:rgba(82,231,147,.34)}.signal-card.blocked{border-color:rgba(255,118,118,.42);background:rgba(50,14,18,.34)}.signal-card.review{border-color:rgba(255,207,112,.32)}.signal-card.final{border-color:rgba(226,189,105,.4)}
     .signal-top{display:flex;align-items:center;justify-content:space-between;gap:6px}.signal-top strong{font-size:.72rem}.signal-state{font-size:.58rem;font-weight:850;letter-spacing:.05em}
     .signal-summary{color:var(--muted);font-size:.62rem;line-height:1.35}
+    .smi21-panel{margin-bottom:14px;padding:16px 18px}
+    .smi21-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+    .smi21-card{min-width:0;padding:11px;border:1px solid var(--line);border-radius:14px;background:rgba(5,16,29,.72);display:grid;gap:6px}
+    .smi21-card.proven{border-color:rgba(82,231,147,.38)}.smi21-card.active{border-color:rgba(88,199,255,.34)}.smi21-card.blocked{border-color:rgba(255,118,118,.42);background:rgba(50,14,18,.34)}.smi21-card.unknown{border-color:rgba(255,207,112,.28)}
+    .smi21-family{font-size:.55rem;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);font-weight:800}
+    .smi21-name{font-size:.72rem;font-weight:800}.smi21-state{font-size:.58rem;font-weight:850;letter-spacing:.05em}.smi21-checks{color:var(--muted);font-size:.57rem;line-height:1.35}
+    @media(max-width:1100px){.smi21-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    @media(max-width:760px){.smi21-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:1100px){.signal-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
     @media(max-width:760px){.signal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     .panel{border:1px solid var(--line);background:linear-gradient(180deg,rgba(7,20,37,.86),rgba(4,12,24,.84));border-radius:24px;box-shadow:0 18px 60px rgba(0,0,0,.28),inset 0 0 0 1px rgba(255,255,255,.015);backdrop-filter:blur(16px)}
@@ -144,6 +152,20 @@
         <a class="signal-card {{ signal.state|lower }}" href="{{ signal.href }}" aria-label="{{ signal.label }} — {{ signal.state }}">
           <div class="signal-top"><strong>{{ signal.label }}</strong><span class="signal-state">{{ signal.state }}</span></div>
           <div class="signal-summary">{{ signal.summary }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="panel smi21-panel" aria-labelledby="smi21-title">
+      <div class="section-title"><strong id="smi21-title">🧠 SMI 21</strong><span>3 families · 7 dimensions each · canonical evidence state</span></div>
+      <div class="smi21-grid">
+        {% for dimension in command.smi_21_dimensions %}
+        <a class="smi21-card {{ dimension.state|lower }}" href="/mission/intelligence" aria-label="{{ dimension.name }} — {{ dimension.state }}">
+          <span class="smi21-family">{{ dimension.family }}</span>
+          <span class="smi21-name">{{ dimension.name }}</span>
+          <span class="smi21-state">{{ dimension.state|upper }}</span>
+          <span class="smi21-checks">{{ dimension.checks|join(' · ') }}</span>
         </a>
         {% endfor %}
       </div>
