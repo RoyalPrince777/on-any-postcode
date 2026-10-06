@@ -44,7 +44,7 @@ COUNCIL_ROLES: tuple[dict[str, str], ...] = (
     {"name": "SMI Core", "role": "Internal synthesis", "boundary": "Single first-party brain; recommendation only."},
     {"name": "Neo", "role": "True path / recovery witness", "boundary": "Advisory; cannot approve or execute."},
     {"name": "Bagheera", "role": "Judgement / restraint", "boundary": "Present at the beginning and end of major reviews."},
-    {"name": "Shere Khan", "role": "Adversarial Stress-Test / Threat Intelligence / Failure-Hunter", "boundary": "Claw Test asks: What can break this?"},
+    {"name": "Shere Khan", "role": "Adversarial Stress-Test / Threat Intelligence / Failure-Hunter / Survivability Authority / False-Green Blocker", "boundary": "Permanent beginning-to-end review authority; Claw Test is one pressure mode. May HOLD GREEN when evidence is insufficient; Founder Final remains final."},
     {"name": "Agent Smith", "role": "Duplicate / inconsistency / replication hunter", "boundary": "Distinct from Shere Khan survivability testing."},
     {"name": "Twinz", "role": "Dual-path contradiction / alternate-route review", "boundary": "Advisory consistency check."},
     {"name": "ALL IN A.I.", "role": "Always Involved · Captain Agent · Mission Keeper", "boundary": "External assistant/operator; not first-party authority."},
@@ -66,7 +66,7 @@ CORE_LAW: tuple[str, ...] = (
     "Duplicates are merged.",
     "Roles stay distinct.",
     "Evidence beats confidence.",
-    "Shere Khan attacks before Green.",
+    "Shere Khan is present from mission start through final Green review and may HOLD GREEN on unresolved evidence.",
     "Bagheera judges before Green.",
     "ALL IN stays involved as an external review role.",
     "Founder Final remains final.",
@@ -91,7 +91,7 @@ MISSION_TO_100_PROTOCOL: tuple[dict[str, str], ...] = (
     },
     {
         "id": "dissent-survives",
-        "rule": "Material dissent, Claw Test findings and unresolved evidence remain visible until resolved or explicitly held by Human Authority.",
+        "rule": "Material dissent, Shere Khan findings (including Claw Test pressure results) and unresolved evidence remain visible until resolved or explicitly held by Human Authority.",
     },
     {
         "id": "rollback-before-promotion",
