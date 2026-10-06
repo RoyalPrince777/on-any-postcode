@@ -1,5 +1,6 @@
 name: OAP runtime image
 # credential-bridge-recheck: 2026-09-28 secret-confirmed-rerun
+# library-final-gate-recheck: 2026-10-06
 
 on:
   pull_request:
