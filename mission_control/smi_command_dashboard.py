@@ -82,12 +82,8 @@ def status() -> dict[str, Any]:
     movement = movement_intelligence.movement_intelligence_status()
     mission_field = smi_73_signal_field.definition_status()
     inference = oap_inference_gateway.status(probe=True)
-    try:
-        smi_health = smi_chat_runtime.health()
-        mission_evaluation = smi_health.get("mission_to_100") or {}
-    except Exception:
-        smi_health = {}
-        mission_evaluation = {}
+    smi_health = smi_chat_runtime.health()
+    mission_evaluation = smi_health.get("mission_to_100") or {}
 
     smi_21_dimensions = tuple(
         {
