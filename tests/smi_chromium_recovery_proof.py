@@ -192,6 +192,58 @@ def main():
             assert motion_after["rigLayerFrames"]["breathing"] > 0
             assert motion_after["rigLayerFrames"]["hands"] > 0
 
+            # Software-only browser proof: a real browser speech-boundary event must
+            # produce visible mouth-region pixel motion. This deliberately does NOT
+            # claim decoded-audio or phoneme-accurate lip sync.
+            page.evaluate(
+                """() => window.dispatchEvent(new CustomEvent(
+                    'oap-smi-character-state',
+                    {detail:{state:'speaking',live:true,stopped:false,epoch:777}}
+                ))"""
+            )
+            page.wait_for_timeout(80)
+            mouth_before = page.evaluate(
+                """() => {
+                    const canvas=document.querySelector('#smi-source-pixel-motion');
+                    const ctx=canvas.getContext('2d');
+                    const d=ctx.getImageData(738,253,66,33).data;
+                    return Array.from(d);
+                }"""
+            )
+            mouth_frames_before = page.evaluate(
+                "() => window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION.snapshot().rigLayerFrames.mouth_visemes"
+            )
+            page.evaluate(
+                """() => window.dispatchEvent(new CustomEvent(
+                    'oap-smi-speech-boundary',
+                    {detail:{
+                        source:'browser-speech-synthesis',
+                        decodedAudio:false,
+                        phonemeAligned:false,
+                        elapsedMs:120,
+                        epoch:777
+                    }}
+                ))"""
+            )
+            page.wait_for_timeout(70)
+            mouth_after = page.evaluate(
+                """() => {
+                    const canvas=document.querySelector('#smi-source-pixel-motion');
+                    const ctx=canvas.getContext('2d');
+                    const d=ctx.getImageData(738,253,66,33).data;
+                    return Array.from(d);
+                }"""
+            )
+            mouth_frames_after = page.evaluate(
+                "() => window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION.snapshot().rigLayerFrames.mouth_visemes"
+            )
+            assert mouth_frames_after > mouth_frames_before
+            assert mouth_after != mouth_before
+            speech_snapshot = page.evaluate(
+                "() => window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION.snapshot()"
+            )
+            assert speech_snapshot["accurateHumanLipSyncProven"] is False
+
             visible_legacy_during_boot = page.evaluate(
                 "() => window.__smiLegacyPaintSamples.flat()"
             )
