@@ -101,8 +101,8 @@ def test_prodigi_adapter_is_selected_only_for_prodigi_provider_id():
         '@bp.post("/market/pod/provider/webhook")', 1
     )[0]
 
-    assert 'configuration_status("pod")' in section
-    assert '== "prodigi"' in section
+    assert 'os.environ.get("OAP_POD_PROVIDER_ID", "")' in section
+    assert 'pod_provider_id == "prodigi"' in section
     assert "prodigi_pod_adapter.submit_order(" in section
     assert "sika_secure_provider_runtime.submit(" in section
     assert "kind=\"pod\"" in section
