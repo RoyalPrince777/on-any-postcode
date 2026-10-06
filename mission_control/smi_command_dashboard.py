@@ -86,6 +86,58 @@ def status() -> dict[str, Any]:
     war_validation = war_status.get("validation") or {}
     autonomy = brain_status.get("autonomy") or {}
 
+    important_signals = (
+        {
+            "id": "inference",
+            "label": "SMI Inference",
+            "state": "READY" if inference.get("first_party_inference_ready") else "BLOCKED",
+            "summary": "First-party inference path and Home Node worker readiness.",
+            "href": "/mission/ollama",
+        },
+        {
+            "id": "signal_field",
+            "label": "73 Signal Field",
+            "state": "READY" if mission_field.get("signal_count") == 73 else "REVIEW",
+            "summary": "Canonical SMI signal field definition and truth boundary.",
+            "href": "/mission/intelligence",
+        },
+        {
+            "id": "runtime",
+            "label": "Runtime",
+            "state": "READY" if runtime.get("universal_runtime_green") else "REVIEW",
+            "summary": "Bounded runtime evidence remains separate from live claims.",
+            "href": "/mission/war-room",
+        },
+        {
+            "id": "war_room",
+            "label": "War Room",
+            "state": "READY" if war_validation.get("passed") else "REVIEW",
+            "summary": "Challenge, evidence, recovery and Founder review.",
+            "href": "/mission/war-room",
+        },
+        {
+            "id": "movement",
+            "label": "Movement",
+            "state": "READY" if movement.get("architecture_passed") else "REVIEW",
+            "summary": "Movement architecture and owned route intelligence.",
+            "href": "/movement",
+        },
+        {
+            "id": "learning",
+            "label": "Learning",
+            "state": "READY" if any(part.get("id") == "learn" for part in ai_behaviour_protocol.AI_BEHAVIOUR_PARTS) else "REVIEW",
+            "summary": "Bounded learning with receipts; no self-authorised change.",
+            "href": "/mission/improvement",
+        },
+        {
+            "id": "human_authority",
+            "label": "Human Authority",
+            "state": "FINAL",
+            "summary": "SMI cannot approve itself; Founder Final remains human.",
+            "href": "/mission/war-room",
+        },
+    )
+
     return {
         "component": "SMI Founder Command Dashboard",
         "brain": {
@@ -131,6 +183,7 @@ def status() -> dict[str, Any]:
             "fallback_configured": bool(inference.get("compatibility_fallback_configured")),
             "truth": "FIRST_PARTY_READY" if inference.get("first_party_inference_ready") else "FIRST_PARTY_BLOCKED",
         },
+        "important_signals": important_signals,
         "risk_router": risk,
         "bank": {
             "name": bank_identity.get("name"),
