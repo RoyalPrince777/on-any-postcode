@@ -17,6 +17,7 @@ from . import (
     bank_permission_scope,
     brain,
     intelligence_runtime_proof,
+    oap_inference_gateway,
     mail_mailbox,
     mail_outbound,
     movement_intelligence,
@@ -79,6 +80,7 @@ def status() -> dict[str, Any]:
     mailbox = mail_mailbox.status()
     movement = movement_intelligence.movement_intelligence_status()
     mission_field = smi_73_signal_field.definition_status()
+    inference = oap_inference_gateway.status(probe=True)
 
     war_summary = war_status.get("summary") or {}
     war_validation = war_status.get("validation") or {}
@@ -117,6 +119,17 @@ def status() -> dict[str, Any]:
             "overall_evidence_score": int(war_summary.get("overall_evidence_score") or 0),
             "runtime_verified": int(war_summary.get("runtime_verified") or 0),
             "operationally_certified": int(war_summary.get("operationally_certified") or 0),
+        },
+        "inference": {
+            "first_party_ready": bool(inference.get("first_party_inference_ready")),
+            "local_reachable": bool((inference.get("home_node") or {}).get("reachable")),
+            "local_model_available": bool((inference.get("home_node") or {}).get("model_available")),
+            "local_reason": str((inference.get("home_node") or {}).get("reason") or ""),
+            "bridge_configured": bool((inference.get("home_node_bridge") or {}).get("configured")),
+            "worker_recently_seen": bool((inference.get("home_node_bridge") or {}).get("worker_recently_seen")),
+            "durable_worker_fresh": bool((inference.get("home_node_bridge") or {}).get("durable_worker_fresh")),
+            "fallback_configured": bool(inference.get("compatibility_fallback_configured")),
+            "truth": "FIRST_PARTY_READY" if inference.get("first_party_inference_ready") else "FIRST_PARTY_BLOCKED",
         },
         "risk_router": risk,
         "bank": {

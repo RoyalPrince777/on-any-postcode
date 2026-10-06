@@ -82,6 +82,15 @@
     .intel-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.intel-head strong{font-size:.8rem}.signal{font-size:.66rem;color:#9ff2bf}
     .intel p{margin:6px 0 0;font-size:.68rem;color:var(--muted);line-height:1.4}
     .truth{margin-top:14px;padding:14px 16px;border-left:3px solid var(--gold);background:rgba(35,29,13,.42);border-radius:0 14px 14px 0;color:#d6c9a5;font-size:.72rem;line-height:1.5}
+
+    .inference-panel{margin-top:14px;padding:16px 18px}
+    .inference-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px}
+    .inference-state{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:13px;border:1px solid rgba(255,118,118,.34);background:rgba(50,14,18,.42);color:#ffadad;white-space:nowrap}
+    .inference-state.ready{border-color:rgba(82,231,147,.38);background:rgba(9,43,27,.38);color:#9ff2bf}
+    .inference-state .dot{font-size:.72rem}
+    .inference-copy{display:grid;gap:4px}.inference-copy span{color:var(--muted);font-size:.7rem;line-height:1.4}
+    .inference-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    @media(max-width:760px){.inference-row{grid-template-columns:1fr}.inference-actions{justify-content:flex-start}}
     .footer{margin-top:14px;color:#6f8598;font-size:.65rem;text-align:center}
     @media(max-width:1050px){
       .hero{grid-template-columns:1fr}.presence{min-height:420px}.wide,.side{grid-column:span 12}.control-grid{grid-template-columns:repeat(4,1fr)}
@@ -158,6 +167,21 @@
       </aside>
     </section>
 
+    <section class="panel card inference-panel" aria-live="polite" aria-labelledby="inference-title">
+      <div class="section-title"><strong id="inference-title">SMI Inference</strong><span id="inference-checked">Checking live readiness…</span></div>
+      <div class="inference-row">
+        <div class="inference-state" id="inference-state"><span class="dot">●</span><strong>Checking</strong></div>
+        <div class="inference-copy">
+          <strong id="inference-title-text">First-party inference</strong>
+          <span id="inference-detail">Checking local OAP inference and Home Node worker.</span>
+        </div>
+        <div class="inference-actions">
+          <button class="btn" id="inference-refresh" type="button">↻ Check backend</button>
+          <a class="btn primary" href="{{ command.sovereign_ui.primary_route }}">🧠 Talk to SMI</a>
+        </div>
+      </div>
+    </section>
+
     <section class="grid">
       <article class="panel card wide">
         <div class="section-title"><strong>Essential controls</strong><span>clear function · real route · named owner</span></div>
@@ -189,5 +213,46 @@
     <p class="footer">ONE WORLD · ONE FRONT DOOR · MANY SYSTEMS INSIDE · SMI remains one brain.</p>
   </main>
 </div>
+
+<script>
+(() => {
+  const state = document.getElementById('inference-state');
+  const detail = document.getElementById('inference-detail');
+  const checked = document.getElementById('inference-checked');
+  const refresh = document.getElementById('inference-refresh');
+  if (!state || !detail || !refresh) return;
+  const label = (ready) => ready ? 'READY' : 'BLOCKED';
+  async function check() {
+    refresh.disabled = true;
+    refresh.textContent = 'Checking…';
+    try {
+      const response = await fetch('/mission/smi/status', {credentials:'same-origin', cache:'no-store'});
+      if (!response.ok) throw new Error('status_http_' + response.status);
+      const payload = await response.json();
+      const inf = payload.inference || {};
+      const ready = inf.first_party_ready === true;
+      state.classList.toggle('ready', ready);
+      state.innerHTML = '<span class="dot">●</span><strong>' + label(ready) + '</strong>';
+      detail.textContent = ready
+        ? 'OAP-owned inference is available through local runtime or the Home Node worker.'
+        : (inf.worker_recently_seen || inf.durable_worker_fresh)
+          ? 'Home Node is configured; inference readiness is still being established.'
+          : 'Home Node worker is not currently connected. Start the OAP Home Node worker to restore SMI inference.';
+      checked.textContent = 'Checked ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    } catch (error) {
+      state.classList.remove('ready');
+      state.innerHTML = '<span class="dot">●</span><strong>UNKNOWN</strong>';
+      detail.textContent = 'Dashboard status could not be read. Retry from this surface.';
+      checked.textContent = 'Status unavailable';
+    } finally {
+      refresh.disabled = false;
+      refresh.textContent = '↻ Check backend';
+    }
+  }
+  refresh.addEventListener('click', check);
+  check();
+  window.setInterval(check, 15000);
+})();
+</script>
 </body>
 </html>
