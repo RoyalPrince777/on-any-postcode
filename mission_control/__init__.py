@@ -527,7 +527,7 @@ def init_app(app: Flask) -> None:
                 ),
                 flush=True,
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 -- fail closed and re-raise boot migration faults
             print(
                 json.dumps(
                     {
