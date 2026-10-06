@@ -49,6 +49,7 @@ def init_app(app: Flask) -> None:
         music_civilization_migration,
         oap_lab_immutability_migration,
         oap_library_learning,
+        oap_library_ebook_schema,
         oap_eats_store,
         oap_ride_runtime,
         oap_ride_commercial,
@@ -536,6 +537,50 @@ def init_app(app: Flask) -> None:
                         "event": "oap_link_share_migration",
                         "success": False,
                         "error": "link_share_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_LIBRARY_EBOOK_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        try:
+            ebook_schema = oap_library_ebook_schema.install(
+                assume_yes=True,
+                dry_run=False,
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_migration",
+                        "success": bool(ebook_schema.get("schema_ready")),
+                        "migration": ebook_schema.get("migration"),
+                        "checksum": ebook_schema.get("checksum"),
+                        "prerequisites_ready": bool(
+                            ebook_schema.get("prerequisites_ready")
+                        ),
+                        "member_rows_read": False,
+                        "payment_rows_read": False,
+                        "payment_capture_performed": False,
+                        "ownership_created": False,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_migration",
+                        "success": False,
+                        "error": "library_ebook_schema_migration_failed",
+                        "payment_capture_performed": False,
+                        "ownership_created": False,
                     },
                     separators=(",", ":"),
                     sort_keys=True,
