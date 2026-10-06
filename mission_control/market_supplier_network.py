@@ -425,7 +425,8 @@ class SupplierNetworkStore:
             "product_id": product,
             "supplier": {"slug": str(row[1]), "label": str(row[2])},
             "state": "READY",
-            "order_intent_allowed": True,
+            "public_listing_active": False,
+            "order_intent_allowed": False,
             "provider_execution_enabled": False,
             "external_order_created": False,
             "human_authority_final": True,
@@ -623,10 +624,11 @@ class SupplierNetworkStore:
                 if not self._table_exists(connection, "oap_market_supplier_bindings"):
                     return {"allowed": True, "supplier_managed": False}
                 row = connection.execute(
-                    """SELECT b.state,d.state
+                    """SELECT b.state,d.state,p.active
                        FROM oap_market_supplier_bindings b
                        LEFT JOIN oap_market_design_products d
                          ON d.product_id=b.product_id
+                       JOIN products p ON p.id=b.product_id
                        WHERE b.product_id=%s LIMIT 1""",
                     (product,),
                 ).fetchone()
@@ -637,16 +639,23 @@ class SupplierNetworkStore:
 
         supplier_state = str(row[0])
         design_state = str(row[1] or "")
-        ready = supplier_state == "READY" and design_state == "READY"
+        public_active = bool(row[2])
+        ready = public_active and supplier_state == "READY" and design_state == "READY"
+        reason = None
+        if not public_active:
+            reason = "product_not_public"
+        elif supplier_state != "READY" or design_state != "READY":
+            reason = "supplier_or_design_not_ready"
         return {
             "allowed": ready,
             "supplier_managed": True,
             "supplier_state": supplier_state,
             "design_state": design_state,
+            "public_listing_active": public_active,
             "provider_execution_enabled": False,
             "external_execution_allowed": False,
             "payment_capture_allowed": False,
-            "reason": None if ready else "supplier_or_design_not_ready",
+            "reason": reason,
         }
 
 
