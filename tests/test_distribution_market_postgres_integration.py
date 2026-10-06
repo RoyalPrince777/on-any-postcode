@@ -408,7 +408,7 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
     )
     assert draft_gate["allowed"] is False
     assert draft_gate["supplier_managed"] is True
-    assert draft_gate["reason"] == "supplier_or_design_not_ready"
+    assert draft_gate["reason"] == "product_not_public"
 
     ready = market_supplier_network.STORE.mark_ready(
         seller_identity_id=seller,
@@ -416,14 +416,15 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
         evidence_reference="ci-review-ready-evidence",
     )
     assert ready["state"] == "READY"
-    assert ready["order_intent_allowed"] is True
+    assert ready["order_intent_allowed"] is False
+    assert ready["public_listing_active"] is False
     assert ready["provider_execution_enabled"] is False
 
     ready_gate = market_supplier_network.STORE.order_intent_allowed(
         product_id=created["product_id"]
     )
-    assert ready_gate["allowed"] is True
-    assert ready_gate["reason"] is None
+    assert ready_gate["allowed"] is False
+    assert ready_gate["reason"] == "product_not_public"
     assert ready_gate["provider_execution_enabled"] is False
     assert ready_gate["external_execution_allowed"] is False
     assert ready_gate["payment_capture_allowed"] is False
@@ -436,7 +437,29 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
     assert public["supplier_identity_public"] is False
     assert "manufacturer" not in public
     assert public["provider_execution_enabled"] is False
-    assert public["order_intent_allowed"] is True
+    assert public["public_listing_active"] is False
+    assert public["order_intent_allowed"] is False
+
+    # A later, separately approved public release may activate the product.
+    with postgres_db.connect() as connection:
+        connection.execute(
+            "UPDATE products SET active=TRUE WHERE id=%s AND seller_id=%s",
+            (created["product_id"], seller),
+        )
+        connection.commit()
+
+    launched_gate = market_supplier_network.STORE.order_intent_allowed(
+        product_id=created["product_id"]
+    )
+    assert launched_gate["allowed"] is True
+    assert launched_gate["reason"] is None
+    assert launched_gate["public_listing_active"] is True
+
+    launched_public = market_supplier_network.STORE.public_projection(
+        product_ids=[created["product_id"]]
+    )[created["product_id"]]
+    assert launched_public["public_listing_active"] is True
+    assert launched_public["order_intent_allowed"] is True
 
     product_cores.init_product_core_schema(assume_yes=True)
     buyer = str(uuid4())

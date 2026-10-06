@@ -2615,6 +2615,7 @@ def spot_capability_front_door(capability_slug):
             "market_products": [],
             "market_reviews": {},
             "market_supplier_projection": {},
+            "my_pod_products": [],
             "signal_posts": [],
             "room_messages": [],
             "sika": None,
@@ -2693,8 +2694,16 @@ def spot_capability_front_door(capability_slug):
                         context["merchant_certified"] = bool(
                             merchant_status.get("merchant")
                         )
+                        if context["merchant_certified"]:
+                            context["my_pod_products"] = (
+                                market_supplier_network.STORE.owner_pod_products(
+                                    seller_identity_id=str(user["id"])
+                                )
+                            )
                     except certification.CertificationUnavailable:
                         context["merchant_certification_unavailable"] = True
+                    except market_supplier_network.SupplierNetworkUnavailable:
+                        context["private_unavailable"] = True
                 if workspace_id:
                     context["workspace"] = workspaces.get(workspace_id)
                     context["workspace_records"] = workspaces.list_records(

@@ -197,6 +197,40 @@
     {% endif %}
 
     {% if mine_view %}
+    <section id="my-pod-store" class="mc-panel" aria-labelledby="my-pod-store-title">
+      <p class="mc-eyebrow">Private · Print on demand</p>
+      <h2 id="my-pod-store-title">My POD Store</h2>
+      <p class="market-notice">Finish products here first. New POD products stay private and do not appear in the Public Market unless a separate later release is explicitly approved.</p>
+      {% if my_pod_products %}
+      <div class="market-grid">
+        {% for product in my_pod_products %}
+        <article class="market-card" data-my-pod-product="{{ product.product_id }}">
+          <p class="mc-eyebrow">{{ product.garment_type }} · {{ product.supplier_state }}</p>
+          <h3>{{ product.name }}</h3>
+          <p>{{ product.description }}</p>
+          <div class="market-price">{{ product.currency }} {{ product.price }}</div>
+          <p class="market-meta">Design · {{ product.design_state }} · Supplier · {{ product.supplier_state }}</p>
+          <p class="market-meta">Colours · {{ product.colors|join(', ') }} · Sizes · {{ product.sizes|join(', ') }}</p>
+          <p class="market-meta">Public Market · {{ 'ON' if product.public_listing_active else 'OFF' }}</p>
+          <div class="market-actions">
+            {% if product.supplier_state != 'READY' or product.design_state != 'READY' %}
+            <button class="mc-primary pod-ready" type="button" data-product-id="{{ product.product_id }}">Mark supplier ready</button>
+            {% endif %}
+            {% if product.supplier_state != 'STOPPED' %}
+            <button class="mc-secondary-link market-danger pod-stop" type="button" data-product-id="{{ product.product_id }}">STOP product</button>
+            {% endif %}
+          </div>
+          <p class="market-meta pod-status" role="status" aria-live="polite"></p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="market-empty">No POD products in My Market yet.</div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if mine_view %}
     <section id="sell" class="mc-panel market-sell" aria-labelledby="market-sell-title">
       <p class="mc-eyebrow">Seller</p>
       <h2 id="market-sell-title">Sell on OAP</h2>
@@ -212,7 +246,7 @@
           <input id="market-price" name="price" inputmode="decimal" required>
           <details>
             <summary>🧵 Made-to-order clothing / print supplier</summary>
-            <p class="market-meta">Use this section for made-to-order products.</p>
+            <p class="market-meta">Use this section for made-to-order products. POD products are saved to My Market first and stay off the Public Market.</p>
             <label><input type="checkbox" name="made_to_order" value="1"> This is a made-to-order design product</label>
             <label for="market-garment-type">Garment type</label>
             <input id="market-garment-type" name="garment_type" maxlength="120" placeholder="T-shirt, hoodie, tracksuit">
@@ -235,7 +269,7 @@
             <label for="market-supplier-evidence">Supplier evidence reference (optional)</label>
             <input id="market-supplier-evidence" name="supplier_evidence_reference" maxlength="500">
           </details>
-          <button class="mc-primary" type="submit">Publish listing</button>
+          <button class="mc-primary" type="submit">Save product</button>
         </form>
       {% elif merchant_certification_unavailable %}
         <p class="market-notice"><strong>Certification unavailable.</strong> Try again later.</p>
@@ -428,6 +462,44 @@
       } catch (error) {
         recovery.textContent = 'Could not stop transaction: ' + error.message;
       }
+    });
+
+    document.querySelectorAll('.pod-ready').forEach(button => {
+      button.addEventListener('click', async () => {
+        const card = button.closest('[data-my-pod-product]');
+        const output = card?.querySelector('.pod-status');
+        const evidence = window.prompt('Supplier readiness evidence reference');
+        if (!evidence) return;
+        if (output) output.textContent = 'Checking readiness…';
+        try {
+          await jsonFetch('/mission/organs/market/products/' + encodeURIComponent(button.dataset.productId) + '/supplier-ready', {
+            method:'POST',
+            body:JSON.stringify({evidence_reference:evidence})
+          });
+          if (output) output.textContent = 'Supplier and design marked READY. Public Market remains OFF.';
+          button.disabled = true;
+        } catch (error) {
+          if (output) output.textContent = 'Could not mark ready: ' + error.message;
+        }
+      });
+    });
+
+    document.querySelectorAll('.pod-stop').forEach(button => {
+      button.addEventListener('click', async () => {
+        const card = button.closest('[data-my-pod-product]');
+        const output = card?.querySelector('.pod-status');
+        if (output) output.textContent = 'Stopping product…';
+        try {
+          await jsonFetch('/mission/organs/market/products/' + encodeURIComponent(button.dataset.productId) + '/supplier-stop', {
+            method:'POST',
+            body:JSON.stringify({reason:'owner_stop'})
+          });
+          if (output) output.textContent = 'Product stopped.';
+          button.disabled = true;
+        } catch (error) {
+          if (output) output.textContent = 'Could not stop product: ' + error.message;
+        }
+      });
     });
 
     document.getElementById('market-refresh-orders')?.addEventListener('click', refreshOrders);

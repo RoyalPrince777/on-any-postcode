@@ -178,8 +178,8 @@ class SupplierNetworkStore:
     ) -> dict[str, Any]:
         """Atomically create listing + design + supplier mapping.
 
-        The product is visible as a Market listing, but order intents remain
-        blocked until the supplier/design state is explicitly marked READY.
+        The product starts private in My Market. Supplier/design readiness can be
+        completed privately; public exposure remains a separate explicit step.
         """
 
         seller = _uuid(seller_identity_id, "invalid_seller_identity")
@@ -237,7 +237,7 @@ class SupplierNetworkStore:
                 product_row = connection.execute(
                     """INSERT INTO products(
                            seller_id,name,description,price_minor,currency,active
-                       ) VALUES (%s,%s,%s,%s,'GBP',TRUE)
+                       ) VALUES (%s,%s,%s,%s,'GBP',FALSE)
                        RETURNING id""",
                     (seller, name_value, description_value, price_minor),
                 ).fetchone()
@@ -292,6 +292,7 @@ class SupplierNetworkStore:
             "garment_type": garment,
             "supplier": {"slug": slug, "label": label},
             "state": "DRAFT",
+            "public_listing_active": False,
             "order_intent_allowed": False,
             "supplier_api_called": False,
             "external_order_created": False,
@@ -332,7 +333,7 @@ class SupplierNetworkStore:
                 self._ensure_schema(connection)
                 owned = connection.execute(
                     """SELECT 1 FROM products
-                       WHERE id=%s AND seller_id=%s AND active=TRUE LIMIT 1""",
+                       WHERE id=%s AND seller_id=%s LIMIT 1""",
                     (product, seller),
                 ).fetchone()
                 if owned is None:
@@ -424,7 +425,8 @@ class SupplierNetworkStore:
             "product_id": product,
             "supplier": {"slug": str(row[1]), "label": str(row[2])},
             "state": "READY",
-            "order_intent_allowed": True,
+            "public_listing_active": False,
+            "order_intent_allowed": False,
             "provider_execution_enabled": False,
             "external_order_created": False,
             "human_authority_final": True,
@@ -509,6 +511,61 @@ class SupplierNetworkStore:
             for row in rows
         ]
 
+    def owner_pod_products(self, *, seller_identity_id: object) -> list[dict[str, Any]]:
+        """Return private made-to-order catalogue state for one seller."""
+
+        seller = _uuid(seller_identity_id, "invalid_seller_identity")
+        try:
+            with postgres_db.connect(readonly=True) as connection:
+                if not self._table_exists(connection, "oap_market_supplier_bindings"):
+                    return []
+                if not self._table_exists(connection, "oap_market_design_products"):
+                    return []
+                rows = connection.execute(
+                    """SELECT p.id,p.name,p.description,p.price_minor,p.currency,p.active,
+                              b.state,b.stop_reason,b.evidence_reference,
+                              b.supplier_label,b.supplier_product_ref,b.supplier_variant_ref,
+                              d.garment_type,d.artwork_reference,d.placements,d.colors,d.sizes,d.state,
+                              b.updated_at
+                       FROM products p
+                       JOIN oap_market_supplier_bindings b ON b.product_id=p.id
+                       JOIN oap_market_design_products d ON d.product_id=p.id
+                       WHERE p.seller_id=%s AND b.seller_identity_id=%s
+                         AND d.seller_identity_id=%s
+                       ORDER BY b.updated_at DESC""",
+                    (seller, seller, seller),
+                ).fetchall()
+        except Exception as exc:
+            raise SupplierNetworkUnavailable("owner_pod_catalogue_read_failed") from exc
+        return [
+            {
+                "product_id": str(row[0]),
+                "name": str(row[1]),
+                "description": str(row[2] or ""),
+                "price": f"{Decimal(int(row[3])) / Decimal(100):.2f}",
+                "currency": str(row[4]),
+                "public_listing_active": bool(row[5]),
+                "supplier_state": str(row[6]),
+                "stop_reason": str(row[7] or ""),
+                "evidence_reference": str(row[8] or ""),
+                "supplier_label": str(row[9]),
+                "supplier_product_ref": str(row[10]),
+                "supplier_variant_ref": str(row[11] or ""),
+                "garment_type": str(row[12]),
+                "artwork_reference": str(row[13]),
+                "placements": list(row[14] or []),
+                "colors": list(row[15] or []),
+                "sizes": list(row[16] or []),
+                "design_state": str(row[17]),
+                "updated_at": row[18].isoformat(),
+                "order_intent_allowed": str(row[6]) == "READY" and str(row[17]) == "READY",
+                "external_execution_allowed": False,
+                "private_owner_view": True,
+                "human_authority_final": True,
+            }
+            for row in rows
+        ]
+
     def public_projection(self, *, product_ids: list[object]) -> dict[str, dict[str, Any]]:
         """Return public-safe made-to-order state without claiming supplier identity."""
 
@@ -528,10 +585,12 @@ class SupplierNetworkStore:
                     return {}
                 rows = connection.execute(
                     """SELECT b.product_id,b.state,
-                              d.garment_type,d.colors,d.sizes,d.made_to_order,d.state
+                              d.garment_type,d.colors,d.sizes,d.made_to_order,d.state,
+                              p.active
                        FROM oap_market_supplier_bindings b
                        LEFT JOIN oap_market_design_products d
                          ON d.product_id=b.product_id
+                       JOIN products p ON p.id=b.product_id
                        WHERE b.product_id = ANY(%s::uuid[])""",
                     (products,),
                 ).fetchall()
@@ -547,7 +606,8 @@ class SupplierNetworkStore:
                 "design_state": str(row[6] or ""),
                 "supplier_identity_public": False,
                 "provider_execution_enabled": False,
-                "order_intent_allowed": str(row[1]) == "READY" and str(row[6] or "") == "READY",
+                "public_listing_active": bool(row[7]),
+                "order_intent_allowed": bool(row[7]) and str(row[1]) == "READY" and str(row[6] or "") == "READY",
                 "external_execution_allowed": False,
             }
             for row in rows
@@ -567,10 +627,11 @@ class SupplierNetworkStore:
                 if not self._table_exists(connection, "oap_market_supplier_bindings"):
                     return {"allowed": True, "supplier_managed": False}
                 row = connection.execute(
-                    """SELECT b.state,d.state
+                    """SELECT b.state,d.state,p.active
                        FROM oap_market_supplier_bindings b
                        LEFT JOIN oap_market_design_products d
                          ON d.product_id=b.product_id
+                       JOIN products p ON p.id=b.product_id
                        WHERE b.product_id=%s LIMIT 1""",
                     (product,),
                 ).fetchone()
@@ -581,16 +642,23 @@ class SupplierNetworkStore:
 
         supplier_state = str(row[0])
         design_state = str(row[1] or "")
-        ready = supplier_state == "READY" and design_state == "READY"
+        public_active = bool(row[2])
+        ready = public_active and supplier_state == "READY" and design_state == "READY"
+        reason = None
+        if not public_active:
+            reason = "product_not_public"
+        elif supplier_state != "READY" or design_state != "READY":
+            reason = "supplier_or_design_not_ready"
         return {
             "allowed": ready,
             "supplier_managed": True,
             "supplier_state": supplier_state,
             "design_state": design_state,
+            "public_listing_active": public_active,
             "provider_execution_enabled": False,
             "external_execution_allowed": False,
             "payment_capture_allowed": False,
-            "reason": None if ready else "supplier_or_design_not_ready",
+            "reason": reason,
         }
 
 
