@@ -394,11 +394,11 @@ def test_smi_cc_auto_maps_agent_board_selects_first_party_best_fit_and_truth_gat
     names = [item["agent"] for item in board["team"]]
     assert names == [
         "Octopus",
+        "Shere Khan",
         "Spider",
         "Agent Smith",
         "Twinz",
         "Shark",
-        "Shere Khan",
         "Bagheera",
         "Fox",
         "Bee",
