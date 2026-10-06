@@ -49,7 +49,7 @@ def test_vote_board_is_evidence_classification_not_personality_simulation():
 
 def test_smi_v5_exposes_permanent_core_and_captain_auto_protocol():
     status = smi_auto.public_status()
-    assert status["version"] == 5
+    assert status["version"] == 6
     assert status["core_auto_review"] == ("Neo", "Shere Khan", "Bagheera")
     assert status["captain_auto_protocol"] == "SMI_FIRST_CORE_REVIEW_THEN_SPECIALISTS"
 
@@ -60,3 +60,11 @@ def test_octopus_spider_fox_are_canonical_review_lenses():
     assert "systems integration" in smi_auto.review_lens("Octopus")
     assert "route mesh" in smi_auto.review_lens("Spider")
     assert "optimisation" in smi_auto.review_lens("Fox")
+
+
+def test_shere_khan_full_authority_exceeds_claw_test_mode():
+    lens = smi_auto.review_lens("Shere Khan")
+    assert "threat intelligence" in lens
+    assert "survivability authority" in lens
+    assert "false-Green blocking" in lens
+    assert "Claw Test is one pressure mode" in lens
