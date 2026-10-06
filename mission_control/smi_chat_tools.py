@@ -102,7 +102,7 @@ def select_tools(message: object, *, limit: int = 3) -> tuple[str, ...]:
 def _safe_dashboard_status() -> dict[str, Any]:
     """Use the dashboard's existing truthful status assembly without secrets."""
 
-    status = smi_command_dashboard.dashboard_status()
+    status = smi_command_dashboard.status()
     return {
         "important_signals": status.get("important_signals", ()),
         "smi_21_dimensions": status.get("smi_21_dimensions", ()),
