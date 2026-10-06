@@ -30,6 +30,7 @@ from . import smi_chat_runtime_core as _core
 from . import smi_communication_style as _communication_style
 from . import smi_receipt_backend as _receipts
 from . import smi_thinking_process as _thinking
+from . import smi_chat_tools as _chat_tools
 from . import world_crisis_intelligence as _world_crisis
 from .smi_chat_runtime_core import *
 
@@ -306,6 +307,9 @@ def _grounded_provider(
         _with_world_crisis_context(message, brain),
         intelligence_route,
     )
+    tool_evidence = _chat_tools.prompt_context(message)
+    if tool_evidence:
+        grounded_message += tool_evidence
     dynamic_memory = list(adaptive_memory or ())
     style_guidance = _communication_style.communication_style_guidance(history)
     if style_guidance:
