@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OAP World</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<style>
+:root{color-scheme:dark;--bg:#080806;--panel:#13120e;--line:#3a3423;--gold:#efc85d;--text:#fffaf0;--muted:#aaa38e}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:900px;margin:auto;padding:28px 16px 42px}.eyebrow{color:var(--gold);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+h1{font-size:clamp(2.8rem,12vw,6rem);line-height:.88;letter-spacing:-.06em;margin:10px 0}.lead{max-width:620px;color:var(--muted);line-height:1.5;margin:0 0 24px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}a{display:block;color:inherit;text-decoration:none}.card{padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
+.card strong{display:block;font-size:1rem}.card span{display:block;margin-top:5px;color:var(--muted);font-size:.76rem;line-height:1.35}.card.primary{border-color:#6f5f2a;background:#1b180f}
+@media(min-width:700px){.grid{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<main>
+<div class="eyebrow">ON ANY POSTCODE</div>
+<h1>OAP World</h1>
+<p class="lead">One World. One Front Door. Many systems inside. Start here, then move into the part of OAP you choose.</p>
+<section class="grid" aria-label="OAP World">
+<a class="card primary" href="/the-spot"><strong>📍 The Spot</strong><span>Local community and postcode life.</span></a>
+<a class="card" href="/the-link"><strong>🔗 The Link</strong><span>Opportunities and connections.</span></a>
+<a class="card" href="/linkup"><strong>💬 Link Up</strong><span>Conversation inside The Link.</span></a>
+<a class="card" href="/arena/chess/room"><strong>♟️ Chess</strong><span>Play, compete, train and explore.</span></a>
+<a class="card" href="/eats"><strong>🍲 Eats</strong><span>Food and local discovery.</span></a>
+<a class="card" href="/travel"><strong>✈️ Travel</strong><span>Explore and move through OAP.</span></a>
+<a class="card" href="/pay/bank"><strong>🪙 Pay</strong><span>Governed payment and SIKA controls.</span></a>
+<a class="card" href="/world/languages"><strong>🌍 World Languages</strong><span>Learn across the OAP World.</span></a>
+<a class="card" href="/my-world"><strong>👤 My World</strong><span>Your personal OAP space.</span></a>
+</section>
+</main>
+</body>
+</html>

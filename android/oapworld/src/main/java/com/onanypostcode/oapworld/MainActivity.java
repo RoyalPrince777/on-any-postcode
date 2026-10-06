@@ -210,7 +210,7 @@ public final class MainActivity extends ComponentActivity {
                 webView.goForward();
             }
         });
-        homeButton.setOnClickListener(v -> openFirstPartyPath("/"));
+        homeButton.setOnClickListener(v -> openFirstPartyPath("/world"));
         reloadButton.setOnClickListener(v -> {
             if (engineActive && engineSourcePath != null) {
                 openFirstPartyPath(engineSourcePath);
@@ -236,7 +236,7 @@ public final class MainActivity extends ComponentActivity {
         });
 
         if (state == null) {
-            openFirstPartyPath("/");
+            openFirstPartyPath("/world");
         }
         refreshNavigationState();
     }

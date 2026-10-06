@@ -655,6 +655,10 @@ def public_studio_chat():
 
 
 @app.get("/")
+def root_front_door():
+    return redirect("/world", code=302)
+
+
 @app.get("/world")
 def home():
     public = _load_public_snapshot()
