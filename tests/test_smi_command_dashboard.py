@@ -220,3 +220,13 @@ def test_smi_command_dashboard_front_surface_has_backend_controls(client):
     assert "Check backend" in page
     assert "Talk to SMI" in page
     assert "Start the OAP Home Node worker" in page
+
+
+
+def test_smi_command_dashboard_puts_important_signals_first():
+    command = smi_command_dashboard.status()
+    signals = command["important_signals"]
+    assert len(signals) == 7
+    assert signals[0]["id"] == "inference"
+    assert signals[0]["label"] == "SMI Inference"
+    assert signals[-1]["id"] == "human_authority"
