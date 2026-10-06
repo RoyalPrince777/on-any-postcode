@@ -8,13 +8,12 @@ never expand Human Authority or silently perform consequential writes.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from oap.smi import capability_fabric
 
-from . import smi_73_signal_field
-from . import smi_command_dashboard
-from . import travel_supply_core
+from . import smi_73_signal_field, smi_command_dashboard, travel_supply_core
 
 TOOL_ROUTER_REVISION = "2026-10-06-v1"
 
@@ -258,3 +257,4 @@ def prompt_context(message: object) -> str:
         "its result has ok=false. Do not invent missing fields. "
         + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     )
+}
