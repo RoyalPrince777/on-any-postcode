@@ -17,10 +17,10 @@ from . import (
     bank_permission_scope,
     brain,
     intelligence_runtime_proof,
-    oap_inference_gateway,
     mail_mailbox,
     mail_outbound,
     movement_intelligence,
+    oap_inference_gateway,
     personal_telecom,
     prince_sovereign_bank,
     sika_account_engine,
@@ -29,6 +29,7 @@ from . import (
     sika_payment_orchestrator,
     sika_production_evidence_store,
     smi_73_signal_field,
+    smi_chat_runtime,
     smi_library_mission,
     war_room,
 )
@@ -81,10 +82,76 @@ def status() -> dict[str, Any]:
     movement = movement_intelligence.movement_intelligence_status()
     mission_field = smi_73_signal_field.definition_status()
     inference = oap_inference_gateway.status(probe=True)
+    smi_health = smi_chat_runtime.health()
+    mission_evaluation = smi_health.get("mission_to_100") or {}
+
+    smi_21_dimensions = tuple(
+        {
+            "id": dimension,
+            "name": dimension.replace("_", " ").title(),
+            "family": family.replace("_", " ").title(),
+            "state": str((mission_evaluation.get("dimensions") or {}).get(dimension, "unknown")),
+            "checks": tuple(checks),
+        }
+        for family, family_dimensions in smi_73_signal_field.DIMENSION_FAMILIES
+        for dimension, checks in family_dimensions
+    )
 
     war_summary = war_status.get("summary") or {}
     war_validation = war_status.get("validation") or {}
     autonomy = brain_status.get("autonomy") or {}
+
+    important_signals = (
+        {
+            "id": "inference",
+            "label": "SMI Inference",
+            "state": "READY" if inference.get("first_party_inference_ready") else "BLOCKED",
+            "summary": "First-party inference path and Home Node worker readiness.",
+            "href": "/mission/ollama",
+        },
+        {
+            "id": "signal_field",
+            "label": "73 Signal Field",
+            "state": "READY" if mission_field.get("signal_count") == 73 else "REVIEW",
+            "summary": "Canonical SMI signal field definition and truth boundary.",
+            "href": "/mission/intelligence",
+        },
+        {
+            "id": "runtime",
+            "label": "Runtime",
+            "state": "READY" if runtime.get("universal_runtime_green") else "REVIEW",
+            "summary": "Bounded runtime evidence remains separate from live claims.",
+            "href": "/mission/war-room",
+        },
+        {
+            "id": "war_room",
+            "label": "War Room",
+            "state": "READY" if war_validation.get("passed") else "REVIEW",
+            "summary": "Challenge, evidence, recovery and Founder review.",
+            "href": "/mission/war-room",
+        },
+        {
+            "id": "movement",
+            "label": "Movement",
+            "state": "READY" if movement.get("architecture_passed") else "REVIEW",
+            "summary": "Movement architecture and owned route intelligence.",
+            "href": "/movement",
+        },
+        {
+            "id": "learning",
+            "label": "Learning",
+            "state": "READY" if any(part.get("id") == "learn" for part in ai_behaviour_protocol.AI_BEHAVIOUR_PARTS) else "REVIEW",
+            "summary": "Bounded learning with receipts; no self-authorised change.",
+            "href": "/mission/improvement",
+        },
+        {
+            "id": "human_authority",
+            "label": "Human Authority",
+            "state": "FINAL",
+            "summary": "SMI cannot approve itself; Founder Final remains human.",
+            "href": "/mission/war-room",
+        },
+    )
 
     return {
         "component": "SMI Founder Command Dashboard",
@@ -131,6 +198,8 @@ def status() -> dict[str, Any]:
             "fallback_configured": bool(inference.get("compatibility_fallback_configured")),
             "truth": "FIRST_PARTY_READY" if inference.get("first_party_inference_ready") else "FIRST_PARTY_BLOCKED",
         },
+        "important_signals": important_signals,
+        "smi_21_dimensions": smi_21_dimensions,
         "risk_router": risk,
         "bank": {
             "name": bank_identity.get("name"),
