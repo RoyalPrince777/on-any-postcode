@@ -39,8 +39,9 @@ def status() -> dict[str, object]:
         "live_payment_claimed": False,
         "production_green": False,
         "next_blocker": (
-            "Public ebook product page -> Unlock -> independently verified captured "
-            "payment -> durable entitlement -> Owned -> refund/revocation proof."
+            "Apply and read back the reviewed Library ebook schemas on production; "
+            "keep live paid checkout and end-to-end ownership unclaimed until a real "
+            "provider transaction proves the full payment-to-reader chain."
         ),
         "human_authority_final": True,
     }
