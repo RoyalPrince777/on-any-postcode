@@ -29,6 +29,7 @@ from . import (
     sika_payment_orchestrator,
     sika_production_evidence_store,
     smi_73_signal_field,
+    smi_chat_runtime,
     smi_library_mission,
     war_room,
 )
@@ -81,6 +82,24 @@ def status() -> dict[str, Any]:
     movement = movement_intelligence.movement_intelligence_status()
     mission_field = smi_73_signal_field.definition_status()
     inference = oap_inference_gateway.status(probe=True)
+    try:
+        smi_health = smi_chat_runtime.health()
+        mission_evaluation = smi_health.get("mission_to_100") or {}
+    except Exception:
+        smi_health = {}
+        mission_evaluation = {}
+
+    smi_21_dimensions = tuple(
+        {
+            "id": dimension,
+            "name": dimension.replace("_", " ").title(),
+            "family": family.replace("_", " ").title(),
+            "state": str((mission_evaluation.get("dimensions") or {}).get(dimension, "unknown")),
+            "checks": tuple(checks),
+        }
+        for family, family_dimensions in smi_73_signal_field.DIMENSION_FAMILIES
+        for dimension, checks in family_dimensions
+    )
 
     war_summary = war_status.get("summary") or {}
     war_validation = war_status.get("validation") or {}
@@ -184,6 +203,7 @@ def status() -> dict[str, Any]:
             "truth": "FIRST_PARTY_READY" if inference.get("first_party_inference_ready") else "FIRST_PARTY_BLOCKED",
         },
         "important_signals": important_signals,
+        "smi_21_dimensions": smi_21_dimensions,
         "risk_router": risk,
         "bank": {
             "name": bank_identity.get("name"),
