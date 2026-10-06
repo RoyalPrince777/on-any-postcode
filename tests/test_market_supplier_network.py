@@ -37,6 +37,7 @@ def test_supplier_store_has_atomic_design_mapping_stop_and_order_gate_without_ex
         "mark_ready",
         "stop",
         "owner_bindings",
+        "owner_pod_products",
         "public_projection",
         "order_intent_allowed",
     } <= methods
@@ -67,6 +68,8 @@ def test_made_to_order_creation_is_one_database_transaction():
     assert section.count("connection.commit()") == 1
     assert '"order_intent_allowed": False' in section
     assert '"external_order_created": False' in section
+    assert "'GBP',FALSE" in section
+    assert '"public_listing_active": False' in section
 
 
 def test_supplier_schema_is_product_and_seller_scoped():
@@ -304,3 +307,39 @@ def test_ready_supplier_order_gate_unlocks_oap_intent_only():
     assert '"provider_execution_enabled": False' in source
     assert '"external_execution_allowed": False' in source
     assert '"payment_capture_allowed": False' in source
+
+
+def test_pod_products_are_private_first_and_owner_catalogue_is_read_only():
+    source = (
+        _root() / "mission_control" / "market_supplier_network.py"
+    ).read_text(encoding="utf-8")
+    create = source.split("def create_made_to_order_product", 1)[1].split(
+        "    def bind_product", 1
+    )[0]
+    owner = source.split("def owner_pod_products", 1)[1].split(
+        "    def public_projection", 1
+    )[0]
+
+    assert "'GBP',FALSE" in create
+    assert '"public_listing_active": False' in create
+    assert "connect(readonly=True)" in owner
+    assert "p.active" in owner
+    assert '"private_owner_view": True' in owner
+    assert '"external_execution_allowed": False' in owner
+    assert "supplier_product_ref" in owner
+    assert "supplier_variant_ref" in owner
+
+
+def test_my_market_has_private_pod_workspace_without_public_launch_control():
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert 'id="my-pod-store"' in template
+    assert "My POD Store" in template
+    assert "Public Market remains OFF" in template
+    assert "Mark supplier ready" in template
+    assert "STOP product" in template
+    assert "Save product" in template
+    assert "Publish listing" not in template
+    assert "public-launch" not in template
