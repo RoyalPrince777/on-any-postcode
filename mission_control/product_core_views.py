@@ -29,6 +29,7 @@ from . import (
     open_music_intake,
     product_core_services,
     product_cores,
+    prodigi_pod_adapter,
     product_store,
     public_store,
     radio_core,
@@ -1703,11 +1704,18 @@ def execute_market_pod(subject_id: str):
             raise TypeError("provider_payload_object_required")
         outbound = dict(provider_payload)
         outbound["oap_subject_id"] = subject_id
-        receipt = sika_secure_provider_runtime.submit(
-            kind="pod",
-            payload=outbound,
-            idempotency_key=payload.get("idempotency_key"),
-        )
+        pod_status = sika_secure_provider_runtime.configuration_status("pod")
+        if str(pod_status.get("provider_id") or "").lower() == "prodigi":
+            receipt = prodigi_pod_adapter.submit_order(
+                payload=outbound,
+                idempotency_key=payload.get("idempotency_key"),
+            )
+        else:
+            receipt = sika_secure_provider_runtime.submit(
+                kind="pod",
+                payload=outbound,
+                idempotency_key=payload.get("idempotency_key"),
+            )
         durable = commerce_provider_receipts.record(
             owner_identity_id=owner,
             kind="pod",
