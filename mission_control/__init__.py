@@ -571,7 +571,7 @@ def init_app(app: Flask) -> None:
                 ),
                 flush=True,
             )
-        except Exception:
+        except oap_library_ebook_schema.LibraryEbookSchemaUnavailable:
             print(
                 json.dumps(
                     {
