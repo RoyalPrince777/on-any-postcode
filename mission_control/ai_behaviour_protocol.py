@@ -301,7 +301,7 @@ MAP_BUILD_FIT_CAPABILITIES: dict[str, tuple[str, ...]] = {
     "Spider": ("dependencies", "interfaces", "route_render_handoff", "hidden_coupling", "request_chain", "state_paths"),
     "Agent Smith": ("state_integrity", "stale_state", "duplication", "contract_drift", "route_render_handoff"),
     "Twinz": ("concurrency", "state_divergence", "fresh_vs_existing", "race_conditions", "alternate_paths"),
-    "Shere Khan": ("failure_pressure", "false_green", "weakest_link", "survivability"),
+    "Shere Khan": ("failure_pressure", "threat_intelligence", "failure_hunting", "false_green", "hidden_dependency", "authority_misuse", "failure_propagation", "survivability", "recovery_strength", "evidence_quality"),
     "Bagheera": ("recovery_paths", "rollback", "safe_path", "last_known_good"),
     "Fox": ("edge_cases", "alternate_fixes", "constraint_paths", "tactical_options"),
     "Shark": ("hidden_risk", "weak_signals", "momentum", "deep_dependencies", "failure_pressure"),
