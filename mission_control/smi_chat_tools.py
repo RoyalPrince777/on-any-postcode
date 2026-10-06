@@ -257,4 +257,3 @@ def prompt_context(message: object) -> str:
         "its result has ok=false. Do not invent missing fields. "
         + json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     )
-}
