@@ -201,3 +201,22 @@ def test_smi_home_renders_clear_control_functions_and_founder_final_route(client
     assert 'href="/mission/improvement"' in page
     assert 'href="/mission/organism"' in page
     assert "clear function · real route · named owner" in page
+
+
+def test_smi_command_dashboard_exposes_truthful_inference_readiness():
+    command = smi_command_dashboard.status()
+    inference = command["inference"]
+    assert set(inference) == {
+        "first_party_ready", "local_reachable", "local_model_available",
+        "local_reason", "bridge_configured", "worker_recently_seen",
+        "durable_worker_fresh", "fallback_configured", "truth",
+    }
+    assert inference["truth"] in {"FIRST_PARTY_READY", "FIRST_PARTY_BLOCKED"}
+
+
+def test_smi_command_dashboard_front_surface_has_backend_controls(client):
+    page = client.get("/mission/smi").get_data(as_text=True)
+    assert "SMI Inference" in page
+    assert "Check backend" in page
+    assert "Talk to SMI" in page
+    assert "Start the OAP Home Node worker" in page
