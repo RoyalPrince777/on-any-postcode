@@ -585,10 +585,12 @@ class SupplierNetworkStore:
                     return {}
                 rows = connection.execute(
                     """SELECT b.product_id,b.state,
-                              d.garment_type,d.colors,d.sizes,d.made_to_order,d.state
+                              d.garment_type,d.colors,d.sizes,d.made_to_order,d.state,
+                              p.active
                        FROM oap_market_supplier_bindings b
                        LEFT JOIN oap_market_design_products d
                          ON d.product_id=b.product_id
+                       JOIN products p ON p.id=b.product_id
                        WHERE b.product_id = ANY(%s::uuid[])""",
                     (products,),
                 ).fetchall()
@@ -604,7 +606,8 @@ class SupplierNetworkStore:
                 "design_state": str(row[6] or ""),
                 "supplier_identity_public": False,
                 "provider_execution_enabled": False,
-                "order_intent_allowed": str(row[1]) == "READY" and str(row[6] or "") == "READY",
+                "public_listing_active": bool(row[7]),
+                "order_intent_allowed": bool(row[7]) and str(row[1]) == "READY" and str(row[6] or "") == "READY",
                 "external_execution_allowed": False,
             }
             for row in rows
