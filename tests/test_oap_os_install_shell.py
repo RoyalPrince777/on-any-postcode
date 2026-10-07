@@ -31,7 +31,7 @@ def test_oap_os_manifest_is_installable_and_public_only(client):
 
 
 def test_home_exposes_oap_os_install_contract(client):
-    response = client.get("/")
+    response = client.get("/world")
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
