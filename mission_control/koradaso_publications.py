@@ -46,6 +46,8 @@ def publish_claim(*, publisher_id: object, claim_id: object,
         if not row:
             raise ValueError("claim_not_found")
         status, privacy_scope = str(row[0]), str(row[1])
+        if privacy_scope not in {"ME", "PUBLIC"}:
+            raise KoradasoPublicationDenied("scoped_publication_authority_not_established")
         if status not in PUBLISHABLE_STATUS:
             raise KoradasoPublicationDenied("claim_not_human_review_ready")
         reviewed = connection.execute(
