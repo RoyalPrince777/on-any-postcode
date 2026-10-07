@@ -1,9 +1,4 @@
-"""OAP-owned adapter between the eSIM lifecycle and SM-DP+ boundary.
-
-The adapter deliberately exposes the legacy EsimProvider contract while keeping
-profile preparation first-party. Production suspension/resume/revocation remain
-fail-closed until the secure backend implements matching lifecycle controls.
-"""
+"""OAP-owned adapter between governed eSIM lifecycle and SM-DP+."""
 from __future__ import annotations
 
 from .oap_smdp import OapSmdpDevelopmentBoundary
@@ -21,15 +16,19 @@ class OapFirstPartyEsimProvider:
         attestation = str(result.get("backend_attestation") or "").strip()
         if result.get("state") != "profile_created" or not profile_ref or not attestation:
             raise RuntimeError("first_party_profile_creation_not_confirmed")
-        # Existing lifecycle field name is retained for schema compatibility.
-        # The value is an OAP-owned opaque profile reference, never secret material.
         return {"provider_profile_id": profile_ref}
 
     def suspend(self, *, provider_profile_id: str) -> dict:
-        raise RuntimeError("first_party_profile_suspend_not_implemented")
+        result = self.smdp.suspend(profile_ref=provider_profile_id)
+        return {"suspended": result.get("suspended") is True}
 
     def resume(self, *, provider_profile_id: str) -> dict:
-        raise RuntimeError("first_party_profile_resume_not_implemented")
+        result = self.smdp.resume(profile_ref=provider_profile_id)
+        # Legacy lifecycle expects this key. It confirms profile resume only;
+        # EsimProvisioningCore still moves merely to AVAILABLE and requires
+        # independent network evidence before ACTIVE.
+        return {"active": result.get("resumed") is True}
 
     def revoke(self, *, provider_profile_id: str) -> dict:
-        raise RuntimeError("first_party_profile_revoke_not_implemented")
+        result = self.smdp.revoke(profile_ref=provider_profile_id)
+        return {"revoked": result.get("revoked") is True}
