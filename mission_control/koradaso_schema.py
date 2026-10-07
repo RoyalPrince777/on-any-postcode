@@ -10,7 +10,7 @@ import hashlib
 
 from . import postgres_db
 
-MIGRATION_VERSION = "koradaso_truth_foundation_v2"
+MIGRATION_VERSION = "koradaso_truth_foundation_v3"
 
 STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS koradaso_people (
@@ -69,6 +69,17 @@ STATEMENTS = (
         to_status TEXT NOT NULL,
         reason TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE TABLE IF NOT EXISTS koradaso_release_consents (
+        release_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        claim_id UUID NOT NULL REFERENCES koradaso_claims(claim_id) ON DELETE RESTRICT,
+        released_by UUID NOT NULL REFERENCES oap_identities(identity_id),
+        reason TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        revoked_at TIMESTAMPTZ,
+        revoked_by UUID REFERENCES oap_identities(identity_id),
+        revocation_reason TEXT)""",
+    """CREATE UNIQUE INDEX IF NOT EXISTS ux_koradaso_active_release
+        ON koradaso_release_consents(claim_id) WHERE revoked_at IS NULL""",
     """CREATE TABLE IF NOT EXISTS koradaso_publications (
         publication_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         claim_id UUID NOT NULL REFERENCES koradaso_claims(claim_id) ON DELETE RESTRICT,
@@ -108,6 +119,9 @@ STATEMENTS = (
         VALUES ('KORADASO_REVIEW_CLAIMS','Review Koradaso claims and change evidence status')
         ON CONFLICT (permission_id) DO NOTHING""",
     """INSERT INTO oap_permissions(permission_id,description)
+        VALUES ('KORADASO_RELEASE_HERITAGE','Explicitly release reviewed Koradaso heritage for public projection')
+        ON CONFLICT (permission_id) DO NOTHING""",
+    """INSERT INTO oap_permissions(permission_id,description)
         VALUES ('KORADASO_PUBLISH_HERITAGE','Publish reviewed Koradaso heritage projections')
         ON CONFLICT (permission_id) DO NOTHING""",
     """INSERT INTO oap_permissions(permission_id,description) VALUES
@@ -118,7 +132,7 @@ STATEMENTS = (
 )
 REQUIRED_TABLES = (
     "koradaso_people", "koradaso_evidence", "koradaso_evidence_versions", "koradaso_claims",
-    "koradaso_claim_evidence", "koradaso_claim_reviews", "koradaso_publications", "koradaso_relationships", "koradaso_invites",
+    "koradaso_claim_evidence", "koradaso_claim_reviews", "koradaso_release_consents", "koradaso_publications", "koradaso_relationships", "koradaso_invites",
 )
 PREREQUISITES = ("oap_identities", "audit_events")
 MIGRATION_CHECKSUM = hashlib.sha256("\n".join(STATEMENTS).encode()).hexdigest()
