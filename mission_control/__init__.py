@@ -109,6 +109,7 @@ def init_app(app: Flask) -> None:
     from .oap_pay import bp as oap_pay_bp
     from .sika_founder_routes import bp as sika_founder_bp
     from .personal_telecom_routes import bp as personal_telecom_bp
+    from .ptt_routes import bp as ptt_bp
     from .oap_store import bp as oap_store_bp
     from .oap_engine_android_routes import bp as oap_engine_android_bp
     from .on_any_place_routes import bp as on_any_place_bp
@@ -1510,6 +1511,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(oap_pay_bp)
     app.register_blueprint(sika_founder_bp)
     app.register_blueprint(personal_telecom_bp)
+    app.register_blueprint(ptt_bp)
     app.register_blueprint(all_in_ai_bp, url_prefix="/mission")
     app.register_blueprint(music_public_bp)
     app.register_blueprint(on_any_place_bp)
