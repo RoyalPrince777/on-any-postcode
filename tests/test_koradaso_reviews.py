@@ -1,5 +1,6 @@
 """Pressure tests for Koradaso human claim review."""
 import inspect
+
 from mission_control import koradaso_reviews, koradaso_schema
 
 SOURCE = inspect.getsource(koradaso_reviews)
