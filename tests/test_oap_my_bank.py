@@ -1,5 +1,4 @@
-import mission_control.oap_pay as oap_pay
-
+from mission_control import oap_pay
 
 IDENTITY = "11111111-1111-1111-1111-111111111111"
 
