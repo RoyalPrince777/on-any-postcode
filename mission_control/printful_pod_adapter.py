@@ -31,19 +31,35 @@ def _env(name: str) -> str:
     return str(os.environ.get(name, "") or "").strip()
 
 
+def _provider_env(specific: str, legacy: str) -> str:
+    value = _env(specific)
+    if value:
+        return value
+    if _env("OAP_POD_PROVIDER_ID").lower() == "printful":
+        return _env(legacy)
+    return ""
+
+
 def _enabled() -> bool:
-    return _env("OAP_POD_PROVIDER_EXECUTION_ENABLED").lower() in {"1","true","yes","on"}
+    return _provider_env(
+        "OAP_POD_PRINTFUL_EXECUTION_ENABLED",
+        "OAP_POD_PROVIDER_EXECUTION_ENABLED",
+    ).lower() in {"1", "true", "yes", "on"}
 
 
 def _config() -> dict[str, object]:
-    provider_id = _env("OAP_POD_PROVIDER_ID").lower()
-    base_url = _env("OAP_POD_PROVIDER_BASE_URL").rstrip("/")
-    allowed_host = _env("OAP_POD_PROVIDER_ALLOWED_HOST").lower()
-    token = _env("OAP_POD_PROVIDER_TOKEN")
+    provider_id = "printful"
+    base_url = _provider_env(
+        "OAP_POD_PRINTFUL_BASE_URL", "OAP_POD_PROVIDER_BASE_URL"
+    ).rstrip("/")
+    allowed_host = _provider_env(
+        "OAP_POD_PRINTFUL_ALLOWED_HOST", "OAP_POD_PROVIDER_ALLOWED_HOST"
+    ).lower()
+    token = _provider_env(
+        "OAP_POD_PRINTFUL_TOKEN", "OAP_POD_PROVIDER_TOKEN"
+    )
     parsed = parse.urlparse(base_url) if base_url else None
     host = str(parsed.hostname or "").lower() if parsed else ""
-    if provider_id and provider_id != "printful":
-        raise PrintfulAdapterError("printful_provider_id_required")
     if _enabled():
         if not base_url or parsed is None or parsed.scheme != "https":
             raise PrintfulAdapterError("printful_https_required")
@@ -71,7 +87,6 @@ def status() -> dict[str, object]:
         "allowed_host_present": bool(config["allowed_host"]),
         "execution_enabled": bool(config["enabled"]),
         "configuration_complete": all((
-            config["provider_id"] == "printful",
             config["base_url"],
             config["token"],
             config["allowed_host"] == _PRINTFUL_HOST,
