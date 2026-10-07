@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from uuid import UUID, uuid4
 
 from . import postgres_db
@@ -42,6 +43,25 @@ def _has_permission(connection, identity: UUID) -> bool:
     ).fetchone())
 
 
+def _audit(connection, *, actor: UUID, action: str, target: str,
+           metadata: dict[str, object]) -> None:
+    connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
+    previous = connection.execute(
+        "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
+    ).fetchone()
+    prev_hash = str(previous[0]) if previous else "GENESIS"
+    canonical = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+    curr_hash = hashlib.sha256((prev_hash + canonical).encode()).hexdigest()
+    connection.execute(
+        """INSERT INTO audit_events(
+               prev_hash,curr_hash,actor_id,actor_type,authority_level,
+               action,target,reason,correlation_id,metadata
+           ) VALUES (%s,%s,%s,'HUMAN_AUTHORITY',0,%s,%s,%s,%s,%s::jsonb)""",
+        (prev_hash, curr_hash, str(actor), action, target,
+         "koradaso_truth_mutation", str(uuid4()), canonical),
+    )
+
+
 def record_evidence(*, actor_id: object, evidence_type: str, title: str,
                     original_bytes: bytes, original_language: str,
                     privacy_scope: str, source_uri: str | None = None) -> dict[str, object]:
@@ -71,6 +91,10 @@ def record_evidence(*, actor_id: object, evidence_type: str, title: str,
                VALUES (%s,%s,1,%s,'ORIGINAL',%s,%s)""",
             (uuid4(), evidence_id, digest, original_language.strip(), actor),
         )
+        _audit(connection, actor=actor, action="KORADASO_EVIDENCE_RECORDED",
+               target=str(evidence_id),
+               metadata={"evidence_id": str(evidence_id), "privacy_scope": privacy,
+                         "original_hash": digest})
         connection.commit()
     return {"evidence_id": str(evidence_id), "original_hash": digest,
             "privacy_scope": privacy}
@@ -99,6 +123,10 @@ def record_claim(*, actor_id: object, subject_kind: str, subject_ref: str,
             (claim_id, subject_kind.strip(), subject_ref.strip(), predicate.strip(),
              object_value.strip(), state, float(confidence), privacy, actor),
         )
+        _audit(connection, actor=actor, action="KORADASO_CLAIM_RECORDED",
+               target=str(claim_id),
+               metadata={"claim_id": str(claim_id), "status": state,
+                         "privacy_scope": privacy})
         connection.commit()
     return {"claim_id": str(claim_id), "status": state,
             "privacy_scope": privacy, "human_confirmed": False}
@@ -135,6 +163,10 @@ def link_evidence(*, actor_id: object, claim_id: object, evidence_id: object,
                ON CONFLICT (claim_id,evidence_id) DO UPDATE SET relation=EXCLUDED.relation""",
             (claim, evidence, relation_value),
         )
+        _audit(connection, actor=actor, action="KORADASO_EVIDENCE_LINKED",
+               target=str(claim),
+               metadata={"claim_id": str(claim), "evidence_id": str(evidence),
+                         "relation": relation_value})
         connection.commit()
 
 
@@ -173,6 +205,11 @@ def append_evidence_version(*, actor_id: object, evidence_id: object,
                VALUES (%s,%s,%s,%s,%s,%s,%s)""",
             (uuid4(), evidence, version_number, digest, kind, language, actor),
         )
+        _audit(connection, actor=actor, action="KORADASO_EVIDENCE_VERSION_APPENDED",
+               target=str(evidence),
+               metadata={"evidence_id": str(evidence),
+                         "version_number": version_number,
+                         "content_hash": digest, "change_kind": kind})
         connection.commit()
     return {"evidence_id": str(evidence), "version_number": version_number,
             "content_hash": digest, "change_kind": kind}
