@@ -1,5 +1,6 @@
 """Pressure-test Koradaso public projection boundaries."""
 import inspect
+
 from mission_control import koradaso_publications, koradaso_schema
 
 SOURCE = inspect.getsource(koradaso_publications)
