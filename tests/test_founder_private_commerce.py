@@ -152,7 +152,7 @@ def test_private_routes_are_founder_only():
         '/market/pod/private/plan',
         '/market/pod/private/reconcile',
     ):
-        marker = f'@bp.'
+        marker = '@bp.'
         position = source.index(route)
         decorator_window = source[max(0, position - 220):position + 220]
         assert marker in decorator_window
