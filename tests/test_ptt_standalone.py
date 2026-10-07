@@ -5,8 +5,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_ptt_front_door_is_standalone_and_not_under_linkup():
-    source = (ROOT / "mission_control" / "ptt_routes.py").read_text(encoding="utf-8")
-    template = (ROOT / "mission_control" / "templates" / "ptt.html").read_text(encoding="utf-8")
+    source = open("mission_control/ptt_routes.py", encoding="utf-8").read()
+    template = open("mission_control/templates/ptt.html", encoding="utf-8").read()
 
     assert '@bp.get("/ptt")' in source
     assert 'data-oap-ptt-standalone="true"' in template
@@ -19,8 +19,8 @@ def test_ptt_front_door_is_standalone_and_not_under_linkup():
 
 
 def test_ptt_front_door_reuses_existing_contact_and_voice_governance():
-    source = (ROOT / "mission_control" / "ptt_routes.py").read_text(encoding="utf-8")
-    voice = (ROOT / "mission_control" / "link_voice.py").read_text(encoding="utf-8")
+    source = open("mission_control/ptt_routes.py", encoding="utf-8").read()
+    voice = open("mission_control/link_voice.py", encoding="utf-8").read()
 
     assert "link_relationships.list_for_identity" in source
     assert 'relation.get("status") != "accepted"' in source
@@ -31,14 +31,14 @@ def test_ptt_front_door_reuses_existing_contact_and_voice_governance():
 
 
 def test_legacy_linkup_ptt_intent_redirects_to_standalone_ptt():
-    app_source = (ROOT / "app.py").read_text(encoding="utf-8")
+    app_source = open("app.py", encoding="utf-8").read()
 
     assert 'if str(request.args.get("intent") or "").strip().casefold() == "ptt":' in app_source
     assert 'return redirect("/ptt")' in app_source
 
 
 def test_ptt_blueprint_is_registered():
-    init_source = (ROOT / "mission_control" / "__init__.py").read_text(encoding="utf-8")
+    init_source = open("mission_control/__init__.py", encoding="utf-8").read()
 
     assert "from .ptt_routes import bp as ptt_bp" in init_source
     assert "app.register_blueprint(ptt_bp)" in init_source
