@@ -136,7 +136,7 @@ def test_smi_home_cockpit_is_low_noise_and_route_backed():
         "brain", "graphs", "monitors", "signals", "incoming", "nexus"
     ]
     assert command["interaction"]["phone"]["href"] == "/linkup?intent=link-call"
-    assert command["interaction"]["walkie_talkie"]["href"] == "/linkup?intent=ptt"
+    assert command["interaction"]["walkie_talkie"]["href"] == "/ptt"
     assert command["interaction"]["messages"]["href"] == "/linkup?intent=message"
     assert command["interaction"]["my_line"]["href"] == "/my-line"
 
