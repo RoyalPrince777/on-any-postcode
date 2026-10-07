@@ -25,7 +25,7 @@ def _duplicate_ids(markup: str) -> set[str]:
 
 
 def test_home_and_mission_have_no_duplicate_ids(client):
-    home = client.get("/").get_data(as_text=True)
+    home = client.get("/world").get_data(as_text=True)
     mission = client.get("/mission").get_data(as_text=True)
     agents = client.get("/mission/agents").get_data(as_text=True)
     brain = client.get("/mission/brain").get_data(as_text=True)
@@ -47,7 +47,7 @@ def test_home_and_mission_have_no_duplicate_ids(client):
 
 
 def test_navigation_and_authority_landmarks_are_labelled(client):
-    home = client.get("/").get_data(as_text=True)
+    home = client.get("/world").get_data(as_text=True)
     mission = client.get("/mission").get_data(as_text=True)
     agents = client.get("/mission/agents").get_data(as_text=True)
     brain = client.get("/mission/brain").get_data(as_text=True)
