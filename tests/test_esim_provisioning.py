@@ -92,7 +92,13 @@ def test_full_lifecycle_requires_provider_confirmation():
     assert suspended["state"] == "suspended"
 
     resumed = core.resume(request_id)
-    assert resumed["state"] == "active"
+    assert resumed["state"] == "available"
+    reactivated = core.confirm_network_registration(
+        request_id,
+        evidence_id="network-proof-2",
+        session_established=True,
+    )
+    assert reactivated["state"] == "active"
 
     revoked = core.revoke(request_id)
     assert revoked["state"] == "revoked"
@@ -106,6 +112,8 @@ def test_full_lifecycle_requires_provider_confirmation():
         "registered",
         "active",
         "suspended",
+        "available",
+        "registered",
         "active",
         "revoked",
     ]
