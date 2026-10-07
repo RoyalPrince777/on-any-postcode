@@ -28,7 +28,7 @@ def canonical_supported_target(raw_target: object) -> str | None:
     if parsed.path != "/search":
         if parsed.query:
             return None
-        return parsed.path
+        return "/world" if parsed.path == "/" else parsed.path
 
     query = parse_qs(parsed.query, keep_blank_values=True)
     if set(query) - {"q"}:
