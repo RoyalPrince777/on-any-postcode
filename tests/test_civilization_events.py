@@ -48,8 +48,11 @@ def test_match_finished_event_is_deterministic_and_carries_causality():
         "checkpoint": "a" * 64,
     }
     first = civilization_events.append_match_finished(
-        connection, room_id=room, request_id="request-0001",
-        game_state=state, revision=42,
+        connection,
+        room_id=room,
+        request_id="request-0001",
+        game_state=state,
+        revision=42,
     )
     second = civilization_events.append_match_finished(
         connection, room_id=room, request_id="request-0001",
@@ -91,8 +94,14 @@ def test_match_finished_rejects_conflicting_existing_truth():
         stored=(
             event_id,
             "request-0001",
-            {"game": "chess", "room_id": room, "revision": 2,
-             "result": "checkmate", "winner": "Black", "checkpoint": None},
+            {
+                "game": "chess",
+                "room_id": room,
+                "revision": 2,
+                "result": "checkmate",
+                "winner": "Black",
+                "checkpoint": None,
+            },
         )
     )
     with pytest.raises(ValueError, match="truth_conflict"):
