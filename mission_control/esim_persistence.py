@@ -16,7 +16,7 @@ SCHEMA_STATEMENTS = (
         subject_id TEXT NOT NULL,
         purpose TEXT NOT NULL,
         state TEXT NOT NULL CHECK (
-            state IN ('requested','approved','provisioning','active','suspended','revoked','failed')
+            state IN ('requested','approved','provisioning','available','registered','active','suspended','revoked','failed')
         ),
         approved_by TEXT,
         provider_name TEXT,
