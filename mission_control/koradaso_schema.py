@@ -10,7 +10,7 @@ import hashlib
 
 from . import postgres_db
 
-MIGRATION_VERSION = "koradaso_truth_foundation_v4"
+MIGRATION_VERSION = "koradaso_truth_foundation_v5"
 
 STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS koradaso_people (
@@ -75,11 +75,13 @@ STATEMENTS = (
         released_by UUID NOT NULL REFERENCES oap_identities(identity_id),
         reason TEXT NOT NULL,
         summary_hash TEXT,
+        claim_fingerprint TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         revoked_at TIMESTAMPTZ,
         revoked_by UUID REFERENCES oap_identities(identity_id),
         revocation_reason TEXT)""",
     "ALTER TABLE koradaso_release_consents ADD COLUMN IF NOT EXISTS summary_hash TEXT",
+    "ALTER TABLE koradaso_release_consents ADD COLUMN IF NOT EXISTS claim_fingerprint TEXT",
     """CREATE UNIQUE INDEX IF NOT EXISTS ux_koradaso_active_release
         ON koradaso_release_consents(claim_id) WHERE revoked_at IS NULL""",
     """CREATE TABLE IF NOT EXISTS koradaso_publications (
