@@ -36,6 +36,7 @@ def prepare():
     migrations = (
         ROOT / "migrations/0008_oap_arena_multiplayer_rooms.sql",
         ROOT / "migrations/0010_oap_arena_oware_room.sql",
+        ROOT / "migrations/0012_oap_civilization_events.sql",
     )
     with postgres_db.connect() as connection:
         for path in migrations:
@@ -48,6 +49,61 @@ def prepare():
         SESSION_COOKIE_SECURE=False,
     )
     web_security.PUBLIC_WRITE_LIMITER.reset()
+
+
+def prove_civilization_event_transaction_atomicity():
+    """Prove event rows obey the caller's real PostgreSQL commit boundary."""
+    from mission_control import civilization_events
+
+    room_id = "00000000-0000-0000-0000-000000000777"
+    state = {
+        "status": "completed",
+        "result": "checkmate",
+        "winner": "White",
+        "checkpoint": "a" * 64,
+    }
+    with postgres_db.connect() as connection:
+        civilization_events.append_match_finished(
+            connection,
+            room_id=room_id,
+            request_id="rollback-proof",
+            game_state=state,
+            revision=7,
+        )
+        connection.rollback()
+    with postgres_db.connect() as connection:
+        row = connection.execute(
+            "SELECT event_id FROM oap_civilization_events WHERE entity_id=%s",
+            (room_id,),
+        ).fetchone()
+        assert row is None, "Rolled-back heartbeat must not survive"
+
+    with postgres_db.connect() as connection:
+        event_id = civilization_events.append_match_finished(
+            connection,
+            room_id=room_id,
+            request_id="commit-proof",
+            game_state=state,
+            revision=7,
+        )
+        connection.commit()
+    with postgres_db.connect() as connection:
+        row = connection.execute(
+            """SELECT event_id,event_type,causation_id,payload
+               FROM oap_civilization_events WHERE entity_id=%s""",
+            (room_id,),
+        ).fetchone()
+        assert row is not None
+        assert str(row[0]) == event_id
+        assert row[1] == "MATCH_FINISHED"
+        assert row[2] == "commit-proof"
+        assert row[3]["result"] == "checkmate"
+        connection.execute(
+            "DELETE FROM oap_civilization_events WHERE entity_id=%s",
+            (room_id,),
+        )
+        connection.commit()
+    print("ARENA_CIVILIZATION_EVENT_ATOMICITY_PASS")
 
 
 def assert_layout(page):
@@ -279,6 +335,7 @@ def play_final_room(browser, game, host_viewport, guest_viewport):
 
 def main():
     prepare()
+    prove_civilization_event_transaction_atomicity()
     server = make_server("127.0.0.1", 8768, app_module.app, threaded=True)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
