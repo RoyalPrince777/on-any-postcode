@@ -17,7 +17,9 @@ TERMINAL_STATES = {"revoked", "failed"}
 ALLOWED_TRANSITIONS = {
     "requested": {"approved", "revoked"},
     "approved": {"provisioning", "revoked"},
-    "provisioning": {"active", "failed", "revoked"},
+    "provisioning": {"available", "failed", "revoked"},
+    "available": {"registered", "revoked"},
+    "registered": {"active", "revoked"},
     "active": {"suspended", "revoked"},
     "suspended": {"active", "revoked"},
     "revoked": set(),
@@ -146,18 +148,38 @@ class EsimProvisioningCore:
                 subject_id=item.subject_id,
             )
             profile_id = str(result.get("provider_profile_id") or "").strip()
-            if not profile_id or result.get("active") is not True:
-                raise RuntimeError("provider_activation_not_confirmed")
+            if not profile_id:
+                raise RuntimeError("profile_creation_not_confirmed")
             item.provider_name = self.provider.name
             item.provider_profile_id = profile_id
-            self._transition(item, "active")
-            self._record(item, "active", provider=self.provider.name)
+            self._transition(item, "available")
+            self._record(item, "available", provider=self.provider.name)
             return dataclasses.asdict(item)
         except Exception as exc:
             item.last_error = type(exc).__name__
             self._transition(item, "failed")
             self._record(item, "failed", provider=self.provider.name)
             raise
+
+    def confirm_network_registration(
+        self,
+        request_id: str,
+        *,
+        evidence_id: str,
+        session_established: bool,
+    ) -> dict:
+        """Promote an available profile only from independent network evidence."""
+        item = self._get(request_id)
+        evidence_id = str(evidence_id or "").strip()
+        if item.state != "available":
+            raise ValueError("available_profile_required")
+        if not evidence_id or session_established is not True:
+            raise RuntimeError("network_registration_not_confirmed")
+        self._transition(item, "registered")
+        self._record(item, "registered", evidence_id=evidence_id)
+        self._transition(item, "active")
+        self._record(item, "active", evidence_id=evidence_id)
+        return dataclasses.asdict(item)
 
     def suspend(self, request_id: str) -> dict:
         item = self._get(request_id)
