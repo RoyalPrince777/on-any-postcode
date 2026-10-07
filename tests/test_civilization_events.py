@@ -9,17 +9,24 @@ from mission_control import civilization_events
 
 
 class _Result:
+    def __init__(self, row):
+        self.row = row
+
     def fetchone(self):
-        return None
+        return self.row
 
 
 class _Connection:
-    def __init__(self):
+    def __init__(self, stored=None):
         self.calls = []
+        self.stored = stored
 
     def execute(self, sql, params=()):
         self.calls.append((sql, params))
-        return _Result()
+        incoming = json.loads(params[6])
+        if self.stored is None:
+            self.stored = (params[0], params[4], incoming)
+        return _Result(self.stored)
 
 
 def test_civilization_outbox_migration_is_non_executing_and_idempotent():
@@ -50,7 +57,7 @@ def test_match_finished_event_is_deterministic_and_carries_causality():
     )
     assert first == second
     sql, params = connection.calls[0]
-    assert "ON CONFLICT (source_organ,event_type,entity_id) DO NOTHING" in sql
+    assert "ON CONFLICT (source_organ,event_type,entity_id) DO UPDATE" in sql
     assert params[1] == "MATCH_FINISHED"
     assert params[4] == "request-0001"
     payload = json.loads(params[6])
@@ -67,5 +74,32 @@ def test_match_finished_refuses_nonterminal_state():
             room_id="00000000-0000-0000-0000-000000000777",
             request_id="request-0001",
             game_state={"status": "active"},
+            revision=2,
+        )
+
+
+def test_match_finished_rejects_conflicting_existing_truth():
+    room = "00000000-0000-0000-0000-000000000777"
+    event_id = civilization_events.append_match_finished(
+        _Connection(),
+        room_id=room,
+        request_id="request-0001",
+        game_state={"status": "completed", "result": "checkmate", "winner": "White"},
+        revision=2,
+    )
+    conflicting = _Connection(
+        stored=(
+            event_id,
+            "request-0001",
+            {"game": "chess", "room_id": room, "revision": 2,
+             "result": "checkmate", "winner": "Black", "checkpoint": None},
+        )
+    )
+    with pytest.raises(ValueError, match="truth_conflict"):
+        civilization_events.append_match_finished(
+            conflicting,
+            room_id=room,
+            request_id="request-0001",
+            game_state={"status": "completed", "result": "checkmate", "winner": "White"},
             revision=2,
         )
