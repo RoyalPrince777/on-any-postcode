@@ -24,7 +24,7 @@ def test_publication_checks_both_consent_fingerprints():
     assert "claim_fingerprint=%s" in source
     assert "claim_fingerprint(connection, claim)" in source
     assert "revoked_at IS NULL" in source
-    assert sha256("approved".encode()).hexdigest() != sha256("altered".encode()).hexdigest()
+    assert sha256(b"approved").hexdigest() != sha256(b"altered").hexdigest()
 
 
 def test_withdrawal_uses_same_claim_first_lock_as_publication():
