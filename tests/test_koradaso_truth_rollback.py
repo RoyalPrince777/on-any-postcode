@@ -6,6 +6,7 @@ import pytest
 
 from mission_control import koradaso_evidence
 
+
 class R:
     def __init__(self, row=None):
         self.row = row
