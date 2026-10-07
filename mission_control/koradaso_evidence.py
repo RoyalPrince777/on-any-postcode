@@ -7,6 +7,11 @@ from uuid import UUID, uuid4
 from . import postgres_db
 
 WRITE_PERMISSION = "KORADASO_RECORD_EVIDENCE"
+READ_PERMISSIONS = {
+    "ROYAL_HOUSE": "KORADASO_READ_ROYAL_EVIDENCE",
+    "FAMILY": "KORADASO_READ_FAMILY_EVIDENCE",
+    "COMMUNITY": "KORADASO_READ_COMMUNITY_EVIDENCE",
+}
 VALID_PRIVACY = frozenset({"ME", "ROYAL_HOUSE", "FAMILY", "COMMUNITY", "PUBLIC"})
 VALID_STATUS = frozenset({
     "DOCUMENTED", "SCHOLARLY", "FAMILY_CONFIRMED",
@@ -171,3 +176,63 @@ def append_evidence_version(*, actor_id: object, evidence_id: object,
         connection.commit()
     return {"evidence_id": str(evidence), "version_number": version_number,
             "content_hash": digest, "change_kind": kind}
+
+
+def _can_read(connection, identity: UUID, scope: str, created_by: object) -> bool:
+    if scope == "PUBLIC":
+        return True
+    if scope == "ME":
+        return str(identity) == str(created_by)
+    permission = READ_PERMISSIONS.get(scope)
+    if permission is None:
+        return False
+    return bool(connection.execute(
+        """SELECT 1 FROM oap_identity_roles ir
+           JOIN oap_role_permissions rp ON rp.role_id=ir.role_id
+           JOIN oap_identities i ON i.identity_id=ir.identity_id
+           WHERE ir.identity_id=%s AND rp.permission_id=%s
+             AND i.status='ACTIVE' LIMIT 1""",
+        (identity, permission),
+    ).fetchone())
+
+
+def read_evidence(*, identity_id: object, evidence_id: object) -> dict[str, object]:
+    identity = _identity(identity_id)
+    try:
+        evidence = UUID(str(evidence_id))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_evidence_id") from exc
+    with postgres_db.connect(readonly=True) as connection:
+        row = connection.execute(
+            """SELECT evidence_id,evidence_type,title,original_language,
+                      original_hash,privacy_scope,created_by
+               FROM koradaso_evidence WHERE evidence_id=%s""",
+            (evidence,),
+        ).fetchone()
+        if not row:
+            raise ValueError("evidence_not_found")
+        if not _can_read(connection, identity, str(row[5]), row[6]):
+            raise KoradasoEvidenceDenied("evidence_read_denied")
+        versions = connection.execute(
+            """SELECT version_number,content_hash,change_kind,language
+               FROM koradaso_evidence_versions
+               WHERE evidence_id=%s ORDER BY version_number""",
+            (evidence,),
+        ).fetchall()
+    return {
+        "evidence_id": str(row[0]),
+        "evidence_type": str(row[1]),
+        "title": str(row[2]),
+        "original_language": row[3],
+        "original_hash": str(row[4]),
+        "privacy_scope": str(row[5]),
+        "versions": [
+            {
+                "version_number": int(item[0]),
+                "content_hash": str(item[1]),
+                "change_kind": str(item[2]),
+                "language": item[3],
+            }
+            for item in versions
+        ],
+    }
