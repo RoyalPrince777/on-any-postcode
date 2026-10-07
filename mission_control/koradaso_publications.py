@@ -52,6 +52,13 @@ def publish_claim(*, publisher_id: object, claim_id: object,
         ).fetchone()
         if not reviewed:
             raise KoradasoPublicationDenied("human_review_required_before_publication")
+        release = connection.execute(
+            """SELECT release_id FROM koradaso_release_consents
+               WHERE claim_id=%s AND revoked_at IS NULL LIMIT 1""",
+            (claim,),
+        ).fetchone()
+        if not release:
+            raise KoradasoPublicationDenied("active_release_consent_required")
 
         publication_id = uuid4()
         connection.execute(
