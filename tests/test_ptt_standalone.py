@@ -1,9 +1,5 @@
 from pathlib import Path
 
-from flask import Flask
-
-from mission_control import ptt_routes
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
