@@ -12,7 +12,17 @@ import secrets
 import uuid
 from typing import Any
 
-from . import chess, civilization_events, connect4, dot, iq_duel, ludo, oware, postgres_db, route_empire
+from . import (
+    chess,
+    civilization_events,
+    connect4,
+    dot,
+    iq_duel,
+    ludo,
+    oware,
+    postgres_db,
+    route_empire,
+)
 
 SUPPORTED_GAMES = frozenset({"connect4", "dot", "chess", "ludo", "oware", "iq", "route-empire"})  # Only games with authoritative shared-room adapters.
 ROOM_CODE_PATTERN = re.compile(r"^[A-Z2-9]{6}$")
