@@ -48,11 +48,15 @@ def grant_release(*, actor_id: object, claim_id: object, reason: str) -> dict[st
         if not _can_release(connection, actor):
             raise KoradasoReleaseDenied("koradaso_release_permission_required")
         claim_row = connection.execute(
-            "SELECT privacy_scope FROM koradaso_claims WHERE claim_id=%s FOR UPDATE",
+            "SELECT privacy_scope,created_by FROM koradaso_claims WHERE claim_id=%s FOR UPDATE",
             (claim,),
         ).fetchone()
         if not claim_row:
             raise ValueError("claim_not_found")
+        if str(claim_row[0]) not in {"ME", "PUBLIC"}:
+            raise KoradasoReleaseDenied("scoped_release_authority_not_established")
+        if str(claim_row[1]) != str(actor):
+            raise KoradasoReleaseDenied("claim_creator_release_consent_required")
         reviewed = connection.execute(
             "SELECT 1 FROM koradaso_claim_reviews WHERE claim_id=%s LIMIT 1",
             (claim,),
