@@ -28,6 +28,7 @@ from . import (
     open_cinema,
     open_cinema_evidence,
     open_music_intake,
+    printful_pod_adapter,
     prodigi_pod_adapter,
     product_core_services,
     product_cores,
@@ -1710,6 +1711,11 @@ def execute_market_pod(subject_id: str):
         ).strip().lower()
         if pod_provider_id == "prodigi":
             receipt = prodigi_pod_adapter.submit_order(
+                payload=outbound,
+                idempotency_key=payload.get("idempotency_key"),
+            )
+        elif pod_provider_id == "printful":
+            receipt = printful_pod_adapter.create_draft_order(
                 payload=outbound,
                 idempotency_key=payload.get("idempotency_key"),
             )
