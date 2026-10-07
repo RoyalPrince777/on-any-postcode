@@ -1,0 +1,46 @@
+name: OAP PTT authenticated Chromium proof
+
+on:
+  pull_request:
+    paths:
+      - "app.py"
+      - "mission_control/ptt_routes.py"
+      - "mission_control/link_voice.py"
+      - "mission_control/link_voice_routes.py"
+      - "mission_control/templates/ptt.html"
+      - "static/linkup_voice.js"
+      - "tests/ptt_authenticated_chromium_proof.py"
+      - ".github/workflows/ptt-chromium-proof.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app.py"
+      - "mission_control/ptt_routes.py"
+      - "mission_control/link_voice.py"
+      - "mission_control/link_voice_routes.py"
+      - "mission_control/templates/ptt.html"
+      - "static/linkup_voice.js"
+      - "tests/ptt_authenticated_chromium_proof.py"
+      - ".github/workflows/ptt-chromium-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ptt-authenticated-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install runtime and Chromium
+        run: |
+          python -m pip install -r requirements.txt pytest 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+
+      - name: Run authenticated PTT browser acceptance
+        run: python tests/ptt_authenticated_chromium_proof.py
