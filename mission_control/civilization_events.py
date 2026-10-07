@@ -48,12 +48,15 @@ def append_match_finished(
         "winner": game_state.get("winner"),
         "checkpoint": game_state.get("checkpoint"),
     }
-    connection.execute(
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    row = connection.execute(
         """INSERT INTO oap_civilization_events(
                event_id,event_type,schema_version,source_organ,entity_type,
                entity_id,causation_id,correlation_id,payload,state
            ) VALUES (%s,%s,%s,'ARENA','CHESS_MATCH',%s,%s,%s,%s::jsonb,'PENDING')
-           ON CONFLICT (source_organ,event_type,entity_id) DO NOTHING""",
+           ON CONFLICT (source_organ,event_type,entity_id) DO UPDATE SET
+               event_id=oap_civilization_events.event_id
+           RETURNING event_id,causation_id,payload""",
         (
             event_id,
             MATCH_FINISHED,
@@ -61,7 +64,14 @@ def append_match_finished(
             room,
             cause,
             room,
-            json.dumps(payload, sort_keys=True, separators=(",", ":")),
+            encoded,
         ),
-    )
+    ).fetchone()
+    if row is None:
+        raise RuntimeError("civilization_event_write_unconfirmed")
+    stored_payload = row[2]
+    if isinstance(stored_payload, str):
+        stored_payload = json.loads(stored_payload)
+    if str(row[0]) != event_id or str(row[1]) != cause or stored_payload != payload:
+        raise ValueError("civilization_event_truth_conflict")
     return event_id
