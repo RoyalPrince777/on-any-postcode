@@ -3,6 +3,9 @@
 
   const csrfToken = document.querySelector('meta[name="oap-csrf-token"]')?.content || "";
   const statusNode = document.querySelector("[data-oap-voice-status]");
+  const standalonePtt = document.body.dataset.oapPttStandalone === "true";
+  const pttEndpoint = document.body.dataset.oapPttEndpoint || "/linkup/ptt";
+  const pttStatusEndpoint = document.body.dataset.oapPttStatusEndpoint || "/linkup/ptt/status";
   const recordControls = Array.from(document.querySelectorAll("[data-oap-voice-control]"));
   const stopControls = Array.from(document.querySelectorAll("[data-oap-voice-stop]"));
   const pttControls = Array.from(document.querySelectorAll("[data-oap-ptt-control]"));
@@ -93,7 +96,7 @@
     form.append("recipient_id", peerId);
     form.append("duration_ms", String(Math.min(durationMs, state.maxDurationMs)));
     form.append("voice", blob, "voice");
-    const endpoint = kind === "ptt" ? "/linkup/ptt" : "/linkup/voice";
+    const endpoint = kind === "ptt" ? pttEndpoint : "/linkup/voice";
     const response = await fetch(endpoint, {
       method: "POST",
       body: form,
@@ -382,7 +385,10 @@
     }
   });
 
-  Promise.all([apiJson("/linkup/voice/status"), apiJson("/linkup/ptt/status")])
+  Promise.all([
+    standalonePtt ? Promise.resolve({ ready: false, first_party: true }) : apiJson("/linkup/voice/status"),
+    apiJson(pttStatusEndpoint),
+  ])
     .then(([status, pttStatus]) => {
       state.ready = status.ready === true && status.first_party === true;
       state.pttReady = pttStatus.ready === true && pttStatus.first_party === true;
