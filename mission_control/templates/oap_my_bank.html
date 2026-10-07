@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>My Bank · ON ANY POSTCODE</title>
+<style>
+:root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--gold:#e3c86f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:720px;margin:auto;padding:18px 14px 72px}.top{display:flex;justify-content:space-between;align-items:center}.top a,.action{color:inherit;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:9px 12px}.hero{padding:38px 0 22px}.eyebrow{color:var(--gold);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.4rem,10vw,4.8rem);margin:8px 0}.muted{color:var(--muted)}.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;margin:10px 0}.balance{font-size:2.4rem;font-weight:950;margin:8px 0}.number{font-size:1.15rem;font-weight:850;word-break:break-word}.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}.action{text-align:center;border-radius:14px}.truth{margin-top:18px;color:var(--muted);font-size:.78rem;line-height:1.5}@media(max-width:460px){.actions{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="top"><strong>SIKA · MY BANK</strong><a href="/pay/bank">Bank</a></header>
+<section class="hero"><div class="eyebrow">Private · owner scoped</div><h1>My Bank</h1><div class="muted">Your canonical SIKA account view.</div></section>
+{% if customer is none %}
+<section class="card"><strong>Bank state unavailable</strong><p class="muted">Your canonical SIKA state could not be read safely. No balance has been guessed.</p></section>
+{% elif not customer.founder.provisioned %}
+<section class="card"><strong>Founder Account</strong><div class="balance">Not provisioned</div><p class="muted">No SIKA Number or balance is displayed until a canonical account is persisted.</p></section>
+{% else %}
+<section class="card"><div class="muted">My SIKA Number</div><div class="number">{{ customer.founder.sika_number }}</div></section>
+{% set ns = namespace(founder_account=none) %}
+{% for account in customer.accounts %}{% if account.account_id == customer.founder.account_id %}{% set ns.founder_account = account %}{% endif %}{% endfor %}
+<section class="card">
+<div class="muted">Available</div>
+{% if ns.founder_account and ns.founder_account.balance %}
+<div class="balance">S {{ ns.founder_account.balance.available }}</div>
+<div class="muted">Ledger balance S {{ ns.founder_account.balance.cleared }} · Reserved S {{ ns.founder_account.balance.reserved }}</div>
+{% else %}
+<div class="balance">Unavailable</div><div class="muted">No balance is fabricated when the canonical ledger projection is unavailable.</div>
+{% endif %}
+</section>
+<div class="actions"><a class="action" href="/pay/bank/transfers">Pay</a><a class="action" href="/pay/bank/me/status">Receive</a><a class="action" href="/pay/bank/me/activity">Activity</a></div>
+{% endif %}
+<p class="truth">Balances are read from the canonical ledger and active holds. This page cannot create SIKA, change balances, move money, or grant Treasury authority.</p>
+</main>
+</body>
+</html>
