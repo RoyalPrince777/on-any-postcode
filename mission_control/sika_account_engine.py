@@ -107,7 +107,7 @@ def schema_status() -> dict[str, object]:
                 return result
             result["schema_ready"] = True
             return result
-    except Exception:
+    except Exception:  # noqa: BLE001
         result["error"] = "sika_account_store_unavailable"
         return result
 
