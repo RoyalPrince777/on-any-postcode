@@ -9,14 +9,14 @@ import json
 from collections.abc import Callable
 from typing import Any
 
-SCHEMA_VERSION = "0001_esim_provisioning"
+SCHEMA_VERSION = "0002_esim_network_truth"
 SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_esim_requests (
         request_id TEXT PRIMARY KEY,
         subject_id TEXT NOT NULL,
         purpose TEXT NOT NULL,
         state TEXT NOT NULL CHECK (
-            state IN ('requested','approved','provisioning','active','suspended','revoked','failed')
+            state IN ('requested','approved','provisioning','available','registered','active','suspended','revoked','failed')
         ),
         approved_by TEXT,
         provider_name TEXT,
@@ -37,6 +37,12 @@ SCHEMA_STATEMENTS = (
     )""",
     """CREATE INDEX IF NOT EXISTS ix_oap_esim_events_request
         ON oap_esim_events(request_id, event_seq)""",
+    """ALTER TABLE oap_esim_requests
+        DROP CONSTRAINT IF EXISTS oap_esim_requests_state_check""",
+    """ALTER TABLE oap_esim_requests
+        ADD CONSTRAINT oap_esim_requests_state_check CHECK (
+            state IN ('requested','approved','provisioning','available','registered','active','suspended','revoked','failed')
+        )""",
 )
 
 

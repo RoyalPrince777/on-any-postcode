@@ -5,7 +5,7 @@ class FakeProvider:
     name = "fake-provider"
 
     def provision(self, *, request_id: str, subject_id: str) -> dict:
-        return {"provider_profile_id": f"profile-{request_id}", "active": True}
+        return {"provider_profile_id": f"profile-{request_id}"}
 
     def suspend(self, *, provider_profile_id: str) -> dict:
         return {"suspended": True}
@@ -77,15 +77,28 @@ def test_full_lifecycle_requires_provider_confirmation():
     approved = core.approve(request_id, founder_identity="founder")
     assert approved["state"] == "approved"
 
-    active = core.provision(request_id)
+    available = core.provision(request_id)
+    assert available["state"] == "available"
+    assert available["provider_profile_id"]
+
+    active = core.confirm_network_registration(
+        request_id,
+        evidence_id="network-proof-1",
+        session_established=True,
+    )
     assert active["state"] == "active"
-    assert active["provider_profile_id"]
 
     suspended = core.suspend(request_id)
     assert suspended["state"] == "suspended"
 
     resumed = core.resume(request_id)
-    assert resumed["state"] == "active"
+    assert resumed["state"] == "available"
+    reactivated = core.confirm_network_registration(
+        request_id,
+        evidence_id="network-proof-2",
+        session_established=True,
+    )
+    assert reactivated["state"] == "active"
 
     revoked = core.revoke(request_id)
     assert revoked["state"] == "revoked"
@@ -95,8 +108,12 @@ def test_full_lifecycle_requires_provider_confirmation():
         "requested",
         "approved",
         "provisioning",
+        "available",
+        "registered",
         "active",
         "suspended",
+        "available",
+        "registered",
         "active",
         "revoked",
     ]
@@ -118,3 +135,30 @@ def test_repository_restores_state_across_core_restart():
         "requested",
         "approved",
     ]
+
+
+def test_provisioning_cannot_self_declare_network_active():
+    core = EsimProvisioningCore(FakeProvider())
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+
+    provisioned = core.provision(item["request_id"])
+
+    assert provisioned["state"] == "available"
+    assert all(event["event"] != "active" for event in core.events(item["request_id"]))
+
+
+def test_network_registration_requires_independent_evidence():
+    core = EsimProvisioningCore(FakeProvider())
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="", session_established=False
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "network_registration_not_confirmed"
+    else:
+        raise AssertionError("ACTIVE must require independent network evidence")
