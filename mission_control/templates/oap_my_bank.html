@@ -16,7 +16,31 @@
 {% if customer is none %}
 <section class="card"><strong>Bank state unavailable</strong><p class="muted">Your canonical SIKA state could not be read safely. No balance has been guessed.</p></section>
 {% elif not customer.founder.provisioned %}
-<section class="card"><strong>Founder Account</strong><div class="balance">Not provisioned</div><p class="muted">No SIKA Number or balance is displayed until a canonical account is persisted.</p></section>
+<section class="card"><strong>Founder Account</strong><div class="balance">Not provisioned</div><p class="muted">No SIKA Number or balance is displayed until a canonical account is persisted.</p><button class="action" id="provision-founder" type="button">Create My SIKA Account</button><p class="muted" id="provision-status" role="status" aria-live="polite"></p></section>
+<script>
+const provisionButton = document.getElementById("provision-founder");
+const provisionStatus = document.getElementById("provision-status");
+provisionButton?.addEventListener("click", async () => {
+  provisionButton.disabled = true;
+  provisionStatus.textContent = "Creating your canonical account…";
+  try {
+    const response = await fetch("/pay/bank/founder/provision", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {"Accept": "application/json"},
+    });
+    if (!response.ok) {
+      provisionStatus.textContent = "Account creation could not be completed safely.";
+      provisionButton.disabled = false;
+      return;
+    }
+    window.location.reload();
+  } catch {
+    provisionStatus.textContent = "Account creation could not be completed safely.";
+    provisionButton.disabled = false;
+  }
+});
+</script>
 {% else %}
 <section class="card"><div class="muted">My SIKA Number</div><div class="number">{{ customer.founder.sika_number }}</div></section>
 {% set ns = namespace(founder_account=none) %}
