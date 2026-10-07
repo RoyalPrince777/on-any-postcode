@@ -76,6 +76,9 @@ STATEMENTS = (
     """INSERT INTO oap_permissions(permission_id,description)
         VALUES ('KORADASO_ISSUE_INVITE','Issue or revoke Koradaso Royal House access invitations')
         ON CONFLICT (permission_id) DO NOTHING""",
+    """INSERT INTO oap_permissions(permission_id,description)
+        VALUES ('KORADASO_RECORD_EVIDENCE','Record Koradaso evidence and proposed claims')
+        ON CONFLICT (permission_id) DO NOTHING""",
 )
 REQUIRED_TABLES = (
     "koradaso_people", "koradaso_evidence", "koradaso_claims",
