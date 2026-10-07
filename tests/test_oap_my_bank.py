@@ -67,3 +67,44 @@ def test_my_bank_never_invents_unprovisioned_value(client, monkeypatch):
     assert "Not provisioned" in body
     assert "S 0.00" not in body
     assert "SIKA-777-" not in body
+
+
+def test_unprovisioned_my_bank_offers_server_owned_founder_provisioning(client, monkeypatch):
+    _authenticated(monkeypatch)
+    monkeypatch.setattr(
+        oap_pay.sika_customer_view,
+        "snapshot",
+        lambda owner: {
+            "accounts": [],
+            "founder": {
+                "provisioned": False,
+                "sika_number": None,
+                "account_id": None,
+            },
+        },
+    )
+    body = client.get("/pay/bank/me").get_data(as_text=True)
+    assert "Create My SIKA Account" in body
+    assert 'fetch("/pay/bank/founder/provision"' in body
+    assert 'method: "POST"' in body
+    assert "owner_reference" not in body
+    assert "account_id" not in body
+    assert "ledger_account_id" not in body
+
+
+def test_provisioned_my_bank_hides_provisioning_action(client, monkeypatch):
+    _authenticated(monkeypatch)
+    monkeypatch.setattr(
+        oap_pay.sika_customer_view,
+        "snapshot",
+        lambda owner: {
+            "accounts": [],
+            "founder": {
+                "provisioned": True,
+                "sika_number": "SIKA-777-123456789012",
+                "account_id": "acct-founder",
+            },
+        },
+    )
+    body = client.get("/pay/bank/me").get_data(as_text=True)
+    assert "Create My SIKA Account" not in body
