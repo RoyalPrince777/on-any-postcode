@@ -115,6 +115,7 @@ def create_voice():
     return _create_voice_kind("voice")
 
 
+@bp.get("/ptt/status")
 @bp.get("/linkup/ptt/status")
 @web_security.login_required(api=True)
 def ptt_status():
@@ -133,6 +134,7 @@ def ptt_status():
     )
 
 
+@bp.post("/ptt")
 @bp.post("/linkup/ptt")
 @web_security.login_required(api=True)
 def create_ptt():
