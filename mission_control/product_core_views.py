@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import os
 import uuid
 
 from flask import Blueprint, jsonify, make_response, render_template, request
@@ -27,6 +28,7 @@ from . import (
     open_cinema,
     open_cinema_evidence,
     open_music_intake,
+    prodigi_pod_adapter,
     product_core_services,
     product_cores,
     product_store,
@@ -1703,11 +1705,20 @@ def execute_market_pod(subject_id: str):
             raise TypeError("provider_payload_object_required")
         outbound = dict(provider_payload)
         outbound["oap_subject_id"] = subject_id
-        receipt = sika_secure_provider_runtime.submit(
-            kind="pod",
-            payload=outbound,
-            idempotency_key=payload.get("idempotency_key"),
-        )
+        pod_provider_id = str(
+            os.environ.get("OAP_POD_PROVIDER_ID", "") or ""
+        ).strip().lower()
+        if pod_provider_id == "prodigi":
+            receipt = prodigi_pod_adapter.submit_order(
+                payload=outbound,
+                idempotency_key=payload.get("idempotency_key"),
+            )
+        else:
+            receipt = sika_secure_provider_runtime.submit(
+                kind="pod",
+                payload=outbound,
+                idempotency_key=payload.get("idempotency_key"),
+            )
         durable = commerce_provider_receipts.record(
             owner_identity_id=owner,
             kind="pod",
