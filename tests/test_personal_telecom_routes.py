@@ -54,7 +54,7 @@ def test_my_line_feature_catalog_has_unique_buttons_and_real_targets():
     } == set(ids)
     assert next(item for item in features if item["id"] == "phone")["route"] == "/linkup?intent=link-call"
     assert next(item for item in features if item["id"] == "messages")["route"] == "/linkup?intent=message"
-    assert next(item for item in features if item["id"] == "ptt")["route"] == "/linkup?intent=ptt"
+    assert next(item for item in features if item["id"] == "ptt")["route"] == "/ptt"
     assert next(item for item in features if item["id"] == "incoming")["route"] == "/linkup/incoming"
     assert next(item for item in features if item["id"] == "recents")["route"] == "/linkup/calls/recents"
 
@@ -138,7 +138,7 @@ def test_my_line_front_door_has_all_primary_controls():
     assert 'href="/my-line"' in my_card
     assert "data-linkup-intent" in linkup_template
     assert 'intent === "link-call"' in messenger
-    assert 'intent === "ptt"' in messenger
+    assert 'intent === "ptt"' not in messenger
     assert 'intent === "message"' in messenger
 
 
