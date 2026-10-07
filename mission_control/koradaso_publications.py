@@ -5,6 +5,7 @@ from hashlib import sha256
 from uuid import UUID, uuid4
 
 from . import postgres_db
+from .koradaso_consent import claim_fingerprint
 from .koradaso_evidence import _audit
 
 PUBLISH_PERMISSION = "KORADASO_PUBLISH_HERITAGE"
@@ -55,8 +56,10 @@ def publish_claim(*, publisher_id: object, claim_id: object,
             raise KoradasoPublicationDenied("human_review_required_before_publication")
         release = connection.execute(
             """SELECT release_id FROM koradaso_release_consents
-               WHERE claim_id=%s AND revoked_at IS NULL AND summary_hash=%s LIMIT 1""",
-            (claim, sha256(summary.encode()).hexdigest()),
+               WHERE claim_id=%s AND revoked_at IS NULL AND summary_hash=%s
+                 AND claim_fingerprint=%s LIMIT 1""",
+            (claim, sha256(summary.encode()).hexdigest(),
+             claim_fingerprint(connection, claim)),
         ).fetchone()
         if not release:
             raise KoradasoPublicationDenied("active_release_consent_required")
