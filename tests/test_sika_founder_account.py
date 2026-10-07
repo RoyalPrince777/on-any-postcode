@@ -58,3 +58,43 @@ def test_founder_status_has_no_money_or_treasury_authority():
     assert status["journal_posting"] is False
     assert status["payment_execution"] is False
     assert status["treasury_authority"] is False
+
+
+def test_founder_provisioning_rejects_non_authority_before_account_insert(monkeypatch):
+    calls = []
+
+    class FakeConnection:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def execute(self, sql, params=()):
+            calls.append(sql)
+            pytest.fail("SIKA rows must not be touched for a non-authority owner")
+
+    monkeypatch.setattr(
+        sika_founder_account.postgres_db, "connect", lambda *args, **kwargs: FakeConnection()
+    )
+    monkeypatch.setattr(
+        sika_founder_account.authority,
+        "require_human_authority",
+        lambda connection, identity_id: (_ for _ in ()).throw(
+            sika_founder_account.authority.HumanAuthorityRequired(
+                "level_zero_human_authority_required"
+            )
+        ),
+    )
+
+    with pytest.raises(
+        sika_founder_account.FounderProvisioningError,
+        match="human_authority_owner_required",
+    ):
+        sika_founder_account.provision(
+            account_id="acct-founder",
+            owner_reference="00000000-0000-4000-8000-000000000777",
+            legal_entity="ON ANY POSTCODE LTD",
+            jurisdiction="United Kingdom",
+            currency="GBP",
+            ledger_account_id="ledger-founder",
+        )
+    assert calls == []

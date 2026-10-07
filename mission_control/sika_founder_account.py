@@ -9,7 +9,7 @@ from __future__ import annotations
 import secrets
 from dataclasses import dataclass
 
-from . import postgres_db, sika_account_engine
+from . import authority, postgres_db, sika_account_engine
 
 MIGRATION_VERSION = "sika_founder_account_v1"
 SIKA_NUMBER_PREFIX = "SIKA-777-"
@@ -111,6 +111,13 @@ def provision(
 
     try:
         with postgres_db.connect() as connection:
+            # The owner must be the canonical authenticated level-zero Human Authority.
+            # This rejects recovery/non-authority identities before any SIKA row is created.
+            try:
+                authority.require_human_authority(connection, owner)
+            except (ValueError, PermissionError) as exc:
+                raise FounderProvisioningError("human_authority_owner_required") from exc
+
             existing = connection.execute(
                 """SELECT f.sika_number,a.account_id,a.owner_reference,a.legal_entity,
                           a.jurisdiction,a.currency,a.ledger_account_id,a.status
