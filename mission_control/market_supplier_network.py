@@ -15,7 +15,7 @@ import uuid
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any
 
-from . import postgres_db, product_store
+from . import postgres_db, product_store, tapstitch_pod_connector
 
 SUPPLIER_SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 STATES = {"DRAFT", "READY", "STOPPED", "RECOVERY_REQUIRED"}
@@ -766,6 +766,9 @@ def truth_status() -> dict[str, object]:
         "supports_certified_public_merchants": True,
         "supports_made_to_order_products": True,
         "supplier_examples": ["tapstitch"],
+        "supplier_profiles": {
+            "tapstitch": tapstitch_pod_connector.status(),
+        },
         "inventory_required_by_oap": False,
         "supplier_api_called": False,
         "external_order_created": False,
