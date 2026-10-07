@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 def test_home_keeps_public_world_without_private_founder_entry(client):
-    response = client.get("/")
+    response = client.get("/world")
 
     assert response.status_code == 200
     page = response.get_data(as_text=True)
@@ -27,7 +27,7 @@ def test_home_keeps_public_world_without_private_founder_entry(client):
 
 
 def test_public_main_menu_is_commerce_only(client):
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/world").get_data(as_text=True)
     nav = page.split('<nav class="bottom"', 1)[1].split("</nav>", 1)[0]
 
     expected = (
@@ -46,7 +46,7 @@ def test_public_main_menu_is_commerce_only(client):
 
 
 def test_public_home_and_sport_keep_only_public_post_forms(client):
-    home = client.get("/").get_data(as_text=True)
+    home = client.get("/world").get_data(as_text=True)
     sport = client.get("/world-cup").get_data(as_text=True)
 
     assert 'method="post" action="/signal"' not in home
@@ -85,7 +85,7 @@ def test_gateway_shows_seven_oap_intelligence_families(client):
 
 
 def test_public_dashboard_strips_to_shop_customer_jobs(client):
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/world").get_data(as_text=True)
     assert "STRIP OF NOISE" not in page
     for text in ("Signal", "Quick Actions", "OAP Status", "Library", "Studio", "Link Up", "Guardian", "HRM"):
         assert text not in page
@@ -117,7 +117,7 @@ def test_legacy_dashboard_urls_redirect_instead_of_404(client):
 
 
 def test_marketplace_home_and_shop_storefront_are_distinct_surfaces(client):
-    home = client.get("/").get_data(as_text=True)
+    home = client.get("/world").get_data(as_text=True)
     assert "YOUR LOCAL" in home
     assert "MARKETPLACE." in home
     assert "Local shops" in home
@@ -182,7 +182,7 @@ def test_public_marketplace_uses_clean_commerce_doors():
 
 
 def test_marketplace_home_exposes_real_install_control(client):
-    page = client.get("/").get_data(as_text=True)
+    page = client.get("/world").get_data(as_text=True)
     assert 'data-oap-install' in page
     assert 'data-oap-install-status' in page
     assert 'href="/manifest.webmanifest"' in page
