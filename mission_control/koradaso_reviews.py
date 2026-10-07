@@ -6,6 +6,7 @@ from . import postgres_db
 from .koradaso_evidence import VALID_STATUS, _audit
 
 REVIEW_PERMISSION = "KORADASO_REVIEW_CLAIMS"
+EVIDENCE_REQUIRED = frozenset({"DOCUMENTED", "SCHOLARLY", "FAMILY_CONFIRMED", "ORAL_TRADITION"})
 
 class KoradasoReviewDenied(PermissionError):
     pass
@@ -48,6 +49,19 @@ def review_claim(*, reviewer_id: object, claim_id: object,
         from_status = str(row[0])
         if from_status == target_status:
             raise ValueError("claim_status_unchanged")
+
+        links = connection.execute(
+            """SELECT relation,COUNT(*) FROM koradaso_claim_evidence
+               WHERE claim_id=%s GROUP BY relation""",
+            (claim,),
+        ).fetchall()
+        evidence_counts = {str(item[0]): int(item[1]) for item in links}
+        if target_status in EVIDENCE_REQUIRED and sum(evidence_counts.values()) == 0:
+            raise KoradasoReviewDenied("review_evidence_required")
+        if target_status == "DOCUMENTED" and evidence_counts.get("SUPPORTS", 0) == 0:
+            raise KoradasoReviewDenied("documented_supporting_evidence_required")
+        if evidence_counts.get("CONTRADICTS", 0) > 0 and target_status == "DOCUMENTED":
+            raise KoradasoReviewDenied("documented_claim_has_contradictory_evidence")
 
         review_id = uuid4()
         connection.execute(
