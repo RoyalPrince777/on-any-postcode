@@ -69,6 +69,13 @@ STATEMENTS = (
         to_status TEXT NOT NULL,
         reason TEXT NOT NULL,
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE TABLE IF NOT EXISTS koradaso_publications (
+        publication_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        claim_id UUID NOT NULL REFERENCES koradaso_claims(claim_id) ON DELETE RESTRICT,
+        published_by UUID NOT NULL REFERENCES oap_identities(identity_id),
+        public_summary TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        revoked_at TIMESTAMPTZ)""",
     """CREATE TABLE IF NOT EXISTS koradaso_relationships (
         relationship_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         from_person_id UUID NOT NULL REFERENCES koradaso_people(person_id) ON DELETE RESTRICT,
@@ -100,6 +107,9 @@ STATEMENTS = (
     """INSERT INTO oap_permissions(permission_id,description)
         VALUES ('KORADASO_REVIEW_CLAIMS','Review Koradaso claims and change evidence status')
         ON CONFLICT (permission_id) DO NOTHING""",
+    """INSERT INTO oap_permissions(permission_id,description)
+        VALUES ('KORADASO_PUBLISH_HERITAGE','Publish reviewed Koradaso heritage projections')
+        ON CONFLICT (permission_id) DO NOTHING""",
     """INSERT INTO oap_permissions(permission_id,description) VALUES
         ('KORADASO_READ_ROYAL_EVIDENCE','Read Koradaso Royal House evidence'),
         ('KORADASO_READ_FAMILY_EVIDENCE','Read Koradaso family evidence'),
@@ -108,7 +118,7 @@ STATEMENTS = (
 )
 REQUIRED_TABLES = (
     "koradaso_people", "koradaso_evidence", "koradaso_evidence_versions", "koradaso_claims",
-    "koradaso_claim_evidence", "koradaso_claim_reviews", "koradaso_relationships", "koradaso_invites",
+    "koradaso_claim_evidence", "koradaso_claim_reviews", "koradaso_publications", "koradaso_relationships", "koradaso_invites",
 )
 PREREQUISITES = ("oap_identities", "audit_events")
 MIGRATION_CHECKSUM = hashlib.sha256("\n".join(STATEMENTS).encode()).hexdigest()
