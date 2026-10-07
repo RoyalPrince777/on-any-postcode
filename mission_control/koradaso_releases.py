@@ -5,6 +5,7 @@ grant Royal status, ancestry, publication permission, or any SIKA authority.
 """
 from __future__ import annotations
 
+from hashlib import sha256
 from uuid import UUID, uuid4
 
 from . import postgres_db
@@ -37,12 +38,15 @@ def _can_release(connection, actor: UUID) -> bool:
     )
 
 
-def grant_release(*, actor_id: object, claim_id: object, reason: str) -> dict[str, object]:
+def grant_release(*, actor_id: object, claim_id: object, reason: str, public_summary: str) -> dict[str, object]:
     actor = _uuid(actor_id, "actor_id")
     claim = _uuid(claim_id, "claim_id")
     reason_value = str(reason or "").strip()
     if not reason_value:
         raise ValueError("release_reason_required")
+    summary = str(public_summary or "").strip()
+    if not summary:
+        raise ValueError("release_public_summary_required")
 
     with postgres_db.connect() as connection:
         if not _can_release(connection, actor):
@@ -74,9 +78,9 @@ def grant_release(*, actor_id: object, claim_id: object, reason: str) -> dict[st
         release_id = uuid4()
         connection.execute(
             """INSERT INTO koradaso_release_consents
-               (release_id,claim_id,released_by,reason)
-               VALUES (%s,%s,%s,%s)""",
-            (release_id, claim, actor, reason_value),
+               (release_id,claim_id,released_by,reason,summary_hash)
+               VALUES (%s,%s,%s,%s,%s)""",
+            (release_id, claim, actor, reason_value, sha256(summary.encode()).hexdigest()),
         )
         _audit(
             connection,
