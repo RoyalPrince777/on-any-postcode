@@ -7,18 +7,25 @@ network transport, or device-to-device audible delivery.
 """
 from __future__ import annotations
 
+import importlib
 import os
 import sys
 import threading
 from pathlib import Path
 
+from playwright.sync_api import expect, sync_playwright
+from werkzeug.serving import make_server
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-
-import app as app_module
-from mission_control import link_relationships, link_voice, neon_auth, product_store, web_security
+app_module = importlib.import_module("app")
+link_relationships = importlib.import_module("mission_control.link_relationships")
+link_voice = importlib.import_module("mission_control.link_voice")
+neon_auth = importlib.import_module("mission_control.neon_auth")
+product_store = importlib.import_module("mission_control.product_store")
+web_security = importlib.import_module("mission_control.web_security")
 
 AUTH_ID = "11111111-1111-4111-8111-111111111111"
 PEER_ID = "22222222-2222-4222-8222-222222222222"
