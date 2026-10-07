@@ -89,6 +89,11 @@ STATEMENTS = (
     """INSERT INTO oap_permissions(permission_id,description)
         VALUES ('KORADASO_RECORD_EVIDENCE','Record Koradaso evidence and proposed claims')
         ON CONFLICT (permission_id) DO NOTHING""",
+    """INSERT INTO oap_permissions(permission_id,description) VALUES
+        ('KORADASO_READ_ROYAL_EVIDENCE','Read Koradaso Royal House evidence'),
+        ('KORADASO_READ_FAMILY_EVIDENCE','Read Koradaso family evidence'),
+        ('KORADASO_READ_COMMUNITY_EVIDENCE','Read Koradaso community evidence')
+        ON CONFLICT (permission_id) DO NOTHING""",
 )
 REQUIRED_TABLES = (
     "koradaso_people", "koradaso_evidence", "koradaso_evidence_versions", "koradaso_claims",
