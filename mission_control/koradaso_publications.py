@@ -91,6 +91,17 @@ def revoke_publication(*, publisher_id: object, publication_id: object,
     with postgres_db.connect() as connection:
         if not _can_publish(connection, publisher):
             raise KoradasoPublicationDenied("koradaso_publish_permission_required")
+        # Match publication and consent-withdrawal lock order: claim before publication.
+        lookup = connection.execute(
+            "SELECT claim_id FROM koradaso_publications WHERE publication_id=%s",
+            (publication,),
+        ).fetchone()
+        if not lookup:
+            raise ValueError("publication_not_found")
+        connection.execute(
+            "SELECT claim_id FROM koradaso_claims WHERE claim_id=%s FOR UPDATE",
+            (lookup[0],),
+        ).fetchone()
         row = connection.execute(
             """SELECT claim_id,revoked_at FROM koradaso_publications
                WHERE publication_id=%s FOR UPDATE""",
