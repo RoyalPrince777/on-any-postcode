@@ -1,6 +1,7 @@
 """Governed public projection of reviewed Koradaso heritage claims."""
 from __future__ import annotations
 
+from hashlib import sha256
 from uuid import UUID, uuid4
 
 from . import postgres_db
@@ -54,8 +55,8 @@ def publish_claim(*, publisher_id: object, claim_id: object,
             raise KoradasoPublicationDenied("human_review_required_before_publication")
         release = connection.execute(
             """SELECT release_id FROM koradaso_release_consents
-               WHERE claim_id=%s AND revoked_at IS NULL LIMIT 1""",
-            (claim,),
+               WHERE claim_id=%s AND revoked_at IS NULL AND summary_hash=%s LIMIT 1""",
+            (claim, sha256(summary.encode()).hexdigest()),
         ).fetchone()
         if not release:
             raise KoradasoPublicationDenied("active_release_consent_required")
