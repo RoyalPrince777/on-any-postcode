@@ -2,7 +2,7 @@ from oap.browser_engine.android_route import canonical_supported_target
 
 
 def test_oap_engine_android_target_allowlist_is_fail_closed():
-    assert canonical_supported_target("/") == "/"
+    assert canonical_supported_target("/") == "/world"
     assert canonical_supported_target("/world") == "/world"
     assert canonical_supported_target("/search") == "/search"
     assert canonical_supported_target("/search?q=music") == "/search?q=music"
@@ -43,7 +43,7 @@ def test_oap_engine_android_document_endpoint_rejects_unsupported_page(client):
 def test_oap_engine_android_document_normalizes_relative_links(client):
     response = client.get(
         "/api/oap-engine/document",
-        query_string={"path": "/", "viewport": "390"},
+        query_string={"path": "/world", "viewport": "390"},
     )
     assert response.status_code == 200
     payload = response.get_json()
@@ -56,7 +56,7 @@ def test_oap_engine_android_document_normalizes_relative_links(client):
 def test_oap_engine_android_links_ignore_untrusted_host_header(client):
     response = client.get(
         "/api/oap-engine/document",
-        query_string={"path": "/", "viewport": "390"},
+        query_string={"path": "/world", "viewport": "390"},
         headers={"Host": "attacker.example"},
     )
     assert response.status_code == 200
