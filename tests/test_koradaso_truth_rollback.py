@@ -42,3 +42,23 @@ def test_evidence_is_not_committed_when_audit_fails(monkeypatch):
             privacy_scope="ROYAL_HOUSE",
         )
     assert db.committed is False
+
+
+def test_claim_is_not_committed_when_audit_fails(monkeypatch):
+    db = BrokenAuditDB()
+    @contextmanager
+    def connect(*args, **kwargs):
+        yield db
+    monkeypatch.setattr(koradaso_evidence.postgres_db, "connect", connect)
+    with pytest.raises(RuntimeError, match="audit_failed"):
+        koradaso_evidence.record_claim(
+            actor_id=uuid4(),
+            subject_kind="PERSON",
+            subject_ref="test-person",
+            predicate="related_to",
+            object_value="test-record",
+            status="RESEARCHING",
+            confidence=0.5,
+            privacy_scope="FAMILY",
+        )
+    assert db.committed is False
