@@ -178,6 +178,25 @@ def esim_provision(request_id: str):
     return _esim_action(request_id, "provision")
 
 
+@bp.post("/esim/requests/<request_id>/confirm-network")
+@web_security.login_required(api=True, founder_only=True)
+def esim_confirm_network(request_id: str):
+    if guard := _esim_write_guard():
+        return guard
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _esim_response({"error": {"code": "json_object_required"}}, 400)
+    try:
+        item = esim_provisioning.CORE.confirm_network_registration(
+            request_id,
+            evidence_id=body.get("evidence_id"),
+            session_established=body.get("session_established") is True,
+        )
+        return _esim_response({"esim_request": item})
+    except Exception as exc:  # noqa: BLE001
+        return _esim_error(exc)
+
+
 @bp.post("/esim/requests/<request_id>/suspend")
 @web_security.login_required(api=True, founder_only=True)
 def esim_suspend(request_id: str):
