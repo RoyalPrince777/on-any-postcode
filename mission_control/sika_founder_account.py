@@ -6,12 +6,14 @@ the account identity and Founder binding either both persist or neither does.
 """
 from __future__ import annotations
 
+import hashlib
 import secrets
 from dataclasses import dataclass
 
 from . import authority, postgres_db, sika_account_engine
 
-MIGRATION_VERSION = "sika_founder_account_v1"
+MIGRATION_VERSION = "0011_sika_founder_account_v1"
+MIGRATION_LOCK_ID = 25800011
 SIKA_NUMBER_PREFIX = "SIKA-777-"
 SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_sika_founder_accounts (
@@ -23,6 +25,9 @@ SCHEMA_STATEMENTS = (
     """CREATE UNIQUE INDEX IF NOT EXISTS ux_sika_founder_number
        ON oap_sika_founder_accounts(sika_number)""",
 )
+MIGRATION_CHECKSUM = hashlib.sha256(
+    "\n".join(SCHEMA_STATEMENTS).encode()
+).hexdigest()
 
 
 class FounderProvisioningError(ValueError):
@@ -59,29 +64,81 @@ def generate_sika_number() -> str:
     return f"{SIKA_NUMBER_PREFIX}{secrets.randbelow(10**12):012d}"
 
 
+def schema_status() -> dict[str, object]:
+    result: dict[str, object] = {
+        "migration": MIGRATION_VERSION,
+        "checksum": MIGRATION_CHECKSUM,
+        "schema_ready": False,
+        "table_ready": False,
+        "dependency_ready": False,
+        "error": None,
+    }
+    account_status = sika_account_engine.schema_status()
+    if not account_status.get("schema_ready"):
+        result["error"] = "sika_account_dependency_not_ready"
+        return result
+    result["dependency_ready"] = True
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            table = connection.execute(
+                """SELECT 1 FROM information_schema.tables
+                   WHERE table_schema='public'
+                     AND table_name='oap_sika_founder_accounts'"""
+            ).fetchone()
+            result["table_ready"] = table is not None
+            if table is None:
+                result["error"] = "sika_founder_schema_pending"
+                return result
+            migration = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (MIGRATION_VERSION,),
+            ).fetchone()
+            if migration is None or str(migration[0]) != MIGRATION_CHECKSUM:
+                result["error"] = "sika_founder_migration_not_verified"
+                return result
+            result["schema_ready"] = True
+            return result
+    except Exception:  # noqa: BLE001
+        result["error"] = "sika_founder_store_unavailable"
+        return result
+
+
 def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, object]:
     if not assume_yes:
         raise RuntimeError("Explicit human approval required: pass --yes")
     if dry_run:
         return {
             "migration": MIGRATION_VERSION,
+            "checksum": MIGRATION_CHECKSUM,
             "dry_run": True,
             "schema_ready": False,
             "human_authority_final": True,
         }
+    if not sika_account_engine.schema_status().get("schema_ready"):
+        raise FounderProvisioningUnavailable("sika_account_dependency_not_ready")
     try:
         with postgres_db.connect() as connection:
-            for statement in SCHEMA_STATEMENTS:
-                connection.execute(statement)
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (MIGRATION_LOCK_ID,))
+            row = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (MIGRATION_VERSION,),
+            ).fetchone()
+            if row is not None and str(row[0]) != MIGRATION_CHECKSUM:
+                raise RuntimeError("Applied Founder SIKA migration checksum mismatch")
+            if row is None:
+                for statement in SCHEMA_STATEMENTS:
+                    connection.execute(statement)
+                connection.execute(
+                    "INSERT INTO oap_schema_migrations(version,checksum) VALUES (%s,%s)",
+                    (MIGRATION_VERSION, MIGRATION_CHECKSUM),
+                )
             connection.commit()
     except Exception as exc:
         raise FounderProvisioningUnavailable("founder_schema_init_failed") from exc
-    return {
-        "migration": MIGRATION_VERSION,
-        "dry_run": False,
-        "schema_ready": True,
-        "human_authority_final": True,
-    }
+    result = schema_status()
+    result["dry_run"] = False
+    result["human_authority_final"] = True
+    return result
 
 
 def provision(

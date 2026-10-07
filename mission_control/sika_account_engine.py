@@ -11,7 +11,8 @@ from dataclasses import dataclass
 
 from . import postgres_db
 
-MIGRATION_VERSION = "sika_account_engine_v1"
+MIGRATION_VERSION = "0010_sika_account_engine_v1"
+MIGRATION_LOCK_ID = 25800010
 SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_sika_accounts (
         account_id TEXT PRIMARY KEY,
@@ -76,6 +77,41 @@ def _required(value: object, *, error: str) -> str:
     return text
 
 
+def schema_status() -> dict[str, object]:
+    result: dict[str, object] = {
+        "migration": MIGRATION_VERSION,
+        "checksum": MIGRATION_CHECKSUM,
+        "schema_ready": False,
+        "table_ready": False,
+        "error": None,
+    }
+    if not postgres_db.postgres_status().get("initialized"):
+        result["error"] = "base_postgres_not_ready"
+        return result
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            table = connection.execute(
+                """SELECT 1 FROM information_schema.tables
+                   WHERE table_schema='public' AND table_name='oap_sika_accounts'"""
+            ).fetchone()
+            result["table_ready"] = table is not None
+            if table is None:
+                result["error"] = "sika_account_schema_pending"
+                return result
+            migration = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (MIGRATION_VERSION,),
+            ).fetchone()
+            if migration is None or str(migration[0]) != MIGRATION_CHECKSUM:
+                result["error"] = "sika_account_migration_not_verified"
+                return result
+            result["schema_ready"] = True
+            return result
+    except Exception:  # noqa: BLE001
+        result["error"] = "sika_account_store_unavailable"
+        return result
+
+
 def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, object]:
     if not assume_yes:
         raise RuntimeError("Explicit human approval required: pass --yes")
@@ -89,18 +125,27 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
         }
     try:
         with postgres_db.connect() as connection:
-            for statement in SCHEMA_STATEMENTS:
-                connection.execute(statement)
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (MIGRATION_LOCK_ID,))
+            row = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (MIGRATION_VERSION,),
+            ).fetchone()
+            if row is not None and str(row[0]) != MIGRATION_CHECKSUM:
+                raise RuntimeError("Applied SIKA account migration checksum mismatch")
+            if row is None:
+                for statement in SCHEMA_STATEMENTS:
+                    connection.execute(statement)
+                connection.execute(
+                    "INSERT INTO oap_schema_migrations(version,checksum) VALUES (%s,%s)",
+                    (MIGRATION_VERSION, MIGRATION_CHECKSUM),
+                )
             connection.commit()
     except Exception as exc:
         raise AccountEngineUnavailable("account_engine_schema_init_failed") from exc
-    return {
-        "migration": MIGRATION_VERSION,
-        "checksum": MIGRATION_CHECKSUM,
-        "dry_run": False,
-        "schema_ready": True,
-        "human_authority_final": True,
-    }
+    result = schema_status()
+    result["dry_run"] = False
+    result["human_authority_final"] = True
+    return result
 
 
 def create_account(
