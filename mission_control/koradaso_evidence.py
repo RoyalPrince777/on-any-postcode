@@ -59,6 +59,13 @@ def record_evidence(*, actor_id: object, evidence_type: str, title: str,
             (evidence_id, evidence_type.strip(), title.strip(), source_uri,
              original_language.strip(), digest, privacy, actor),
         )
+        connection.execute(
+            """INSERT INTO koradaso_evidence_versions
+               (version_id,evidence_id,version_number,content_hash,change_kind,
+                language,created_by)
+               VALUES (%s,%s,1,%s,'ORIGINAL',%s,%s)""",
+            (uuid4(), evidence_id, digest, original_language.strip(), actor),
+        )
         connection.commit()
     return {"evidence_id": str(evidence_id), "original_hash": digest,
             "privacy_scope": privacy}
@@ -124,3 +131,42 @@ def link_evidence(*, actor_id: object, claim_id: object, evidence_id: object,
             (claim, evidence, relation_value),
         )
         connection.commit()
+
+
+def append_evidence_version(*, actor_id: object, evidence_id: object,
+                            content_bytes: bytes, change_kind: str,
+                            language: str | None = None) -> dict[str, object]:
+    actor = _identity(actor_id)
+    try:
+        evidence = UUID(str(evidence_id))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_evidence_id") from exc
+    kind = str(change_kind).upper()
+    if kind not in {"TRANSCRIPTION", "TRANSLATION", "INTERPRETATION", "CORRECTION"}:
+        raise ValueError("invalid_evidence_change_kind")
+    if not content_bytes:
+        raise ValueError("evidence_version_content_required")
+    digest = hashlib.sha256(content_bytes).hexdigest()
+    with postgres_db.connect() as connection:
+        if not _has_permission(connection, actor):
+            raise KoradasoEvidenceDenied("koradaso_evidence_permission_required")
+        row = connection.execute(
+            """SELECT COALESCE(MAX(v.version_number),0),e.privacy_scope
+               FROM koradaso_evidence e
+               LEFT JOIN koradaso_evidence_versions v ON v.evidence_id=e.evidence_id
+               WHERE e.evidence_id=%s GROUP BY e.privacy_scope FOR UPDATE""",
+            (evidence,),
+        ).fetchone()
+        if not row:
+            raise ValueError("evidence_not_found")
+        version_number = int(row[0]) + 1
+        connection.execute(
+            """INSERT INTO koradaso_evidence_versions
+               (version_id,evidence_id,version_number,content_hash,change_kind,
+                language,created_by)
+               VALUES (%s,%s,%s,%s,%s,%s,%s)""",
+            (uuid4(), evidence, version_number, digest, kind, language, actor),
+        )
+        connection.commit()
+    return {"evidence_id": str(evidence), "version_number": version_number,
+            "content_hash": digest, "change_kind": kind}
