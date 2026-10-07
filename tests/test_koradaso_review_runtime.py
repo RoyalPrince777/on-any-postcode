@@ -6,6 +6,7 @@ import pytest
 
 from mission_control import koradaso_reviews
 
+
 class R:
     def __init__(self, row=None, rows=None):
         self.row, self.rows = row, rows or []
