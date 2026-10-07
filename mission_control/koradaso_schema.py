@@ -10,7 +10,7 @@ import hashlib
 
 from . import postgres_db
 
-MIGRATION_VERSION = "koradaso_truth_foundation_v1"
+MIGRATION_VERSION = "koradaso_truth_foundation_v2"
 
 STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS koradaso_people (
@@ -32,6 +32,16 @@ STATEMENTS = (
             CHECK (privacy_scope IN ('ME','ROYAL_HOUSE','FAMILY','COMMUNITY','PUBLIC')),
         created_by UUID REFERENCES oap_identities(identity_id),
         created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE TABLE IF NOT EXISTS koradaso_evidence_versions (
+        version_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        evidence_id UUID NOT NULL REFERENCES koradaso_evidence(evidence_id) ON DELETE RESTRICT,
+        version_number INTEGER NOT NULL CHECK (version_number >= 1),
+        content_hash TEXT NOT NULL,
+        change_kind TEXT NOT NULL CHECK (change_kind IN ('ORIGINAL','TRANSCRIPTION','TRANSLATION','INTERPRETATION','CORRECTION')),
+        language TEXT,
+        created_by UUID NOT NULL REFERENCES oap_identities(identity_id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (evidence_id,version_number))""",
     """CREATE TABLE IF NOT EXISTS koradaso_claims (
         claim_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         subject_kind TEXT NOT NULL,
@@ -81,7 +91,7 @@ STATEMENTS = (
         ON CONFLICT (permission_id) DO NOTHING""",
 )
 REQUIRED_TABLES = (
-    "koradaso_people", "koradaso_evidence", "koradaso_claims",
+    "koradaso_people", "koradaso_evidence", "koradaso_evidence_versions", "koradaso_claims",
     "koradaso_claim_evidence", "koradaso_relationships", "koradaso_invites",
 )
 PREREQUISITES = ("oap_identities", "audit_events")
