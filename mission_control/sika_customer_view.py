@@ -15,6 +15,27 @@ class CustomerViewUnavailable(RuntimeError):
     """Raised when canonical owner-scoped SIKA state cannot be read safely."""
 
 
+def _founder_binding(owner: str) -> dict[str, object]:
+    """Read the persisted Founder binding for exactly one authenticated owner."""
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT account_id,sika_number
+                   FROM oap_sika_founder_accounts
+                   WHERE owner_reference=%s""",
+                (owner,),
+            ).fetchone()
+    except Exception as exc:
+        raise CustomerViewUnavailable("founder_binding_read_failed") from exc
+    if row is None:
+        return {"provisioned": False, "sika_number": None, "account_id": None}
+    return {
+        "provisioned": True,
+        "sika_number": str(row[1]),
+        "account_id": str(row[0]),
+    }
+
+
 def snapshot(owner_reference: object) -> dict[str, Any]:
     owner = str(owner_reference or "").strip()
     if not owner:
@@ -36,9 +57,11 @@ def snapshot(owner_reference: object) -> dict[str, Any]:
                 "balance": balance,
             }
         )
+    founder = _founder_binding(owner)
     return {
         "accounts": items,
         "account_count": len(items),
+        "founder": founder,
         "owner_scoped": True,
         "balance_source": "canonical_ledger_and_holds",
         "provider_calling": False,
