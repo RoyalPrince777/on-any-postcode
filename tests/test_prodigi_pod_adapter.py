@@ -93,7 +93,7 @@ def test_prodigi_readback_normalizes_status_without_customer_payload(monkeypatch
     }
 
 
-def test_prodigi_adapter_is_selected_only_for_prodigi_provider_id():
+def test_pod_execution_routes_through_multi_provider_registry():
     source = (
         _root() / "mission_control" / "product_core_views.py"
     ).read_text(encoding="utf-8")
@@ -101,11 +101,11 @@ def test_prodigi_adapter_is_selected_only_for_prodigi_provider_id():
         '@bp.post("/market/pod/provider/webhook")', 1
     )[0]
 
-    assert 'os.environ.get("OAP_POD_PROVIDER_ID", "")' in section
-    assert 'pod_provider_id == "prodigi"' in section
-    assert "prodigi_pod_adapter.submit_order(" in section
-    assert "sika_secure_provider_runtime.submit(" in section
-    assert "kind=\"pod\"" in section
+    assert "pod_provider_registry.submit(" in section
+    assert 'provider_id=payload.get("provider_id")' in section
+    assert 'os.environ.get("OAP_POD_PROVIDER_ID", "")' not in section
+    assert "prodigi_pod_adapter.submit_order(" not in section
+    assert "printful_pod_adapter.create_draft_order(" not in section
 
 
 def test_prodigi_adapter_never_trusts_unsigned_callbacks():
