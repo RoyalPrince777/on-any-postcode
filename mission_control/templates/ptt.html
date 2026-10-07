@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="oap-csrf-token" content="{{ oap_csrf_token }}">
+  <title>PTT — ON ANY POSTCODE</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+</head>
+<body data-oap-ptt-standalone="true" data-oap-ptt-endpoint="/ptt" data-oap-ptt-status-endpoint="/ptt/status">
+  <main class="shell">
+    <section class="card">
+      <p>OAP WORLD · PTT</p>
+      <h1>🎙️ PTT</h1>
+      <p>Hold to talk. Release to listen. Your microphone stays off until you press the talk control.</p>
+      <p><strong data-oap-voice-status>Checking PTT…</strong></p>
+    </section>
+
+    <section class="card" aria-labelledby="ptt-contact-title">
+      <h2 id="ptt-contact-title">Contact</h2>
+      {% if contacts %}
+      <label for="ptt-contact">Talk to</label>
+      <select id="ptt-contact">
+        <option value="">Choose an accepted contact</option>
+        {% for contact in contacts %}
+        <option value="{{ contact.identity_id }}">{{ contact.display_name }} · {{ contact.card_id }}</option>
+        {% endfor %}
+      </select>
+
+      <button
+        type="button"
+        data-oap-ptt-control
+        data-recipient-source="#ptt-contact"
+        aria-label="Hold to talk"
+      >🎙️ Hold to talk</button>
+      <button
+        type="button"
+        data-oap-ptt-stop
+        data-recipient-source="#ptt-contact"
+        hidden
+      >🛑 STOP</button>
+      {% else %}
+      <p>No accepted contacts are available for PTT.</p>
+      {% endif %}
+    </section>
+
+    <nav class="card" aria-label="PTT navigation">
+      <a href="/world">OAP World</a>
+      <a href="/my-line">My Line</a>
+    </nav>
+  </main>
+  <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
+</body>
+</html>

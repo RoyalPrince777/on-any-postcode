@@ -257,7 +257,7 @@ def status() -> dict[str, Any]:
                 "id": "interaction",
                 "name": "Interaction",
                 "href": "/linkup",
-                "summary": "Phone, Walkie-Talkie, Messages, My Line and OAP Mail. Full inbox/receive Mail remains a build gap.",
+                "summary": "Phone, PTT, Messages, My Line and OAP Mail. Full inbox/receive Mail remains a build gap.",
             },
             {
                 "id": "control",
@@ -288,7 +288,7 @@ def status() -> dict[str, Any]:
             "phone": {"href": "/linkup?intent=link-call", "built": True},
             "incoming": {"href": "/linkup/incoming", "built": True},
             "recents": {"href": "/linkup/calls/recents", "built": True},
-            "walkie_talkie": {"href": "/linkup?intent=ptt", "built": True},
+            "walkie_talkie": {"href": "/ptt", "built": True},
             "messages": {"href": "/linkup?intent=message", "built": True},
             "contacts": {"href": "/linkup", "built": True},
             "my_line": {"href": "/my-line", "built": True},

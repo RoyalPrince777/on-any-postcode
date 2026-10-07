@@ -35,7 +35,7 @@ def test_voice_controller_is_explicit_audio_only_same_origin_and_bounded():
     assert "state.maxDurationMs = Number(status.max_voice_duration_ms)" in script
     assert "window.setTimeout(finishRecording, state.maxDurationMs)" in script
     assert "5 * 1024 * 1024" in script
-    assert 'const endpoint = kind === "ptt" ? "/linkup/ptt" : "/linkup/voice"' in script
+    assert 'const endpoint = kind === "ptt" ? pttEndpoint : "/linkup/voice"' in script
     assert "credentials: \"same-origin\"" in script
     assert "cache: \"no-store\"" in script
     assert "http://" not in script
@@ -74,5 +74,6 @@ def test_ptt_controller_is_press_release_and_reuses_first_party_voice_transport(
     assert 'control.addEventListener("pointerdown", begin)' in script
     assert 'control.addEventListener("pointerup", finish)' in script
     assert 'kind === "ptt"' in script
-    assert '"/linkup/ptt"' in script
+    assert 'const pttEndpoint = document.body.dataset.oapPttEndpoint || "/linkup/ptt"' in script
+    assert 'const pttStatusEndpoint = document.body.dataset.oapPttStatusEndpoint || "/linkup/ptt/status"' in script
     assert "navigator.mediaDevices.getUserMedia({ audio: true, video: false })" in script

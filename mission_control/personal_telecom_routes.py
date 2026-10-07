@@ -11,7 +11,7 @@ FEATURE_ROUTES: tuple[dict[str, str], ...] = (
     {"id": "phone", "name": "Phone", "route": "/linkup?intent=link-call", "kind": "communications"},
     {"id": "incoming", "name": "Incoming", "route": "/linkup/incoming", "kind": "communications"},
     {"id": "recents", "name": "Recents", "route": "/linkup/calls/recents", "kind": "communications"},
-    {"id": "ptt", "name": "Walkie-Talkie", "route": "/linkup?intent=ptt", "kind": "communications"},
+    {"id": "ptt", "name": "PTT", "route": "/ptt", "kind": "communications"},
     {"id": "messages", "name": "Messages", "route": "/linkup?intent=message", "kind": "communications"},
     {"id": "contacts", "name": "Contacts", "route": "/linkup", "kind": "communications"},
     {"id": "my_card", "name": "My Card", "route": "/my-card", "kind": "identity"},

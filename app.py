@@ -2754,6 +2754,9 @@ def the_link_front_door():
 def linkup_front_door():
     """Open LinkUp inside The Link."""
 
+    if str(request.args.get("intent") or "").strip().casefold() == "ptt":
+        return redirect("/ptt")
+
     user = None
     dashboard = None
     unavailable = False
@@ -2973,7 +2976,7 @@ def linkup_front_door():
     seven_star_gate = linkup.linkup_seven_star_status(link_runtime)
 
     raw_linkup_intent = str(request.args.get("intent") or "").strip().casefold()
-    linkup_intent = raw_linkup_intent if raw_linkup_intent in {"message", "link-call", "ptt"} else ""
+    linkup_intent = raw_linkup_intent if raw_linkup_intent in {"message", "link-call"} else ""
 
     response = make_response(
         render_template(
