@@ -156,6 +156,16 @@ def readback() -> dict[str, object]:
         with postgres_db.connect(readonly=True) as connection:
             prerequisites = {name: _regclass(connection, name) for name in PREREQUISITES}
             tables = {name: _regclass(connection, name) for name in REQUIRED_TABLES}
+            consent_columns = {
+                name: bool(connection.execute(
+                    """SELECT 1 FROM information_schema.columns
+                       WHERE table_schema='public'
+                         AND table_name='koradaso_release_consents'
+                         AND column_name=%s""",
+                    (name,),
+                ).fetchone())
+                for name in ("summary_hash", "claim_fingerprint")
+            }
     except Exception as exc:
         raise KoradasoSchemaUnavailable("koradaso_schema_readback_failed") from exc
     return {
@@ -164,7 +174,8 @@ def readback() -> dict[str, object]:
         "prerequisites": prerequisites,
         "tables": tables,
         "prerequisites_ready": all(prerequisites.values()),
-        "schema_ready": all(tables.values()),
+        "consent_columns": consent_columns,
+        "schema_ready": all(tables.values()) and all(consent_columns.values()),
         "royal_status_granted": False,
         "invite_issued": False,
         "evidence_published": False,
