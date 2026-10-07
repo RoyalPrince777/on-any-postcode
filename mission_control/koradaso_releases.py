@@ -110,8 +110,20 @@ def revoke_release(*, actor_id: object, release_id: object, reason: str) -> dict
     with postgres_db.connect() as connection:
         if not _can_release(connection, actor):
             raise KoradasoReleaseDenied("koradaso_release_permission_required")
+        # Match publish_claim's lock order: claim first, then consent.
+        # A concurrent publisher must wait for withdrawal to commit.
+        lookup = connection.execute(
+            "SELECT claim_id FROM koradaso_release_consents WHERE release_id=%s",
+            (release,),
+        ).fetchone()
+        if not lookup:
+            raise ValueError("release_not_found")
+        connection.execute(
+            "SELECT claim_id FROM koradaso_claims WHERE claim_id=%s FOR UPDATE",
+            (lookup[0],),
+        ).fetchone()
         row = connection.execute(
-            """SELECT claim_id,revoked_at FROM koradaso_release_consents
+            """SELECT claim_id,revoked_at,released_by FROM koradaso_release_consents
                WHERE release_id=%s FOR UPDATE""",
             (release,),
         ).fetchone()
@@ -119,6 +131,8 @@ def revoke_release(*, actor_id: object, release_id: object, reason: str) -> dict
             raise ValueError("release_not_found")
         if row[1] is not None:
             raise ValueError("release_already_revoked")
+        if str(row[2]) != str(actor):
+            raise KoradasoReleaseDenied("release_owner_required_for_revocation")
         connection.execute(
             """UPDATE koradaso_release_consents
                SET revoked_at=CURRENT_TIMESTAMP, revoked_by=%s,
