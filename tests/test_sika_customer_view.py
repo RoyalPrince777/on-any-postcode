@@ -19,7 +19,32 @@ def _account(status="OPEN"):
     )
 
 
+def _patch_founder_binding(monkeypatch, row=None):
+    class _FounderResult:
+        def fetchone(self):
+            return row
+
+    class _FounderConnection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def execute(self, sql, params=()):
+            assert "oap_sika_founder_accounts" in sql
+            assert params == ("11111111-1111-1111-1111-111111111111",)
+            return _FounderResult()
+
+    monkeypatch.setattr(
+        sika_customer_view.postgres_db,
+        "connect",
+        lambda readonly=True: _FounderConnection(),
+    )
+
+
 def test_customer_snapshot_is_owner_scoped_and_ledger_derived(monkeypatch):
+    _patch_founder_binding(monkeypatch)
     monkeypatch.setattr(
         sika_customer_view.sika_account_engine,
         "read_owner_accounts",
@@ -44,7 +69,43 @@ def test_customer_snapshot_is_owner_scoped_and_ledger_derived(monkeypatch):
     assert result["owner_scoped"] is True
     assert result["balance_source"] == "canonical_ledger_and_holds"
     assert result["accounts"][0]["balance"]["available"] == "80.00"
+    assert result["founder"] == {
+        "provisioned": False,
+        "sika_number": None,
+        "account_id": None,
+    }
     assert "owner_reference" not in result["accounts"][0]
+
+
+def test_customer_snapshot_exposes_only_persisted_founder_binding(monkeypatch):
+    _patch_founder_binding(monkeypatch, ("acct-1", "SIKA-777-123456789012"))
+    monkeypatch.setattr(
+        sika_customer_view.sika_account_engine,
+        "read_owner_accounts",
+        lambda owner: [_account()],
+    )
+    monkeypatch.setattr(
+        sika_customer_view.sika_balance_engine,
+        "project",
+        lambda account: sika_balance_engine.BalanceProjection(
+            account_id=account.account_id,
+            ledger_account_id=account.ledger_account_id,
+            currency=account.currency,
+            cleared=sika_balance_engine.Decimal("0.00"),
+            pending=sika_balance_engine.Decimal("0.00"),
+            reserved=sika_balance_engine.Decimal("0.00"),
+            available=sika_balance_engine.Decimal("0.00"),
+        ),
+    )
+    result = sika_customer_view.snapshot(
+        "11111111-1111-1111-1111-111111111111"
+    )
+    assert result["founder"] == {
+        "provisioned": True,
+        "sika_number": "SIKA-777-123456789012",
+        "account_id": "acct-1",
+    }
+    assert result["accounts"][0]["balance"]["available"] == "0.00"
 
 
 class _Result:
