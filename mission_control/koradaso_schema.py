@@ -73,6 +73,9 @@ STATEMENTS = (
                (claimed_by IS NOT NULL AND claimed_at IS NOT NULL)))""",
     "CREATE INDEX IF NOT EXISTS ix_koradaso_claim_subject ON koradaso_claims(subject_kind,subject_ref)",
     "CREATE INDEX IF NOT EXISTS ix_koradaso_relationship_from ON koradaso_relationships(from_person_id,relationship_type)",
+    """INSERT INTO oap_permissions(permission_id,description)
+        VALUES ('KORADASO_ISSUE_INVITE','Issue or revoke Koradaso Royal House access invitations')
+        ON CONFLICT (permission_id) DO NOTHING""",
 )
 REQUIRED_TABLES = (
     "koradaso_people", "koradaso_evidence", "koradaso_claims",
