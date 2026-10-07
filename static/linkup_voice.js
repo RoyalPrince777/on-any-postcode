@@ -395,11 +395,15 @@
       state.maxBytes = Number(status.max_voice_bytes) || state.maxBytes;
       state.maxDurationMs = Number(status.max_voice_duration_ms) || state.maxDurationMs;
       setStatus(
-        state.ready && browserReady()
-          ? state.pttReady
-            ? "Voice and PTT are ready. Microphone stays off until you use a control."
-            : "Voice is ready. PTT stays locked until its OAP Data schema is proven."
-          : "Voice remains locked until OAP Data Voice and browser recording are ready.",
+        standalonePtt
+          ? state.pttReady && browserReady()
+            ? "PTT is ready. Microphone stays off until you hold the talk control."
+            : "PTT remains locked until OAP Data PTT and browser recording are ready."
+          : state.ready && browserReady()
+            ? state.pttReady
+              ? "Voice and PTT are ready. Microphone stays off until you use a control."
+              : "Voice is ready. PTT stays locked until its OAP Data schema is proven."
+            : "Voice remains locked until OAP Data Voice and browser recording are ready.",
       );
       refreshControls();
       lists.forEach((node) => {
