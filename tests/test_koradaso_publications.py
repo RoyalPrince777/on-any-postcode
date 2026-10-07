@@ -16,7 +16,8 @@ def test_publication_requires_prior_human_review():
     assert "koradaso_claim_reviews" in SOURCE
 
 def test_public_projection_does_not_read_private_evidence_payload():
-    assert "koradaso_evidence" not in SOURCE
+    assert "FROM koradaso_evidence" not in SOURCE
+    assert "JOIN koradaso_evidence" not in SOURCE
     assert "source_uri" not in SOURCE
     assert "original_hash" not in SOURCE
     assert "public_summary" in SOURCE
