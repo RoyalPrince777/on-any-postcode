@@ -46,3 +46,23 @@ def test_read_projection_does_not_return_source_uri_or_created_by():
     return_block = SOURCE.split("def read_evidence", 1)[1]
     assert '"source_uri":' not in return_block
     assert '"created_by":' not in return_block
+
+
+def test_every_truth_mutation_is_audited_before_commit():
+    expected = (
+        "KORADASO_EVIDENCE_RECORDED",
+        "KORADASO_CLAIM_RECORDED",
+        "KORADASO_EVIDENCE_LINKED",
+        "KORADASO_EVIDENCE_VERSION_APPENDED",
+    )
+    for action in expected:
+        assert action in SOURCE
+    assert SOURCE.count("_audit(connection") >= 4
+    assert "SELECT pg_advisory_xact_lock(%s)" in SOURCE
+    assert "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1" in SOURCE
+
+
+def test_audit_metadata_never_contains_raw_evidence_bytes():
+    audit_block = SOURCE.split("def _audit", 1)[1].split("def record_evidence", 1)[0]
+    assert "original_bytes" not in audit_block
+    assert "content_bytes" not in audit_block
