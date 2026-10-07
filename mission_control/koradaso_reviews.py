@@ -1,5 +1,6 @@
 """Human-only review boundary for Koradaso claims."""
 from __future__ import annotations
+
 from uuid import UUID, uuid4
 
 from . import postgres_db
