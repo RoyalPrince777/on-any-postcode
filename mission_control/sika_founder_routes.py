@@ -20,8 +20,8 @@ def provision_founder_bank():
             account_id=str(uuid4()),
             owner_reference=owner_reference,
             legal_entity="ON ANY POSTCODE LTD",
-            jurisdiction="GB",
-            currency="SIKA",
+            jurisdiction="United Kingdom",
+            currency="GBP",
             ledger_account_id=str(uuid4()),
         )
         response = jsonify({
