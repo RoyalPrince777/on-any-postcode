@@ -267,6 +267,24 @@ def bank_status_api():
     return response
 
 
+@bp.get("/pay/bank/me")
+@web_security.login_required()
+def bank_customer_page():
+    try:
+        customer = sika_customer_view.snapshot(
+            web_security.authenticated_identity()
+        )
+        response = make_response(
+            render_template("oap_my_bank.html", customer=customer)
+        )
+    except RuntimeError:
+        response = make_response(
+            render_template("oap_my_bank.html", customer=None), 503
+        )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @bp.get("/pay/bank/me/status")
 @web_security.login_required(api=True)
 def bank_customer_status():
