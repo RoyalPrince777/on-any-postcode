@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import pytest
 
 from mission_control import printful_pod_adapter
