@@ -9,6 +9,7 @@ from hashlib import sha256
 from uuid import UUID, uuid4
 
 from . import postgres_db
+from .koradaso_consent import claim_fingerprint
 from .koradaso_evidence import _audit
 
 RELEASE_PERMISSION = "KORADASO_RELEASE_HERITAGE"
@@ -78,9 +79,10 @@ def grant_release(*, actor_id: object, claim_id: object, reason: str, public_sum
         release_id = uuid4()
         connection.execute(
             """INSERT INTO koradaso_release_consents
-               (release_id,claim_id,released_by,reason,summary_hash)
-               VALUES (%s,%s,%s,%s,%s)""",
-            (release_id, claim, actor, reason_value, sha256(summary.encode()).hexdigest()),
+               (release_id,claim_id,released_by,reason,summary_hash,claim_fingerprint)
+               VALUES (%s,%s,%s,%s,%s,%s)""",
+            (release_id, claim, actor, reason_value, sha256(summary.encode()).hexdigest(),
+             claim_fingerprint(connection, claim)),
         )
         _audit(
             connection,
