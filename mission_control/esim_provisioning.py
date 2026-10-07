@@ -21,7 +21,7 @@ ALLOWED_TRANSITIONS = {
     "available": {"registered", "revoked"},
     "registered": {"active", "revoked"},
     "active": {"suspended", "revoked"},
-    "suspended": {"active", "revoked"},
+    "suspended": {"available", "revoked"},
     "revoked": set(),
     "failed": set(),
 }
@@ -201,8 +201,8 @@ class EsimProvisioningCore:
         result = provider.resume(provider_profile_id=item.provider_profile_id or "")
         if result.get("active") is not True:
             raise RuntimeError("provider_resume_not_confirmed")
-        self._transition(item, "active")
-        self._record(item, "active", provider=provider.name)
+        self._transition(item, "available")
+        self._record(item, "available", provider=provider.name)
         return dataclasses.asdict(item)
 
     def revoke(self, request_id: str) -> dict:
