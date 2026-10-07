@@ -1,6 +1,10 @@
 from flask import Flask
 
-from mission_control import sika_account_engine, sika_founder_account, sika_founder_routes
+from mission_control import (
+    sika_account_engine,
+    sika_founder_account,
+    sika_founder_routes,
+)
 
 
 def _client(monkeypatch, *, owner="11111111-1111-1111-1111-111111111111"):
