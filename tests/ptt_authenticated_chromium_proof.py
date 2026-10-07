@@ -16,8 +16,6 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from playwright.sync_api import expect, sync_playwright
-from werkzeug.serving import make_server
 
 import app as app_module
 from mission_control import link_relationships, link_voice, neon_auth, product_store, web_security
