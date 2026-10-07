@@ -18,7 +18,7 @@ class OapProfileReceiptVerifier:
 
     def verify(self, *, receipt: dict, operation: str, profile_ref: str) -> str:
         if not isinstance(receipt, dict):
-            raise ValueError("invalid_backend_receipt")
+            raise TypeError("invalid_backend_receipt")
         expected = {"operation", "profile_ref", "receipt_id", "signature"}
         if set(receipt) != expected:
             raise ValueError("unexpected_backend_receipt_fields")
