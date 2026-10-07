@@ -6,7 +6,7 @@ SOURCE = Path("android/oapworld/src/main/java/com/onanypostcode/oapworld/MainAct
 def test_oap_browser_keeps_oap_as_home_and_routes_search_first_party():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com"' in source
-    assert 'openFirstPartyPath("/")' in source
+    assert 'openFirstPartyPath("/world")' in source
     assert 'openFirstPartyPath("/search?q=" + Uri.encode(input))' in source
 
 
