@@ -5,6 +5,7 @@ Access invitations are not statements of genealogy or Royal status.
 from __future__ import annotations
 
 import hashlib
+import json
 import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID, uuid4
@@ -46,28 +47,25 @@ def _has_permission(connection, identity_id: UUID, permission: str) -> bool:
 
 def _audit(connection, *, actor: UUID, action: str, target: str, reason: str,
            metadata: dict[str, object] | None = None) -> None:
+    """Append using the canonical PostgreSQL audit-chain locking/hash pattern."""
+    connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
     previous = connection.execute(
-        "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1 FOR UPDATE"
+        "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
     ).fetchone()
-    prev_hash = str(previous[0]) if previous else ""
-    event_id = uuid4()
-    correlation_id = uuid4()
-    timestamp = datetime.now(timezone.utc)
+    prev_hash = str(previous[0]) if previous else "GENESIS"
     safe_metadata = metadata or {}
-    payload = "|".join((
-        prev_hash, str(event_id), str(actor), action, target, reason,
-        str(correlation_id), timestamp.isoformat(), repr(sorted(safe_metadata.items())),
-    ))
-    curr_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    canonical = json.dumps(safe_metadata, sort_keys=True, separators=(",", ":"))
+    curr_hash = hashlib.sha256((prev_hash + canonical).encode()).hexdigest()
     connection.execute(
-        """INSERT INTO audit_events
-           (event_id,prev_hash,curr_hash,actor_id,actor_type,authority_level,
-            action,target,reason,correlation_id,metadata,timestamp)
-           VALUES (%s,%s,%s,%s,'HUMAN',0,%s,%s,%s,%s,%s::jsonb,%s)""",
-        (event_id, prev_hash, curr_hash, str(actor), action, target, reason,
-         correlation_id, __import__("json").dumps(safe_metadata), timestamp),
+        """INSERT INTO audit_events(
+               prev_hash,curr_hash,actor_id,actor_type,authority_level,
+               action,target,reason,correlation_id,metadata
+           ) VALUES (%s,%s,%s,'HUMAN_AUTHORITY',0,%s,%s,%s,%s,%s::jsonb)""",
+        (
+            prev_hash, curr_hash, str(actor), action, target, reason,
+            str(uuid4()), canonical,
+        ),
     )
-
 
 def issue_invite(*, invited_by: object, ttl_hours: int = DEFAULT_TTL_HOURS) -> dict[str, object]:
     issuer = _uuid(invited_by, "invited_by")
