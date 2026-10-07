@@ -150,15 +150,16 @@ def append_evidence_version(*, actor_id: object, evidence_id: object,
     with postgres_db.connect() as connection:
         if not _has_permission(connection, actor):
             raise KoradasoEvidenceDenied("koradaso_evidence_permission_required")
-        row = connection.execute(
-            """SELECT COALESCE(MAX(v.version_number),0),e.privacy_scope
-               FROM koradaso_evidence e
-               LEFT JOIN koradaso_evidence_versions v ON v.evidence_id=e.evidence_id
-               WHERE e.evidence_id=%s GROUP BY e.privacy_scope FOR UPDATE""",
+        parent = connection.execute(
+            "SELECT evidence_id FROM koradaso_evidence WHERE evidence_id=%s FOR UPDATE",
             (evidence,),
         ).fetchone()
-        if not row:
+        if not parent:
             raise ValueError("evidence_not_found")
+        row = connection.execute(
+            "SELECT COALESCE(MAX(version_number),0) FROM koradaso_evidence_versions WHERE evidence_id=%s",
+            (evidence,),
+        ).fetchone()
         version_number = int(row[0]) + 1
         connection.execute(
             """INSERT INTO koradaso_evidence_versions
