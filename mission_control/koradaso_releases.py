@@ -116,6 +116,12 @@ def revoke_release(*, actor_id: object, release_id: object, reason: str) -> dict
                WHERE release_id=%s""",
             (actor, reason_value, release),
         )
+        connection.execute(
+            """UPDATE koradaso_publications
+               SET revoked_at=CURRENT_TIMESTAMP
+               WHERE claim_id=%s AND revoked_at IS NULL""",
+            (row[0],),
+        )
         _audit(
             connection,
             actor=actor,
