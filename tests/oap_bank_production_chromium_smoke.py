@@ -35,7 +35,14 @@ def main() -> None:
         errors: list[str] = []
         page.on("pageerror", lambda exc: errors.append(str(exc)))
 
-        response = page.goto(BANK_URL, wait_until="domcontentloaded")
+        response = None
+        for attempt in range(3):
+            response = page.goto(BANK_URL, wait_until="domcontentloaded")
+            if response is not None and response.status == 200:
+                break
+            if response is not None and response.status not in {429, 502, 503, 504}:
+                break
+            time.sleep(2 * (attempt + 1))
         assert response is not None and response.status == 200
 
         expect(page.get_by_text("👑 OAP BANK", exact=True).first).to_be_visible()
