@@ -1,5 +1,6 @@
 """Governed public projection of reviewed Koradaso heritage claims."""
 from __future__ import annotations
+
 from uuid import UUID, uuid4
 
 from . import postgres_db
