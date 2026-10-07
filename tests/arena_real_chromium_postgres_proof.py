@@ -56,6 +56,14 @@ def prove_civilization_event_transaction_atomicity():
     from mission_control import civilization_events
 
     room_id = "00000000-0000-0000-0000-000000000777"
+    with postgres_db.connect() as connection:
+        connection.execute(
+            """INSERT INTO oap_arena_rooms(
+                   room_id,room_code,game_key,status,capacity,host_seat,game_state,revision
+               ) VALUES (%s,'HB7777','chess','ACTIVE',2,1,'{}'::jsonb,0)""",
+            (room_id,),
+        )
+        connection.commit()
     state = {
         "status": "completed",
         "result": "checkmate",
@@ -102,6 +110,7 @@ def prove_civilization_event_transaction_atomicity():
             "DELETE FROM oap_civilization_events WHERE entity_id=%s",
             (room_id,),
         )
+        connection.execute("DELETE FROM oap_arena_rooms WHERE room_id=%s", (room_id,))
         connection.commit()
     print("ARENA_CIVILIZATION_EVENT_ATOMICITY_PASS")
 
