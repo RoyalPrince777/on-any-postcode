@@ -963,7 +963,14 @@ def born_day_reaction_rush():
 @app.get("/world/born-day")
 def world_born_day():
     """Public celebration hub; never require or disclose a birth date."""
-    response = make_response(render_template("born_day.html"))
+    from mission_control.born_day import WEEKDAYS
+
+    selected = request.args.get("weekday", "")
+    if selected not in WEEKDAYS:
+        selected = ""
+    response = make_response(
+        render_template("born_day.html", weekdays=WEEKDAYS, selected_weekday=selected)
+    )
     response.headers["Cache-Control"] = "no-store"
     response.headers["Referrer-Policy"] = "no-referrer"
     return response
