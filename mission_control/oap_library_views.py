@@ -111,7 +111,7 @@ def my_library():
 
 
 @bp.get("/library/my-library/koradaso-heritage")
-@web_security.login_required()
+@web_security.login_required(founder_only=True)
 def my_koradaso_heritage():
     """Private owner-only entry point; storage and sharing remain disabled."""
     _identity()
