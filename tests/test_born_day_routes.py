@@ -37,10 +37,25 @@ class BornDayRouteTests(unittest.TestCase):
         game = self.client.get("/born-day/reaction-rush")
         self.assertEqual(game.status_code, 200)
         self.assertIn(b"Reaction Rush", game.data)
-        self.assertIn(b"performance.now()", game.data)
-        self.assertIn(b"False start", game.data)
+        self.assertIn(b"born_day_reaction_rush.js", game.data)
+        self.assertIn(b"False starts", game.data)
         self.assertIn(b'href="/born-day"', game.data)
         self.assertEqual(game.headers["Cache-Control"], "no-store")
+
+    def test_optional_weekday_celebration(self):
+        thursday = self.client.get("/born-day?weekday=Thursday")
+        self.assertEqual(thursday.status_code, 200)
+        self.assertIn(b"Yawoada", thursday.data)
+        self.assertIn(b"Happy Thursday", thursday.data)
+        invalid = self.client.get("/born-day?weekday=Invalid")
+        self.assertEqual(invalid.status_code, 200)
+        self.assertNotIn(b"Happy Invalid", invalid.data)
+
+    def test_reaction_rush_javascript_is_first_party(self):
+        response = self.client.get("/static/born_day_reaction_rush.js")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"performance.now()", response.data)
+        self.assertIn(b"False start", response.data)
 
     def test_world_exposes_born_day(self):
         response = self.client.get("/world")
