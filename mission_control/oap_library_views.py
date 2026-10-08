@@ -110,6 +110,16 @@ def my_library():
     )
 
 
+@bp.get("/library/my-library/koradaso-heritage")
+@web_security.login_required()
+def my_koradaso_heritage():
+    """Private owner-only entry point; storage and sharing remain disabled."""
+    _identity()
+    return _library_page(
+        make_response(render_template("oap_library_koradaso_private.html"))
+    )
+
+
 @bp.get("/library/create")
 @bp.get("/library/sell")
 @web_security.login_required()
