@@ -12,11 +12,11 @@ from typing import Any
 MAX_TEXT = 10000
 
 _SIGNALS = (
-    ("security", re.compile(r"\b(?:suspicious sign[ -]?in|unauthori[sz]ed access|password reset|security alert|account compromised)\b", re.I)),
-    ("deadline", re.compile(r"\b(?:action required|response required|due (?:today|tomorrow)|deadline|final reminder|expires? (?:today|tomorrow))\b", re.I)),
-    ("payment", re.compile(r"\b(?:payment overdue|invoice overdue|failed payment|bill due|past due)\b", re.I)),
-    ("appointment", re.compile(r"\b(?:appointment confirmation|appointment reminder|meeting rescheduled|appointment cancelled)\b", re.I)),
-    ("reply", re.compile(r"\b(?:please (?:reply|respond|confirm)|awaiting your response|can you confirm)\b", re.I)),
+    ("security", re.compile(r"\b(?:suspicious sign[ -]?in|unauthori[sz]ed access|password reset|security alert|account compromised)\b", re.IGNORECASE)),
+    ("deadline", re.compile(r"\b(?:action required|response required|due (?:today|tomorrow)|deadline|final reminder|expires? (?:today|tomorrow))\b", re.IGNORECASE)),
+    ("payment", re.compile(r"\b(?:payment overdue|invoice overdue|failed payment|bill due|past due)\b", re.IGNORECASE)),
+    ("appointment", re.compile(r"\b(?:appointment confirmation|appointment reminder|meeting rescheduled|appointment cancelled)\b", re.IGNORECASE)),
+    ("reply", re.compile(r"\b(?:please (?:reply|respond|confirm)|awaiting your response|can you confirm)\b", re.IGNORECASE)),
 )
 
 
