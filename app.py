@@ -4177,5 +4177,11 @@ def global_affairs_recovery(authority_record_id: str):
     return response
 
 
+@app.get("/internet")
+def oap_internet():
+    """Public OAP Internet entry; external browsing remains browser-host controlled."""
+    return render_template("oap_internet.html")
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050, debug=True)
