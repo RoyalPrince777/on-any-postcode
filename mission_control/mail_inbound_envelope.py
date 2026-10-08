@@ -10,7 +10,11 @@ import uuid
 from dataclasses import dataclass
 from email.utils import parseaddr
 
-from .mail_inbound_validation import (\n    InboundMessageRejected,\n    ParsedInboundMessage,\n    parse_inbound_message,\n)
+from .mail_inbound_validation import (
+    InboundMessageRejected,
+    ParsedInboundMessage,
+    parse_inbound_message,
+)
 
 
 @dataclass(frozen=True)
@@ -24,7 +28,8 @@ def _mailbox_address(value: object) -> str:
     if not isinstance(value, str) or len(value) > 320:
         raise InboundMessageRejected("invalid_inbound_recipient")
     address = value.strip()
-    if not address or any(c in address for c in "\r\n\x00<> ,;"):
+    if not address or any(c in address for c in "\r
+\x00<> ,;"):
         raise InboundMessageRejected("invalid_inbound_recipient")
     if parseaddr(address)[1] != address or address.count("@") != 1:
         raise InboundMessageRejected("invalid_inbound_recipient")
