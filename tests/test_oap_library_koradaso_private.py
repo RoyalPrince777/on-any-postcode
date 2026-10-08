@@ -27,7 +27,7 @@ def test_private_koradaso_entry_is_only_on_signed_in_library(client, monkeypatch
     assert "KORADASO Heritage" in body
     assert "Collection storage is not enabled yet" in body
     assert "Uploads, sharing and publication remain disabled" in body
-    assert private.headers["Cache-Control"] == "no-store"
+    assert private.headers["Cache-Control"] == "private, no-store"
     assert private.headers["X-Frame-Options"] == "DENY"
 
 
