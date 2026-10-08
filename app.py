@@ -919,6 +919,15 @@ def world_carnival():
     return _carnival_intelligence_response()
 
 
+@app.get("/born-day/reaction-rush")
+def born_day_reaction_rush():
+    """Standalone first-party quick game; results are local and unverified."""
+    response = make_response(render_template("born_day_reaction_rush.html"))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.get("/born-day")
 @app.get("/world/born-day")
 def world_born_day():
