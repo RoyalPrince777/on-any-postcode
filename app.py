@@ -919,6 +919,72 @@ def world_carnival():
     return _carnival_intelligence_response()
 
 
+@app.get("/born-day/play/<game>")
+def born_day_shared_arena_game(game):
+    """Render the existing Arena UI in Born Day context without a second engine."""
+    templates = {
+        "oware": "oware.html",
+        "ludo": "ludo.html",
+        "connect4": "connect4.html",
+    }
+    if game not in templates:
+        return ("Not found", 404)
+    html = render_template(
+        templates[game], csrf_token=web_security.csrf_token()
+    )
+    # Use the original first-party game markup and APIs; add only navigation.
+    # No iframe: the app's global frame-ancestors/X-Frame-Options forbid framing.
+    back_link = (
+        '<nav aria-label="Born Day navigation" '
+        'style="position:fixed;z-index:2147483647;bottom:12px;left:12px;'
+        'background:#17130b;color:#f4d477;padding:12px 16px;'
+        'border:2px solid #c49c46;border-radius:14px">'
+        '<a href="/born-day" style="color:inherit;font-weight:800">'
+        '← Born Day</a></nav>'
+    )
+    if "</body>" not in html:
+        return ("Arena game unavailable", 503)
+    response = make_response(html.replace("</body>", back_link + "</body>", 1))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.get("/born-day/leaderboards")
+def born_day_leaderboards():
+    """Public read-only competition hub; no fabricated or client-submitted ranks."""
+    response = make_response(render_template("born_day_leaderboards.html"))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.get("/born-day/reaction-rush")
+def born_day_reaction_rush():
+    """Standalone first-party quick game; results are local and unverified."""
+    response = make_response(render_template("born_day_reaction_rush.html"))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.get("/born-day")
+@app.get("/world/born-day")
+def world_born_day():
+    """Public celebration hub; never require or disclose a birth date."""
+    from mission_control.born_day import WEEKDAYS
+
+    selected = request.args.get("weekday", "")
+    if selected not in WEEKDAYS:
+        selected = ""
+    response = make_response(
+        render_template("born_day.html", weekdays=WEEKDAYS, selected_weekday=selected)
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.get("/arena")
 @app.get("/world/arena")
 def world_arena():

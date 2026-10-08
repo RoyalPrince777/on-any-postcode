@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
+<title>Reaction Rush · Born Day</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#0b0b0b;color:#fff8e8}
+*{box-sizing:border-box}body{margin:0}main{max-width:640px;margin:auto;padding:20px 16px}
+a{color:#f4d477;display:inline-block;padding:12px 0}h1{font-size:clamp(2rem,9vw,3.4rem);margin:16px 0 8px}p{color:#d4cbb6;line-height:1.5}
+#pad{display:block;width:100%;min-height:280px;border:2px solid #706143;border-radius:24px;background:#24201a;color:#fff;font:800 clamp(1.5rem,6vw,2.5rem) system-ui;touch-action:manipulation;cursor:pointer}
+#pad.wait{background:#762e23}#pad.ready{background:#16693b}#pad:focus-visible{outline:3px solid #f4d477;outline-offset:4px}
+#result{min-height:3em;font-weight:700}small{color:#c6bba5}
+</style>
+</head>
+<body>
+<main>
+<a href="/born-day">← Back to Born Day</a>
+<h1>⚡ Reaction Rush</h1>
+<p>Tap to start. Wait for green, then tap as quickly as you can. Early taps count as false starts.</p>
+<button id="pad" type="button" aria-describedby="result">Start challenge</button>
+<p id="result" role="status" aria-live="polite">Ready when you are.</p>
+<small>Local device timing only. No verified ranking or online score submission. Colour is never the only signal.</small>
+</main>
+<script src="{{ url_for('static', filename='born_day_reaction_rush.js') }}" defer></script>
+</body>
+</html>
