@@ -116,9 +116,12 @@ def my_library():
 def my_koradaso_heritage():
     """Private owner-only entry point; storage and sharing remain disabled."""
     _identity()
-    return _library_page(
+    response = _library_page(
         make_response(render_template("oap_library_koradaso_private.html"))
     )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+    return response
 
 
 @bp.get("/library/create")
