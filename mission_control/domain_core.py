@@ -25,7 +25,7 @@ def normalize(name):
     if not isinstance(name,str): raise ValueError("domain must be text")
     try: name=name.strip().rstrip(".").encode("idna").decode("ascii").lower()
     except UnicodeError as e: raise ValueError("invalid domain") from e
-    if len(name)>253 or not re.fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}",name): raise ValueError("invalid domain")
+    if len(name)>253 or not re.fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}",name): raise ValueError("invalid domain")
     return name
 
 class DomainCore:
