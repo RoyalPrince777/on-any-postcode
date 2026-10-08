@@ -4177,5 +4177,40 @@ def global_affairs_recovery(authority_record_id: str):
     return response
 
 
+
+# OAP Domains: Founder-private read-only surfaces backed by one canonical store.
+# A durable OAP_DOMAINS_SQLITE_PATH must be explicitly configured; no silent
+# ephemeral /tmp database, fake inventory, or provider execution.
+@app.route("/domains", methods=["GET"])
+@app.route("/domains/mine", methods=["GET"])
+@app.route("/domains/market", methods=["GET"])
+@web_security.login_required(api=True, founder_only=True)
+def domains_founder_surface():
+    from mission_control.domain_core import DomainCore
+    database_path = os.environ.get("OAP_DOMAINS_SQLITE_PATH", "").strip()
+    if not database_path or database_path == ":memory:":
+        return jsonify(error={"code": "domains_store_not_configured"}), 503
+    user = web_security.current_authenticated_user()
+    if not user or not user.get("id"):
+        return jsonify(error={"code": "domains_identity_unavailable"}), 403
+    try:
+        store = DomainCore(database_path)
+        try:
+            if request.path == "/domains":
+                data = {"surface": "domains", "mine_count": len(store.mine(str(user["id"]))), "registration_enabled": False}
+            elif request.path == "/domains/mine":
+                data = {"surface": "mine", "domains": store.mine(str(user["id"]))}
+            else:
+                data = {"surface": "market", "domains": store.market(), "resale_enabled": False}
+        finally:
+            store.db.close()
+    except (OSError, Exception) as exc:
+        # Do not leak filesystem paths or database internals.
+        app.logger.warning("domains read unavailable: %s", type(exc).__name__)
+        return jsonify(error={"code": "domains_store_unavailable"}), 503
+    response = jsonify(data)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050, debug=True)
