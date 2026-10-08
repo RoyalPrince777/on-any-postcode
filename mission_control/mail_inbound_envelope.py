@@ -10,7 +10,7 @@ import uuid
 from dataclasses import dataclass
 from email.utils import parseaddr
 
-from .mail_inbound_validation import InboundMessageRejected, ParsedInboundMessage, parse_inbound_message
+from .mail_inbound_validation import (\n    InboundMessageRejected,\n    ParsedInboundMessage,\n    parse_inbound_message,\n)
 
 
 @dataclass(frozen=True)
