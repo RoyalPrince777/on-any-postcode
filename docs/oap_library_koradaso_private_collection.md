@@ -41,3 +41,17 @@ This document is a design contract only, not runtime proof.
 
 ## One-Brain governance (Founder decision)
 KORADASO must not create or advertise a separate AI brain. SMI (Synthetic Machine Intelligence) is the single shared intelligence layer for OAP World and its connected systems. KORADASO is a governed domain, not an independent intelligence authority. Captain ALL IN coordinates within SMI; Guardian enforces permissions. The private KORADASO Heritage collection remains in My Library, not a Brain menu. No new AI execution permissions are granted by this design decision.
+
+## Begoro and KORADASO living-world concept — proposal only
+The Founder has requested exploration of a living-world experience encompassing both Begoro and KORADASO. This is separate from the private Heritage Library collection and is not a change to the official purpose of KORADASO.
+
+- Begoro: broader geographic and community context.
+- KORADASO: its own distinct local experience, preserving exact spelling.
+- Proposed interactive elements: landscapes, buildings, markets, daily life, cultural storytelling and distinct character personalities.
+- Geography, place names, language, traditional authority and historical claims require sourced review before public representation.
+- SMI remains the only shared intelligence layer; no duplicate Begoro or KORADASO brain.
+- No publication of family/private heritage records from the Library.
+- No new public routes, production deployment, identity authority, or data access are approved by this concept.
+- Next proof: define a bounded experience and review geographic/cultural accuracy before implementing any map or interactive world.
+
+Status: brainstorming/design scope, not built or runtime verified.
