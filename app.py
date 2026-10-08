@@ -919,6 +919,37 @@ def world_carnival():
     return _carnival_intelligence_response()
 
 
+@app.get("/born-day/play/<game>")
+def born_day_shared_arena_game(game):
+    """Render the existing Arena UI in Born Day context without a second engine."""
+    templates = {
+        "oware": "oware.html",
+        "ludo": "ludo.html",
+        "connect4": "connect4.html",
+    }
+    if game not in templates:
+        return ("Not found", 404)
+    html = render_template(
+        templates[game], csrf_token=web_security.csrf_token()
+    )
+    # Use the original first-party game markup and APIs; add only navigation.
+    # No iframe: the app's global frame-ancestors/X-Frame-Options forbid framing.
+    back_link = (
+        '<nav aria-label="Born Day navigation" '
+        'style="position:fixed;z-index:2147483647;bottom:12px;left:12px;'
+        'background:#17130b;color:#f4d477;padding:12px 16px;'
+        'border:2px solid #c49c46;border-radius:14px">'
+        '<a href="/born-day" style="color:inherit;font-weight:800">'
+        '← Born Day</a></nav>'
+    )
+    if "</body>" not in html:
+        return ("Arena game unavailable", 503)
+    response = make_response(html.replace("</body>", back_link + "</body>", 1))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.get("/born-day/reaction-rush")
 def born_day_reaction_rush():
     """Standalone first-party quick game; results are local and unverified."""
