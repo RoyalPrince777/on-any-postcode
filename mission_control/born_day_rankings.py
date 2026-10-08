@@ -12,7 +12,7 @@ COMPETITIVE_GAMES = frozenset({"oware", "ludo", "connect4"})
 def validated_result(record):
     """Validate a trusted, server-created result before it enters rankings."""
     if not isinstance(record, dict):
-        raise ValueError("Invalid result")
+        raise TypeError("Invalid result")
     if record.get("game") not in SUPPORTED_GAMES:
         raise ValueError("Unsupported game")
     if record.get("verification") != "server_verified":
