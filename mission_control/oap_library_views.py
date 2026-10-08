@@ -91,6 +91,19 @@ def begoro_koradaso_opportunities():
     return response
 
 
+@bp.get("/begoro-koradaso/invitations/control")
+@web_security.login_required(founder_only=True)
+def begoro_koradaso_invitation_control():
+    """Private control boundary; invitation issuance is not yet enabled."""
+    _identity()
+    response = _library_page(
+        make_response(render_template("oap_begoro_koradaso_invitation_control.html"))
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+    return response
+
+
 @bp.get("/library/my-library")
 @web_security.login_required()
 def my_library():
