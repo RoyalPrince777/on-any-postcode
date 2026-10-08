@@ -44,8 +44,21 @@ h2{font-size:1.2rem;margin:28px 0 12px}.grid{display:grid;grid-template-columns:
 </section>
 <section aria-labelledby="celebrate-title">
 <h2 id="celebrate-title">👑 Celebrate your day</h2>
+<form action="/born-day" method="get">
+<label for="weekday">Choose your weekday (optional)</label>
+<select id="weekday" name="weekday" style="display:block;margin:10px 0 14px;width:100%;min-height:48px;border:1px solid #79622f;border-radius:12px;background:#191712;color:#fff8e8;padding:10px">
+<option value="">Choose a day</option>
+{% for day in weekdays %}<option value="{{ day }}" {% if day == selected_weekday %}selected{% endif %}>{{ day }}</option>{% endfor %}
+</select>
+<button class="button" type="submit" style="border:0;cursor:pointer">Celebrate my day</button>
+</form>
+{% if selected_weekday %}
+<p role="status"><strong>🎉 Happy {{ selected_weekday }}!</strong> Born once. Celebrated every week.</p>
+{% if selected_weekday == "Thursday" %}<p>👑 Yawoada · Thursday. In Akan naming traditions, Yaw and Yaa are Thursday day names. Your heritage is your choice.</p>{% endif %}
+{% else %}
 <p>Thursday · Yawoada is one celebration tradition. Every weekday belongs here, and cultural names are optional.</p>
-<p class="note">Your personal weekday and roots are not collected or published on this page.</p>
+{% endif %}
+<p class="note">Your weekday is only used to render this page. It is not stored in an account; choosing a day places it in the page URL, which you can clear by returning to Born Day. Do not share a personalised URL if you prefer privacy.</p>
 </section>
 </main>
 </body>
