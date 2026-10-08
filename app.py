@@ -919,6 +919,16 @@ def world_carnival():
     return _carnival_intelligence_response()
 
 
+@app.get("/born-day")
+@app.get("/world/born-day")
+def world_born_day():
+    """Public celebration hub; never require or disclose a birth date."""
+    response = make_response(render_template("born_day.html"))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.get("/arena")
 @app.get("/world/arena")
 def world_arena():
