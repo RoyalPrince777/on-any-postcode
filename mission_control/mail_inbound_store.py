@@ -50,7 +50,7 @@ def persist_founder_inbox(
     idempotent. Do not ACK an SMTP transaction on any exception.
     """
     if not isinstance(delivery, FounderDelivery):
-        raise ValueError("invalid_inbound_delivery")
+        raise TypeError("invalid_inbound_delivery")
     item_id = _delivery_id(delivery, delivery_key)
     if not mail_migration.schema_status().get("schema_ready"):
         raise InboundStoreUnavailable("mail_schema_not_ready")
