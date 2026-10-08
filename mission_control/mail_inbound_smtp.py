@@ -7,7 +7,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .mail_inbound_envelope import InboundMessageRejected, _mailbox_address, validate_founder_delivery
+from .mail_inbound_envelope import (
+    InboundMessageRejected,
+    _mailbox_address,
+    validate_founder_delivery,
+)
 from .mail_inbound_store import InboundStoreUnavailable, persist_founder_inbox
 
 MAX_MESSAGE_BYTES = 256000
