@@ -950,6 +950,15 @@ def born_day_shared_arena_game(game):
     return response
 
 
+@app.get("/born-day/leaderboards")
+def born_day_leaderboards():
+    """Public read-only competition hub; no fabricated or client-submitted ranks."""
+    response = make_response(render_template("born_day_leaderboards.html"))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.get("/born-day/reaction-rush")
 def born_day_reaction_rush():
     """Standalone first-party quick game; results are local and unverified."""
