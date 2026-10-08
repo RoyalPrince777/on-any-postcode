@@ -2,7 +2,10 @@
 import uuid
 
 from mission_control import mail_inbound_smtp
-from mission_control.mail_inbound_store import InboundStoreReceipt, InboundStoreUnavailable
+from mission_control.mail_inbound_store import (
+    InboundStoreReceipt,
+    InboundStoreUnavailable,
+)
 
 
 def session(*, authenticated=True):
