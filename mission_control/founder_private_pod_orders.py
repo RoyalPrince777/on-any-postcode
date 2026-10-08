@@ -85,6 +85,73 @@ def _row(values) -> dict[str, Any]:
     }
 
 
+def _table_exists(connection, table_name: str) -> bool:
+    row = connection.execute(
+        """SELECT 1 FROM information_schema.tables
+           WHERE table_schema='public' AND table_name=%s LIMIT 1""",
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
+def schema_status() -> dict[str, object]:
+    result: dict[str, object] = {
+        "component": "OAP Founder Private POD Orders",
+        "migration": MIGRATION_VERSION,
+        "checksum": MIGRATION_CHECKSUM,
+        "database_reachable": False,
+        "order_table_ready": False,
+        "schema_ready": False,
+        "public_merchant_access": False,
+        "external_execution_enabled_here": False,
+        "error": None,
+    }
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            result["database_reachable"] = True
+            ready = _table_exists(connection, "oap_founder_private_pod_orders")
+            result["order_table_ready"] = ready
+            result["schema_ready"] = ready
+            if not ready:
+                result["error"] = "founder_private_pod_order_schema_pending"
+            return result
+    except (postgres_db._driver().Error, RuntimeError, OSError):
+        result["error"] = "founder_private_pod_order_schema_unavailable"
+        return result
+
+
+def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, object]:
+    if not assume_yes:
+        raise RuntimeError("Explicit human approval required: pass --yes")
+    if dry_run:
+        return {
+            "migration": MIGRATION_VERSION,
+            "checksum": MIGRATION_CHECKSUM,
+            "dry_run": True,
+            "schema_ready": False,
+            "public_merchant_access": False,
+            "external_execution_enabled_here": False,
+            "human_authority_final": True,
+        }
+    try:
+        with postgres_db.connect() as connection:
+            for statement in SCHEMA_STATEMENTS:
+                connection.execute(statement)
+            connection.commit()
+    except Exception as exc:
+        raise FounderPrivatePodOrderUnavailable(
+            "private_pod_order_schema_init_failed"
+        ) from exc
+    result = schema_status()
+    if result.get("schema_ready") is not True:
+        raise FounderPrivatePodOrderUnavailable(
+            "private_pod_order_schema_not_ready"
+        )
+    result["dry_run"] = False
+    result["human_authority_final"] = True
+    return result
+
+
 class FounderPrivatePodOrderStore:
     def create_snapshot(
         self,
