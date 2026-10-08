@@ -14,10 +14,22 @@ class BornDayRouteTests(unittest.TestCase):
                 response = self.client.get(route)
                 self.assertEqual(response.status_code, 200)
                 self.assertIn(b"Oware Abapa", response.data)
-                self.assertIn(b"/arena/oware", response.data)
-                self.assertIn(b"/arena/ludo", response.data)
-                self.assertIn(b"/arena/connect4", response.data)
+                self.assertIn(b"/born-day/play/oware", response.data)
+                self.assertIn(b"/born-day/play/ludo", response.data)
+                self.assertIn(b"/born-day/play/connect4", response.data)
                 self.assertEqual(response.headers["Cache-Control"], "no-store")
+
+    def test_shared_arena_games_have_return_navigation(self):
+        for game in ("oware", "ludo", "connect4"):
+            with self.subTest(game=game):
+                response = self.client.get("/born-day/play/" + game)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(b'aria-label="Born Day navigation"', response.data)
+                self.assertIn(b'href="/born-day"', response.data)
+                self.assertEqual(response.headers["Cache-Control"], "no-store")
+
+    def test_unknown_shared_game_is_not_found(self):
+        self.assertEqual(self.client.get("/born-day/play/unknown").status_code, 404)
 
     def test_reaction_rush_is_linked_and_renders(self):
         hub = self.client.get("/born-day")
