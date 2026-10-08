@@ -34,7 +34,7 @@ class DomainCore:
         self.db.row_factory=sqlite3.Row
         self.db.execute("PRAGMA foreign_keys=ON")
         self.provider=provider or DisabledRegistrar()
-        self.execution_enabled=execution_enabled
+        self.execution_enabled=False  # fail closed until a real registrar execution integration is reviewed
         self.db.executescript("""
           CREATE TABLE IF NOT EXISTS domains (id TEXT PRIMARY KEY,name TEXT UNIQUE NOT NULL,owner_id TEXT NOT NULL,state TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS domain_evidence (id INTEGER PRIMARY KEY AUTOINCREMENT,domain_id TEXT NOT NULL REFERENCES domains(id),kind TEXT NOT NULL,source TEXT NOT NULL,payload TEXT NOT NULL,recorded_at TEXT NOT NULL);
@@ -67,10 +67,11 @@ class DomainCore:
         row=self.get(rid)
         if row is None: raise KeyError(rid)
         if target not in TRANSITIONS[row["state"]]: raise ValueError("invalid transition")
+        if target in {"checkout_authorized","registration_pending","registered","owned"}: raise ExecutionDisabled("Live payment and registrar proof gate closed")
         if target in REQUIRED:
             evidence=self.db.execute("SELECT kind FROM domain_evidence WHERE id=? AND domain_id=?",(evidence_id,rid)).fetchone()
             if not evidence or evidence["kind"]!=REQUIRED[target]: raise ValueError("missing evidence")
-            if target in {"registration_pending","registered","owned"} and not self.execution_enabled: raise ExecutionDisabled("registration gate closed")
+            if target in {"registration_pending","registered","owned"}: raise ExecutionDisabled("registration gate closed")
             if target=="owned":
                 kinds={r[0] for r in self.db.execute("SELECT kind FROM domain_evidence WHERE domain_id=?",(rid,))}
                 if not {"availability","exact_price","checkout","registrar_registration","registry_rdap","dns_control"} <= kinds: raise ValueError("incomplete ownership proof")
