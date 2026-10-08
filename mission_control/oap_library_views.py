@@ -105,6 +105,7 @@ def my_library():
                 collections=member_collections,
                 owned_ebooks=owned_ebooks,
                 owned_state=owned_state,
+                show_koradaso_heritage=web_security.private_authority_allowed(_user),
             )
         )
     )
