@@ -81,6 +81,16 @@ def library_home():
     )
 
 
+@bp.get("/begoro-koradaso/opportunities")
+def begoro_koradaso_opportunities():
+    """Public information only; participation stays invitation-gated."""
+    response = _library_page(
+        make_response(render_template("oap_begoro_koradaso_opportunities.html"))
+    )
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
+
 @bp.get("/library/my-library")
 @web_security.login_required()
 def my_library():
