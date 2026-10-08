@@ -12,7 +12,17 @@ import secrets
 import uuid
 from typing import Any
 
-from . import chess, connect4, dot, iq_duel, ludo, oware, postgres_db, route_empire
+from . import (
+    chess,
+    civilization_events,
+    connect4,
+    dot,
+    iq_duel,
+    ludo,
+    oware,
+    postgres_db,
+    route_empire,
+)
 
 SUPPORTED_GAMES = frozenset({"connect4", "dot", "chess", "ludo", "oware", "iq", "route-empire"})  # Only games with authoritative shared-room adapters.
 ROOM_CODE_PATTERN = re.compile(r"^[A-Z2-9]{6}$")
@@ -591,6 +601,18 @@ def _two_player_action(
                    VALUES (%s,%s,%s,%s)""",
                 (room, req, new_revision, digest),
             )
+            if (
+                game_key == "chess"
+                and current.get("status") != "completed"
+                and next_view.get("status") == "completed"
+            ):
+                civilization_events.append_match_finished(
+                    connection,
+                    room_id=room,
+                    request_id=req,
+                    game_state=next_view,
+                    revision=new_revision,
+                )
             connection.commit()
     except ValueError:
         raise
