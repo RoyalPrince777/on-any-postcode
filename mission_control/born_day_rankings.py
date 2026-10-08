@@ -52,7 +52,7 @@ def calculate_leaderboard(records, game):
             ms = record["reaction_ms"]
             row["best_ms"] = ms if row["best_ms"] is None else min(row["best_ms"], ms)
         else:
-            row[record["outcome"] + "s"] += 1
+            row[{"win": "wins", "loss": "losses", "draw": "draws"}[record["outcome"]]] += 1
     result = [{"player_id": player_id, **row} for player_id, row in scores.items()]
     if game == "reaction-rush":
         result.sort(key=lambda row: (row["best_ms"], row["player_id"]))
