@@ -6,7 +6,6 @@ import pytest
 
 from mission_control.oap_profile_receipts import OapProfileReceiptVerifier
 
-
 KEY = b"x" * 32
 
 
