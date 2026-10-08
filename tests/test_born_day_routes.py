@@ -1,8 +1,6 @@
 """Born Day route integration smoke checks; no game engine duplication."""
 import unittest
 
-from flask import render_template
-
 from app import app
 
 
@@ -60,11 +58,9 @@ class BornDayRouteTests(unittest.TestCase):
         self.assertIn(b"False start", response.data)
 
     def test_world_exposes_born_day(self):
-        # World template has the entry, but the live /world route currently
-        # resolves to another surface. Do not claim the link is live.
-        with app.app_context():
-            html = render_template("world.html")
-        self.assertIn('href="/born-day"', html)
+        response = self.client.get("/world")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'href="/born-day"', response.data)
 
 
 if __name__ == "__main__":
