@@ -26,6 +26,7 @@
         <h1>My Library</h1>
       </div>
     </div>
+    {% if show_koradaso_heritage %}
     <section aria-labelledby="koradaso-private-title">
       <div class="collection-grid">
         <article class="collection-card" data-access="private">
@@ -37,6 +38,7 @@
         </article>
       </div>
     </section>
+    {% endif %}
     {% if owned_ebooks %}
     <section aria-labelledby="owned-books-title">
       <div class="section-heading"><div><p class="library-kicker">OWNED · VERIFIED</p><h2 id="owned-books-title">Owned ebooks</h2></div></div>
