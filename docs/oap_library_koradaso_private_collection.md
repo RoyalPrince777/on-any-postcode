@@ -38,3 +38,6 @@ This collection must not replace the Library front door or automatically appear 
 Captain coordinates; Bagheera protects privacy; Shere Khan attacks access-control assumptions; Gorilla guards failure behavior.
 
 This document is a design contract only, not runtime proof.
+
+## One-Brain governance (Founder decision)
+KORADASO must not create or advertise a separate AI brain. SMI (Synthetic Machine Intelligence) is the single shared intelligence layer for OAP World and its connected systems. KORADASO is a governed domain, not an independent intelligence authority. Captain ALL IN coordinates within SMI; Guardian enforces permissions. The private KORADASO Heritage collection remains in My Library, not a Brain menu. No new AI execution permissions are granted by this design decision.
