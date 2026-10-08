@@ -57,6 +57,15 @@ class BornDayRouteTests(unittest.TestCase):
         self.assertIn(b"performance.now()", response.data)
         self.assertIn(b"False start", response.data)
 
+    def test_leaderboards_are_visible_but_not_fabricated(self):
+        hub = self.client.get("/born-day")
+        self.assertIn(b'href="/born-day/leaderboards"', hub.data)
+        board = self.client.get("/born-day/leaderboards")
+        self.assertEqual(board.status_code, 200)
+        self.assertIn(b"Official rankings are not available yet", board.data)
+        self.assertIn(b"No verified Arena results ledger", board.data)
+        self.assertEqual(board.headers["Cache-Control"], "no-store")
+
     def test_world_exposes_born_day(self):
         response = self.client.get("/world")
         self.assertEqual(response.status_code, 200)
