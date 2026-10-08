@@ -8,6 +8,7 @@ from __future__ import annotations
 from . import (
     commerce_provider_receipts,
     distribution_runtime,
+    founder_private_pod_orders,
     market_supplier_network,
     sika_payment_orchestrator,
     sika_payment_submission_evidence,
@@ -20,6 +21,7 @@ COMPONENTS = (
     ("payment_submission_evidence", sika_payment_submission_evidence.init_schema),
     ("distribution_runtime", distribution_runtime.init_schema),
     ("provider_receipts", commerce_provider_receipts.init_schema),
+    ("founder_private_pod_orders", founder_private_pod_orders.init_schema),
 )
 
 
