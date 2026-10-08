@@ -11,7 +11,10 @@ def test_private_koradaso_route_requires_sign_in(anonymous_client):
     )
 
 
-def test_private_koradaso_entry_is_only_on_signed_in_library(client):
+def test_private_koradaso_entry_is_only_on_signed_in_library(client, monkeypatch):
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: True)
     page = client.get("/library/my-library")
     assert page.status_code == 200
     assert 'href="/library/my-library/koradaso-heritage"' in page.get_data(
@@ -32,3 +35,17 @@ def test_koradaso_collection_is_not_publicly_listed(anonymous_client):
     public = anonymous_client.get("/library")
     assert public.status_code == 200
     assert "KORADASO Heritage" not in public.get_data(as_text=True)
+
+
+def test_non_founder_cannot_open_or_discover_private_collection(client, monkeypatch):
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: False)
+    page = client.get("/library/my-library")
+    assert page.status_code == 200
+    assert 'href="/library/my-library/koradaso-heritage"' not in page.get_data(
+        as_text=True
+    )
+    denied = client.get("/library/my-library/koradaso-heritage")
+    assert denied.status_code == 403
+    assert "KORADASO Heritage" not in denied.get_data(as_text=True)
