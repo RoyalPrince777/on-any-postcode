@@ -3,6 +3,7 @@ import hmac
 import json
 
 import pytest
+
 from mission_control.oap_profile_receipts import OapProfileReceiptVerifier
 
 
