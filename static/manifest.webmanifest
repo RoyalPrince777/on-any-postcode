@@ -6,21 +6,92 @@
   "start_url": "/?source=oap-os",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "background_color": "#050807",
   "theme_color": "#050807",
   "prefer_related_applications": false,
-  "launch_handler": {"client_mode": "navigate-existing"},
-  "categories": ["social", "lifestyle", "utilities", "travel"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "categories": [
+    "social",
+    "lifestyle",
+    "utilities",
+    "travel"
+  ],
   "icons": [
-    {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
-    {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+    {
+      "src": "/assets/oap-os-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/oap-os-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ],
   "shortcuts": [
-    {"name": "The Spot", "short_name": "Spot", "url": "/the-spot?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "The Link", "short_name": "Link", "url": "/the-link?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "Link Up", "short_name": "Link Up", "url": "/linkup?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]},
-    {"name": "Movement", "short_name": "Move", "url": "/movement?source=oap-os", "icons": [{"src": "/assets/oap-os-icon-192.png", "sizes": "192x192"}]}
+    {
+      "name": "The Spot",
+      "short_name": "Spot",
+      "url": "/the-spot?source=oap-os",
+      "icons": [
+        {
+          "src": "/assets/oap-os-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "The Link",
+      "short_name": "Link",
+      "url": "/the-link?source=oap-os",
+      "icons": [
+        {
+          "src": "/assets/oap-os-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Link Up",
+      "short_name": "Link Up",
+      "url": "/linkup?source=oap-os",
+      "icons": [
+        {
+          "src": "/assets/oap-os-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Movement",
+      "short_name": "Move",
+      "url": "/movement?source=oap-os",
+      "icons": [
+        {
+          "src": "/assets/oap-os-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "OAP TV",
+      "short_name": "TV",
+      "url": "/tv?source=oap-os",
+      "icons": [
+        {
+          "src": "/assets/oap-os-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
