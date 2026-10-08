@@ -25,15 +25,13 @@ class BornDayCoreTests(unittest.TestCase):
 
     def test_reject_invalid_dates(self):
         for value in ("2025-02-29", "1986-8-21", "not-a-date"):
-            with self.subTest(value=value):
-                with self.assertRaisesRegex(ValueError, "born_day_invalid_date"):
-                    weekday_from_date(value)
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "born_day_invalid_date"):
+                weekday_from_date(value)
 
     def test_reject_missing_or_invalid_weekday(self):
         for kwargs in ({}, {"weekday": "Funday"}):
-            with self.subTest(kwargs=kwargs):
-                with self.assertRaises(ValueError):
-                    choose_weekday(**kwargs)
+            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                choose_weekday(**kwargs)
 
 
 if __name__ == "__main__":
