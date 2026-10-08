@@ -17,7 +17,7 @@ MAX_INSTRUMENTS = 12
 
 def _label(value: object, *, max_length: int = 80) -> str:
     if not isinstance(value, str):
-        raise ValueError("expected text")
+        raise TypeError("expected text")
     cleaned = " ".join(value.split())
     if not cleaned or len(cleaned) > max_length or any(ord(c) < 32 for c in cleaned):
         raise ValueError("invalid metadata label")
@@ -31,7 +31,7 @@ def normalize_metadata(data: Mapping[str, object]) -> dict[str, object]:
     A valid ISRC is a format check, not proof of registration or ownership.
     """
     if not isinstance(data, Mapping):
-        raise ValueError("metadata must be a mapping")
+        raise TypeError("metadata must be a mapping")
     unknown = set(data) - FIELDS
     if unknown:
         raise ValueError("unknown metadata fields")
