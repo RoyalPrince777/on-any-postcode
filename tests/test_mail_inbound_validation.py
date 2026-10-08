@@ -21,9 +21,8 @@ class InboundValidationTests(unittest.TestCase):
 
     def test_reject_empty_or_oversized(self):
         for payload in (b"", b"x" * 256001):
-            with self.subTest(size=len(payload)):
-                with self.assertRaises(InboundMessageRejected):
-                    parse_inbound_message(payload)
+            with self.subTest(size=len(payload)), self.assertRaises(InboundMessageRejected):
+                parse_inbound_message(payload)
 
     def test_reject_duplicate_sender(self):
         with self.assertRaises(InboundMessageRejected):
