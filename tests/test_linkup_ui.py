@@ -94,30 +94,45 @@ def test_duplicate_link_view_is_rejected():
     assert validation["checks"]["naming_conflicts"] == 1
 
 
-def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, tmp_path, monkeypatch):
+
+def test_public_link_ui_shows_app_shell_without_private_data(
+    anonymous_client, tmp_path, monkeypatch
+):
     database_path = tmp_path / "the-link.db"
     monkeypatch.setattr(config, "OAP_DATABASE_PATH", str(database_path))
     response = anonymous_client.get("/linkup")
     page = response.get_data(as_text=True)
+
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert 'aria-label="Link Up app"' in page
-    assert "PRIVATE CHAT · SIMPLE · LINKED" in page
+    assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
-    assert "Optional for private features. Public Link Up needs no email, password or sign-in." in page
-    assert "Simple private chat." in page
-    for removed in ("Discovery", "Spotlight", "Opportunities", "Nearby People", "Community Signals"):
-        assert removed not in page
+    assert "Search people, interests, or opportunities" in page
+    for restored in (
+        "Messages",
+        "Discovery",
+        "Certified",
+        "Safety",
+        "Private",
+        "Public",
+        "Opportunities",
+        "Spotlight",
+        "Identity",
+        "Nearby People",
+        "Community Signals",
+        "My Card",
+    ):
+        assert restored in page
+    assert "Verified" not in page
+    assert ">Profile<" not in page
     assert "Enter My World" not in page
     assert 'href="/my-card/create"' in page
     assert 'href="/auth"' not in page
-    assert "Message your Links." not in page
     assert "World Rooms" not in page
-    assert 'method="post"' not in page.lower()
     assert anonymous_client.post("/linkup").status_code == 405
     assert not database_path.exists()
-
 
 def test_linkup_template_keeps_policy_copy_off_the_visible_messenger():
     page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
@@ -259,50 +274,49 @@ def test_linkup_empty_mobile_inbox_opens_new_link_workspace():
     assert 'openPanel("new")' in script
 
 
+
 def test_linkup_public_shell_uses_free_my_card_actions():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
     assert "Enter My World" not in template
     assert "url_for('my_card_create_page')" in template
     assert "Create My Card" in template
-    assert "PRIVATE CHAT · SIMPLE · LINKED" in template
+    assert "PUBLIC · CONNECT · CREATE" in template
     assert "linkup-royal-home" in template
-    assert "linkup-royal-tools" not in template
-    assert "linkup-royal-bottom" not in template
+    assert "linkup-royal-tools" in template
+    assert "linkup-royal-bottom" in template
+    assert "<strong>Certified</strong>" in template
+    assert ">Profile<" not in template
 
 
-
-def test_linkup_master_menu_is_only_linkups_ring_now_incoming_and_more():
+def test_linkup_master_home_restores_discovery_tools_and_keeps_private_messenger():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
 
-    assert 'aria-label="Link Up private menu"' in template
-    assert '>💬 Link Ups</a>' in template
-    assert '>📞 Ring</a>' in template
-    assert '>🟢 Now</a>' in template
-    assert '>🔔 Incoming</a>' in template
-    assert '>⋯ More</a>' in template
-    assert 'id="linkup-ring"' in template
-    assert 'id="linkup-incoming"' in template
-    assert 'id="linkup-requests"' in template
-    assert "url_for('auth_sign_out')" in template
-    assert 'method="post"' in template
-    assert 'name="csrf_token" value="{{ oap_csrf_token }}"' in template
-    assert '>Leave My World</button>' in template
-    assert 'id="linkup-more"' in template
-    assert '>My Card</a>' in template
-    assert '>Link Requests</a>' in template
-    assert '>My Controls</a>' in template
-    for removed in (
-        "linkup-royal-tools",
-        "linkup-royal-bottom",
-        "<strong>Discovery</strong>",
-        "<strong>Spotlight</strong>",
-        "<strong>Opportunities</strong>",
-        "Nearby People",
-        "Community Signals",
-    ):
-        assert removed not in template
+    assert 'aria-label="Link Up master tools"' in template
+    assert "<strong>Messages</strong>" in template
+    assert "<strong>Discovery</strong>" in template
+    assert "<strong>Certified</strong>" in template
+    assert "<strong>Safety</strong>" in template
+    assert "<strong>Private</strong>" in template
+    assert "<strong>Public</strong>" in template
+    assert "<strong>Opportunities</strong>" in template
+    assert "<strong>Spotlight</strong>" in template
+    assert "<strong>Identity</strong>" in template
+    assert "Nearby People" in template
+    assert "Community Signals" in template
+    assert 'aria-label="Link Up bottom navigation"' in template
+    assert "<span>Home</span>" in template
+    assert "<span>People</span>" in template
+    assert "<span>OAP</span>" in template
+    assert "<span>Messages</span>" in template
+    assert "<span>My Card</span>" in template
 
+    assert 'aria-label="Link Up private menu"' in template
+    assert ">💬 Link Ups</a>" in template
+    assert ">📞 Ring</a>" in template
+    assert ">🟢 Now</a>" in template
+    assert ">🔔 Incoming</a>" in template
+    assert ">⋯ More</a>" in template
 
 def test_empty_linkup_chat_has_real_next_actions():
     template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
