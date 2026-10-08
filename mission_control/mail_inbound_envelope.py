@@ -28,8 +28,7 @@ def _mailbox_address(value: object) -> str:
     if not isinstance(value, str) or len(value) > 320:
         raise InboundMessageRejected("invalid_inbound_recipient")
     address = value.strip()
-    if not address or any(c in address for c in "\r
-\x00<> ,;"):
+    if not address or any(c in address for c in "\r\n\x00<> ,;"):
         raise InboundMessageRejected("invalid_inbound_recipient")
     if parseaddr(address)[1] != address or address.count("@") != 1:
         raise InboundMessageRejected("invalid_inbound_recipient")
