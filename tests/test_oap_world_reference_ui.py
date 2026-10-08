@@ -39,8 +39,18 @@ def test_public_oap_world_exposes_no_founder_entry():
     assert "Founder" not in page
 
 
-def test_oap_internet_card_does_not_claim_unimplemented_launch():
+def test_oap_internet_card_links_to_real_route():
     page = WORLD.read_text(encoding="utf-8")
-    assert '<strong>🌐 OAP Internet</strong>' in page
+    assert 'href="/internet"' in page
     assert 'href="/world/languages"' not in page
-    assert 'Web launch from this card is not yet available.' in page
+
+
+def test_oap_internet_entry_is_public_and_has_recovery():
+    from app import app
+    with app.test_client() as client:
+        response = client.get("/internet")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'action="/search"' in html
+    assert 'href="/world"' in html
+    assert "External websites are not OAP-certified." in html
