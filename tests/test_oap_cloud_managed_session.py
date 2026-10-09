@@ -4,6 +4,7 @@ Only the provider response is substituted; Cloud identity and authority function
 are real. This is a software integration contract, not live Neon authentication.
 """
 from flask import Flask
+
 from mission_control import neon_auth, web_security
 from oap_cloud.founder_control import cloud_bp
 
