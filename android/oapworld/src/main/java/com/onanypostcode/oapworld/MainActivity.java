@@ -427,11 +427,9 @@ public final class MainActivity extends ComponentActivity {
     private void refreshNavigationState() {
         if (engineActive) {
             backButton.setEnabled(engineHistoryIndex > 0);
-            forwardButton.setEnabled(engineHistoryIndex + 1 < engineHistory.size());
             return;
         }
         backButton.setEnabled(webView != null && webView.canGoBack());
-        forwardButton.setEnabled(webView != null && webView.canGoForward());
     }
 
     @Override
