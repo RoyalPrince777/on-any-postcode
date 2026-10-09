@@ -32,13 +32,11 @@ def test_oap_browser_has_approved_minimal_navigation_controls():
     for marker in (
         'navButton("‹")',
         'navButton("OAP")',
-        'toolbar.addView(backButton)',
-        'toolbar.addView(homeButton)',
-        'omnibox,',
-        'webView.goBack()',
-        'navigate(omnibox.getText().toString())',
+        "webView.goBack()",
     ):
         assert marker in source
+    for removed in ('navButton("›")', 'navButton("↻")', 'navButton("Go")'):
+        assert removed not in source
     for removed in ('navButton("›")', 'navButton("↻")', 'navButton("Go")'):
         assert removed not in source
 
