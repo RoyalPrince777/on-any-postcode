@@ -2,6 +2,8 @@
 
 No infrastructure provisioning, storage backend or remote job execution is implied.
 """
+import base64
+import binascii
 import hmac
 import os
 from pathlib import Path
@@ -51,7 +53,7 @@ def drive_upload():
     if not isinstance(manifest, dict):
         return jsonify({"error": "invalid_manifest"}), 400
     # Payload arrives as strict base64 inside JSON; no filename or path is accepted.
-    import base64
+    manifest = dict(manifest)
     encoded = manifest.pop("payload_base64", None)
     if not isinstance(encoded, str) or len(encoded) > 20_000_000:
         return jsonify({"error": "invalid_payload"}), 400
@@ -59,6 +61,22 @@ def drive_upload():
         payload = base64.b64decode(encoded, validate=True)
         store = DriveStorage(Path(root))
         digest = store.put(manifest, payload)
-    except (ValueError, OSError, base64.binascii.Error):
+    except (ValueError, OSError, binascii.Error):
         return jsonify({"error": "artifact_rejected"}), 400
     return jsonify({"sha256": digest, "stored": True}), 201
+
+@cloud_bp.post("/cloud/v1/drive/retrieve")
+def drive_retrieve():
+    """Founder-only verified retrieval, disabled without configured storage."""
+    root = os.environ.get("OAP_DRIVE_STORAGE_ROOT")
+    if not root:
+        return jsonify({"error": "storage_not_provisioned"}), 503
+    manifest = request.get_json(silent=True) if request.is_json else None
+    if not isinstance(manifest, dict):
+        return jsonify({"error": "invalid_manifest"}), 400
+    try:
+        payload = DriveStorage(Path(root)).get(manifest)
+    except (ValueError, FileNotFoundError, OSError):
+        return jsonify({"error": "artifact_unavailable"}), 404
+    return jsonify({"payload_base64": base64.b64encode(payload).decode("ascii"),
+                    "sha256": manifest["sha256"]}), 200
