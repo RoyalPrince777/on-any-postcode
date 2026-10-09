@@ -194,3 +194,42 @@ def test_migration_executes_once_and_checks_parent_and_checksum(monkeypatch):
     state["checksum"] = "unexpected"
     with pytest.raises(RuntimeError, match="checksum mismatch"):
         data.init_oap_data_schema(assume_yes=True)
+
+
+def test_schema_status_rejects_missing_index(monkeypatch):
+    """A checksum and table alone are insufficient to certify readiness."""
+    from contextlib import contextmanager
+
+    from mission_control import music_oap_data_schema as data
+
+    class Connection:
+        def execute(self, sql, params=None):
+            self.sql = sql
+            return self
+
+        def fetchone(self):
+            if "SELECT checksum" in self.sql:
+                return (data.OAP_DATA_MIGRATION_CHECKSUM,)
+            if "to_regclass" in self.sql and "SELECT" in self.sql:
+                return ("oap_music_track_data",)
+            if "information_schema.columns" in self.sql:
+                return ("false", "NO")
+            if "pg_constraint" in self.sql:
+                return (1,)
+            raise AssertionError("unexpected query")
+
+        def fetchall(self):
+            if "pg_indexes" in self.sql:
+                return [("ix_oap_music_data_genre",), ("ix_oap_music_data_language",)]
+            raise AssertionError("unexpected query")
+
+    @contextmanager
+    def connect(*, readonly=False):
+        assert readonly is True
+        yield Connection()
+
+    monkeypatch.setattr(data.postgres_db, "postgres_status", lambda: {"initialized": True})
+    monkeypatch.setattr(data.postgres_db, "connect", connect)
+    result = data.oap_data_schema_status()
+    assert result["schema_ready"] is False
+    assert result["error"] == "oap_data_indexes_missing"
