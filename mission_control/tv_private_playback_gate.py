@@ -15,6 +15,7 @@ def authorize_private_playback(
     rights_decision: object,
     entitlement_proven: bool,
     storage_integrity_proven: bool,
+    server_evidence_verified: bool = False,
 ) -> dict[str, object]:
     """Deny unless all independent playback prerequisites are proven."""
     from . import rights_core
@@ -23,6 +24,8 @@ def authorize_private_playback(
         rights_decision if isinstance(rights_decision, Mapping) else {}
     )
     blockers = []
+    if server_evidence_verified is not True:
+        blockers.append("trusted_server_evidence_required")
     if founder_authenticated is not True:
         blockers.append("founder_authentication_required")
     if owner_identity_matches is not True:
