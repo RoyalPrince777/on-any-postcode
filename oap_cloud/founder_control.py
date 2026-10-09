@@ -10,6 +10,8 @@ from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
+from mission_control import neon_auth, web_security
+
 from .drive_storage import DriveStorage
 
 cloud_bp = Blueprint("oap_cloud_v1", __name__)
@@ -26,6 +28,14 @@ def _founder_authorized():
 @cloud_bp.before_request
 def founder_gate():
     if not _founder_authorized():
+        return jsonify({"error": "not_found"}), 404
+    # A bootstrap bearer token alone never grants Founder authority.
+    # Require OAP's canonical managed identity and Founder policy too.
+    try:
+        user = web_security.current_authenticated_user()
+        if not user or user.get("recovery_founder") or not web_security.private_authority_allowed(user):
+            return jsonify({"error": "not_found"}), 404
+    except neon_auth.AuthUnavailable:
         return jsonify({"error": "not_found"}), 404
 
 @cloud_bp.get("/cloud/v1/status")
