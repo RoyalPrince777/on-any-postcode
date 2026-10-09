@@ -90,3 +90,42 @@ def init_oap_data_schema(*, assume_yes: bool = False, dry_run: bool = False) -> 
         connection.commit()
     return {"migration": OAP_DATA_MIGRATION_VERSION,
             "checksum": OAP_DATA_MIGRATION_CHECKSUM, "applied": True}
+
+
+def discover_public_data(*, genre: str | None = None, language: str | None = None,
+                         country: str | None = None, limit: int = 50) -> list[dict[str, object]]:
+    """Read-only, rights-gated discovery; country filters require publication consent."""
+    from .music_catalogue_metadata import normalize_metadata
+
+    try:
+        effective_limit = min(100, max(1, int(limit)))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_limit") from exc
+    filters: list[str] = []
+    params: list[object] = []
+    for name, value in (("genre", genre), ("language", language), ("country", country)):
+        if value is None:
+            continue
+        validated = normalize_metadata({name: value})[name]
+        if name == "country":
+            filters.append("d.location_publication_consent IS TRUE AND d.country=%s")
+        elif name == "genre":
+            filters.append("lower(d.genre)=lower(%s)")
+        else:
+            filters.append("d.language=%s")
+        params.append(validated)
+    sql = public_discovery_projection()
+    if filters:
+        sql += " AND " + " AND ".join(filters)
+    sql += " ORDER BY r.created_at DESC,t.position ASC LIMIT %s"
+    params.append(effective_limit)
+    with postgres_db.connect(readonly=True) as connection:
+        rows = connection.execute(sql, tuple(params)).fetchall()
+    return [
+        {"track_id": str(row[0]), "track_title": str(row[1]),
+         "release_id": str(row[2]), "release_title": str(row[3]),
+         "genre": row[4], "language": row[5], "country": row[6],
+         "instruments": row[7] if row[7] is not None else [],
+         "playback_enabled": False}
+        for row in rows
+    ]
