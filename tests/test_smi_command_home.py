@@ -35,3 +35,10 @@ def test_world_drawer_has_first_party_search_and_hidden_results():
     assert "search.addEventListener('input'" in html
     assert "a.hidden=" in html
     assert ".links a[hidden]{display:none}" in html
+
+
+def test_search_is_keyboard_accessible_in_modal_drawer():
+    html = (ROOT / "templates" / "smi_command_home.html").read_text(encoding="utf-8")
+    assert "querySelectorAll('a,button,input')" in html
+    assert "search||document.getElementById('close')" in html
+    assert "previous?.focus()" in html
