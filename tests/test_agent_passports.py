@@ -2,7 +2,12 @@
 
 import pytest
 
-from mission_control.agent_passports import MODES, agent_mode, agent_passport, passport_directory
+from mission_control.agent_passports import (
+    MODES,
+    agent_mode,
+    agent_passport,
+    passport_directory,
+)
 
 
 def test_seven_modes_shared_across_all_registered_agents():
