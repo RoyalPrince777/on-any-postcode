@@ -12,7 +12,7 @@ Next: inspect existing Founder authentication contracts, integrate without dupli
 
 ## SMI Fox-lead execution contract
 
-Founder Final retains approval authority; Gyata sets sovereign priorities. Fox leads blocker recovery and selects the smallest best-fit specialist group; Captain ALL IN maintains one mission record. Akela enforces readiness and stops unverifiable completion claims. Gorilla owns last-line containment and safe shutdown. Guardian owns identity and privacy boundaries; Neo implements; Trinity validates; Shere Khan independently challenges the evidence. Queen Bee coordinates actual background workers, retries and queues **only after workers exist**; Spider maps dependencies and Octopus coordinates cross-service work.
+Founder Final retains final authority. SMI sets the intelligence mission. Captain ALL IN coordinates Morpheus, Akela, Gyata, Owl and other specialists under one mission record. Fox leads OAP Cloud execution, blocker recovery and best-fit specialist selection. Gyata provides sovereign-command judgement within Captain's mission coordination; Morpheus owns architecture, Owl evidence and analysis, and Akela protocol discipline. Akela enforces readiness and stops unverifiable completion claims. Gorilla owns last-line containment and safe shutdown. Guardian owns identity and privacy boundaries; Neo implements; Trinity validates; Shere Khan independently challenges the evidence. Queen Bee coordinates actual background workers, retries and queues **only after workers exist**; Spider maps dependencies and Octopus coordinates cross-service work.
 
 ### Release gates (evidence required)
 
