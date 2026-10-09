@@ -93,3 +93,35 @@ def test_discovery_rejects_invalid_country_without_database_access(monkeypatch):
     monkeypatch.setattr(music_oap_data_schema.postgres_db, "connect", unexpected_connection)
     with pytest.raises(ValueError, match="invalid country|invalid metadata label"):
         music_oap_data_schema.discover_public_data(country="GHA")
+
+
+def test_schema_status_requires_matching_checksum_and_real_table(monkeypatch):
+    from contextlib import contextmanager
+
+    from mission_control import music_oap_data_schema as data
+
+    state = {"checksum": data.OAP_DATA_MIGRATION_CHECKSUM, "table": "oap_music_track_data"}
+
+    class Connection:
+        def execute(self, sql, params=None):
+            self.sql = sql
+            return self
+
+        def fetchone(self):
+            if "checksum" in self.sql:
+                return (state["checksum"],) if state["checksum"] is not None else None
+            return (state["table"],)
+
+    @contextmanager
+    def connect(*, readonly=False):
+        assert readonly is True
+        yield Connection()
+
+    monkeypatch.setattr(data.postgres_db, "postgres_status", lambda: {"initialized": True})
+    monkeypatch.setattr(data.postgres_db, "connect", connect)
+    assert data.oap_data_schema_status()["schema_ready"] is True
+    state["checksum"] = "incorrect"
+    assert data.oap_data_schema_status()["schema_ready"] is False
+    state["checksum"] = data.OAP_DATA_MIGRATION_CHECKSUM
+    state["table"] = None
+    assert data.oap_data_schema_status()["error"] == "oap_data_table_missing"
