@@ -44,3 +44,22 @@ Scope: OAP Cloud, OAP Drive, future OAP OS, Founder-private access and all secur
 6. Build an actual AOSP image on suitable provisioned compute and prove emulator first boot and security/recovery separately. Never label Android debug APK CI as OAP OS first boot.
 
 **Current evidence boundary:** A passed workflow applies only to its exact commit. PR merge, production deployment, persistent storage, cloud workers, AOSP image and first boot each need their own verification.
+
+## Mission-to-100 evidence scoring (no cosmetic progress)
+
+Display percentages, stars, council votes and a review **without altering the existing execution workflow**. A percentage is earned only by evidence-backed acceptance gates; unfinished, failed or unknown gates contribute zero. Each of the following ten gates contributes exactly **10 percentage points** to the overall mission, and each requires independent evidence:
+
+1. Coordination contract committed and governed CI passed on its exact commit.
+2. Android debug build completed with an archived successful workflow and identifiable artifact (debug build only).
+3. Drive manifest and local storage integrity tests passed on the exact current commit.
+4. Founder identity, bootstrap bearer and CSRF denial/acceptance tests passed on the exact current commit.
+5. Body-size, request-limiting and privacy-safe audit tests passed on the exact current commit.
+6. Security/adversarial review and recovery/containment tests passed.
+7. Cloud blueprint integrated safely with real application session and authorization, with production-like tests passed.
+8. Durable Drive provisioned with real persistence, quotas and recovery evidence.
+9. Cloud compute and reliable workers provisioned, exercised and verified.
+10. AOSP emulator image built, booted and security/recovery verified on real compute.
+
+Score = 10 × number of fully evidenced gates; 100% means all ten gates passed. Partial work is reported as **in progress** beside the gate, never as invented fractional points. Do not transfer proof from an earlier commit to the current commit without rerunning affected checks. Stars: 1★ = 0–19%; 2★ = 20–39%; 3★ = 40–59%; 4★ = 60–79%; 5★ = 80–99%; 7★ = 100% and final independent review. Stars are **labels for evidence score**, not quality guarantees. Council votes are recommendations with named rationale, never invented votes from live autonomous agents.
+
+**Permanent upgrade-only rules:** no unnecessary stages, repeated status loops, demo-as-completion, simulation in place of available real tests, duplicate reports, repeated approvals for already-authorised bounded work, cosmetic percentages, stopping after every minor fix, false Green, or security weakening. Continue meaningful batches of implementation + tests, inspect real CI logs, correct failures and report only materially changed evidence. Founder Final remains the sole final approval authority.
