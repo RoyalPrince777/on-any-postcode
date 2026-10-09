@@ -41,3 +41,13 @@ def test_invalid_founder_decision_fails_closed():
 def test_invalid_action_rejected():
     with pytest.raises(ValueError):
         record(evidence_links=[""])
+
+
+def test_all_gates_and_founder_approval_still_require_independent_release_proof():
+    result = record(
+        evidence_gates={f"gate_{i}": True for i in range(10)},
+        founder_decision="approved",
+    )
+    assert result["completion"]["percentage"] == 100
+    assert result["completion"]["stars"] == 5
+    assert result["production_green"] is False
