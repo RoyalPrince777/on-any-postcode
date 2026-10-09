@@ -56,5 +56,6 @@ def review_leadership(mission, candidates, ballots, evidence_gates):
         "votes": {c: {v: tally[c][v] for v in ("FOR", "AGAINST", "ABSTAIN")} for c in candidates},
         "dissent": dissent, "percentage": percentage, "mission_stars": stars,
         "leader": "pending_founder_final",
-        "production_green": False,\n        "release_certification": "not_verified",
+        "production_green": False,
+        "release_certification": "not_verified",
     }
