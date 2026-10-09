@@ -18,6 +18,8 @@ def review_leadership(mission, candidates, ballots, evidence_gates):
         raise ValueError("exactly ten evidence gates required")
     if any(type(v) is not bool for v in evidence_gates.values()):
         raise ValueError("evidence gates must be verified booleans")
+    if any(not isinstance(k, str) or not k.strip() for k in evidence_gates):
+        raise ValueError("invalid evidence gate")
     if not isinstance(ballots, list):
         raise ValueError("ballots required")
     tally = {candidate: Counter() for candidate in candidates}
@@ -44,7 +46,7 @@ def review_leadership(mission, candidates, ballots, evidence_gates):
         rating = details.get("rating")
         if rating is not None and (type(rating) is not int or not 1 <= rating <= 7):
             raise ValueError("rating must be 1..7 or unknown")
-        if rating is not None and not details.get("evidence"):
+        if rating is not None and (not isinstance(details.get("evidence"), list) or not details["evidence"] or not all(isinstance(item, str) and item.strip() for item in details["evidence"])):
             raise ValueError("ratings require evidence")
     percentage = 10 * sum(evidence_gates.values())
     stars = 7 if percentage == 100 else max(1, min(5, percentage // 20 + 1))
