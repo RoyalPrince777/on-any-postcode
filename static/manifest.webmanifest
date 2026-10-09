@@ -3,7 +3,7 @@
   "short_name": "OAP OS",
   "description": "The public install shell for ON ANY POSTCODE.",
   "id": "/",
-  "start_url": "/?source=oap-os",
+  "start_url": "/world?source=oap-os",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
