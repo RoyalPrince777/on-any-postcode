@@ -1,7 +1,8 @@
 """OAP Drive private local storage adapter. Not a cloud provisioning claim."""
 import os
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
 from .drive_manifest import verify_artifact_manifest
 
 MAX_ARTIFACT_BYTES = 15_000_000
