@@ -8,7 +8,7 @@ CLIENT = Path(
 )
 
 
-def test_native_engine_history_has_back_forward_stack_and_truncates_forward_branch():
+def test_native_engine_history_has_back_stack_and_truncates_forward_branch():
     source = MAIN.read_text(encoding="utf-8")
     assert "private final List<String> engineHistory = new ArrayList<>();" in source
     assert "private int engineHistoryIndex = -1;" in source
