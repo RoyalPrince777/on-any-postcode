@@ -37,6 +37,10 @@ def founder_gate():
             return jsonify({"error": "not_found"}), 404
     except neon_auth.AuthUnavailable:
         return jsonify({"error": "not_found"}), 404
+    # Mutating operations require the managed session CSRF secret in addition
+    # to both the bootstrap bearer token and Founder authority.
+    if request.method == "POST" and not web_security.csrf_valid(request):
+        return jsonify({"error": "not_found"}), 404
 
 @cloud_bp.get("/cloud/v1/status")
 def cloud_status():
