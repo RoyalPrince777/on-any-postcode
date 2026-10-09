@@ -92,3 +92,30 @@ def agent_mode(agent_id: str, mode: str) -> dict[str, object]:
         "execution_authorised": False,
         "runtime_active": False,
     }
+
+
+# Rank describes demonstrated capability, not seniority or permission.
+RANKS = ("unverified", "learner", "capable", "proven", "expert", "master", "elite")
+RANK_ARROWS = {"up": "↑", "same": "→", "down": "↓"}
+
+
+def rank_movement(*, previous: str, current: str, evidence: tuple[str, ...] = ()) -> dict[str, object]:
+    """Compare evidence-backed rank; never infer improvement from a vote or label."""
+    if previous not in RANKS or current not in RANKS:
+        raise ValueError("unknown_agent_rank")
+    if not isinstance(evidence, tuple) or not all(
+        isinstance(item, str) and item.strip() for item in evidence
+    ):
+        raise ValueError("invalid_rank_evidence")
+    old, new = RANKS.index(previous), RANKS.index(current)
+    direction = "up" if new > old else "down" if new < old else "same"
+    if old != new and not evidence:
+        raise ValueError("rank_change_requires_evidence")
+    return {
+        "previous": previous,
+        "current": current,
+        "direction": direction,
+        "arrow": RANK_ARROWS[direction],
+        "evidence": evidence,
+        "execution_authorised": False,
+    }
