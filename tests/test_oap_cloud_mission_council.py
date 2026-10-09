@@ -27,7 +27,9 @@ def test_advisory_votes_and_verified_score():
 def test_full_evidence_requires_all_ten_gates():
     result = review_leadership("OAP Cloud", {"Fox": {"rating": None}}, [], gates(10))
     assert result["percentage"] == 100
-    assert result["mission_stars"] == 5\n    assert result["production_green"] is False\n    assert result["release_certification"] == "not_verified"
+    assert result["mission_stars"] == 5
+    assert result["production_green"] is False
+    assert result["release_certification"] == "not_verified"
     assert result["leader"] == "pending_founder_final"
 
 
