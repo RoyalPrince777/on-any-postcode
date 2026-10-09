@@ -49,12 +49,12 @@ def review_leadership(mission, candidates, ballots, evidence_gates):
         if rating is not None and (not isinstance(details.get("evidence"), list) or not details["evidence"] or not all(isinstance(item, str) and item.strip() for item in details["evidence"])):
             raise ValueError("ratings require evidence")
     percentage = 10 * sum(evidence_gates.values())
-    stars = 7 if percentage == 100 else max(1, min(5, percentage // 20 + 1))
+    # Ten self-reported gates cannot independently certify a live deployment.\n    # The seventh star requires a separate, audited release certification.\n    stars = max(1, min(5, percentage // 20 + 1))
     return {
         "mission": mission, "mode": "recorded_advisory_ballots_not_autonomous_agents",
         "candidates": candidates,
         "votes": {c: {v: tally[c][v] for v in ("FOR", "AGAINST", "ABSTAIN")} for c in candidates},
         "dissent": dissent, "percentage": percentage, "mission_stars": stars,
         "leader": "pending_founder_final",
-        "production_green": percentage == 100,
+        "production_green": False,\n        "release_certification": "not_verified",
     }
