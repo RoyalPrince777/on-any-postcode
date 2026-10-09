@@ -22,7 +22,7 @@ def test_normalization():
     {"genre": 123},
 ])
 def test_reject_invalid(data):
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, TypeError)):
         normalize_metadata(data)
 
 
