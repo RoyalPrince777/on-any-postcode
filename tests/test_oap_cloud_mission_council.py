@@ -50,3 +50,16 @@ def test_unproven_rating_rejected():
 def test_invented_percentage_rejected():
     with pytest.raises(ValueError):
         review_leadership("OAP Cloud", {"Fox": {"rating": None}}, [], {"gate_0": 0.5})
+
+
+def test_rating_evidence_must_be_nonempty_list_of_references():
+    for invalid in ("asserted", [], [""], [None]):
+        with pytest.raises(ValueError):
+            review_leadership("OAP Cloud", {"Fox": {"rating": 7, "evidence": invalid}}, [], gates(0))
+
+
+def test_gate_names_cannot_be_empty():
+    bad = gates(0)
+    bad[""] = bad.pop("gate_0")
+    with pytest.raises(ValueError):
+        review_leadership("OAP Cloud", {"Fox": {"rating": None}}, [], bad)
