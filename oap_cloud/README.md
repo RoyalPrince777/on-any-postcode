@@ -23,3 +23,24 @@ Founder Final retains final authority. SMI sets the intelligence mission. Captai
 5. Gorilla blocks public exposure if any security gate fails; Akela records the blocking evidence. No cosmetic percentages, demos as completion or repeat Founder approvals for bounded corrections.
 
 This is an assignment of engineering responsibilities, **not** evidence of running independent AI agents, deployed worker infrastructure, or production readiness.
+
+## Unified upgrade-only mission contract
+
+Scope: OAP Cloud, OAP Drive, future OAP OS, Founder-private access and all security/test/dependency work described in this mission. This is a **planning and code-review contract**, not a deployed capability.
+
+**Authority:** Founder Final > SMI mission governance > Captain ALL IN mission coordination > Fox execution lead > best-fit specialists. Gyata advises on sovereign command within Captain's coordinated mission; no specialist may bypass Founder Final or security gates.
+
+**Standing specialist partnerships:** Fox + Spider (execution and dependency recovery); Queen Bee + Octopus (worker queues, retries, orchestration when actually provisioned); Morpheus + Owl (architecture and evidence); Neo + Trinity (implementation and integration); Guardian + Gorilla (identity defence and emergency containment); Akela + Shere Khan (release discipline and adversarial review). Gyata advises Captain on competing priorities and escalation. Specialist selection is task-specific; do not pretend every role is an independently deployed agent.
+
+**Upgrade-only operational rules:** Preserve existing working features, deny unauthorised access by default, require evidence on the exact proposed commit, avoid duplicate status reports and repeated approvals for bounded corrections, do not report simulated checks as live proof, do not claim percentages without measurable acceptance criteria, and never weaken security for speed.
+
+**Execution backlog, in priority order:**
+
+1. Validate governed CI and negative CSRF/identity regression tests on the latest commit.
+2. Add per-identity/IP request limiting, privacy-safe audit events, strict payload limits and storage quotas; test fail-closed paths.
+3. Independently verify canonical Founder identity, CSRF and session integration before registering the Cloud blueprint in the real application.
+4. Provision and verify durable storage only with authorised infrastructure decisions; demonstrate persistence and recovery on real infrastructure.
+5. Introduce Queen Bee worker orchestration only after real workers/queues exist; add retry, idempotency, failure containment and dependency health checks.
+6. Build an actual AOSP image on suitable provisioned compute and prove emulator first boot and security/recovery separately. Never label Android debug APK CI as OAP OS first boot.
+
+**Current evidence boundary:** A passed workflow applies only to its exact commit. PR merge, production deployment, persistent storage, cloud workers, AOSP image and first boot each need their own verification.
