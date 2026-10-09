@@ -58,3 +58,18 @@ def test_drive_upload_fails_closed_without_storage(monkeypatch):
         headers={"Authorization": "Bearer test-founder-secret"},
     )
     assert response.status_code == 503
+
+
+def test_cloud_denies_non_founder_and_recovery_identity(monkeypatch):
+    monkeypatch.setenv("OAP_CLOUD_FOUNDER_TOKEN", "test-founder-secret")
+    app = Flask(__name__)
+    app.secret_key = "test-only-cloud-session-secret"
+    app.register_blueprint(cloud_bp)
+    client = app.test_client()
+    headers = {"Authorization": "Bearer test-founder-secret"}
+    monkeypatch.setattr(founder_control.web_security, "current_authenticated_user", lambda: {"id": "member"})
+    monkeypatch.setattr(founder_control.web_security, "private_authority_allowed", lambda user: False)
+    assert client.get("/cloud/v1/status", headers=headers).status_code == 404
+    monkeypatch.setattr(founder_control.web_security, "current_authenticated_user", lambda: {"id": "founder", "recovery_founder": True})
+    monkeypatch.setattr(founder_control.web_security, "private_authority_allowed", lambda user: True)
+    assert client.get("/cloud/v1/status", headers=headers).status_code == 404
