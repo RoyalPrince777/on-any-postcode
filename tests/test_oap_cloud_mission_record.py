@@ -51,3 +51,17 @@ def test_all_gates_and_founder_approval_still_require_independent_release_proof(
     assert result["completion"]["percentage"] == 100
     assert result["completion"]["stars"] == 5
     assert result["production_green"] is False
+
+
+def test_scored_mission_without_evidence_references_is_rejected():
+    with pytest.raises(ValueError, match="evidence references"):
+        record(evidence_links=[])
+
+
+def test_unverified_zero_gate_record_can_be_empty_of_evidence():
+    result = record(
+        evidence_gates={f"gate_{i}": False for i in range(10)},
+        evidence_links=[],
+    )
+    assert result["completion"]["percentage"] == 0
+    assert result["production_green"] is False
