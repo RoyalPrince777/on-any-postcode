@@ -3,8 +3,8 @@ import hashlib
 
 from flask import Flask
 
-from oap_cloud.founder_control import cloud_bp
 from oap_cloud import founder_control
+from oap_cloud.founder_control import cloud_bp
 
 
 def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
