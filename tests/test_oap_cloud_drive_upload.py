@@ -31,6 +31,7 @@ def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
     assert client.post(route, json=manifest).status_code == 404
     assert client.post(route, json=manifest, headers={"Authorization": "Bearer wrong"}).status_code == 404
     assert client.post(route, json=manifest, headers={"Authorization": "Bearer test-founder-secret"}).status_code == 404
+    assert client.post(route, json=manifest, headers={"Authorization": "Bearer test-founder-secret", "X-OAP-CSRF": "wrong-token"}).status_code == 404
     response = client.post(
         route, json=manifest, headers={"Authorization": "Bearer test-founder-secret", "X-OAP-CSRF": "test-csrf-token-0123456789abcdef"}
     )
@@ -40,6 +41,7 @@ def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
     retrieve = "/cloud/v1/drive/retrieve"
     clean = {k: v for k, v in manifest.items() if k != "payload_base64"}
     assert client.post(retrieve, json=clean).status_code == 404
+    assert client.post(retrieve, json=clean, headers={"Authorization": "Bearer test-founder-secret"}).status_code == 404
     fetched = client.post(retrieve, json=clean, headers={"Authorization": "Bearer test-founder-secret", "X-OAP-CSRF": "test-csrf-token-0123456789abcdef"})
     assert fetched.status_code == 200
     assert base64.b64decode(fetched.json["payload_base64"]) == payload
