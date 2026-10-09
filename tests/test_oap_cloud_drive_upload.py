@@ -14,7 +14,7 @@ def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
     app.register_blueprint(cloud_bp)
     client = app.test_client()
     # Token alone must fail, even when storage exists.
-    assert client.post("/cloud/v1/status", headers={"Authorization": "Bearer test-founder-secret"}).status_code == 404
+    assert client.get("/cloud/v1/status", headers={"Authorization": "Bearer test-founder-secret"}).status_code == 404
     monkeypatch.setattr(founder_control.web_security, "current_authenticated_user", lambda: {"id": "founder"})
     monkeypatch.setattr(founder_control.web_security, "private_authority_allowed", lambda user: True)
     payload = b"test-build-log"
