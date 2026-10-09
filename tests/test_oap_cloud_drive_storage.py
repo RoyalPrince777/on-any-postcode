@@ -47,3 +47,21 @@ def test_reject_directory_at_digest_path(tmp_path):
     (tmp_path / manifest["sha256"]).mkdir()
     with pytest.raises(ValueError, match="Existing artifact mismatch"):
         store.put(manifest, data)
+
+
+def test_reject_oversized_retrieval_manifest(tmp_path):
+    from oap_cloud.drive_storage import MAX_ARTIFACT_BYTES
+
+    store = DriveStorage(tmp_path)
+    manifest = {"kind": "build-log", "size_bytes": MAX_ARTIFACT_BYTES + 1,
+                "sha256": "a" * 64}
+    with pytest.raises(ValueError, match="outside storage bounds"):
+        store.get(manifest)
+
+
+def test_reject_directory_on_retrieval(tmp_path):
+    store = DriveStorage(tmp_path)
+    manifest = {"kind": "build-log", "size_bytes": 0, "sha256": "b" * 64}
+    (tmp_path / manifest["sha256"]).mkdir()
+    with pytest.raises(ValueError, match="integrity"):
+        store.get(manifest)
