@@ -4,10 +4,12 @@ from oap_cloud.mission_record import build_mission_record
 
 
 def record(**changes):
-    params = dict(mission="OAP Cloud", candidates={"Fox": {"rating": None}}, ballots=[],
-                  evidence_gates={f"gate_{i}": i < 2 for i in range(10)},
-                  done=["local storage tests"], next_actions=["verify Cloud auth"],
-                  recovery=["no persistent storage"], evidence_links=["commit:2980aae"])
+    params = {
+        "mission": "OAP Cloud", "candidates": {"Fox": {"rating": None}}, "ballots": [],
+        "evidence_gates": {f"gate_{i}": i < 2 for i in range(10)},
+        "done": ["local storage tests"], "next_actions": ["verify Cloud auth"],
+        "recovery": ["no persistent storage"], "evidence_links": ["commit:2980aae"],
+    }
     params.update(changes)
     return build_mission_record(**params)
 
