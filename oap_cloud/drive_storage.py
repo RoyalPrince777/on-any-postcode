@@ -21,7 +21,7 @@ class DriveStorage:
         if destination.is_symlink():
             raise ValueError("Symlink artifact rejected")
         if destination.exists():
-            if destination.read_bytes() != payload:
+            if not destination.is_file() or destination.read_bytes() != payload:
                 raise ValueError("Existing artifact mismatch")
             return digest
         fd, temp_name = tempfile.mkstemp(prefix=".oap-", dir=self.root)
@@ -36,7 +36,7 @@ class DriveStorage:
             try:
                 os.link(temp_name, destination, follow_symlinks=False)
             except FileExistsError:
-                if destination.is_symlink() or destination.read_bytes() != payload:
+                if destination.is_symlink() or not destination.is_file() or destination.read_bytes() != payload:
                     raise ValueError("Concurrent artifact conflict")
         finally:
             if os.path.exists(temp_name):
