@@ -12,9 +12,9 @@ def build_mission_record(*, mission, candidates, ballots, evidence_gates,
     for value in (done, next_actions, recovery, evidence_links):
         if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
             raise ValueError("mission sections must contain valid text entries")
-    if not evidence_links and any(evidence_gates.values()):
-        raise ValueError("verified gates require evidence references")
     council = review_leadership(mission, candidates, ballots, evidence_gates)
+    if not evidence_links and council["percentage"] > 0:
+        raise ValueError("scored gates require evidence references")
     # Approval is a recorded decision, not a security or deployment override.
     return {
         "schema": "oap.mission.v1",
