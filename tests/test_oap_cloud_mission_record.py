@@ -65,3 +65,8 @@ def test_unverified_zero_gate_record_can_be_empty_of_evidence():
     )
     assert result["completion"]["percentage"] == 0
     assert result["production_green"] is False
+
+
+def test_invalid_gate_schema_fails_with_validation_error_before_scoring():
+    with pytest.raises(ValueError):
+        record(evidence_gates=None, evidence_links=[])
