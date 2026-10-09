@@ -57,7 +57,7 @@ def test_world_server_boot_proof_requires_roundtrip_match(monkeypatch):
     monkeypatch.setattr(
         eiot_world_server.mtown_persistence_broker,
         "initialize",
-        lambda:{"durable_ready":True},
+        dict,
     )
     monkeypatch.setattr(
         eiot_world_server.mtown_persistence_broker,

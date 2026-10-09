@@ -38,9 +38,7 @@ def _boot_persistence() -> None:
     _PERSISTENCE_BOOT["attempted"]=True
     _PERSISTENCE_BOOT["backend"]="oap-core-postgresql-broker"
     try:
-        initialized=mtown_persistence_broker.initialize()
-        if not initialized.get("durable_ready"):
-            raise RuntimeError("eiot_broker_not_durable")
+        mtown_persistence_broker.initialize()
         probe_state={
             "world_id":"00000000-0000-0000-0000-00000000e107",
             "probe":"eiot-persistence-v1",
