@@ -4,6 +4,7 @@ import hashlib
 from flask import Flask
 
 from oap_cloud.founder_control import cloud_bp
+from oap_cloud import founder_control
 
 
 def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
@@ -12,6 +13,10 @@ def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
     app = Flask(__name__)
     app.register_blueprint(cloud_bp)
     client = app.test_client()
+    # Token alone must fail, even when storage exists.
+    assert client.post("/cloud/v1/status", headers={"Authorization": "Bearer test-founder-secret"}).status_code == 404
+    monkeypatch.setattr(founder_control.web_security, "current_authenticated_user", lambda: {"id": "founder"})
+    monkeypatch.setattr(founder_control.web_security, "private_authority_allowed", lambda user: True)
     payload = b"test-build-log"
     manifest = {
         "kind": "build-log",
@@ -44,6 +49,8 @@ def test_drive_upload_fails_closed_without_storage(monkeypatch):
     monkeypatch.delenv("OAP_DRIVE_STORAGE_ROOT", raising=False)
     app = Flask(__name__)
     app.register_blueprint(cloud_bp)
+    monkeypatch.setattr(founder_control.web_security, "current_authenticated_user", lambda: {"id": "founder"})
+    monkeypatch.setattr(founder_control.web_security, "private_authority_allowed", lambda user: True)
     response = app.test_client().post(
         "/cloud/v1/drive/artifacts",
         json={},
