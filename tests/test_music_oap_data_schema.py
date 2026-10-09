@@ -24,21 +24,22 @@ def test_public_projection_is_rights_and_consent_gated():
         assert prohibited not in sql
 
 
-def test_migration_requires_explicit_approval(monkeypatch):
-    from mission_control.music_oap_data_schema import init_oap_data_schema
+def test_migration_requires_explicit_approval():
     import pytest
+
+    from mission_control.music_oap_data_schema import init_oap_data_schema
 
     with pytest.raises(RuntimeError, match="Explicit human approval"):
         init_oap_data_schema()
 
 
 def test_migration_dry_run_is_non_mutating(monkeypatch):
+    from mission_control import music_oap_data_schema
     from mission_control.music_oap_data_schema import (
         OAP_DATA_MIGRATION_CHECKSUM,
         OAP_DATA_MIGRATION_VERSION,
         init_oap_data_schema,
     )
-    from mission_control import music_oap_data_schema
 
     monkeypatch.setattr(
         music_oap_data_schema.postgres_db,
