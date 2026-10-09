@@ -108,9 +108,24 @@ def test_schema_status_requires_matching_checksum_and_real_table(monkeypatch):
             return self
 
         def fetchone(self):
-            if "checksum" in self.sql:
+            if "SELECT checksum" in self.sql:
                 return (state["checksum"],) if state["checksum"] is not None else None
-            return (state["table"],)
+            if "to_regclass" in self.sql:
+                return (state["table"],)
+            if "information_schema.columns" in self.sql:
+                return ("false", "NO")
+            if "pg_constraint" in self.sql:
+                return (1,)
+            raise AssertionError("unexpected query")
+
+        def fetchall(self):
+            if "pg_indexes" in self.sql:
+                return [
+                    ("ix_oap_music_data_genre",),
+                    ("ix_oap_music_data_language",),
+                    ("ix_oap_music_data_country_consented",),
+                ]
+            raise AssertionError("unexpected query")
 
     @contextmanager
     def connect(*, readonly=False):
