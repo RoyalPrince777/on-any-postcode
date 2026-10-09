@@ -27,7 +27,7 @@ def test_advisory_votes_and_verified_score():
 def test_full_evidence_requires_all_ten_gates():
     result = review_leadership("OAP Cloud", {"Fox": {"rating": None}}, [], gates(10))
     assert result["percentage"] == 100
-    assert result["mission_stars"] == 7
+    assert result["mission_stars"] == 5\n    assert result["production_green"] is False\n    assert result["release_certification"] == "not_verified"
     assert result["leader"] == "pending_founder_final"
 
 
@@ -63,3 +63,12 @@ def test_gate_names_cannot_be_empty():
     bad[""] = bad.pop("gate_0")
     with pytest.raises(ValueError):
         review_leadership("OAP Cloud", {"Fox": {"rating": None}}, [], bad)
+
+
+def test_complete_self_reported_gates_never_self_certify_release():
+    result = review_leadership(
+        "OAP Cloud", {"Fox": {"rating": None}}, [], gates(10),
+    )
+    assert result["percentage"] == 100
+    assert result["mission_stars"] < 7
+    assert result["production_green"] is False
