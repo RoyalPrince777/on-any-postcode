@@ -19,7 +19,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_real_0007_migration_and_consent_readback():
-    url = data.postgres_db._database_url()  # noqa: SLF001 - inspect effective target
+    url = data.postgres_db._database_url()
     parsed = urlparse(url)
     if parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
         pytest.fail("refusing migration test outside loopback PostgreSQL")
