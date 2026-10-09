@@ -42,7 +42,6 @@ public final class MainActivity extends ComponentActivity {
     private String engineSourcePath;
     private EditText omnibox;
     private Button backButton;
-    private Button forwardButton;
     private final List<String> engineHistory = new ArrayList<>();
     private int engineHistoryIndex = -1;
 
@@ -61,10 +60,7 @@ public final class MainActivity extends ComponentActivity {
         toolbar.setPadding(8, 8, 8, 8);
 
         backButton = navButton("‹");
-        forwardButton = navButton("›");
         Button homeButton = navButton("OAP");
-        Button reloadButton = navButton("↻");
-        Button goButton = navButton("Go");
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
@@ -80,14 +76,11 @@ public final class MainActivity extends ComponentActivity {
         );
 
         toolbar.addView(backButton);
-        toolbar.addView(forwardButton);
         toolbar.addView(homeButton);
-        toolbar.addView(reloadButton);
         toolbar.addView(
                 omnibox,
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         );
-        toolbar.addView(goButton);
 
         webView = new WebView(this);
         engineClient = new EngineDocumentClient(OAP_ORIGIN);
@@ -202,23 +195,7 @@ public final class MainActivity extends ComponentActivity {
                 webView.goBack();
             }
         });
-        forwardButton.setOnClickListener(v -> {
-            if (engineActive && engineHistoryIndex + 1 < engineHistory.size()) {
-                engineHistoryIndex++;
-                openFirstPartyPath(engineHistory.get(engineHistoryIndex), false);
-            } else if (!engineActive && webView.canGoForward()) {
-                webView.goForward();
-            }
-        });
         homeButton.setOnClickListener(v -> openFirstPartyPath("/world"));
-        reloadButton.setOnClickListener(v -> {
-            if (engineActive && engineSourcePath != null) {
-                openFirstPartyPath(engineSourcePath);
-            } else {
-                webView.reload();
-            }
-        });
-        goButton.setOnClickListener(v -> navigate(omnibox.getText().toString()));
         engineSearchButton.setOnClickListener(v -> submitNativeSearch());
         engineSearchInput.setOnEditorActionListener((view, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
