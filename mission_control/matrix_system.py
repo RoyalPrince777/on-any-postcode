@@ -56,3 +56,40 @@ def route_mission(mission: str, *, evidence: tuple[str, ...] = ()) -> MissionDec
         evidence=evidence,
         blockers=("human_authorisation_required", "runtime_verification_required"),
     )
+
+
+def mission_council(
+    mission: str,
+    *,
+    nominations: tuple[str, ...] = (),
+    votes: tuple[tuple[str, str], ...] = (),
+    evidence: tuple[str, ...] = (),
+) -> dict[str, object]:
+    """Join routing, passports and leadership in one non-executing mission record."""
+    from .agent_passports import agent_passport
+    from .matrix_leadership import recommend_lead
+
+    route = route_mission(mission, evidence=evidence)
+    # FOX and OCTOPUS are peers in coordination, not competing mission candidates
+    # unless explicitly selected through a separate authorised governance change.
+    eligible = tuple(agent for agent in route.specialists if agent not in {"fox", "octopus"})
+    leadership = recommend_lead(mission, eligible, nominations=nominations, votes=votes)
+    return {
+        "mission": mission,
+        "command": leadership.command,
+        "captain": leadership.captain,
+        "coordinators": ("fox", "octopus"),
+        "recommended_lead": leadership.recommended_lead,
+        "specialists": tuple(
+            {"agent": agent, "intelligence": agent_passport(agent).intelligence,
+             "domain": agent_passport(agent).domain}
+            for agent in route.specialists
+        ),
+        "votes": leadership.votes,
+        "nominations": leadership.nominations,
+        "evidence": route.evidence,
+        "approved": False,
+        "permitted_to_execute": False,
+        "production_ready": False,
+        "blockers": route.blockers,
+    }
