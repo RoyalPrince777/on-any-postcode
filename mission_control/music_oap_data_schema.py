@@ -129,3 +129,34 @@ def discover_public_data(*, genre: str | None = None, language: str | None = Non
          "playback_enabled": False}
         for row in rows
     ]
+
+
+def oap_data_schema_status() -> dict[str, object]:
+    """Read-only verification of the recorded migration and physical table."""
+    result: dict[str, object] = {
+        "migration": OAP_DATA_MIGRATION_VERSION,
+        "schema_ready": False,
+        "error": "oap_data_schema_unverified",
+    }
+    if not postgres_db.postgres_status().get("initialized"):
+        result["error"] = "base_postgres_not_ready"
+        return result
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            migration = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (OAP_DATA_MIGRATION_VERSION,),
+            ).fetchone()
+            table = connection.execute(
+                "SELECT to_regclass('public.oap_music_track_data')"
+            ).fetchone()
+        if migration is None or str(migration[0]) != OAP_DATA_MIGRATION_CHECKSUM:
+            result["error"] = "oap_data_migration_not_verified"
+        elif table is None or table[0] is None:
+            result["error"] = "oap_data_table_missing"
+        else:
+            result["schema_ready"] = True
+            result["error"] = None
+    except Exception:  # noqa: BLE001
+        result["error"] = "oap_data_store_unavailable"
+    return result
