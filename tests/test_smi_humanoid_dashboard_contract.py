@@ -1,6 +1,6 @@
 """SMI dashboard regression checks; no live-service readiness claims."""
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 PAGE = Path(__file__).resolve().parents[1] / 'mission_control/templates/smi_command_dashboard.html'
 
