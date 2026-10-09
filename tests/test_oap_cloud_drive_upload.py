@@ -11,6 +11,7 @@ def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
     monkeypatch.setenv("OAP_CLOUD_FOUNDER_TOKEN", "test-founder-secret")
     monkeypatch.setenv("OAP_DRIVE_STORAGE_ROOT", str(tmp_path))
     app = Flask(__name__)
+    app.secret_key = "test-only-cloud-session-secret"
     app.register_blueprint(cloud_bp)
     client = app.test_client()
     # Token alone must fail, even when storage exists.
