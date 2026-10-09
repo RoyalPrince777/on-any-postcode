@@ -4,6 +4,9 @@ from pathlib import Path
 import tempfile
 from .drive_manifest import verify_artifact_manifest
 
+MAX_ARTIFACT_BYTES = 15_000_000
+
+
 class DriveStorage:
     def __init__(self, root):
         original = Path(root)
@@ -14,7 +17,7 @@ class DriveStorage:
             raise ValueError("Storage root must be a provisioned, real directory")
 
     def put(self, manifest, payload):
-        if not verify_artifact_manifest(manifest, payload):
+        if len(payload) > MAX_ARTIFACT_BYTES or not verify_artifact_manifest(manifest, payload):
             raise ValueError("Invalid artifact integrity manifest")
         digest = manifest["sha256"]
         destination = self.root / digest
@@ -47,10 +50,25 @@ class DriveStorage:
         digest = manifest.get("sha256", "") if isinstance(manifest, dict) else ""
         if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
             raise ValueError("Invalid digest")
+        expected_size = manifest.get("size_bytes")
+        if type(expected_size) is not int or not 0 <= expected_size <= MAX_ARTIFACT_BYTES:
+            raise ValueError("Artifact size outside storage bounds")
         path = self.root / digest
-        if path.is_symlink() or not path.is_file():
-            raise FileNotFoundError("Artifact unavailable")
-        payload = path.read_bytes()
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        try:
+            fd = os.open(path, flags)
+        except OSError as exc:
+            raise FileNotFoundError("Artifact unavailable") from exc
+        try:
+            import stat
+
+            details = os.fstat(fd)
+            if not stat.S_ISREG(details.st_mode) or details.st_size != expected_size:
+                raise ValueError("Stored artifact size or type mismatch")
+            with os.fdopen(fd, "rb", closefd=False) as handle:
+                payload = handle.read(MAX_ARTIFACT_BYTES + 1)
+        finally:
+            os.close(fd)
         if not verify_artifact_manifest(manifest, payload):
             raise ValueError("Stored artifact integrity failure")
         return payload
