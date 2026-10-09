@@ -42,3 +42,17 @@ def test_search_is_keyboard_accessible_in_modal_drawer():
     assert "querySelectorAll('a,button,input')" in html
     assert "search||document.getElementById('close')" in html
     assert "previous?.focus()" in html
+
+
+def test_smi_template_renders_with_real_jinja_engine():
+    from flask import Flask, render_template
+
+    flask_app = Flask("smi_home_contract", template_folder=str(ROOT / "templates"))
+    with flask_app.test_request_context("/smi-home"):
+        rendered = render_template("smi_command_home.html")
+    assert "<!doctype html>" in rendered.lower()
+    assert 'id="overlay"' in rendered
+    assert 'id="drawer-title"' in rendered
+    assert 'id="close"' in rendered
+    assert 'aria-label="Quick navigation"' in rendered
+    assert "Captain ALL IN" in rendered
