@@ -16,13 +16,13 @@ def _rights_allow():
 
 
 def _proofs():
-    return dict(
-        founder_authenticated=True,
-        owner_identity_matches=True,
-        rights_decision=_rights_allow(),
-        entitlement_proven=True,
-        storage_integrity_proven=True,
-    )
+    return {
+        "founder_authenticated": True,
+        "owner_identity_matches": True,
+        "rights_decision": _rights_allow(),
+        "entitlement_proven": True,
+        "storage_integrity_proven": True,
+    }
 
 
 def test_all_independent_proofs_are_required():
