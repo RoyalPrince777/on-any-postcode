@@ -28,3 +28,22 @@ def test_reject_symlink_artifact(tmp_path):
         store.put(manifest, data)
     with pytest.raises(FileNotFoundError):
         store.get(manifest)
+
+
+def test_reject_symlink_storage_root(tmp_path):
+    real_root = tmp_path / "real"
+    real_root.mkdir()
+    link_root = tmp_path / "linked"
+    link_root.symlink_to(real_root, target_is_directory=True)
+    with pytest.raises(ValueError, match="Symlink storage root"):
+        DriveStorage(link_root)
+
+
+def test_reject_directory_at_digest_path(tmp_path):
+    store = DriveStorage(tmp_path)
+    data = b"directory-collision"
+    manifest = {"kind": "build-log", "size_bytes": len(data),
+                "sha256": hashlib.sha256(data).hexdigest()}
+    (tmp_path / manifest["sha256"]).mkdir()
+    with pytest.raises(ValueError, match="Existing artifact mismatch"):
+        store.put(manifest, data)
