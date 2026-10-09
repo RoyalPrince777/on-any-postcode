@@ -161,8 +161,9 @@ def oap_data_schema_status() -> dict[str, object]:
             ).fetchone()
             foreign_key = connection.execute(
                 """SELECT 1 FROM pg_constraint
-                   WHERE conrelid='public.oap_music_track_data'::regclass
-                     AND contype='f' AND confrelid='public.oap_music_tracks'::regclass"""
+                   WHERE conrelid=to_regclass('public.oap_music_track_data')
+                     AND contype='f'
+                     AND confrelid=to_regclass('public.oap_music_tracks')"""
             ).fetchone()
         if migration is None or str(migration[0]) != OAP_DATA_MIGRATION_CHECKSUM:
             result["error"] = "oap_data_migration_not_verified"
