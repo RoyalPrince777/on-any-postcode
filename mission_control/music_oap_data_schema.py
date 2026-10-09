@@ -150,10 +150,34 @@ def oap_data_schema_status() -> dict[str, object]:
             table = connection.execute(
                 "SELECT to_regclass('public.oap_music_track_data')"
             ).fetchone()
+            indexes = connection.execute(
+                """SELECT indexname FROM pg_indexes
+                   WHERE schemaname='public' AND tablename='oap_music_track_data'"""
+            ).fetchall()
+            columns = connection.execute(
+                """SELECT column_default, is_nullable FROM information_schema.columns
+                   WHERE table_schema='public' AND table_name='oap_music_track_data'
+                     AND column_name='location_publication_consent'"""
+            ).fetchone()
+            foreign_key = connection.execute(
+                """SELECT 1 FROM pg_constraint
+                   WHERE conrelid='public.oap_music_track_data'::regclass
+                     AND contype='f' AND confrelid='public.oap_music_tracks'::regclass"""
+            ).fetchone()
         if migration is None or str(migration[0]) != OAP_DATA_MIGRATION_CHECKSUM:
             result["error"] = "oap_data_migration_not_verified"
         elif table is None or table[0] is None:
             result["error"] = "oap_data_table_missing"
+        elif not {
+            "ix_oap_music_data_genre",
+            "ix_oap_music_data_language",
+            "ix_oap_music_data_country_consented",
+        }.issubset({row[0] for row in indexes}):
+            result["error"] = "oap_data_indexes_missing"
+        elif columns is None or columns[1] != "NO" or "false" not in str(columns[0]).lower():
+            result["error"] = "oap_data_consent_default_invalid"
+        elif foreign_key is None:
+            result["error"] = "oap_data_foreign_key_missing"
         else:
             result["schema_ready"] = True
             result["error"] = None
