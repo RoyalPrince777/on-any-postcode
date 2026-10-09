@@ -30,8 +30,9 @@ def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
     route = "/cloud/v1/drive/artifacts"
     assert client.post(route, json=manifest).status_code == 404
     assert client.post(route, json=manifest, headers={"Authorization": "Bearer wrong"}).status_code == 404
+    assert client.post(route, json=manifest, headers={"Authorization": "Bearer test-founder-secret"}).status_code == 404
     response = client.post(
-        route, json=manifest, headers={"Authorization": "Bearer test-founder-secret"}
+        route, json=manifest, headers={"Authorization": "Bearer test-founder-secret", "X-OAP-CSRF": "test-csrf-token-0123456789abcdef"}
     )
     assert response.status_code == 201
     assert response.json["sha256"] == manifest["sha256"]
@@ -51,13 +52,17 @@ def test_drive_upload_fails_closed_without_storage(monkeypatch):
     monkeypatch.setenv("OAP_CLOUD_FOUNDER_TOKEN", "test-founder-secret")
     monkeypatch.delenv("OAP_DRIVE_STORAGE_ROOT", raising=False)
     app = Flask(__name__)
+    app.secret_key = "test-only-cloud-session-secret"
     app.register_blueprint(cloud_bp)
     monkeypatch.setattr(founder_control.web_security, "current_authenticated_user", lambda: {"id": "founder"})
     monkeypatch.setattr(founder_control.web_security, "private_authority_allowed", lambda user: True)
-    response = app.test_client().post(
+    client = app.test_client()
+    with client.session_transaction() as sess:
+        sess["oap_csrf_token"] = "test-csrf-token-0123456789abcdef"
+    response = client.post(
         "/cloud/v1/drive/artifacts",
         json={},
-        headers={"Authorization": "Bearer test-founder-secret"},
+        headers={"Authorization": "Bearer test-founder-secret", "X-OAP-CSRF": "test-csrf-token-0123456789abcdef"},
     )
     assert response.status_code == 503
 
