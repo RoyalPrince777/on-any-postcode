@@ -17,7 +17,7 @@ def plan_catalogue_batch(
     average_metadata_bytes: int = 1024,
 ) -> dict[str, object]:
     if isinstance(record_count, bool) or not isinstance(record_count, int):
-        raise ValueError("invalid_record_count")
+        raise TypeError("invalid_record_count")
     if record_count < 0 or record_count > MAX_IMPORT_BATCH_RECORDS:
         raise ValueError("import_batch_limit_exceeded")
     raw_bytes = estimate_metadata_bytes(record_count, average_metadata_bytes)
