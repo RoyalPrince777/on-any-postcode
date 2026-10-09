@@ -1,0 +1,37 @@
+name: OAP Android Founder APK
+on:
+  pull_request:
+    paths:
+      - 'android/oapworld/**'
+      - '.github/workflows/oap-android-founder-build.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  debug-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android SDK 35
+        run: |
+          SDKMANAGER="$(find "${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build debug APK
+        working-directory: android/oapworld
+        run: gradle --no-daemon assembleDebug
+      - name: Upload debug APK (not release-signed)
+        uses: actions/upload-artifact@v4
+        with:
+          name: oap-founder-debug-apk
+          path: android/oapworld/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
