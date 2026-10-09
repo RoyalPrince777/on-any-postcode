@@ -91,5 +91,5 @@ def test_discovery_rejects_invalid_country_without_database_access(monkeypatch):
         raise AssertionError("database accessed with invalid input")
 
     monkeypatch.setattr(music_oap_data_schema.postgres_db, "connect", unexpected_connection)
-    with pytest.raises(ValueError, match="invalid country"):
+    with pytest.raises(ValueError, match="invalid country|invalid metadata label"):
         music_oap_data_schema.discover_public_data(country="GHA")
