@@ -145,6 +145,24 @@ jobs:
           OAP_PRIMARY_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
           OAP_REAL_POSTGRES_PROOF: "1"
         run: python -m pytest -q tests/test_distribution_market_postgres_integration.py tests/test_all_in_ai_postgres_executor_integration.py
+      - name: Run isolated OAP Music 0007 PostgreSQL consent proof
+        env:
+          OAP_PRIMARY_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_test_music_0007
+          OAP_TEST_MUSIC_PG: "1"
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import psycopg
+          with psycopg.connect(
+              "postgresql://postgres:postgres@127.0.0.1:5432/postgres",
+              autocommit=True,
+          ) as connection:
+              connection.execute("CREATE DATABASE oap_test_music_0007")
+          from mission_control import postgres_db, product_cores
+          assert postgres_db.init_postgres(assume_yes=True)["initialized"] is True
+          assert product_cores.init_product_core_schema(assume_yes=True)["schema_ready"] is True
+          PY
+          python -m pytest -q tests/test_music_oap_data_postgres_integration.py
       - name: Run bounded external live routing Green Gate probe
         run: python scripts/routing_live_green_gate.py
       - name: Observe bounded external live weather proof
