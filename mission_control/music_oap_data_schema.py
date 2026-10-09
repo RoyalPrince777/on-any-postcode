@@ -44,3 +44,49 @@ def public_discovery_projection() -> str:
         LEFT JOIN oap_music_track_data d ON d.track_id = t.track_id
         WHERE r.state = 'PUBLISHED' AND r.rights_status = 'VERIFIED'
     """
+
+
+# Versioned independently: never mutate the checksum of the applied 0006 migration.
+import hashlib
+
+from . import postgres_db
+
+OAP_DATA_MIGRATION_VERSION = "0007_music_oap_data"
+OAP_DATA_MIGRATION_CHECKSUM = hashlib.sha256(
+    "\n".join(OAP_DATA_SCHEMA_STATEMENTS).encode()
+).hexdigest()
+
+
+def init_oap_data_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, object]:
+    """Explicit additive migration; fail closed on checksum drift."""
+    if not assume_yes:
+        raise RuntimeError("Explicit human approval required: pass --yes")
+    if not postgres_db.postgres_status().get("initialized"):
+        raise RuntimeError("Base PostgreSQL schema must be ready first")
+    if dry_run:
+        return {"dry_run": True, "migration": OAP_DATA_MIGRATION_VERSION,
+                "checksum": OAP_DATA_MIGRATION_CHECKSUM}
+    with postgres_db.connect() as connection:
+        connection.execute("SELECT pg_advisory_xact_lock(%s)", (25800007,))
+        parent = connection.execute(
+            "SELECT 1 FROM oap_schema_migrations WHERE version=%s",
+            ("0006_music_market_post_office",),
+        ).fetchone()
+        if parent is None:
+            raise RuntimeError("Music product-core migration required first")
+        row = connection.execute(
+            "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+            (OAP_DATA_MIGRATION_VERSION,),
+        ).fetchone()
+        if row is not None and str(row[0]) != OAP_DATA_MIGRATION_CHECKSUM:
+            raise RuntimeError("Applied OAP Data migration checksum mismatch")
+        if row is None:
+            for statement in OAP_DATA_SCHEMA_STATEMENTS:
+                connection.execute(statement)
+            connection.execute(
+                "INSERT INTO oap_schema_migrations(version,checksum) VALUES (%s,%s)",
+                (OAP_DATA_MIGRATION_VERSION, OAP_DATA_MIGRATION_CHECKSUM),
+            )
+        connection.commit()
+    return {"migration": OAP_DATA_MIGRATION_VERSION,
+            "checksum": OAP_DATA_MIGRATION_CHECKSUM, "applied": True}
