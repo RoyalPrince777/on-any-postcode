@@ -22,5 +22,5 @@ def test_batch_limit():
 
 def test_negative_and_boolean_counts_rejected():
     for count in (-1, True):
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError if isinstance(count, bool) else ValueError):
             plan_catalogue_batch(record_count=count)
