@@ -28,6 +28,15 @@ def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
     assert response.status_code == 201
     assert response.json["sha256"] == manifest["sha256"]
     assert (tmp_path / manifest["sha256"]).read_bytes() == payload
+    retrieve = "/cloud/v1/drive/retrieve"
+    clean = {k: v for k, v in manifest.items() if k != "payload_base64"}
+    assert client.post(retrieve, json=clean).status_code == 404
+    fetched = client.post(retrieve, json=clean, headers={"Authorization": "Bearer test-founder-secret"})
+    assert fetched.status_code == 200
+    assert base64.b64decode(fetched.json["payload_base64"]) == payload
+    (tmp_path / manifest["sha256"]).write_bytes(b"corrupted")
+    rejected = client.post(retrieve, json=clean, headers={"Authorization": "Bearer test-founder-secret"})
+    assert rejected.status_code == 404
 
 
 def test_drive_upload_fails_closed_without_storage(monkeypatch):
