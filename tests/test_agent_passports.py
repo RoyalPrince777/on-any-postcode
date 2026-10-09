@@ -35,3 +35,23 @@ def test_modes_do_not_activate_or_authorise_agents():
 def test_unknown_agents_and_modes_rejected(agent, mode):
     with pytest.raises(ValueError):
         agent_mode(agent, mode)
+
+
+def test_rank_movement_up_same_down():
+    from mission_control.agent_passports import RANKS, rank_movement
+
+    assert len(RANKS) == 7
+    assert rank_movement(previous="learner", current="capable", evidence=("real test",))["arrow"] == "↑"
+    assert rank_movement(previous="proven", current="proven")["arrow"] == "→"
+    assert rank_movement(previous="expert", current="capable", evidence=("regression",))["arrow"] == "↓"
+
+
+def test_rank_changes_require_evidence_and_never_grant_authority():
+    from mission_control.agent_passports import rank_movement
+
+    with pytest.raises(ValueError, match="rank_change_requires_evidence"):
+        rank_movement(previous="learner", current="elite")
+    with pytest.raises(ValueError, match="unknown_agent_rank"):
+        rank_movement(previous="invented", current="elite", evidence=("claim",))
+    result = rank_movement(previous="learner", current="capable", evidence=("verified",))
+    assert result["execution_authorised"] is False
