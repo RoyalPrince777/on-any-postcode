@@ -18,6 +18,8 @@ def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
     assert client.get("/cloud/v1/status", headers={"Authorization": "Bearer test-founder-secret"}).status_code == 404
     monkeypatch.setattr(founder_control.web_security, "current_authenticated_user", lambda: {"id": "founder"})
     monkeypatch.setattr(founder_control.web_security, "private_authority_allowed", lambda user: True)
+    with client.session_transaction() as sess:
+        sess["oap_csrf_token"] = "test-csrf-token-0123456789abcdef"
     payload = b"test-build-log"
     manifest = {
         "kind": "build-log",
@@ -37,11 +39,11 @@ def test_drive_upload_requires_founder_token(monkeypatch, tmp_path):
     retrieve = "/cloud/v1/drive/retrieve"
     clean = {k: v for k, v in manifest.items() if k != "payload_base64"}
     assert client.post(retrieve, json=clean).status_code == 404
-    fetched = client.post(retrieve, json=clean, headers={"Authorization": "Bearer test-founder-secret"})
+    fetched = client.post(retrieve, json=clean, headers={"Authorization": "Bearer test-founder-secret", "X-OAP-CSRF": "test-csrf-token-0123456789abcdef"})
     assert fetched.status_code == 200
     assert base64.b64decode(fetched.json["payload_base64"]) == payload
     (tmp_path / manifest["sha256"]).write_bytes(b"corrupted")
-    rejected = client.post(retrieve, json=clean, headers={"Authorization": "Bearer test-founder-secret"})
+    rejected = client.post(retrieve, json=clean, headers={"Authorization": "Bearer test-founder-secret", "X-OAP-CSRF": "test-csrf-token-0123456789abcdef"})
     assert rejected.status_code == 404
 
 
