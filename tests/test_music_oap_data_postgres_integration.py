@@ -35,7 +35,7 @@ def test_real_0007_migration_and_consent_readback(monkeypatch):
     data.init_oap_data_schema(assume_yes=True)  # repeat must be safe
 
     # Exercise the real public query with a transaction-scoped fixture.
-    # SAVEPOINT keeps this proof isolated from existing catalogue records.
+    # This fixture must use actual product-core column requirements.
     import uuid
 
     with data.postgres_db.connect() as connection:
@@ -87,7 +87,8 @@ def test_real_0007_migration_and_consent_readback(monkeypatch):
             connection.execute("ROLLBACK TO SAVEPOINT oap_data_consent_probe")
             connection.rollback()
 
-    # Readback is deliberately transactional and rolls back all fixture data.
+    # The migration itself is intentionally committed to the disposable database.
+    # Only fixture writes above are rolled back.
     with data.postgres_db.connect() as connection:
         parent = connection.execute(
             "SELECT 1 FROM oap_schema_migrations WHERE version=%s",
