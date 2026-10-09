@@ -21,13 +21,13 @@ def review_leadership(mission, candidates, ballots, evidence_gates):
     if any(not isinstance(k, str) or not k.strip() for k in evidence_gates):
         raise ValueError("invalid evidence gate")
     if not isinstance(ballots, list):
-        raise ValueError("ballots required")
+        raise ValueError("ballots required")  # noqa: TRY004 - stable validation API
     tally = {candidate: Counter() for candidate in candidates}
     seen = set()
     dissent = []
     for ballot in ballots:
         if not isinstance(ballot, dict):
-            raise ValueError("invalid ballot")
+            raise ValueError("invalid ballot")  # noqa: TRY004 - stable validation API
         voter, candidate, vote = (ballot.get(k) for k in ("voter", "candidate", "vote"))
         reason = ballot.get("reason")
         if not all(isinstance(v, str) and v.strip() for v in (voter, candidate, vote, reason)):
