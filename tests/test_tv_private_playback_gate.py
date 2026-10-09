@@ -22,6 +22,7 @@ def _proofs():
         "rights_decision": _rights_allow(),
         "entitlement_proven": True,
         "storage_integrity_proven": True,
+        "server_evidence_verified": True,
     }
 
 
@@ -58,3 +59,20 @@ def test_missing_or_self_asserted_rights_never_unlock_playback(rights):
     result = authorize_private_playback(**proofs)
     assert result["allowed"] is False
     assert "canonical_rights_allow_not_proven" in result["blockers"]
+
+
+@pytest.mark.parametrize("untrusted", [False, None, 1, "true"])
+def test_untrusted_evidence_cannot_authorize_playback(untrusted):
+    proofs = _proofs()
+    proofs["server_evidence_verified"] = untrusted
+    result = authorize_private_playback(**proofs)
+    assert result["allowed"] is False
+    assert "trusted_server_evidence_required" in result["blockers"]
+
+
+def test_server_evidence_defaults_to_deny():
+    proofs = _proofs()
+    del proofs["server_evidence_verified"]
+    result = authorize_private_playback(**proofs)
+    assert result["allowed"] is False
+    assert "trusted_server_evidence_required" in result["blockers"]
