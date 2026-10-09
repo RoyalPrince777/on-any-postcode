@@ -27,19 +27,20 @@ def test_oap_browser_retains_host_security_controls():
     assert "cookieManager.setAcceptThirdPartyCookies(webView, false)" in source
 
 
-def test_oap_browser_has_real_navigation_controls():
+def test_oap_browser_has_approved_minimal_navigation_controls():
     source = SOURCE.read_text(encoding="utf-8")
     for marker in (
         'navButton("‹")',
-        'navButton("›")',
         'navButton("OAP")',
-        'navButton("↻")',
-        'navButton("Go")',
-        "webView.goBack()",
-        "webView.goForward()",
-        "webView.reload()",
+        'toolbar.addView(backButton)',
+        'toolbar.addView(homeButton)',
+        'omnibox,',
+        'webView.goBack()',
+        'navigate(omnibox.getText().toString())',
     ):
         assert marker in source
+    for removed in ('navButton("›")', 'navButton("↻")', 'navButton("Go")'):
+        assert removed not in source
 
 
 
