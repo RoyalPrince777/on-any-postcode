@@ -61,6 +61,8 @@ def drive_upload():
     root = os.environ.get("OAP_DRIVE_STORAGE_ROOT")
     if not root:
         return jsonify({"error": "storage_not_provisioned"}), 503
+    if request.content_length is None or request.content_length > 20_000_000:
+        return jsonify({"error": "invalid_payload_size"}), 413
     if not request.is_json:
         return jsonify({"error": "invalid_manifest"}), 400
     manifest = request.get_json(silent=True)
@@ -85,6 +87,8 @@ def drive_retrieve():
     root = os.environ.get("OAP_DRIVE_STORAGE_ROOT")
     if not root:
         return jsonify({"error": "storage_not_provisioned"}), 503
+    if request.content_length is None or request.content_length > 4096:
+        return jsonify({"error": "invalid_manifest_size"}), 413
     manifest = request.get_json(silent=True) if request.is_json else None
     if not isinstance(manifest, dict):
         return jsonify({"error": "invalid_manifest"}), 400
