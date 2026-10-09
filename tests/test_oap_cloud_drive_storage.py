@@ -1,6 +1,9 @@
 import hashlib
+
 import pytest
+
 from oap_cloud.drive_storage import DriveStorage
+
 
 def test_store_and_retrieve_verified_artifact(tmp_path):
     store = DriveStorage(tmp_path)
