@@ -64,7 +64,7 @@ class DriveStorage:
 
             details = os.fstat(fd)
             if not stat.S_ISREG(details.st_mode) or details.st_size != expected_size:
-                raise ValueError("Stored artifact size or type mismatch")
+                raise ValueError("Stored artifact integrity failure: size or type mismatch")
             with os.fdopen(fd, "rb", closefd=False) as handle:
                 payload = handle.read(MAX_ARTIFACT_BYTES + 1)
         finally:
