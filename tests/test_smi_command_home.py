@@ -27,3 +27,11 @@ def test_smi_home_never_claims_synthetic_live_health():
     assert "No invented statistics" in html
     assert "All Systems Operational" not in html
     assert "100% System Health" not in html
+
+
+def test_world_drawer_has_first_party_search_and_hidden_results():
+    html = (ROOT / "templates" / "smi_command_home.html").read_text(encoding="utf-8")
+    assert "Find OAP World destination" in html
+    assert "search.addEventListener('input'" in html
+    assert "a.hidden=" in html
+    assert ".links a[hidden]{display:none}" in html
