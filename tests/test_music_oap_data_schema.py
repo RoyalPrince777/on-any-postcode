@@ -50,3 +50,46 @@ def test_migration_dry_run_is_non_mutating(monkeypatch):
     assert result["dry_run"] is True
     assert result["migration"] == OAP_DATA_MIGRATION_VERSION
     assert result["checksum"] == OAP_DATA_MIGRATION_CHECKSUM
+
+
+def test_discovery_country_requires_consent_and_verified_release(monkeypatch):
+    from contextlib import contextmanager
+
+    from mission_control import music_oap_data_schema
+
+    observed = {}
+
+    class Connection:
+        def execute(self, sql, params):
+            observed["sql"] = sql
+            observed["params"] = params
+            return self
+
+        def fetchall(self):
+            return []
+
+    @contextmanager
+    def connect(*, readonly=False):
+        observed["readonly"] = readonly
+        yield Connection()
+
+    monkeypatch.setattr(music_oap_data_schema.postgres_db, "connect", connect)
+    assert music_oap_data_schema.discover_public_data(country="GH", limit=5) == []
+    assert observed["readonly"] is True
+    assert "d.location_publication_consent IS TRUE AND d.country=%s" in observed["sql"]
+    assert "r.state = 'PUBLISHED'" in observed["sql"]
+    assert "r.rights_status = 'VERIFIED'" in observed["sql"]
+    assert observed["params"] == ("GH", 5)
+
+
+def test_discovery_rejects_invalid_country_without_database_access(monkeypatch):
+    import pytest
+
+    from mission_control import music_oap_data_schema
+
+    def unexpected_connection(*, readonly=False):
+        raise AssertionError("database accessed with invalid input")
+
+    monkeypatch.setattr(music_oap_data_schema.postgres_db, "connect", unexpected_connection)
+    with pytest.raises(ValueError, match="invalid country"):
+        music_oap_data_schema.discover_public_data(country="GHA")
