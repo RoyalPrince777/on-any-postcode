@@ -43,20 +43,27 @@ def test_real_0007_migration_and_consent_readback(monkeypatch):
         try:
             release_id = str(uuid.uuid4())
             track_id = str(uuid.uuid4())
+            owner_id = str(uuid.uuid4())
+            connection.execute(
+                """INSERT INTO users(id, username, status)
+                   VALUES (%s, %s, 'active')""",
+                (owner_id, f"oap-test-{owner_id[:12]}"),
+            )
             # The fixture deliberately relies on the product-core schema.
             # If its required columns change, this proof must be updated rather
             # than silently reporting success.
             connection.execute(
                 """INSERT INTO oap_music_releases
-                   (release_id, title, state, rights_status)
-                   VALUES (%s, %s, 'PUBLISHED', 'VERIFIED')""",
-                (release_id, "OAP consent probe"),
+                   (release_id, owner_identity_id, title, release_type, state,
+                    rights_status, idempotency_key)
+                   VALUES (%s, %s, %s, 'single', 'PUBLISHED', 'VERIFIED', %s)""",
+                (release_id, owner_id, "OAP consent probe", f"consent-{release_id}"),
             )
             connection.execute(
                 """INSERT INTO oap_music_tracks
-                   (track_id, release_id, title, position)
-                   VALUES (%s, %s, %s, 1)""",
-                (track_id, release_id, "Consent test"),
+                   (track_id, release_id, title, position, media_ref)
+                   VALUES (%s, %s, %s, 1, %s)""",
+                (track_id, release_id, "Consent test", f"test:unplayable:{track_id}"),
             )
             connection.execute(
                 """INSERT INTO oap_music_track_data
@@ -79,7 +86,7 @@ def test_real_0007_migration_and_consent_readback(monkeypatch):
                 (track_id, "GH"),
             ).fetchone() is None
             connection.execute(
-                "UPDATE oap_music_releases SET rights_status='UNVERIFIED' WHERE release_id=%s",
+                "UPDATE oap_music_releases SET rights_status='REJECTED' WHERE release_id=%s",
                 (release_id,),
             )
             assert connection.execute(sql, (track_id,)).fetchone() is None
