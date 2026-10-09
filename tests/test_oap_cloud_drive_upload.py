@@ -98,4 +98,4 @@ def test_cloud_rejects_oversized_and_unknown_length_requests(monkeypatch, tmp_pa
     headers = {"Authorization": "Bearer test-founder-secret", "X-OAP-CSRF": "test-csrf-token-0123456789abcdef"}
     assert client.post("/cloud/v1/drive/artifacts", data=b"x" * 20_000_001, headers=headers).status_code == 413
     assert client.post("/cloud/v1/drive/retrieve", data=b"x" * 4097, headers=headers).status_code == 413
-    assert client.post("/cloud/v1/drive/artifacts", data=b"", headers=headers).status_code == 400
+    assert client.post("/cloud/v1/drive/artifacts", data=b"", headers=headers).status_code == 413
