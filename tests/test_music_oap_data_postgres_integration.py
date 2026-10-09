@@ -102,11 +102,26 @@ def test_real_0007_migration_and_consent_readback():
             ("0006_music_market_post_office",),
         ).fetchone()
         assert parent is not None
-        consent_default = connection.execute(
-            """SELECT location_publication_consent FROM oap_music_track_data
-               WHERE FALSE"""
-        ).fetchall()
-        assert consent_default == []
+        # Verify rollback persisted across a new database connection.
+        assert connection.execute(
+            "SELECT 1 FROM users WHERE id=%s", (owner_id,)
+        ).fetchone() is None
+        assert connection.execute(
+            "SELECT 1 FROM oap_music_releases WHERE release_id=%s", (release_id,)
+        ).fetchone() is None
+        assert connection.execute(
+            "SELECT 1 FROM oap_music_tracks WHERE track_id=%s", (track_id,)
+        ).fetchone() is None
+        assert connection.execute(
+            "SELECT 1 FROM oap_music_track_data WHERE track_id=%s", (track_id,)
+        ).fetchone() is None
+        default = connection.execute(
+            """SELECT column_default, is_nullable FROM information_schema.columns
+               WHERE table_schema='public' AND table_name='oap_music_track_data'
+                 AND column_name='location_publication_consent'"""
+        ).fetchone()
+        assert default is not None and default[1] == "NO"
+        assert "false" in str(default[0]).lower()
         constraint = connection.execute(
             """SELECT count(*) FROM pg_constraint
                WHERE conrelid='public.oap_music_track_data'::regclass
