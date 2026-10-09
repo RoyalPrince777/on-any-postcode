@@ -34,6 +34,59 @@ def test_real_0007_migration_and_consent_readback(monkeypatch):
     assert data.oap_data_schema_status()["schema_ready"] is True
     data.init_oap_data_schema(assume_yes=True)  # repeat must be safe
 
+    # Exercise the real public query with a transaction-scoped fixture.
+    # SAVEPOINT keeps this proof isolated from existing catalogue records.
+    import uuid
+
+    with data.postgres_db.connect() as connection:
+        connection.execute("SAVEPOINT oap_data_consent_probe")
+        try:
+            release_id = str(uuid.uuid4())
+            track_id = str(uuid.uuid4())
+            # The fixture deliberately relies on the product-core schema.
+            # If its required columns change, this proof must be updated rather
+            # than silently reporting success.
+            connection.execute(
+                """INSERT INTO oap_music_releases
+                   (release_id, title, state, rights_status)
+                   VALUES (%s, %s, 'PUBLISHED', 'VERIFIED')""",
+                (release_id, "OAP consent probe"),
+            )
+            connection.execute(
+                """INSERT INTO oap_music_tracks
+                   (track_id, release_id, title, position)
+                   VALUES (%s, %s, %s, 1)""",
+                (track_id, release_id, "Consent test"),
+            )
+            connection.execute(
+                """INSERT INTO oap_music_track_data
+                   (track_id, genre, language, country, location_publication_consent)
+                   VALUES (%s, 'Highlife', 'ak', 'GH', TRUE)""",
+                (track_id,),
+            )
+            sql = data.public_discovery_projection() + " AND t.track_id=%s"
+            row = connection.execute(sql, (track_id,)).fetchone()
+            assert row is not None and row[6] == "GH"
+            connection.execute(
+                """UPDATE oap_music_track_data
+                   SET location_publication_consent=FALSE WHERE track_id=%s""",
+                (track_id,),
+            )
+            row = connection.execute(sql, (track_id,)).fetchone()
+            assert row is not None and row[6] is None
+            assert connection.execute(
+                sql + " AND d.location_publication_consent IS TRUE AND d.country=%s",
+                (track_id, "GH"),
+            ).fetchone() is None
+            connection.execute(
+                "UPDATE oap_music_releases SET rights_status='UNVERIFIED' WHERE release_id=%s",
+                (release_id,),
+            )
+            assert connection.execute(sql, (track_id,)).fetchone() is None
+        finally:
+            connection.execute("ROLLBACK TO SAVEPOINT oap_data_consent_probe")
+            connection.rollback()
+
     # Readback is deliberately transactional and rolls back all fixture data.
     with data.postgres_db.connect() as connection:
         parent = connection.execute(
