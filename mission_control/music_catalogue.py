@@ -5,8 +5,8 @@ Pure functions only: no network, database writes, or runtime permissions.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 GEOGRAPHY = ("global", "continent", "country", "region", "borough", "postcode")
 SELECTABLE = ("artist", "release", "recording", "genre", "country", "decade")
