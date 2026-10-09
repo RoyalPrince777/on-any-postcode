@@ -659,6 +659,12 @@ def root_front_door():
     return redirect("/world", code=302)
 
 
+@app.get("/smi-home")
+def smi_command_home():
+    """Isolated, public SMI homepage concept; does not replace /world."""
+    return render_template("smi_command_home.html")
+
+
 @app.get("/world")
 def home():
     public = _load_public_snapshot()
