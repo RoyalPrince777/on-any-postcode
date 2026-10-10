@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Any
 from urllib import parse as urlparse
 
@@ -111,7 +111,7 @@ def prove_route_geometry(
         "source": routing.CORE_NAME,
         "engine_contract": routing.ENGINE_CONTRACT,
         "provider_ownership": "oap_owned",
-        "source_timestamp": datetime.now(timezone.utc).isoformat(),
+        "source_timestamp": datetime.now(UTC).isoformat(),
         "route_geometry_proven": True,
         "dispatch_performed": False,
         "payment_captured": False,
