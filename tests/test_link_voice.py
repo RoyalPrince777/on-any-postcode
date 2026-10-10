@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import io
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -155,7 +155,7 @@ def test_create_voice_enforces_quota_and_sha256(monkeypatch):
     sender = str(uuid.uuid4())
     recipient = str(uuid.uuid4())
     voice_id = str(uuid.uuid4())
-    created_at = datetime.now(timezone.utc)
+    created_at = datetime.now(UTC)
     media = _webm()
 
     def handler(query, params):
@@ -203,7 +203,7 @@ def test_voice_list_is_exact_pair_and_never_returns_bytes(monkeypatch):
     identity = str(uuid.uuid4())
     peer = str(uuid.uuid4())
     voice_id = str(uuid.uuid4())
-    created_at = datetime.now(timezone.utc)
+    created_at = datetime.now(UTC)
     connection = _Connection(
         lambda _query, _params: _Result(
             rows=[(voice_id, identity, peer, "audio/webm", 99, 800, created_at, "voice")]
@@ -327,7 +327,7 @@ def test_ptt_kind_is_validated_and_persisted(monkeypatch):
     sender = str(uuid.uuid4())
     recipient = str(uuid.uuid4())
     voice_id = str(uuid.uuid4())
-    created_at = datetime.now(timezone.utc)
+    created_at = datetime.now(UTC)
     media = _webm()
 
     def handler(query, params):

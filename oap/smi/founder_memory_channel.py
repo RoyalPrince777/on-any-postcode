@@ -11,7 +11,7 @@ never scraped or auto-ingested, and no packet becomes canonical automatically.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -107,9 +107,9 @@ def synced_memory_items(
 def _parse_created_at(value: str) -> datetime:
     try:
         parsed = datetime.fromisoformat(value)
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
     except ValueError:
-        return datetime(2026, 9, 4, tzinfo=timezone.utc)
+        return datetime(2026, 9, 4, tzinfo=UTC)
 
 
 def status() -> dict[str, object]:

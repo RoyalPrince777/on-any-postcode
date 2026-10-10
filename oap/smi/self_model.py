@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def _string_tuple(value: object) -> tuple[str, ...]:
@@ -114,7 +114,7 @@ class SelfModel:
         )
         snapshot = SelfModelSnapshot(
             revision=self._revision,
-            observed_at=datetime.now(timezone.utc).isoformat(),
+            observed_at=datetime.now(UTC).isoformat(),
             overall_ready=bool(components) and not degraded and not unknown,
             degraded_components=degraded,
             unknown_components=tuple(unknown),

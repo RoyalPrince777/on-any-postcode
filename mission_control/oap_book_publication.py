@@ -6,7 +6,7 @@ cannot certify signatures or ownership; an authorised reviewer must verify each.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 @dataclass(frozen=True)
@@ -55,6 +55,6 @@ def publication_blocks(evidence: EditionEvidence, *, now: datetime) -> tuple[str
         expiry = evidence.expires_at
         if expiry.tzinfo is None or expiry.utcoffset() is None:
             blocks.append("invalid_expiry_timezone")
-        elif expiry.astimezone(timezone.utc) <= now.astimezone(timezone.utc):
+        elif expiry.astimezone(UTC) <= now.astimezone(UTC):
             blocks.append("rights_expired")
     return tuple(blocks)

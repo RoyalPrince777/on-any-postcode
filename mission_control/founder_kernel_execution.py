@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from datetime import timezone
+from datetime import UTC
 from typing import Any
 
 from oap.contracts import (
@@ -126,8 +126,8 @@ def _load_receipt(receipt_id: str, identity_id: str) -> ApprovalReceipt:
         identity_id=str(row[2]),
         authority_level=int(row[3]),
         decision=ApprovalDecision(str(row[4])),
-        issued_at=row[5].astimezone(timezone.utc),
-        expires_at=row[6].astimezone(timezone.utc),
+        issued_at=row[5].astimezone(UTC),
+        expires_at=row[6].astimezone(UTC),
         nonce=str(row[7]),
         action_digest=str(row[8]),
         signature=str(row[9]),

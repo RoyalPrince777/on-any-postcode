@@ -3,7 +3,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -208,8 +208,8 @@ def test_message_states_are_exact_outgoing_pair_without_body(monkeypatch):
     peer = str(uuid.uuid4())
     first_id = str(uuid.uuid4())
     second_id = str(uuid.uuid4())
-    landed_at = datetime.now(timezone.utc)
-    seen_at = datetime.now(timezone.utc)
+    landed_at = datetime.now(UTC)
+    seen_at = datetime.now(UTC)
     connection = _Connection(
         lambda _query, _params: _Result(
             rows=[

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from mission_control import sika_customer_payment_authority
 
@@ -23,7 +23,7 @@ def test_receipt_is_hash_bound_and_payment_specific():
     receipt = _receipt()
     check = sika_customer_payment_authority.verify_receipt(
         receipt,
-        now=datetime(2026, 10, 2, 19, 0, tzinfo=timezone.utc),
+        now=datetime(2026, 10, 2, 19, 0, tzinfo=UTC),
     )
     assert check["verified"] is True
     assert len(receipt["receipt_hash"]) == 64
@@ -35,13 +35,13 @@ def test_tampered_or_expired_receipt_fails():
     receipt["amount"] = "11.00"
     assert sika_customer_payment_authority.verify_receipt(
         receipt,
-        now=datetime(2026, 10, 2, 19, 0, tzinfo=timezone.utc),
+        now=datetime(2026, 10, 2, 19, 0, tzinfo=UTC),
     )["verified"] is False
 
     expired = _receipt()
     assert sika_customer_payment_authority.verify_receipt(
         expired,
-        now=datetime(2026, 10, 2, 21, 0, tzinfo=timezone.utc),
+        now=datetime(2026, 10, 2, 21, 0, tzinfo=UTC),
     )["reason"] == "receipt_expired"
 
 

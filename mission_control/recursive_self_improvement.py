@@ -9,7 +9,7 @@ self-approve, or bypass Guardian, Green Gate, War Room or Human Authority.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -73,7 +73,7 @@ MATRIX_LEADS_BY_DOMAIN: dict[str, str] = {
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _clean_items(items: Iterable[str]) -> tuple[str, ...]:

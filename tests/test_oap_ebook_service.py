@@ -1,6 +1,6 @@
 """Isolated ebook orchestration never trusts request-supplied purchase claims."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -10,7 +10,7 @@ from mission_control.oap_book_delivery import PurchaseReceipt
 from mission_control.oap_book_publication import EditionEvidence
 from mission_control.oap_ebook_reader import EbookEdition, manuscript_digest
 
-NOW = datetime(2026, 9, 23, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 23, tzinfo=UTC)
 PAGES = ("one", "two")
 HASH = manuscript_digest(PAGES)
 MANUSCRIPT = EbookEdition("oap", "v1", HASH, PAGES, frozenset({0}))

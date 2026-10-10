@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -124,7 +124,7 @@ def issue_journey_code(*, booking_id: object, rider_identity_id: object) -> dict
     rider = _uuid(rider_identity_id, "rider_identity_id")
     code = f"{secrets.randbelow(1_000_000):06d}"
     digest = hashlib.sha256(f"{booking}:{code}".encode()).hexdigest()
-    expiry = datetime.now(timezone.utc) + timedelta(minutes=15)
+    expiry = datetime.now(UTC) + timedelta(minutes=15)
     with postgres_db.connect() as connection:
         owner, _, state = _participants(connection, booking)
         if owner != rider:
@@ -164,7 +164,7 @@ def verify_and_start(*, booking_id: object, driver_identity_id: object, journey_
         ).fetchone()
         if row is None or str(row[1]) != "ISSUED":
             raise PermissionError("active_journey_code_required")
-        if row[3] <= datetime.now(timezone.utc):
+        if row[3] <= datetime.now(UTC):
             connection.execute("UPDATE oap_ride_journey_codes SET state='EXPIRED' WHERE booking_id=%s", (booking,))
             connection.commit()
             raise PermissionError("journey_code_expired")

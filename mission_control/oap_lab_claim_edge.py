@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Literal
 from uuid import UUID
@@ -42,12 +42,12 @@ def _date(value: str) -> datetime:
     if not isinstance(value, str):
         raise ClaimEdgeBlocked("dated_evidence_required")
     try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value)
     except ValueError as exc:
         raise ClaimEdgeBlocked("invalid_evidence_date") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ClaimEdgeBlocked("timezone_required")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _required(value: str, label: str) -> str:

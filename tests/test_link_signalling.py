@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -234,7 +234,7 @@ def test_list_events_is_scoped_to_recipient_and_session(monkeypatch):
     sender = str(uuid.uuid4())
     session_id = str(uuid.uuid4())
     event_id = str(uuid.uuid4())
-    created_at = datetime.now(timezone.utc)
+    created_at = datetime.now(UTC)
     _allow_call_session(monkeypatch)
 
     def handler(query, params):

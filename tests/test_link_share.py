@@ -5,7 +5,7 @@ import io
 import shutil
 import subprocess
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -169,7 +169,7 @@ def test_create_share_enforces_quota_name_and_sha256(monkeypatch):
     sender = str(uuid.uuid4())
     recipient = str(uuid.uuid4())
     share_id = str(uuid.uuid4())
-    created_at = datetime.now(timezone.utc)
+    created_at = datetime.now(UTC)
     media = _png()
 
     def handler(query, params):
@@ -228,7 +228,7 @@ def test_share_list_is_exact_pair_and_never_returns_bytes(monkeypatch):
     identity = str(uuid.uuid4())
     peer = str(uuid.uuid4())
     share_id = str(uuid.uuid4())
-    created_at = datetime.now(timezone.utc)
+    created_at = datetime.now(UTC)
     connection = _Connection(
         lambda _query, _params: _Result(
             rows=[(share_id, identity, peer, "photo", "photo.png", "image/png", 99, created_at)]

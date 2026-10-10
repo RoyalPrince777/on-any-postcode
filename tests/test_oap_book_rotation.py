@@ -1,13 +1,13 @@
 """Weekly rotation planner regressions with zero external side effects."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from mission_control.oap_book_access import Book
 from mission_control.oap_book_rotation import select_weekly_rotation
 
-MONDAY = datetime(2026, 9, 21, tzinfo=timezone.utc)
+MONDAY = datetime(2026, 9, 21, tzinfo=UTC)
 
 
 def eligible(book_id, **overrides):

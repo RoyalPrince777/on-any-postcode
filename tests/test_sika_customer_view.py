@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from mission_control import (
     sika_account_engine,
@@ -110,7 +110,7 @@ def test_customer_snapshot_exposes_only_persisted_founder_binding(monkeypatch):
 
 class _Result:
     def fetchall(self):
-        now = datetime(2026, 10, 4, 6, 0, tzinfo=timezone.utc)
+        now = datetime(2026, 10, 4, 6, 0, tzinfo=UTC)
         return [
             (
                 "pay-1",
