@@ -87,7 +87,9 @@ jobs:
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
       - name: Lint active application code
-        run: ruff check app.py mission_control oap tests
+        run: |
+          set -o pipefail
+          ruff check app.py mission_control oap tests 2>&1 | tee /tmp/oap-pytest.log
       - name: Run OAP RTL proof slice
         run: |
           iverilog -g2012 -Wall -s tb_oap_guardian_nexus_slice \
