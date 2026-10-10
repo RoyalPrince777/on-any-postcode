@@ -11,7 +11,7 @@ Founder but cannot emit live Matrix Signals until separately registered.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
