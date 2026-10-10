@@ -11,7 +11,7 @@ import hashlib
 import json
 import re
 import uuid
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from flask import current_app
