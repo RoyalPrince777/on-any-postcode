@@ -56,7 +56,7 @@ def _clean_text(value: object, field: str, *, optional: bool = False) -> str | N
 def _instant(value: object, field: str) -> str:
     if not isinstance(value, str):
         raise TypeError(f"invalid_{field}")
-    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    parsed = datetime.fromisoformat(value)
     if parsed.tzinfo is None:
         raise ValueError(f"invalid_{field}")
     return parsed.isoformat()
