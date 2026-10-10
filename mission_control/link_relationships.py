@@ -5,7 +5,7 @@ Schema changes remain explicit. Importing this module never mutates production.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from . import link_youth_safety, linkup_safety, postgres_db
