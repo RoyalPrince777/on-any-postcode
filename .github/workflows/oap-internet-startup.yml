@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install bounded test tools
-        run: python -m pip install pytest ruff
+        run: python -m pip install -r requirements.txt pytest ruff
       - name: Lint manifest regression tests
         run: ruff check tests/test_oap_internet_manifest_startup.py
       - name: Test installed-app startup manifest
