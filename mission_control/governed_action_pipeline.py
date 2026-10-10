@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Mapping
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from . import approval_service, postgres_db
