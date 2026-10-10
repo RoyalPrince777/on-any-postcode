@@ -23,7 +23,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 2,
@@ -38,7 +44,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 3,
@@ -53,7 +65,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 4,
@@ -68,7 +86,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 5,
@@ -83,7 +107,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 6,
@@ -98,7 +128,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 7,
@@ -113,7 +149,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 8,
@@ -128,7 +170,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 9,
@@ -143,7 +191,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 10,
@@ -158,7 +212,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 11,
@@ -173,7 +233,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 12,
@@ -188,7 +254,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 13,
@@ -203,7 +275,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 14,
@@ -218,7 +296,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 15,
@@ -233,7 +317,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 16,
@@ -248,7 +338,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 17,
@@ -263,7 +359,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 18,
@@ -278,7 +380,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 19,
@@ -293,7 +401,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 20,
@@ -308,7 +422,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 21,
@@ -323,7 +443,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 22,
@@ -338,7 +464,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 23,
@@ -353,7 +485,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 24,
@@ -368,7 +506,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 25,
@@ -383,7 +527,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 26,
@@ -398,7 +548,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 27,
@@ -413,7 +569,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 28,
@@ -428,7 +590,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 29,
@@ -443,7 +611,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 30,
@@ -458,7 +632,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 31,
@@ -473,7 +653,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 32,
@@ -488,7 +674,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 33,
@@ -503,7 +695,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 34,
@@ -518,7 +716,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 35,
@@ -533,7 +737,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 36,
@@ -548,7 +758,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 37,
@@ -563,7 +779,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 38,
@@ -578,7 +800,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 39,
@@ -593,7 +821,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 40,
@@ -608,7 +842,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 41,
@@ -623,7 +863,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 42,
@@ -638,7 +884,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 43,
@@ -653,7 +905,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     },
     {
       "id": 44,
@@ -668,7 +926,13 @@
         "recovery": null
       },
       "evidence": [],
-      "audit_status": "pending"
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
     }
   ],
   "bounded_proofs": [
@@ -680,5 +944,16 @@
       "workflow_run_id": 38085696447,
       "production_verified": false
     }
-  ]
+  ],
+  "signal_model": {
+    "source": "mission_control.smi_73_signal_field.SIGNAL_KEYS",
+    "expected_count": 73,
+    "states": [
+      "proven",
+      "active",
+      "blocked",
+      "unknown"
+    ],
+    "policy": "Signals are evidence states, not completion percentages. Missing or stale evidence remains unknown; never infer proven from presence of code."
+  }
 }
