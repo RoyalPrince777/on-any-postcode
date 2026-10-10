@@ -8,7 +8,7 @@ import socket
 import threading
 import time
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from . import (
@@ -27,7 +27,7 @@ def _heartbeat_job(job: RuntimeJob) -> dict[str, Any]:
     del job
     return {
         "kind": "organism_heartbeat",
-        "observed_at": datetime.now(timezone.utc).isoformat(),
+        "observed_at": datetime.now(UTC).isoformat(),
         "oap_core_autonomy": oap_core_autonomy.status(),
         "smi_autonomy": smi_runtime_autonomy.status(),
         "organism_autonomy": organism_autonomy.status(),

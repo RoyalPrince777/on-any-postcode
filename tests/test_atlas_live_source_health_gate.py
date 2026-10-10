@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from mission_control import atlas_live_sources
 
 
 def _stamp(seconds_ago: int = 0) -> str:
-    return (datetime.now(timezone.utc) - timedelta(seconds=seconds_ago)).isoformat().replace("+00:00", "Z")
+    return (datetime.now(UTC) - timedelta(seconds=seconds_ago)).isoformat().replace("+00:00", "Z")
 
 
 def test_environment_switch_alone_never_allows_live_claim(monkeypatch):

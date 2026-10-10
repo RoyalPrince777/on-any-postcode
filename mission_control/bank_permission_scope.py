@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 
 from . import bank_authorisation, postgres_db
@@ -54,7 +54,7 @@ class PermissionScope:
 
     def effective(self, *, today: date | None = None) -> bool:
         return self.status == "ACCEPTED" and self.effective_from <= (
-            today or datetime.now(timezone.utc).date()
+            today or datetime.now(UTC).date()
         )
 
     def allows(self, capability: str, *, today: date | None = None) -> bool:

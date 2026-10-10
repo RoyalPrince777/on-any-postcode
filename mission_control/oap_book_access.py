@@ -7,7 +7,7 @@ handling have independent release proof.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 
 
@@ -49,7 +49,7 @@ class Decision:
 def _utc(value: datetime) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("timezone_required")
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 
 def rotation_valid(book: Book, rotation: Rotation, now: datetime) -> bool:

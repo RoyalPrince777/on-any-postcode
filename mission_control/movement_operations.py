@@ -13,7 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -264,8 +264,8 @@ def _timestamp(value: object, *, name: str, required: bool = False) -> datetime 
         except ValueError as exc:
             raise ValueError(f"invalid_{name}") from exc
     if result.tzinfo is None:
-        result = result.replace(tzinfo=timezone.utc)
-    return result.astimezone(timezone.utc)
+        result = result.replace(tzinfo=UTC)
+    return result.astimezone(UTC)
 
 
 def movement_schema_status() -> dict[str, Any]:
@@ -629,7 +629,7 @@ class PostgresMovementStore:
         booking = _uuid(booking_id, "booking_id")
         identity = _uuid(identity_id, "identity_id")
         expiry = _timestamp(expires_at, name="expires_at", required=True)
-        if expiry <= datetime.now(timezone.utc):
+        if expiry <= datetime.now(UTC):
             raise ValueError("tracking_consent_must_expire_in_future")
         if not self.is_participant(booking_id=booking, identity_id=identity):
             raise PermissionError("booking_participant_required")

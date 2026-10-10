@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
@@ -26,7 +26,7 @@ class HealthCheck:
 
     def check(self) -> dict[str, Any]:
         """Run all health checks and return overall status."""
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         checks = {
             "database": self._check_database(),

@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .oap_book_access import Access
 from .oap_book_delivery import ReadingGrant
@@ -85,7 +85,7 @@ def deliver_page(
             expiry is None
             or expiry.tzinfo is None
             or expiry.utcoffset() is None
-            or now.astimezone(timezone.utc) >= expiry.astimezone(timezone.utc)
+            or now.astimezone(UTC) >= expiry.astimezone(UTC)
         ):
             raise PermissionError("rotation_expired")
     if grant.access is Access.DENIED:

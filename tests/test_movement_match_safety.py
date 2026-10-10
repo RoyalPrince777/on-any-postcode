@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -55,7 +55,7 @@ def _connect(connection):
 
 
 def test_proposal_selection_requires_current_certification(monkeypatch):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     connection = _Connection(
         [
             ("SELECT service_type,pickup,state", ("ride", {"zone": "CR4"}, "REQUESTED")),
@@ -91,7 +91,7 @@ def test_proposal_selection_requires_current_certification(monkeypatch):
 
 
 def test_accept_rejects_expired_availability_before_assignment(monkeypatch):
-    expired = datetime.now(timezone.utc) - timedelta(seconds=1)
+    expired = datetime.now(UTC) - timedelta(seconds=1)
     connection = _Connection(
         [
             ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
@@ -114,7 +114,7 @@ def test_accept_rejects_expired_availability_before_assignment(monkeypatch):
 
 
 def test_accept_rejects_role_revoked_after_proposal(monkeypatch):
-    available_until = datetime.now(timezone.utc) + timedelta(minutes=15)
+    available_until = datetime.now(UTC) + timedelta(minutes=15)
     connection = _Connection(
         [
             ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
@@ -138,7 +138,7 @@ def test_accept_rejects_role_revoked_after_proposal(monkeypatch):
 
 
 def test_accept_locks_revalidates_expires_competing_proposals_and_marks_busy(monkeypatch):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     available_until = now + timedelta(minutes=15)
     connection = _Connection(
         [

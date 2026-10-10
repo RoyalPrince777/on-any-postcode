@@ -2,7 +2,7 @@
 
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -80,7 +80,7 @@ def test_submit_moves_only_owned_draft_to_review(monkeypatch):
 
 
 def test_list_drafts_is_owner_scoped_and_read_only(monkeypatch):
-    now = datetime(2026, 10, 5, tzinfo=timezone.utc)
+    now = datetime(2026, 10, 5, tzinfo=UTC)
     cursor = FakeCursor(rows=[(
         str(uuid.uuid4()), "my-book", "v1", "My Book", "", "en",
         100, "DRAFT", False, "a" * 64, now,

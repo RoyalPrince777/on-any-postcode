@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from threading import Lock
 from urllib import error as urlerror
 from urllib import parse as urlparse
@@ -37,7 +37,7 @@ _TFL_LAST_ERROR: str | None = None
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _clean(value: object, limit: int) -> str:

@@ -7,7 +7,7 @@ production store cannot be inspected.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from . import (
     a7_certification,
@@ -19,7 +19,7 @@ from . import (
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 SMI_COMPLETION_CHECKS = (

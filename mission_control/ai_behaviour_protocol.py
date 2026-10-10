@@ -7,7 +7,7 @@ track users, dispatch real-world movement, or expose chain-of-thought.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 import re
 
@@ -1008,7 +1008,7 @@ HARD_LOCKS = {
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _receipt_id(target: object = "SMI") -> str:

@@ -1,6 +1,6 @@
 """Ebook contract regressions; no live files or purchase execution."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -14,7 +14,7 @@ from mission_control.oap_ebook_reader import (
 )
 
 PAGES = ("chapter one", "chapter two", "chapter three")
-NOW = datetime(2026, 9, 23, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 23, tzinfo=UTC)
 BOOK = EbookEdition(
     book_id="oap-book", edition_id="first", manuscript_sha256=manuscript_digest(PAGES),
     pages=PAGES,
@@ -65,7 +65,7 @@ def test_paid_and_rotation_require_member(access):
 
 
 def test_rotation_expiration_is_explicit():
-    expiry = datetime(2026, 9, 28, tzinfo=timezone.utc)
+    expiry = datetime(2026, 9, 28, tzinfo=UTC)
     result = page(grant=grant(Access.ROTATION, expires_at=expiry))
     assert result.expires_at == expiry.isoformat()
 
@@ -103,7 +103,7 @@ def test_protected_web_headers_do_not_claim_capture_proof():
 
 
 def test_rotation_requires_unexpired_trusted_clock():
-    expiry = datetime(2026, 9, 28, tzinfo=timezone.utc)
+    expiry = datetime(2026, 9, 28, tzinfo=UTC)
     rotated = grant(Access.ROTATION, expires_at=expiry)
     with pytest.raises(PermissionError, match="rotation_expired"):
         page(grant=rotated, now=expiry)
