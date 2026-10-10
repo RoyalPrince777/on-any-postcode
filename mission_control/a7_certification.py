@@ -11,7 +11,7 @@ import hashlib
 import json
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from typing import Any
 
 from flask import current_app
@@ -262,7 +262,7 @@ def _signed_operation_approval(
         row
         and int(row[3]) == 0
         and str(row[4]) == "APPROVED"
-        and row[6] > datetime.now(timezone.utc)
+        and row[6] > datetime.now(UTC)
         and approval_service._row_signature_valid(row)
     )
 
