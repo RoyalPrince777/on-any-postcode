@@ -1,6 +1,6 @@
 """Prove owner isolation, publication rights and excerpt-only access."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from mission_control.oap_book_access import Access, Book, Rotation
 from mission_control.oap_book_delivery import (
@@ -9,7 +9,7 @@ from mission_control.oap_book_delivery import (
 )
 from mission_control.oap_book_publication import EditionEvidence
 
-NOW = datetime(2026, 9, 23, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 23, tzinfo=UTC)
 
 
 def edition(**changes):
