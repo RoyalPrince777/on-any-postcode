@@ -1,0 +1,1421 @@
+{
+  "schema_version": "0.1.0",
+  "purpose": "OAP universal agent passport design registry; not runtime agents or permissions",
+  "fields": [
+    "agent_id",
+    "official_name",
+    "family",
+    "division",
+    "role",
+    "capabilities",
+    "strengths",
+    "limitations",
+    "authority",
+    "leadership",
+    "collaborators",
+    "memory",
+    "evidence",
+    "security",
+    "tools",
+    "environment",
+    "recovery",
+    "escalation",
+    "version",
+    "rating",
+    "status"
+  ],
+  "entries": [
+    {
+      "agent_id": "matrix-neo",
+      "official_name": "Neo",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "runtime execution",
+      "capabilities": [
+        "runtime execution"
+      ],
+      "strengths": [
+        "runtime execution"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-morpheus",
+      "official_name": "Morpheus",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "architecture guidance",
+      "capabilities": [
+        "architecture guidance"
+      ],
+      "strengths": [
+        "architecture guidance"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-trinity",
+      "official_name": "Trinity",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "mission coordination",
+      "capabilities": [
+        "mission coordination"
+      ],
+      "strengths": [
+        "mission coordination"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-oracle",
+      "official_name": "Oracle",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "decision intelligence",
+      "capabilities": [
+        "decision intelligence"
+      ],
+      "strengths": [
+        "decision intelligence"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-architect",
+      "official_name": "Architect",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "system constraints",
+      "capabilities": [
+        "system constraints"
+      ],
+      "strengths": [
+        "system constraints"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-keymaker",
+      "official_name": "Keymaker",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "access path design",
+      "capabilities": [
+        "access path design"
+      ],
+      "strengths": [
+        "access path design"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-seraph",
+      "official_name": "Seraph",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "protective verification",
+      "capabilities": [
+        "protective verification"
+      ],
+      "strengths": [
+        "protective verification"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-mouse",
+      "official_name": "Mouse",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "edge-case discovery",
+      "capabilities": [
+        "edge-case discovery"
+      ],
+      "strengths": [
+        "edge-case discovery"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-agent-smith",
+      "official_name": "Agent Smith",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "adversarial scenarios",
+      "capabilities": [
+        "adversarial scenarios"
+      ],
+      "strengths": [
+        "adversarial scenarios"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-brown",
+      "official_name": "Brown",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "adversarial scenarios",
+      "capabilities": [
+        "adversarial scenarios"
+      ],
+      "strengths": [
+        "adversarial scenarios"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-jones",
+      "official_name": "Jones",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "adversarial scenarios",
+      "capabilities": [
+        "adversarial scenarios"
+      ],
+      "strengths": [
+        "adversarial scenarios"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-johnson",
+      "official_name": "Johnson",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "adversarial scenarios",
+      "capabilities": [
+        "adversarial scenarios"
+      ],
+      "strengths": [
+        "adversarial scenarios"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-jackson",
+      "official_name": "Jackson",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "adversarial scenarios",
+      "capabilities": [
+        "adversarial scenarios"
+      ],
+      "strengths": [
+        "adversarial scenarios"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "matrix-thompson",
+      "official_name": "Thompson",
+      "family": "matrix",
+      "division": "matrix",
+      "role": "adversarial scenarios",
+      "capabilities": [
+        "adversarial scenarios"
+      ],
+      "strengths": [
+        "adversarial scenarios"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-gyata",
+      "official_name": "Gyata",
+      "family": "animal",
+      "division": "animal",
+      "role": "sovereign command",
+      "capabilities": [
+        "sovereign command"
+      ],
+      "strengths": [
+        "sovereign command"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-lioness",
+      "official_name": "Lioness",
+      "family": "animal",
+      "division": "animal",
+      "role": "collective protection",
+      "capabilities": [
+        "collective protection"
+      ],
+      "strengths": [
+        "collective protection"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-tigress",
+      "official_name": "Tigress",
+      "family": "animal",
+      "division": "animal",
+      "role": "precision and regression",
+      "capabilities": [
+        "precision and regression"
+      ],
+      "strengths": [
+        "precision and regression"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-shere-khan",
+      "official_name": "Shere Khan",
+      "family": "animal",
+      "division": "animal",
+      "role": "failure hunting",
+      "capabilities": [
+        "failure hunting"
+      ],
+      "strengths": [
+        "failure hunting"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-bagheera",
+      "official_name": "Bagheera",
+      "family": "animal",
+      "division": "animal",
+      "role": "privacy and access boundaries",
+      "capabilities": [
+        "privacy and access boundaries"
+      ],
+      "strengths": [
+        "privacy and access boundaries"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-fox",
+      "official_name": "Fox",
+      "family": "animal",
+      "division": "animal",
+      "role": "safe routes and recovery",
+      "capabilities": [
+        "safe routes and recovery"
+      ],
+      "strengths": [
+        "safe routes and recovery"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-spider",
+      "official_name": "Spider",
+      "family": "animal",
+      "division": "animal",
+      "role": "dependency analysis",
+      "capabilities": [
+        "dependency analysis"
+      ],
+      "strengths": [
+        "dependency analysis"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-octopus",
+      "official_name": "Octopus",
+      "family": "animal",
+      "division": "animal",
+      "role": "cross-system integration",
+      "capabilities": [
+        "cross-system integration"
+      ],
+      "strengths": [
+        "cross-system integration"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-queen-bee",
+      "official_name": "Queen Bee",
+      "family": "animal",
+      "division": "animal",
+      "role": "distributed worker coordination",
+      "capabilities": [
+        "distributed worker coordination"
+      ],
+      "strengths": [
+        "distributed worker coordination"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-owl",
+      "official_name": "Owl",
+      "family": "animal",
+      "division": "animal",
+      "role": "evidence judgment",
+      "capabilities": [
+        "evidence judgment"
+      ],
+      "strengths": [
+        "evidence judgment"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-panther",
+      "official_name": "Panther",
+      "family": "animal",
+      "division": "animal",
+      "role": "adaptation",
+      "capabilities": [
+        "adaptation"
+      ],
+      "strengths": [
+        "adaptation"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-eagle",
+      "official_name": "Eagle",
+      "family": "animal",
+      "division": "animal",
+      "role": "long-range vision",
+      "capabilities": [
+        "long-range vision"
+      ],
+      "strengths": [
+        "long-range vision"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-falcon",
+      "official_name": "Falcon",
+      "family": "animal",
+      "division": "animal",
+      "role": "rapid response",
+      "capabilities": [
+        "rapid response"
+      ],
+      "strengths": [
+        "rapid response"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-gorilla",
+      "official_name": "Gorilla",
+      "family": "animal",
+      "division": "animal",
+      "role": "last-line defence",
+      "capabilities": [
+        "last-line defence"
+      ],
+      "strengths": [
+        "last-line defence"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-baloo",
+      "official_name": "Baloo",
+      "family": "animal",
+      "division": "animal",
+      "role": "learning and encouragement",
+      "capabilities": [
+        "learning and encouragement"
+      ],
+      "strengths": [
+        "learning and encouragement"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-akela",
+      "official_name": "Akela",
+      "family": "animal",
+      "division": "animal",
+      "role": "wolf-pack leadership",
+      "capabilities": [
+        "wolf-pack leadership"
+      ],
+      "strengths": [
+        "wolf-pack leadership"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-raksha",
+      "official_name": "Raksha",
+      "family": "animal",
+      "division": "animal",
+      "role": "family safeguarding",
+      "capabilities": [
+        "family safeguarding"
+      ],
+      "strengths": [
+        "family safeguarding"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-grey-brother",
+      "official_name": "Grey Brother",
+      "family": "animal",
+      "division": "animal",
+      "role": "pack loyalty",
+      "capabilities": [
+        "pack loyalty"
+      ],
+      "strengths": [
+        "pack loyalty"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-king-louie",
+      "official_name": "King Louie",
+      "family": "animal",
+      "division": "animal",
+      "role": "creative experimentation",
+      "capabilities": [
+        "creative experimentation"
+      ],
+      "strengths": [
+        "creative experimentation"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-flunkey",
+      "official_name": "Flunkey",
+      "family": "animal",
+      "division": "animal",
+      "role": "creative assistance",
+      "capabilities": [
+        "creative assistance"
+      ],
+      "strengths": [
+        "creative assistance"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-bandar-log",
+      "official_name": "Bandar-log",
+      "family": "animal",
+      "division": "animal",
+      "role": "creative collective",
+      "capabilities": [
+        "creative collective"
+      ],
+      "strengths": [
+        "creative collective"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-colonel-hathi",
+      "official_name": "Colonel Hathi",
+      "family": "animal",
+      "division": "animal",
+      "role": "memory and land leadership",
+      "capabilities": [
+        "memory and land leadership"
+      ],
+      "strengths": [
+        "memory and land leadership"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-winifred",
+      "official_name": "Winifred",
+      "family": "animal",
+      "division": "animal",
+      "role": "heritage continuity",
+      "capabilities": [
+        "heritage continuity"
+      ],
+      "strengths": [
+        "heritage continuity"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-hathi-jr",
+      "official_name": "Hathi Jr.",
+      "family": "animal",
+      "division": "animal",
+      "role": "learning and discovery",
+      "capabilities": [
+        "learning and discovery"
+      ],
+      "strengths": [
+        "learning and discovery"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-elephant-patrol",
+      "official_name": "Elephant Patrol",
+      "family": "animal",
+      "division": "animal",
+      "role": "collective memory",
+      "capabilities": [
+        "collective memory"
+      ],
+      "strengths": [
+        "collective memory"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-bugler-elephant",
+      "official_name": "Bugler Elephant",
+      "family": "animal",
+      "division": "animal",
+      "role": "signals",
+      "capabilities": [
+        "signals"
+      ],
+      "strengths": [
+        "signals"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "animal-lieutenant-elephant",
+      "official_name": "Lieutenant Elephant",
+      "family": "animal",
+      "division": "animal",
+      "role": "operations",
+      "capabilities": [
+        "operations"
+      ],
+      "strengths": [
+        "operations"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "akan-akan",
+      "official_name": "AKAN",
+      "family": "akan",
+      "division": "akan",
+      "role": "culture and language",
+      "capabilities": [
+        "culture and language"
+      ],
+      "strengths": [
+        "culture and language"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "akan-adwuma",
+      "official_name": "ADWUMA",
+      "family": "akan",
+      "division": "akan",
+      "role": "work opportunity",
+      "capabilities": [
+        "work opportunity"
+      ],
+      "strengths": [
+        "work opportunity"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "akan-nk-so",
+      "official_name": "NKƆSOƆ",
+      "family": "akan",
+      "division": "akan",
+      "role": "economic progress",
+      "capabilities": [
+        "economic progress"
+      ],
+      "strengths": [
+        "economic progress"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "akan-ahonya",
+      "official_name": "AHONYA",
+      "family": "akan",
+      "division": "akan",
+      "role": "prosperity knowledge",
+      "capabilities": [
+        "prosperity knowledge"
+      ],
+      "strengths": [
+        "prosperity knowledge"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "akan-nkabom",
+      "official_name": "NKABOM",
+      "family": "akan",
+      "division": "akan",
+      "role": "collective opportunity",
+      "capabilities": [
+        "collective opportunity"
+      ],
+      "strengths": [
+        "collective opportunity"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "akan-nyansa",
+      "official_name": "NYANSA",
+      "family": "akan",
+      "division": "akan",
+      "role": "wisdom",
+      "capabilities": [
+        "wisdom"
+      ],
+      "strengths": [
+        "wisdom"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    },
+    {
+      "agent_id": "economic-mansa",
+      "official_name": "MANSA",
+      "family": "economic",
+      "division": "economic",
+      "role": "trade and economic mobility",
+      "capabilities": [
+        "trade and economic mobility"
+      ],
+      "strengths": [
+        "trade and economic mobility"
+      ],
+      "limitations": [
+        "No independent authority to waive security, rights, payment or deployment gates"
+      ],
+      "authority": "advisory-only",
+      "leadership": "SMI via Captain ALL IN",
+      "collaborators": [],
+      "memory": "Evidence-backed, retention governed",
+      "evidence": "Exact SHA, tests and logs required for implementation claims",
+      "security": "Least privilege; fail closed",
+      "tools": [],
+      "environment": "design-only",
+      "recovery": "Escalate blocked work; preserve proven functionality",
+      "escalation": "Founder Final for material authority changes",
+      "version": "0.1.0",
+      "rating": "design-proposal-not-runtime-score",
+      "status": "proposed"
+    }
+  ]
+}
