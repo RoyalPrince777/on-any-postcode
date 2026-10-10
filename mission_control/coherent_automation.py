@@ -6,7 +6,7 @@ and never turns missing proof green. Human Authority remains final.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Any
 
 from . import (
@@ -37,7 +37,7 @@ def _iso_from_epoch(value: object) -> str | None:
         return None
     if epoch <= 0:
         return None
-    return datetime.fromtimestamp(epoch, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.fromtimestamp(epoch, tz=UTC).isoformat().replace("+00:00", "Z")
 
 
 def _runtime_observation(generated_at: str) -> dict[str, Any]:
@@ -302,7 +302,7 @@ def _direct_observation(generated_at: str) -> dict[str, Any]:
 def operational_monitor() -> dict[str, Any]:
     """Return source-backed observations without inventing live proof."""
 
-    generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    generated_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     link_observation = link_monitor.observation(generated_at)
     if link_observation["proof_state"] == "partial_proof":
         link_observation["signal"] = live_signals.get_signal("warning")
