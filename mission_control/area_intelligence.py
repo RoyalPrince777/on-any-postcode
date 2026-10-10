@@ -6,7 +6,7 @@ authority, payment capture, dispatch, or fake live claims.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from typing import Iterable
 
 CATEGORIES = (
@@ -127,7 +127,7 @@ KEY_ALIASES = {
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _normalise(value: object) -> str:
