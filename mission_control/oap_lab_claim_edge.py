@@ -42,7 +42,7 @@ def _date(value: str) -> datetime:
     if not isinstance(value, str):
         raise ClaimEdgeBlocked("dated_evidence_required")
     try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value)
     except ValueError as exc:
         raise ClaimEdgeBlocked("invalid_evidence_date") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
