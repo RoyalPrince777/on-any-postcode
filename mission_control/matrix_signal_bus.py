@@ -11,7 +11,7 @@ Founder but cannot emit live Matrix Signals until separately registered.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -81,7 +81,7 @@ ALLOWED_URGENCY: tuple[str, ...] = ("low", "normal", "high", "critical")
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def registered_matrix_names() -> tuple[str, ...]:
