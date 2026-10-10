@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Any
 
 from . import approval_service, postgres_db
@@ -75,7 +75,7 @@ def _approval_valid(row: tuple[Any, ...], *, identity_id: str) -> bool:
         str(row[2]) == identity_id
         and int(row[3]) == 0
         and str(row[4]) == "APPROVED"
-        and row[6] > datetime.now(timezone.utc)
+        and row[6] > datetime.now(UTC)
         and approval_service._row_signature_valid(row)
     )
 
