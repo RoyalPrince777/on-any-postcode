@@ -77,7 +77,7 @@ def _instant(value: object, field: str, *, optional: bool = False) -> datetime |
     if not isinstance(value, str):
         raise TypeError(f"invalid_{field}")
     try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value)
     except ValueError as exc:
         raise ValueError(f"invalid_{field}") from exc
     if parsed.tzinfo is None:
