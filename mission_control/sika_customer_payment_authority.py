@@ -45,7 +45,7 @@ def _required(value: object, field: str) -> str:
 def _iso(value: object, field: str) -> str:
     text = _required(value, field)
     try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(text)
     except ValueError as exc:
         raise CustomerAuthorityError(f"{field}_invalid") from exc
     if parsed.tzinfo is None:
@@ -77,8 +77,8 @@ def build_receipt(
         "expires_at": _iso(expires_at, "expires_at"),
         "revoked": False,
     }
-    authorised = datetime.fromisoformat(payload["authorised_at"].replace("Z", "+00:00"))
-    expires = datetime.fromisoformat(payload["expires_at"].replace("Z", "+00:00"))
+    authorised = datetime.fromisoformat(payload["authorised_at"])
+    expires = datetime.fromisoformat(payload["expires_at"])
     if expires <= authorised:
         raise CustomerAuthorityError("expires_at_must_follow_authorised_at")
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -113,7 +113,7 @@ def verify_receipt(
     if receipt.get("revoked") is True:
         return {"verified": False, "reason": "receipt_revoked"}
     current = now or datetime.now(UTC)
-    expires = datetime.fromisoformat(str(receipt["expires_at"]).replace("Z", "+00:00"))
+    expires = datetime.fromisoformat(str(receipt["expires_at"]))
     if current >= expires:
         return {"verified": False, "reason": "receipt_expired"}
     return {
