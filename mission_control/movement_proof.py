@@ -6,7 +6,7 @@ safe to expose because it works from explicit area strings only.
 """
 from __future__ import annotations
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from hashlib import sha256
 from math import asin, cos, radians, sin, sqrt
 
