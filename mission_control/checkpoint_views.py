@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Any
 
 from flask import Blueprint, jsonify, make_response, request
@@ -90,7 +90,7 @@ def _summarise(lines: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
 
 def _base() -> dict[str, Any]:
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "private": True,
         "founder_only": True,
         "human_authority_final": True,
