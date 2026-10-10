@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from oap.contracts import MemoryItem, OutputState
 
 CANONICAL_MEMORY_REVISION = "2026-10-02-seven-links-core-thinking-signals"
 CANONICAL_MEMORY_PROVENANCE = "founder-approved-oap-memory-sync"
-_CANONICAL_TIMESTAMP = datetime(2026, 10, 2, tzinfo=timezone.utc)
+_CANONICAL_TIMESTAMP = datetime(2026, 10, 2, tzinfo=UTC)
 
 _CANONICAL_RECORDS: tuple[dict[str, Any], ...] = (
     {"memory_id": "oap.front-door", "scopes": ("GENERAL", "COMMUNITY", "STRATEGY", "TECHNICAL"), "summary": "OAP public architecture principle: One World -> One Front Door -> Many Systems Inside. OAP World is the public front door; high-risk or regulated systems remain separated for clarity, performance, security and compliance."},

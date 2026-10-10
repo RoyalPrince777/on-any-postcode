@@ -76,7 +76,7 @@ def _truthy(value: str | None) -> bool:
 
 def _iso8601(value: str) -> bool:
     try:
-        datetime.fromisoformat(value.replace("Z", "+00:00"))
+        datetime.fromisoformat(value)
     except (TypeError, ValueError):
         return False
     return True

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -146,7 +146,7 @@ def test_last_host_step_out_closes_circle_and_revokes_pending_invites(monkeypatc
 def test_circle_dashboard_never_returns_message_or_media_content(monkeypatch):
     identity = str(uuid.uuid4())
     circle = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     def handler(query, params):
         if query.startswith("SELECT c.id,c.name"):

@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from flask import Blueprint, jsonify, make_response, request
 
@@ -65,7 +65,7 @@ def create_ebook_blueprint(
                 authenticated_identity=member_id,
                 private_owner_id=trusted.owner_id,
                 rotation=trusted.rotation,
-                now=datetime.now(timezone.utc),
+                now=datetime.now(UTC),
                 page_number=page_number,
                 preview=excerpt_only,
             )

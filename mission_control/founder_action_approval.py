@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from . import approval_service, authority, postgres_db
 
@@ -39,7 +39,7 @@ def record_action_decision(*, request_id: object, identity_id: object, decision:
         raise ValueError("invalid_action_digest")
 
     ttl = min(1800, max(30, int(ttl_seconds)))
-    issued_at = datetime.now(timezone.utc)
+    issued_at = datetime.now(UTC)
     expires_at = issued_at + timedelta(seconds=ttl)
     receipt_id = str(uuid.uuid4())
     nonce = uuid.uuid4().hex + uuid.uuid4().hex

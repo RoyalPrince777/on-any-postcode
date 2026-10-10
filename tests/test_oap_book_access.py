@@ -1,12 +1,12 @@
 """Isolated Book Access policy regressions; no DB, payments or deployment."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from mission_control.oap_book_access import Access, Book, Rotation, decide_access
 
-NOW = datetime(2026, 9, 23, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 23, tzinfo=UTC)
 
 
 def book(**changes):

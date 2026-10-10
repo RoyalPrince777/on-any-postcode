@@ -13,7 +13,7 @@ import hashlib
 import json
 import os
 from collections.abc import Callable, Iterable, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from . import (
@@ -48,7 +48,7 @@ HARD_LOCKS = (
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _safe_cycle(

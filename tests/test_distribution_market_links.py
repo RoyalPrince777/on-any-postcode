@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -173,7 +173,7 @@ def test_stop_prevents_database_access(monkeypatch):
 
 def test_owner_scoped_readback_never_claims_execution(monkeypatch):
     owner, order, booking, parcel = ids()
-    created_at = datetime(2026, 9, 26, tzinfo=timezone.utc)
+    created_at = datetime(2026, 9, 26, tzinfo=UTC)
     connection = Connection(read_row=(order, booking, parcel, created_at))
     install_connection(monkeypatch, connection)
 

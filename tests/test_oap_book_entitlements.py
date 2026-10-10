@@ -2,7 +2,7 @@
 
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -113,7 +113,7 @@ def test_empty_receipt_is_rejected(monkeypatch):
 
 
 def test_verified_purchase_library_only_returns_owned_approved_rows(monkeypatch):
-    created = datetime(2026, 10, 5, tzinfo=timezone.utc)
+    created = datetime(2026, 10, 5, tzinfo=UTC)
     row = (
         str(uuid.uuid4()), "book", "v1", "provider-receipt",
         "verification-receipt", created, "creator-1", "publisher-1", "a" * 64,

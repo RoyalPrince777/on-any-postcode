@@ -7,7 +7,7 @@ an internal OAP booking state transition only.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -184,8 +184,8 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
             if availability[1] is not None:
                 expiry = availability[1]
                 if expiry.tzinfo is None:
-                    expiry = expiry.replace(tzinfo=timezone.utc)
-                if expiry.astimezone(timezone.utc) <= datetime.now(timezone.utc):
+                    expiry = expiry.replace(tzinfo=UTC)
+                if expiry.astimezone(UTC) <= datetime.now(UTC):
                     raise PermissionError("worker_availability_expired")
             if not _certified(connection, worker, role):
                 raise PermissionError("certified_movement_role_required")
