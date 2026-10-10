@@ -8,7 +8,7 @@ import json
 import os
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from typing import Any
 
 from . import authority, postgres_db
@@ -118,7 +118,7 @@ def record_decision(
     if decision_value not in ALLOWED_DECISIONS:
         raise ValueError("invalid_approval_decision")
     ttl = min(3600, max(30, int(ttl_seconds)))
-    issued_at = datetime.now(timezone.utc)
+    issued_at = datetime.now(UTC)
     expires_at = issued_at + timedelta(seconds=ttl)
     receipt_id = str(uuid.uuid4())
     nonce = secrets.token_urlsafe(24)
@@ -292,7 +292,7 @@ def status() -> dict[str, object]:
             result["latest_actionable"] = bool(
                 result["latest_signature_valid"]
                 and row
-                and row[6] > datetime.now(timezone.utc)
+                and row[6] > datetime.now(UTC)
                 and str(row[4]) == "APPROVED"
             )
     except Exception:  # noqa: BLE001
