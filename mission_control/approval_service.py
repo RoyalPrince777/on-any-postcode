@@ -8,7 +8,7 @@ import json
 import os
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from . import authority, postgres_db
