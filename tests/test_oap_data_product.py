@@ -94,3 +94,35 @@ def test_oap_data_status_rejects_missing_human_authority(client, monkeypatch):
     assert response.status_code == 403
     assert response.get_json() == {"error": {"code": "human_authority_required"}}
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_oap_data_real_authority_path_rejects_non_founder(client, monkeypatch):
+    from contextlib import contextmanager
+
+    @contextmanager
+    def fake_connect(*, readonly):
+        assert readonly is True
+        yield object()
+
+    def reject_authority(connection, user_id):
+        raise authority.HumanAuthorityRequired("level_zero_human_authority_required")
+
+    monkeypatch.setattr(oap_data_views.postgres_db, "connect", fake_connect)
+    monkeypatch.setattr(oap_data_views.authority, "require_human_authority", reject_authority)
+
+    response = client.get("/mission/data/status")
+    assert response.status_code == 403
+    assert response.get_json() == {"error": {"code": "human_authority_required"}}
+
+
+def test_oap_data_real_authority_path_fails_closed_on_database_error(client, monkeypatch):
+    def failed_connect(*, readonly):
+        raise ConnectionError("private database details must not escape")
+
+    monkeypatch.setattr(oap_data_views.postgres_db, "connect", failed_connect)
+    response = client.get("/mission/data/status")
+
+    assert response.status_code == 503
+    assert response.get_json() == {"error": {"code": "oap_data_unavailable"}}
+    assert "private database details" not in response.get_data(as_text=True)
+    assert response.headers["Cache-Control"] == "no-store"
