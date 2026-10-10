@@ -5,7 +5,7 @@ movement observations. It never turns missing evidence into a live claim.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from threading import Lock
 from uuid import uuid4
 
@@ -19,7 +19,7 @@ _ALLOWED_STATES = {"free", "slow", "heavy", "stopped", "closed", "hazard", "unkn
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _clean(value: object, limit: int) -> str:
