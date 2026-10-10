@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -61,7 +61,7 @@ def test_mailbox_list_is_owner_and_folder_scoped(monkeypatch):
     _ready(monkeypatch)
     owner = str(uuid.uuid4())
     item_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     connection = _Connection(
         [(item_id, "inbox", "Hello", "Body", "sender@example.com", now, now)]
     )
@@ -106,7 +106,7 @@ def test_mailbox_fails_closed_when_schema_not_ready(monkeypatch):
 def test_mailbox_search_is_owner_scoped(monkeypatch):
     _ready(monkeypatch)
     owner = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     connection = _Connection(
         [(str(uuid.uuid4()), "sent", "Subject", "Body", "person@example.com", now, now)]
     )
