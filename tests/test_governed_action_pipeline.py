@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -10,7 +10,7 @@ from mission_control.hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 
 
 def _approval_row(identity_id: str) -> tuple[object, ...]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return (
         str(uuid.uuid4()),
         str(uuid.uuid4()),
