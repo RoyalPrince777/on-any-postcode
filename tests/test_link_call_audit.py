@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -154,7 +154,7 @@ def test_active_call_list_returns_only_bounded_session_metadata(monkeypatch):
     identity = str(uuid.uuid4())
     peer = str(uuid.uuid4())
     session_id = str(uuid.uuid4())
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
 
     connection = _Connection(
         lambda _query, _params: _Result(
@@ -225,8 +225,8 @@ def test_recent_call_list_classifies_incoming_missed_without_media(monkeypatch):
     identity = str(uuid.uuid4())
     peer = str(uuid.uuid4())
     session_id = str(uuid.uuid4())
-    started = datetime.now(timezone.utc)
-    ended = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
+    ended = datetime.now(UTC)
 
     connection = _Connection(
         lambda _query, _params: _Result(
