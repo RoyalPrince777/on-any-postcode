@@ -12,7 +12,7 @@ import hashlib
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -82,7 +82,7 @@ def _instant(value: object, field: str, *, optional: bool = False) -> datetime |
         raise ValueError(f"invalid_{field}") from exc
     if parsed.tzinfo is None:
         raise ValueError(f"invalid_{field}")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 @dataclass(frozen=True)
