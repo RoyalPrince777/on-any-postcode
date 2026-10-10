@@ -82,7 +82,7 @@ class ConnectivityBrief:
         if not isinstance(self.completed_at, str) or len(self.completed_at) > 64:
             raise ValueError("invalid_connectivity_brief_completed_at")
         try:
-            completed = datetime.fromisoformat(self.completed_at.replace("Z", "+00:00"))
+            completed = datetime.fromisoformat(self.completed_at)
         except ValueError as exc:
             raise ValueError("invalid_connectivity_brief_completed_at") from exc
         if completed.tzinfo is None:
