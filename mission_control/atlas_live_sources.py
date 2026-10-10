@@ -12,7 +12,7 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, time, timezone, UTC
+from datetime import UTC, datetime, time, timezone
 from typing import Iterable
 from zoneinfo import ZoneInfo
 
