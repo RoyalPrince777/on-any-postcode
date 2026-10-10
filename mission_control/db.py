@@ -15,7 +15,7 @@ import importlib.util
 import sqlite3
 import sys
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 from oap.audit import audit_schema_ready
@@ -255,7 +255,7 @@ def init_db(dry_run: bool = False, assume_yes: bool = False) -> None:
             # Backup before applying
             backup_dir = Path(config.OAP_BACKUP_DIR)
             backup_dir.mkdir(parents=True, exist_ok=True)
-            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+            ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
             backup_path = str(backup_dir / f"oap.db.bak.{version}.{ts}")
             print(f"Creating backup at {backup_path}")
             backup_sha = _backup_database(str(db_file), backup_path)
@@ -268,7 +268,7 @@ def init_db(dry_run: bool = False, assume_yes: bool = False) -> None:
                 migrate = _load_migrate_function(path)
                 migrate(conn)
                 # record migration
-                applied_at = datetime.now(timezone.utc).isoformat()
+                applied_at = datetime.now(UTC).isoformat()
                 conn.execute(
                     f"INSERT INTO {SCHEMA_MIGRATIONS_TABLE} (version, name, checksum, applied_at) VALUES (?,?,?,?)",
                     (version, path.name, checksum, applied_at),
