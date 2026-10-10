@@ -5,7 +5,7 @@ Schema changes remain explicit. Importing this module never mutates production.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Any
 
 from . import link_youth_safety, linkup_safety, postgres_db
@@ -68,8 +68,8 @@ def _expiry(value: object, kind: str) -> datetime | None:
     except ValueError as exc:
         raise ValueError("invalid_purpose_expiry") from exc
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    if parsed <= datetime.now(timezone.utc):
+        parsed = parsed.replace(tzinfo=UTC)
+    if parsed <= datetime.now(UTC):
         raise ValueError("purpose_expiry_must_be_future")
     return parsed
 
