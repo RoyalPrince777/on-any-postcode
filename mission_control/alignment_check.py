@@ -6,11 +6,11 @@ remain locked. It does not expose secrets, private records, or internal logs.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 PUBLIC_ALLOWED_ROUTES = (
