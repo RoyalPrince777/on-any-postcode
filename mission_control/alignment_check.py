@@ -6,7 +6,7 @@ remain locked. It does not expose secrets, private records, or internal logs.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 
 
 def _now() -> str:
