@@ -5,7 +5,7 @@ movement observations. It never turns missing evidence into a live claim.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 from threading import Lock
 from uuid import uuid4
 
