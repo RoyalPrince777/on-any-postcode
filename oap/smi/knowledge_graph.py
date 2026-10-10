@@ -6,12 +6,12 @@ project history. It stores systems, products and concepts rather than people.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from oap.contracts import MemoryItem, OutputState
 
 GRAPH_REVISION = "2026-09-04-v2"
-_GRAPH_TIMESTAMP = datetime(2026, 9, 4, tzinfo=timezone.utc)
+_GRAPH_TIMESTAMP = datetime(2026, 9, 4, tzinfo=UTC)
 
 _EDGES: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     ("Human Authority", "final_authority_over", "SMI", ("GENERAL", "TECHNICAL", "STRATEGY")),
