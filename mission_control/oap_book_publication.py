@@ -6,7 +6,7 @@ cannot certify signatures or ownership; an authorised reviewer must verify each.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 
 @dataclass(frozen=True)
