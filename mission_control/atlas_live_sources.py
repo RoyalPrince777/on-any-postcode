@@ -175,7 +175,7 @@ def _freshness(fetched_at: object) -> str:
     if not fetched_at:
         return "unseen"
     try:
-        stamp = datetime.fromisoformat(str(fetched_at).replace("Z", "+00:00"))
+        stamp = datetime.fromisoformat(str(fetched_at))
         age = (datetime.now(UTC) - stamp).total_seconds()
     except (TypeError, ValueError):
         return "invalid_timestamp"
