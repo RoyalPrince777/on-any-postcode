@@ -11,7 +11,7 @@ import hashlib
 import heapq
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Any
 
 from mission_control import (
@@ -115,7 +115,7 @@ def new_world() -> dict[str, Any]:
             {"id":"oap-laburnum-local","label":"ON ANY POSTCODE Laburnum Local","node":"laburnum-road","opens":420,"closes":1320,"stock":74,"memory":0},
         ],
         "events":[],
-        "created_at":datetime.now(timezone.utc).isoformat(),
+        "created_at":datetime.now(UTC).isoformat(),
     }
     return _seal(state)
 
