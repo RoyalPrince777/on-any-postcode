@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime, UTC
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 
 from . import bank_authorisation, postgres_db
