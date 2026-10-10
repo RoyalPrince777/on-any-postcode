@@ -6,7 +6,7 @@ safe to expose because it works from explicit area strings only.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from hashlib import sha256
 from math import asin, cos, radians, sin, sqrt
 
@@ -49,7 +49,7 @@ _LAST_ROUTE_PROOF: dict[str, object] = {
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _norm(value: object) -> str:
@@ -82,7 +82,7 @@ def _freshness(generated_at: object) -> str:
         return "unseen"
     try:
         stamp = datetime.fromisoformat(str(generated_at).replace("Z", "+00:00"))
-        age = (datetime.now(timezone.utc) - stamp).total_seconds()
+        age = (datetime.now(UTC) - stamp).total_seconds()
     except (TypeError, ValueError):
         return "invalid_timestamp"
     if age < 0:
