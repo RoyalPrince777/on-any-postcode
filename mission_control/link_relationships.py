@@ -64,7 +64,7 @@ def _expiry(value: object, kind: str) -> datetime | None:
     if not value:
         raise ValueError("purpose_expiry_required")
     try:
-        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(str(value))
     except ValueError as exc:
         raise ValueError("invalid_purpose_expiry") from exc
     if parsed.tzinfo is None:
