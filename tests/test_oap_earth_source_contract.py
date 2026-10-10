@@ -3,8 +3,9 @@
 These tests verify source contracts only, not a live Flask server, WebGL GPU,
 mobile device, or production runtime.
 """
-from pathlib import Path
+
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ROUTES = ROOT / "mission_control" / "on_any_place_routes.py"
