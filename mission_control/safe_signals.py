@@ -154,7 +154,7 @@ def _timestamp(value: object, field: str) -> datetime:
         parsed = value
     else:
         try:
-            parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            parsed = datetime.fromisoformat(str(value))
         except (TypeError, ValueError) as exc:
             raise ValueError(f"invalid_{field}") from exc
     if parsed.tzinfo is None:
