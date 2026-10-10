@@ -69,3 +69,28 @@ def test_oap_data_fails_closed_without_human_authority(client, monkeypatch):
 
     assert response.status_code == 403
     assert response.get_data(as_text=True) == "Human Authority required."
+
+
+def test_oap_data_status_fails_closed_when_authority_unavailable(client, monkeypatch):
+    def unavailable():
+        raise authority.AuthorityUnavailable("oap_data_authority_unavailable")
+
+    monkeypatch.setattr(oap_data_views, "_require_human_authority", unavailable)
+    response = client.get("/mission/data/status")
+
+    assert response.status_code == 503
+    assert response.get_json() == {"error": {"code": "oap_data_unavailable"}}
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+
+
+def test_oap_data_status_rejects_missing_human_authority(client, monkeypatch):
+    def reject():
+        raise authority.HumanAuthorityRequired("level_zero_human_authority_required")
+
+    monkeypatch.setattr(oap_data_views, "_require_human_authority", reject)
+    response = client.get("/mission/data/status")
+
+    assert response.status_code == 403
+    assert response.get_json() == {"error": {"code": "human_authority_required"}}
+    assert response.headers["Cache-Control"] == "no-store"
