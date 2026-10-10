@@ -7,7 +7,7 @@ evidence in an authenticated, audited service before any reader integration.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from .oap_book_access import Book, Rotation, rotation_valid
 
@@ -26,7 +26,7 @@ def select_weekly_rotation(
     """
     if starts_at.tzinfo is None or starts_at.utcoffset() is None:
         raise ValueError("timezone_required")
-    start = starts_at.astimezone(timezone.utc)
+    start = starts_at.astimezone(UTC)
     if start != start.replace(hour=0, minute=0, second=0, microsecond=0):
         raise ValueError("utc_midnight_required")
     if start.weekday() != 0:
