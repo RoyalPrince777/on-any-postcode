@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 from threading import Lock
 from urllib import error as urlerror
 from urllib import parse as urlparse
