@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from mission_control.smi_73_signal_field import SIGNAL_KEYS, evaluate
 
@@ -28,7 +29,7 @@ def mission_status(mission_id: int, *, register: Mapping[str, Any] | None = None
     signals = mission.get("signals") or {}
     raw = signals.get("states") or {}
     if not isinstance(raw, dict):
-        raise ValueError("Signal states must be a mapping")
+        raise TypeError("Signal states must be a mapping")
     unknown = set(raw).difference(SIGNAL_KEYS)
     if unknown:
         raise ValueError("Unrecognised SMI signals: " + ", ".join(sorted(unknown)))
