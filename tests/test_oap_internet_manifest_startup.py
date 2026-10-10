@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
