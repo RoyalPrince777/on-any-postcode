@@ -11,7 +11,7 @@ import hashlib
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from . import smi_receipt_backend
@@ -33,7 +33,7 @@ _UUIDISH = re.compile(r"^[a-f0-9-]{16,64}$", re.IGNORECASE)
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _fresh_iso(value: object) -> bool:
@@ -46,7 +46,7 @@ def _fresh_iso(value: object) -> bool:
         return False
     if parsed.tzinfo is None:
         return False
-    delta = (_now() - parsed.astimezone(timezone.utc)).total_seconds()
+    delta = (_now() - parsed.astimezone(UTC)).total_seconds()
     return -300 <= delta <= 86400
 
 
