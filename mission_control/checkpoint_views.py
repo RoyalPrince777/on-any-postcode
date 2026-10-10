@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from flask import Blueprint, jsonify, make_response, request
