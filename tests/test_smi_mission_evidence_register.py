@@ -1,7 +1,11 @@
 """SMI 44-mission signal register regression tests."""
 import unittest
 
-from mission_control.smi_mission_evidence_register import all_mission_statuses, load_register, mission_status
+from mission_control.smi_mission_evidence_register import (
+    all_mission_statuses,
+    load_register,
+    mission_status,
+)
 
 
 class TestMissionEvidenceRegister(unittest.TestCase):
