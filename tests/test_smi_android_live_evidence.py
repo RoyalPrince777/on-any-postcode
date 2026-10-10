@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from mission_control import smi_android_live_evidence as evidence
 
@@ -32,7 +32,7 @@ def valid_receipt():
         "humanVisualApproved": True,
         "productionApproved": False,
         "humanFinalApproved": False,
-        "testedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "testedAt": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "humanNote": "Exact original character and actual reply audio observed.",
     }
 
