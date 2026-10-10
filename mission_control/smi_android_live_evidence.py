@@ -41,7 +41,7 @@ def _fresh_iso(value: object) -> bool:
     if not text:
         return False
     try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(text)
     except ValueError:
         return False
     if parsed.tzinfo is None:
