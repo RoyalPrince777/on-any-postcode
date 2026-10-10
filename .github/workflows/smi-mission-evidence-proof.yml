@@ -1,0 +1,25 @@
+name: SMI mission evidence proof
+on:
+  pull_request:
+    paths:
+      - 'mission_control/smi_mission_evidence_register.py'
+      - 'mission_control/smi_mission_evidence_register.json'
+      - 'mission_control/smi_73_signal_field.py'
+      - 'tests/test_smi_mission_evidence_register.py'
+      - '.github/workflows/smi-mission-evidence-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mission-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate mission register and fail-closed scoring
+        run: python -m unittest discover -s tests -p 'test_smi_mission_evidence_register.py' -v
