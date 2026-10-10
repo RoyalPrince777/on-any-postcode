@@ -7,7 +7,7 @@ track users, dispatch real-world movement, or expose chain-of-thought.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone, UTC
+from datetime import UTC, datetime
 from hashlib import sha256
 import re
 
