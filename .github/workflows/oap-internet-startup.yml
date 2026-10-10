@@ -3,6 +3,8 @@ name: OAP Internet startup contract
 on:
   pull_request:
     paths:
+      - "app.py"
+      - "templates/world.html"
       - "static/manifest.webmanifest"
       - "tests/test_oap_internet_manifest_startup.py"
       - ".github/workflows/oap-internet-startup.yml"
