@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Literal
 from uuid import UUID
@@ -47,7 +47,7 @@ def _date(value: str) -> datetime:
         raise ClaimEdgeBlocked("invalid_evidence_date") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ClaimEdgeBlocked("timezone_required")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _required(value: str, label: str) -> str:
