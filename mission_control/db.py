@@ -15,7 +15,7 @@ import importlib.util
 import sqlite3
 import sys
 from collections.abc import Callable
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 
 from oap.audit import audit_schema_ready
