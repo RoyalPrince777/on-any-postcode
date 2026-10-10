@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -38,7 +38,7 @@ class JWTHandler:
         if expires_delta is None:
             expires_delta = timedelta(hours=1)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expire = now + expires_delta
 
         payload = {
