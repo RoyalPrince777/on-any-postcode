@@ -28,7 +28,7 @@ ALLOWED_TRANSITIONS = {
 
 
 def _now() -> str:
-    return datetime.datetime.now(datetime.timezone.utc).isoformat()
+    return datetime.datetime.now(datetime.UTC).isoformat()
 
 
 def _text_timestamp(value: object) -> str:
