@@ -14,7 +14,7 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 FEATURE_DIMENSIONS = 32
 MAX_SUBCARRIERS = 256
@@ -24,7 +24,7 @@ DEFAULT_COLLISION_DISTANCE_M = 1.0
 
 
 def _utc_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _finite(value: object, default: float = 0.0) -> float:
