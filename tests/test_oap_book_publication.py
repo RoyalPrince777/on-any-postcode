@@ -1,12 +1,12 @@
 """Publication evidence must fail closed without inventing publishing rights."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from mission_control.oap_book_publication import EditionEvidence, publication_blocks
 
-NOW = datetime(2026, 9, 23, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 23, tzinfo=UTC)
 
 
 def edition(**changes):
