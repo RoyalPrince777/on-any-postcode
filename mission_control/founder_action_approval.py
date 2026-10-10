@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
 from . import approval_service, authority, postgres_db
 
