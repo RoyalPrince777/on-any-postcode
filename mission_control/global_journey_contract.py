@@ -12,11 +12,9 @@ CONTRACT_VERSION = 1
 
 
 def _uuid(value: str, field: str) -> str:
-    if not isinstance(value, str):
-        raise ValueError(f"invalid_{field}")
     try:
         return str(UUID(value))
-    except (ValueError, AttributeError) as exc:
+    except (TypeError, ValueError, AttributeError) as exc:
         raise ValueError(f"invalid_{field}") from exc
 
 
@@ -46,7 +44,7 @@ class JourneyAssociation:
         if type(self.version) is not int or self.version != CONTRACT_VERSION:
             raise ValueError("unsupported_contract_version")
 
-    def same_identity(self, other: "JourneyAssociation") -> bool:
+    def same_identity(self, other: JourneyAssociation) -> bool:
         """A repeated association must be identical, never silently relinked."""
         return isinstance(other, JourneyAssociation) and self == other
 
