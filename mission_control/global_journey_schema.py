@@ -19,3 +19,30 @@ STATEMENTS = (
     )""",
 )
 CHECKSUM = hashlib.sha256("\n".join(STATEMENTS).encode()).hexdigest()
+
+
+def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, object]:
+    """Explicit, checksum-governed migration; never runs at import time."""
+    if not assume_yes:
+        raise RuntimeError("explicit_human_approval_required")
+    if dry_run:
+        return {"dry_run": True, "migration": MIGRATION_VERSION, "checksum": CHECKSUM}
+    from . import postgres_db
+
+    with postgres_db.connect() as connection:
+        connection.execute("SELECT pg_advisory_xact_lock(%s)", (25800120,))
+        row = connection.execute(
+            "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+            (MIGRATION_VERSION,),
+        ).fetchone()
+        if row is not None and str(row[0]) != CHECKSUM:
+            raise RuntimeError("global_journey_migration_checksum_mismatch")
+        if row is None:
+            for statement in STATEMENTS:
+                connection.execute(statement)
+            connection.execute(
+                "INSERT INTO oap_schema_migrations(version,checksum) VALUES (%s,%s)",
+                (MIGRATION_VERSION, CHECKSUM),
+            )
+        connection.commit()
+    return {"migration": MIGRATION_VERSION, "checksum": CHECKSUM, "applied": True}
