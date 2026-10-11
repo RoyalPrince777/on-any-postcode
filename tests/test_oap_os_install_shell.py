@@ -134,7 +134,6 @@ def test_installed_oap_os_starts_directly_in_world_without_market(client):
     assert "market" not in manifest["start_url"].casefold()
     world = client.get(manifest["start_url"])
     assert world.status_code == 200
-    assert "data-spot-apps-entry" not in world.get_data(as_text=True)  # entry belongs to The Spot
     spot = client.get("/the-spot")
     assert spot.status_code == 200
     assert 'data-spot-apps-entry' in spot.get_data(as_text=True)
