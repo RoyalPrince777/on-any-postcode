@@ -18,7 +18,7 @@ def test_rider_driver_my_dashboards_are_registered():
 
 def test_rider_dashboard_buttons_are_real_links():
     data = _app().test_client().get("/transport/ride/rider").data
-    assert b'action="/movement/workspace"' in data
+    assert b'action="/movement/workspace#book-title"' in data
     assert b"/movement/workspace#bookings-title" in data
     assert b"/movement/workspace#member-matches-title" in data
     assert b"/pay" in data
