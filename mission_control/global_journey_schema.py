@@ -46,3 +46,25 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
             )
         connection.commit()
     return {"migration": MIGRATION_VERSION, "checksum": CHECKSUM, "applied": True}
+
+
+def schema_status() -> dict[str, object]:
+    """Read-only production evidence; migration receipt and table must agree."""
+    from . import postgres_db
+
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (MIGRATION_VERSION,),
+            ).fetchone()
+            if row is None or str(row[0]) != CHECKSUM:
+                return {"schema_ready": False, "reason": "migration_unverified"}
+            table = connection.execute(
+                "SELECT to_regclass('public.oap_global_journey_associations')"
+            ).fetchone()
+            if table is None or table[0] is None:
+                return {"schema_ready": False, "reason": "association_table_missing"}
+            return {"schema_ready": True, "migration": MIGRATION_VERSION}
+    except Exception:
+        return {"schema_ready": False, "reason": "store_unavailable"}
