@@ -36,3 +36,10 @@ def test_installed_launch_serves_world_front_door(client):
 def test_normal_world_route_remains_available(client):
     response = client.get("/world")
     assert response.status_code == 200
+
+
+def test_spot_apps_entry_remains_available_after_world_startup(client):
+    response = client.get("/the-spot")
+    assert response.status_code == 200
+    assert b'data-spot-apps-entry' in response.data
+    assert b'href="/store"' in response.data
