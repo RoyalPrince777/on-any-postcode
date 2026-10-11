@@ -60,3 +60,31 @@ def check_replay(existing: JourneyAssociation | None, proposed: JourneyAssociati
     if existing.same_identity(proposed):
         return "IDEMPOTENT"
     raise ValueError("association_conflict")
+
+
+def authorize_association(
+    association: JourneyAssociation,
+    *,
+    actor_identity_id: str,
+    booking_owner_identity_id: str,
+    journey_owner_identity_id: str,
+    intent_owner_identity_id: str | None = None,
+) -> JourneyAssociation:
+    """Fail closed unless authenticated actor owns every linked record.
+
+    Owners must be loaded from trusted service records, never client claims.
+    This function is a boundary helper, not a substitute for DB authorization.
+    """
+    if not isinstance(association, JourneyAssociation):
+        raise TypeError("association_required")
+    actor = _uuid(actor_identity_id, "actor_identity_id")
+    booking_owner = _uuid(booking_owner_identity_id, "booking_owner_identity_id")
+    journey_owner = _uuid(journey_owner_identity_id, "journey_owner_identity_id")
+    if actor != booking_owner or actor != journey_owner:
+        raise PermissionError("association_owner_mismatch")
+    if association.intent_id is not None:
+        if intent_owner_identity_id is None:
+            raise PermissionError("intent_owner_evidence_required")
+        if actor != _uuid(intent_owner_identity_id, "intent_owner_identity_id"):
+            raise PermissionError("association_owner_mismatch")
+    return association
