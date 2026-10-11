@@ -2585,7 +2585,7 @@ def the_spot_front_door():
             hierarchy=products.get_public_product_hierarchy(),
             spot_apps=spot_apps_catalogue.public_catalogue(
                 registered_routes={rule.rule for rule in app.url_map.iter_rules() if "GET" in rule.methods},
-                public_routes={"/pulse", "/arena", "/market", "/the-link"},
+                public_routes={"/the-spot/pulse", "/arena", "/the-spot/market", "/the-link"},
                 query=request.args.get("app_search", ""),
             ),
             app_search=request.args.get("app_search", "")[:100],
