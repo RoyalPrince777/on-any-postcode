@@ -46,7 +46,7 @@ main{max-width:720px;margin:auto;padding:18px 16px 80px}.top{display:flex;align-
 a{color:inherit}.back{text-decoration:none;color:var(--muted)}h1{font-size:clamp(2rem,8vw,3.2rem);margin:22px 0 8px}
 .lead{color:var(--muted);line-height:1.5}.hero{padding:22px;border:1px solid #68552b;border-radius:24px;background:linear-gradient(145deg,#262017,#13191d);margin:18px 0}
 .eyebrow{color:var(--gold);font-weight:800;letter-spacing:.08em;font-size:.8rem}.primary{display:block;background:var(--gold);color:#17140b;text-decoration:none;padding:17px;border-radius:15px;font-weight:900;text-align:center;margin-top:18px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.btn{padding:18px 12px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:#fff;font-weight:750;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;min-height:76px}
+.ride-form{display:grid;gap:12px;margin-top:16px}.ride-form label{font-weight:700}.ride-form input{width:100%;padding:15px;border-radius:12px;border:1px solid var(--line);background:#10161b;color:white;font:inherit}.ride-form button{border:0;cursor:pointer;font:inherit}.ride-form input:focus-visible,.ride-form button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.btn{padding:18px 12px;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:#fff;font-weight:750;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;min-height:76px}
 .btn:focus-visible,.primary:focus-visible,.back:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .note{color:var(--muted);font-size:.9rem;line-height:1.5;margin-top:22px}
 </style></head><body><main>
@@ -54,7 +54,7 @@ a{color:inherit}.back{text-decoration:none;color:var(--muted)}h1{font-size:clamp
 {% if title == "Rider" %}
 <section class="hero"><div class="eyebrow">ON ANY POSTCODE · RIDE</div><h1>Where to?</h1>
 <p class="lead">Start your journey here. Enter your pickup and destination in the existing secure booking form.</p>
-<a class="primary" href="/movement/workspace?service=ride#book-title">Enter pickup and destination →</a></section>
+<form class="ride-form" action="/movement/workspace" method="get" aria-label="Start a ride booking"><input type="hidden" name="service" value="ride"><label for="ride-pickup">Pickup postcode or place</label><input id="ride-pickup" name="from" maxlength="120" autocomplete="street-address" required><label for="ride-destination">Destination postcode or place</label><input id="ride-destination" name="to" maxlength="120" autocomplete="off" required><button class="primary" type="submit">Continue to secure booking →</button></form></section>
 <p class="lead">Manage your journey, matching and safety below.</p>
 {% elif title == "Driver" %}
 <section class="hero"><div class="eyebrow">OAP RIDE · DRIVER</div><h1>Ready to drive?</h1>
