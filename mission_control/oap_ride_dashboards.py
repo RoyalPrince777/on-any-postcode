@@ -53,8 +53,8 @@ a{color:inherit}.back{text-decoration:none;color:var(--muted)}h1{font-size:clamp
 <header class="top"><a class="back" href="/transport">← Transport</a><a class="back" href="/world">OAP World</a></header>
 {% if title == "Rider" %}
 <section class="hero"><div class="eyebrow">ON ANY POSTCODE · RIDE</div><h1>Where to?</h1>
-<p class="lead">Choose your pickup and destination in the existing OAP Movement booking workspace.</p>
-<a class="primary" href="/movement/workspace#book-title">Request a journey →</a></section>
+<p class="lead">Start your journey here. Enter your pickup and destination in the existing secure booking form.</p>
+<a class="primary" href="/movement/workspace?service=ride#book-title">Enter pickup and destination →</a></section>
 <p class="lead">Manage your journey, matching and safety below.</p>
 {% elif title == "Driver" %}
 <section class="hero"><div class="eyebrow">OAP RIDE · DRIVER</div><h1>Ready to drive?</h1>
