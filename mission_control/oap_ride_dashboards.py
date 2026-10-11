@@ -6,7 +6,7 @@ from flask import Blueprint, make_response, render_template_string
 bp = Blueprint("oap_ride_dashboards", __name__)
 
 RIDER = (
-    ("Request Journey", "/movement/workspace#book-title"),
+    ("Request Journey", "/transport/ride/rider"),
     ("Current Journey", "/transport/ride/current"),
     ("My Journeys", "/movement/workspace#bookings-title"),
     ("Find Match", "/movement/workspace#bookings-title"),
