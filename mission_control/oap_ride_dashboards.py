@@ -53,8 +53,8 @@ a{color:inherit}.back{text-decoration:none;color:var(--muted)}h1{font-size:clamp
 <header class="top"><a class="back" href="/transport">← Transport</a><a class="back" href="/world">OAP World</a></header>
 {% if title == "Rider" %}
 <section class="hero"><div class="eyebrow">ON ANY POSTCODE · RIDE</div><h1>Where to?</h1>
-<p class="lead">Start your journey here. Enter your pickup and destination in the existing secure booking form.</p>
-<form class="ride-form" action="/movement/workspace" method="get" aria-label="Start a ride booking"><input type="hidden" name="service" value="ride"><label for="ride-pickup">Pickup postcode or place</label><input id="ride-pickup" name="from" maxlength="120" autocomplete="street-address" required><label for="ride-destination">Destination postcode or place</label><input id="ride-destination" name="to" maxlength="120" autocomplete="off" required><button class="primary" type="submit">Continue to secure booking →</button></form></section>
+<p class="lead">Enter pickup and destination here, then review and submit your request in the secure booking workspace.</p>
+<form class="ride-form" action="/movement/workspace#book-title" method="get" aria-label="Start a ride booking"><input type="hidden" name="service" value="ride"><label for="ride-pickup">Pickup postcode or place</label><input id="ride-pickup" name="from" maxlength="120" autocomplete="street-address" required><label for="ride-destination">Destination postcode or place</label><input id="ride-destination" name="to" maxlength="120" autocomplete="off" required><button class="primary" type="submit">Continue to secure booking →</button></form></section>
 <p class="lead">Manage your journey, matching and safety below.</p>
 {% elif title == "Driver" %}
 <section class="hero"><div class="eyebrow">OAP RIDE · DRIVER</div><h1>Ready to drive?</h1>
