@@ -83,11 +83,11 @@ _ALIASES: dict[str, tuple[str, ...]] = {
 
 # Conservative contextual routing for ordinary requests. Explicit routes retain priority.
 _CONTEXTUAL_INTENTS: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = (
-    (re.compile(r"\\b(?:earn money|make money|find work|find a job)\\b", re.IGNORECASE), ("opportunity", "priority", "risk")),
-    (re.compile(r"\\b(?:improve my (?:shop|business)|attract more customers)\\b", re.IGNORECASE), ("opportunity", "competitive", "impact")),
-    (re.compile(r"\\b(?:explain (?:this|it) simply|explain like i(?:'m| am) ten)\\b", re.IGNORECASE), ("learning", "behaviour")),
-    (re.compile(r"\\b(?:is this safe|is it secure)\\b", re.IGNORECASE), ("risk", "security", "evidence")),
-    (re.compile(r"\\b(?:what could go wrong|failure modes)\\b", re.IGNORECASE), ("risk", "gap", "resilience")),
+    (re.compile(r"\b(?:earn money|make money|find work|find a job)\b", re.IGNORECASE), ("opportunity", "priority", "risk")),
+    (re.compile(r"\b(?:improve my (?:shop|business)|attract more customers)\b", re.IGNORECASE), ("opportunity", "competitive", "impact")),
+    (re.compile(r"\b(?:explain (?:this|it) simply|explain like i(?:'m| am) ten)\b", re.IGNORECASE), ("learning", "behaviour")),
+    (re.compile(r"\b(?:is this safe|is it secure)\b", re.IGNORECASE), ("risk", "security", "evidence")),
+    (re.compile(r"\b(?:what could go wrong|failure modes)\b", re.IGNORECASE), ("risk", "gap", "resilience")),
 )
 
 
