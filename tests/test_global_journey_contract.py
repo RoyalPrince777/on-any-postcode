@@ -3,7 +3,11 @@ from uuid import uuid4
 
 import pytest
 
-from mission_control.global_journey_contract import JourneyAssociation, authorize_association, check_replay
+from mission_control.global_journey_contract import (
+    JourneyAssociation,
+    authorize_association,
+    check_replay,
+)
 
 
 def test_create_and_idempotent_replay():
