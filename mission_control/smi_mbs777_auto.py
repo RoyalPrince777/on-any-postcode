@@ -1,9 +1,9 @@
 """Fail-closed MBS 777 per-agent promotion advice; no autonomous authority changes."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from math import isfinite
-from typing import Mapping
 
 from mission_control.hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 
