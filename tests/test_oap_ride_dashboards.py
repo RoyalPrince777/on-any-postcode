@@ -18,7 +18,7 @@ def test_rider_driver_my_dashboards_are_registered():
 
 def test_rider_dashboard_buttons_are_real_links():
     data = _app().test_client().get("/transport/ride/rider").data
-    assert b"/movement/workspace?service=ride#book-title" in data
+    assert b'action="/movement/workspace"' in data
     assert b"/movement/workspace#bookings-title" in data
     assert b"/movement/workspace#member-matches-title" in data
     assert b"/pay" in data
@@ -44,8 +44,11 @@ def test_rider_primary_journey_action_is_visible_and_existing_route_reused():
     body = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "Where to?" in body
-    assert 'class="primary" href="/movement/workspace?service=ride#book-title"' in body
-    assert "Enter pickup and destination" in body
+    assert 'name="service" value="ride"' in body
+    assert 'name="from"' in body
+    assert 'name="to"' in body
+    assert 'type="submit"' in body
+    assert "Continue to secure booking" in body
     assert "physical dispatch" in body
     assert 'href="/world"' in body
 
