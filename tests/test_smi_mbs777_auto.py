@@ -1,5 +1,5 @@
-from mission_control.hrm_agent_lifecycle import MIND_7, BODY_7, SOUL_7
-from mission_control.smi_mbs777_auto import evaluate_agent, PROMOTION_THRESHOLD
+from mission_control.hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
+from mission_control.smi_mbs777_auto import PROMOTION_THRESHOLD, evaluate_agent
 
 
 def proof():
