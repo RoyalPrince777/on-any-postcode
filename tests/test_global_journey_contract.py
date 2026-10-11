@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from mission_control.global_journey_contract import JourneyAssociation, check_replay
+from mission_control.global_journey_contract import JourneyAssociation, authorize_association, check_replay
 
 
 def test_create_and_idempotent_replay():
@@ -34,3 +34,32 @@ def test_invalid_booking_intent(value):
 def test_contract_version_fail_closed():
     with pytest.raises(ValueError, match="unsupported_contract_version"):
         JourneyAssociation(str(uuid4()), str(uuid4()), version=2)
+
+
+def test_owner_evidence_allows_same_owner():
+    owner = str(uuid4())
+    association = JourneyAssociation(str(uuid4()), str(uuid4()), "oap-book-" + "a" * 16)
+    assert authorize_association(
+        association, actor_identity_id=owner, booking_owner_identity_id=owner,
+        journey_owner_identity_id=owner, intent_owner_identity_id=owner,
+    ) == association
+
+
+def test_cross_user_association_denied():
+    owner = str(uuid4())
+    association = JourneyAssociation(str(uuid4()), str(uuid4()))
+    with pytest.raises(PermissionError, match="association_owner_mismatch"):
+        authorize_association(
+            association, actor_identity_id=owner, booking_owner_identity_id=str(uuid4()),
+            journey_owner_identity_id=owner,
+        )
+
+
+def test_intent_owner_evidence_is_mandatory():
+    owner = str(uuid4())
+    association = JourneyAssociation(str(uuid4()), str(uuid4()), "oap-book-" + "a" * 16)
+    with pytest.raises(PermissionError, match="intent_owner_evidence_required"):
+        authorize_association(
+            association, actor_identity_id=owner, booking_owner_identity_id=owner,
+            journey_owner_identity_id=owner,
+        )
