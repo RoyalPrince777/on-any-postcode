@@ -123,11 +123,6 @@ def associate_in_transaction(
         booking_owner_identity_id=str(row[0]),
         journey_owner_identity_id=ride_owner,
     )
-    # Serialize associations per booking, including concurrent first inserts.
-    connection.execute(
-        "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
-        (association.booking_id,),
-    )
     existing = connection.execute(
         "SELECT journey_id, booking_id, intent_id, version "
         "FROM oap_global_journey_associations "
