@@ -37,3 +37,23 @@ def test_my_transport_dashboard_links_to_rider_driver_and_owned_work():
     assert b"/transport/ride/driver" in data
     assert b"/movement/workspace#bookings-title" in data
     assert b"/movement/workspace#work-title" in data
+
+
+def test_rider_primary_journey_action_is_visible_and_existing_route_reused():
+    response = _app().test_client().get("/transport/ride/rider")
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Where to?" in body
+    assert 'class="primary" href="/movement/workspace#book-title"' in body
+    assert "Request a journey" in body
+    assert "physical dispatch" in body
+    assert 'href="/world"' in body
+
+
+def test_driver_primary_availability_action_reuses_existing_workspace():
+    response = _app().test_client().get("/transport/ride/driver")
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'class="primary" href="/movement/workspace#work-title"' in body
+    assert "Manage availability" in body
+    assert "incoming journey proposals" in body
