@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import ast
+import runpy
+import sys
+import types
 from pathlib import Path
 
 
@@ -23,11 +26,17 @@ def test_home_node_status_guards_json_shape_and_pid_types() -> None:
 
 def test_home_node_heartbeat_freshness_boundaries() -> None:
     source = Path("scripts/oap_home_node_status.py").read_text(encoding="utf-8")
-    module = ast.parse(source)
-    fn = next(node for node in module.body if isinstance(node, ast.FunctionDef) and node.name == "_recent_state")
-    namespace = {"time": __import__("time")}
-    exec(compile(ast.Module(body=[fn], type_ignores=[]), "<heartbeat>", "exec"), namespace)
-    recent = namespace["_recent_state"]
+    runtime_module = types.ModuleType("mission_control.organism_runtime")
+    runtime_module.runtime_status = lambda: {"ready": False}
+    original = sys.modules.get("mission_control.organism_runtime")
+    sys.modules["mission_control.organism_runtime"] = runtime_module
+    try:
+        recent = runpy.run_path("scripts/oap_home_node_status.py")["_recent_state"]
+    finally:
+        if original is None:
+            sys.modules.pop("mission_control.organism_runtime", None)
+        else:
+            sys.modules["mission_control.organism_runtime"] = original
     assert recent(100, now=100)
     assert recent(85, now=100)
     assert not recent(84.9, now=100)
