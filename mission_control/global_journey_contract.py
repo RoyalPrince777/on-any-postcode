@@ -88,3 +88,56 @@ def authorize_association(
         if actor != _uuid(intent_owner_identity_id, "intent_owner_identity_id"):
             raise PermissionError("association_owner_mismatch")
     return association
+
+
+def associate_in_transaction(
+    connection,
+    association: JourneyAssociation,
+    *,
+    actor_identity_id: str,
+    journey_owner_identity_id: str,
+) -> str:
+    """Persist within caller's transaction; caller must commit or roll back.
+
+    The journey owner must be resolved by the trusted Ride service. Booking
+    ownership is checked against the Movement database under row lock.
+    Intent associations are denied until durable intent ownership is available.
+    Requires the separately approved global journey association migration.
+    """
+    if not isinstance(association, JourneyAssociation):
+        raise TypeError("association_required")
+    if association.intent_id is not None:
+        raise PermissionError("intent_owner_evidence_required")
+    actor = _uuid(actor_identity_id, "actor_identity_id")
+    ride_owner = _uuid(journey_owner_identity_id, "journey_owner_identity_id")
+    row = connection.execute(
+        "SELECT member_identity_id FROM oap_movement_bookings "
+        "WHERE booking_id=%s FOR UPDATE",
+        (association.booking_id,),
+    ).fetchone()
+    if row is None:
+        raise ValueError("booking_not_found")
+    authorize_association(
+        association,
+        actor_identity_id=actor,
+        booking_owner_identity_id=str(row[0]),
+        journey_owner_identity_id=ride_owner,
+    )
+    existing = connection.execute(
+        "SELECT journey_id, booking_id, intent_id, version "
+        "FROM oap_global_journey_associations "
+        "WHERE journey_id=%s OR booking_id=%s FOR UPDATE",
+        (association.journey_id, association.booking_id),
+    ).fetchall()
+    if existing:
+        if len(existing) != 1:
+            raise ValueError("association_conflict")
+        stored = JourneyAssociation(str(existing[0][0]), str(existing[0][1]), existing[0][2], existing[0][3])
+        return check_replay(stored, association)
+    connection.execute(
+        "INSERT INTO oap_global_journey_associations "
+        "(journey_id, booking_id, intent_id, version, owner_identity_id) "
+        "VALUES (%s,%s,%s,%s,%s)",
+        (association.journey_id, association.booking_id, association.intent_id, association.version, actor),
+    )
+    return "CREATE"
