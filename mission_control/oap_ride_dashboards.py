@@ -1,7 +1,8 @@
 # ruff: noqa: I001
 """OAP Ride dashboard button surfaces wired to existing Movement functions."""
 from __future__ import annotations
-from flask import Blueprint, make_response, render_template_string
+from flask import Blueprint, make_response, render_template_string, request
+from . import web_security
 
 bp = Blueprint("oap_ride_dashboards", __name__)
 
@@ -54,7 +55,7 @@ a{color:inherit}.back{text-decoration:none;color:var(--muted)}h1{font-size:clamp
 {% if title == "Rider" %}
 <section class="hero"><div class="eyebrow">ON ANY POSTCODE · RIDE</div><h1>Where to?</h1>
 <p class="lead">Enter pickup and destination here, then review and submit your request in the secure booking workspace.</p>
-<form class="ride-form" action="/movement/workspace#book-title" method="get" aria-label="Start a ride booking"><input type="hidden" name="service" value="ride"><label for="ride-pickup">Pickup postcode or place</label><input id="ride-pickup" name="from" maxlength="120" autocomplete="street-address" required><label for="ride-destination">Destination postcode or place</label><input id="ride-destination" name="to" maxlength="120" autocomplete="off" required><button class="primary" type="submit">Continue to secure booking →</button></form></section>
+<form class="ride-form" action="/transport/ride/book" method="get" aria-label="Start a ride booking"><input type="hidden" name="service" value="ride"><label for="ride-pickup">Pickup postcode or place</label><input id="ride-pickup" name="from" maxlength="120" autocomplete="street-address" required><label for="ride-destination">Destination postcode or place</label><input id="ride-destination" name="to" maxlength="120" autocomplete="off" required><button class="primary" type="submit">Continue to secure booking →</button></form></section>
 <p class="lead">Manage your journey, matching and safety below.</p>
 {% elif title == "Driver" %}
 <section class="hero"><div class="eyebrow">OAP RIDE · DRIVER</div><h1>Ready to drive?</h1>
@@ -83,3 +84,16 @@ def driver_dashboard():
 @bp.get("/transport/my")
 def my_transport_dashboard():
     return _page("My Transport", MY)
+
+
+@bp.get("/transport/ride/book")
+@web_security.login_required()
+def ride_booking_page():
+    """Authenticated Ride booking entry; existing Movement API owns writes."""
+    pickup = request.args.get("from", "")[:120]
+    destination = request.args.get("to", "")[:120]
+    response = make_response(render_template_string(RIDE_BOOK_PAGE, pickup=pickup, destination=destination, csrf=web_security.csrf_token()))
+    response.headers["Cache-Control"] = "no-store, private"
+    return response
+
+RIDE_BOOK_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Book Ride · OAP</title></head><body><main><a href="/transport/ride/rider">← Rider</a><h1>Request a Ride</h1><p>Requests do not dispatch a driver or charge a payment.</p><form id="ride-book"><label for="pickup">Pickup</label><input id="pickup" maxlength="120" required value="{{ pickup }}"><label for="destination">Destination</label><input id="destination" maxlength="120" required value="{{ destination }}"><button type="submit">Request journey</button></form><p id="ride-result" role="status" aria-live="polite"></p><a href="/movement/workspace#bookings-title">My bookings and matching</a></main><script>const csrf={{ csrf|tojson }};const form=document.getElementById("ride-book");const result=document.getElementById("ride-result");let pending=false;form.addEventListener("submit",async event=>{event.preventDefault();if(pending)return;pending=true;const button=form.querySelector("button");button.disabled=true;result.textContent="Submitting request…";try{const response=await fetch("/movement/bookings",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify({service_type:"ride",pickup_query:document.getElementById("pickup").value.trim(),destination_query:document.getElementById("destination").value.trim(),scheduled_for:null,idempotency_key:"ride-"+crypto.randomUUID()})});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error?.message||"Booking unavailable");result.textContent="Journey requested. Status: "+(data.booking?.state||"REQUESTED")+". See My bookings for matching.";form.reset();}catch(error){result.textContent=error.message||"Request failed. Please retry.";}finally{pending=false;button.disabled=false;}});</script></body></html>"""
