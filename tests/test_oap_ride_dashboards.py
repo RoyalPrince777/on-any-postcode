@@ -92,3 +92,32 @@ def test_rider_booking_page_is_login_protected():
     from mission_control import oap_ride_dashboards
     assert hasattr(oap_ride_dashboards.ride_booking_page, "__wrapped__")
     assert "/transport/ride/book" in {rule.rule for rule in _app().url_map.iter_rules()}
+
+
+def test_authenticated_rider_booking_renders_prefill_and_csrf():
+    from unittest.mock import patch
+    from mission_control import oap_ride_dashboards
+    app = Flask(__name__)
+    app.secret_key = "ride-test-key"
+    app.register_blueprint(oap_ride_dashboards.bp)
+    with patch("mission_control.web_security.current_authenticated_user", return_value={"id": "ride-test-user"}):
+        response = app.test_client().get("/transport/ride/book?from=SW1&to=SE15")
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store, private"
+    assert 'value="SW1"' in body
+    assert 'value="SE15"' in body
+    assert 'fetch("/movement/bookings"' in body
+    assert '"X-OAP-CSRF":csrf' in body
+
+
+def test_rider_booking_escapes_untrusted_prefill():
+    from unittest.mock import patch
+    from mission_control import oap_ride_dashboards
+    app = Flask(__name__)
+    app.secret_key = "ride-test-key"
+    app.register_blueprint(oap_ride_dashboards.bp)
+    with patch("mission_control.web_security.current_authenticated_user", return_value={"id": "ride-test-user"}):
+        response = app.test_client().get("/transport/ride/book?from=%3Cscript%3E&to=SE15")
+    assert response.status_code == 200
+    assert 'value="&lt;script&gt;"' in response.get_data(as_text=True)
