@@ -81,6 +81,16 @@ _ALIASES: dict[str, tuple[str, ...]] = {
     "truth-light": ("truth light", "truth-light", "green light", "truth signal"),
 }
 
+# Conservative contextual routing for ordinary requests. Explicit routes retain priority.
+_CONTEXTUAL_INTENTS: tuple[tuple[re.Pattern[str], tuple[str, ...]], ...] = (
+    (re.compile(r"\\b(?:earn money|make money|find work|find a job)\\b", re.I), ("opportunity", "priority", "risk")),
+    (re.compile(r"\\b(?:improve my (?:shop|business)|attract more customers)\\b", re.I), ("opportunity", "competitive", "impact")),
+    (re.compile(r"\\b(?:explain (?:this|it) simply|explain like i(?:'m| am) ten)\\b", re.I), ("learning", "behaviour")),
+    (re.compile(r"\\b(?:is this safe|is it secure)\\b", re.I), ("risk", "security", "evidence")),
+    (re.compile(r"\\b(?:what could go wrong|failure modes)\\b", re.I), ("risk", "gap", "resilience")),
+)
+
+
 _EXPLICIT_ACTION = re.compile(r"^\s*(?:run|use|do|check|analyse|analyze|review|deep\s+dive)\b", re.IGNORECASE)
 _FULL = re.compile(r"\b(?:full|deep|complete|all)\s+intelligence\b|\bintelligence\s+deep\s+dive\b", re.IGNORECASE)
 _CORE = re.compile(r"\bcore\s+intelligence\b", re.IGNORECASE)
@@ -136,7 +146,11 @@ def route(message: object) -> dict[str, object]:
         lens_ids = tuple(dict.fromkeys(selected))
         mode = "single" if len(lens_ids) == 1 else "combined"
     else:
-        return {"active": False, "mode": "none", "lens_ids": (), "subject": ""}
+        matched = next((ids for pattern, ids in _CONTEXTUAL_INTENTS if pattern.search(text)), ())
+        if not matched:
+            return {"active": False, "mode": "none", "lens_ids": (), "subject": ""}
+        lens_ids = matched
+        mode = "contextual"
     return {
         "active": True,
         "mode": mode,
