@@ -14,6 +14,10 @@ STATE_FILE = STATE_DIR / "workers.json"
 
 def _alive(pid: object) -> bool:
     try:
+        if isinstance(pid, bool) or not isinstance(pid, (int, str)):
+            return False
+        if isinstance(pid, str) and not pid.isdecimal():
+            return False
         value = int(pid)
         if value <= 0:
             return False
@@ -25,7 +29,9 @@ def _alive(pid: object) -> bool:
 
 state = {}
 try:
-    state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    loaded = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+    if isinstance(loaded, dict):
+        state = loaded
 except (OSError, ValueError):
     pass
 
