@@ -19,3 +19,20 @@ def test_home_node_status_guards_json_shape_and_pid_types() -> None:
     )
     assert 'isinstance(pid, bool)' in source
     assert 'pid.isdecimal()' in source
+
+
+def test_home_node_heartbeat_freshness_boundaries() -> None:
+    source = Path("scripts/oap_home_node_status.py").read_text(encoding="utf-8")
+    module = ast.parse(source)
+    fn = next(node for node in module.body if isinstance(node, ast.FunctionDef) and node.name == "_recent_state")
+    namespace = {"time": __import__("time")}
+    exec(compile(ast.Module(body=[fn], type_ignores=[]), "<heartbeat>", "exec"), namespace)
+    recent = namespace["_recent_state"]
+    assert recent(100, now=100)
+    assert recent(85, now=100)
+    assert not recent(84.9, now=100)
+    assert not recent(101, now=100)
+    assert not recent(None, now=100)
+    assert not recent(True, now=100)
+    assert not recent("100", now=100)
+    assert 'snapshot["supervisor_heartbeat_recent"]' in source
