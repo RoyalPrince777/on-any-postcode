@@ -229,3 +229,18 @@ def test_transport_home_exposes_install_contract(client):
     assert "Install OAP Transport" in body
     assert "data-oap-install hidden" in body
     assert 'src="/assets/oap-os.js"' in body
+
+
+def test_spot_apps_uses_existing_governed_store(client):
+    spot = client.get("/the-spot")
+    assert spot.status_code == 200
+    body = spot.get_data(as_text=True)
+    assert 'data-spot-apps-entry' in body
+    assert 'href="/store"' in body
+    store = client.get("/store")
+    assert store.status_code == 200
+    store_html = store.get_data(as_text=True)
+    assert 'href="/the-spot"' in store_html
+    assert 'href="/world"' in store_html
+    assert 'Install OAP World' in store_html
+    assert 'signed native Android APK' in store_html
