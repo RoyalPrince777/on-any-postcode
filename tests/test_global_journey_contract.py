@@ -5,8 +5,8 @@ import pytest
 
 from mission_control.global_journey_contract import (
     JourneyAssociation,
-    authorize_association,
     associate_in_transaction,
+    authorize_association,
     check_replay,
 )
 
