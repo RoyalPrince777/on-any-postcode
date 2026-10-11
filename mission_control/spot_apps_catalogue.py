@@ -9,9 +9,9 @@ from typing import Final
 
 # Static allowlist: no arbitrary URL, dynamic imports or third-party launch.
 APP_ENTRIES: Final[tuple[dict[str, str], ...]] = (
-    {"id": "pulse", "name": "Pulse", "category": "Social", "route": "/pulse"},
+    {"id": "pulse", "name": "Pulse", "category": "Social", "route": "/the-spot/pulse"},
     {"id": "arena", "name": "OAP Arena", "category": "Games", "route": "/arena"},
-    {"id": "market", "name": "OAP Market", "category": "Shopping", "route": "/market"},
+    {"id": "market", "name": "OAP Market", "category": "Shopping", "route": "/the-spot/market"},
     {"id": "the-link", "name": "The Link", "category": "Social", "route": "/the-link"},
 )
 
