@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import hashlib
 
+import psycopg
+
 MIGRATION_VERSION = "0001_oap_global_journey_associations"
 STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_global_journey_associations (
@@ -66,5 +68,5 @@ def schema_status() -> dict[str, object]:
             if table is None or table[0] is None:
                 return {"schema_ready": False, "reason": "association_table_missing"}
             return {"schema_ready": True, "migration": MIGRATION_VERSION}
-    except Exception:
+    except (OSError, RuntimeError, psycopg.Error):
         return {"schema_ready": False, "reason": "store_unavailable"}
