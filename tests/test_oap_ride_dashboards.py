@@ -76,3 +76,19 @@ def test_rider_response_is_private_and_not_cached():
     response = _app().test_client().get("/transport/ride/rider")
     assert response.headers["Cache-Control"] == "no-store, private"
     assert b"/transport/ride/rider" in response.data
+
+
+def test_rider_direct_booking_page_has_governed_submission_contract():
+    from mission_control import oap_ride_dashboards
+    page = oap_ride_dashboards.RIDE_BOOK_PAGE
+    assert 'fetch("/movement/bookings"' in page
+    assert '"X-OAP-CSRF":csrf' in page
+    assert 'idempotency_key:' in page
+    assert 'role="status"' in page
+    assert 'credentials:"same-origin"' in page
+
+
+def test_rider_booking_page_is_login_protected():
+    from mission_control import oap_ride_dashboards
+    assert hasattr(oap_ride_dashboards.ride_booking_page, "__wrapped__")
+    assert "/transport/ride/book" in {rule.rule for rule in _app().url_map.iter_rules()}
