@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - organism-canonical-78
+      - music/oap-data-persistence-v1
 
 permissions:
   contents: read
