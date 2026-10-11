@@ -60,3 +60,19 @@ def test_driver_primary_availability_action_reuses_existing_workspace():
     assert 'class="primary" href="/movement/workspace#work-title"' in body
     assert "Manage availability" in body
     assert "incoming journey proposals" in body
+
+
+def test_rider_booking_handoff_requires_both_locations():
+    body = _app().test_client().get("/transport/ride/rider").get_data(as_text=True)
+    assert '<form class="ride-form" action="/movement/workspace" method="get"' in body
+    assert '<input type="hidden" name="service" value="ride">' in body
+    assert 'id="ride-pickup" name="from" maxlength="120"' in body
+    assert 'id="ride-destination" name="to" maxlength="120"' in body
+    assert body.count(" required>") >= 2
+    assert "Continue to secure booking" in body
+
+
+def test_rider_response_is_private_and_not_cached():
+    response = _app().test_client().get("/transport/ride/rider")
+    assert response.headers["Cache-Control"] == "no-store, private"
+    assert b"/transport/ride/rider" in response.data
