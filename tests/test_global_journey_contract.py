@@ -6,6 +6,7 @@ import pytest
 from mission_control.global_journey_contract import (
     JourneyAssociation,
     authorize_association,
+    associate_in_transaction,
     check_replay,
 )
 
@@ -90,4 +91,27 @@ def test_owner_gate_rejects_invalid_actor_identity():
         authorize_association(
             association, actor_identity_id="untrusted", booking_owner_identity_id=owner,
             journey_owner_identity_id=owner,
+        )
+
+
+class _DeniedConnection:
+    def execute(self, *_args, **_kwargs):
+        raise AssertionError("database_must_not_be_touched")
+
+
+def test_intent_persistence_fails_before_database_access():
+    association = JourneyAssociation(str(uuid4()), str(uuid4()), "oap-book-" + "c" * 16)
+    with pytest.raises(PermissionError, match="intent_owner_evidence_required"):
+        associate_in_transaction(
+            _DeniedConnection(), association,
+            actor_identity_id=str(uuid4()), journey_owner_identity_id=str(uuid4()),
+        )
+
+
+def test_invalid_actor_fails_before_database_access():
+    association = JourneyAssociation(str(uuid4()), str(uuid4()))
+    with pytest.raises(ValueError, match="invalid_actor_identity_id"):
+        associate_in_transaction(
+            _DeniedConnection(), association,
+            actor_identity_id="not-valid", journey_owner_identity_id=str(uuid4()),
         )
