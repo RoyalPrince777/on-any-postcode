@@ -3,7 +3,7 @@ from mission_control.spot_apps_catalogue import public_catalogue
 
 
 def test_only_registered_routes_appear():
-    assert [x["id"] for x in public_catalogue(registered_routes={"/pulse"}, public_routes={"/pulse"})] == ["pulse"]
+    assert [x["id"] for x in public_catalogue(registered_routes={"/the-spot/pulse"}, public_routes={"/the-spot/pulse"})] == ["pulse"]
 
 
 def test_missing_routes_never_appear():
@@ -11,7 +11,7 @@ def test_missing_routes_never_appear():
 
 
 def test_search_is_case_insensitive_and_bounded():
-    result = public_catalogue(registered_routes={"/pulse", "/arena"}, public_routes={"/pulse", "/arena"}, query="GAMES")
+    result = public_catalogue(registered_routes={"/the-spot/pulse", "/arena"}, public_routes={"/the-spot/pulse", "/arena"}, query="GAMES")
     assert [x["id"] for x in result] == ["arena"]
 
 
@@ -21,10 +21,10 @@ def test_no_user_supplied_route_is_launched():
 
 
 def test_no_public_review_fails_closed():
-    assert public_catalogue(registered_routes={"/pulse"}) == []
+    assert public_catalogue(registered_routes={"/the-spot/pulse"}) == []
 
 
 def test_registered_private_route_stays_hidden():
-    assert public_catalogue(registered_routes={"/pulse", "/the-link"}, public_routes={"/pulse"}) == [
-        {"id": "pulse", "name": "Pulse", "category": "Social", "route": "/pulse"}
+    assert public_catalogue(registered_routes={"/the-spot/pulse", "/the-link"}, public_routes={"/the-spot/pulse"}) == [
+        {"id": "pulse", "name": "Pulse", "category": "Social", "route": "/the-spot/pulse"}
     ]
