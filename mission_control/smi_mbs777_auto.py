@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from math import isfinite
 from typing import Mapping
 
-from mission_control.hrm_agent_lifecycle import MIND_7, BODY_7, SOUL_7
+from mission_control.hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
 
 PROMOTION_THRESHOLD = 97.3
 GREEN_THRESHOLD = 93.0
