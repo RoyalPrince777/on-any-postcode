@@ -96,6 +96,7 @@ def test_rider_booking_page_is_login_protected():
 
 def test_authenticated_rider_booking_renders_prefill_and_csrf():
     from unittest.mock import patch
+
     from mission_control import oap_ride_dashboards
     app = Flask(__name__)
     app.secret_key = "ride-test-key"
@@ -113,6 +114,7 @@ def test_authenticated_rider_booking_renders_prefill_and_csrf():
 
 def test_rider_booking_escapes_untrusted_prefill():
     from unittest.mock import patch
+
     from mission_control import oap_ride_dashboards
     app = Flask(__name__)
     app.secret_key = "ride-test-key"
