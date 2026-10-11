@@ -121,3 +121,20 @@ def test_os_boundary_and_war_room_rating_are_truthful():
         boundary["components"] == "OAP OS / OAP CORE / Living Kernel / Android-Linux"
         for boundary in projection["conflict_audit"]["resolved_boundaries"]
     )
+
+
+def test_installed_oap_os_starts_directly_in_world_without_market(client):
+    response = client.get("/manifest.webmanifest")
+    assert response.status_code == 200
+    manifest = response.get_json()
+    assert manifest["id"] == "/"
+    assert manifest["scope"] == "/"
+    assert manifest["start_url"] == "/world?source=oap-os"
+    assert not manifest["start_url"].startswith("/?")
+    assert "market" not in manifest["start_url"].casefold()
+    world = client.get(manifest["start_url"])
+    assert world.status_code == 200
+    assert "data-spot-apps-entry" not in world.get_data(as_text=True)  # entry belongs to The Spot
+    spot = client.get("/the-spot")
+    assert spot.status_code == 200
+    assert 'data-spot-apps-entry' in spot.get_data(as_text=True)
