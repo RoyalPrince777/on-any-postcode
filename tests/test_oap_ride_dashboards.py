@@ -123,3 +123,13 @@ def test_rider_booking_escapes_untrusted_prefill():
         response = app.test_client().get("/transport/ride/book?from=%3Cscript%3E&to=SE15")
     assert response.status_code == 200
     assert 'value="&lt;script&gt;"' in response.get_data(as_text=True)
+
+
+def test_rider_receipt_uses_canonical_movement_booking_id():
+    from mission_control import oap_ride_dashboards
+
+    page = oap_ride_dashboards.RIDE_BOOK_PAGE
+    assert "data.booking?.booking_id" in page
+    assert "data.booking.booking_id" in page
+    assert "data.booking?.id" not in page
+    assert "requestKey=null" in page
