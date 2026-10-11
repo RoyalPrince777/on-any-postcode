@@ -67,3 +67,27 @@ def test_intent_owner_evidence_is_mandatory():
             association, actor_identity_id=owner, booking_owner_identity_id=owner,
             journey_owner_identity_id=owner,
         )
+
+
+@pytest.mark.parametrize("owner_field", ["booking_owner_identity_id", "journey_owner_identity_id", "intent_owner_identity_id"])
+def test_each_owner_mismatch_fails_closed(owner_field):
+    owner = str(uuid4())
+    owners = {
+        "booking_owner_identity_id": owner,
+        "journey_owner_identity_id": owner,
+        "intent_owner_identity_id": owner,
+    }
+    owners[owner_field] = str(uuid4())
+    association = JourneyAssociation(str(uuid4()), str(uuid4()), "oap-book-" + "b" * 16)
+    with pytest.raises(PermissionError, match="association_owner_mismatch"):
+        authorize_association(association, actor_identity_id=owner, **owners)
+
+
+def test_owner_gate_rejects_invalid_actor_identity():
+    owner = str(uuid4())
+    association = JourneyAssociation(str(uuid4()), str(uuid4()))
+    with pytest.raises(ValueError, match="invalid_actor_identity_id"):
+        authorize_association(
+            association, actor_identity_id="untrusted", booking_owner_identity_id=owner,
+            journey_owner_identity_id=owner,
+        )
