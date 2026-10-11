@@ -71,6 +71,30 @@ def test_real_0007_migration_and_consent_readback():
                    VALUES (%s, 'Highlife', 'ak', 'GH', TRUE)""",
                 (track_id,),
             )
+            # A second track without explicit consent must default to private.
+            private_track_id = str(uuid.uuid4())
+            connection.execute(
+                """INSERT INTO oap_music_tracks
+                   (track_id, release_id, title, position, media_ref)
+                   VALUES (%s, %s, %s, 2, %s)""",
+                (private_track_id, release_id, "Private by default",
+                 f"test:unplayable:{private_track_id}"),
+            )
+            connection.execute(
+                """INSERT INTO oap_music_track_data (track_id, country)
+                   VALUES (%s, 'GH')""",
+                (private_track_id,),
+            )
+            private_row = connection.execute(
+                data.public_discovery_projection() + " AND t.track_id=%s",
+                (private_track_id,),
+            ).fetchone()
+            assert private_row is not None and private_row[6] is None
+            assert connection.execute(
+                """SELECT location_publication_consent
+                   FROM oap_music_track_data WHERE track_id=%s""",
+                (private_track_id,),
+            ).fetchone()[0] is False
             sql = data.public_discovery_projection() + " AND t.track_id=%s"
             row = connection.execute(sql, (track_id,)).fetchone()
             assert row is not None and row[6] == "GH"
