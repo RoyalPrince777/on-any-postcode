@@ -661,6 +661,8 @@ def root_front_door():
 
 @app.get("/world")
 def home():
+    if request.args.get("source") == "oap-os":
+        return render_template("world.html")
     public = _load_public_snapshot()
     market_products = []
     featured_shops = []

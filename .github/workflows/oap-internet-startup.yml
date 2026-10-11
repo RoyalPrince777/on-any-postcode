@@ -1,0 +1,30 @@
+name: OAP Internet startup contract
+
+on:
+  pull_request:
+    paths:
+      - "app.py"
+      - "templates/world.html"
+      - "static/manifest.webmanifest"
+      - "tests/test_oap_internet_manifest_startup.py"
+      - ".github/workflows/oap-internet-startup.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  manifest-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install bounded test tools
+        run: python -m pip install -r requirements.txt pytest ruff
+      - name: Lint manifest regression tests
+        run: ruff check tests/test_oap_internet_manifest_startup.py
+      - name: Test installed-app startup manifest
+        run: python -m pytest -q tests/test_oap_internet_manifest_startup.py
