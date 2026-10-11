@@ -18,7 +18,7 @@ def test_rider_driver_my_dashboards_are_registered():
 
 def test_rider_dashboard_buttons_are_real_links():
     data = _app().test_client().get("/transport/ride/rider").data
-    assert b'action="/movement/workspace#book-title"' in data
+    assert b'action="/transport/ride/book"' in data
     assert b"/movement/workspace#bookings-title" in data
     assert b"/movement/workspace#member-matches-title" in data
     assert b"/pay" in data
@@ -64,7 +64,7 @@ def test_driver_primary_availability_action_reuses_existing_workspace():
 
 def test_rider_booking_handoff_requires_both_locations():
     body = _app().test_client().get("/transport/ride/rider").get_data(as_text=True)
-    assert '<form class="ride-form" action="/movement/workspace#book-title" method="get"' in body
+    assert '<form class="ride-form" action="/transport/ride/book" method="get"' in body
     assert '<input type="hidden" name="service" value="ride">' in body
     assert 'id="ride-pickup" name="from" maxlength="120"' in body
     assert 'id="ride-destination" name="to" maxlength="120"' in body
