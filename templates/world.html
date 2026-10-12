@@ -8,7 +8,7 @@
 <style>
 :root{color-scheme:dark;--bg:#080806;--panel:#13120e;--line:#3a3423;--gold:#efc85d;--text:#fffaf0;--muted:#aaa38e}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-main{max-width:900px;margin:auto;padding:28px 16px 42px}.eyebrow{color:var(--gold);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.worldmark{display:inline-block;color:var(--gold);font-size:clamp(1.4rem,6vw,2.5rem);font-weight:950;letter-spacing:-.045em;line-height:1.1}.worldmark::after{content:' ✦';color:#9b77e6;animation:glow 4s ease-in-out infinite}@keyframes glow{50%{opacity:.3;transform:scale(.95)}}@media(prefers-reduced-motion:reduce){.worldmark::after{animation:none}}.search{display:flex;gap:8px;margin:20px 0 12px}.search input{min-width:0;flex:1;border:1px solid #796733;background:#18160e;color:#fffaf0;padding:15px;border-radius:13px;font:inherit}.search button{border:0;border-radius:13px;background:#efc85d;color:#16130a;font-weight:800;padding:0 18px;cursor:pointer}.search-note{font-size:.8rem;color:var(--muted);margin:0 0 20px}.quick{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}.quick a{padding:9px 12px;border:1px solid var(--line);border-radius:999px;font-size:.85rem;background:var(--panel)}main{max-width:900px;margin:auto;padding:28px 16px 42px}.eyebrow{color:var(--gold);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
 h1{font-size:clamp(2.8rem,12vw,6rem);line-height:.88;letter-spacing:-.06em;margin:10px 0}.lead{max-width:620px;color:var(--muted);line-height:1.5;margin:0 0 24px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}a{display:block;color:inherit;text-decoration:none}.card{padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
 .card strong{display:block;font-size:1rem}.card span{display:block;margin-top:5px;color:var(--muted);font-size:.76rem;line-height:1.35}.card.primary{border-color:#6f5f2a;background:#1b180f}
@@ -17,9 +17,13 @@ h1{font-size:clamp(2.8rem,12vw,6rem);line-height:.88;letter-spacing:-.06em;margi
 </head>
 <body>
 <main>
-<div class="eyebrow">ON ANY POSTCODE</div>
+<div class="eyebrow">🌍 OAP WORLD</div>
+<div class="worldmark" aria-label="ON ANY POSTCODE">ON ANY POSTCODE</div>
 <h1>OAP World</h1>
 <p class="lead">One World. One Front Door. Many systems inside. Start here, then move into the part of OAP you choose.</p>
+<form class="search" id="world-search" role="search"><label for="world-query" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Open a website</label><input id="world-query" type="text" inputmode="url" autocomplete="url" placeholder="Enter a website address" aria-describedby="world-search-note"><button type="submit">Open</button></form>
+<p class="search-note" id="world-search-note" aria-live="polite">Open a web address directly. SMI Direct answers and cross-world search are not yet enabled here.</p>
+<nav class="quick" aria-label="Quick destinations"><a href="/the-spot">📍 The Spot</a><a href="/linkup">💬 Link Up</a><a href="/my-world">👤 My World</a><a href="/travel">🗺️ Travel</a></nav>
 <section class="grid" aria-label="OAP World">
 <a class="card primary" href="/the-spot"><strong>📍 The Spot</strong><span>Local community and postcode life.</span></a>
 <a class="card" href="/the-link"><strong>🔗 The Link</strong><span>Opportunities and connections.</span></a>
@@ -32,5 +36,8 @@ h1{font-size:clamp(2.8rem,12vw,6rem);line-height:.88;letter-spacing:-.06em;margi
 <a class="card" href="/my-world"><strong>👤 My World</strong><span>Your personal OAP space.</span></a>
 </section>
 </main>
+<script>
+(() => {const form=document.getElementById("world-search"),input=document.getElementById("world-query"),note=document.getElementById("world-search-note");form.addEventListener("submit",(event)=>{event.preventDefault();const value=input.value.trim();if(!value){note.textContent="Enter a website address.";return;}if(/\s/.test(value)){note.textContent="This field opens website addresses only. AI search is not yet enabled.";return;}try{const url=new URL(/^https?:\/\//i.test(value)?value:`https://${value}`);if(!["http:","https:"].includes(url.protocol)||!url.hostname.includes(".")){throw new Error("invalid address");}window.location.assign(url.href);}catch(_){note.textContent="Enter a valid web address, for example example.org.";}});})();
+</script>
 </body>
 </html>
