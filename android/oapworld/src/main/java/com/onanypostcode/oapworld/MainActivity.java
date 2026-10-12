@@ -2,6 +2,10 @@ package com.onanypostcode.oapworld;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -20,6 +24,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.ScrollView;
 
 import androidx.activity.ComponentActivity;
@@ -45,6 +51,7 @@ public final class MainActivity extends ComponentActivity {
     private String engineSourcePath;
     private EditText omnibox;
     private Button backButton;
+    private TextView trustLabel;
     private final List<String> engineHistory = new ArrayList<>();
     private int engineHistoryIndex = -1;
 
@@ -63,7 +70,15 @@ public final class MainActivity extends ComponentActivity {
         toolbar.setPadding(8, 8, 8, 8);
 
         backButton = navButton("‹");
-        Button homeButton = navButton("OAP");
+        Button homeButton = navButton("⌂");
+        homeButton.setContentDescription("OAP World home");
+        Button menuButton = navButton("⋮");
+        menuButton.setContentDescription("Browser menu");
+        trustLabel = new TextView(this);
+        trustLabel.setTextColor(Color.WHITE);
+        trustLabel.setTextSize(10);
+        trustLabel.setPadding(6, 0, 6, 0);
+        trustLabel.setText("OAP WORLD");
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
@@ -84,6 +99,10 @@ public final class MainActivity extends ComponentActivity {
                 omnibox,
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         );
+
+        toolbar.addView(trustLabel);
+        toolbar.addView(menuButton);
+        menuButton.setOnClickListener(v -> showBrowserMenu(menuButton));
 
         webView = new WebView(this);
         engineClient = new EngineDocumentClient(OAP_ORIGIN);
@@ -247,6 +266,44 @@ public final class MainActivity extends ComponentActivity {
             openFirstPartyPath("/world");
         }
         refreshNavigationState();
+    }
+
+    private String currentBrowserUrl() {
+        if (engineActive && engineSourcePath != null) {
+            return OAP_ORIGIN + engineSourcePath;
+        }
+        return webView == null ? null : webView.getUrl();
+    }
+
+    private void showBrowserMenu(View anchor) {
+        PopupMenu menu = new PopupMenu(this, anchor);
+        menu.getMenu().add("OAP World").setOnMenuItemClickListener(item -> {
+            openFirstPartyPath("/world");
+            return true;
+        });
+        menu.getMenu().add("Back").setEnabled(
+                engineActive ? engineHistoryIndex > 0 : webView != null && webView.canGoBack()
+        ).setOnMenuItemClickListener(item -> {
+            onBackPressed();
+            return true;
+        });
+        String url = currentBrowserUrl();
+        boolean hasUrl = url != null && !url.isEmpty();
+        menu.getMenu().add("Share page").setEnabled(hasUrl).setOnMenuItemClickListener(item -> {
+            Intent share = new Intent(Intent.ACTION_SEND);
+            share.setType("text/plain");
+            share.putExtra(Intent.EXTRA_TEXT, currentBrowserUrl());
+            startActivity(Intent.createChooser(share, "Share page"));
+            return true;
+        });
+        menu.getMenu().add("Copy address").setEnabled(hasUrl).setOnMenuItemClickListener(item -> {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(ClipData.newPlainText("Page address", currentBrowserUrl()));
+            }
+            return true;
+        });
+        menu.show();
     }
 
     private Button navButton(String label) {
@@ -457,6 +514,17 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void refreshNavigationState() {
+        if (trustLabel != null) {
+            String url = currentBrowserUrl();
+            Uri parsed = url == null ? null : Uri.parse(url);
+            Uri origin = Uri.parse(OAP_ORIGIN);
+            boolean firstParty = engineActive || (parsed != null
+                    && "https".equalsIgnoreCase(parsed.getScheme())
+                    && origin.getHost() != null
+                    && origin.getHost().equalsIgnoreCase(parsed.getHost())
+                    && parsed.getPort() == -1);
+            trustLabel.setText(firstParty ? "OAP WORLD" : "OPEN WEB");
+        }
         if (engineActive) {
             backButton.setEnabled(engineHistoryIndex > 0);
             return;
