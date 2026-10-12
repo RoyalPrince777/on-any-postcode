@@ -14,10 +14,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".OapHomeActivity" android:exported="false" />
         <!-- Founder-first additional launcher entry; not an Android HOME replacement. -->
         <activity-alias
             android:name=".OapHomeEntry"
-            android:targetActivity=".MainActivity"
+            android:targetActivity=".OapHomeActivity"
             android:exported="true"
             android:label="OAP Home">
             <intent-filter>
