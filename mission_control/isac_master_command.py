@@ -6,6 +6,7 @@ All sections derive from real supplied evidence; missing evidence fails closed.
 from __future__ import annotations
 
 from typing import Any
+from datetime import datetime, timezone, timedelta
 
 
 def master_isac_status(
@@ -20,6 +21,13 @@ def master_isac_status(
     def source_state(source: dict[str, Any] | None) -> dict[str, Any]:
         if not isinstance(source, dict) or not source.get("verified") or not source.get("checked_at"):
             return {"status": "NOT_CONNECTED", "last_checked": None}
+        try:
+            checked_at = datetime.fromisoformat(str(source["checked_at"]).replace("Z", "+00:00"))
+            now = datetime.now(timezone.utc)
+            if checked_at.tzinfo is None or not (timedelta(0) <= now - checked_at <= timedelta(minutes=15)):
+                return {"status": "STALE", "last_checked": source["checked_at"]}
+        except (ValueError, TypeError, OverflowError):
+            return {"status": "EVIDENCE_REQUIRED", "last_checked": None}
         if not source.get("operational"):
             return {"status": "INTERRUPTED", "last_checked": source["checked_at"]}
         return {"status": "CONNECTED", "last_checked": source["checked_at"]}
