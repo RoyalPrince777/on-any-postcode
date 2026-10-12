@@ -8,6 +8,7 @@ on:
       - "static/manifest.webmanifest"
       - "tests/test_oap_internet_manifest_startup.py"
       - "tests/oap_world_browser_handler.test.cjs"
+      - "tests/oap_world_chromium_proof.py"
       - ".github/workflows/oap-internet-startup.yml"
   workflow_dispatch:
 
@@ -29,5 +30,11 @@ jobs:
         run: ruff check tests/test_oap_internet_manifest_startup.py
       - name: Test OAP World navigation handler in Node
         run: node --test tests/oap_world_browser_handler.test.cjs
+      - name: Install real Chromium test dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Test real OAP World desktop and mobile-emulated Chromium
+        run: python tests/oap_world_chromium_proof.py
       - name: Test installed-app startup manifest
         run: python -m pytest -q tests/test_oap_internet_manifest_startup.py
