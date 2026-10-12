@@ -1,6 +1,9 @@
 package com.onanypostcode.oapworld;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.os.Build;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,6 +24,7 @@ public final class OapLocalApkVerifier {
         MISSING_APK,
         WRONG_PACKAGE,
         NOT_NEWER,
+        CANDIDATE_METADATA_MISMATCH,
         DIGEST_MISMATCH,
         SIGNER_MISMATCH,
         VERIFIED_LOCAL_ONLY
@@ -41,6 +45,22 @@ public final class OapLocalApkVerifier {
         }
         if (metadata.versionCode <= installedVersionCode) {
             return Result.NOT_NEWER;
+        }
+        // Do not trust the text manifest's version/package assertions alone.
+        // Compare them to the APK archive itself before accepting its digest.
+        try {
+            PackageInfo archive = context.getPackageManager().getPackageArchiveInfo(
+                    apk.getAbsolutePath(), 0);
+            if (archive == null || !context.getPackageName().equals(archive.packageName)) {
+                return Result.CANDIDATE_METADATA_MISMATCH;
+            }
+            long archiveVersion = Build.VERSION.SDK_INT >= 28
+                    ? archive.getLongVersionCode() : archive.versionCode;
+            if (archiveVersion != metadata.versionCode || archiveVersion <= installedVersionCode) {
+                return Result.CANDIDATE_METADATA_MISMATCH;
+            }
+        } catch (RuntimeException e) {
+            return Result.CANDIDATE_METADATA_MISMATCH;
         }
         try (FileInputStream input = new FileInputStream(apk)) {
             if (!OapApkDigest.matches(input, metadata)) {
