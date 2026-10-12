@@ -612,6 +612,22 @@ class PostgresRuntimeStore:
                     state,
                     {"attempts": attempts},
                 )
+                _append_runtime_audit(
+                    connection,
+                    worker_id="runtime-recovery",
+                    action=(
+                        "RUNTIME_JOB_DEAD_LETTERED"
+                        if state == "DEAD_LETTER"
+                        else "RUNTIME_JOB_RETRY"
+                    ),
+                    job_id=job_id,
+                    metadata={
+                        "job_type": job_type,
+                        "attempts": attempts,
+                        "error_code": "lease_expired",
+                        "recovery": True,
+                    },
+                )
                 recovered += 1
             connection.commit()
         return recovered
