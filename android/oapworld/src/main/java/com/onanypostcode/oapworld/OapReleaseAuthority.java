@@ -5,7 +5,7 @@ import java.security.KeyFactory;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.X509EncodedKeySpec;
-import android.util.Base64;
+import java.util.Base64;
 
 /**
  * Independent Ed25519 signature verification of canonical release bytes.
@@ -25,7 +25,7 @@ public final class OapReleaseAuthority {
             return false;
         }
         try {
-            byte[] keyBytes = Base64.decode(pinnedPublicKeyBase64, Base64.NO_WRAP);
+            byte[] keyBytes = Base64.getDecoder().decode(pinnedPublicKeyBase64);
             PublicKey key = KeyFactory.getInstance("Ed25519")
                     .generatePublic(new X509EncodedKeySpec(keyBytes));
             Signature verifier = Signature.getInstance("Ed25519");
