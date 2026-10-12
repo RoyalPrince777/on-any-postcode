@@ -48,12 +48,16 @@ def project_agent_signals(
             state = "unknown"
         results[key] = {"state": state, "receipt": receipt}
     required = [results[k]["state"] for k in CHECKS_21 if k in eligible]
+    # Supplied references are claims, not authenticated evidence. Never issue Green here.
+    all_claimed = bool(required) and all(s == "proven" for s in required)
     return {
         "agent_id": agent_id,
         "component": "SMI Performance & Activity Intelligence",
         "signal_count": len(CHECKS_21),
         "signals": results,
-        "green": bool(required) and all(s == "proven" for s in required),
+        "green": False,
+        "all_applicable_claimed_proven": all_claimed,
+        "green_requires": "independent receipt authentication and governed Green Gate",
         "authority_effect": "none",
         "receipt_authenticity_verified": False,
         "integration_status": "read_only_projection",
