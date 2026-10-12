@@ -2,7 +2,10 @@
 import pytest
 
 from oap.smi.naming_vote import (
-    HISTORICAL_NAMING_ROUNDS, NEW_CHALLENGERS, NamingRound, project_naming_vote,
+    HISTORICAL_NAMING_ROUNDS,
+    NEW_CHALLENGERS,
+    NamingRound,
+    project_naming_vote,
 )
 
 
