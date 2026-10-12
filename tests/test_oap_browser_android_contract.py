@@ -105,3 +105,11 @@ def test_oap_android_webview_requires_explicit_world_open_web_consent():
     assert 'result.confirm()' in source
     assert 'setNegativeButton("Stay in OAP World"' in source
     assert 'setOnCancelListener(dialog -> result.cancel())' in source
+
+
+def test_oap_android_root_back_never_reveals_blank_webview():
+    source = SOURCE.read_text(encoding="utf-8")
+    root_back = source.split("public void onBackPressed()", 1)[1].split("protected void onDestroy()", 1)[0]
+    assert "engineHistoryIndex > 0" in root_back
+    assert "super.onBackPressed();" in root_back
+    assert "showWebViewFallback();" not in root_back
