@@ -5,8 +5,8 @@ All sections derive from real supplied evidence; missing evidence fails closed.
 """
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
-from datetime import datetime, timezone, timedelta
 
 
 def master_isac_status(
@@ -22,8 +22,8 @@ def master_isac_status(
         if not isinstance(source, dict) or not source.get("verified") or not source.get("checked_at"):
             return {"status": "NOT_CONNECTED", "last_checked": None}
         try:
-            checked_at = datetime.fromisoformat(str(source["checked_at"]).replace("Z", "+00:00"))
-            now = datetime.now(timezone.utc)
+            checked_at = datetime.fromisoformat(str(source["checked_at"]))
+            now = datetime.now(UTC)
             if checked_at.tzinfo is None or not (timedelta(0) <= now - checked_at <= timedelta(minutes=15)):
                 return {"status": "STALE", "last_checked": source["checked_at"]}
         except (ValueError, TypeError, OverflowError):
