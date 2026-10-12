@@ -1,4 +1,4 @@
-"""Evidence gates for mission-adaptive Alliance Intelligence.
+"""Performance & Activity Intelligence: evidence gates for Alliance Intelligence.
 
 An advisory read-only layer over existing War Room scoring; never grants authority.
 """
@@ -12,7 +12,7 @@ from oap.war_room.agent_selection import SCORE_WEIGHTS, score_agent
 REQUIRED_EVIDENCE_FIELDS = frozenset(SCORE_WEIGHTS)
 
 
-def evaluate_pac_evidence(
+def evaluate_activity_evidence(
     metrics: Mapping[str, object] | None,
     evidence: Mapping[str, str] | None,
     *,
@@ -45,3 +45,7 @@ def evaluate_pac_evidence(
     return {"status": "EVIDENCE_SUBMITTED", "score": result["score"],
             "tier": result["tier"], "authority_effect": "none",
             "verification_note": "Provenance supplied; source authenticity requires external verification"}
+
+
+# Compatibility for existing callers; do not break the draft contract.
+evaluate_pac_evidence = evaluate_activity_evidence
