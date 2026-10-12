@@ -6,6 +6,7 @@ on:
     paths:
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapApkDigest.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseMetadata.java'
+      - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseInput.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapUpdateEligibility.java'
       - 'android/oapworld/src/test/java/com/onanypostcode/oapworld/*ContractTest.java'
       - '.github/workflows/oap-android-release-contracts.yml'
@@ -13,6 +14,7 @@ on:
     paths:
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapApkDigest.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseMetadata.java'
+      - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseInput.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapUpdateEligibility.java'
       - 'android/oapworld/src/test/java/com/onanypostcode/oapworld/*ContractTest.java'
       - '.github/workflows/oap-android-release-contracts.yml'
@@ -41,14 +43,16 @@ jobs:
           javac -d "$RUNNER_TEMP/oap-release-contracts" \
             "$source_dir/OapUpdateEligibility.java" \
             "$source_dir/OapReleaseMetadata.java" \
+            "$source_dir/OapReleaseInput.java" \
             "$source_dir/OapApkDigest.java" \
             "$test_dir/OapUpdateEligibilityContractTest.java" \
             "$test_dir/OapReleaseMetadataContractTest.java" \
-            "$test_dir/OapApkDigestContractTest.java"
+            "$test_dir/OapApkDigestContractTest.java" \
+            "$test_dir/OapReleaseInputContractTest.java"
       - name: Execute release contract tests
         shell: bash
         run: |
           set -euo pipefail
-          for test in OapUpdateEligibilityContractTest OapReleaseMetadataContractTest OapApkDigestContractTest; do
+          for test in OapUpdateEligibilityContractTest OapReleaseMetadataContractTest OapApkDigestContractTest OapReleaseInputContractTest; do
             java -cp "$RUNNER_TEMP/oap-release-contracts" "com.onanypostcode.oapworld.$test"
           done
