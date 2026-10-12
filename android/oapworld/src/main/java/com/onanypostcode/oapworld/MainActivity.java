@@ -324,6 +324,10 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void loadWebViewUrl(String url) {
+        // Prevent a stale native-engine response from replacing the chosen WebView page.
+        if (engineClient != null) {
+            engineClient.cancelPending();
+        }
         showWebViewFallback();
         webView.loadUrl(url);
     }
