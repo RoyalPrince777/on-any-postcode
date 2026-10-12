@@ -51,6 +51,10 @@ def readback_kernel_audit(*, identity_id: str, request_id: str) -> KernelAuditRe
     event_id, action, actor_id, target, metadata = rows[0]
     if not isinstance(metadata, dict):
         return KernelAuditReadback(request, False, False, "INVALID_AUDIT_METADATA")
+    try:
+        canonical_event_id = str(uuid.UUID(str(event_id)))
+    except (TypeError, ValueError, AttributeError):
+        return KernelAuditReadback(request, False, False, "INVALID_AUDIT_EVENT_ID")
     executed = action == "FOUNDER_TOOL_KERNEL_EXECUTED"
     if (
         str(actor_id) != identity
@@ -62,5 +66,5 @@ def readback_kernel_audit(*, identity_id: str, request_id: str) -> KernelAuditRe
     ):
         return KernelAuditReadback(request, False, False, "AUDIT_PROVENANCE_MISMATCH")
     return KernelAuditReadback(
-        request, True, executed, "CANONICAL_AUDIT_ROW_READ_BACK", str(event_id)
+        request, True, executed, "CANONICAL_AUDIT_ROW_READ_BACK", canonical_event_id
     )
