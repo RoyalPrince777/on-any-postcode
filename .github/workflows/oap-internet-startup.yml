@@ -35,6 +35,6 @@ jobs:
           python -m pip install playwright
           python -m playwright install --with-deps chromium
       - name: Test real OAP World desktop and mobile-emulated Chromium
-        run: python tests/oap_world_chromium_proof.py
+        run: PYTHONPATH=. python tests/oap_world_chromium_proof.py
       - name: Test installed-app startup manifest
         run: python -m pytest -q tests/test_oap_internet_manifest_startup.py
