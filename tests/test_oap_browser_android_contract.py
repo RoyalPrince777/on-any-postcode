@@ -127,4 +127,4 @@ def test_oap_android_external_navigation_invalidates_pending_native_response():
     assert "public void cancelPending()" in client_source
     cancel_body = client_source.split("public void cancelPending()", 1)[1].split("\n    }", 1)[0]
     assert "generation.incrementAndGet();" in cancel_body
-    assert "generation.get() != requestGeneration" in client_source
+    assert "generation.get() == requestGeneration" in client_source
