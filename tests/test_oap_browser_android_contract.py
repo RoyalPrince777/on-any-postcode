@@ -31,7 +31,11 @@ def test_oap_browser_has_approved_minimal_navigation_controls():
     source = SOURCE.read_text(encoding="utf-8")
     for marker in (
         'navButton("‹")',
-        'navButton("OAP")',
+        'navButton("⌂")',
+        'homeButton.setContentDescription("OAP World home")',
+        'menuButton.setContentDescription("Browser menu")',
+        'showBrowserMenu(menuButton)',
+        '"OAP WORLD" : "OPEN WEB"',
         "webView.goBack()",
     ):
         assert marker in source
