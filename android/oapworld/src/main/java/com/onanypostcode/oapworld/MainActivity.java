@@ -469,7 +469,9 @@ public final class MainActivity extends ComponentActivity {
             engineHistoryIndex--;
             openFirstPartyPath(engineHistory.get(engineHistoryIndex), false);
         } else if (engineActive) {
-            showWebViewFallback();
+            // At the native root there is no previous page: leave the Activity,
+            // rather than exposing a blank or stale WebView fallback.
+            super.onBackPressed();
         } else if (webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
