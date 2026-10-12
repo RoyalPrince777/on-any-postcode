@@ -38,3 +38,17 @@ Bagheera: policy; Seraph: identity/access; Fox: recovery; Spider: lineage; Eleph
 
 ## Limitations
 Monitoring third-party databases without authorisation is prohibited. Erasure rights may have legal exceptions. A privacy incident does not automatically establish a legal violation or compensation entitlement.
+
+
+## Second mandatory protocol: Founder-authorised OAP-wide access and accountability
+The Founder needs a unified, secure inventory of *all OAP-controlled* services, accounts, data stores, permissions, logs, integrations and personal-data flows. This is not unrestricted access to external companies or an exemption from other users' privacy.
+
+- **Inventory:** catalogue every OAP module, service, database, worker, repository, deployment, backup, device integration and third-party processor; classify owner, environment, sensitivity, location and proof status.
+- **Founder control plane:** authenticated Founder dashboard for service discovery, access review, data export, request approvals, emergency lockdown, recovery and audit. Strong MFA and reauthentication for sensitive operations; least-privilege, short-lived credentials and break-glass access with independent logging.
+- **Separation of duties:** privileged access to other users' information is exceptional, purpose-limited, logged and reviewed; do not treat Founder status as consent to unrestricted inspection of private user content.
+- **Two connected protocols:** (A) Personal Data Zero Tolerance prevents unauthorised processing and prepares rights enforcement; (B) OAP-wide Access & Accountability ensures visibility, security, governance and recoverability of OAP-operated systems. Both share identity, policy, audit and evidence infrastructure.
+- **Every access event:** actor, resource, purpose, authorisation, time, action, outcome and case correlation ID; do not record raw personal data or secrets.
+- **External provider boundary:** inventory contracts, lawful API permissions, data exports and subject access rights; do not claim access to Google, Meta, telecoms or other third-party databases.
+- **Security gates:** deny-by-default policy tests, Founder MFA, role-scoped access, encrypted evidence, tamper-evident audit, backup recovery, revocation and incident drills. Any unverified gate stays unverified.
+- **No surveillance loophole:** security monitoring must be proportionate and compliant with applicable privacy and employment law.
+- **First integration target:** read-only OAP service inventory and policy decision API; then protected evidence registry; then audited Founder dashboard and integration tests.
