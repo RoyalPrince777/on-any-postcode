@@ -43,4 +43,6 @@ def test_oap_internet_card_does_not_claim_unimplemented_launch():
     page = WORLD.read_text(encoding="utf-8")
     assert '<strong>🌐 OAP Internet</strong>' in page
     assert 'href="/world/languages"' not in page
-    assert 'Web launch from this card is not yet available.' in page
+    assert 'Use the address field above to open external websites with an OPEN WEB warning.' in page
+    assert 'The Android browser remains a separate application.' in page
+    assert 'window.confirm' in page
