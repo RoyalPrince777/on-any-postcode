@@ -18,11 +18,11 @@ public final class OapReleaseDecision {
     }
 
     public static Result evaluate(
-            OapLocalApkVerifier.Result localResult,
+            boolean localVerificationPassed,
             boolean releaseAuthorityVerified,
             boolean exactArtifactGovernanceVerified,
             boolean founderApprovedThisArtifact) {
-        if (localResult != OapLocalApkVerifier.Result.VERIFIED_LOCAL_ONLY) {
+        if (!localVerificationPassed) {
             return Result.BLOCK_LOCAL_VERIFICATION;
         }
         if (!releaseAuthorityVerified) return Result.BLOCK_RELEASE_AUTHORITY;
