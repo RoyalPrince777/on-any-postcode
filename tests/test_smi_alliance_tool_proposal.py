@@ -1,7 +1,10 @@
 """Contract tests: Alliance selection never weakens canonical tool permission gates."""
 
 from oap.registry.tools import founder_tool_registry
-from oap.smi.alliance_tool_proposal import propose_alliance_tool, propose_alliance_handoff
+from oap.smi.alliance_tool_proposal import (
+    propose_alliance_handoff,
+    propose_alliance_tool,
+)
 
 
 def test_allowed_read_is_only_proposal() -> None:
