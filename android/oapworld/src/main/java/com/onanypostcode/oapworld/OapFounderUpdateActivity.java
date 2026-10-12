@@ -45,6 +45,20 @@ public final class OapFounderUpdateActivity extends ComponentActivity {
         gate.setTextSize(15);
         gate.setPadding(0, 8, 0, 28);
         layout.addView(gate);
+        Button review = new Button(this);
+        review.setText("Review update readiness");
+        review.setOnClickListener(v -> {
+            OapReleaseDecision.Result decision = OapReleaseDecision.evaluate(
+                    false, false, false, false);
+            gate.setText("OAP RELEASE INTELLIGENCE\\n"
+                    + "Current decision: " + decision.name().replace('_', ' ') + "\\n"
+                    + "No candidate APK has been verified.\\n"
+                    + "Release authority: NOT VERIFIED\\n"
+                    + "Governed release: NOT VERIFIED\\n"
+                    + "Founder installation approval: NOT GIVEN\\n\\n"
+                    + "INSTALLATION LOCKED — review only.");
+        });
+        layout.addView(review);
         Button releases = new Button(this);
         releases.setText("View official OAP releases (external)");
         releases.setOnClickListener(v -> {
