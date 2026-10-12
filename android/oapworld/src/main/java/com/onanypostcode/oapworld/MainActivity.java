@@ -244,7 +244,10 @@ public final class MainActivity extends ComponentActivity {
         });
 
         if (state == null) {
-            openFirstPartyPath("/world");
+            String requested = getIntent().getStringExtra("oap_start_path");
+            // Accept only internal absolute paths, never external URLs or protocol-relative paths.
+            openFirstPartyPath(requested != null && requested.startsWith("/")
+                    && !requested.startsWith("//") ? requested : "/world");
         }
         refreshNavigationState();
     }
