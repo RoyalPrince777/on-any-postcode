@@ -1,4 +1,5 @@
 """Evidence-gated ISAC master status: no synthetic operational green."""
+from datetime import datetime, timezone
 from mission_control.isac_master_command import master_isac_status
 
 
@@ -22,13 +23,18 @@ def test_external_source_needs_evidence_and_freshness_receipt():
     source = {"verified": True, "operational": True}
     status = master_isac_status({}, crisis_feed=source)
     assert status["incoming"]["world_crisis"]["status"] == "NOT_CONNECTED"
-    source["checked_at"] = "2026-10-12T12:00:00Z"
+    source["checked_at"] = datetime.now(timezone.utc).isoformat()
     status = master_isac_status({}, crisis_feed=source)
     assert status["incoming"]["world_crisis"]["status"] == "CONNECTED"
     assert status["intelligence"]["event_truth_not_implied_by_source_verification"]
 
 
 def test_interrupted_source_does_not_claim_live():
-    source = {"verified": True, "operational": False, "checked_at": "2026-10-12T12:00:00Z"}
+    source = {"verified": True, "operational": False, "checked_at": datetime.now(timezone.utc).isoformat()}
     status = master_isac_status({}, surveillance=source)
     assert status["monitor"]["surveillance"]["status"] == "INTERRUPTED"
+
+
+def test_stale_source_never_claims_connected():
+    source = {"verified": True, "operational": True, "checked_at": "2020-01-01T00:00:00Z"}
+    assert master_isac_status({}, crisis_feed=source)["incoming"]["world_crisis"]["status"] == "STALE"
