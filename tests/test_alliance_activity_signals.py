@@ -32,4 +32,6 @@ def test_receipts_are_not_automatically_authenticated():
     observations = {k: {"state": "proven", "receipt": "claimed-ref"} for k in CHECKS_21}
     result = project_agent_signals("fox", observations)
     assert result["receipt_authenticity_verified"] is False
+    assert result["all_applicable_claimed_proven"] is True
+    assert result["green"] is False
     assert result["authority_effect"] == "none"
