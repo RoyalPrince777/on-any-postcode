@@ -180,6 +180,10 @@ public final class EngineDocumentClient {
         return builder.toString();
     }
 
+    public void cancelPending() {
+        generation.incrementAndGet();
+    }
+
     public void close() {
         generation.incrementAndGet();
         executor.shutdownNow();
