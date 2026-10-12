@@ -37,6 +37,10 @@ public final class EngineDocumentClient {
         this.origin = origin;
     }
 
+    public void cancelPending() {
+        generation.incrementAndGet();
+    }
+
     public void fetch(String sourcePath, int viewportWidth, Callback callback) {
         final int requestGeneration = generation.incrementAndGet();
         executor.execute(() -> {

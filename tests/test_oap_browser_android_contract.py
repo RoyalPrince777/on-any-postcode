@@ -113,3 +113,18 @@ def test_oap_android_root_back_never_reveals_blank_webview():
     assert "engineHistoryIndex > 0" in root_back
     assert "super.onBackPressed();" in root_back
     assert "showWebViewFallback();" not in root_back
+
+
+def test_oap_android_external_navigation_invalidates_pending_native_response():
+    source = SOURCE.read_text(encoding="utf-8")
+    client_source = Path(
+        "android/oapworld/src/main/java/com/onanypostcode/oapworld/EngineDocumentClient.java"
+    ).read_text(encoding="utf-8")
+    webview_load = source.split("private void loadWebViewUrl(String url)", 1)[1].split("\n    }", 1)[0]
+    assert webview_load.index("engineClient.cancelPending();") < webview_load.index(
+        "showWebViewFallback();"
+    )
+    assert "public void cancelPending()" in client_source
+    cancel_body = client_source.split("public void cancelPending()", 1)[1].split("\n    }", 1)[0]
+    assert "generation.incrementAndGet();" in cancel_body
+    assert "generation.get() == requestGeneration" in client_source
