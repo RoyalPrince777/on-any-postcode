@@ -70,7 +70,7 @@ test("Agent Smith: malformed and hostile addresses never bypass consent", () => 
     "vbscript:msgbox(1)",
     "https://user@example.org",
     "https://user:pass@example.org",
-    "https://example.org\\nattacker.org",
+    "https://example.org\nattacker.org",
     "https://example.org/path with spaces",
     "https://127.0.0.1",
     "https://[::1]",
