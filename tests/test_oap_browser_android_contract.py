@@ -94,3 +94,14 @@ def test_oap_browser_engine_transport_is_background_bounded_and_same_origin():
     assert "setReadTimeout(READ_TIMEOUT_MS)" in client_source
     assert "MAX_DOCUMENT_BYTES" in client_source
     assert '"OAP_ENGINE".equals(renderer)' in client_source
+
+
+def test_oap_android_webview_requires_explicit_world_open_web_consent():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "webView.setWebChromeClient(new WebChromeClient()" in source
+    assert '"/world".equals(origin.getPath())' in source
+    assert 'message.startsWith("OPEN WEB — Leave OAP World and visit ")' in source
+    assert 'result.cancel();' in source
+    assert 'result.confirm()' in source
+    assert 'setNegativeButton("Stay in OAP World"' in source
+    assert 'setOnCancelListener(dialog -> result.cancel())' in source
