@@ -16,7 +16,7 @@ def test_oap_world_reference_ui_contract():
         "Eats",
         "Travel",
         "Pay",
-        "OAP Internet",
+        "BEGORO-KORADASO Internet",
         "My World",
     ):
         assert marker in page
@@ -41,8 +41,8 @@ def test_public_oap_world_exposes_no_founder_entry():
 
 def test_oap_internet_card_does_not_claim_unimplemented_launch():
     page = WORLD.read_text(encoding="utf-8")
-    assert '<strong>🌐 OAP Internet</strong>' in page
+    assert '<strong>🌐 BEGORO-KORADASO Internet</strong>' in page
     assert 'href="/world/languages"' not in page
-    assert 'Use the address field above to open external websites with an OPEN WEB warning.' in page
+    assert 'Enter a website address above to open the external web with an OPEN WEB warning.' in page
     assert 'The Android browser remains a separate application.' in page
     assert 'window.confirm' in page
