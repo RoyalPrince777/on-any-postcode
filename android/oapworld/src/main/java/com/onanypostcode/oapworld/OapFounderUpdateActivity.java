@@ -34,6 +34,17 @@ public final class OapFounderUpdateActivity extends ComponentActivity {
         status.setTextSize(16);
         status.setPadding(0, 28, 0, 28);
         layout.addView(status);
+        TextView gate = new TextView(this);
+        gate.setText("OAP RELEASE INTELLIGENCE\\n"
+                + "Local APK: NOT VERIFIED\\n"
+                + "Release authority: NOT VERIFIED\\n"
+                + "Governed release: NOT VERIFIED\\n"
+                + "Founder installation approval: NOT GIVEN\\n\\n"
+                + "INSTALLATION LOCKED — no automatic updates.");
+        gate.setTextColor(0xffffce70);
+        gate.setTextSize(15);
+        gate.setPadding(0, 8, 0, 28);
+        layout.addView(gate);
         Button releases = new Button(this);
         releases.setText("View official OAP releases (external)");
         releases.setOnClickListener(v -> {
