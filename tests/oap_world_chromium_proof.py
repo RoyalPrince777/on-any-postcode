@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import threading
+
 from playwright.sync_api import expect, sync_playwright
 from werkzeug.serving import make_server
+
 import app as app_module
 
 BASE = "http://127.0.0.1:8786"
@@ -24,7 +26,7 @@ def main():
                 )
                 page = context.new_page()
                 errors = []
-                page.on("pageerror", lambda exc: errors.append(str(exc)))
+                page.on("pageerror", lambda exc, sink=errors: sink.append(str(exc)))
                 response = page.goto(BASE + "/world?source=oap-os")
                 assert response is not None and response.status == 200
                 expect(page.locator("#world-query")).to_be_visible()
