@@ -44,5 +44,5 @@ def test_oap_internet_card_does_not_claim_unimplemented_launch():
     assert '<strong>🌐 BEGORO-KORADASO Internet</strong>' in page
     assert 'href="/world/languages"' not in page
     assert 'Enter a website address above to open the external web with an OPEN WEB warning.' in page
-    assert 'The Android browser remains a separate application.' in page
+    assert 'The Android browser remains a separate application' in page
     assert 'window.confirm' in page
