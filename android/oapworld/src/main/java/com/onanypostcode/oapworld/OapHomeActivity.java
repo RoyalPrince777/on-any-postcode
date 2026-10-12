@@ -135,9 +135,10 @@ public final class OapHomeActivity extends ComponentActivity {
         addDock(dock, "◉\nCamera", () -> openSystem("android.media.action.IMAGE_CAPTURE"));
         addDock(dock, "⌃\nAll Apps", () -> new android.app.AlertDialog.Builder(this)
                 .setTitle("OAP HOME")
-                .setItems(new String[]{"Android Home Settings", "Return to Phone Home"},
+                .setItems(new String[]{"Founder Update Centre", "Android Home Settings", "Return to Phone Home"},
                         (dialog, which) -> {
-                            if (which == 0) openSystem(Settings.ACTION_HOME_SETTINGS);
+                            if (which == 0) startActivity(new Intent(this, OapFounderUpdateActivity.class));
+                            else if (which == 1) openSystem(Settings.ACTION_HOME_SETTINGS);
                             else {
                                 Intent home = new Intent(Intent.ACTION_MAIN);
                                 home.addCategory(Intent.CATEGORY_HOME);
