@@ -324,6 +324,7 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void loadWebViewUrl(String url) {
+        engineClient.cancelPending();
         showWebViewFallback();
         webView.loadUrl(url);
     }
