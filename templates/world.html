@@ -22,7 +22,7 @@ h1{font-size:clamp(2.8rem,12vw,6rem);line-height:.88;letter-spacing:-.06em;margi
 <h1>OAP World</h1>
 <p class="lead">One World. One Front Door. Many systems inside. Start here, then move into the part of OAP you choose.</p>
 <form class="search" id="world-search" role="search"><label for="world-query" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Open a website</label><input id="world-query" type="text" inputmode="url" autocomplete="url" placeholder="Enter a website address" aria-describedby="world-search-note"><button type="submit">Open</button></form>
-<p class="search-note" id="world-search-note" aria-live="polite">Open a web address directly. SMI Direct answers and cross-world search are not yet enabled here.</p>
+<p class="search-note" id="world-search-note" aria-live="polite">OPEN WEB addresses leave OAP World. SMI Direct answers and cross-world search are not yet enabled here.</p>
 <nav class="quick" aria-label="Quick destinations"><a href="/the-spot">📍 The Spot</a><a href="/linkup">💬 Link Up</a><a href="/my-world">👤 My World</a><a href="/travel">🗺️ Travel</a></nav>
 <section class="grid" aria-label="OAP World">
 <a class="card primary" href="/the-spot"><strong>📍 The Spot</strong><span>Local community and postcode life.</span></a>
@@ -32,12 +32,12 @@ h1{font-size:clamp(2.8rem,12vw,6rem);line-height:.88;letter-spacing:-.06em;margi
 <a class="card" href="/eats"><strong>🍲 Eats</strong><span>Food and local discovery.</span></a>
 <a class="card" href="/travel"><strong>✈️ Travel</strong><span>Explore and move through OAP.</span></a>
 <a class="card" href="/pay/bank"><strong>🪙 Pay</strong><span>Governed payment and SIKA controls.</span></a>
-<div class="card" aria-label="OAP Internet — available through the OAP Android browser"><strong>🌐 OAP Internet</strong><span>Open Web browsing through the OAP Android browser. Web launch from this card is not yet available.</span></div>
+<div class="card" aria-label="OAP Internet — available through the OAP Android browser"><strong>🌐 OAP Internet</strong><span>Open Web browsing through the OAP Android browser. Use the address field above to open external websites with an OPEN WEB warning. The Android browser remains a separate application.</span></div>
 <a class="card" href="/my-world"><strong>👤 My World</strong><span>Your personal OAP space.</span></a>
 </section>
 </main>
 <script>
-(() => {const form=document.getElementById("world-search"),input=document.getElementById("world-query"),note=document.getElementById("world-search-note");form.addEventListener("submit",(event)=>{event.preventDefault();const value=input.value.trim();if(!value){note.textContent="Enter a website address.";return;}if(/\s/.test(value)){note.textContent="This field opens website addresses only. AI search is not yet enabled.";return;}try{const url=new URL(/^https?:\/\//i.test(value)?value:`https://${value}`);if(!["http:","https:"].includes(url.protocol)||!url.hostname.includes(".")){throw new Error("invalid address");}window.location.assign(url.href);}catch(_){note.textContent="Enter a valid web address, for example example.org.";}});})();
+(() => {const form=document.getElementById("world-search"),input=document.getElementById("world-query"),note=document.getElementById("world-search-note");form.addEventListener("submit",(event)=>{event.preventDefault();const value=input.value.trim();if(!value){note.textContent="Enter a website address.";return;}if(/\s/.test(value)){note.textContent="This field opens website addresses only. AI search is not yet enabled.";return;}try{const url=new URL(/^https?:\/\//i.test(value)?value:`https://${value}`);if(!["http:","https:"].includes(url.protocol)||!url.hostname.includes(".")||url.username||url.password){throw new Error("invalid address");}if(!window.confirm(`OPEN WEB — Leave OAP World and visit ${url.hostname}? This website is not OAP-verified.`)){note.textContent="Stayed in OAP World.";return;}window.location.assign(url.href);}catch(_){note.textContent="Enter a valid web address, for example example.org.";}});})();
 </script>
 </body>
 </html>
