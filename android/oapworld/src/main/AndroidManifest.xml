@@ -15,6 +15,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".OapHomeActivity" android:exported="false" />
+        <activity android:name=".OapFounderUpdateActivity" android:exported="false" />
         <!-- Founder-first additional launcher entry; not an Android HOME replacement. -->
         <activity-alias
             android:name=".OapHomeEntry"
