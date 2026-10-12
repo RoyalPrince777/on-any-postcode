@@ -20,3 +20,6 @@ def test_direct_address_field_does_not_pretend_ai_search_is_live():
     assert '["http:","https:"]' in page
     assert "SMI Direct answers and cross-world search are not yet enabled here." in page
     assert "AI search is not yet enabled." in page
+    assert "OPEN WEB" in page
+    assert "window.confirm" in page
+    assert "url.username||url.password" in page
