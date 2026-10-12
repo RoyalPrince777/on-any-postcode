@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
-from typing import Mapping, Sequence
+from typing import Sequence
 
 
 @dataclass(frozen=True)
