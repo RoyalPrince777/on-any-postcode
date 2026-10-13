@@ -1125,3 +1125,65 @@ body.smi-user-reduced-motion .smi-command-centre *::after{
 body.smi-user-reduced-motion .smi-approved-portrait{
   transform:none!important;
 }
+
+/* Founder screenshot acceptance: Android narrow composer must not collapse into
+   a letter-wide text field. Keep real canonical controls, not decorative copies. */
+@media(max-width:760px){
+ body.smi-noise-strip:not(.smi-live-fullscreen) .composer,
+ body.smi-noise-strip.smi-live-fullscreen .composer{
+  width:calc(100vw - 12px)!important;
+  max-width:calc(100vw - 12px)!important;
+  left:50%!important;right:auto!important;
+  transform:translateX(-50%)!important;
+ }
+ body.smi-noise-strip .composer-box,
+ body.smi-noise-strip.smi-live-fullscreen .composer-box{
+  display:grid!important;
+  grid-template-columns:44px 44px minmax(0,1fr) 48px!important;
+  gap:5px!important;
+  width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  padding:5px!important;
+ }
+ body.smi-noise-strip .composer-bar,
+ body.smi-noise-strip .composer-left,
+ body.smi-noise-strip .composer-right{display:contents!important}
+ body.smi-noise-strip .attach-wrap,
+ body.smi-noise-strip #plus-button{grid-column:1!important;grid-row:1!important;min-width:0!important}
+ body.smi-noise-strip #mic-button{grid-column:2!important;grid-row:1!important;min-width:0!important}
+ body.smi-noise-strip .composer textarea,
+ body.smi-noise-strip.smi-live-fullscreen .composer textarea{
+  grid-column:3!important;grid-row:1!important;
+  display:block!important;box-sizing:border-box!important;
+  min-width:0!important;width:100%!important;
+  min-height:44px!important;max-height:88px!important;
+  padding:10px 12px!important;
+  overflow-y:auto!important;
+  overflow-wrap:anywhere!important;
+  resize:none!important;
+ }
+ body.smi-noise-strip #send,
+ body.smi-noise-strip.smi-live-fullscreen #send{
+  grid-column:4!important;grid-row:1!important;
+  width:48px!important;min-width:0!important;
+  height:44px!important;
+ }
+ body.smi-noise-strip #thinking-level,
+ body.smi-noise-strip #speaker-button{display:none!important}
+ body.smi-noise-strip .attach-wrap::after,
+ body.smi-noise-strip #mic-button::after{content:none!important}
+ body.smi-noise-strip .smi-home-intelligence{
+  max-width:calc(100vw - 12px)!important;
+  overflow-x:auto!important;
+  justify-content:flex-start!important;
+ }
+ body.smi-noise-strip .smi-home-intelligence button{
+  min-height:44px!important;
+  flex:0 0 auto!important;
+ }
+ body.smi-noise-strip .smi-major-links button{min-height:40px!important}
+ body.smi-noise-strip .messages{
+  bottom:calc(80px + env(safe-area-inset-bottom))!important;
+ }
+}
