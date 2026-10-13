@@ -26,8 +26,8 @@ jobs:
       - name: Verify APK identity and signature
         run: |
           APK=android/oaphome/build/outputs/apk/debug/oaphome-debug.apk
-          aapt dump badging "$APK" | grep "package: name='com.onanypostcode.oaphome'"
-          apksigner verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep "package: name='com.onanypostcode.oaphome'"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           sha256sum "$APK" > oaphome-debug.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
