@@ -35,7 +35,7 @@ public final class OapStagedApkReview {
             return Result.STAGING_FAILED;
         }
         try {
-            File staged = OapApkStaging.stage(source, directory);
+            File staged = OapApkStaging.stage(source, directory, metadata);
             OapLocalApkVerifier.Result local =
                     OapLocalApkVerifier.verify(context, staged, metadata, installedVersionCode);
             if (local != OapLocalApkVerifier.Result.VERIFIED_LOCAL_ONLY) {
