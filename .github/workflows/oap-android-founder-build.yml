@@ -29,9 +29,23 @@ jobs:
       - name: Build debug APK
         working-directory: android/oapworld
         run: gradle --no-daemon assembleDebug
-      - name: Upload debug APK (not release-signed)
+      - name: Verify installable APK structure and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/oapworld/build/outputs/apk/debug/oapworld-debug.apk"
+          test -s "$APK"
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0"
+          "$SDK/apksigner" verify --verbose --print-certs "$APK"
+          "$SDK/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
+          grep -q "package: name='com.onanypostcode.oapworld'" /tmp/oap-apk-badging.txt
+          grep -q "sdkVersion:'26'" /tmp/oap-apk-badging.txt
+          sha256sum "$APK" | tee oap-founder-debug.apk.sha256
+      - name: Upload APK and checksum (debug-only, not release-signed)
         uses: actions/upload-artifact@v4
         with:
           name: oap-founder-debug-apk
-          path: android/oapworld/build/outputs/apk/debug/*.apk
+          path: |
+            android/oapworld/build/outputs/apk/debug/*.apk
+            oap-founder-debug.apk.sha256
           if-no-files-found: error
