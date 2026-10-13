@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK="android/oapworld/build/outputs/apk/debug/oapworld-debug.apk"
+          APK="$(find android/oapworld/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
           test -s "$APK"
           SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0"
           "$SDK/apksigner" verify --verbose --print-certs "$APK"
