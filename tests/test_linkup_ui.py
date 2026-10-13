@@ -103,12 +103,13 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert 'aria-label="Link Up app"' in page
-    assert "PRIVATE CHAT · SIMPLE · LINKED" in page
+    assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
     assert "Optional for private features. Public Link Up needs no email, password or sign-in." in page
     assert "Simple private chat." in page
-    for removed in ("Discovery", "Spotlight", "Opportunities", "Nearby People", "Community Signals"):
-        assert removed not in page
+    for public_section in ("Nearby People", "Spotlight", "Opportunities", "Community Signals"):
+        assert public_section in page
+    assert "Private conversations remain protected by secure sign-in." in page
     assert "Enter My World" not in page
     assert 'href="/my-card/create"' in page
     assert 'href="/auth"' not in page
@@ -265,7 +266,7 @@ def test_linkup_public_shell_uses_free_my_card_actions():
     assert "Enter My World" not in template
     assert "url_for('my_card_create_page')" in template
     assert "Create My Card" in template
-    assert "PRIVATE CHAT · SIMPLE · LINKED" in template
+    assert "PUBLIC · CONNECT · CREATE" in template
     assert "linkup-royal-home" in template
     assert "linkup-royal-tools" not in template
     assert "linkup-royal-bottom" not in template
@@ -295,11 +296,6 @@ def test_linkup_master_menu_is_only_linkups_ring_now_incoming_and_more():
     for removed in (
         "linkup-royal-tools",
         "linkup-royal-bottom",
-        "<strong>Discovery</strong>",
-        "<strong>Spotlight</strong>",
-        "<strong>Opportunities</strong>",
-        "Nearby People",
-        "Community Signals",
     ):
         assert removed not in template
 
