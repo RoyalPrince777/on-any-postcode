@@ -260,7 +260,7 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-scene .smi-characte
  isolation:isolate;
 }
 body.smi-command-open:not(.smi-live-fullscreen) .smi-command-scene .smi-cybernetic {
- transform:scale(clamp(1, min(2.5vw, 2.6vh), 2.1));
+ transform:scale(1.45);
  transform-origin:center center;
  max-width:100%;
 }
@@ -274,7 +274,7 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-foot {
 }
 @media(max-width:820px) {
  body.smi-command-open:not(.smi-live-fullscreen) .smi-command-scene .smi-cybernetic {
-  transform:scale(clamp(.85, min(3vw, 2.3vh), 1.45));
+  transform:scale(1.1);
  }
  body.smi-command-open:not(.smi-live-fullscreen) .smi-command-top {
   gap:6px;
