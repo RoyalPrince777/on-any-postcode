@@ -31,7 +31,11 @@ def test_oap_browser_has_approved_minimal_navigation_controls():
     source = SOURCE.read_text(encoding="utf-8")
     for marker in (
         'navButton("‹")',
-        'navButton("OAP")',
+        'navButton("⌂")',
+        'homeButton.setContentDescription("OAP World home")',
+        'menuButton.setContentDescription("Browser menu")',
+        'showBrowserMenu(menuButton)',
+        '"OAP WORLD" : "OPEN WEB"',
         "webView.goBack()",
     ):
         assert marker in source
@@ -128,3 +132,43 @@ def test_oap_android_external_navigation_invalidates_pending_native_response():
     cancel_body = client_source.split("public void cancelPending()", 1)[1].split("\n    }", 1)[0]
     assert "generation.incrementAndGet();" in cancel_body
     assert "generation.get() == requestGeneration" in client_source
+
+
+def test_browser_menu_actions_are_wired_to_existing_navigation_and_android_intents():
+    source = SOURCE.read_text(encoding="utf-8")
+    menu = source.split("private void showBrowserMenu(View anchor)", 1)[1].split(
+        "private Button navButton(", 1
+    )[0]
+    assert 'menu.getMenu().add("OAP World")' in menu
+    assert 'openFirstPartyPath("/world");' in menu
+    assert 'menu.getMenu().add("Back")' in menu
+    assert "engineHistoryIndex > 0" in menu
+    assert "webView.canGoBack()" in menu
+    assert "onBackPressed();" in menu
+    assert 'menu.getMenu().add("Share page")' in menu
+    assert "Intent.ACTION_SEND" in menu
+    assert "Intent.EXTRA_TEXT, currentBrowserUrl()" in menu
+    assert 'menu.getMenu().add("Copy address")' in menu
+    assert "clipboard.setPrimaryClip(ClipData.newPlainText(" in menu
+    assert "setEnabled(hasUrl)" in menu
+
+
+def test_trust_label_updates_on_native_and_webview_navigation_transitions():
+    source = SOURCE.read_text(encoding="utf-8")
+    label = source.split("private void updateTrustLabel(String url)", 1)[1].split(
+        "private void refreshNavigationState()", 1
+    )[0]
+    assert '"https".equalsIgnoreCase(parsed.getScheme())' in label
+    assert "origin.getHost().equalsIgnoreCase(parsed.getHost())" in label
+    assert "parsed.getPort() == -1" in label
+    assert 'trustLabel.setText(firstParty ? "OAP WORLD" : "OPEN WEB")' in label
+    assert "engineActive ||" in label
+    assert "public void onPageStarted(WebView view, String url" in source
+    assert "updateTrustLabel(url);" in source
+    web_load = source.split("private void loadWebViewUrl(String url)", 1)[1].split(
+        "private void showOapEngineDocument(", 1
+    )[0]
+    assert web_load.index("showWebViewFallback();") < web_load.index(
+        "updateTrustLabel(url);"
+    ) < web_load.index("webView.loadUrl(url);")
+    assert "updateTrustLabel(currentBrowserUrl());" in source
