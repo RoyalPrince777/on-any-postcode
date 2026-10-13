@@ -56,7 +56,7 @@
           <span class="linkup-crown" aria-hidden="true">♛</span>
           <h2>LINK <span>UP</span></h2>
           <strong>OAP</strong>
-          <p>PRIVATE CHAT · SIMPLE · LINKED</p>
+          <p>PUBLIC · CONNECT · CREATE</p>
         </div>
         {% if my_card and not auth_user %}
         <div class="linkup-create-card" aria-label="Basic My Card active">
@@ -76,6 +76,14 @@
         {% endif %}
       </section>
 
+      <nav class="linkup-public-master" aria-label="Explore Link Up" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6rem;margin:1rem .65rem">
+        <a class="linkup-public-action" href="/linkup?intent=message"><strong>💬 Messages</strong><small>Secure sign-in required</small></a>
+        <a class="linkup-public-action" href="/my-card"><strong>🪪 Identity</strong><small>My Card is optional</small></a>
+        <a class="linkup-public-action" href="/world"><strong>🌍 OAP World</strong><small>Explore the wider world</small></a>
+      </nav>
+      <section class="linkup-public-welcome" aria-label="Link Up public access">
+        <p>Discover Link Up without creating an account. Private conversations remain protected by secure sign-in.</p>
+      </section>
       <section class="linkup-public-welcome" aria-label="Link Up private communication">
         <p><strong>Simple private chat.</strong> Create My Card, Link with someone, then keep the conversation inside Link Up.</p>
       </section>
