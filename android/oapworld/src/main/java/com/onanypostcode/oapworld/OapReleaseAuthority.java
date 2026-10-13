@@ -30,7 +30,8 @@ public final class OapReleaseAuthority {
         try {
             // A valid signature over arbitrary bytes is not a valid OAP release.
             // Apply the same bounded canonical parser used by release ingestion.
-            OapReleaseInput.read(new ByteArrayInputStream(canonicalReleaseBytes));
+            OapReleaseMetadata release = OapReleaseInput.read(new ByteArrayInputStream(canonicalReleaseBytes));
+            if (!"com.onanypostcode.oapworld".equals(release.packageId)) return false;
             byte[] keyBytes = Base64.getDecoder().decode(pinnedPublicKeyBase64);
             PublicKey key = KeyFactory.getInstance("Ed25519")
                     .generatePublic(new X509EncodedKeySpec(keyBytes));
