@@ -49,7 +49,7 @@ jobs:
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager | head -n 1)"
           "$SDKMANAGER" 'emulator' 'platform-tools' 'system-images;android-35;google_apis;x86_64'
-          echo no | "$SDK_ROOT/cmdline-tools/latest/bin/avdmanager" create avd -n oap_ci -k 'system-images;android-35;google_apis;x86_64' --force
+          printf "no\n" | timeout 60 "$SDK_ROOT/cmdline-tools/latest/bin/avdmanager" create avd -n oap_ci -k 'system-images;android-35;google_apis;x86_64' --force
           "$SDK_ROOT/emulator/emulator" -avd oap_ci -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -accel off -no-snapshot -no-metrics > /tmp/oap-emulator.log 2>&1 &
           EMU_PID=$!
           trap 'kill "$EMU_PID" 2>/dev/null || true' EXIT
