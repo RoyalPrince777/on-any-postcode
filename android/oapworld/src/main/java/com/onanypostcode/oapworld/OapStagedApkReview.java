@@ -18,7 +18,7 @@ public final class OapStagedApkReview {
         VERIFIED_LOCAL_ONLY
     }
 
-    public static Result review(Context context, File source,
+    public static synchronized Result review(Context context, File source,
                                 OapReleaseMetadata metadata, long installedVersionCode) {
         if (context == null || source == null || metadata == null
                 || installedVersionCode < 0) return Result.INVALID_INPUT;
@@ -40,7 +40,7 @@ public final class OapStagedApkReview {
                     OapLocalApkVerifier.verify(context, staged, metadata, installedVersionCode);
             if (local != OapLocalApkVerifier.Result.VERIFIED_LOCAL_ONLY) {
                 // A failed review must not leave the candidate as a reusable artifact.
-                staged.delete();
+                if (!staged.delete()) return Result.STAGING_FAILED;
                 return Result.LOCAL_VERIFICATION_FAILED;
             }
             return Result.VERIFIED_LOCAL_ONLY;
