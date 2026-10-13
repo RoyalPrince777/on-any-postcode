@@ -110,6 +110,15 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     for public_section in ("Nearby People", "Spotlight", "Opportunities", "Community Signals"):
         assert public_section in page
     assert "Private conversations remain protected by secure sign-in." in page
+    # Public discovery is presentation-only; it cannot expose the private workspace.
+    assert 'id="linkup-discovery"' in page
+    assert 'href="#linkup-discovery"' in page
+    assert 'aria-label="Link Up public bottom navigation"' in page
+    assert 'aria-label="Private Link Up messenger"' not in page
+    assert 'data-linkup-search' not in page
+    assert 'role="search"' not in page
+    assert "People search is available only when its privacy and directory controls are verified." in page
+    assert 'aria-label="Link Up private menu"' not in page
     assert "Enter My World" not in page
     assert 'href="/my-card/create"' in page
     assert 'href="/auth"' not in page
