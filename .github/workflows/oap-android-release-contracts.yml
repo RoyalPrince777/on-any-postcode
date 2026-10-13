@@ -9,6 +9,7 @@ on:
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseInput.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseDecision.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseAuthority.java'
+      - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapApkStaging.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapUpdateEligibility.java'
       - 'android/oapworld/src/test/java/com/onanypostcode/oapworld/*ContractTest.java'
       - '.github/workflows/oap-android-release-contracts.yml'
@@ -19,6 +20,7 @@ on:
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseInput.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseDecision.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapReleaseAuthority.java'
+      - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapApkStaging.java'
       - 'android/oapworld/src/main/java/com/onanypostcode/oapworld/OapUpdateEligibility.java'
       - 'android/oapworld/src/test/java/com/onanypostcode/oapworld/*ContractTest.java'
       - '.github/workflows/oap-android-release-contracts.yml'
@@ -50,17 +52,19 @@ jobs:
             "$source_dir/OapReleaseInput.java" \
             "$source_dir/OapReleaseDecision.java" \
             "$source_dir/OapReleaseAuthority.java" \
+            "$source_dir/OapApkStaging.java" \
             "$source_dir/OapApkDigest.java" \
             "$test_dir/OapUpdateEligibilityContractTest.java" \
             "$test_dir/OapReleaseMetadataContractTest.java" \
             "$test_dir/OapApkDigestContractTest.java" \
             "$test_dir/OapReleaseInputContractTest.java" \
             "$test_dir/OapReleaseDecisionContractTest.java" \
-            "$test_dir/OapReleaseAuthorityContractTest.java"
+            "$test_dir/OapReleaseAuthorityContractTest.java" \
+            "$test_dir/OapApkStagingContractTest.java"
       - name: Execute release contract tests
         shell: bash
         run: |
           set -euo pipefail
-          for test in OapUpdateEligibilityContractTest OapReleaseMetadataContractTest OapApkDigestContractTest OapReleaseInputContractTest OapReleaseDecisionContractTest OapReleaseAuthorityContractTest; do
+          for test in OapUpdateEligibilityContractTest OapReleaseMetadataContractTest OapApkDigestContractTest OapReleaseInputContractTest OapReleaseDecisionContractTest OapReleaseAuthorityContractTest OapApkStagingContractTest; do
             java -cp "$RUNNER_TEMP/oap-release-contracts" "com.onanypostcode.oapworld.$test"
           done
