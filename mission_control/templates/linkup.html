@@ -78,13 +78,13 @@
 
       <nav class="linkup-public-master" aria-label="Explore Link Up" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6rem;margin:1rem .65rem">
         <a class="linkup-public-action" href="/linkup?intent=message"><strong>💬 Messages</strong><small>Secure sign-in required</small></a>
-        <a class="linkup-public-action" href="/my-card"><strong>🪪 Identity</strong><small>My Card is optional</small></a>
+        <a class="linkup-public-action" href="{{ url_for('my_card_create_page') }}"><strong>🪪 Identity</strong><small>My Card is optional</small></a>
         <a class="linkup-public-action" href="/world"><strong>🌍 OAP World</strong><small>Explore the wider world</small></a>
       </nav>
       <section class="linkup-public-welcome" aria-label="Link Up public access">
         <p>Discover Link Up without creating an account. Private conversations remain protected by secure sign-in.</p>
       </section>
-      <section aria-label="Link Up discovery" style="margin:1rem .65rem;display:grid;gap:.75rem">
+      <section id="linkup-discovery" aria-label="Link Up discovery" style="margin:1rem .65rem;display:grid;gap:.75rem">
         <h2 style="margin:0">Discover your world</h2>
         <p>People search is available only when its privacy and directory controls are verified.</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem">
@@ -100,7 +100,7 @@
       </section>
       <nav aria-label="Link Up public bottom navigation" style="display:flex;flex-wrap:wrap;justify-content:space-around;gap:.5rem;margin:1rem .65rem;padding:.8rem;border-top:1px solid currentColor">
         <a href="/linkup" aria-current="page">🏠 Home</a>
-        <a href="/world">👥 People</a>
+        <a href="#linkup-discovery">👥 People</a>
         <a href="/world">🌍 OAP</a>
         <a href="/linkup?intent=message">💬 Messages</a>
         <a href="{{ url_for('my_card_create_page') }}">🪪 My Card</a>
