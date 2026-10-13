@@ -168,6 +168,41 @@ def main():
             assert live.evaluate("el => el.parentElement === document.body")
             assert live.evaluate("el => getComputedStyle(el).pointerEvents") != "none"
 
+            # Narrow composer acceptance: computed geometry, not CSS text alone.
+            for width in (320, 360, 390):
+                page.set_viewport_size({"width": width, "height": 844})
+                page.wait_for_timeout(80)
+                geometry = page.evaluate("""() => {
+                    const names = {
+                        tools: '#plus-button', voice: '#mic-button',
+                        input: '.composer textarea', send: '#send'
+                    };
+                    const result = {};
+                    for (const [name, selector] of Object.entries(names)) {
+                        const el = document.querySelector(selector);
+                        if (!el) return {error: 'missing ' + selector};
+                        const r = el.getBoundingClientRect();
+                        const css = getComputedStyle(el);
+                        result[name] = {
+                            left: r.left, right: r.right, top: r.top,
+                            bottom: r.bottom, width: r.width, height: r.height,
+                            visible: css.display !== 'none' && css.visibility !== 'hidden'
+                        };
+                    }
+                    return result;
+                }""")
+                assert "error" not in geometry, (width, geometry)
+                for name in ("tools", "voice", "input", "send"):
+                    rect = geometry[name]
+                    assert rect["visible"] and rect["height"] >= 40, (width, name, rect)
+                    assert rect["left"] >= -1 and rect["right"] <= width + 1, (width, name, rect)
+                assert geometry["input"]["width"] >= 100, (width, geometry)
+                assert geometry["tools"]["right"] <= geometry["voice"]["left"] + 2, (width, geometry)
+                assert geometry["voice"]["right"] <= geometry["input"]["left"] + 2, (width, geometry)
+                assert geometry["input"]["right"] <= geometry["send"]["left"] + 2, (width, geometry)
+            page.set_viewport_size({"width": 390, "height": 844})
+            print("SMI_NARROW_COMPOSER_GEOMETRY=PASS")
+
             live.click()
             page.wait_for_timeout(250)
             assert live.get_attribute("aria-pressed") == "true"
