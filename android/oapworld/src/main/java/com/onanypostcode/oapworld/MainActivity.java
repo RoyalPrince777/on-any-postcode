@@ -231,6 +231,11 @@ public final class MainActivity extends ComponentActivity {
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                updateTrustLabel(url);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 omnibox.setText(url);
                 refreshNavigationState();
@@ -383,6 +388,7 @@ public final class MainActivity extends ComponentActivity {
     private void loadWebViewUrl(String url) {
         engineClient.cancelPending();
         showWebViewFallback();
+        updateTrustLabel(url);
         webView.loadUrl(url);
     }
 
@@ -513,18 +519,22 @@ public final class MainActivity extends ComponentActivity {
         refreshNavigationState();
     }
 
-    private void refreshNavigationState() {
-        if (trustLabel != null) {
-            String url = currentBrowserUrl();
-            Uri parsed = url == null ? null : Uri.parse(url);
-            Uri origin = Uri.parse(OAP_ORIGIN);
-            boolean firstParty = engineActive || (parsed != null
-                    && "https".equalsIgnoreCase(parsed.getScheme())
-                    && origin.getHost() != null
-                    && origin.getHost().equalsIgnoreCase(parsed.getHost())
-                    && parsed.getPort() == -1);
-            trustLabel.setText(firstParty ? "OAP WORLD" : "OPEN WEB");
+    private void updateTrustLabel(String url) {
+        if (trustLabel == null) {
+            return;
         }
+        Uri parsed = url == null ? null : Uri.parse(url);
+        Uri origin = Uri.parse(OAP_ORIGIN);
+        boolean firstParty = engineActive || (parsed != null
+                && "https".equalsIgnoreCase(parsed.getScheme())
+                && origin.getHost() != null
+                && origin.getHost().equalsIgnoreCase(parsed.getHost())
+                && parsed.getPort() == -1);
+        trustLabel.setText(firstParty ? "OAP WORLD" : "OPEN WEB");
+    }
+
+    private void refreshNavigationState() {
+        updateTrustLabel(currentBrowserUrl());
         if (engineActive) {
             backButton.setEnabled(engineHistoryIndex > 0);
             return;
