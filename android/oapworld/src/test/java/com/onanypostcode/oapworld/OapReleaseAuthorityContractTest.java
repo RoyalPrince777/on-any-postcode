@@ -48,6 +48,11 @@ public final class OapReleaseAuthorityContractTest {
         signer.update(nonAscii);
         check(!OapReleaseAuthority.verify(nonAscii, signer.sign(), pinned));
         check(!OapReleaseAuthority.verify(release, signature, "A".repeat(257)));
+        byte[] wrongPackage = ("package=com.otherworld.app\\nversionCode=2\\nsha256="
+                + "a".repeat(64)).getBytes(StandardCharsets.US_ASCII);
+        signer.initSign(trusted.getPrivate());
+        signer.update(wrongPackage);
+        check(!OapReleaseAuthority.verify(wrongPackage, signer.sign(), pinned));
         System.out.println("OAP release authority contract: PASS");
     }
 }
