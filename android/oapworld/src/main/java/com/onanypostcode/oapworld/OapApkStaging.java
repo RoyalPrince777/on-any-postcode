@@ -17,6 +17,12 @@ public final class OapApkStaging {
     private OapApkStaging() {}
 
     public static File stage(File source, File privateDirectory) throws IOException {
+        return stage(source, privateDirectory, null);
+    }
+
+    /** Digest-checks temporary bytes before publishing them to the staging slot. */
+    public static File stage(File source, File privateDirectory,
+                             OapReleaseMetadata metadata) throws IOException {
         if (source == null || privateDirectory == null || !source.isFile()
                 || !source.canRead() || source.length() <= 0
                 || source.length() > MAX_APK_BYTES
@@ -53,6 +59,13 @@ public final class OapApkStaging {
             }
             if (copied == 0 || copied != canonicalSource.length()) {
                 throw new IOException("APK changed during staging");
+            }
+            if (metadata != null) {
+                try (FileInputStream check = new FileInputStream(temporary)) {
+                    if (!OapApkDigest.matches(check, metadata)) {
+                        throw new IOException("Staged APK digest mismatch");
+                    }
+                }
             }
             // Atomic replacement avoids exposing a partially written APK.
             // Never delete a previously staged candidate before replacement.
