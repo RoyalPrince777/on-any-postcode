@@ -35,6 +35,19 @@ public final class OapReleaseAuthorityContractTest {
         check(!OapReleaseAuthority.verify(release, null, pinned));
         check(!OapReleaseAuthority.verify(release, signature, "invalid key!"));
         check(!OapReleaseAuthority.verify(new byte[513], signature, pinned));
+        // Even a legitimately signed payload is rejected unless its content
+        // conforms to the canonical OAP release schema.
+        byte[] malformed = "package=other\\nversionCode=2\\nsha256=oops"
+                .getBytes(StandardCharsets.US_ASCII);
+        signer.initSign(trusted.getPrivate());
+        signer.update(malformed);
+        check(!OapReleaseAuthority.verify(malformed, signer.sign(), pinned));
+        byte[] nonAscii = release.clone();
+        nonAscii[0] = (byte) 0xff;
+        signer.initSign(trusted.getPrivate());
+        signer.update(nonAscii);
+        check(!OapReleaseAuthority.verify(nonAscii, signer.sign(), pinned));
+        check(!OapReleaseAuthority.verify(release, signature, "A".repeat(257)));
         System.out.println("OAP release authority contract: PASS");
     }
 }
