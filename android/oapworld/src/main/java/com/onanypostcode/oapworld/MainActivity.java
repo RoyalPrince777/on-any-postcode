@@ -1,5 +1,6 @@
 package com.onanypostcode.oapworld;
 
+import android.content.Intent;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.graphics.Color;
@@ -244,9 +245,24 @@ public final class MainActivity extends ComponentActivity {
         });
 
         if (state == null) {
-            openFirstPartyPath("/world");
+            String requested = getIntent().getStringExtra("oap_start_path");
+            // Accept only internal absolute paths, never external URLs or protocol-relative paths.
+            openFirstPartyPath(requested != null && requested.startsWith("/")
+                    && !requested.startsWith("//") ? requested : "/world");
         }
         refreshNavigationState();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // MainActivity is singleTask. A new launch from OAP Home or the
+        // OAP Internet icon must replace the previously visible route (which
+        // may have been Marketplace), not silently reuse its old screen.
+        String requested = intent == null ? null : intent.getStringExtra("oap_start_path");
+        openFirstPartyPath(requested != null && requested.startsWith("/")
+                && !requested.startsWith("//") ? requested : "/world");
     }
 
     private Button navButton(String label) {

@@ -7,12 +7,31 @@
         android:theme="@style/Theme.OAPWorld">
         <activity
             android:name=".MainActivity"
+            android:exported="false"
+            android:launchMode="singleTask" />
+        <activity android:name=".OapHomeActivity" android:exported="false" />
+        <activity android:name=".OapFounderUpdateActivity" android:exported="false" />
+        <!-- Distinct, explicit launcher labels prevent confusing Internet with Home. -->
+        <activity-alias
+            android:name=".OapInternetEntry"
+            android:targetActivity=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask">
+            android:label="OAP Internet">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+        <!-- Founder-first launcher entry; not an Android HOME replacement. -->
+        <activity-alias
+            android:name=".OapHomeEntry"
+            android:targetActivity=".OapHomeActivity"
+            android:exported="true"
+            android:label="OAP Home">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
     </application>
 </manifest>
