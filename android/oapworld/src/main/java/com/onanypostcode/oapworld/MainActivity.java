@@ -252,6 +252,18 @@ public final class MainActivity extends ComponentActivity {
         refreshNavigationState();
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // MainActivity is singleTask. A new launch from OAP Home or the
+        // OAP Internet icon must replace the previously visible route (which
+        // may have been Marketplace), not silently reuse its old screen.
+        String requested = intent == null ? null : intent.getStringExtra("oap_start_path");
+        openFirstPartyPath(requested != null && requested.startsWith("/")
+                && !requested.startsWith("//") ? requested : "/world");
+    }
+
     private Button navButton(String label) {
         Button button = new Button(this);
         button.setText(label);
