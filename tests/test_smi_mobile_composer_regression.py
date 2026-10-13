@@ -2,8 +2,8 @@
 
 This does not replace computed-layout, Android keyboard, or device testing.
 """
-from pathlib import Path
 import re
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CSS = ROOT / "mission_control" / "static" / "smi_noise_strip.css"
