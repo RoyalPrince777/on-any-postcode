@@ -58,7 +58,9 @@ jobs:
           APK="$(find android/oapworld/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
           "$SDK_ROOT/platform-tools/adb" install -r "$APK"
           "$SDK_ROOT/platform-tools/adb" shell pm path com.onanypostcode.oapworld | grep -q 'package:'
-          "$SDK_ROOT/platform-tools/adb" shell am start -W -n com.onanypostcode.oapworld/.OapHomeActivity
+          # Start through the exported Founder launcher alias, not the private activity.
+          "$SDK_ROOT/platform-tools/adb" shell am start -W -n com.onanypostcode.oapworld/.OapHomeEntry
+          "$SDK_ROOT/platform-tools/adb" shell dumpsys activity activities | grep -q 'com.onanypostcode.oapworld'
           "$SDK_ROOT/platform-tools/adb" shell pidof com.onanypostcode.oapworld | grep -Eq '[0-9]+'
       - name: Upload APK and checksum (debug-only, not release-signed)
         uses: actions/upload-artifact@v4
