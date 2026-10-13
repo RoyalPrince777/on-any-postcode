@@ -1,5 +1,7 @@
 package com.onanypostcode.oapworld;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PublicKey;
@@ -21,10 +23,14 @@ public final class OapReleaseAuthority {
         if (canonicalReleaseBytes == null || canonicalReleaseBytes.length == 0
                 || canonicalReleaseBytes.length > 512
                 || detachedSignature == null || detachedSignature.length != 64
-                || pinnedPublicKeyBase64 == null || pinnedPublicKeyBase64.isEmpty()) {
+                || pinnedPublicKeyBase64 == null || pinnedPublicKeyBase64.length() > 256
+                || pinnedPublicKeyBase64.isEmpty()) {
             return false;
         }
         try {
+            // A valid signature over arbitrary bytes is not a valid OAP release.
+            // Apply the same bounded canonical parser used by release ingestion.
+            OapReleaseInput.read(new ByteArrayInputStream(canonicalReleaseBytes));
             byte[] keyBytes = Base64.getDecoder().decode(pinnedPublicKeyBase64);
             PublicKey key = KeyFactory.getInstance("Ed25519")
                     .generatePublic(new X509EncodedKeySpec(keyBytes));
@@ -32,7 +38,7 @@ public final class OapReleaseAuthority {
             verifier.initVerify(key);
             verifier.update(canonicalReleaseBytes);
             return verifier.verify(detachedSignature);
-        } catch (GeneralSecurityException | IllegalArgumentException e) {
+        } catch (GeneralSecurityException | IllegalArgumentException | IOException e) {
             return false;
         }
     }
