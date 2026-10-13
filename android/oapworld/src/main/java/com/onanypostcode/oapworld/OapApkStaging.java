@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 /**
  * Copies a locally supplied APK into a private, bounded staging directory.
@@ -21,9 +23,16 @@ public final class OapApkStaging {
                 || !privateDirectory.isDirectory()) {
             throw new IOException("Invalid APK staging input");
         }
+        if (Files.isSymbolicLink(privateDirectory.toPath())
+                || Files.isSymbolicLink(source.toPath())) {
+            throw new IOException("Symbolic links are not accepted");
+        }
         File canonicalDirectory = privateDirectory.getCanonicalFile();
         File canonicalSource = source.getCanonicalFile();
         File destination = new File(canonicalDirectory, "oap-candidate.apk");
+        if (Files.isSymbolicLink(destination.toPath())) {
+            throw new IOException("Staging destination is a symbolic link");
+        }
         if (canonicalSource.equals(destination.getCanonicalFile())) {
             throw new IOException("Source cannot be staging destination");
         }
@@ -45,12 +54,11 @@ public final class OapApkStaging {
             if (copied == 0 || copied != canonicalSource.length()) {
                 throw new IOException("APK changed during staging");
             }
-            if (destination.exists() && !destination.delete()) {
-                throw new IOException("Unable to replace staged APK");
-            }
-            if (!temporary.renameTo(destination)) {
-                throw new IOException("Unable to finalize staged APK");
-            }
+            // Atomic replacement avoids exposing a partially written APK.
+            // Never delete a previously staged candidate before replacement.
+            Files.move(temporary.toPath(), destination.toPath(),
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING);
             success = true;
             return destination;
         } finally {
