@@ -41,6 +41,25 @@ jobs:
           grep -q "package: name='com.onanypostcode.oapworld'" /tmp/oap-apk-badging.txt
           grep -q "sdkVersion:'26'" /tmp/oap-apk-badging.txt
           sha256sum "$APK" | tee oap-founder-debug.apk.sha256
+      - name: Android emulator fresh-install and launch proof
+        shell: bash
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          "$SDKMANAGER" 'emulator' 'platform-tools' 'system-images;android-35;google_apis;x86_64'
+          echo no | "$SDK_ROOT/cmdline-tools/latest/bin/avdmanager" create avd -n oap_ci -k 'system-images;android-35;google_apis;x86_64' --force
+          "$SDK_ROOT/emulator/emulator" -avd oap_ci -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot -no-metrics > /tmp/oap-emulator.log 2>&1 &
+          EMU_PID=$!
+          trap 'kill "$EMU_PID" 2>/dev/null || true' EXIT
+          "$SDK_ROOT/platform-tools/adb" wait-for-device
+          timeout 300 bash -c 'until [[ "$("$1" shell getprop sys.boot_completed | tr -d "\r")" == "1" ]]; do sleep 3; done' _ "$SDK_ROOT/platform-tools/adb"
+          APK="$(find android/oapworld/build/outputs/apk/debug -maxdepth 1 -type f -name '*.apk' -print -quit)"
+          "$SDK_ROOT/platform-tools/adb" install -r "$APK"
+          "$SDK_ROOT/platform-tools/adb" shell pm path com.onanypostcode.oapworld | grep -q 'package:'
+          "$SDK_ROOT/platform-tools/adb" shell am start -W -n com.onanypostcode.oapworld/.OapHomeActivity
+          "$SDK_ROOT/platform-tools/adb" shell pidof com.onanypostcode.oapworld | grep -Eq '[0-9]+'
       - name: Upload APK and checksum (debug-only, not release-signed)
         uses: actions/upload-artifact@v4
         with:
