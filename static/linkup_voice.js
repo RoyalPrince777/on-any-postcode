@@ -240,7 +240,8 @@
   };
 
   const startRecording = async (control, kind = "voice") => {
-    if (!state.ready || state.current || !browserReady()) {
+    const transportReady = kind === "ptt" ? state.pttReady : state.ready;
+    if (!transportReady || state.current || !browserReady()) {
       return;
     }
     const peerId = recipientFor(control);
