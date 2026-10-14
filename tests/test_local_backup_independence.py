@@ -38,6 +38,18 @@ def test_local_backup_contains_valid_sqlite_and_git_bundle(tmp_path):
     subprocess.run(["git", "-C", str(root), "bundle", "verify",
                     str(snapshot / "oap-history.bundle")], check=True, capture_output=True)
     assert (snapshot / "SHA256SUMS").exists()
+    # Verify actual independent clone, not only bundle metadata.
+    recovered = tmp_path / "recovered"
+    subprocess.run(["git", "clone", "-q", str(snapshot / "oap-history.bundle"),
+                    str(recovered)], check=True)
+    assert (recovered / "app.py").read_text() == (root / "app.py").read_text()
+    original_head = subprocess.check_output(
+        ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+    ).strip()
+    recovered_head = subprocess.check_output(
+        ["git", "-C", str(recovered), "rev-parse", "HEAD"], text=True
+    ).strip()
+    assert recovered_head == original_head
 
 
 @pytest.mark.skipif(not shutil.which("bash"), reason="requires bash")
