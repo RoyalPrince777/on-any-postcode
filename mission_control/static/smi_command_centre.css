@@ -324,3 +324,26 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-foot {
  .smi-reference-bottom button:nth-child(4){min-width:130px}
  .smi-command-top{flex-wrap:wrap}
 }
+
+/* Five reference-image Founder action cards: navigation only, never status proof. */
+.smi-reference-actions{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+ gap:6px;padding:8px 12px;background:#050a1df0;
+}
+.smi-reference-actions button{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ min-width:0;min-height:64px;gap:4px;
+ border:1px solid #7758b4;border-radius:10px;
+ background:linear-gradient(180deg,#111d3a,#060d20);
+ color:#c8deff;cursor:pointer;
+}
+.smi-reference-actions strong{font-size:.78rem;letter-spacing:.05em}
+.smi-reference-actions small{font-size:.65rem;color:#9db6d4}
+.smi-reference-actions button:last-child{
+ border-color:#8ba44a;color:#d5ff9c;
+}
+.smi-reference-actions button:focus-visible{outline:2px solid #f8d28a;outline-offset:2px}
+@media(max-width:820px){
+ .smi-reference-actions{display:flex;overflow-x:auto;flex:0 0 auto;padding:6px}
+ .smi-reference-actions button{flex:0 0 120px;min-height:58px}
+}
