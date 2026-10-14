@@ -71,3 +71,14 @@ def test_matrix_zero_reviewer_budget() -> None:
     result = select_jungle_matrix("Bagheera security", reviewer_limit=0)
     assert result.jungle_roles == ("Bagheera",)
     assert result.matrix_reviewers == ()
+
+
+def test_jungle_names_do_not_match_inside_unrelated_words() -> None:
+    result = select_jungle_matrix("A drama about coded permissions")
+    assert "Rama" not in result.jungle_roles
+    assert "Neo" not in result.matrix_reviewers
+
+
+def test_explicit_jungle_name_still_matches() -> None:
+    result = select_jungle_matrix("Rama and Akela", reviewer_limit=0)
+    assert result.jungle_roles == ("Akela", "Rama")
