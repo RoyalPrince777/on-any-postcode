@@ -48,3 +48,11 @@ def test_home_node_role_is_device_agnostic_and_governed():
     ):
         assert phrase in DOC
     assert "does not self-update" in DOC.casefold()
+
+
+def test_inference_worker_receives_repository_import_path():
+    """Script-path execution must still resolve the first-party mission_control package."""
+    assert 'env = os.environ.copy()' in SUPERVISOR
+    assert 'env["PYTHONPATH"]' in SUPERVISOR
+    assert 'str(ROOT)' in SUPERVISOR
+    assert 'env=env' in SUPERVISOR
