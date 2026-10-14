@@ -724,7 +724,7 @@
   }else{
    if(marker.parentNode)marker.parentNode.insertBefore(character,marker);
    document.body.classList.remove("smi-command-open");
-   toggle.textContent="◈ Command Centre";toggle.setAttribute("aria-label","Open SMI Command Centre");
+   toggle.textContent="◈ SMI Home";toggle.setAttribute("aria-label","Open SMI Home");
    toggle.setAttribute("aria-pressed","false");
   }
  }
