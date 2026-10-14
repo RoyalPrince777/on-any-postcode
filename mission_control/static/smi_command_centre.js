@@ -347,6 +347,27 @@
   universe.append(button);
  }
  panel.querySelector(".smi-command-layout").after(universe);
+
+ // Reference's five central actions: real existing handlers, no mock status.
+ const founderActions=document.createElement("nav");
+ founderActions.className="smi-reference-actions";
+ founderActions.setAttribute("aria-label","SMI five Founder actions");
+ const founderItems=[
+  ["⚔ WAR ROOM","Strategy · Intelligence",()=>openWarRoom()],
+  ["◎ MATRIX","World State",()=>window.location.assign("/mission/war-room/routes")],
+  ["♙ HRM","People System",()=>triggerMasterTool("hrm")],
+  ["♢ GUARDIAN","Security · Safety",()=>triggerMasterTool("guardian")],
+  ["◉ GREEN GATE","Trust · Verification",()=>{const route=String(cfg.greenGateUrl||"");if(route.startsWith("/")&&!route.startsWith("//"))window.location.assign(route);else{const node=document.getElementById("status");if(node)node.textContent="Green Gate evidence route unavailable.";}}]
+ ];
+ for(const [title,subtitle,handler] of founderItems){
+  const button=document.createElement("button");button.type="button";
+  const heading=document.createElement("strong");heading.textContent=title;
+  const detail=document.createElement("small");detail.textContent=subtitle;
+  button.append(heading,detail);button.addEventListener("click",handler);
+  founderActions.append(button);
+ }
+ panel.querySelector(".smi-command-layout").after(founderActions);
+
  // Founder reference bottom navigation: reuses canonical controls and routes.
 
  const referenceNav=document.createElement("nav");
