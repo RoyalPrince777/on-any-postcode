@@ -933,7 +933,7 @@
   if(active&&event.target?.id==="message"&&event.key==="Enter"&&!event.shiftKey&&!event.isComposing)setOpen(false);
  },true);
  document.addEventListener("keydown",event=>{
-  if(event.key==="Escape"&&active&&!document.body.classList.contains("smi-live-fullscreen")){
+  if(event.key==="Escape"&&active){
    setOpen(false);toggle.focus();
   }
  });
