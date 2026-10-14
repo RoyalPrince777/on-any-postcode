@@ -594,7 +594,35 @@
   copy.append(nameEl,document.createElement("br"),detailEl);link.append(mark,copy);
   parent.append(link);
  }
- anatomyLinks.forEach(([icon,name,detail,url])=>addLink(anatomy,icon,name,detail,url));
+
+ // Founder reference OAP World rail; unresolved routes are descriptive, never fake links.
+ anatomy.querySelector("h3").textContent="🌍 OAP WORLD";
+ const worldLinks=[
+  ["🌍","OAP WORLD","Explore · Connect · Build","/world"],
+  ["📍","The Spot","Pulse · What’s happening","/the-spot"],
+  ["📡","Signal","News · Announcements",null],
+  ["🔗","Link Up","Chat · Communities","/linkup"],
+  ["💬","OAP Chronicle","Stories · People · Places",null],
+  ["📺","OAP TV","Main Stage · Shows · Live",null],
+  ["👤","My World","Your Space · Your Rules","/my-world"],
+  ["🎮","OAP Arena","Games · Compete · Play",null],
+  ["🎵","OAP Records","Music · Creators · Rights",null],
+  ["🛍","OAP Market","Buy · Sell · Certified Merchants",null],
+  ["🧾","HRM","People · Work · Opportunities",cfg.hrmUrl],
+  ["🛡","Guardian","Safety · Privacy · Protection",null],
+  ["◉","SIKA","Wallet · Payments · Value",null],
+  ["⚙","Control Center","Settings · Tools · System",null],
+  ["📚","Library","One World · One Library","/library/books"],
+  ["⚗","LAB","Build · Create · Experiment",null]
+ ];
+ worldLinks.forEach(([icon,name,detail,url])=>addLink(anatomy,icon,name,detail,url));
+ const organismDetails=document.createElement("details");
+ organismDetails.className="smi-organism-details";
+ const organismSummary=document.createElement("summary");organismSummary.textContent="🧬 SMI Organism Systems";
+ organismDetails.append(organismSummary);
+ anatomyLinks.forEach(([icon,name,detail,url])=>addLink(organismDetails,icon,name,detail,url));
+ anatomy.append(organismDetails);
+
  // The approved command-room picture keeps intelligence, signals and gate evidence
  // in the scene itself; Status drawer remains a secondary detailed view.
  const dashboard=document.createElement("section");dashboard.className="smi-room-status";dashboard.setAttribute("aria-label","Live SMI intelligence and alignment");
