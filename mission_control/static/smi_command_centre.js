@@ -613,13 +613,13 @@
  // Founder reference OAP World rail; unresolved routes are descriptive, never fake links.
  anatomy.querySelector("h3").textContent="🌍 OAP WORLD";
  const worldLinks=[
-  ["🌍","OAP WORLD","Explore · Connect · Build","/world"],
-  ["📍","The Spot","Pulse · What’s happening","/the-spot"],
+  ["🌍","OAP WORLD","Explore · Connect · Build",null],
+  ["📍","The Spot","Pulse · What’s happening",null],
   ["📡","Signal","News · Announcements",null],
   ["🔗","Link Up","Chat · Communities","/linkup"],
   ["💬","OAP Chronicle","Stories · People · Places",null],
   ["📺","OAP TV","Main Stage · Shows · Live",null],
-  ["👤","My World","Your Space · Your Rules","/my-world"],
+  ["👤","My World","Your Space · Your Rules",null],
   ["🎮","OAP Arena","Games · Compete · Play",null],
   ["🎵","OAP Records","Music · Creators · Rights",null],
   ["🛍","OAP Market","Buy · Sell · Certified Merchants",null],
@@ -627,7 +627,7 @@
   ["🛡","Guardian","Safety · Privacy · Protection",null],
   ["◉","SIKA","Wallet · Payments · Value",null],
   ["⚙","Control Center","Settings · Tools · System",null],
-  ["📚","Library","One World · One Library","/library/books"],
+  ["📚","Library","One World · One Library",null],
   ["⚗","LAB","Build · Create · Experiment",null]
  ];
  worldLinks.forEach(([icon,name,detail,url])=>addLink(anatomy,icon,name,detail,url));
