@@ -1184,3 +1184,28 @@ body.smi-noise-strip.smi-live-fullscreen.smi-command-open .smi-command-layout{
   display:grid!important;grid-template-columns:minmax(0,1fr)!important;
  }
 }
+
+/* Tank Dozer mobile recovery: fullscreen legacy must not hide selected OAP World/Evidence tab. */
+@media(max-width:820px){
+ body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre .smi-command-mobile-views{
+  display:flex!important;flex:0 0 auto!important;
+ }
+ body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre .smi-command-layout{
+  grid-template-rows:minmax(0,1fr)!important;overflow-y:auto!important;
+ }
+ body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre .smi-command-anatomy,
+ body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre .smi-command-evidence{
+  display:none!important;
+ }
+ body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre[data-mobile-view="scene"] .smi-command-scene{
+  display:flex!important;min-height:0!important;
+ }
+ body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre[data-mobile-view="anatomy"] .smi-command-anatomy,
+ body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre[data-mobile-view="evidence"] .smi-command-evidence{
+  display:grid!important;min-height:0!important;overflow-y:auto!important;
+ }
+ body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre[data-mobile-view="anatomy"] .smi-command-scene,
+ body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre[data-mobile-view="evidence"] .smi-command-scene{
+  display:none!important;
+ }
+}
