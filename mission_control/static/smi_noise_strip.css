@@ -1165,3 +1165,22 @@ body.smi-noise-strip.smi-command-open:not(.smi-live-fullscreen) .smi-command-clo
   min-height:44px!important;
  }
 }
+
+/* SMI 21 Tank Dozer: approved home wins the fullscreen legacy selector.
+   Keep chat and voice fullscreen intact when the command centre is closed. */
+body.smi-noise-strip.smi-live-fullscreen.smi-command-open .smi-command-centre{
+ display:flex!important;position:fixed!important;inset:0!important;
+ z-index:11200!important;width:100%!important;max-width:none!important;
+ height:100dvh!important;max-height:100dvh!important;
+ overflow:auto!important;background:#020817!important;
+ border-radius:0!important;
+}
+body.smi-noise-strip.smi-live-fullscreen.smi-command-open .smi-command-layout{
+ display:grid!important;grid-template-columns:minmax(190px,23%) minmax(0,1fr) minmax(220px,26%);
+ min-height:0!important;
+}
+@media(max-width:820px){
+ body.smi-noise-strip.smi-live-fullscreen.smi-command-open .smi-command-layout{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+ }
+}
