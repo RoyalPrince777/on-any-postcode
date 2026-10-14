@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 from oap.smi.capability_fabric import select_capabilities
 
@@ -115,13 +116,16 @@ def select_jungle_matrix(query: str, *, reviewer_limit: int = 3) -> JungleMatrix
     No autonomous vote, agent creation, execution, or access grant.
     """
     text = str(query or "").casefold()
+    def matches(term: str) -> bool:
+        return re.search(r"(?<!\\w)" + re.escape(term) + r"(?!\\w)", text) is not None
+
     roles = tuple(
         name for name, triggers in _JUNGLE_BOOK_ROLES
-        if any(trigger in text for trigger in triggers)
+        if any(matches(trigger) for trigger in triggers)
     )
     limit = max(0, min(int(reviewer_limit), 9))
     reviewers = tuple(
         name for name, triggers in _MATRIX_REVIEW
-        if any(trigger in text for trigger in triggers)
+        if any(matches(trigger) for trigger in triggers)
     )[:limit]
     return JungleMatrixSelection(roles, reviewers)
