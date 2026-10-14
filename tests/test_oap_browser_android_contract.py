@@ -31,12 +31,10 @@ def test_oap_browser_has_approved_minimal_navigation_controls():
     source = SOURCE.read_text(encoding="utf-8")
     for marker in (
         'navButton("‹")',
-        'navButton("OAP")',
+        'navButton("OAP World")',
         "webView.goBack()",
     ):
         assert marker in source
-    for removed in ('navButton("›")', 'navButton("↻")', 'navButton("Go")'):
-        assert removed not in source
     for removed in ('navButton("›")', 'navButton("↻")', 'navButton("Go")'):
         assert removed not in source
 
