@@ -1198,7 +1198,7 @@ body.smi-noise-strip.smi-live-fullscreen.smi-command-open .smi-command-layout{
   display:none!important;
  }
  body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre[data-mobile-view="scene"] .smi-command-scene{
-  display:flex!important;min-height:0!important;
+  display:grid!important;min-height:0!important;
  }
  body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre[data-mobile-view="anatomy"] .smi-command-anatomy,
  body.smi-noise-strip.smi-command-open.smi-live-fullscreen .smi-command-centre[data-mobile-view="evidence"] .smi-command-evidence{
