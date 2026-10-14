@@ -9,8 +9,8 @@ from typing import Any
 
 from oap.smi.action_risk_router import status as action_risk_status
 from oap.smi.canonical_memory import status as canonical_memory_status
-from oap.smi.memory_orchestrator import status as memory_orchestrator_status
 from oap.smi.capability_fabric import CAPABILITY_FABRIC_REVISION
+from oap.smi.memory_orchestrator import status as memory_orchestrator_status
 
 from . import (
     ai_behaviour_protocol,
