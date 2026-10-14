@@ -102,6 +102,7 @@
   if(document.body.classList.contains("smi-status-open"))document.querySelector(".smi-chat-return")?.click();
   setOpen(true);
   panel.dataset.mobileView="scene";
+  panel.querySelectorAll(".smi-command-mobile-views button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="scene")));
  });
 
  const smiButton=document.createElement("button");
@@ -378,7 +379,7 @@
   ["⌕ Search",()=>{setOpen(false);document.getElementById("message")?.focus();}],
   ["🎙 Voice",()=>{setOpen(false);document.getElementById("mic-button")?.click();}],
   ["⌕ Ask SMI…",()=>{setOpen(false);document.getElementById("message")?.focus();}],
-  ["♧ Incoming",()=>window.location.assign("/linkup#linkup-incoming")],
+  ["♧ Incoming",()=>{setOpen(false);const feedback=document.getElementById("status");if(feedback)feedback.textContent="Incoming destination not yet verified."; }],
   ["◎ OAP World",()=>{setOpen(true);panel.dataset.mobileView="anatomy";mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="anatomy")));}],
   ["♛ Captain",()=>{setOpen(false);const feedback=document.getElementById("status");if(feedback)feedback.textContent="Captain interface not yet available."; }]
  ];
