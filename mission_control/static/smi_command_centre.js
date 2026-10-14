@@ -945,5 +945,5 @@
  window.addEventListener("pagehide",()=>{if(active)setOpen(false);});
  // Command Centre is the approved visual front door; Chat remains immediately reachable.
  // Never override a voice-first/fullscreen session already active.
- if(!cfg.singleLiveChatSurface&&!document.body.classList.contains("smi-live-fullscreen"))setOpen(true);
+ if(!cfg.singleLiveChatSurface)setOpen(true);
 })();
