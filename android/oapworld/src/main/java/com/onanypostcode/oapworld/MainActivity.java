@@ -45,6 +45,7 @@ public final class MainActivity extends ComponentActivity {
     private String engineSourcePath;
     private EditText omnibox;
     private Button backButton;
+    private android.widget.TextView trustLabel;
     private final List<String> engineHistory = new ArrayList<>();
     private int engineHistoryIndex = -1;
 
@@ -80,12 +81,20 @@ public final class MainActivity extends ComponentActivity {
                         | android.text.InputType.TYPE_TEXT_VARIATION_URI
         );
 
+        trustLabel = new android.widget.TextView(this);
+        trustLabel.setText("OAP WORLD");
+        trustLabel.setTextColor(Color.rgb(204, 181, 106));
+        trustLabel.setTextSize(11);
+        trustLabel.setPadding(10, 4, 10, 4);
+        trustLabel.setContentDescription("Trust boundary: OAP WORLD");
+
         toolbar.addView(backButton);
         toolbar.addView(homeButton);
         toolbar.addView(
                 omnibox,
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         );
+        toolbar.addView(trustLabel);
 
         webView = new WebView(this);
         engineClient = new EngineDocumentClient(OAP_ORIGIN);
@@ -245,6 +254,7 @@ public final class MainActivity extends ComponentActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 omnibox.setText(url);
+                updateTrustLabel(url);
                 refreshNavigationState();
             }
         });
@@ -388,6 +398,7 @@ public final class MainActivity extends ComponentActivity {
                 }
             }
             omnibox.setText(sourcePath == null ? "OAP Engine" : OAP_ORIGIN + sourcePath);
+            updateTrustLabel(OAP_ORIGIN + (sourcePath == null ? "/" : sourcePath));
             refreshNavigationState();
         } catch (org.json.JSONException error) {
             loadWebViewUrl(OAP_ORIGIN + (sourcePath == null ? "/" : sourcePath));
@@ -475,6 +486,7 @@ public final class MainActivity extends ComponentActivity {
     private void showWebViewFallback() {
         engineActive = false;
         engineSourcePath = null;
+        updateTrustLabel(webView == null ? null : webView.getUrl());
         if (engineNativeHost != null) {
             engineNativeHost.setVisibility(View.GONE);
         }
@@ -485,6 +497,24 @@ public final class MainActivity extends ComponentActivity {
             webView.setVisibility(View.VISIBLE);
         }
         refreshNavigationState();
+    }
+
+    private void updateTrustLabel(String address) {
+        if (trustLabel == null) {
+            return;
+        }
+        Uri uri = Uri.parse(address == null ? "" : address);
+        Uri owned = Uri.parse(OAP_ORIGIN);
+        boolean firstParty = "https".equalsIgnoreCase(uri.getScheme())
+                && owned.getHost() != null
+                && owned.getHost().equalsIgnoreCase(uri.getHost())
+                && uri.getPort() == -1
+                && uri.getUserInfo() == null;
+        String label = firstParty ? "OAP WORLD" : "OPEN WEB";
+        trustLabel.setText(label);
+        trustLabel.setContentDescription("Trust boundary: " + label);
+        trustLabel.setTextColor(firstParty
+                ? Color.rgb(204, 181, 106) : Color.rgb(255, 185, 117));
     }
 
     private void refreshNavigationState() {
