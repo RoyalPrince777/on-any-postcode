@@ -51,6 +51,8 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
 
 
 def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
+    # Unit receipt checks must not depend on external routing warmup availability.
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
     samples = (
@@ -77,6 +79,8 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
 
 
 def test_probe_preserves_p95_limit(monkeypatch, capsys):
+    # Unit receipt checks must not depend on external routing warmup availability.
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
     monkeypatch.setattr(
