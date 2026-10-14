@@ -561,6 +561,20 @@
  }
  const anatomy=panel.querySelector(".smi-command-anatomy");
  const evidence=panel.querySelector(".smi-command-evidence");
+ evidence.querySelector("h3").textContent="🌍 LIVE WORLD VIEW · EVIDENCE";
+ const worldView=document.createElement("section");
+ worldView.className="smi-reference-world";
+ const worldTitle=document.createElement("strong");worldTitle.textContent="🌐 OAP WORLD · LIVE VIEW";
+ const worldText=document.createElement("p");worldText.textContent="Live population and location metrics unavailable until a verified first-party source is connected.";
+ worldView.append(worldTitle,worldText);
+ evidence.append(worldView);
+ const activity=document.createElement("section");
+ activity.className="smi-reference-activity";
+ const activityTitle=document.createElement("strong");activityTitle.textContent="📈 REAL-TIME ACTIVITY";
+ const activityText=document.createElement("p");activityText.textContent="No certified activity stream · chart withheld";
+ activity.append(activityTitle,activityText);
+ evidence.append(activity);
+
  const anatomyLinks=[
   ["🧠","Brain · SMI","Intelligence · memory · reasoning",cfg.brainUrl],
   ["👁️","Eyes · Vision","Screens · maps · insight","/on-any-place"],
@@ -697,6 +711,25 @@
  evidence.append(refresh);
  addLink(evidence,"🌍","OAP World","Explore · connect","/on-any-place");
  addLink(evidence,"📚","Founder Library","Governed records",cfg.founderLibraryUrl);
+
+ const universeLinks=document.createElement("section");
+ universeLinks.className="smi-reference-universe";
+ const universeTitle=document.createElement("h3");universeTitle.textContent="✦ OAP UNIVERSE";
+ universeLinks.append(universeTitle);
+ const universeItems=[
+  ["📍 Places","/on-any-place"],["🌍 Worlds","/world"],
+  ["🎬 Studio",null],["◎ Matrix","/mission/war-room/routes"],
+  ["🔗 Nexus",null],["💬 The Link","/linkup"],["🚗 Movement","/movement"]
+ ];
+ for(const [label,url] of universeItems){
+  const item=document.createElement(url?"a":"span");
+  item.textContent=label;
+  if(url)item.href=url;
+  else item.title="Destination not yet verified";
+  universeLinks.append(item);
+ }
+ evidence.append(universeLinks);
+
  let active=false,request=null,roomRequest=null;
  const setRoom=(node,proven,message)=>{
   if(!node)return;
