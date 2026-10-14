@@ -52,11 +52,22 @@ def test_jungle_matrix_selects_only_relevant_film_roles() -> None:
 def test_matrix_reviewers_are_bounded_and_not_automatic() -> None:
     result = select_jungle_matrix("Baloo practical learning; security privacy and edge case review", reviewer_limit=2)
     assert result.jungle_roles == ("Baloo",)
-    assert result.matrix_reviewers == ("Seraph", "Mouse")
+    assert result.matrix_reviewers == ("Morpheus", "Seraph")
     assert "Shark" not in result.jungle_roles
 
 
 def test_empty_jungle_request_never_spawns_a_council() -> None:
     result = select_jungle_matrix("ordinary unrelated request")
     assert result.jungle_roles == ()
+    assert result.matrix_reviewers == ()
+
+
+def test_matrix_mouse_selected_when_reviewer_budget_allows() -> None:
+    result = select_jungle_matrix("Baloo edge case", reviewer_limit=3)
+    assert result.matrix_reviewers == ("Mouse",)
+
+
+def test_matrix_zero_reviewer_budget() -> None:
+    result = select_jungle_matrix("Bagheera security", reviewer_limit=0)
+    assert result.jungle_roles == ("Bagheera",)
     assert result.matrix_reviewers == ()
