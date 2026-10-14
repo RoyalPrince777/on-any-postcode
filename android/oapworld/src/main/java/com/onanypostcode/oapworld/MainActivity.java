@@ -63,7 +63,9 @@ public final class MainActivity extends ComponentActivity {
         toolbar.setPadding(8, 8, 8, 8);
 
         backButton = navButton("‹");
-        Button homeButton = navButton("OAP");
+        Button homeButton = navButton("OAP World");
+        homeButton.setContentDescription("Return to OAP World");
+        backButton.setContentDescription("Go back");
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
