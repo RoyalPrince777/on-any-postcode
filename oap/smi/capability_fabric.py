@@ -76,6 +76,13 @@ _CAPABILITIES: tuple[Capability, ...] = (
         requires_fresh_evidence=True,
     ),
     Capability(
+        "early_signal_detection",
+        "Identify weak early indicators of emerging operational threats or legitimate opportunities; require source evidence, confidence and human review before action.",
+        ("early warning", "weak signal", "emerging risk", "emerging opportunity", "anomaly", "demand shift", "supply shift", "shark"),
+        ("MONITORING", "STRATEGY", "TECHNICAL"),
+        requires_fresh_evidence=True,
+    ),
+    Capability(
         "cost_aware_routing",
         "Route simple work to efficient local/fast paths and reserve deeper compute for tasks that justify it.",
         ("fast", "cheap", "efficient", "cost", "instant", "scale"),
