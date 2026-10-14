@@ -365,3 +365,25 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-foot {
 }
 .smi-organism-details summary:focus-visible{outline:2px solid #ffd48d}
 .smi-organism-details .smi-command-link{margin:5px 0}
+
+/* Tank Dozer: reference-aligned evidence panels, no fabricated counts or charts. */
+.smi-reference-world,.smi-reference-activity,.smi-reference-universe{
+ padding:11px;border:1px solid #3b5692;border-radius:12px;
+ background:linear-gradient(135deg,#07182c,#080e24);
+ color:#d9e8ff;min-width:0;
+}
+.smi-reference-world strong,.smi-reference-activity strong{
+ color:#dfbd82;font-size:.79rem;letter-spacing:.07em;
+}
+.smi-reference-world p,.smi-reference-activity p{
+ font-size:.74rem;line-height:1.5;color:#aabbd3;
+}
+.smi-reference-universe{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.smi-reference-universe h3{grid-column:1/-1;color:#e8c485}
+.smi-reference-universe a,.smi-reference-universe span{
+ display:block;min-width:0;padding:9px 7px;border-radius:8px;
+ border:1px solid #3d4589;background:#0e1734;
+ font-size:.75rem;color:#e6eaff;text-decoration:none;
+}
+.smi-reference-universe span{opacity:.6}
+.smi-reference-universe a:focus-visible{outline:2px solid #ffd48d}
