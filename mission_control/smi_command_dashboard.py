@@ -8,6 +8,9 @@ from __future__ import annotations
 from typing import Any
 
 from oap.smi.action_risk_router import status as action_risk_status
+from oap.smi.canonical_memory import status as canonical_memory_status
+from oap.smi.memory_orchestrator import status as memory_orchestrator_status
+from oap.smi.capability_fabric import CAPABILITY_FABRIC_REVISION
 
 from . import (
     ai_behaviour_protocol,
@@ -440,6 +443,15 @@ def status() -> dict[str, Any]:
             "approved_first_party_presence": True,
             "learning_claimed_from_animation": False,
             "href": "/mission/ollama",
+        },
+        "first_class_data": {
+            "canonical_memory": canonical_memory_status(),
+            "memory_orchestrator": memory_orchestrator_status(),
+            "capability_fabric_revision": CAPABILITY_FABRIC_REVISION,
+            "access_control_verified": False,
+            "independent_production_verified": False,
+            "read_only": True,
+            "human_authority_final": True,
         },
         "alignment": {
             "one_brain": True,
