@@ -15,7 +15,7 @@
 window.csrfToken=csrfToken;
 window.OAP_SMI_UI={
   approvedWallpaperUrl:{{ url_for('static', filename='oap/smi_live_chat_dashboard.jpg')|tojson }},
-  singleLiveChatSurface:true,
+  singleLiveChatSurface:false,
   visibleLiveStatus:false,
   communicationLearning:{meaningfulApprovedOnly:true,backgroundListening:false,humanAuthorityFinal:true},
   workbenchUrl:{{ url_for('mission_control.smi_workbench_status')|tojson }},

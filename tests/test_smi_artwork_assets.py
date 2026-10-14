@@ -64,7 +64,8 @@ def test_live_chat_excludes_visible_status_and_uses_governed_presence_state():
     room = (ROOT / "mission_control/static/smi_command_centre.js").read_text(encoding="utf-8")
     presence = (ROOT / "mission_control/static/smi_live_chat_presence.js").read_text(encoding="utf-8")
     css = (ROOT / "mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
-    assert "singleLiveChatSurface:true" in wrapper
+    # Founder-approved Command Centre is the initial view; canonical chat stays reachable.
+    assert "singleLiveChatSurface:false" in wrapper
     assert "visibleLiveStatus:false" in wrapper
     assert "backgroundListening:false" in wrapper
     assert "!cfg.singleLiveChatSurface" in room
@@ -83,3 +84,37 @@ def test_live_chat_keeps_character_clear_and_all_primary_mobile_controls_visible
     assert "#thinking-level{display:block!important" in css
     mobile = css.split("@media(max-width:760px){", 1)[1]
     assert "#mic-button,#thinking-level,.send-label{display:none!important}" not in mobile
+
+
+def test_founder_home_first_load_and_canonical_chat_regression_contract():
+    """Source-level contract only: does not assert browser/device acceptance."""
+    wrapper = (ROOT / "mission_control/templates/ollama_chat.html").read_text(encoding="utf-8")
+    room = (ROOT / "mission_control/static/smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control/static/smi_noise_strip.css").read_text(encoding="utf-8")
+    base = (ROOT / "mission_control/templates/ollama_chat_base.html").read_text(encoding="utf-8")
+
+    assert "singleLiveChatSurface:false" in wrapper
+    assert "singleLiveChatSurface:true" not in wrapper
+    assert "if(!cfg.singleLiveChatSurface)setOpen(true);" in room
+    assert 'document.body.classList.add("smi-command-open")' in room
+    assert 'document.body.classList.remove("smi-command-open")' in room
+    assert 'panel.querySelector(".smi-command-close").addEventListener("click",()=>{setOpen(false);toggle.focus();});' in room
+    assert 'if(event.key==="Escape"&&active)' in room
+    assert 'if(marker.parentNode)marker.parentNode.insertBefore(character,marker);' in room
+
+    # Legacy fullscreen styles must not hide the approved initial home.
+    assert "body.smi-noise-strip.smi-live-fullscreen.smi-command-open .smi-command-centre{" in css
+    assert "display:flex!important;position:fixed!important;inset:0!important;" in css
+    assert "body.smi-noise-strip.smi-command-open:not(.smi-live-fullscreen) .smi-command-centre{" in css
+
+    # Mobile tabs retain their canonical selectors and selected-view state.
+    assert 'panel.dataset.mobileView="scene"' in room
+    assert 'mobileViews.addEventListener("click",event=>' in room
+    assert 'panel.dataset.mobileView=tab.dataset.view;' in room
+    assert 'button.setAttribute("aria-pressed",String(button===tab))' in room
+    for view in ("scene", "anatomy", "evidence"):
+        assert f'[data-mobile-view="{view}"]' in css
+    for control in ("message", "plus-button", "mic-button", "send"):
+        assert f'id="{control}"' in base
+    assert 'document.getElementById("message")?.focus()' in room
+    assert 'document.getElementById("mic-button")?.click()' in room

@@ -289,3 +289,101 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-foot {
   transform:scale(.85);
  }
 }
+/* Founder reference navigation: gold/purple HUD, original controls preserved. */
+.smi-command-top{background:#050b1d!important;border-bottom:1px solid #b68b45!important}
+.smi-command-top strong{color:#ffe1a2!important}
+.smi-command-top small{color:#d1dafa!important}
+.smi-command-top .smi-command-close{
+ color:#ffe1aa!important;border:1px solid #c39449!important;
+ min-height:44px;background:#0b1330!important;
+}
+.smi-reference-bottom{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(130px,2fr) repeat(3,minmax(0,1fr));
+ gap:6px;padding:9px;background:#04091af5;border-top:1px solid #bc9256;
+}
+.smi-reference-bottom button{
+ min-width:0;min-height:44px;padding:8px 5px;
+ background:#08152b;color:#e9efff;border:1px solid #354e8c;
+ border-radius:14px;font:inherit;font-size:.8rem;cursor:pointer;
+}
+.smi-reference-bottom button:first-child{
+ border-color:#b073ff;color:#fff;box-shadow:inset 0 0 14px #7134c66b;
+}
+.smi-reference-bottom button:nth-child(4){
+ border-color:#d7a452;color:#ffe5a9;border-radius:999px;
+}
+.smi-reference-bottom button:focus-visible{
+ outline:2px solid #ffd48d;outline-offset:2px;
+}
+@media(max-width:820px){
+ .smi-reference-bottom{
+  display:flex;overflow-x:auto;scrollbar-width:thin;
+  flex:0 0 auto;padding:6px;
+ }
+ .smi-reference-bottom button{flex:0 0 auto;min-width:70px}
+ .smi-reference-bottom button:nth-child(4){min-width:130px}
+ .smi-command-top{flex-wrap:wrap}
+}
+
+/* Five reference-image Founder action cards: navigation only, never status proof. */
+.smi-reference-actions{
+ display:grid;grid-template-columns:repeat(5,minmax(0,1fr));
+ gap:6px;padding:8px 12px;background:#050a1df0;
+}
+.smi-reference-actions button{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ min-width:0;min-height:64px;gap:4px;
+ border:1px solid #7758b4;border-radius:10px;
+ background:linear-gradient(180deg,#111d3a,#060d20);
+ color:#c8deff;cursor:pointer;
+}
+.smi-reference-actions strong{font-size:.78rem;letter-spacing:.05em}
+.smi-reference-actions small{font-size:.65rem;color:#9db6d4}
+.smi-reference-actions button:last-child{
+ border-color:#8ba44a;color:#d5ff9c;
+}
+.smi-reference-actions button:focus-visible{outline:2px solid #f8d28a;outline-offset:2px}
+@media(max-width:820px){
+ .smi-reference-actions{display:flex;overflow-x:auto;flex:0 0 auto;padding:6px}
+ .smi-reference-actions button{flex:0 0 120px;min-height:58px}
+}
+
+/* Reference OAP World rail with accessible disclosure for deeper organism anatomy. */
+.smi-command-anatomy>.smi-command-link{
+ border-color:#6d4989;background:linear-gradient(100deg,#0c1430,#101029);
+ border-radius:10px;min-height:44px;
+}
+.smi-command-anatomy>.smi-command-link>div{min-width:0;flex:1}
+.smi-command-anatomy>.smi-command-link strong{color:#f0e3ff}
+.smi-command-anatomy>.smi-command-link small{color:#b4b9d4}
+.smi-command-anatomy>.smi-command-link[href]::after{
+ content:"›";color:#ffce78;font-size:1.3rem;
+}
+.smi-organism-details{border:1px solid #2c577e;border-radius:10px;padding:5px}
+.smi-organism-details summary{
+ color:#f0cb91;cursor:pointer;padding:10px;min-height:44px;
+}
+.smi-organism-details summary:focus-visible{outline:2px solid #ffd48d}
+.smi-organism-details .smi-command-link{margin:5px 0}
+
+/* Tank Dozer: reference-aligned evidence panels, no fabricated counts or charts. */
+.smi-reference-world,.smi-reference-activity,.smi-reference-universe{
+ padding:11px;border:1px solid #3b5692;border-radius:12px;
+ background:linear-gradient(135deg,#07182c,#080e24);
+ color:#d9e8ff;min-width:0;
+}
+.smi-reference-world strong,.smi-reference-activity strong{
+ color:#dfbd82;font-size:.79rem;letter-spacing:.07em;
+}
+.smi-reference-world p,.smi-reference-activity p{
+ font-size:.74rem;line-height:1.5;color:#aabbd3;
+}
+.smi-reference-universe{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.smi-reference-universe h3{grid-column:1/-1;color:#e8c485}
+.smi-reference-universe a,.smi-reference-universe span{
+ display:block;min-width:0;padding:9px 7px;border-radius:8px;
+ border:1px solid #3d4589;background:#0e1734;
+ font-size:.75rem;color:#e6eaff;text-decoration:none;
+}
+.smi-reference-universe span{opacity:.6}
+.smi-reference-universe a:focus-visible{outline:2px solid #ffd48d}
