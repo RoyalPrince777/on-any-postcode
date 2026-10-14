@@ -103,12 +103,22 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert 'aria-label="Link Up app"' in page
-    assert "PRIVATE CHAT · SIMPLE · LINKED" in page
+    assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
     assert "Optional for private features. Public Link Up needs no email, password or sign-in." in page
     assert "Simple private chat." in page
-    for removed in ("Discovery", "Spotlight", "Opportunities", "Nearby People", "Community Signals"):
-        assert removed not in page
+    for public_section in ("Nearby People", "Spotlight", "Opportunities", "Community Signals"):
+        assert public_section in page
+    assert "Private conversations remain protected by secure sign-in." in page
+    # Public discovery is presentation-only; it cannot expose the private workspace.
+    assert 'id="linkup-discovery"' in page
+    assert 'href="#linkup-discovery"' in page
+    assert 'aria-label="Link Up public bottom navigation"' in page
+    assert 'aria-label="Private Link Up messenger"' not in page
+    assert 'data-linkup-search' not in page
+    assert 'role="search"' not in page
+    assert "People search is available only when its privacy and directory controls are verified." in page
+    assert 'aria-label="Link Up private menu"' not in page
     assert "Enter My World" not in page
     assert 'href="/my-card/create"' in page
     assert 'href="/auth"' not in page
@@ -117,6 +127,38 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert 'method="post"' not in page.lower()
     assert anonymous_client.post("/linkup").status_code == 405
     assert not database_path.exists()
+
+
+def test_smith_twins_public_query_cannot_unlock_private_messenger(anonymous_client):
+    """Smith / Twins: public GET parameters must not change the auth boundary."""
+    for query in (
+        "?intent=message",
+        "?intent=message&auth_user=1",
+        "?view=inbox&private=true",
+        "?search=nearby&location=London",
+    ):
+        response = anonymous_client.get("/linkup" + query)
+        page = response.get_data(as_text=True)
+        assert response.status_code == 200
+        assert "PUBLIC · CONNECT · CREATE" in page
+        assert 'aria-label="Private Link Up messenger"' not in page
+        assert 'aria-label="Link Up private menu"' not in page
+        assert 'data-linkup-search' not in page
+        assert 'method="post"' not in page.lower()
+
+
+def test_smith_brothers_discovery_cards_are_not_live_controls(anonymous_client):
+    """Informational cards must not pretend to be working services."""
+    response = anonymous_client.get("/linkup")
+    page = response.get_data(as_text=True)
+    assert response.status_code == 200
+    for label in ("Nearby People", "Opportunities", "Spotlight", "Community Signals", "Certified"):
+        assert label in page
+    assert "Location-based discovery requires consent and a verified service." in page
+    assert "People search is available only when its privacy and directory controls are verified." in page
+    assert 'id="linkup-discovery"' in page
+    assert 'role="search"' not in page
+    assert 'data-linkup-search' not in page
 
 
 def test_linkup_template_keeps_policy_copy_off_the_visible_messenger():
@@ -265,7 +307,7 @@ def test_linkup_public_shell_uses_free_my_card_actions():
     assert "Enter My World" not in template
     assert "url_for('my_card_create_page')" in template
     assert "Create My Card" in template
-    assert "PRIVATE CHAT · SIMPLE · LINKED" in template
+    assert "PUBLIC · CONNECT · CREATE" in template
     assert "linkup-royal-home" in template
     assert "linkup-royal-tools" not in template
     assert "linkup-royal-bottom" not in template
@@ -295,11 +337,6 @@ def test_linkup_master_menu_is_only_linkups_ring_now_incoming_and_more():
     for removed in (
         "linkup-royal-tools",
         "linkup-royal-bottom",
-        "<strong>Discovery</strong>",
-        "<strong>Spotlight</strong>",
-        "<strong>Opportunities</strong>",
-        "Nearby People",
-        "Community Signals",
     ):
         assert removed not in template
 
