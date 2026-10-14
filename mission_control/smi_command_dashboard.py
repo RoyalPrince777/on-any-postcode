@@ -445,8 +445,14 @@ def status() -> dict[str, Any]:
             "href": "/mission/ollama",
         },
         "first_class_data": {
-            "canonical_memory": canonical_memory_status(),
-            "memory_orchestrator": memory_orchestrator_status(),
+            "canonical_memory": {
+                "ready": bool(canonical_memory_status().get("ready")),
+                "record_count": int(canonical_memory_status().get("record_count") or 0),
+            },
+            "memory_orchestrator": {
+                "ready": bool(memory_orchestrator_status().get("ready")),
+                "context_cap": int(memory_orchestrator_status().get("context_cap") or 0),
+            },
             "capability_fabric_revision": CAPABILITY_FABRIC_REVISION,
             "access_control_verified": False,
             "independent_production_verified": False,
