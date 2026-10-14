@@ -28,7 +28,7 @@ def test_local_backup_contains_valid_sqlite_and_git_bundle(tmp_path):
         check=True,
     )
     env = {**os.environ, "OAP_BACKUP_ROOT": str(root)}
-    result = subprocess.run(["bash", str(SCRIPT)], check=False, check=False, env=env, capture_output=True, text=True)
+    result = subprocess.run(["bash", str(SCRIPT)], check=False, env=env, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     snapshots = list((root / "backups").glob("oap-*"))
     assert len(snapshots) == 1
@@ -57,6 +57,6 @@ def test_local_backup_fails_without_source_and_does_not_claim_success(tmp_path):
     root = tmp_path / "oap"
     root.mkdir()
     env = {**os.environ, "OAP_BACKUP_ROOT": str(root)}
-    result = subprocess.run(["bash", str(SCRIPT)], check=False, check=False, env=env, capture_output=True, text=True)
+    result = subprocess.run(["bash", str(SCRIPT)], check=False, env=env, capture_output=True, text=True)
     assert result.returncode != 0
     assert "Local backup complete" not in result.stdout
