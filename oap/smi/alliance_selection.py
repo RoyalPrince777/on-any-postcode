@@ -18,6 +18,7 @@ _ROLE_CAPABILITIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Oracle", ("live_signal_awareness", "cited_live_research")),
     ("Elephant", ("memory_reconstruction", "context_tiering")),
     ("Bagheera", ("agent_governance",)),
+    ("Shark", ("early_signal_detection",)),
     ("Shere Khan", ("gap_adversarial_review",)),
     ("Trinity", ("multimodal_fusion", "realtime_audio_visual")),
     ("Morpheus", ("adaptive_reasoning", "skill_distillation")),
