@@ -45,3 +45,39 @@ def test_distributed_flag_does_not_override_denial() -> None:
     assert "Queen Bee" in result.alliance.specialists
     assert not result.permitted_for_proposal
     assert not result.execution_authorised
+
+
+def test_jungle_matrix_opt_in_allowed_read_is_advisory() -> None:
+    result = propose_alliance_tool(
+        founder_tool_registry(), task_type="TECHNICAL",
+        query="Baloo practical learning security review",
+        tool_id="github", ability="repo.read", jungle_matrix_review=True,
+    )
+    assert result.permitted_for_proposal
+    assert result.jungle_matrix is not None
+    assert result.jungle_matrix.jungle_roles == ("Baloo",)
+    assert "Seraph" in result.jungle_matrix.matrix_reviewers
+    assert result.jungle_matrix.advisory_only and result.jungle_matrix.founder_final
+    assert not result.execution_authorised
+
+
+def test_jungle_matrix_opt_in_denied_ability_remains_denied() -> None:
+    result = propose_alliance_tool(
+        founder_tool_registry(), task_type="TECHNICAL",
+        query="Akela security review", tool_id="github",
+        ability="secrets.export", jungle_matrix_review=True,
+    )
+    assert result.jungle_matrix is not None
+    assert "Akela" in result.jungle_matrix.jungle_roles
+    assert not result.permitted_for_proposal
+    assert result.reason == "DENIED_BY_REGISTRY"
+    assert not result.execution_authorised
+
+
+def test_jungle_matrix_default_does_not_change_existing_callers() -> None:
+    result = propose_alliance_tool(
+        founder_tool_registry(), task_type="TECHNICAL",
+        query="Baloo", tool_id="github", ability="repo.read",
+    )
+    assert result.jungle_matrix is None
+    assert not result.execution_authorised
