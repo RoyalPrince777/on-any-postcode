@@ -37,3 +37,26 @@ def test_shark_not_assigned_for_ordinary_code_review() -> None:
 def test_no_duplicated_specialists() -> None:
     result = select_alliance("TECHNICAL", "code review refactor test")
     assert len(result.specialists) == len(set(result.specialists))
+
+
+from oap.smi.alliance_selection import select_jungle_matrix
+
+
+def test_jungle_matrix_selects_only_relevant_film_roles() -> None:
+    result = select_jungle_matrix("Akela pack discipline with Bagheera jungle boundaries")
+    assert result.jungle_roles == ("Akela", "Bagheera")
+    assert result.matrix_reviewers == ()
+    assert result.advisory_only and result.founder_final
+
+
+def test_matrix_reviewers_are_bounded_and_not_automatic() -> None:
+    result = select_jungle_matrix("Baloo practical learning; security privacy and edge case review", reviewer_limit=2)
+    assert result.jungle_roles == ("Baloo",)
+    assert result.matrix_reviewers == ("Seraph", "Mouse")
+    assert "Shark" not in result.jungle_roles
+
+
+def test_empty_jungle_request_never_spawns_a_council() -> None:
+    result = select_jungle_matrix("ordinary unrelated request")
+    assert result.jungle_roles == ()
+    assert result.matrix_reviewers == ()
