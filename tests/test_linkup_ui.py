@@ -129,6 +129,38 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert not database_path.exists()
 
 
+def test_smith_twins_public_query_cannot_unlock_private_messenger(anonymous_client):
+    """Smith / Twins: public GET parameters must not change the auth boundary."""
+    for query in (
+        "?intent=message",
+        "?intent=message&auth_user=1",
+        "?view=inbox&private=true",
+        "?search=nearby&location=London",
+    ):
+        response = anonymous_client.get("/linkup" + query)
+        page = response.get_data(as_text=True)
+        assert response.status_code == 200
+        assert "PUBLIC · CONNECT · CREATE" in page
+        assert 'aria-label="Private Link Up messenger"' not in page
+        assert 'aria-label="Link Up private menu"' not in page
+        assert 'data-linkup-search' not in page
+        assert 'method="post"' not in page.lower()
+
+
+def test_smith_brothers_discovery_cards_are_not_live_controls(anonymous_client):
+    """Informational cards must not pretend to be working services."""
+    response = anonymous_client.get("/linkup")
+    page = response.get_data(as_text=True)
+    assert response.status_code == 200
+    for label in ("Nearby People", "Opportunities", "Spotlight", "Community Signals", "Certified"):
+        assert label in page
+    assert "Location-based discovery requires consent and a verified service." in page
+    assert "People search is available only when its privacy and directory controls are verified." in page
+    assert 'id="linkup-discovery"' in page
+    assert 'role="search"' not in page
+    assert 'data-linkup-search' not in page
+
+
 def test_linkup_template_keeps_policy_copy_off_the_visible_messenger():
     page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
     for copy in (
