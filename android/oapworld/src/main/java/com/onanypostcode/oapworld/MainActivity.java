@@ -148,6 +148,35 @@ public final class MainActivity extends ComponentActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
+        // Founder-approved world identity: one front door, no extra navigation stage.
+        LinearLayout identity = new LinearLayout(this);
+        identity.setOrientation(LinearLayout.VERTICAL);
+        identity.setPadding(18, 12, 18, 12);
+        identity.setBackgroundColor(Color.rgb(8, 22, 15));
+
+        android.widget.TextView brand = new android.widget.TextView(this);
+        brand.setText("ON ANY POSTCODE");
+        brand.setTextColor(Color.WHITE);
+        brand.setTextSize(17);
+        brand.setTypeface(null, android.graphics.Typeface.BOLD);
+        identity.addView(brand);
+
+        android.widget.TextView worldIdentity = new android.widget.TextView(this);
+        worldIdentity.setText("THE WORLD INSIDE");
+        worldIdentity.setTextColor(Color.rgb(204, 181, 106));
+        worldIdentity.setTextSize(13);
+        identity.addView(worldIdentity);
+
+        android.widget.TextView motto = new android.widget.TextView(this);
+        motto.setText("Born Local. Built Global.  ·  Earth Is Our Turf.");
+        motto.setTextColor(Color.rgb(190, 204, 193));
+        motto.setTextSize(11);
+        identity.addView(motto);
+
+        root.addView(identity, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
         root.addView(toolbar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
