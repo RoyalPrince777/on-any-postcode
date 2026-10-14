@@ -148,7 +148,9 @@ public final class MainActivity extends ComponentActivity {
         );
 
         FrameLayout renderHost = new FrameLayout(this);
-        // Keep the uninitialised WebView out of sight until it has a destination.\n        webView.setVisibility(View.GONE);\n        renderHost.addView(webView, new FrameLayout.LayoutParams(
+        // Keep the uninitialised WebView out of sight until it has a destination.
+        webView.setVisibility(View.GONE);
+        renderHost.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
@@ -356,7 +358,11 @@ public final class MainActivity extends ComponentActivity {
         int viewportWidth = engineScrollView != null && engineScrollView.getWidth() > 0
                 ? engineScrollView.getWidth()
                 : getResources().getDisplayMetrics().widthPixels;
-        // Never reveal a stale external WebView while the first-party engine loads.\n        if (!engineActive && webView != null) {\n            webView.setVisibility(View.GONE);\n        }\n        engineClient.fetch(path, viewportWidth, new EngineDocumentClient.Callback() {
+        // Never reveal a stale external WebView while the first-party engine loads.
+        if (!engineActive && webView != null) {
+            webView.setVisibility(View.GONE);
+        }
+        engineClient.fetch(path, viewportWidth, new EngineDocumentClient.Callback() {
             @Override
             public void onEngineDocument(String json, String resolvedPath) {
                 showOapEngineDocument(json, resolvedPath, recordHistory);
