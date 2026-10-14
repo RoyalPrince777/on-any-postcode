@@ -64,7 +64,8 @@ def test_live_chat_excludes_visible_status_and_uses_governed_presence_state():
     room = (ROOT / "mission_control/static/smi_command_centre.js").read_text(encoding="utf-8")
     presence = (ROOT / "mission_control/static/smi_live_chat_presence.js").read_text(encoding="utf-8")
     css = (ROOT / "mission_control/static/smi_live_chat_dashboard.css").read_text(encoding="utf-8")
-    assert "singleLiveChatSurface:true" in wrapper
+    # Founder-approved Command Centre is the initial view; canonical chat stays reachable.
+    assert "singleLiveChatSurface:false" in wrapper
     assert "visibleLiveStatus:false" in wrapper
     assert "backgroundListening:false" in wrapper
     assert "!cfg.singleLiveChatSurface" in room
