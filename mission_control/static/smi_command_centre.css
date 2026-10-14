@@ -347,3 +347,21 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-foot {
  .smi-reference-actions{display:flex;overflow-x:auto;flex:0 0 auto;padding:6px}
  .smi-reference-actions button{flex:0 0 120px;min-height:58px}
 }
+
+/* Reference OAP World rail with accessible disclosure for deeper organism anatomy. */
+.smi-command-anatomy>.smi-command-link{
+ border-color:#6d4989;background:linear-gradient(100deg,#0c1430,#101029);
+ border-radius:10px;min-height:44px;
+}
+.smi-command-anatomy>.smi-command-link>div{min-width:0;flex:1}
+.smi-command-anatomy>.smi-command-link strong{color:#f0e3ff}
+.smi-command-anatomy>.smi-command-link small{color:#b4b9d4}
+.smi-command-anatomy>.smi-command-link[href]::after{
+ content:"›";color:#ffce78;font-size:1.3rem;
+}
+.smi-organism-details{border:1px solid #2c577e;border-radius:10px;padding:5px}
+.smi-organism-details summary{
+ color:#f0cb91;cursor:pointer;padding:10px;min-height:44px;
+}
+.smi-organism-details summary:focus-visible{outline:2px solid #ffd48d}
+.smi-organism-details .smi-command-link{margin:5px 0}
