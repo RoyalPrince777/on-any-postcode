@@ -245,6 +245,11 @@ public final class MainActivity extends ComponentActivity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                updateTrustLabel(url);
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 String scheme = uri.getScheme();
@@ -367,6 +372,8 @@ public final class MainActivity extends ComponentActivity {
     private void loadWebViewUrl(String url) {
         engineClient.cancelPending();
         showWebViewFallback();
+        // Never leave the previous page's trust label visible during navigation.
+        updateTrustLabel(url);
         webView.loadUrl(url);
     }
 
