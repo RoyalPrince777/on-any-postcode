@@ -58,6 +58,7 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
         {"route_id": "b", "ok": False, "elapsed_s": 10.0, "failure_type": "timeout"},
     )
     monkeypatch.setattr(gate, "run_one", lambda index: samples[index])
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
 
     with pytest.raises(SystemExit, match="live routing probe had failed requests"):
         gate.main()
@@ -84,6 +85,7 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
         "run_one",
         lambda index: {"route_id": str(index), "ok": True, "elapsed_s": 7.0},
     )
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     with pytest.raises(SystemExit, match="p95 exceeded 6.0s"):
         gate.main()
     receipts = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
