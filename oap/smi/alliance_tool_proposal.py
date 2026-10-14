@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from oap.registry.tools import ToolRegistry
-from oap.smi.alliance_selection import AllianceSelection, select_alliance
+from oap.smi.alliance_selection import AllianceSelection, JungleMatrixSelection, select_alliance, select_jungle_matrix
 from oap.smi.capability_preflight import CapabilityPreflight, preflight
 
 
@@ -16,6 +16,7 @@ class GovernedAllianceProposal:
     permitted_for_proposal: bool
     reason: str
     execution_authorised: bool = False
+    jungle_matrix: JungleMatrixSelection | None = None
 
 
 def propose_alliance_tool(
@@ -28,6 +29,7 @@ def propose_alliance_tool(
     mutation: bool = False,
     high_impact: bool = False,
     distributed_work: bool = False,
+    jungle_matrix_review: bool = False,
 ) -> GovernedAllianceProposal:
     """Recommend specialists only when the existing registry permits a tool proposal.
 
@@ -37,14 +39,15 @@ def propose_alliance_tool(
         task_type, query, high_impact=high_impact,
         distributed_work=distributed_work,
     )
+    jungle_matrix = select_jungle_matrix(query) if jungle_matrix_review else None
     tool = preflight(
         registry, task_type=task_type, query=query, tool_id=tool_id,
         ability=ability, mutation=mutation, high_impact=high_impact,
     )
     if not tool.permitted_for_proposal:
         return GovernedAllianceProposal(
-            alliance, tool, False, "DENIED_BY_REGISTRY",
+            alliance, tool, False, "DENIED_BY_REGISTRY", jungle_matrix=jungle_matrix,
         )
     return GovernedAllianceProposal(
-        alliance, tool, True, tool.reason,
+        alliance, tool, True, tool.reason, jungle_matrix=jungle_matrix,
     )
