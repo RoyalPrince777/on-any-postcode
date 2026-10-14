@@ -22,6 +22,18 @@ def test_queen_bee_when_distributed_work_is_explicit() -> None:
     assert "Queen Bee" in result.specialists
 
 
+def test_shark_selected_for_emerging_risk_without_execution_authority() -> None:
+    result = select_alliance("MONITORING", "shark emerging risk early warning")
+    assert "Shark" in result.specialists
+    assert "early_signal_detection" in result.capabilities
+    assert result.advisory_only and result.founder_final
+
+
+def test_shark_not_assigned_for_ordinary_code_review() -> None:
+    result = select_alliance("TECHNICAL", "review github code")
+    assert "Shark" not in result.specialists
+
+
 def test_no_duplicated_specialists() -> None:
     result = select_alliance("TECHNICAL", "code review refactor test")
     assert len(result.specialists) == len(set(result.specialists))
