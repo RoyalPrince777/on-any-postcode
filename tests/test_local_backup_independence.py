@@ -37,7 +37,15 @@ def test_local_backup_contains_valid_sqlite_and_git_bundle(tmp_path):
         assert restored.execute("SELECT value FROM proof").fetchone() == ("present",)
     subprocess.run(["git", "-C", str(root), "bundle", "verify",
                     str(snapshot / "oap-history.bundle")], check=True, capture_output=True)
-    assert (snapshot / "SHA256SUMS").exists()
+    # Recalculate manifest hashes independently before trusting the snapshot.
+    from hashlib import sha256
+
+    lines = (snapshot / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
+    entries = [line.split("  ", 1) for line in lines]
+    assert len(entries) == 3
+    assert {name for _, name in entries} == {"app.py", "oap.db", "oap-history.bundle"}
+    for digest, name in entries:
+        assert sha256((snapshot / name).read_bytes()).hexdigest() == digest
     # Verify actual independent clone, not only bundle metadata.
     recovered = tmp_path / "recovered"
     subprocess.run(["git", "clone", "-q", str(snapshot / "oap-history.bundle"),
