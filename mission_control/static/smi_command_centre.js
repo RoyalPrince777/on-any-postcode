@@ -47,7 +47,7 @@
  const panel=document.createElement("section");
  panel.className="smi-command-centre";panel.id="smi-command-centre";
  panel.setAttribute("aria-label","OAP SMI Digital Organism Command Centre");
- panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · SMI THE DIGITAL ORGANISM</strong><br><small>ONE BRAIN · A LIVING SYSTEM · A BRIGHTER TOMORROW</small></div><button type="button" class="smi-command-close">✕ Close</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Live evidence and universe links"><h3>LIVE EVIDENCE · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
+ panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · ON ANY POSTCODE</strong><br><small>PEOPLE · PLACES · PURPOSE · PROSPERITY</small></div><div><strong>SMI</strong><br><small>SOVEREIGN MEGAVERSE INTELLIGENCE</small></div><button type="button" class="smi-command-close">💬 Ask SMI</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Live evidence and universe links"><h3>LIVE EVIDENCE · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
  messages.before(panel);
  // The full-room overlay must expose Status itself: its old header control sits underneath it.
  const statusActions=document.createElement("div");
@@ -347,6 +347,28 @@
   universe.append(button);
  }
  panel.querySelector(".smi-command-layout").after(universe);
+ // Founder reference bottom navigation: reuses canonical controls and routes.
+
+ const referenceNav=document.createElement("nav");
+ referenceNav.className="smi-reference-bottom";
+ referenceNav.setAttribute("aria-label","SMI Founder dashboard navigation");
+ const referenceItems=[
+  ["⌂ Home",()=>{setOpen(true);panel.dataset.mobileView="scene";}],
+  ["⌕ Search",()=>{setOpen(false);document.getElementById("message")?.focus();}],
+  ["🎙 Voice",()=>{setOpen(false);document.getElementById("mic-button")?.click();}],
+  ["⌕ Ask SMI…",()=>{setOpen(false);document.getElementById("message")?.focus();}],
+  ["♧ Incoming",()=>window.location.assign("/linkup#linkup-incoming")],
+  ["◎ OAP World",()=>{worldPanel.hidden=false;setOpen(true);panel.dataset.mobileView="anatomy";}],
+  ["♛ Captain",()=>{setOpen(false);const feedback=document.getElementById("status");if(feedback)feedback.textContent="Captain interface not yet available."; }]
+ ];
+ for(const [label,handler] of referenceItems){
+  const button=document.createElement("button");
+  button.type="button";button.textContent=label;
+  button.addEventListener("click",handler);
+  referenceNav.append(button);
+ }
+ panel.append(referenceNav);
+
  // Founder Command Centre: non-operational banking controls. Do not create a
  // second banking engine, manufacture proof, or expose a transactional action.
  const bankControls=document.createElement("section");
