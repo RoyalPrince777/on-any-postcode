@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 SCHEMA_VERSION = "oap.civilization.event.v1"
 MATCH_FINISHED = "MATCH_FINISHED"
