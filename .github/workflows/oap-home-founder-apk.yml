@@ -22,17 +22,32 @@ jobs:
         with:
           gradle-version: '8.11.1'
       - name: Build separate Home APK
-        run: gradle :android:oaphome:assembleDebug --no-daemon
-      - name: Verify APK identity and signature
+        run: gradle :android:oaphome:assembleDebug :android:oapworld:assembleDebug --no-daemon
+      - name: Verify distinct APK identities and debug signatures
+        shell: bash
         run: |
-          APK=android/oaphome/build/outputs/apk/debug/oaphome-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep "package: name='com.onanypostcode.oaphome'"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
-          sha256sum "$APK" > oaphome-debug.apk.sha256
+          set -euo pipefail
+          HOME_APK=android/oaphome/build/outputs/apk/debug/oaphome-debug.apk
+          WORLD_APK=android/oapworld/build/outputs/apk/debug/oapworld-debug.apk
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          SIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          test -s "$HOME_APK"
+          test -s "$WORLD_APK"
+          home_id=$("$AAPT" dump badging "$HOME_APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")
+          world_id=$("$AAPT" dump badging "$WORLD_APK" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p")
+          test "$home_id" = com.onanypostcode.oaphome
+          test "$world_id" = com.onanypostcode.oapworld
+          test "$home_id" != "$world_id"
+          "$SIGNER" verify --verbose "$HOME_APK"
+          "$SIGNER" verify --verbose "$WORLD_APK"
+          sha256sum "$HOME_APK" > oaphome-debug.apk.sha256
+          sha256sum "$WORLD_APK" > oapworld-debug.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: oap-home-founder-debug-apk
           path: |
             android/oaphome/build/outputs/apk/debug/oaphome-debug.apk
             oaphome-debug.apk.sha256
+            android/oapworld/build/outputs/apk/debug/oapworld-debug.apk
+            oapworld-debug.apk.sha256
           if-no-files-found: error
