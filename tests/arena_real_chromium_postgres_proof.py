@@ -40,9 +40,7 @@ def prepare():
     )
     with postgres_db.connect() as connection:
         for path in migrations:
-            for sql in path.read_text().split(";"):
-                if sql.strip():
-                    connection.execute(sql)
+            connection.execute(path.read_text())
         connection.commit()
     app_module.app.config.update(
         TESTING=True, SECRET_KEY="arena-disposable-chromium-ci",
