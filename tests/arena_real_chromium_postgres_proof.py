@@ -57,8 +57,8 @@ def prove_civilization_event_transaction_atomicity():
     with postgres_db.connect() as connection:
         connection.execute(
             """INSERT INTO oap_arena_rooms(
-                   room_id,room_code,game_key,status,capacity,host_seat,game_state,revision
-               ) VALUES (%s,'HB7777','chess','ACTIVE',2,1,'{}'::jsonb,0)""",
+                   room_id,room_code,game_key,status,capacity,game_state,revision
+               ) VALUES (%s,'HB7777','chess','ACTIVE',2,'{}'::jsonb,0)""",
             (room_id,),
         )
         connection.commit()
