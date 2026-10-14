@@ -63,3 +63,65 @@ def select_alliance(
         else:
             unassigned.append(capability)
     return AllianceSelection(capabilities, tuple(selected), tuple(unassigned))
+
+
+# Film-inspired Jungle Book responsibilities are advisory role labels, not workers.
+# Matrix specialists review the selected roles; no additional authority is granted.
+_JUNGLE_BOOK_ROLES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Akela", ("wolf pack", "pack leadership", "pack discipline", "akela")),
+    ("Raksha", ("mother wolf", "family protection", "raksha")),
+    ("Father Wolf", ("father wolf", "family stability")),
+    ("Grey Brother", ("grey brother", "loyal support")),
+    ("Wolf Cubs", ("wolf cubs", "supervised learning")),
+    ("Bagheera", ("jungle guidance", "jungle boundaries", "bagheera")),
+    ("Baloo", ("practical learning", "resourcefulness", "baloo")),
+    ("Shere Khan", ("adversarial review", "failure hunting", "shere khan")),
+    ("Mowgli", ("human learning", "human adaptation", "mowgli")),
+    ("Colonel Hathi", ("elephant patrol", "institutional memory", "colonel hathi")),
+    ("Winifred", ("family continuity", "winifred")),
+    ("Hathi Jr.", ("supervised discovery", "hathi jr")),
+    ("King Louie", ("creative proposals", "king louie")),
+    ("Bandar-log", ("group patterns", "bandar-log")),
+    ("Chil/Rann", ("jungle messaging", "chil", "rann")),
+    ("Rama", ("family steadiness", "rama")),
+    ("Tabaqui", ("misinformation analysis", "tabaqui")),
+    ("Messua", ("human care", "messua")),
+)
+
+_MATRIX_REVIEW: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Neo", ("implementation", "code", "test")),
+    ("Oracle", ("evidence", "uncertainty", "source")),
+    ("Architect", ("architecture", "dependency", "structure")),
+    ("Keymaker", ("routing", "integration route")),
+    ("Trinity", ("user journey", "integration", "experience")),
+    ("Morpheus", ("teaching", "learning")),
+    ("Seraph", ("security", "permission", "privacy")),
+    ("Mouse", ("edge case", "edge-case")),
+    ("Agent Smith", ("adversarial", "counterevidence", "failure")),
+)
+
+
+@dataclass(frozen=True)
+class JungleMatrixSelection:
+    jungle_roles: tuple[str, ...]
+    matrix_reviewers: tuple[str, ...]
+    advisory_only: bool = True
+    founder_final: bool = True
+
+
+def select_jungle_matrix(query: str, *, reviewer_limit: int = 3) -> JungleMatrixSelection:
+    """Select only explicitly relevant film roles and bounded Matrix reviewers.
+
+    No autonomous vote, agent creation, execution, or access grant.
+    """
+    text = str(query or "").casefold()
+    roles = tuple(
+        name for name, triggers in _JUNGLE_BOOK_ROLES
+        if any(trigger in text for trigger in triggers)
+    )
+    limit = max(0, min(int(reviewer_limit), 9))
+    reviewers = tuple(
+        name for name, triggers in _MATRIX_REVIEW
+        if any(trigger in text for trigger in triggers)
+    )[:limit]
+    return JungleMatrixSelection(roles, reviewers)
