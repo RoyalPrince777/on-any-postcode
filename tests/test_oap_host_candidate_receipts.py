@@ -4,8 +4,7 @@ import datetime as dt
 
 from scripts.oap_host_candidate_receipts import MANDATORY, assess
 
-
-NOW = dt.datetime(2026, 10, 14, 15, 0, tzinfo=dt.timezone.utc)
+NOW = dt.datetime(2026, 10, 14, 15, 0, tzinfo=dt.UTC)
 
 
 def valid_receipts():
