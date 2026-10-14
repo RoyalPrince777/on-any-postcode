@@ -99,9 +99,9 @@
  homeButton.setAttribute("aria-label","Return to SMI Home");
  homeButton.addEventListener("click",()=>{
   closeTransientPanels();
-  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
   if(document.body.classList.contains("smi-status-open"))document.querySelector(".smi-chat-return")?.click();
-  document.getElementById("message")?.focus();
+  setOpen(true);
+  panel.dataset.mobileView="scene";
  });
 
  const smiButton=document.createElement("button");
@@ -374,12 +374,12 @@
  referenceNav.className="smi-reference-bottom";
  referenceNav.setAttribute("aria-label","SMI Founder dashboard navigation");
  const referenceItems=[
-  ["⌂ Home",()=>{setOpen(true);panel.dataset.mobileView="scene";}],
+  ["⌂ Home",()=>{setOpen(true);panel.dataset.mobileView="scene";mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="scene")));}],
   ["⌕ Search",()=>{setOpen(false);document.getElementById("message")?.focus();}],
   ["🎙 Voice",()=>{setOpen(false);document.getElementById("mic-button")?.click();}],
   ["⌕ Ask SMI…",()=>{setOpen(false);document.getElementById("message")?.focus();}],
   ["♧ Incoming",()=>window.location.assign("/linkup#linkup-incoming")],
-  ["◎ OAP World",()=>{worldPanel.hidden=false;setOpen(true);panel.dataset.mobileView="anatomy";}],
+  ["◎ OAP World",()=>{setOpen(true);panel.dataset.mobileView="anatomy";mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="anatomy")));}],
   ["♛ Captain",()=>{setOpen(false);const feedback=document.getElementById("status");if(feedback)feedback.textContent="Captain interface not yet available."; }]
  ];
  for(const [label,handler] of referenceItems){
