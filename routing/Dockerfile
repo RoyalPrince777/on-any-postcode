@@ -1,7 +1,8 @@
 FROM ghcr.io/project-osrm/osrm-backend:v5.27.1
 
 USER root
-RUN apt-get update \
+RUN rm -rf /var/lib/apt/lists/* \
+    && apt-get update -o Acquire::Retries=3 \
     && apt-get install -y --no-install-recommends wget ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
