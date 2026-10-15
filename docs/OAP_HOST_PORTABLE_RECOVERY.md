@@ -32,3 +32,10 @@ Only after candidate proof, plan an explicit reversible traffic change and obser
 
 ## Current known blocker (2026-10-14)
 Render suspended the existing service for monthly quota exceeded. OAP Host Core has deployment and rollback execution disabled. A separate candidate host has **not** been provisioned or proven.
+
+## Fox route decision — 2026-10-15
+- **Route A, existing provider:** Restore the billing-suspended Render workspace through its authorised account owner. Do not treat CI retries as restoration evidence.
+- **Route B, portable candidate:** Provision an independently controlled Linux host only after confirming its operator, funding, TLS, private secrets, immutable image digest, rollback path and read-only database checks. An unprovisioned candidate is **not** operational.
+- **Route C, reversible fallback:** Retain existing origin and Android URLs until independent host, auth, live routing and rollback proofs pass and Founder explicitly authorises cutover.
+- **CI evidence boundary:** The 2026-10-15 governed run for commit `6b006b7967f1c5855b73489c92aa0b972c0a41bd` failed at the bounded external live routing Green Gate. This does not prove portable-host readiness. No gate bypass, fabricated success or production traffic switch is permitted.
+- **Ownership:** Fox proposes routes; Tank protects existing service state; Dozer repairs bounded defects; the Twins compare expected versus observed evidence; Guardian owns security review; HRM records receipts; Founder reserves cutover approval. These are role assignments, not claims of running agents.
