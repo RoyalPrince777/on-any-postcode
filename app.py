@@ -530,6 +530,18 @@ def oap_music_install_controller():
     )
 
 
+@app.get("/assets/oap-bank-icon.svg")
+def oap_bank_icon():
+    """Serve the dedicated Bank launcher mark, separate from the OAP OS icon."""
+
+    return send_from_directory(
+        os.path.join(app.root_path, "static"),
+        "oap-bank-icon.svg",
+        mimetype="image/svg+xml",
+        max_age=3600,
+    )
+
+
 @app.get("/assets/oap-os-icon-<int:size>.png")
 def oap_os_icon(size):
     """Serve only the two reviewed install-icon sizes."""
