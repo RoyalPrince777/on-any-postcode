@@ -5,10 +5,10 @@ storage, authenticated founder signatures and runtime integration are separate.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from hashlib import sha256
 import json
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from hashlib import sha256
 
 from oap.smi.organism_governance import GovernanceDecision
 
@@ -58,7 +58,7 @@ def record_decision(
     payload = {
         "decision_id": decision_id.strip(),
         "proposal": review.proposal,
-        "recorded_at": recorded_at.astimezone(timezone.utc).isoformat(),
+        "recorded_at": recorded_at.astimezone(UTC).isoformat(),
         "leadership_recommendation": leadership_recommendation.strip(),
         "judicial_review_reference": judicial_review_reference,
         "evidence_references": evidence_references,
