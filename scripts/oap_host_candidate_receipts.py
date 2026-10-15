@@ -75,7 +75,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("receipts", type=Path)
     args = parser.parse_args()
-    result = assess(json.loads(args.receipts.read_text(encoding="utf-8")))
+    try:
+        document = json.loads(args.receipts.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        print(json.dumps({"ready": False, "structure_valid": False, "live_verified": False,
+                          "cutover_authorised": False, "errors": [f"cannot read valid receipt JSON: {type(exc).__name__}"]}, sort_keys=True))
+        return 1
+    result = assess(document)
     print(json.dumps(result, sort_keys=True))
     return 0 if result["structure_valid"] else 1
 
