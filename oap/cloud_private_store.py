@@ -52,8 +52,8 @@ class PrivateObjectStore:
         stack = ExitStack()
         try:
             root_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
-            root_fd = stack.enter_context(os.fdopen(os.open(self.root, root_flags), "rb"))
-            current = root_fd.fileno()
+            current = os.open(self.root, root_flags)
+            stack.callback(os.close, current)
             for name in ("personal", _owner(owner_id)):
                 if create:
                     try:
@@ -61,8 +61,8 @@ class PrivateObjectStore:
                     except FileExistsError:
                         pass
                 child = os.open(name, root_flags, dir_fd=current)
-                handle = stack.enter_context(os.fdopen(child, "rb"))
-                current = handle.fileno()
+                stack.callback(os.close, child)
+                current = child
             return stack, current
         except BaseException:
             stack.close()
