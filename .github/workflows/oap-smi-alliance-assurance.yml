@@ -26,4 +26,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify SMI assurance evidence gate
-        run: python -m unittest discover -s tests -p 'test_smi_alliance*.py' -v
+        run: python -m unittest discover -s tests -p 'test_smi_alliance_assurance.py' -v
+          python -m unittest discover -s tests -p 'test_smi_alliance_agent_upgrade.py' -v
