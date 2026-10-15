@@ -16,7 +16,7 @@ from flask import (
     url_for,
 )
 
-from . import humanitarian_pulse, postgres_db, pulse_store, web_security
+from . import humanitarian_pulse, postgres_db, pulse_store, web_security, world_link
 
 _PROBE_TTL_SECONDS = 120.0
 _probe_cache: tuple[float, bool] | None = None
@@ -188,6 +188,15 @@ def register(app: Flask) -> None:
             return failure
         name = str(request.form.get("name", "")).strip()[:80]
         body = str(request.form.get("body", "")).strip()[:2000]
+        external_url = str(request.form.get("world_link", "")).strip()
+        if external_url:
+            try:
+                reference = world_link.validate_world_link(external_url)
+            except ValueError:
+                return _error("invalid_world_link", "Use a valid public HTTPS link.", 400)
+            if len(body) + len(reference["url"]) + 2 > 2000:
+                return _error("invalid_world_link", "Link and message are too long.", 400)
+            body = (body + "\\n\\n" if body else "") + reference["url"]
         if not name or not body:
             return _error(
                 "pulse_content_required",
