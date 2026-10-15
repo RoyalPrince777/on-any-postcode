@@ -38,6 +38,8 @@ class PrivateObjectStore:
 
     def __init__(self, root: Path):
         self.root = Path(root)
+        if self.root.is_symlink():
+            raise CloudAccessError('storage root cannot be a symlink')
 
     def put(self, *, owner_id: str, authenticated_owner_id: str, data: bytes) -> str:
         if not owner_id or owner_id != authenticated_owner_id:
@@ -47,6 +49,8 @@ class PrivateObjectStore:
             raise ValueError("invalid object bytes or size")
         directory = self.root / "personal" / owner_key
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if directory.is_symlink() or (self.root / 'personal').is_symlink():
+            raise CloudAccessError('storage directory cannot be a symlink')
         object_id = uuid4().hex
         path = directory / object_id
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
@@ -62,6 +66,8 @@ class PrivateObjectStore:
             raise CloudAccessError("owner mismatch")
         owner_key = _owner(owner_id)
         path = self.root / "personal" / owner_key / _object_id(object_id)
+        if (self.root / 'personal').is_symlink() or path.parent.is_symlink():
+            raise CloudAccessError('storage directory cannot be a symlink')
         # No-follow open closes the symlink replacement race at the final component.
         flags = os.O_RDONLY
         if hasattr(os, "O_NOFOLLOW"):
