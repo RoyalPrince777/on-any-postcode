@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from oap.cloud_private_store import CloudAccessError, MAX_BYTES, PrivateObjectStore
+from oap.cloud_private_store import MAX_BYTES, CloudAccessError, PrivateObjectStore
 
 
 def test_private_roundtrip(tmp_path):
