@@ -1,6 +1,11 @@
 # OAP Cloud — unified infrastructure contract (Founder direction C)
 
-Status: **architecture proposal; not deployed**. One OAP Cloud provides compute and storage foundations. OAP Host runs applications; OAP Drive is the file interface; OAP Home is a private node. Reuse existing systems; do not create a parallel identity, payments or SMI ledger.
+Status: **architecture contract plus an unmerged local private-storage candidate; not deployed**. One OAP Cloud provides compute and storage foundations. OAP Host runs applications; OAP Drive is the file interface; OAP Home is a private node. Reuse existing systems; do not create a parallel identity, payments or SMI ledger.
+
+## Implemented boundary (unmerged candidate)
+- Only local personal private-object put/get code exists. The caller-supplied identity parameters are **not authentication**; no user-facing route may use them without a separately verified server-side principal.
+- Business authorisation, public publication/read, signed links, revocation, malware scanning, audit, durable storage, encryption-at-rest validation and backup restore are **not implemented or verified**.
+- Public access must remain impossible until explicit, independently authorised publication and revocation exist. No filename or logical prefix grants public access.
 
 ## First bounded release
 - Retain existing OAP World front door and existing routes. Do not change Android startup, DNS or production origin.
@@ -26,4 +31,4 @@ Status: **architecture proposal; not deployed**. One OAP Cloud provides compute 
 5. **Hosting:** candidate server provisioned; verify HTTPS, immutable image, /livez, /healthz, auth and rollback.
 6. **Operations:** Guardian and HRM record independent evidence; Founder authorises production promotion separately.
 
-**Current truth:** architecture only; no OAP Cloud storage deployment, no independent host, no live availability proof. Existing Render billing suspension cannot be cleared by changing this document or disabling the routing Green Gate.
+**Current truth:** architecture contract and unmerged local private-object candidate only; no OAP Cloud storage deployment, authenticated OAP Drive integration, public publishing, independent host, live availability proof or backup-restore proof. Existing Render billing suspension cannot be cleared by changing this document or disabling the routing Green Gate.
