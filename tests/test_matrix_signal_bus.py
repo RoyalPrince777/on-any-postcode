@@ -136,3 +136,28 @@ def test_switch_and_ghost_remain_review_only_and_cannot_route() -> None:
             matrix_signal_bus.route_signal(
                 sender="Trinity", topic="Review-only check", recipients=(name,)
             )
+
+
+def test_mission_signal_correlation_preserves_fail_closed_delivery() -> None:
+    signal = matrix_signal_bus.route_signal(
+        sender="Neo", topic="Route inspection", recipients=("Oracle",),
+        mission_id="MATRIX-001", correlation_id="CASE-22",
+        reply_to_signal_id="MATRIX-SIGNAL-PRIOR", consequential=True,
+    )
+    assert signal["mission_id"] == "MATRIX-001"
+    assert signal["correlation_id"] == "CASE-22"
+    assert signal["reply_to_signal_id"] == "MATRIX-SIGNAL-PRIOR"
+    assert signal["delivery_confirmed"] is False
+    assert signal["acknowledged"] is False
+    assert signal["durable_receipt_confirmed"] is False
+    assert signal["execution_granted"] is False
+    assert signal["human_authority_required"] is True
+
+
+@pytest.mark.parametrize("field,value", [
+    ("mission_id", ""), ("correlation_id", " "),
+    ("reply_to_signal_id", "x" * 161), ("mission_id", 123),
+])
+def test_invalid_mission_identifiers_are_rejected(field, value) -> None:
+    with pytest.raises(ValueError, match=field):
+        matrix_signal_bus.route_signal(sender="Trinity", topic="Review", **{field: value})
