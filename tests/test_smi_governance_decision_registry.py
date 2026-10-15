@@ -1,14 +1,14 @@
 """Audit record constraints and truth-boundary tests."""
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from oap.smi.organism_governance import evaluate_governance
 from oap.smi.governance_decision_registry import record_decision
+from oap.smi.organism_governance import evaluate_governance
 
 
 class GovernanceDecisionRegistryTests(unittest.TestCase):
     def setUp(self):
-        self.when = datetime(2026, 10, 15, tzinfo=timezone.utc)
+        self.when = datetime(2026, 10, 15, tzinfo=UTC)
         self.ready = evaluate_governance(
             "Routing rollout", evidence_verified=True,
             independent_judicial_review=True, mandatory_controls_pass=True,
@@ -16,11 +16,12 @@ class GovernanceDecisionRegistryTests(unittest.TestCase):
         )
 
     def make_record(self, review=None, **kwargs):
-        defaults = dict(
-            recorded_at=self.when, leadership_recommendation="Review routing",
-            judicial_review_reference="judicial-report-1",
-            evidence_references=("ci-run-123",),
-        )
+        defaults = {
+            "recorded_at": self.when,
+            "leadership_recommendation": "Review routing",
+            "judicial_review_reference": "judicial-report-1",
+            "evidence_references": ("ci-run-123",),
+        }
         defaults.update(kwargs)
         return record_decision("decision-1", review or self.ready, **defaults)
 
