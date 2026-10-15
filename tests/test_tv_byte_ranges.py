@@ -39,3 +39,13 @@ def test_no_access_or_publication_authority():
     for forbidden in ("@app.", "Blueprint(", "send_file(", "INSERT INTO",
                       "rights_verified = True", "playback_enabled = True"):
         assert forbidden not in source
+
+
+@pytest.mark.parametrize("header", [
+    "bytes=" + "9" * 5000 + "-",
+    "bytes=0-" + "9" * 5000,
+    "bytes=-" + "9" * 5000,
+])
+def test_oversized_numeric_ranges_fail_closed(header):
+    with pytest.raises(UnsatisfiableRange):
+        parse_single_range(header, 100)
