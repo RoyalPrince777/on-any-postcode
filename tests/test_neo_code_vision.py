@@ -1,4 +1,5 @@
 """Regression tests for the read-only Neo Matrix projection."""
+
 import unittest
 
 from mission_control.matrix_command_monitors import neo_code_vision, monitor_snapshot
