@@ -88,8 +88,13 @@ async function act(action,a=null,b=null){
  }
  finally{busy=false;render();}
 }
-q("[data-matchmake]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/matchmake",{game_key:"dot",display_name:q("[data-host]").value.trim()});identity(d,d.seat);await refresh();});
-q("[data-matchmake]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/matchmake",{game_key:"dot",display_name:q("[data-host]").value.trim()});identity(d,d.seat);await refresh();});
+q("[data-matchmake]").onclick=()=>enter(async()=>{
+ const data=await post("/arena/rooms/matchmake",{game_key:"dot",display_name:q("[data-host]").value.trim()});
+ me={room_id:data.room_id,reconnect_token:data.reconnect_token,seat:data.seat};
+ q("[data-entry]").hidden=true;q("[data-match]").hidden=false;
+ q("[data-id]").textContent=me.room_id;q("[data-token]").textContent=me.reconnect_token;
+ note("Match found. Save your private reconnect token.");await refresh();
+});
 q("[data-create]").onclick=()=>enter(async()=>{
  const data=await post("/arena/rooms/create",{
   game_key:"dot",host_name:q("[data-host]").value.trim(),capacity:2,
