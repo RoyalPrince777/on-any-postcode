@@ -73,6 +73,27 @@ def neo_code_vision(observations: Mapping[str, Any] | None = None) -> dict[str, 
     }
 
 
+def matrix_governance_evidence() -> dict[str, dict[str, str]]:
+    """Read existing Matrix governance configuration, not live service health."""
+    topology = matrix_signal_bus.topology()
+    a6 = a6_matrix_execution.status()
+    core_ready = (
+        topology["registered_count"] == len(matrix_signal_bus.CORE_MATRIX_ORDER)
+        and topology["protector"] == "Guardian"
+        and topology["final_authority"] == "Human Authority"
+    )
+    return {
+        "matrix_governance": {
+            "state": "healthy" if core_ready else "degraded",
+            "evidence": "matrix_signal_bus.topology:governance_configuration",
+        },
+        "a6_governance": {
+            "state": "healthy" if a6["enabled"] else "unknown",
+            "evidence": "a6_matrix_execution.status:configuration_not_runtime",
+        },
+    }
+
+
 def monitor_snapshot() -> dict[str, Any]:
     """Return explicitly sourced monitor data for existing War Room UI."""
     topology = matrix_signal_bus.topology()
@@ -110,7 +131,7 @@ def monitor_snapshot() -> dict[str, Any]:
             "recover": "not_connected",
             "approve": "not_available_in_this_projection",
         },
-        "neo_monitor": neo_code_vision(),
+        "neo_monitor": neo_code_vision(matrix_governance_evidence()),
         "full_green": False,
         "founder_final": True,
     }
