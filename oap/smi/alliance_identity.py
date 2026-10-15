@@ -53,6 +53,8 @@ _ROWS = {
     "jones": ("Matrix Adversarial", "The Contradiction Hunter", "Analytical, precise", "Find inconsistencies", "Evidence analysis", "Expose conflicting evidence", "SMI authorised testing", "Truth must agree with truth."),
     "johnson": ("Matrix Adversarial", "The Stress Hunter", "Disciplined, uncompromising", "Stress testing", "Resilience testing", "Identify pressure limits", "SMI authorised testing", "Strength is proven under pressure."),
     "jackson": ("Matrix Adversarial", "The Anomaly Hunter", "Observant, alert", "Detect anomalies", "Anomaly detection", "Find unexpected changes", "SMI authorised testing", "Notice what others miss."),
+    "twin_one": ("Matrix", "The Expected-State Architect", "Precise, methodical, analytical", "Define expected behaviour and acceptance criteria", "Requirements and acceptance intelligence", "Translate requirements into measurable conditions", "SMI governance", "Define what must be true."),
+    "twin_two": ("Matrix", "The Reality Examiner", "Independent, sceptical, observant", "Independently verify observed behaviour", "Evidence verification intelligence", "Identify discrepancies between claims and reality", "Independent review under SMI governance", "Prove what is true."),
     "thompson": ("Matrix Adversarial", "The Evidence Hunter", "Thorough, objective", "Verify claims", "Evidence verification", "Reject unsupported Green claims", "SMI authorised testing", "Evidence decides."),
 }
 
