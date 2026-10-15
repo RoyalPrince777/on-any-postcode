@@ -500,10 +500,10 @@
   <div class="bar"><button type="button" class="btn" id="matrix-wall-focus">Focus / Wall</button><button type="button" class="btn" id="matrix-wall-tv">TV Full Screen</button></div>
   <div class="grid matrix-wall-grid" id="matrix-wall-grid" aria-live="polite">
     <article class="card"><small>01 · MASTER COMMAND</small><strong>SMI War Room</strong><small>Existing mission controls remain in this page.</small></article>
-    <article class="card"><small>02 · INTELLIGENCE</small><strong>Matrix Signal Bus</strong><small>Governed signals; no independent execution.</small></article>
-    <article class="card yellow"><small>03 · PERFORMANCE</small><strong>NOT CONNECTED</strong><small>No CPU, memory or latency telemetry claimed.</small></article>
-    <article class="card yellow"><small>04 · TEST LAB</small><strong>NOT CONNECTED</strong><small>No real test runner connected to this wall.</small></article>
-    <article class="card"><small>05 · SECURITY / RECOVERY</small><strong>Guardian + Green Gate</strong><small>Existing guarded review and recovery controls remain authoritative.</small></article>
+    <article class="card"><small>02 · INTELLIGENCE</small><strong>{{ war_room.matrix_command_monitors.agent_monitor.registered }} registered</strong><small>{{ war_room.matrix_command_monitors.agent_monitor.passport_review }} under passport review · governed signals only.</small></article>
+    <article class="card yellow"><small>03 · PERFORMANCE</small><strong>{{ war_room.matrix_command_monitors.telemetry_monitor.state | upper | replace("_", " ") }}</strong><small>No CPU, memory or latency telemetry claimed.</small></article>
+    <article class="card yellow"><small>04 · TEST LAB</small><strong>{{ war_room.matrix_command_monitors.test_monitor.state | upper | replace("_", " ") }}</strong><small>No real test runner connected to this wall.</small></article>
+    <article class="card"><small>05 · SECURITY / RECOVERY</small><strong>Guardian {{ "REQUIRED" if war_room.matrix_command_monitors.execution_monitor.guardian_required else "UNVERIFIED" }}</strong><small>A6 {{ "enabled" if war_room.matrix_command_monitors.execution_monitor.enabled else "not enabled" }} · existing recovery controls remain authoritative.</small></article>
     <article class="card yellow"><small>06 · WORLD OPERATIONS</small><strong>NOT CONNECTED</strong><small>No live maps or service telemetry claimed.</small></article>
     <article class="card"><small>07 · FOUNDER DISPLAY</small><strong>👑 Founder Final</strong><small>Use existing authenticated War Room decision controls.</small></article>
   </div>
