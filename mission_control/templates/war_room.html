@@ -492,6 +492,28 @@
   });
 })();
 </script>
+
+<section class="panel" id="matrix-command-wall" aria-labelledby="matrix-wall-title">
+  <div class="ey">🟣 Matrix Command · Founder-private War Room</div>
+  <h2 id="matrix-wall-title">Seven-display command wall</h2>
+  <p class="muted">Read-only display mode. Live data is never implied where a source has not been connected.</p>
+  <div class="bar"><button type="button" class="btn" id="matrix-wall-focus">Focus / Wall</button><button type="button" class="btn" id="matrix-wall-tv">TV Full Screen</button></div>
+  <div class="grid matrix-wall-grid" id="matrix-wall-grid" aria-live="polite">
+    <article class="card"><small>01 · MASTER COMMAND</small><strong>SMI War Room</strong><small>Existing mission controls remain in this page.</small></article>
+    <article class="card"><small>02 · INTELLIGENCE</small><strong>Matrix Signal Bus</strong><small>Governed signals; no independent execution.</small></article>
+    <article class="card yellow"><small>03 · PERFORMANCE</small><strong>NOT CONNECTED</strong><small>No CPU, memory or latency telemetry claimed.</small></article>
+    <article class="card yellow"><small>04 · TEST LAB</small><strong>NOT CONNECTED</strong><small>No real test runner connected to this wall.</small></article>
+    <article class="card"><small>05 · SECURITY / RECOVERY</small><strong>Guardian + Green Gate</strong><small>Existing guarded review and recovery controls remain authoritative.</small></article>
+    <article class="card yellow"><small>06 · WORLD OPERATIONS</small><strong>NOT CONNECTED</strong><small>No live maps or service telemetry claimed.</small></article>
+    <article class="card"><small>07 · FOUNDER DISPLAY</small><strong>👑 Founder Final</strong><small>Use existing authenticated War Room decision controls.</small></article>
+  </div>
+</section>
+<style>
+.matrix-wall-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}.matrix-wall-grid .card{min-height:125px}.matrix-wall-grid .card:focus{outline:2px solid var(--pu)}.matrix-wall-grid.is-focus{grid-template-columns:1fr}.matrix-wall-grid.is-focus .card:not(.is-selected){display:none}#matrix-command-wall:fullscreen{background:var(--b);padding:22px;overflow:auto}#matrix-command-wall:fullscreen .matrix-wall-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:760px){.matrix-wall-grid,#matrix-command-wall:fullscreen .matrix-wall-grid{grid-template-columns:1fr}}
+</style>
+<script>
+(()=>{'use strict';const wall=document.getElementById('matrix-command-wall'),grid=document.getElementById('matrix-wall-grid');if(!wall||!grid)return;const cards=[...grid.querySelectorAll('.card')];let selected=0;cards.forEach((card,i)=>{card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label','Focus display '+(i+1));const choose=()=>{selected=i;if(grid.classList.contains('is-focus'))cards.forEach((c,j)=>c.classList.toggle('is-selected',j===selected));};card.addEventListener('click',choose);card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose();}});});document.getElementById('matrix-wall-focus').addEventListener('click',()=>{grid.classList.toggle('is-focus');cards.forEach((c,i)=>c.classList.toggle('is-selected',i===selected));});document.getElementById('matrix-wall-tv').addEventListener('click',()=>{if(document.fullscreenElement){document.exitFullscreen?.();}else{wall.requestFullscreen?.();}});})();
+</script>
 </main><nav class="bottom"><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav>
 <script>
 (()=>{"use strict";
