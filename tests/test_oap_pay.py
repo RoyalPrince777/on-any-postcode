@@ -233,9 +233,9 @@ def test_oap_bank_has_dedicated_install_manifest(client):
     assert manifest["scope"] == "/pay/bank"
     assert manifest["display"] == "standalone"
     assert {item["url"] for item in manifest["shortcuts"]} == {
-        "/pay/bank",
+        "/pay/bank/accounts",
+        "/pay/bank/activity",
         "/pay/bank#capabilities",
-        "/pay",
     }
 
 
