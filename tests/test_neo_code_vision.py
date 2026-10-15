@@ -39,8 +39,7 @@ class NeoCodeVisionTests(unittest.TestCase):
             {"state": "healthy", "evidence": ""},
             {"state": "not_a_real_state", "evidence": "check:1"},
         ):
-            with self.subTest(observation=observation):
-                with self.assertRaises(ValueError):
+            with self.subTest(observation=observation), self.assertRaises(ValueError):
                     neo_code_vision({"sample": observation})
 
     def test_monitor_includes_neo_without_invented_telemetry(self):
