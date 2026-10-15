@@ -1,0 +1,79 @@
+name: OAP routing Greater London real proof
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  london:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      OAP_ROUTING_PBF_URL: https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate standalone deployment
+        run: docker compose -f routing/compose.yaml config --quiet
+      - name: Start real Greater London OSRM
+        run: docker compose -f routing/compose.yaml up --build -d osrm
+      - name: Verify London route with navigation steps
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          import urllib.request
+          url = 'http://127.0.0.1:10000/route/v1/driving/-0.1687,51.4036;-0.0877,51.5079?overview=full&steps=true&geometries=geojson'
+          def proof():
+              with urllib.request.urlopen(url, timeout=10) as response:
+                  data = json.load(response)
+              routes = data.get('routes') or []
+              if data.get('code') != 'Ok' or not routes:
+                  raise ValueError('OSRM route not Ok')
+              route = routes[0]
+              if not (route.get('distance', 0) > 0 and route.get('duration', 0) > 0):
+                  raise ValueError('Missing positive distance/duration')
+              if len(route.get('geometry', {}).get('coordinates', [])) < 2:
+                  raise ValueError('Missing route geometry')
+              if not any(step.get('maneuver', {}).get('type') for leg in route.get('legs', []) for step in leg.get('steps', [])):
+                  raise ValueError('Missing navigation maneuvers')
+              return route
+          last = 'not ready'
+          for attempt in range(1050):
+              try:
+                  route = proof()
+                  print('PASS: London route, steps, distance, duration', route['distance'], route['duration'])
+                  break
+              except (OSError, ValueError, KeyError) as exc:
+                  last = str(exc)
+                  time.sleep(4)
+          else:
+              raise SystemExit('FAIL: London route not ready: ' + last)
+          PY
+      - name: Verify restart with persisted London graph
+        run: |
+          docker compose -f routing/compose.yaml restart osrm
+          python - <<'PY'
+          import json
+          import time
+          import urllib.request
+          url = 'http://127.0.0.1:10000/route/v1/driving/-0.1687,51.4036;-0.0877,51.5079?overview=false'
+          for _ in range(60):
+              try:
+                  with urllib.request.urlopen(url, timeout=5) as response:
+                      result = json.load(response)
+                  if result.get('code') == 'Ok' and result.get('routes'):
+                      print('PASS: London graph survives container restart')
+                      break
+              except (OSError, ValueError):
+                  pass
+              time.sleep(2)
+          else:
+              raise SystemExit('FAIL: London route unavailable after restart')
+          PY
+      - name: Report service logs
+        if: always()
+        run: docker compose -f routing/compose.yaml logs --no-color --tail=150
+      - name: Record external boundary
+        run: echo 'London CI proof is local only; public HTTPS endpoint and external Green Gate remain unverified.'

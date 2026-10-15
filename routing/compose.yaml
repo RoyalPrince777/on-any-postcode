@@ -1,0 +1,30 @@
+name: oap-routing
+services:
+  road-data:
+    image: curlimages/curl:8.12.1
+    user: "0:0"
+    environment:
+      OAP_ROUTING_PBF_URL: ${OAP_ROUTING_PBF_URL:-https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf}
+    entrypoint: ["/bin/sh", "/opt/oap/download-road-data.sh"]
+    volumes:
+      - routing-data:/data
+      - ./download-road-data.sh:/opt/oap/download-road-data.sh:ro
+    restart: "no"
+  osrm:
+    build:
+      context: ..
+      dockerfile: routing/Dockerfile
+    environment:
+      PORT: "10000"
+      OAP_ROUTING_DATA_DIR: /data
+    depends_on:
+      road-data:
+        condition: service_completed_successfully
+    ports:
+      # Local access only. External access requires a separately configured HTTPS reverse proxy.
+      - "127.0.0.1:10000:10000"
+    volumes:
+      - routing-data:/data
+    restart: unless-stopped
+volumes:
+  routing-data:

@@ -9,6 +9,15 @@ import pytest
 from scripts import routing_live_green_gate as gate
 
 
+def test_green_gate_requires_explicit_https_origin(monkeypatch):
+    for value in ("", "http://routing.example", "https://routing.example/path", "https://user:pass@routing.example"):
+        monkeypatch.setattr(gate, "BASE", value)
+        with pytest.raises(SystemExit, match="explicit HTTPS endpoint origin"):
+            gate.validate_base_url()
+    monkeypatch.setattr(gate, "BASE", "https://routing.example")
+    gate.validate_base_url()
+
+
 @pytest.mark.parametrize(
     ("failure", "expected_type"),
     [
@@ -17,6 +26,7 @@ from scripts import routing_live_green_gate as gate
     ],
 )
 def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, expected_type):
+    monkeypatch.setattr(gate, "BASE", "https://routing.example")
     def fail_request(*args, **kwargs):
         raise failure
 
@@ -30,6 +40,7 @@ def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, ex
 
 
 def test_non_object_json_is_bounded_failure(monkeypatch):
+    monkeypatch.setattr(gate, "BASE", "https://routing.example")
     class FakeResponse:
         status = 200
 
@@ -51,8 +62,10 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
 
 
 def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
+    monkeypatch.setattr(gate, "BASE", "https://routing.example")
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     samples = (
         {"route_id": "a", "ok": True, "elapsed_s": 0.2},
         {"route_id": "b", "ok": False, "elapsed_s": 10.0, "failure_type": "timeout"},
@@ -77,8 +90,10 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
 
 
 def test_probe_preserves_p95_limit(monkeypatch, capsys):
+    monkeypatch.setattr(gate, "BASE", "https://routing.example")
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(
         gate,
         "run_one",

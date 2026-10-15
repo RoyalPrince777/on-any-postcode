@@ -1,0 +1,51 @@
+name: OAP SMI alliance assurance
+
+on:
+  push:
+    paths:
+      - 'oap/smi/alliance_assurance.py'
+      - 'tests/test_smi_alliance_assurance.py'
+      - 'tests/test_smi_alliance_agent_upgrade.py'
+      - 'oap/smi/alliance_agent_upgrade.py'
+      - 'oap/smi/founder_decision_attestation.py'
+      - 'tests/test_smi_founder_decision_attestation.py'
+      - 'oap/smi/governance_audit_store.py'
+      - 'tests/test_smi_governance_audit_store.py'
+      - 'oap/smi/governance_decision_registry.py'
+      - 'tests/test_smi_governance_decision_registry.py'
+      - 'oap/smi/organism_governance.py'
+      - 'tests/test_smi_organism_governance.py'
+      - '.github/workflows/oap-smi-alliance-assurance.yml'
+  pull_request:
+    paths:
+      - 'oap/smi/alliance_assurance.py'
+      - 'tests/test_smi_alliance_assurance.py'
+      - 'tests/test_smi_alliance_agent_upgrade.py'
+      - 'oap/smi/alliance_agent_upgrade.py'
+      - 'oap/smi/founder_decision_attestation.py'
+      - 'tests/test_smi_founder_decision_attestation.py'
+      - 'oap/smi/governance_audit_store.py'
+      - 'tests/test_smi_governance_audit_store.py'
+      - 'oap/smi/governance_decision_registry.py'
+      - 'tests/test_smi_governance_decision_registry.py'
+      - 'oap/smi/organism_governance.py'
+      - 'tests/test_smi_organism_governance.py'
+      - '.github/workflows/oap-smi-alliance-assurance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assurance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify SMI assurance evidence gate
+        run: |
+          python -m unittest discover -s tests -p 'test_smi_alliance_assurance.py' -v
+          python -m unittest discover -s tests -p 'test_smi_alliance_agent_upgrade.py' -v
+          python -m unittest discover -s tests -p 'test_smi_organism_governance.py' -v
+          python -m unittest discover -s tests -p 'test_smi_governance_decision_registry.py' -v
+          python -m unittest discover -s tests -p 'test_smi_governance_audit_store.py' -v
+          python -m unittest discover -s tests -p 'test_smi_founder_decision_attestation.py' -v
