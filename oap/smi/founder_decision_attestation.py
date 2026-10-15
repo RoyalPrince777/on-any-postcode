@@ -15,6 +15,12 @@ from hashlib import sha256
 from oap.smi.governance_decision_registry import DecisionRecord
 
 
+def _valid_record_hash(record: DecisionRecord) -> bool:
+    payload = {key: value for key, value in record.__dict__.items() if key != "record_hash"}
+    digest = sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return hmac.compare_digest(digest, record.record_hash)
+
+
 @dataclass(frozen=True)
 class FounderAttestation:
     decision_id: str
@@ -55,6 +61,8 @@ def sign_founder_decision(
     secret: bytes,
 ) -> FounderAttestation:
     """Only call after independent Founder authentication and key access checks."""
+    if not _valid_record_hash(record):
+        raise ValueError("invalid governance record hash")
     if len(secret) < 32 or not founder_id.strip():
         raise ValueError("strong secret and Founder ID required")
     if decision not in ("APPROVED", "REJECTED"):
@@ -85,7 +93,8 @@ def verify_founder_decision(
     secret: bytes,
 ) -> bool:
     """Fail closed; a valid attestation never directly authorises execution."""
-    if len(secret) < 32 or now.tzinfo is None or now.utcoffset() is None:
+    if (not _valid_record_hash(record) or len(secret) < 32
+            or now.tzinfo is None or now.utcoffset() is None):
         return False
     if (attestation.decision_id != record.decision_id
             or attestation.record_hash != record.record_hash
