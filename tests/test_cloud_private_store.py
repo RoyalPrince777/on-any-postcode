@@ -42,3 +42,32 @@ def test_symlink_is_denied(tmp_path):
     (directory / object_id).symlink_to(tmp_path / "target")
     with pytest.raises(CloudAccessError):
         store.get(owner_id="alice", authenticated_owner_id="alice", object_id=object_id)
+
+
+def test_binary_integrity_and_distinct_objects(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    payload = bytes(range(256)) * 256
+    first = store.put(owner_id="alice", authenticated_owner_id="alice", data=payload)
+    second = store.put(owner_id="alice", authenticated_owner_id="alice", data=payload)
+    assert first != second
+    assert store.get(owner_id="alice", authenticated_owner_id="alice", object_id=first) == payload
+    assert store.get(owner_id="alice", authenticated_owner_id="alice", object_id=second) == payload
+
+
+def test_unknown_object_cannot_be_read(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="alice", authenticated_owner_id="alice", object_id="a" * 32)
+
+
+def test_oversized_object_on_disk_denied(tmp_path):
+    import hashlib
+
+    store = PrivateObjectStore(tmp_path)
+    owner_key = hashlib.sha256(b"alice").hexdigest()
+    directory = tmp_path / "personal" / owner_key
+    directory.mkdir(parents=True)
+    object_id = "b" * 32
+    (directory / object_id).write_bytes(b"x" * (MAX_BYTES + 1))
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="alice", authenticated_owner_id="alice", object_id=object_id)
