@@ -11,7 +11,10 @@ Historical percentages MUST NOT be relabelled as verified completion. Unknown me
 ## State transitions
 proposed -> scoped -> implemented -> tested -> merged -> deployed -> operational. A transition requires evidence specific to that state. blocked and recovery_required are explicit states, not cosmetic percentage deductions. A blocked mission retains its last independently verified state as a separate field; recovery returns only to that state after a documented repair, rerun of the failing gate, and accountable review. A later transition still requires its own evidence. Never skip evidence gates or infer a transition from a PR description.
 
-## Gate decisions and authority\nGuardian decisions are scoped security findings (allow, deny, or review), not proof of runtime operation. HRM receipts identify immutable evidence references, exact commit/build target, timestamp, and reviewer; a receipt alone is not an approval. Founder decisions record the approved scope and reserved actions. A transition to tested requires test evidence; merged requires a merge SHA; deployed requires deployment evidence; operational requires observed runtime proof. Before security-sensitive deployment, Guardian must allow the exact scope and HRM must record the evidence. Public release, device flashing, provider execution, and other Founder-reserved actions require separate explicit Founder authorisation. A missing, stale, or denied required gate blocks advancement. Advisory agents cannot override these decisions.\n\n## Mission-to-100 evidence gates
+## Gate decisions and authority
+Guardian decisions are scoped security findings (allow, deny, or review), not proof of runtime operation. HRM receipts identify immutable evidence references, exact commit/build target, timestamp, and reviewer; a receipt alone is not an approval. Founder decisions record the approved scope and reserved actions. A transition to tested requires test evidence; merged requires a merge SHA; deployed requires deployment evidence; operational requires observed runtime proof. Before security-sensitive deployment, Guardian must allow the exact scope and HRM must record the evidence. Public release, device flashing, provider execution, and other Founder-reserved actions require separate explicit Founder authorisation. A missing, stale, or denied required gate blocks advancement. Advisory agents cannot override these decisions.
+
+## Mission-to-100 evidence gates
 1. Inspect and reuse existing code, passports, and architecture before adding modules.
 2. Name one accountable lead and only necessary supporting roles; no duplicate authority.
 3. Verify agent passports before activation. Advisory role selection never implies spawned workers.
@@ -53,6 +56,18 @@ Tigress vs Tygress; historical Mouse removal vs later Founder restoration; Agent
 
 ## Existing open Digital Silicon gate
 Draft PR #1242, commit 65e2cabd9b06c7eb17d208fdde995e8b3ec73dfe: runtime image succeeded; 5,447 regression tests passed; overall governed checks failed because bounded external live routing Green Gate warmup did not become ready. This is a historical commit-specific CI snapshot, not a standing acceptance receipt. Recheck the exact candidate commit and applicable live gates before advancement; do not mark full Green.
+
+
+## Founder-approved execution discipline — no waste, no false Green
+- **One continuous bounded workstream:** SMI and Captain ALL IN inspect, implement, test, repair and re-test without stopping for repeated permission after every small correction. Escalate only when scope, security, cost, irreversible changes or reserved Founder authority requires it.
+- **No unnecessary stages or status loops:** Consolidate overlapping checks and reports. A status-only response is not delivery when bounded execution is available. Report once at a meaningful checkpoint or blocker using Done / Next / Recovery.
+- **No demos as completion:** Prototypes, mocks, simulations and historical percentages are labelled as such. Prefer real tests when feasible; test doubles may isolate unit behaviour but never replace live deployment proof.
+- **No cosmetic percentages:** Publish a measured percentage only with a declared denominator, acceptance criteria, exact target and current evidence. Otherwise use `unknown` and evidence-backed states. Never calculate a Green percentage from passed subchecks while a mandatory gate fails.
+- **Upgrade only:** Preserve functioning paths, security, user data, backwards compatibility and rollback. No weakening Guardian, production routing gates, auth, audit or Founder-reserved controls to accelerate CI.
+- **Failure handling:** One root-cause investigation, smallest safe correction, exact-commit regression and applicable live-gate rerun; avoid duplicate recovery PRs and repeated identical CI retries while an external billing suspension remains.
+- **Ratings and votes:** Any stars or votes are advisory prioritisation with named criteria and evidence, never a replacement for acceptance or operational proof. Do not invent consensus or test scores.
+- **Mission to 100:** 100% means every explicitly scoped mandatory acceptance criterion is independently proven in the target environment, including live operational gates where required. A blocked mandatory gate means not complete; do not extrapolate a percentage.
+- **Current OAP Host boundary (2026-10-15):** Fox recovery documentation and receipt validation are committed on a separate branch; governed run 38741166381 failed the bounded external live routing Green Gate. Render billing suspension and unprovisioned independent hosting prevent an operational Green claim. No production cutover is authorised.
 
 ## Acceptance for this protocol
 Documentation review and explicit Founder approval are required before implementation. This file alone does not constitute an agent upgrade, automatic tracking, runtime enforcement, or operating-system deployment.
