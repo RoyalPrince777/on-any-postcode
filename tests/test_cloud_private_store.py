@@ -97,3 +97,48 @@ def test_no_public_storage_api(tmp_path):
     store = PrivateObjectStore(tmp_path)
     assert not hasattr(store, "publish")
     assert not hasattr(store, "public_get")
+
+
+def test_existing_owner_directory_with_broad_permissions_rejected(tmp_path):
+    import hashlib
+    import os
+
+    owner_key = hashlib.sha256(b"alice").hexdigest()
+    directory = tmp_path / "personal" / owner_key
+    directory.mkdir(parents=True)
+    os.chmod(tmp_path / "personal", 0o700)
+    os.chmod(directory, 0o755)
+    store = PrivateObjectStore(tmp_path)
+    with pytest.raises(CloudAccessError):
+        store.put(owner_id="alice", authenticated_owner_id="alice", data=b"secret")
+
+
+def test_failed_write_cleans_incomplete_object(tmp_path, monkeypatch):
+    import hashlib
+
+    import oap.cloud_private_store as cloud
+
+    store = PrivateObjectStore(tmp_path)
+    original_fdopen = cloud.os.fdopen
+
+    class BrokenWriter:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def write(self, _data):
+            raise OSError("disk write failed")
+
+    def fail_write(fd, mode):
+        if mode == "wb":
+            cloud.os.close(fd)
+            return BrokenWriter()
+        return original_fdopen(fd, mode)
+
+    monkeypatch.setattr(cloud.os, "fdopen", fail_write)
+    with pytest.raises(OSError, match="disk write failed"):
+        store.put(owner_id="alice", authenticated_owner_id="alice", data=b"secret")
+    owner_key = hashlib.sha256(b"alice").hexdigest()
+    assert list((tmp_path / "personal" / owner_key).iterdir()) == []
