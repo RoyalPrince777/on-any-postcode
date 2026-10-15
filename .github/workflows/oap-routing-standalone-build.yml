@@ -33,6 +33,36 @@ jobs:
           PY
       - name: Build existing first-party OSRM container
         run: docker compose -f routing/compose.yaml build osrm
-      - name: Record build-only boundary
+      - name: Start real small-region OSRM smoke service
+        env:
+          OAP_ROUTING_PBF_URL: https://download.geofabrik.de/europe/monaco-latest.osm.pbf
+        run: docker compose -f routing/compose.yaml up --build -d osrm
+      - name: Verify real Monaco route geometry
         run: |
-          echo 'OAP routing container build complete; no graph preprocessing, deployment, HTTPS endpoint or live Green Gate proven.'
+          python - <<'PY'
+          import json
+          import time
+          import urllib.error
+          import urllib.request
+          url = 'http://127.0.0.1:10000/route/v1/driving/7.4170,43.7340;7.4240,43.7380?overview=full&geometries=geojson'
+          last = 'not started'
+          for _ in range(120):
+              try:
+                  with urllib.request.urlopen(url, timeout=5) as response:
+                      data = json.load(response)
+                  routes = data.get('routes') or []
+                  if data.get('code') == 'Ok' and routes and routes[0].get('distance', 0) > 0 and routes[0].get('duration', 0) > 0 and len(routes[0].get('geometry', {}).get('coordinates', [])) > 1:
+                      print('PASS: real OSRM route with nonempty geometry, distance and duration')
+                      break
+                  last = str(data)[:500]
+              except (OSError, ValueError, KeyError) as exc:
+                  last = repr(exc)
+              time.sleep(3)
+          else:
+              raise SystemExit('FAIL: no verified OSRM route after 6 minutes: ' + last)
+          PY
+      - name: Report smoke service logs
+        if: always()
+        run: docker compose -f routing/compose.yaml logs --no-color --tail=100
+      - name: Record remaining external boundary
+        run: echo 'Local real-route proof complete; external HTTPS deployment and live Green Gate are NOT proven.'
