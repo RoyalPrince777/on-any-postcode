@@ -62,6 +62,18 @@ class PrivateObjectStore:
             raise CloudAccessError("owner mismatch")
         owner_key = _owner(owner_id)
         path = self.root / "personal" / owner_key / _object_id(object_id)
+        # No-follow open closes the symlink replacement race at the final component.
+        flags = os.O_RDONLY
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
         if path.is_symlink():
             raise CloudAccessError("symlink forbidden")
-        return path.read_bytes()
+        try:
+            fd = os.open(path, flags)
+        except OSError as exc:
+            raise CloudAccessError("object unavailable or unsafe") from exc
+        with os.fdopen(fd, "rb") as stream:
+            data = stream.read(MAX_BYTES + 1)
+        if len(data) > MAX_BYTES:
+            raise CloudAccessError("object exceeds limit")
+        return data
