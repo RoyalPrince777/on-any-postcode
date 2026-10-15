@@ -1,10 +1,12 @@
 FROM ghcr.io/project-osrm/osrm-backend:v5.27.1
 
 USER root
-RUN rm -rf /var/lib/apt/lists/* \
-    && apt-get update -o Acquire::Retries=3 \
-    && apt-get install -y --no-install-recommends wget ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# Use existing base-image utilities only when they are actually present.
+# Avoid stale Debian Bullseye package indexes and fail the build if HTTPS
+# download prerequisites are unavailable. Do not silently downgrade TLS.
+RUN command -v wget >/dev/null \
+    && test -s /etc/ssl/certs/ca-certificates.crt
+
 
 COPY routing/bootstrap.sh /usr/local/bin/oap-routing-bootstrap
 RUN chmod 0755 /usr/local/bin/oap-routing-bootstrap
