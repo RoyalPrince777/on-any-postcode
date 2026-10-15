@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import pytest
 
-
 UNKNOWN_PUBLIC_PATH = "/matrix-proof-this-route-must-not-exist-7f3d9a"
 
 
