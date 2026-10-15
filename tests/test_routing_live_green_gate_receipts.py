@@ -18,7 +18,6 @@ def test_green_gate_requires_explicit_https_origin(monkeypatch):
     gate.validate_base_url()
 
 
-
 @pytest.mark.parametrize(
     ("failure", "expected_type"),
     [
@@ -27,6 +26,7 @@ def test_green_gate_requires_explicit_https_origin(monkeypatch):
     ],
 )
 def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, expected_type):
+    monkeypatch.setattr(gate, "BASE", "https://routing.example")
     def fail_request(*args, **kwargs):
         raise failure
 
@@ -40,6 +40,7 @@ def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, ex
 
 
 def test_non_object_json_is_bounded_failure(monkeypatch):
+    monkeypatch.setattr(gate, "BASE", "https://routing.example")
     class FakeResponse:
         status = 200
 
