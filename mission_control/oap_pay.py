@@ -325,7 +325,7 @@ def bank_manifest():
         "id": "/pay/bank",
         "name": "OAP Bank",
         "short_name": "OAP Bank",
-        "description": "Evidence-gated OAP Bank capability and readiness dashboard.",
+        "description": "Standalone OAP Bank app for SIKA accounts, activity and evidence-gated banking features.",
         "start_url": "/pay/bank",
         "scope": "/pay/bank",
         "display": "standalone",
@@ -336,9 +336,9 @@ def bank_manifest():
             {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png"},
         ],
         "shortcuts": [
-            {"name": "Bank Status", "short_name": "Status", "url": "/pay/bank"},
-            {"name": "Capability Status", "short_name": "Capabilities", "url": "/pay/bank#capabilities"},
-            {"name": "OAP Pay", "short_name": "OAP Pay", "url": "/pay"},
+            {"name": "Accounts", "short_name": "Accounts", "url": "/pay/bank/accounts"},
+            {"name": "Activity", "short_name": "Activity", "url": "/pay/bank/activity"},
+            {"name": "Bank Status", "short_name": "Status", "url": "/pay/bank#capabilities"},
         ],
     }
     response = jsonify(manifest)
