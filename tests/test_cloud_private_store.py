@@ -71,3 +71,29 @@ def test_oversized_object_on_disk_denied(tmp_path):
     (directory / object_id).write_bytes(b"x" * (MAX_BYTES + 1))
     with pytest.raises(CloudAccessError):
         store.get(owner_id="alice", authenticated_owner_id="alice", object_id=object_id)
+
+
+def test_other_owner_cannot_read_known_object_id(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    object_id = store.put(owner_id="alice", authenticated_owner_id="alice", data=b"alice secret")
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="alice", authenticated_owner_id="bob", object_id=object_id)
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="bob", authenticated_owner_id="bob", object_id=object_id)
+
+
+def test_owner_directory_symlink_is_denied(tmp_path):
+    import hashlib
+
+    store = PrivateObjectStore(tmp_path)
+    owner_key = hashlib.sha256(b"alice").hexdigest()
+    (tmp_path / "personal").mkdir()
+    (tmp_path / "personal" / owner_key).symlink_to(tmp_path)
+    with pytest.raises(OSError):
+        store.put(owner_id="alice", authenticated_owner_id="alice", data=b"secret")
+
+
+def test_no_public_storage_api(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    assert not hasattr(store, "publish")
+    assert not hasattr(store, "public_get")
