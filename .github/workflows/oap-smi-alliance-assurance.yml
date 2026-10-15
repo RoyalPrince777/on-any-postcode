@@ -1,0 +1,25 @@
+name: OAP SMI alliance assurance
+
+on:
+  push:
+    paths:
+      - 'oap/smi/alliance_assurance.py'
+      - 'tests/test_smi_alliance_assurance.py'
+      - '.github/workflows/oap-smi-alliance-assurance.yml'
+  pull_request:
+    paths:
+      - 'oap/smi/alliance_assurance.py'
+      - 'tests/test_smi_alliance_assurance.py'
+      - '.github/workflows/oap-smi-alliance-assurance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assurance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify SMI assurance evidence gate
+        run: python -m unittest discover -s tests -p test_smi_alliance_assurance.py -v
