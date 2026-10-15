@@ -239,6 +239,21 @@ def test_oap_bank_has_dedicated_install_manifest(client):
     }
 
 
+def test_oap_bank_dedicated_icon_is_served(client):
+    manifest = client.get("/pay/bank/manifest.webmanifest").get_json()
+    bank_icon = next(
+        icon for icon in manifest["icons"]
+        if icon["src"] == "/assets/oap-bank-icon.svg"
+    )
+    assert bank_icon["type"] == "image/svg+xml"
+    assert bank_icon["sizes"] == "any"
+    response = client.get(bank_icon["src"])
+    assert response.status_code == 200
+    assert response.mimetype == "image/svg+xml"
+    assert b"<svg" in response.data
+    assert b"OAP" in response.data
+
+
 def test_oap_bank_page_is_installable_mobile_shell(client):
     page = client.get("/pay/bank")
     body = page.get_data(as_text=True)
