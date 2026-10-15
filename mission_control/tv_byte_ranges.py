@@ -46,6 +46,9 @@ def parse_single_range(header: str, total: int) -> ByteRange:
     if match is None:
         raise UnsatisfiableRange("single bytes range required")
     first, last = match.groups()
+    # Reject oversized numeric fields before int conversion; keep failures controlled.
+    if len(first) > 20 or len(last) > 20:
+        raise UnsatisfiableRange("range bounds too large")
     if not first and not last:
         raise UnsatisfiableRange("missing bounds")
     if first:
