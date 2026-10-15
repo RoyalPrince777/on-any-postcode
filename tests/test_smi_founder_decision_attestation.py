@@ -51,6 +51,18 @@ class FounderDecisionAttestationTests(unittest.TestCase):
     def test_changed_record_rejected(self):
         self.assertFalse(self.valid(replace(self.record, record_hash="0" * 64)))
 
+    def test_tampered_record_body_rejected(self):
+        self.assertFalse(self.valid(replace(self.record, proposal="Tampered")))
+
+    def test_cannot_sign_tampered_record(self):
+        with self.assertRaises(ValueError):
+            sign_founder_decision(
+                replace(self.record, proposal="Tampered"),
+                founder_id="founder", decision="APPROVED",
+                issued_at=self.now, expires_at=self.now + timedelta(minutes=5),
+                secret=self.secret,
+            )
+
     def test_wrong_founder_rejected(self):
         self.assertFalse(self.valid(founder="other"))
 
