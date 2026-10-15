@@ -7,7 +7,7 @@ from oap.smi.alliance_identity import ALLIANCE_IDENTITIES, get_alliance_identity
 
 
 def test_alliance_identity_contract_is_complete():
-    assert len(ALLIANCE_IDENTITIES) == 32
+    assert len(ALLIANCE_IDENTITIES) == 34
     for agent_id, agent in ALLIANCE_IDENTITIES.items():
         assert agent_id
         assert all(isinstance(value, str) and value.strip() for value in vars(agent).values())
@@ -31,3 +31,13 @@ def test_unknown_agent_does_not_gain_authority():
 def test_identity_metadata_is_immutable():
     with pytest.raises(FrozenInstanceError):
         get_alliance_identity("tank").command = "self-authorised"
+
+
+def test_twins_independently_define_and_verify():
+    expected = get_alliance_identity("twin_one")
+    observed = get_alliance_identity("twin_two")
+    assert expected.family == observed.family == "Matrix"
+    assert expected.primary_role != observed.primary_role
+    assert expected.motto == "Define what must be true."
+    assert observed.motto == "Prove what is true."
+    assert "Independent" in observed.command
