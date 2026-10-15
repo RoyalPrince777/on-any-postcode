@@ -63,5 +63,10 @@ def test_missing_operator_is_blocked():
 
 
 def test_non_object_is_blocked():
-    assert assess([], now=NOW)["ready"] is False
-    assert assess({"receipts": "yes"}, now=NOW)["structure_valid"] is False
+    for malformed in ([], None, "invalid", {"receipts": "yes"}, {"receipts": None}):
+        result = assess(malformed, now=NOW)
+        assert result["ready"] is False
+        assert result["structure_valid"] is False
+        assert result["live_verified"] is False
+        assert result["cutover_authorised"] is False
+        assert result["errors"]
