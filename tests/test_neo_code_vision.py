@@ -46,7 +46,10 @@ class NeoCodeVisionTests(unittest.TestCase):
     def test_monitor_includes_neo_without_invented_telemetry(self):
         snapshot = monitor_snapshot()
         self.assertIn("neo_monitor", snapshot)
-        self.assertEqual(snapshot["neo_monitor"]["code_vision"]["state"], "not_connected")
+        self.assertEqual(snapshot["neo_monitor"]["code_vision"]["state"], "evidence_supplied")
+        self.assertEqual(snapshot["neo_monitor"]["code_vision"]["source"], "caller_supplied_evidence")
+        self.assertEqual(len(snapshot["neo_monitor"]["code_vision"]["observations"]), 2)
+        self.assertFalse(snapshot["neo_monitor"]["full_green"])
         self.assertEqual(snapshot["telemetry_monitor"]["state"], "not_connected")
         self.assertFalse(snapshot["full_green"])
 
