@@ -5,11 +5,15 @@ on:
     paths:
       - 'oap/smi/alliance_assurance.py'
       - 'tests/test_smi_alliance_assurance.py'
+      - 'tests/test_smi_alliance_agent_upgrade.py'
+      - 'oap/smi/alliance_agent_upgrade.py'
       - '.github/workflows/oap-smi-alliance-assurance.yml'
   pull_request:
     paths:
       - 'oap/smi/alliance_assurance.py'
       - 'tests/test_smi_alliance_assurance.py'
+      - 'tests/test_smi_alliance_agent_upgrade.py'
+      - 'oap/smi/alliance_agent_upgrade.py'
       - '.github/workflows/oap-smi-alliance-assurance.yml'
   workflow_dispatch:
 
@@ -22,4 +26,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify SMI assurance evidence gate
-        run: python -m unittest discover -s tests -p test_smi_alliance_assurance.py -v
+        run: python -m unittest tests.test_smi_alliance_assurance tests.test_smi_alliance_agent_upgrade -v
