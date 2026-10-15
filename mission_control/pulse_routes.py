@@ -196,7 +196,7 @@ def register(app: Flask) -> None:
                 return _error("invalid_world_link", "Use a valid public HTTPS link.", 400)
             if len(body) + len(reference["url"]) + 2 > 2000:
                 return _error("invalid_world_link", "Link and message are too long.", 400)
-            body = (body + "\\n\\n" if body else "") + reference["url"]
+            body = (body + "\n\n" if body else "") + reference["url"]
         if not name or not body:
             return _error(
                 "pulse_content_required",
