@@ -8,6 +8,7 @@ import pytest
 
 from scripts import routing_live_green_gate as gate
 
+
 def test_green_gate_requires_explicit_https_origin(monkeypatch):
     for value in ("", "http://routing.example", "https://routing.example/path", "https://user:pass@routing.example"):
         monkeypatch.setattr(gate, "BASE", value)
