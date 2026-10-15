@@ -7,6 +7,8 @@ on:
       - 'tests/test_smi_alliance_assurance.py'
       - 'tests/test_smi_alliance_agent_upgrade.py'
       - 'oap/smi/alliance_agent_upgrade.py'
+      - 'oap/smi/organism_governance.py'
+      - 'tests/test_smi_organism_governance.py'
       - '.github/workflows/oap-smi-alliance-assurance.yml'
   pull_request:
     paths:
@@ -14,6 +16,8 @@ on:
       - 'tests/test_smi_alliance_assurance.py'
       - 'tests/test_smi_alliance_agent_upgrade.py'
       - 'oap/smi/alliance_agent_upgrade.py'
+      - 'oap/smi/organism_governance.py'
+      - 'tests/test_smi_organism_governance.py'
       - '.github/workflows/oap-smi-alliance-assurance.yml'
   workflow_dispatch:
 
@@ -29,3 +33,4 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_smi_alliance_assurance.py' -v
           python -m unittest discover -s tests -p 'test_smi_alliance_agent_upgrade.py' -v
+          python -m unittest discover -s tests -p 'test_smi_organism_governance.py' -v
