@@ -2,7 +2,11 @@
 import unittest
 
 from oap.smi.organism_governance import (
-    ASSIGNMENTS, DIMENSIONS, FUNCTIONS, MASTER_VITALS, evaluate_governance,
+    ASSIGNMENTS,
+    DIMENSIONS,
+    FUNCTIONS,
+    MASTER_VITALS,
+    evaluate_governance,
 )
 
 
@@ -15,7 +19,7 @@ class OrganismGovernanceTests(unittest.TestCase):
 
     def test_every_dimension_has_one_governance_home(self):
         self.assertEqual(set(ASSIGNMENTS), set(FUNCTIONS))
-        assigned = sum((list(ASSIGNMENTS[key]) for key in FUNCTIONS), [])
+        assigned = [dimension for key in FUNCTIONS for dimension in ASSIGNMENTS[key]]
         self.assertEqual(set(assigned), set(DIMENSIONS))
         self.assertEqual(len(assigned), len(set(assigned)))
 
