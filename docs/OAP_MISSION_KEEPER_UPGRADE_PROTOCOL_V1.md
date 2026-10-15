@@ -43,6 +43,11 @@ Target an AOSP-supported virtual device first. Record exact AOSP revision, build
 ## Alliance role mapping (advisory, not worker activation)
 Architect: OS architecture; Neo: engineering review; Spider: dependencies; Octopus: integration orchestration; Fox: local-first build portability; Bagheera + Seraph: boundary/security review; Tigress: precise implementation; Shere Khan: adversarial checks; Elephant: evidence/recovery; Owl: independent assessment; Queen Bee: distributed coordination only when independent worker streams exist; Captain: mission register and consolidated report; Guardian: security gate (system, not agent); HRM: evidence system; Founder: final authority.
 
+## Matrix Alliance: protection, recovery and twin verification (advisory only)
+Tank and Dozer are brothers with distinct responsibilities: Tank protects functioning paths and operational continuity; Dozer plans bounded repair and recovery. Neither can override Guardian security decisions or initiate unapproved production changes.
+The Twins form a paired evidence-review protocol, not duplicate authorities or presumed active workers. Twin One records the expected state and its acceptance criteria; Twin Two independently checks observed state and discrepancies. Independence requires distinct evidence review, not merely repeating one result. Disagreements remain unresolved blockers until reviewed by the accountable lead and recorded by HRM; Guardian governs security-sensitive outcomes and Founder retains reserved decisions.
+These names describe proposed specialist assignments only. Verify existing agent passports and registrations before any runtime activation; no worker creation, monitoring, merge, or deployment follows from this document.
+
 ## Passport discrepancies to reconcile before activation
 Tigress vs Tygress; historical Mouse removal vs later Founder restoration; Agent Smith candidate vs registered role. Never silently invent registration or activate candidates.
 
