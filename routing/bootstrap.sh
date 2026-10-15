@@ -2,15 +2,10 @@
 set -eu
 
 DATA_DIR="${OAP_ROUTING_DATA_DIR:-/data}"
-PBF_URL="${OAP_ROUTING_PBF_URL:-https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf}"
 PBF="$DATA_DIR/greater-london.osm.pbf"
 BASE="$DATA_DIR/oap"
 PROFILE="/opt/car.lua"
 
-case "$PBF_URL" in
-  https://*) ;;
-  *) echo "OAP Routing: refusing non-HTTPS source" >&2; exit 64 ;;
-esac
 
 mkdir -p "$DATA_DIR"
 
@@ -18,11 +13,11 @@ mkdir -p "$DATA_DIR"
 # extract is source data; all route computation is performed by this service.
 if [ ! -f "$BASE.osrm.partition" ] || [ ! -f "$BASE.osrm.cells" ]; then
   echo "OAP Routing: preparing Greater London road graph"
-  rm -f "$BASE".osrm* "$PBF.tmp"
-  # OSRM v6 uses BusyBox wget, which supports HTTPS URLs but not GNU wget's
-  # --https-only option. The scheme check above keeps this fail-closed.
-  wget -q -O "$PBF.tmp" "$PBF_URL"
-  mv "$PBF.tmp" "$PBF"
+  if [ ! -s "$PBF" ]; then
+    echo "OAP Routing: missing prepared road extract at $PBF" >&2
+    exit 65
+  fi
+  rm -f "$BASE".osrm*
   osrm-extract -p "$PROFILE" "$PBF"
   # osrm-extract names output from the PBF stem; normalize it to /data/oap.*
   STEM="${PBF%.osm.pbf}"
