@@ -49,10 +49,10 @@ class FounderDecisionAttestationTests(unittest.TestCase):
         self.assertFalse(self.valid(replace(self.proof, decision="REJECTED")))
 
     def test_changed_record_rejected(self):
-        self.assertFalse(self.valid(replace(self.record, record_hash="0" * 64)))
+        self.assertFalse(self.valid(record=replace(self.record, record_hash="0" * 64)))
 
     def test_tampered_record_body_rejected(self):
-        self.assertFalse(self.valid(replace(self.record, proposal="Tampered")))
+        self.assertFalse(self.valid(record=replace(self.record, proposal="Tampered")))
 
     def test_cannot_sign_tampered_record(self):
         with self.assertRaises(ValueError):
