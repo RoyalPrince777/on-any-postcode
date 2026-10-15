@@ -181,6 +181,9 @@ def route_signal(
     evidence: Iterable[str] = (),
     requested_action: str = "review",
     consequential: bool = False,
+    mission_id: str | None = None,
+    correlation_id: str | None = None,
+    reply_to_signal_id: str | None = None,
 ) -> dict[str, Any]:
     """Create a bounded Matrix Signal envelope without taking external action."""
 
@@ -196,6 +199,10 @@ def route_signal(
         raise ValueError("Signal topic is required")
     if confidence is not None and not 0 <= confidence <= 1:
         raise ValueError("confidence must be between 0 and 1")
+
+    for label, value in (("mission_id", mission_id), ("correlation_id", correlation_id), ("reply_to_signal_id", reply_to_signal_id)):
+        if value is not None and (not isinstance(value, str) or not value.strip() or len(value) > 160):
+            raise ValueError(f"{label} must be a nonempty string of at most 160 characters")
 
     routed_recipients = _normalise_recipients(recipients)
     evidence_items = tuple(
@@ -216,6 +223,12 @@ def route_signal(
     return {
         "signal_id": f"MATRIX-SIGNAL-{uuid4().hex[:12].upper()}",
         "timestamp_utc": _now(),
+        "mission_id": mission_id.strip() if mission_id else None,
+        "correlation_id": correlation_id.strip() if correlation_id else None,
+        "reply_to_signal_id": reply_to_signal_id.strip() if reply_to_signal_id else None,
+        "delivery_confirmed": False,
+        "acknowledged": False,
+        "durable_receipt_confirmed": False,
         "sender": sender,
         "sender_channel": MATRIX_ROLE_CHANNELS[sender],
         "topic": topic,
