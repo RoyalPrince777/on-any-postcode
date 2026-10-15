@@ -19,10 +19,10 @@ def assess(document: object, *, now: dt.datetime | None = None) -> dict[str, obj
     now = now or dt.datetime.now(dt.timezone.utc)
     errors: list[str] = []
     if not isinstance(document, dict):
-        return {"ready": False, "errors": ["receipt document must be an object"]}
+        return {"ready": False, "structure_valid": False, "live_verified": False, "cutover_authorised": False, "errors": ["receipt document must be an object"]}
     receipts = document.get("receipts")
     if not isinstance(receipts, list):
-        return {"ready": False, "errors": ["receipts must be a list"]}
+        return {"ready": False, "structure_valid": False, "live_verified": False, "cutover_authorised": False, "errors": ["receipts must be a list"]}
     seen: set[str] = set()
     common_incident: str | None = None
     common_host: str | None = None
