@@ -61,6 +61,10 @@ class PrivateObjectStore:
                     except FileExistsError:
                         pass
                 child = os.open(name, root_flags, dir_fd=current)
+                info = os.fstat(child)
+                if info.st_mode & 0o077:
+                    os.close(child)
+                    raise CloudAccessError("storage directory permissions too broad")
                 stack.callback(os.close, child)
                 current = child
             return stack, current
@@ -78,8 +82,12 @@ class PrivateObjectStore:
             object_id = uuid4().hex
             flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
             fd = os.open(object_id, flags, 0o600, dir_fd=directory_fd)
-            with os.fdopen(fd, "wb") as stream:
-                stream.write(data)
+            try:
+                with os.fdopen(fd, "wb") as stream:
+                    stream.write(data)
+            except BaseException:
+                os.unlink(object_id, dir_fd=directory_fd)
+                raise
             return object_id
 
     def get(self, *, owner_id: str, authenticated_owner_id: str, object_id: str) -> bytes:
