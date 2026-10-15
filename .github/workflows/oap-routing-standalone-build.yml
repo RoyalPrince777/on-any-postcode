@@ -1,0 +1,35 @@
+name: OAP routing standalone build
+
+on:
+  push:
+    paths:
+      - 'routing/**'
+      - 'tests/test_routing_standalone_compose_contract.py'
+      - '.github/workflows/oap-routing-standalone-build.yml'
+  pull_request:
+    paths:
+      - 'routing/**'
+      - 'tests/test_routing_standalone_compose_contract.py'
+      - '.github/workflows/oap-routing-standalone-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate standalone Compose definition
+        run: docker compose -f routing/compose.yaml config --quiet
+      - name: Verify routing deployment contract
+        run: |
+          python -m pip install --disable-pip-version-check pytest
+          python -m pytest -q tests/test_routing_standalone_compose_contract.py
+      - name: Build existing first-party OSRM container
+        run: docker compose -f routing/compose.yaml build osrm
+      - name: Record build-only boundary
+        run: |
+          echo 'OAP routing container build complete; no graph preprocessing, deployment, HTTPS endpoint or live Green Gate proven.'
