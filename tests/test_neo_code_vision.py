@@ -2,7 +2,7 @@
 
 import unittest
 
-from mission_control.matrix_command_monitors import neo_code_vision, monitor_snapshot
+from mission_control.matrix_command_monitors import monitor_snapshot, neo_code_vision
 
 
 class NeoCodeVisionTests(unittest.TestCase):
