@@ -31,7 +31,7 @@ This runbook prepares a provider-independent **candidate**. It does not assert l
 Only after candidate proof, plan an explicit reversible traffic change and observe the new origin. Keep the old service and rollback path available. Do not silently rewrite Android startup URLs, the SMI gateway upstream or hard-coded Render origins. Audit each dependency before any origin switch.
 
 ## Current known blocker (2026-10-14)
-Render suspended the existing service for monthly quota exceeded. OAP Host Core has deployment and rollback execution disabled. A separate candidate host has **not** been provisioned or proven.
+The Render workspace has billing suspension; the latest account check (2026-10-15) showed all 18 services suspended, including all three OAP routing services. Do not assume a monthly quota cause without account billing evidence. OAP Host Core has deployment and rollback execution disabled. A separate candidate host has **not** been provisioned or proven.
 
 ## Fox route decision — 2026-10-15
 - **Route A, existing provider:** Restore the billing-suspended Render workspace through its authorised account owner. Do not treat CI retries as restoration evidence.
@@ -39,3 +39,9 @@ Render suspended the existing service for monthly quota exceeded. OAP Host Core 
 - **Route C, reversible fallback:** Retain existing origin and Android URLs until independent host, auth, live routing and rollback proofs pass and Founder explicitly authorises cutover.
 - **CI evidence boundary:** The 2026-10-15 governed run for commit `6b006b7967f1c5855b73489c92aa0b972c0a41bd` failed at the bounded external live routing Green Gate. This does not prove portable-host readiness. No gate bypass, fabricated success or production traffic switch is permitted.
 - **Ownership:** Fox proposes routes; Tank protects existing service state; Dozer repairs bounded defects; the Twins compare expected versus observed evidence; Guardian owns security review; HRM records receipts; Founder reserves cutover approval. These are role assignments, not claims of running agents.
+
+## Candidate execution without a hosting choice (2026-10-15)
+- **Laptop path — private validation only:** A founder-controlled laptop may build and inspect the reviewed runtime container locally. Bind any test listener to loopback, use non-production data and disposable secrets, and keep external routing and production Neon writes disabled. A successful laptop test is **not** a public hosting or live-routing receipt.
+- **Internet-host path — deployment candidate:** An authorised server or hosting account must exist before attempting remote deployment. Require TLS, secret management, fixed reviewed image digest, health and auth probes, rollback and audited network paths. Do not provision billable resources, move traffic or copy credentials without explicit operator approval.
+- **Shared next proof:** Record the exact runtime image digest, build revision, local validation outcome, host operator and intended exposure. If no host is selected, mark external availability BLOCKED rather than guessing a provider or treating localhost as Green.
+- **External Green Gate:** Never stub, disable or weaken the production probe to accommodate a suspended origin. The unit-test warmup isolation in Mission Keeper is distinct from this real external check.
