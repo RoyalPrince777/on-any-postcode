@@ -7,6 +7,8 @@ on:
       - 'tests/test_smi_alliance_assurance.py'
       - 'tests/test_smi_alliance_agent_upgrade.py'
       - 'oap/smi/alliance_agent_upgrade.py'
+      - 'oap/smi/governance_audit_store.py'
+      - 'tests/test_smi_governance_audit_store.py'
       - 'oap/smi/governance_decision_registry.py'
       - 'tests/test_smi_governance_decision_registry.py'
       - 'oap/smi/organism_governance.py'
@@ -18,6 +20,8 @@ on:
       - 'tests/test_smi_alliance_assurance.py'
       - 'tests/test_smi_alliance_agent_upgrade.py'
       - 'oap/smi/alliance_agent_upgrade.py'
+      - 'oap/smi/governance_audit_store.py'
+      - 'tests/test_smi_governance_audit_store.py'
       - 'oap/smi/governance_decision_registry.py'
       - 'tests/test_smi_governance_decision_registry.py'
       - 'oap/smi/organism_governance.py'
@@ -39,3 +43,4 @@ jobs:
           python -m unittest discover -s tests -p 'test_smi_alliance_agent_upgrade.py' -v
           python -m unittest discover -s tests -p 'test_smi_organism_governance.py' -v
           python -m unittest discover -s tests -p 'test_smi_governance_decision_registry.py' -v
+          python -m unittest discover -s tests -p 'test_smi_governance_audit_store.py' -v
