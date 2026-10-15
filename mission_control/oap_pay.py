@@ -332,6 +332,7 @@ def bank_manifest():
         "background_color": "#050706",
         "theme_color": "#050706",
         "icons": [
+            {"src": "/assets/oap-bank-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"},
             {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png"},
             {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png"},
         ],
