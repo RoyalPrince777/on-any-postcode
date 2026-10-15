@@ -4,7 +4,8 @@ No side effects, synthetic telemetry, permission changes or execution.
 """
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from . import a6_matrix_execution, matrix_signal_bus
 
