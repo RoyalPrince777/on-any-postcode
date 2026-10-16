@@ -69,3 +69,33 @@ def test_runtime_bridge_fails_closed_on_missing_worker(monkeypatch):
     assert result["runtime"]["worker_fresh"] is False
     assert result["runtime"]["ready"] is False
     assert result["ready"] is False
+
+
+def test_master_vitals_never_invent_unmeasured_health(monkeypatch):
+    from mission_control import organism_runtime
+    from mission_control.kernel_anatomy_readiness import MASTER_VITALS, master_vitals_snapshot
+
+    monkeypatch.setattr(
+        organism_runtime,
+        "runtime_status",
+        lambda: {"ready": True, "schema_ready": True, "worker_fresh": True, "error": None},
+    )
+    result = master_vitals_snapshot()
+    assert tuple(item["name"] for item in result["vitals"]) == MASTER_VITALS
+    assert result["vitals"][0]["status"] == "UNVERIFIED"
+    assert all(item["status"] == "UNKNOWN" for item in result["vitals"][1:])
+    assert result["ready"] is False
+
+
+def test_master_vitals_degrade_when_runtime_is_unready(monkeypatch):
+    from mission_control import organism_runtime
+    from mission_control.kernel_anatomy_readiness import master_vitals_snapshot
+
+    monkeypatch.setattr(
+        organism_runtime,
+        "runtime_status",
+        lambda: {"ready": False, "schema_ready": False, "worker_fresh": False, "error": "runtime_schema_pending"},
+    )
+    result = master_vitals_snapshot()
+    assert result["vitals"][0]["status"] == "DEGRADED"
+    assert result["ready"] is False
