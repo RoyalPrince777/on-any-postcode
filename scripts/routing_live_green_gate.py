@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import os
 import statistics
 import time
 from urllib import error, parse, request
 
-BASE = "https://oap-routing.onrender.com"
+RENDER_HOST_SUFFIX = ".onrender.com"
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
@@ -21,6 +22,32 @@ WARMUP_TIMEOUT_SECONDS = 10
 WARMUP_SLEEP_SECONDS = 2.0
 
 
+def routing_base() -> str:
+    raw = os.environ.get("OAP_ROUTING_BASE_URL", "").strip()
+    if not raw:
+        raise SystemExit("OAP_ROUTING_BASE_URL is required for the live routing gate")
+    try:
+        parsed = parse.urlsplit(raw)
+        port = parsed.port
+    except ValueError:
+        raise SystemExit("OAP routing base URL must be a valid HTTPS origin") from None
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or port not in (None, 443)
+        or parsed.path not in ("", "/")
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise SystemExit("OAP routing base URL must be an HTTPS origin without credentials, path, query or fragment")
+    hostname = parsed.hostname.lower()
+    if hostname == "onrender.com" or hostname.endswith(RENDER_HOST_SUFFIX):
+        raise SystemExit("Render routing endpoints are not accepted for the OAP-hosted Green Gate")
+    return raw.rstrip("/")
+
+
 def _route_url(index: int) -> str:
     from_lon, from_lat, to_lon, to_lat, _route_id = ROUTES[index % len(ROUTES)]
     coords = f"{from_lon},{from_lat};{to_lon},{to_lat}"
@@ -32,7 +59,7 @@ def _route_url(index: int) -> str:
             "geometries": "geojson",
         }
     )
-    return f"{BASE}/route/v1/driving/{coords}?{query}"
+    return f"{routing_base()}/route/v1/driving/{coords}?{query}"
 
 
 def wait_until_ready() -> dict[str, object]:
