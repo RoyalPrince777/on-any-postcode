@@ -31,6 +31,9 @@ LINK_SCHEMA_STATEMENTS = (
 LINK_SCHEMA_CHECKSUM = hashlib.sha256(
     "\n".join(LINK_SCHEMA_STATEMENTS).encode()
 ).hexdigest()
+LINK_SCHEMA_LOCK_KEY = 25800761
+LINK_TABLE = "oap_distribution_market_links"
+LINK_INDEX = "ix_distribution_market_links_owner_created"
 
 
 class DistributionMarketLinkDenied(ValueError):
@@ -144,12 +147,51 @@ def read_link(*, owner_identity_id: object, order_id: object) -> dict[str, objec
     }
 
 
-def init_link_schema(*, assume_yes: bool = False, dry_run: bool = True) -> dict[str, object]:
-    """Prepare the association table only with explicit human approval.
+def schema_status() -> dict[str, object]:
+    """Read-only readiness for the canonical Distribution × Market link schema."""
+    result: dict[str, object] = {
+        "migration": LINK_SCHEMA_VERSION,
+        "checksum": LINK_SCHEMA_CHECKSUM,
+        "schema_ready": False,
+        "table_ready": False,
+        "index_ready": False,
+        "migration_recorded": False,
+        "error": None,
+    }
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            table = connection.execute(
+                """SELECT 1 FROM information_schema.tables
+                   WHERE table_schema='public' AND table_name=%s""",
+                (LINK_TABLE,),
+            ).fetchone()
+            index = connection.execute(
+                """SELECT 1 FROM pg_indexes
+                   WHERE schemaname='public' AND indexname=%s""",
+                (LINK_INDEX,),
+            ).fetchone()
+            migration = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (LINK_SCHEMA_VERSION,),
+            ).fetchone()
+    except Exception:  # noqa: BLE001 - readiness is redacted and fail-closed.
+        result["error"] = "distribution_market_schema_unavailable"
+        return result
 
-    dry_run defaults True so importing/calling this module cannot mutate storage
-    accidentally.
-    """
+    result["table_ready"] = table is not None
+    result["index_ready"] = index is not None
+    result["migration_recorded"] = migration is not None
+    if migration is not None and str(migration[0]) != LINK_SCHEMA_CHECKSUM:
+        result["error"] = "distribution_market_schema_checksum_mismatch"
+    elif not all((table, index, migration)):
+        result["error"] = "distribution_market_schema_pending"
+    else:
+        result["schema_ready"] = True
+    return result
+
+
+def init_link_schema(*, assume_yes: bool = False, dry_run: bool = True) -> dict[str, object]:
+    """Apply the link schema transactionally after explicit Human Authority approval."""
     if not assume_yes:
         raise RuntimeError("Explicit human approval required: pass --yes")
     if dry_run:
@@ -158,19 +200,41 @@ def init_link_schema(*, assume_yes: bool = False, dry_run: bool = True) -> dict[
             "migration": LINK_SCHEMA_VERSION,
             "checksum": LINK_SCHEMA_CHECKSUM,
             "statements": len(LINK_SCHEMA_STATEMENTS),
+            "applied": False,
         }
+
     with postgres_db.connect() as connection:
-        for statement in LINK_SCHEMA_STATEMENTS:
-            connection.execute(statement)
-        connection.execute(
-            """INSERT INTO oap_schema_migrations(version,checksum)
-               VALUES (%s,%s) ON CONFLICT (version) DO NOTHING""",
-            (LINK_SCHEMA_VERSION, LINK_SCHEMA_CHECKSUM),
-        )
-        connection.commit()
+        try:
+            connection.execute(
+                "SELECT pg_advisory_xact_lock(%s)",
+                (LINK_SCHEMA_LOCK_KEY,),
+            )
+            existing = connection.execute(
+                "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+                (LINK_SCHEMA_VERSION,),
+            ).fetchone()
+            if existing is not None and str(existing[0]) != LINK_SCHEMA_CHECKSUM:
+                raise RuntimeError("distribution_market_schema_checksum_mismatch")
+            applied = existing is None
+            if applied:
+                for statement in LINK_SCHEMA_STATEMENTS:
+                    connection.execute(statement)
+                connection.execute(
+                    """INSERT INTO oap_schema_migrations(version,checksum)
+                       VALUES (%s,%s)""",
+                    (LINK_SCHEMA_VERSION, LINK_SCHEMA_CHECKSUM),
+                )
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+
+    status = schema_status()
+    if status.get("schema_ready") is not True:
+        raise RuntimeError("distribution_market_schema_not_ready_after_migration")
     return {
+        **status,
         "dry_run": False,
-        "migration": LINK_SCHEMA_VERSION,
-        "checksum": LINK_SCHEMA_CHECKSUM,
         "statements": len(LINK_SCHEMA_STATEMENTS),
+        "applied": applied,
     }
