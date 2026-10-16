@@ -149,6 +149,8 @@ jobs:
           OAP_PRIMARY_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
           OAP_REAL_POSTGRES_PROOF: "1"
         run: python -m pytest -q tests/test_distribution_market_postgres_integration.py tests/test_all_in_ai_postgres_executor_integration.py
+      - name: Validate portable OSRM Compose configuration
+        run: docker compose -f compose.routing.yml config --quiet
       - name: Run bounded external live routing Green Gate probe
         env:
           OAP_ROUTING_GREEN_GATE_BASE_URL: ${{ vars.OAP_ROUTING_GREEN_GATE_BASE_URL }}
