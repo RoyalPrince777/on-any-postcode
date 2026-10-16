@@ -36,6 +36,20 @@ jobs:
           done
           echo "Real OSRM route verification failed" >&2
           exit 1
+      - name: Prove Living Kernel observer against actual OSRM
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from mission_control.living_kernel_routing_observation import observe_local_routing
+          receipt = observe_local_routing(timeout=5.0)
+          assert receipt["verified"] is True, receipt
+          assert receipt["state"] == "LOCAL_ROUTE_VERIFIED", receipt
+          assert receipt["public_https_verified"] is False, receipt
+          assert receipt["production_green_gate_passed"] is False, receipt
+          assert receipt["geometry_points"] >= 2, receipt
+          print("Real local OSRM observation verified; production Green remains unproven.")
+          PY
       - name: Prove real container restart and routing recovery
         shell: bash
         run: |
