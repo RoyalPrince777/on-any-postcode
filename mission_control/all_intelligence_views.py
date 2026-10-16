@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template
 
-from . import all_intelligence, intelligence_runtime_proof, web_security
+from . import (
+    all_intelligence,
+    intelligence_runtime_proof,
+    matrix_runtime_certificate,
+    web_security,
+)
 
 bp = Blueprint(
     "all_intelligence",
@@ -51,3 +56,11 @@ def runtime():
     """Return bounded/live/full runtime proof without performing network calls."""
 
     return _no_store(make_response(jsonify(intelligence_runtime_proof.status())))
+
+
+@bp.get("/matrix")
+@web_security.login_required(api=True, founder_only=True)
+def matrix_runtime():
+    """Return the Founder-safe Matrix Runtime Certificate."""
+
+    return _no_store(make_response(jsonify(matrix_runtime_certificate.status())))
