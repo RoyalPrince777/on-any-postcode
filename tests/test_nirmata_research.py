@@ -1,7 +1,11 @@
 """Regression coverage for Nirmata's advisory research contract."""
 import pytest
 
-from mission_control.nirmata_research import ANATOMY_LENSES, research_blueprint, verify_blueprint_integrity
+from mission_control.nirmata_research import (
+    ANATOMY_LENSES,
+    research_blueprint,
+    verify_blueprint_integrity,
+)
 
 
 def _blueprint(**changes):
