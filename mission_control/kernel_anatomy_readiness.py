@@ -83,6 +83,8 @@ def runtime_anatomy_snapshot() -> dict[str, Any]:
         "worker_fresh": status.get("worker_fresh") is True,
         "error": status.get("error"),
         "observed_at": observed_at,
+        "retry_jobs": _nonnegative_count(status.get("retry")),
+        "dead_letter_jobs": _nonnegative_count(status.get("dead_letter")),
     }
     return projection
 
@@ -115,5 +117,40 @@ def master_vitals_snapshot() -> dict[str, Any]:
         "ready": False,
         "consequential_execution": False,
         "vitals": vitals,
+        "anatomy": anatomy,
+    }
+
+
+def _nonnegative_count(value: object) -> int | None:
+    """Reject absent, boolean, negative and malformed recovery counters."""
+    return value if type(value) is int and value >= 0 else None
+
+
+def continuity_evidence_snapshot() -> dict[str, Any]:
+    """Report actual queue-recovery signals, never claim recovered work.
+
+    Retries and dead letters are evidence of work needing attention, not
+    evidence that a job recovered. No jobs are enqueued or retried here.
+    """
+    anatomy = runtime_anatomy_snapshot()
+    runtime = anatomy["runtime"]
+    retries = runtime["retry_jobs"]
+    dead_letters = runtime["dead_letter_jobs"]
+    if not runtime["ready"]:
+        state = "DEGRADED"
+    elif retries is None or dead_letters is None:
+        state = "UNKNOWN"
+    elif dead_letters > 0:
+        state = "DEGRADED"
+    elif retries > 0:
+        state = "ATTENTION"
+    else:
+        state = "UNVERIFIED"
+    return {
+        "status": state,
+        "recovery_proven": False,
+        "ready": False,
+        "retry_jobs": retries,
+        "dead_letter_jobs": dead_letters,
         "anatomy": anatomy,
     }
