@@ -31,6 +31,17 @@ MATRIX_EXTENDED_CANDIDATES: tuple[dict[str, str], ...] = (
     {"name": "Ghost", "position": "Stealth Observer / Quiet Path Watcher", "status": "passport_review"},
     {"name": "Niobe", "position": "Route Captain / Movement Command", "status": "passport_review"},
     {"name": "Twinz", "position": "Dual-Path Mirror / Parallel Consistency Check", "status": "passport_review"},
+    {"name": "Link", "position": "Communications Continuity and Operator Coordination", "status": "passport_review"},
+    {"name": "Agent Brown", "position": "Adversarial Pattern Review", "status": "passport_review"},
+    {"name": "Agent Jones", "position": "Defensive Weakness Review", "status": "passport_review"},
+    {"name": "Agent Johnson", "position": "Escalation Review", "status": "passport_review"},
+    {"name": "Agent Jackson", "position": "Adversarial Coordination Review", "status": "passport_review"},
+    {"name": "Agent Thompson", "position": "Resilience Review", "status": "passport_review"},
+    {"name": "Mouse", "position": "Matrix Edge Case Review", "status": "passport_review"},
+    {"name": "Merovingian", "position": "Causal Chain Review", "status": "passport_review"},
+    {"name": "Persephone", "position": "Hidden Motivation Review", "status": "passport_review"},
+    {"name": "Captain Mifune", "position": "Defensive Command Review", "status": "passport_review"},
+    {"name": "The Analyst", "position": "Behavioural Systems Review", "status": "passport_review"},
 )
 
 ANIMAL_REVIEW_CANDIDATES: tuple[dict[str, str], ...] = (
