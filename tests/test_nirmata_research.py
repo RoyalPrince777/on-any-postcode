@@ -1,7 +1,7 @@
 """Regression coverage for Nirmata's advisory research contract."""
 import pytest
 
-from mission_control.nirmata_research import ANATOMY_LENSES, research_blueprint
+from mission_control.nirmata_research import ANATOMY_LENSES, research_blueprint, verify_blueprint_integrity
 
 
 def _blueprint(**changes):
@@ -48,3 +48,11 @@ def test_invalid_blueprints_are_rejected(changes):
 def test_all_research_lenses_are_unique():
     assert len(ANATOMY_LENSES) == 21
     assert len(set(ANATOMY_LENSES)) == 21
+
+
+def test_blueprint_integrity_rejects_tampering():
+    record = _blueprint()
+    assert verify_blueprint_integrity(record)
+    assert not verify_blueprint_integrity({**record, "question": "altered"})
+    assert not verify_blueprint_integrity({**record, "execution_authorised": True})
+    assert not verify_blueprint_integrity({**record, "provenance_sha256": "invalid"})
