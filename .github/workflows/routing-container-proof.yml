@@ -36,6 +36,28 @@ jobs:
           done
           echo "Real OSRM route verification failed" >&2
           exit 1
+      - name: Prove real container restart and routing recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(docker compose -f compose.routing.yml ps -q routing)"
+          test -n "$before"
+          docker kill "$before"
+          recovered=0
+          for attempt in $(seq 1 24); do
+            after="$(docker compose -f compose.routing.yml ps -q routing)"
+            if [ -n "$after" ] && [ "$(docker inspect -f '{{.State.Running}}' "$after")" = true ]; then
+              if docker compose -f compose.routing.yml exec -T routing sh -c 'wget -q -O - "http://127.0.0.1:10000/route/v1/driving/-0.1687,51.4036;-0.0877,51.5079?overview=full&geometries=geojson"' > /tmp/oap-recovered-route.json; then
+                if python -c 'import json; p=json.load(open("/tmp/oap-recovered-route.json")); r=p["routes"][0]; assert p["code"]=="Ok" and r["distance"]>0 and r["duration"]>0 and r["geometry"]["type"]=="LineString" and len(r["geometry"]["coordinates"])>=2'; then
+                  recovered=1
+                  break
+                fi
+              fi
+            fi
+            sleep 5
+          done
+          test "$recovered" -eq 1 || { echo "Actual container restart/recovery not proven" >&2; exit 1; }
+          echo "Real container restarted after forced termination and valid route recovered (CI only)."
       - name: Capture actual container evidence on failure
         if: failure()
         run: |
