@@ -154,6 +154,8 @@ jobs:
       - name: Observe bounded external live weather proof
         continue-on-error: true
         run: python scripts/weather_live_green_gate.py
+      - name: Run bounded external live Arena Green Gate probe
+        run: python scripts/arena_live_green_gate.py
       - name: Preserve regression report
         if: always()
         uses: actions/upload-artifact@v4
