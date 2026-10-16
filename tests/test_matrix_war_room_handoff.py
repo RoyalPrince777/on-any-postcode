@@ -19,9 +19,9 @@ def test_canonical_war_room_exposes_matrix_topology_without_promoting_candidates
     result = war_room.get_war_room_dashboard()
     matrix = result["matrix_signal_bus"]
     assert matrix["registered_count"] == 7
-    assert matrix["extended_review_count"] == 8
+    assert matrix["extended_review_count"] == 19
     assert matrix["full_green"] is False
-    assert len(matrix["participants"]) == 15
+    assert len(matrix["participants"]) == 26
     for item in matrix["participants"]:
         assert item["can_execute"] is False
         if item["status"] == "passport_review":
@@ -40,8 +40,8 @@ def test_consequential_signal_handoff_is_not_a_vote_receipt_or_approval():
     assert pack["actual_agent_votes"] == ()
     assert pack["simulated_specialist_views"] == ()
     assert pack["registered_core_count"] == 7
-    assert pack["extended_review_count"] == 8
-    assert len(pack["candidate_review_roster"]) == 8
+    assert pack["extended_review_count"] == 19
+    assert len(pack["candidate_review_roster"]) == 19
     assert pack["hrm_receipt_required"] is True
     assert pack["hrm_receipt_recorded"] is False
     assert pack["guardian_required"] is True
@@ -52,7 +52,7 @@ def test_consequential_signal_handoff_is_not_a_vote_receipt_or_approval():
     assert pack["full_green"] is False
 
 
-@pytest.mark.parametrize("sender", matrix_signal_bus.EXTENDED_REVIEW_ORDER)
+@pytest.mark.parametrize("sender", matrix_signal_bus.EXTENDED_REVIEW_ORDER + matrix_signal_bus.ADDITIONAL_REVIEW_ORDER)
 def test_review_only_candidate_cannot_be_a_war_room_signal_sender(sender):
     signal = consequential_signal()
     signal["sender"] = sender
