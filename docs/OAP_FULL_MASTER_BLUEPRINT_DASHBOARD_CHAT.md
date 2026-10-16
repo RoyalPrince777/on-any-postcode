@@ -806,3 +806,161 @@ Intelligent does not mean authorised.
 Connected does not mean public.
 Built does not mean proven.
 Green means proven.
+
+## 26. Master Blueprint 101 — capability map, not stages
+
+This expansion is **101 capabilities, not 101 progress stages**. The items are a canonical control map for deciding ownership, evidence and next work. They do not create 101 approval stops, extra brains, duplicate products or cosmetic completion percentages.
+
+Truth states used here:
+
+```text
+BUILT    = implemented in the current architecture/code family
+BOUNDED  = implemented but intentionally limited by safety, evidence or authority
+GATED    = requires live proof, certification, regulation, external dependency or separately authorised execution
+```
+
+A capability may move between BOUNDED and GATED only when real evidence changes. Green is still awarded by the existing Truth + Evidence / Green Gate rules, not by this list.
+
+### Core organism and governance
+
+B101-001 · One World / One Front Door · Owner: OAP World · BUILT
+B101-002 · One governed SMI brain · Owner: SMI · BUILT
+B101-003 · Human Authority final · Owner: Human Authority · BUILT
+B101-004 · Identity verification boundary · Owner: Identity Engine · BUILT
+B101-005 · Permission verification boundary · Owner: Identity + Guardian · BUILT
+B101-006 · Living Kernel approval handoff · Owner: Living Kernel · BOUNDED
+B101-007 · Body-system execution separation · Owner: Body Systems · BUILT
+B101-008 · HRM / JOOG memory separation · Owner: HRM · BUILT
+B101-009 · Public/private route separation · Owner: Infrastructure + Guardian · BUILT
+B101-010 · No self-permission expansion · Owner: Guardian · BUILT
+B101-011 · No self-constitution change · Owner: Human Authority · BUILT
+B101-012 · Upgrade-only / no duplicate-system law · Owner: Architecture Intelligence · BUILT
+
+### Master interface and command structure
+
+B101-013 · Home door · Owner: SMI Command Center · BUILT
+B101-014 · SMI door · Owner: SMI Command Center · BUILT
+B101-015 · Signals door · Owner: SMI Command Center · BUILT
+B101-016 · Guardian door · Owner: SMI Command Center · BUILT
+B101-017 · War Room door · Owner: SMI Command Center · BUILT
+B101-018 · Intelligence door · Owner: SMI Command Center · BUILT
+B101-019 · HRM / JOOG door · Owner: SMI Command Center · BUILT
+B101-020 · Control door · Owner: SMI Command Center · BUILT
+B101-021 · Incoming door · Owner: Link Up / Incoming · BUILT
+B101-022 · My World door · Owner: My World · BUILT
+B101-023 · Settings door · Owner: SMI Settings · BUILT
+
+### Mission, intelligence and decision support
+
+B101-024 · Mission link · Owner: Mission Control · BUILT
+B101-025 · Continue / 🟣 link · Owner: SMI Chat · BUILT
+B101-026 · Risk / Guardian link · Owner: Guardian · BUILT
+B101-027 · War Room / Judgement link · Owner: War Room · BUILT
+B101-028 · Founder Final / 🟢 link · Owner: Human Authority · BUILT
+B101-029 · Recovery / Rollback link · Owner: Green Gate · BUILT
+B101-030 · Outcome / Learning link · Owner: HRM · BUILT
+B101-031 · Auto intelligence depth · Owner: SMI Router · BUILT
+B101-032 · Instant 3 depth · Owner: SMI Router · BUILT
+B101-033 · Think 7 depth · Owner: SMI Router · BUILT
+B101-034 · Deep Dive 21 depth · Owner: SMI Router · BUILT
+B101-035 · 26 intelligence lenses · Owner: SMI Brain · BUILT
+B101-036 · 21 Core Review Signals · Owner: SMI Brain · BUILT
+
+### Guardian, safety and adversarial review
+
+B101-037 · Action-risk classification · Owner: Guardian / Action Risk · BUILT
+B101-038 · High-impact detection · Owner: Guardian · BUILT
+B101-039 · Aegis technical boundary · Owner: Aegis · BUILT
+B101-040 · Privacy review · Owner: Guardian · BUILT
+B101-041 · Security review · Owner: Guardian · BUILT
+B101-042 · Consent boundary · Owner: Guardian + Identity · BUILT
+B101-043 · Reversibility requirement · Owner: War Room + Green Gate · BUILT
+B101-044 · Red Team / War Room escalation · Owner: War Room · BUILT
+B101-045 · Dissent preservation · Owner: War Room · BUILT
+B101-046 · Consequential-action execution lock · Owner: Guardian + Human Authority · BUILT
+
+### Memory, evidence and truth
+
+B101-047 · Conversation persistence · Owner: HRM · BUILT
+B101-048 · SMI memory records · Owner: HRM · BUILT
+B101-049 · Audit-event trail · Owner: HRM · BUILT
+B101-050 · Judgement review ledger · Owner: Judgement · BUILT
+B101-051 · Signed Founder decision receipts · Owner: Human Authority + HRM · BOUNDED
+B101-052 · Button Proof receipts · Owner: SMI Control Surface · BUILT
+B101-053 · Durable receipt backend · Owner: HRM Infrastructure · BOUNDED
+B101-054 · Function Health evidence projection · Owner: Function Health · BUILT
+B101-055 · Truth-Light / no-fake-Green state · Owner: Truth + Evidence · BUILT
+
+### Infrastructure, runtime and observability
+
+B101-056 · Canonical route registry · Owner: Infrastructure · BUILT
+B101-057 · Duplicate-primary-route detection · Owner: Function Health · BUILT
+B101-058 · Runtime health probe · Owner: Infrastructure · BUILT
+B101-059 · Runtime image proof · Owner: Infrastructure · BUILT
+B101-060 · Governed regression proof · Owner: Green Gate · BUILT
+B101-061 · Live observability ingestion · Owner: Infrastructure · GATED
+B101-062 · Error / 5xx signal capture · Owner: Infrastructure · BOUNDED
+B101-063 · Meaningful latency signal · Owner: Infrastructure · BOUNDED
+B101-064 · Provider-loss readiness · Owner: Resilience Intelligence · GATED
+B101-065 · Rollback / recovery proof · Owner: Green Gate · BOUNDED
+B101-066 · Exact-release evidence binding · Owner: Green Gate · GATED
+
+### Interaction and presence
+
+B101-067 · SMI Chat implementation · Owner: SMI Chat · BUILT
+B101-068 · SMI Chat production interaction proof · Owner: SMI + HRM · BOUNDED
+B101-069 · Voice Reply · Owner: SMI Voice · BUILT
+B101-070 · Vision capture · Owner: SMI Vision · BUILT
+B101-071 · Link Call / live call path · Owner: Link Up · BOUNDED
+B101-072 · Screen Intelligence · Owner: SMI Screen · BUILT
+B101-073 · Plus / Tools surface · Owner: SMI Tools · BUILT
+B101-074 · Runtime Pause / Stop · Owner: SMI Runtime Controls · BUILT
+B101-075 · Continuous realtime presence / barge-in · Owner: Realtime Presence Intelligence · GATED
+
+### World, place and movement
+
+B101-076 · OAP World public front door · Owner: OAP World · BUILT
+B101-077 · The Spot · Owner: The Spot · BUILT
+B101-078 · Pulse · Owner: The Spot · BUILT
+B101-079 · Signal public announcements · Owner: Signal · BUILT
+B101-080 · Link Up · Owner: The Link · BUILT
+B101-081 · On Any Place / Map Intelligence · Owner: Maps · BUILT
+B101-082 · Route proof · Owner: Movement / Maps · BOUNDED
+B101-083 · OAP Direct booking request flow · Owner: Booking · BOUNDED
+B101-084 · Ride / Drop / dispatch execution · Owner: Movement · GATED
+
+### Media, market and SIKA
+
+B101-085 · OAP Music catalogue / player · Owner: OAP Music · BOUNDED
+B101-086 · OAP Radio · Owner: OAP Music / Radio · BOUNDED
+B101-087 · OAP TV / Matchday TV · Owner: OAP TV · BOUNDED
+B101-088 · OAP Distribution · Owner: Distribution · BOUNDED
+B101-089 · Creator workspace · Owner: Creator / Studio · BOUNDED
+B101-090 · OAP Market · Owner: Market · BOUNDED
+B101-091 · SIKA accounting / double entry · Owner: SIKA · BUILT
+B101-092 · SIKA payment intent controls · Owner: SIKA · BOUNDED
+B101-093 · SIKA refunds / disputes / reconciliation · Owner: SIKA · BOUNDED
+B101-094 · Regulated money movement / issuance · Owner: regulated financial entity · GATED
+
+### Recovery, certification and expansion
+
+B101-095 · Green Gate aggregation · Owner: Green Gate · BOUNDED
+B101-096 · Control Surface v2 durable live proof · Owner: SMI Control Surface · BOUNDED
+B101-097 · Interaction certification matrix · Owner: Function Health · BOUNDED
+B101-098 · A4 supervised-autonomy policy · Owner: SMI Autonomy · BOUNDED
+B101-099 · A5 governed operational preparation · Owner: SMI Autonomy · GATED
+B101-100 · A6 governed operational execution · Owner: SMI Autonomy · GATED
+B101-101 · A7 certified organism-scale autonomy · Owner: Human Authority + external assurance · GATED
+
+### 101 expansion law
+
+```text
+101 capabilities ≠ 101 stages.
+No capability becomes a new product merely because it has an ID.
+Reuse the existing owner before creating code.
+Build only the smallest missing real function.
+Prefer live evidence over simulation whenever live evidence is available.
+Do not promote BOUNDED or GATED to Green from documentation alone.
+Human Authority remains final.
+```
+
