@@ -13,7 +13,7 @@ from scripts import routing_live_green_gate as gate
     ("failure", "expected_type"),
     [
         (TimeoutError("read timed out"), "timeout"),
-        (error.URLError("unreachable"), "request_or_response_error"),
+        (error.URLError("unreachable"), "connection_or_tls_error"),
     ],
 )
 def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, expected_type):
@@ -45,7 +45,7 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
     monkeypatch.setattr(gate.request, "urlopen", lambda *args, **kwargs: FakeResponse())
     result = gate.run_one(0)
     assert result["ok"] is False
-    assert result["failure_type"] == "request_or_response_error"
+    assert result["failure_type"] == "invalid_json_or_encoding"
     assert result["distance_m"] == 0.0
     assert result["duration_s"] == 0.0
 
