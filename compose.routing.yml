@@ -1,0 +1,25 @@
+# Portable OAP OSRM runtime. HTTPS must terminate at a separately configured
+# reverse proxy; do not expose this plaintext service directly to the internet.
+# Build embeds the Greater London graph using the repository's OSRM v6 Dockerfile.
+# Healthcheck requires an OSRM success response, not just an HTTP 200.
+services:
+  routing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:10000:10000"
+    environment:
+      PORT: "10000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -q -O -
+          'http://127.0.0.1:10000/route/v1/driving/-0.1687,51.4036;-0.0877,51.5079?overview=false'
+          | grep -q '"code":"Ok"'
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

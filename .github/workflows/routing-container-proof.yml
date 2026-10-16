@@ -1,0 +1,101 @@
+name: OAP real routing container proof
+
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - compose.routing.yml
+      - mission_control/living_kernel_routing_observation.py
+      - mission_control/organism.py
+      - .github/workflows/routing-container-proof.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-osrm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build real Greater London OSRM graph and image
+        run: docker compose -f compose.routing.yml build
+      - name: Run actual OSRM container and verify route geometry
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f compose.routing.yml up -d
+          for attempt in $(seq 1 24); do
+            if docker compose -f compose.routing.yml exec -T routing sh -c 'wget -q -O - "http://127.0.0.1:10000/route/v1/driving/-0.1687,51.4036;-0.0877,51.5079?overview=full&geometries=geojson"' > /tmp/oap-route.json; then
+              if python -c 'import json; p=json.load(open("/tmp/oap-route.json")); r=p["routes"][0]; assert p["code"]=="Ok" and r["distance"]>0 and r["duration"]>0 and r["geometry"]["type"]=="LineString" and len(r["geometry"]["coordinates"])>=2'; then
+                docker compose -f compose.routing.yml ps
+                echo "Real loopback OSRM route and geometry verified (not public HTTPS)."
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "Real OSRM route verification failed" >&2
+          exit 1
+      - name: Prove Living Kernel observer against actual OSRM
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from mission_control.living_kernel_routing_observation import observe_local_routing
+          receipt = observe_local_routing(timeout=5.0)
+          assert receipt["verified"] is True, receipt
+          assert receipt["state"] == "LOCAL_ROUTE_VERIFIED", receipt
+          assert receipt["public_https_verified"] is False, receipt
+          assert receipt["production_green_gate_passed"] is False, receipt
+          assert receipt["geometry_points"] >= 2, receipt
+          print("Real local OSRM observation verified; production Green remains unproven.")
+          from mission_control.organism import observe_routing_vitals
+          kernel = observe_routing_vitals(timeout=5.0)
+          assert kernel["observation"]["verified"] is True, kernel
+          assert kernel["vitals"]["Pulse"] == "observed", kernel
+          assert kernel["vitals"]["Circulation"] == "loopback_only", kernel
+          assert kernel["vitals"]["Continuity"] == "unverified", kernel
+          assert kernel["vitals"]["Adaptation"] == "unverified", kernel
+          assert kernel["production_healthy"] is False, kernel
+          assert kernel["external_green_gate_passed"] is False, kernel
+          assert kernel["execution_granted"] is False, kernel
+          print("Existing organism routing vitals verified against real OSRM.")
+          PY
+      - name: Prove real container restart and routing recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          before="$(docker compose -f compose.routing.yml ps -q routing)"
+          test -n "$before"
+          # An in-container kill of PID 1 can be ignored by Linux PID namespace
+          # semantics. Crash the real host PID instead; do not use docker kill,
+          # which Docker treats as an explicit operator stop.
+          restart_before="$(docker inspect -f '{{.RestartCount}}' "$before")"
+          pid_before="$(docker inspect -f '{{.State.Pid}}' "$before")"
+          test "$pid_before" -gt 1
+          sudo kill -9 "$pid_before"
+          recovered=0
+          for attempt in $(seq 1 24); do
+            after="$(docker compose -f compose.routing.yml ps -q routing)"
+            if [ "$after" = "$before" ] && [ "$(docker inspect -f '{{.State.Running}}' "$after")" = true ] && [ "$(docker inspect -f '{{.RestartCount}}' "$after")" -gt "$restart_before" ] && [ "$(docker inspect -f '{{.State.Pid}}' "$after")" != "$pid_before" ]; then
+              if docker compose -f compose.routing.yml exec -T routing sh -c 'wget -q -O - "http://127.0.0.1:10000/route/v1/driving/-0.1687,51.4036;-0.0877,51.5079?overview=full&geometries=geojson"' > /tmp/oap-recovered-route.json; then
+                if python -c 'import json; p=json.load(open("/tmp/oap-recovered-route.json")); r=p["routes"][0]; assert p["code"]=="Ok" and r["distance"]>0 and r["duration"]>0 and r["geometry"]["type"]=="LineString" and len(r["geometry"]["coordinates"])>=2'; then
+                  recovered=1
+                  break
+                fi
+              fi
+            fi
+            sleep 5
+          done
+          test "$recovered" -eq 1 || { echo "Actual container restart/recovery not proven" >&2; exit 1; }
+          echo "Real container restarted after forced termination and valid route recovered (CI only)."
+      - name: Capture actual container evidence on failure
+        if: failure()
+        run: |
+          docker compose -f compose.routing.yml ps || true
+          docker compose -f compose.routing.yml logs --tail=100 || true
+      - name: Tear down ephemeral test runtime
+        if: always()
+        run: docker compose -f compose.routing.yml down --remove-orphans || true

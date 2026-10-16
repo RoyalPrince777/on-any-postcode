@@ -3,11 +3,27 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import os
 import statistics
 import time
 from urllib import error, parse, request
 
-BASE = "https://oap-routing.onrender.com"
+BASE = os.environ.get("OAP_ROUTING_GREEN_GATE_BASE_URL", "").strip().rstrip("/")
+
+
+def validate_base_url() -> None:
+    parsed = parse.urlsplit(BASE)
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise SystemExit("OAP routing Green Gate requires an explicit HTTPS endpoint origin")
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
@@ -65,8 +81,16 @@ def wait_until_ready() -> dict[str, object]:
                         "elapsed_s": time.perf_counter() - started,
                     }
                 last_failure = "invalid_response"
-        except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
-            last_failure = "timeout" if isinstance(exc, TimeoutError) else "request_or_response_error"
+        except error.HTTPError as exc:
+            last_failure = f"http_status_{exc.code}"
+        except (TimeoutError, error.URLError, OSError) as exc:
+            reason = getattr(exc, "reason", None)
+            last_failure = (
+                "timeout" if isinstance(exc, TimeoutError) or isinstance(reason, TimeoutError)
+                else "connection_or_dns_error"
+            )
+        except (ValueError, UnicodeError):
+            last_failure = "invalid_json_response"
         if attempt < WARMUP_ATTEMPTS:
             time.sleep(WARMUP_SLEEP_SECONDS)
     return {
@@ -125,6 +149,7 @@ def run_one(index: int) -> dict[str, object]:
 
 
 def main() -> None:
+    validate_base_url()
     warmup = wait_until_ready()
     print(
         json.dumps(

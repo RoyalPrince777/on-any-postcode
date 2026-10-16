@@ -940,3 +940,36 @@ def get_public_anatomy() -> dict[str, Any]:
             "message": "This view cannot execute or approve architecture changes.",
         },
     }
+
+
+def observe_routing_vitals(*, timeout: float = 3.0) -> dict[str, Any]:
+    """Explicit read-only Living Kernel routing observation; never a Green Gate.
+
+    Called on demand, not from the public anatomy projection. A successful
+    loopback route does not imply public HTTPS, durable continuity or recovery.
+    """
+    from .living_kernel_routing_observation import observe_local_routing
+
+    receipt = observe_local_routing(timeout=timeout)
+    local_ok = receipt.get("verified") is True
+    return {
+        "component": "Living Kernel routing vitals",
+        "source": "mission_control.living_kernel_routing_observation",
+        "observation": receipt,
+        "vitals": {
+            "Pulse": "observed" if local_ok else "blocked",
+            "Awareness": "local_only" if local_ok else "unverified",
+            "Circulation": "loopback_only" if local_ok else "blocked",
+            "Integrity": "route_geometry_only" if local_ok else "unverified",
+            "Continuity": "unverified",
+            "Energy": "unverified",
+            "Balance": "unverified",
+            "Adaptation": "unverified",
+            "Participation": "advisory_only",
+            "Purpose": "Greater London OSRM routing",
+        },
+        "production_healthy": False,
+        "external_green_gate_passed": False,
+        "human_authority_final": True,
+        "execution_granted": False,
+    }
