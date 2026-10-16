@@ -99,3 +99,28 @@ def test_master_vitals_degrade_when_runtime_is_unready(monkeypatch):
     result = master_vitals_snapshot()
     assert result["vitals"][0]["status"] == "DEGRADED"
     assert result["ready"] is False
+
+
+def test_runtime_probe_exception_degrades_instead_of_raising(monkeypatch):
+    from mission_control import organism_runtime
+    from mission_control.kernel_anatomy_readiness import master_vitals_snapshot
+
+    def broken_probe():
+        raise RuntimeError("database offline")
+
+    monkeypatch.setattr(organism_runtime, "runtime_status", broken_probe)
+    result = master_vitals_snapshot()
+    assert result["anatomy"]["runtime"]["error"] == "runtime_probe_unavailable"
+    assert result["vitals"][0]["status"] == "DEGRADED"
+    assert result["ready"] is False
+    assert result["consequential_execution"] is False
+
+
+def test_invalid_runtime_probe_response_fails_closed(monkeypatch):
+    from mission_control import organism_runtime
+    from mission_control.kernel_anatomy_readiness import runtime_anatomy_snapshot
+
+    monkeypatch.setattr(organism_runtime, "runtime_status", lambda: None)
+    result = runtime_anatomy_snapshot()
+    assert result["runtime"]["error"] == "runtime_probe_unavailable"
+    assert result["ready"] is False
