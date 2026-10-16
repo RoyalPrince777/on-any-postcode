@@ -38,10 +38,11 @@ def test_extended_matrix_names_remain_passport_review() -> None:
     assert all(item["can_emit_signal"] is False for item in extended.values())
     assert all(item["can_execute"] is False for item in extended.values())
     assert projection["registered_count"] == 7
-    assert projection["extended_review_count"] == 8
-    assert len(projection["participants"]) == 15
+    assert projection["extended_review_count"] == 19
+    assert len(projection["participants"]) == 26
     assert {item["name"] for item in projection["participants"]} == set(
         matrix_signal_bus.CORE_MATRIX_ORDER + matrix_signal_bus.EXTENDED_REVIEW_ORDER
+        + matrix_signal_bus.ADDITIONAL_REVIEW_ORDER
     )
 
 
@@ -161,3 +162,25 @@ def test_mission_signal_correlation_preserves_fail_closed_delivery() -> None:
 def test_invalid_mission_identifiers_are_rejected(field, value) -> None:
     with pytest.raises(ValueError, match=field):
         matrix_signal_bus.route_signal(sender="Trinity", topic="Review", **{field: value})
+
+
+def test_all_twenty_six_matrix_identities_are_unique_and_fail_closed() -> None:
+    topology = matrix_signal_bus.topology()
+    participants = topology["participants"]
+    names = [item["name"] for item in participants]
+    assert len(names) == len(set(names)) == 26
+    assert topology["registered_count"] == 7
+    assert topology["extended_review_count"] == 19
+    assert set(matrix_signal_bus.MATRIX_ROLE_CHANNELS) == set(names)
+    assert all(item["can_execute"] is False for item in participants)
+    for item in participants:
+        if item["status"] != "registered":
+            assert item["status"] == "passport_review"
+            assert item["can_emit_signal"] is False
+            with pytest.raises(ValueError, match="not a registered Matrix agent"):
+                matrix_signal_bus.route_signal(sender=item["name"], topic="Review")
+            with pytest.raises(ValueError, match="Unknown or unregistered Matrix recipient"):
+                matrix_signal_bus.route_signal(sender="Neo", topic="Review", recipients=(item["name"],))
+    assert {"Tank", "Dozer", "Link", "Mouse"}.issubset(names)
+    assert topology["execution_granted"] is False
+    assert topology["full_green"] is False
