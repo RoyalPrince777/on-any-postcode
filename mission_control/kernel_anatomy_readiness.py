@@ -59,7 +59,17 @@ def runtime_anatomy_snapshot() -> dict[str, Any]:
 
     from .organism_runtime import runtime_status
 
-    status = runtime_status()
+    try:
+        status = runtime_status()
+        if not isinstance(status, Mapping):
+            raise TypeError("runtime status must be a mapping")
+    except Exception:  # noqa: BLE001 - a failed probe must not imply readiness.
+        status = {
+            "ready": False,
+            "schema_ready": False,
+            "worker_fresh": False,
+            "error": "runtime_probe_unavailable",
+        }
     observed_at = datetime.now(timezone.utc).isoformat()
     heart = {
         "healthy": bool(status.get("ready") is True),
