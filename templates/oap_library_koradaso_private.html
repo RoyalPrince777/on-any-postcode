@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>KORADASO Heritage · My Library</title>
+  {% include "_oap_install_head.html" %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='oap/oap_library.css') }}">
+</head>
+<body>
+  <header class="library-topbar">
+    <a class="library-brand" href="/library">OAP LIBRARY</a>
+    <nav aria-label="Library navigation">
+      <a href="/library/my-library">My Library</a>
+      <a href="/">OAP World</a>
+    </nav>
+  </header>
+  <main class="library-collections">
+    <p class="library-kicker">PRIVATE · MY LIBRARY</p>
+    <h1>KORADASO Heritage</h1>
+    <p>A personal space for family memories, cultural knowledge and heritage records.</p>
+    <section class="library-empty" aria-labelledby="collection-status">
+      <h2 id="collection-status">Collection storage is not enabled yet</h2>
+      <p>No files or family records have been imported. Uploads, sharing and publication remain disabled until owner-scoped storage, consent and revocation are verified.</p>
+      <a href="/library/my-library">Back to My Library</a>
+    </section>
+    <aside class="library-boundary">
+      <strong>Private by default.</strong>
+      <span>This optional collection is separate from the KORADASO app and does not certify ancestry or royal status.</span>
+    </aside>
+  </main>
+</body>
+</html>

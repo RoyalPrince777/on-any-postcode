@@ -81,6 +81,29 @@ def library_home():
     )
 
 
+@bp.get("/begoro-koradaso/opportunities")
+def begoro_koradaso_opportunities():
+    """Public information only; participation stays invitation-gated."""
+    response = _library_page(
+        make_response(render_template("oap_begoro_koradaso_opportunities.html"))
+    )
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
+
+
+@bp.get("/begoro-koradaso/invitations/control")
+@web_security.login_required(founder_only=True)
+def begoro_koradaso_invitation_control():
+    """Private control boundary; invitation issuance is not yet enabled."""
+    _identity()
+    response = _library_page(
+        make_response(render_template("oap_begoro_koradaso_invitation_control.html"))
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+    return response
+
+
 @bp.get("/library/my-library")
 @web_security.login_required()
 def my_library():
@@ -105,9 +128,23 @@ def my_library():
                 collections=member_collections,
                 owned_ebooks=owned_ebooks,
                 owned_state=owned_state,
+                show_koradaso_heritage=web_security.private_authority_allowed(_user),
             )
         )
     )
+
+
+@bp.get("/library/my-library/koradaso-heritage")
+@web_security.login_required(founder_only=True)
+def my_koradaso_heritage():
+    """Private owner-only entry point; storage and sharing remain disabled."""
+    _identity()
+    response = _library_page(
+        make_response(render_template("oap_library_koradaso_private.html"))
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+    return response
 
 
 @bp.get("/library/create")
