@@ -124,3 +124,33 @@ def test_invalid_runtime_probe_response_fails_closed(monkeypatch):
     result = runtime_anatomy_snapshot()
     assert result["runtime"]["error"] == "runtime_probe_unavailable"
     assert result["ready"] is False
+
+
+def test_continuity_flags_dead_letters_without_claiming_recovery(monkeypatch):
+    from mission_control import organism_runtime
+    from mission_control.kernel_anatomy_readiness import continuity_evidence_snapshot
+
+    monkeypatch.setattr(
+        organism_runtime, "runtime_status",
+        lambda: {"ready": True, "schema_ready": True, "worker_fresh": True,
+                 "retry": 0, "dead_letter": 2, "error": None},
+    )
+    result = continuity_evidence_snapshot()
+    assert result["status"] == "DEGRADED"
+    assert result["dead_letter_jobs"] == 2
+    assert result["recovery_proven"] is False
+
+
+def test_continuity_rejects_missing_or_boolean_counts(monkeypatch):
+    from mission_control import organism_runtime
+    from mission_control.kernel_anatomy_readiness import continuity_evidence_snapshot
+
+    monkeypatch.setattr(
+        organism_runtime, "runtime_status",
+        lambda: {"ready": True, "schema_ready": True, "worker_fresh": True,
+                 "retry": True, "dead_letter": None},
+    )
+    result = continuity_evidence_snapshot()
+    assert result["status"] == "UNKNOWN"
+    assert result["retry_jobs"] is None
+    assert result["recovery_proven"] is False
