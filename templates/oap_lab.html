@@ -11,6 +11,66 @@
 <header><div class="brand">👑 ON ANY POSTCODE · SMI</div><span class="badge">PRIVATE · GOVERNED LAB</span></header>
 <section class="hero"><h1>🔬 OAP LAB</h1><p>One World. One Laboratory. 21 research domains. First-party governed research workbench.</p><div class="notice"><strong>Governed notebook saving and reopening are active.</strong> Explicit Save writes owner-scoped versions to the existing My World Governance store with audit read-back. Immutability and independent recovery are reported from evidence when available. No discovery or claim is automatically certified, published, or turned into real-world action.</div></section>
 <div class="layout"><div>
+<section class="card" id="organiser-weekly-link-review">
+<h2>🔗 The Link · Weekly Review</h2>
+<p>One small reviewable next step each week for The Link communication vocabulary and Link Call flows.</p>
+<p class="quiet"><strong>Locked contract:</strong> brand language for identity · human language for conversation · plain safety controls · Link Call stays canonical · 🟣 Continue.</p>
+<button type="button" id="save-link-weekly-review">Add to OAP Organiser</button>
+<p class="quiet" id="link-weekly-review-status" role="status">Not written until Founder action.</p>
+</section>
+<script>
+(() => {
+  const button = document.getElementById("save-link-weekly-review");
+  const status = document.getElementById("link-weekly-review-status");
+  if (!button || !status) return;
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    status.textContent = "Saving to OAP Organiser…";
+    const externalId = "the-link-weekly-review";
+    const payload = {
+      external_id: externalId,
+      title: "The Link weekly review · brand identity · human chat · plain safety · Link Call canonical · 🟣 Continue",
+      schedule: "BEGIN:VEVENT\nDTSTART:20260930T080000\nRRULE:FREQ=WEEKLY;BYDAY=WE\nEND:VEVENT",
+      timing_mode: "flexible_schedule",
+      timezone: "Europe/London",
+      enabled: true,
+      source: "chatgpt_automation",
+      expected_last_hash: ""
+    };
+    try {
+      const existing = await fetch("/api/smi-organiser/schedules/" + externalId, {
+        headers: {"Accept": "application/json"},
+        credentials: "same-origin"
+      });
+      if (existing.ok) {
+        const prior = await existing.json();
+        payload.expected_last_hash = prior.digest || "";
+      } else if (existing.status !== 404) {
+        throw new Error("organiser_read_failed");
+      }
+      const response = await fetch("/api/smi-organiser/schedules/" + externalId, {
+        method: "PUT",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-Token": "{{ oap_csrf_token }}"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result?.error?.code || "organiser_write_failed");
+      status.textContent = result.changed === false
+        ? "Already in OAP Organiser."
+        : "Added to OAP Organiser · weekly Wednesday · Europe/London.";
+    } catch (_error) {
+      status.textContent = "Not saved. OAP Organiser stayed unchanged.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+</script>
 <section class="card" id="organiser-notebook"><h2>🗂️ Organiser · LAB Notebook</h2><p>SMI uses the existing LAB research contract. Finalising prepares the notebook; Save explicitly persists a new governed version. Nothing is published automatically.</p>
 <form method="post" action="{{ url_for('oap_lab_workbench') }}" autocomplete="off">
 <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><input type="hidden" name="notebook_id" value="{{ values.notebook_id }}"><input type="hidden" name="expected_last_hash" value="{{ values.expected_last_hash }}">
