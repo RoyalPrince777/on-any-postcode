@@ -49,6 +49,17 @@ jobs:
           assert receipt["production_green_gate_passed"] is False, receipt
           assert receipt["geometry_points"] >= 2, receipt
           print("Real local OSRM observation verified; production Green remains unproven.")
+          from mission_control.organism import observe_routing_vitals
+          kernel = observe_routing_vitals(timeout=5.0)
+          assert kernel["observation"]["verified"] is True, kernel
+          assert kernel["vitals"]["Pulse"] == "observed", kernel
+          assert kernel["vitals"]["Circulation"] == "loopback_only", kernel
+          assert kernel["vitals"]["Continuity"] == "unverified", kernel
+          assert kernel["vitals"]["Adaptation"] == "unverified", kernel
+          assert kernel["production_healthy"] is False, kernel
+          assert kernel["external_green_gate_passed"] is False, kernel
+          assert kernel["execution_granted"] is False, kernel
+          print("Existing organism routing vitals verified against real OSRM.")
           PY
       - name: Prove real container restart and routing recovery
         shell: bash
