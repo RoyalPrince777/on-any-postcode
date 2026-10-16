@@ -24,6 +24,7 @@ from mission_control import (
     a7_certification,
     approval_service,
     arena_agents,
+    arena_game_intelligence,
     arena_intelligence,
     arena_rooms,
     authority,
@@ -869,6 +870,8 @@ def _arena_intelligence_response():
                 recovery_required = True
         hub = arena_intelligence.get_public_arena_hub(saved_state)
         hub["recovery_required"] = recovery_required
+        hub["game_intelligence"] = arena_game_intelligence.catalogue()
+        hub["game_intelligence_summary"] = arena_game_intelligence.summary()
         response = make_response(render_template("arena.html", hub=hub))
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -975,6 +978,20 @@ def earth_is_our_turf_action():
 @app.get("/arena/agents")
 def arena_agents_catalogue():
     return _arena_json(arena_agents.catalogue())
+
+
+@app.get("/arena/intelligence")
+def arena_game_intelligence_catalogue():
+    return _arena_json(arena_game_intelligence.catalogue())
+
+
+@app.get("/arena/intelligence/<game_key>")
+def arena_game_intelligence_profile(game_key):
+    try:
+        profile = arena_game_intelligence.game_profile(game_key)
+    except ValueError as exc:
+        return _arena_error(exc)
+    return _arena_json(profile)
 
 
 @app.post("/arena/connect4/agent-move")

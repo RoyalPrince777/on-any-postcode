@@ -11,6 +11,8 @@ def test_catalogue_has_locked_first_party_agents_and_fair_play():
     assert data["agents"]["elephant"]["family"] == ["Colonel Hathi", "Hathi Jr"]
     assert "Control" in data["agents"]["elephant"]["role"]
     assert data["defaults"]["chess"] == "owl"
+    assert data["defaults"]["oware"] == "owl"
+    assert data["agents"]["owl"]["fits"]["oware"] == 7
     assert data["fair_play"]["hidden_information_access"] is False
     assert data["fair_play"]["payments"] is False
 
@@ -42,3 +44,9 @@ def test_connect4_agent_easy_uses_bounded_legal_move():
     for row in range(6):
         board[row][0] = 1
     assert arena_agents.connect4_column(board, difficulty="easy") == 6
+
+
+def test_choose_agent_exposes_oware_fit_without_claiming_execution():
+    result = arena_agents.choose_agent("oware")
+    assert result["key"] == "owl"
+    assert result["fit_stars"] == 7
