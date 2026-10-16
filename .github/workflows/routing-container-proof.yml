@@ -1,0 +1,46 @@
+name: OAP real routing container proof
+
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - compose.routing.yml
+      - .github/workflows/routing-container-proof.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-osrm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build real Greater London OSRM graph and image
+        run: docker compose -f compose.routing.yml build
+      - name: Run actual OSRM container and verify route geometry
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f compose.routing.yml up -d
+          for attempt in $(seq 1 24); do
+            if docker compose -f compose.routing.yml exec -T routing sh -c 'wget -q -O - "http://127.0.0.1:10000/route/v1/driving/-0.1687,51.4036;-0.0877,51.5079?overview=full&geometries=geojson"' > /tmp/oap-route.json; then
+              if python -c 'import json; p=json.load(open("/tmp/oap-route.json")); r=p["routes"][0]; assert p["code"]=="Ok" and r["distance"]>0 and r["duration"]>0 and r["geometry"]["type"]=="LineString" and len(r["geometry"]["coordinates"])>=2'; then
+                docker compose -f compose.routing.yml ps
+                echo "Real loopback OSRM route and geometry verified (not public HTTPS)."
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "Real OSRM route verification failed" >&2
+          exit 1
+      - name: Capture actual container evidence on failure
+        if: failure()
+        run: |
+          docker compose -f compose.routing.yml ps || true
+          docker compose -f compose.routing.yml logs --tail=100 || true
+      - name: Tear down ephemeral test runtime
+        if: always()
+        run: docker compose -f compose.routing.yml down --remove-orphans || true
