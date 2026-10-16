@@ -65,8 +65,16 @@ def wait_until_ready() -> dict[str, object]:
                         "elapsed_s": time.perf_counter() - started,
                     }
                 last_failure = "invalid_response"
-        except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
-            last_failure = "timeout" if isinstance(exc, TimeoutError) else "request_or_response_error"
+        except error.HTTPError as exc:
+            last_failure = f"http_status_{exc.code}"
+        except (TimeoutError, error.URLError, OSError) as exc:
+            reason = getattr(exc, "reason", None)
+            last_failure = (
+                "timeout" if isinstance(exc, TimeoutError) or isinstance(reason, TimeoutError)
+                else "connection_or_dns_error"
+            )
+        except (ValueError, UnicodeError):
+            last_failure = "invalid_json_response"
         if attempt < WARMUP_ATTEMPTS:
             time.sleep(WARMUP_SLEEP_SECONDS)
     return {
