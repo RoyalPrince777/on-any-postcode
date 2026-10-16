@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from mission_control import sika_global
+from mission_control import sika_commerce, sika_global
 
 
 def test_anchor_is_one_sika_to_one_gbp():
@@ -59,3 +59,21 @@ def test_status_keeps_legal_provider_execution_separate_from_sika_core():
     assert status["settlement_receipt_required"] is True
     assert status["regulated_execution_enabled"] is False
     assert status["customer_funds_enabled"] is False
+
+
+
+def test_sika_commerce_status_unlocks_intents_without_money_movement():
+    status = sika_commerce.status()
+
+    assert status["component"] == "SIKA Commerce"
+    assert status["commerce_intents_enabled"] is True
+    assert status["provider_handoff_boundary_enabled"] is True
+    assert status["payment_execution_enabled"] is False
+    assert status["customer_funds_enabled"] is False
+    assert status["wallet_money_enabled"] is False
+    assert status["sika_issuance_enabled"] is False
+    assert status["sika_redemption_enabled"] is False
+
+
+def test_sika_global_status_surfaces_commerce_intent_unlock():
+    assert sika_global.status()["commerce_settlement_intents_enabled"] is True
