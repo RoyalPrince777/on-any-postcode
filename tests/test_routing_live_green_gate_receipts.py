@@ -53,6 +53,7 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
 def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     samples = (
         {"route_id": "a", "ok": True, "elapsed_s": 0.2},
         {"route_id": "b", "ok": False, "elapsed_s": 10.0, "failure_type": "timeout"},
@@ -79,6 +80,7 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
 def test_probe_preserves_p95_limit(monkeypatch, capsys):
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(
         gate,
         "run_one",
@@ -93,6 +95,24 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     assert receipt["successes"] == 2
     assert receipt["failures"] == 0
     assert receipt["bounded_capacity_proven"] is False
+
+
+def test_seven_warmup_attempts_remain_fail_closed(monkeypatch):
+    from urllib import error as url_error
+
+    attempts = []
+
+    def unavailable(*args, **kwargs):
+        attempts.append(1)
+        raise url_error.URLError("routing unavailable")
+
+    monkeypatch.setattr(gate, "WARMUP_SLEEP_SECONDS", 0.0)
+    monkeypatch.setattr(gate.request, "urlopen", unavailable)
+    result = gate.wait_until_ready()
+    assert len(attempts) == 7
+    assert result["attempts"] == 7
+    assert result["ready"] is False
+    assert result["failure_type"] == "request_or_response_error"
 
 
 def test_live_green_gate_warms_before_capacity_probe():
