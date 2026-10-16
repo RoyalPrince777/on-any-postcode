@@ -26,5 +26,5 @@
     "receipt": "deploy/linkup-public-live-receipt.json",
     "rule": "candidate release metadata must not overwrite the last proven live receipt until deployment and route acceptance are captured"
   },
-  "promotion_attempt": 4
+  "promotion_attempt": 5
 }
