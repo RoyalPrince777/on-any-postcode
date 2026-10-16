@@ -5,6 +5,8 @@ on:
     paths:
       - Dockerfile
       - compose.routing.yml
+      - mission_control/living_kernel_routing_observation.py
+      - mission_control/organism.py
       - .github/workflows/routing-container-proof.yml
   workflow_dispatch:
 
