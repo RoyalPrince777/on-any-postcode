@@ -40,6 +40,9 @@ def test_organiser_dashboard_is_founder_only_and_truthful(monkeypatch):
     assert "Synthetic Machine Intelligence" in page
     assert "The Claw Test" in page
     assert "What can break this?" in page
+    assert "First-Party Inference" in page
+    assert "NOT PROVEN" in page
+    assert "configuration alone is not proof" in page
     assert "No owner-scoped schedule receipt has reached SMI yet" in page
     assert "No reviewed briefing receipt exists inside OAP" in page
     assert "Automation authority" in page

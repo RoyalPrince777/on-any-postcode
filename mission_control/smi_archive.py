@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from . import oap_inference_gateway
+
 SMI_LINEAGE: tuple[dict[str, str], ...] = (
     {
         "name": "Synthetic Mind Intelligence",
@@ -108,6 +110,8 @@ def status() -> dict[str, Any]:
     """Return the canonical archive projection without creating new authority."""
 
     current = next(item for item in SMI_LINEAGE if item["position"] == "canonical_current")
+    inference = oap_inference_gateway.status(probe=False)
+    bridge = dict(inference.get("home_node_bridge") or {})
     return {
         "component": "SMI Archive",
         "ready": True,
@@ -127,6 +131,20 @@ def status() -> dict[str, Any]:
         "mission_to_100_protocol": tuple(dict(item) for item in MISSION_TO_100_PROTOCOL),
         "exact_artifact_parity_required_for_production_green": True,
         "mandatory_gate_can_be_averaged_away": False,
+        "runtime_evidence": {
+            "first_party_inference": {
+                "ready": bool(inference.get("first_party_inference_ready")),
+                "local_enabled": bool(inference.get("local_enabled")),
+                "local_url_configured": bool(inference.get("local_url_configured")),
+                "local_model_configured": bool(inference.get("local_model_configured")),
+                "bridge_configured": bool(bridge.get("configured")),
+                "worker_recently_seen": bool(bridge.get("worker_recently_seen")),
+                "durable_worker_fresh": bool(bridge.get("durable_worker_fresh")),
+                "worker_ready": bool(bridge.get("worker_ready")),
+                "transport": bridge.get("transport"),
+                "proof_rule": "Green requires a real recent Home Node worker or a verified local model runtime; configuration alone is not proof.",
+            }
+        },
         "history_is_timeline_inside_archive": True,
         "new_brain_created": False,
         "new_memory_engine_created": False,

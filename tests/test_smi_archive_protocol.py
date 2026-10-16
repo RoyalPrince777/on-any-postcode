@@ -22,3 +22,31 @@ def test_mission_to_100_protocol_is_not_a_new_authority_or_brain():
     assert status["new_memory_engine_created"] is False
     assert status["new_execution_authority_created"] is False
     assert status["history_is_timeline_inside_archive"] is True
+
+
+def test_archive_exposes_first_party_inference_as_runtime_evidence(monkeypatch):
+    monkeypatch.setattr(
+        smi_archive.oap_inference_gateway,
+        "status",
+        lambda probe=False: {
+            "first_party_inference_ready": False,
+            "local_enabled": True,
+            "local_url_configured": True,
+            "local_model_configured": True,
+            "home_node_bridge": {
+                "configured": True,
+                "worker_recently_seen": False,
+                "durable_worker_fresh": False,
+                "worker_ready": False,
+                "transport": "outbound_https_poll",
+            },
+        },
+    )
+
+    evidence = smi_archive.status()["runtime_evidence"]["first_party_inference"]
+    assert evidence["ready"] is False
+    assert evidence["bridge_configured"] is True
+    assert evidence["worker_ready"] is False
+    assert evidence["worker_recently_seen"] is False
+    assert evidence["durable_worker_fresh"] is False
+    assert "configuration alone is not proof" in evidence["proof_rule"]
