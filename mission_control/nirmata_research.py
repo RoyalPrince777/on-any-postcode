@@ -4,9 +4,9 @@ Research lenses are analytical prompts, not clinical or scientific certification
 """
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from hashlib import sha256
-import json
 
 ANATOMY_LENSES = (
     "structure", "composition", "organisation", "function", "interaction",
