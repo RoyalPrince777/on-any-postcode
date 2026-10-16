@@ -5,6 +5,7 @@ def test_ride_schema_auto_apply_is_explicit_and_ordered():
     source = Path("mission_control/__init__.py").read_text(encoding="utf-8")
 
     assert 'OAP_RIDE_SCHEMA_AUTO_APPLY' in source
+    assert "init_movement_schema" in source
     expected = [
         "0001_oap_ride_runtime",
         "0002_oap_ride_guardian",
@@ -16,7 +17,9 @@ def test_ride_schema_auto_apply_is_explicit_and_ordered():
         "0008_oap_ride_reconciliation_cases",
         "0009_oap_ride_split_snapshot",
     ]
+    movement_pos = source.index("init_movement_schema")
     positions = [source.index(version) for version in expected]
+    assert movement_pos < positions[0]
     assert positions == sorted(positions)
     assert 'assume_yes=True, dry_run=False' in source
     assert '"event": "oap_ride_schema_migration"' in source
