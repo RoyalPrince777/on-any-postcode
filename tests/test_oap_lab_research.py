@@ -5,6 +5,7 @@ import pytest
 
 from mission_control.oap_lab_research import (
     DOMAINS,
+    DISCIPLINE_DOMAINS,
     MISSIONS,
     Evidence,
     Experiment,
@@ -122,3 +123,20 @@ def test_body_rejects_non_boolean_stop_state(invalid_stop):
 def test_body_arithmetic_overflow_fails_closed(operation):
     with pytest.raises(ValueError, match="synthetic_result_not_representable"):
         run_isolated(experiment(operation=operation, dataset=(1e308, 1e308)), notebook())
+
+
+def test_science_lenses_partition_existing_21_domains_without_schema_change():
+    labels = tuple(label for label, _ in DISCIPLINE_DOMAINS)
+    assert labels == ("Chemistry", "Physics", "Engineering", "Other research")
+    grouped = tuple(domain for _, members in DISCIPLINE_DOMAINS for domain in members)
+    assert len(DOMAINS) == 21
+    assert len(grouped) == len(DOMAINS)
+    assert len(set(grouped)) == len(grouped)
+    assert set(grouped) == set(DOMAINS)
+    assert "physics" in dict(DISCIPLINE_DOMAINS)["Physics"]
+    assert "materials" in dict(DISCIPLINE_DOMAINS)["Chemistry"]
+    assert "robotics" in dict(DISCIPLINE_DOMAINS)["Engineering"]
+    for domain in grouped:
+        entry = replace(notebook(), domain=domain)
+        assert entry.domain == domain
+        assert entry.state == "research_draft"
