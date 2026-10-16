@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% include "_oap_install_head.html" %}
+  <title>SIKA Human Rights</title>
+  <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <style>
+    .rights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .rights-card{padding:16px;border:1px solid rgba(126,240,163,.18);border-radius:18px;background:rgba(7,20,13,.68)}
+    .rights-card strong{display:block;margin-bottom:6px}.rights-card p{margin:0;color:#bfd0c3}
+    .rights-state{padding:14px;border-radius:16px;border:1px solid rgba(215,183,89,.28);background:rgba(33,27,11,.62)}
+    .rights-result{margin-top:14px;padding:14px;border-radius:16px;background:rgba(7,20,13,.72);border:1px solid rgba(126,240,163,.24)}
+    .rights-hold{border-color:rgba(255,171,92,.4)}
+    .rights-checks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+    .rights-checks label{display:flex;gap:8px;align-items:flex-start;padding:10px;border-radius:12px;background:rgba(255,255,255,.035)}
+    .rights-checks input{width:auto;margin-top:3px}
+    .rights-form{display:grid;gap:10px}.rights-form select,.rights-form input{width:100%}
+    @media(max-width:720px){.rights-grid,.rights-checks{grid-template-columns:1fr}}
+  </style>
+</head>
+<body class="mc-workspace-body">
+  <header class="mc-workspace-header">
+    <div>
+      <p class="mc-eyebrow">SIKA · Guardian · Human Authority</p>
+      <h1>🛡️ Human Rights</h1>
+      <p>Protect dignity, equality, privacy, accessibility and remedy before consequential SIKA restrictions enter human financial review.</p>
+    </div>
+    <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='sika') }}">Back to SIKA</a>
+      <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
+    </div>
+  </header>
+
+  <main class="mc-workspace">
+    <section class="mc-panel">
+      <p class="mc-eyebrow">Truth boundary</p>
+      <h2>Rights-respecting financial software — not invented legal entitlement</h2>
+      <p>SIKA Human Rights is a fail-closed review layer. It does not create legal rights, override applicable law, confiscate value, execute payments or move money.</p>
+      <div class="rights-state">
+        <strong>{{ gate_status.system }}</strong>
+        <p>Mode: {{ gate_status.mode }} · Human Authority final · Financial execution disabled.</p>
+      </div>
+    </section>
+
+    <section class="mc-panel">
+      <p class="mc-eyebrow">Eight protections</p>
+      <h2>What SIKA must protect</h2>
+      <div class="rights-grid">
+        <article class="rights-card"><strong>👤 Human dignity</strong><p>A person is never reduced to a score, flag or transaction pattern.</p></article>
+        <article class="rights-card"><strong>⚖️ Non-discrimination</strong><p>Consequential restrictions require an explicit equality review.</p></article>
+        <article class="rights-card"><strong>🔐 Privacy</strong><p>Only the minimum necessary information should be used for the decision.</p></article>
+        <article class="rights-card"><strong>♿ Accessibility</strong><p>Access needs must be considered before restriction or remedy design.</p></article>
+        <article class="rights-card"><strong>🧾 Evidence first</strong><p>No consequential restriction passes without an evidence reference and reason.</p></article>
+        <article class="rights-card"><strong>💬 Explanation</strong><p>Affected people need an explanation path where law and safety permit.</p></article>
+        <article class="rights-card"><strong>↩️ Remedy & appeal</strong><p>A real review path must exist for errors, disputes and restrictions.</p></article>
+        <article class="rights-card"><strong>👑 Human Authority</strong><p>Automation may analyse; consequential financial authority remains human-gated.</p></article>
+      </div>
+    </section>
+
+    <section class="mc-panel">
+      <p class="mc-eyebrow">Protected review console</p>
+      <h2>Consequential restriction review</h2>
+      {% if can_review %}
+      <form class="rights-form" method="post" action="{{ url_for('sika_human_rights_app') }}">
+        <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+        <label for="action-type">Action</label>
+        <select id="action-type" name="action_type" required>
+          {% for action in gate_status.consequential_actions %}<option value="{{ action }}">{{ action.replace('_', ' ')|title }}</option>{% endfor %}
+        </select>
+        <label for="subject-reference">Subject reference</label>
+        <input id="subject-reference" name="subject_reference" maxlength="160" required>
+        <label for="evidence-reference">Evidence reference</label>
+        <input id="evidence-reference" name="evidence_reference" maxlength="240" required>
+        <label for="reason-code">Reason code</label>
+        <input id="reason-code" name="reason_code" maxlength="120" required>
+        <div class="rights-checks">
+          <label><input type="checkbox" name="privacy_minimised">Privacy minimised</label>
+          <label><input type="checkbox" name="non_discrimination_reviewed">Non-discrimination reviewed</label>
+          <label><input type="checkbox" name="accessibility_considered">Accessibility considered</label>
+          <label><input type="checkbox" name="explanation_available">Explanation path available</label>
+          <label><input type="checkbox" name="remedy_available">Remedy / appeal path available</label>
+        </div>
+        <button class="mc-primary" type="submit">Run Human Rights Gate</button>
+      </form>
+      {% else %}
+      <p>This review console is protected. Human Authority sign-in is required to assess consequential SIKA restrictions.</p>
+      <a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Human Authority sign in →</a>
+      {% endif %}
+
+      {% if review_error %}
+      <div class="rights-result rights-hold"><strong>HOLD</strong><p>{{ review_error }}</p></div>
+      {% endif %}
+      {% if review_result %}
+      <div class="rights-result {{ 'rights-hold' if review_result.state == 'HOLD' else '' }}">
+        <strong>{{ review_result.state.replace('_', ' ') }}</strong>
+        <p>{{ 'All rights controls are evidenced. The action may enter Human Authority financial review; nothing has executed.' if review_result.may_enter_human_financial_review else 'One or more protections are missing. The consequential action remains held.' }}</p>
+        <p>Money moved: No · Human review required: Yes</p>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="mc-panel">
+      <p class="mc-eyebrow">Covered actions</p>
+      <h2>Current scope</h2>
+      <div class="rights-grid">
+        {% for action in gate_status.consequential_actions %}
+        <article class="rights-card"><strong>{{ action.replace('_', ' ')|title }}</strong><p>Must pass the rights gate before entering consequential human financial review.</p></article>
+        {% endfor %}
+      </div>
+    </section>
+  </main>
+</body>
+</html>
