@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>On Any Place · Earth</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#080a0d;color:#f5eedb;font:16px system-ui}
+header{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #5c4b24}
+a{color:#e7c56d}main{max-width:960px;margin:auto;padding:16px}h1{margin:8px 0;font-size:1.6rem}
+#stage{width:100%;height:min(68vh,640px);min-height:300px;background:#101823;border:1px solid #534723;border-radius:18px;position:relative;overflow:hidden}
+canvas{width:100%;height:100%;display:block;touch-action:none}#fallback{padding:24px;line-height:1.5}
+small{color:#d1c6a8}button{background:#292319;border:1px solid #b69b52;color:#fff2c8;border-radius:10px;padding:10px 16px;font:inherit}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0}
+</style></head><body>
+<header><strong>ON ANY POSTCODE · ON ANY PLACE</strong><a href="/oap-map">Back to Maps</a></header>
+<main><h1>🌍 Earth</h1><p>Explore the globe. This is an offline geographic orientation view, not live tracking.</p>
+<div id="stage"><canvas id="earth" aria-label="Interactive three-dimensional globe. Drag to rotate." role="img"></canvas>
+<div id="fallback" hidden role="status">3D graphics are unavailable on this device. <a href="/oap-map">Use the standard OAP map</a>.</div></div>
+<div class="controls"><button id="left" type="button">Rotate left</button><button id="right" type="button">Rotate right</button><button id="reset" type="button">Reset</button></div>
+<small>No location permission, tracking, external imagery, aircraft feeds or third-party requests. Procedural sphere only; no verified terrain or geographic boundaries.</small></main>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('earth'),fallback=document.getElementById('fallback');
+let gl;try{gl=canvas.getContext('webgl',{alpha:false,antialias:true,preserveDrawingBuffer:false});}catch(_){}
+if(!gl){canvas.hidden=true;fallback.hidden=false;return;}
+const vs='attribute vec3 p; uniform float yaw; varying vec3 n; void main(){float c=cos(yaw),s=sin(yaw);vec3 v=vec3(c*p.x+s*p.z,p.y,-s*p.x+c*p.z);n=v;gl_Position=vec4(v.xy*.78,0.,1.);}';
+const fs='precision mediump float;varying vec3 n;void main(){float r=dot(n.xy,n.xy);if(r>1.0)discard;float z=sqrt(max(0.0,1.0-r));vec3 norm=normalize(vec3(n.xy,z));float light=max(.18,dot(norm,normalize(vec3(-.4,.65,1.))));float lines=step(.975,abs(sin(asin(clamp(norm.y,-1.,1.))*18.)))*.10;vec3 base=mix(vec3(.035,.12,.22),vec3(.06,.34,.47),norm.y*.5+.5);gl_FragColor=vec4(base*light+lines,1.);}';
+function shader(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error('shader');return s;}
+let prog;try{prog=gl.createProgram();gl.attachShader(prog,shader(gl.VERTEX_SHADER,vs));gl.attachShader(prog,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(prog);if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw Error('link');}catch(_){canvas.hidden=true;fallback.hidden=false;return;}
+const vertices=[],indices=[],latN=40,lonN=64;
+for(let i=0;i<=latN;i++){let a=Math.PI*i/latN;for(let j=0;j<=lonN;j++){let b=2*Math.PI*j/lonN;vertices.push(Math.sin(a)*Math.cos(b),Math.cos(a),Math.sin(a)*Math.sin(b));}}
+for(let i=0;i<latN;i++)for(let j=0;j<lonN;j++){let a=i*(lonN+1)+j,b=a+lonN+1;indices.push(a,b,a+1,b,b+1,a+1);}
+const vb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,vb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);
+const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(indices),gl.STATIC_DRAW);
+gl.useProgram(prog);const p=gl.getAttribLocation(prog,'p'),u=gl.getUniformLocation(prog,'yaw');gl.enableVertexAttribArray(p);gl.vertexAttribPointer(p,3,gl.FLOAT,false,0,0);gl.enable(gl.DEPTH_TEST);
+let yaw=.5,start=null;
+function draw(){const dpr=Math.min(devicePixelRatio||1,2),w=Math.max(1,Math.round(canvas.clientWidth*dpr)),h=Math.max(1,Math.round(canvas.clientHeight*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}gl.viewport(0,0,w,h);gl.clearColor(.055,.09,.14,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform1f(u,yaw);gl.drawElements(gl.TRIANGLES,indices.length,gl.UNSIGNED_SHORT,0);}
+canvas.addEventListener('pointerdown',e=>{start=e.clientX;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(start===null)return;yaw+=(e.clientX-start)*.01;start=e.clientX;draw();});
+canvas.addEventListener('pointerup',()=>start=null);canvas.addEventListener('pointercancel',()=>start=null);
+document.getElementById('left').onclick=()=>{yaw-=.25;draw();};document.getElementById('right').onclick=()=>{yaw+=.25;draw();};document.getElementById('reset').onclick=()=>{yaw=.5;draw();};
+window.addEventListener('resize',draw);canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();canvas.hidden=true;fallback.hidden=false;});draw();
+})();
+</script></body></html>

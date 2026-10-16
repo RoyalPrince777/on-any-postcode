@@ -496,3 +496,9 @@ def quiet_program_aliases():
     values = _with_defaults(request.path.rstrip("/"))
     query = "&".join(f"{key}={value}" for key, value in values.items() if value is not None)
     return redirect("/on-any-place" + (f"?{query}" if query else ""), code=302)
+
+
+@bp.get('/oap-earth')
+def oap_earth_view():
+    """Opt-in procedural WebGL Earth view; no external feeds or location access."""
+    return _no_store(make_response(render_template('oap_earth.html')))
