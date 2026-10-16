@@ -9,6 +9,40 @@ import pytest
 from scripts import routing_live_green_gate as gate
 
 
+@pytest.fixture(autouse=True)
+def _configured_oap_routing_host(monkeypatch):
+    monkeypatch.setenv("OAP_ROUTING_BASE_URL", "https://routing.oap.invalid")
+
+
+def test_routing_base_fails_closed_without_oap_host(monkeypatch):
+    monkeypatch.delenv("OAP_ROUTING_BASE_URL", raising=False)
+    with pytest.raises(SystemExit, match="OAP_ROUTING_BASE_URL is required"):
+        gate.routing_base()
+
+
+@pytest.mark.parametrize(
+    "value",
+    (
+        "http://routing.oap.invalid",
+        "https://user@routing.oap.invalid",
+        "https://routing.oap.invalid/path",
+        "https://routing.oap.invalid?unsafe=true",
+        "https://oap-routing.onrender.com",
+    ),
+)
+def test_routing_base_rejects_unsafe_or_render_origin(monkeypatch, value):
+    monkeypatch.setenv("OAP_ROUTING_BASE_URL", value)
+    with pytest.raises(SystemExit):
+        gate.routing_base()
+
+
+def test_route_url_uses_configured_oap_host(monkeypatch):
+    monkeypatch.setenv("OAP_ROUTING_BASE_URL", "https://routing.onanypostcode.invalid/")
+    assert gate._route_url(0).startswith(
+        "https://routing.onanypostcode.invalid/route/v1/driving/"
+    )
+
+
 @pytest.mark.parametrize(
     ("failure", "expected_type"),
     [
@@ -100,6 +134,9 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
 def test_live_green_gate_warms_before_capacity_probe():
     source = Path("scripts/routing_live_green_gate.py").read_text(encoding="utf-8")
 
+    assert "def routing_base()" in source
+    assert "OAP_ROUTING_BASE_URL" in source
+    assert "Render routing endpoints are not accepted" in source
     assert "def wait_until_ready()" in source
     assert '"event": "oap_routing_bounded_external_warmup"' in source
     assert 'if not warmup.get("ready")' in source
