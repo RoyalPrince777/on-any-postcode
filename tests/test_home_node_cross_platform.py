@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,3 +59,40 @@ def test_inference_worker_receives_repository_import_path():
     assert 'env["PYTHONPATH"]' in SUPERVISOR
     assert 'str(ROOT)' in SUPERVISOR
     assert 'env=env' in SUPERVISOR
+
+
+def test_inference_child_path_resolves_package_and_preserves_prior_path(monkeypatch, tmp_path):
+    """Exercise the actual supervisor spawn environment and a real Python import."""
+    import importlib.util
+
+    supervisor_path = ROOT / "scripts" / "oap_home_node_supervisor.py"
+    spec = importlib.util.spec_from_file_location("oap_home_supervisor_under_test", supervisor_path)
+    supervisor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(supervisor)
+
+    existing = str(tmp_path / "existing")
+    (tmp_path / "existing").mkdir()
+    monkeypatch.setenv("PYTHONPATH", existing)
+    captured = {}
+
+    def capture_spawn(argv, **kwargs):
+        captured.update(argv=argv, **kwargs)
+        return object()
+
+    monkeypatch.setattr(supervisor.subprocess, "Popen", capture_spawn)
+    supervisor._spawn_inference()
+    assert captured["env"]["PYTHONPATH"].split(os.pathsep) == [str(ROOT), existing]
+    assert os.environ["PYTHONPATH"] == existing
+    assert captured["cwd"] == ROOT
+    assert captured["argv"][1] == str(ROOT / "scripts" / "oap_home_node_inference_worker.py")
+
+    proof = subprocess.run(
+        [sys.executable, "-c", "import mission_control; print(mission_control.__file__)"],
+        cwd=tmp_path,
+        env=captured["env"],
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=True,
+    )
+    assert str(ROOT / "mission_control") in proof.stdout
