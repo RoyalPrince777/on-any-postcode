@@ -1,6 +1,6 @@
 # OAP Hosting — Living Kernel routing contract (candidate)
 
-Status: design contract only. No cloud deployment, live heartbeat, independent routing endpoint, or automatic recovery has been proven.
+Status: design contract only for public hosting and Living Kernel integration. Real Greater London routing and an observed Docker restart with a new host PID, increased restart count and recovered route geometry have passed in ephemeral GitHub CI at commit `64c7660c`; this does not prove production recovery, live Kernel heartbeat, independent hosting or public HTTPS.
 
 ## Authority and ownership
 Founder Final retains authority. SMI evaluates evidence; Captain ALL IN coordinates bounded execution. The existing Living Kernel (where implemented) owns observation and continuity evidence; it must not be replaced with a second supervisor. Fox selects viable infrastructure; Dozer executes approved recovery; Tank and Bagheera enforce security/privacy boundaries; the Twins compare expected and actual state; Shere Khan challenges unsupported Green claims.
@@ -32,7 +32,13 @@ Founder Final retains authority. SMI evaluates evidence; Captain ALL IN coordina
 - **RECOVERING**: approved remediation in progress; never equal to healthy.
 - **HEALTHY**: current live route checks and mandatory external Green Gate pass on the exact deployment.
 
-No inferred success from a container restart, image build, Compose syntax check, HTTP 200 without valid route geometry, or a passing unit-test suite.
+No inferred production success from CI container restart, image build, Compose syntax check, HTTP 200 without valid route geometry, or a passing unit-test suite. CI restart evidence is a bounded CI-only result; production health requires the independently observed HTTPS Green Gate.
+
+## Current verified CI evidence and blocker
+- `OAP real routing container proof`: passed on commit `64c7660c`; verifies valid OSRM geometry after a real host-PID crash and requires `RestartCount` to increase and the host PID to change.
+- `OAP runtime image`: passed on the same commit.
+- The preceding governed-check run completed 5,461 passing tests and 8 skips, then failed closed because `OAP_ROUTING_GREEN_GATE_BASE_URL` was empty. Do not fill it with a placeholder or bypass the gate.
+- No real independent host, public HTTPS origin, or integrated Living Kernel observation has been demonstrated. Keep Step 2 blocked until these exist.
 
 ## Next executable proof
 1. Obtain authorised Docker-capable Linux runtime with adequate measured resources (outside billing-suspended Render workspace).
