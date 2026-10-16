@@ -37,3 +37,35 @@ def test_malformed_evidence_fails_closed():
         heart = next(x for x in result["organs"] if x["id"] == "living_kernel")
         assert heart["status"] == "UNKNOWN"
         assert result["ready"] is False
+
+
+def test_runtime_bridge_reads_existing_status_without_granting_green(monkeypatch):
+    from mission_control import organism_runtime
+    from mission_control.kernel_anatomy_readiness import runtime_anatomy_snapshot
+
+    monkeypatch.setattr(
+        organism_runtime,
+        "runtime_status",
+        lambda: {"ready": True, "schema_ready": True, "worker_fresh": True, "error": None},
+    )
+    result = runtime_anatomy_snapshot()
+    heart = next(x for x in result["organs"] if x["id"] == "living_kernel")
+    assert result["runtime"]["ready"] is True
+    assert heart["status"] == "UNVERIFIED"
+    assert result["ready"] is False
+    assert result["consequential_execution"] is False
+
+
+def test_runtime_bridge_fails_closed_on_missing_worker(monkeypatch):
+    from mission_control import organism_runtime
+    from mission_control.kernel_anatomy_readiness import runtime_anatomy_snapshot
+
+    monkeypatch.setattr(
+        organism_runtime,
+        "runtime_status",
+        lambda: {"ready": False, "schema_ready": True, "worker_fresh": False, "error": None},
+    )
+    result = runtime_anatomy_snapshot()
+    assert result["runtime"]["worker_fresh"] is False
+    assert result["runtime"]["ready"] is False
+    assert result["ready"] is False
