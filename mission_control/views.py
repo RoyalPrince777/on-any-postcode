@@ -23,6 +23,7 @@ from . import (
     authority,
     brain,
     civilization,
+    evidence_gate,
     infrastructure,
     judgement,
     ollama_chat,
@@ -785,6 +786,13 @@ def delete_smi_conversation(conversation_id: str):
 def smi_chat_health():
     """Return detailed intelligence health only to a signed-in member."""
     return _no_store(make_response(jsonify(smi_chat_runtime.health())))
+
+
+@bp.get("/evidence/status")
+@web_security.login_required(api=True)
+def smi_evidence_status():
+    """Return the canonical fail-closed SMI evidence-gate contract."""
+    return _no_store(make_response(jsonify(evidence_gate.status())))
 
 
 @bp.get("/workbench/status")

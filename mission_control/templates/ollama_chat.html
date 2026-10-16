@@ -20,6 +20,7 @@ window.OAP_SMI_UI={
   communicationLearning:{meaningfulApprovedOnly:true,backgroundListening:false,humanAuthorityFinal:true},
   workbenchUrl:{{ url_for('mission_control.smi_workbench_status')|tojson }},
   healthUrl:{{ url_for('mission_control.smi_chat_health')|tojson }},
+  evidenceGateUrl:{{ url_for('mission_control.smi_evidence_status')|tojson }},
   streamUrl:{{ url_for('mission_control.smi_chat_stream')|tojson }},
   localVoiceUrl:{{ url_for('mission_control.smi_chat_reply_audio')|tojson }},
   warRoomUrl:{{ url_for('mission_control.war_room_dashboard')|tojson }},

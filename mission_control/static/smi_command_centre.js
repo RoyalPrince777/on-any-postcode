@@ -574,7 +574,8 @@
   ["guardian","🛡️ Guardian","Safety evidence not checked",cfg.greenGateUrl],
   ["hrm","🧬 HRM","Receipts not checked",cfg.hrmUrl],
   ["signals","📡 21 Signals","Contract not checked",cfg.signalsUrl],
-  ["gate","🟢 Green Gate","Decision evidence not checked",cfg.greenGateUrl]
+  ["gate","🟢 Green Gate","Decision evidence not checked",cfg.greenGateUrl],
+  ["evidence","📜 Evidence Gate","Canonical evidence contract not checked",cfg.evidenceGateUrl]
  ];
  const unifiedNodes=new Map();
  unifiedSources.forEach(([key,label,initial,url])=>{
@@ -638,7 +639,7 @@
   const signal=roomRequest.signal;
   roomStats.forEach(node=>setRoom(node,false,"Checking live evidence…"));
   roomGates.forEach((node,key)=>setRoom(node,false,key==="founder"?"Founder decision required":"Checking proof…"));
-  for(const key of ["matrix","guardian","hrm","signals","gate","civilization","ecosystem"])setUnified(key,false,"Checking backend evidence…");
+  for(const key of ["matrix","guardian","hrm","signals","gate","civilization","ecosystem","evidence"])setUnified(key,false,"Checking backend evidence…");
   setUnified("mission",false,"No verified active mission feed · do not infer one");
   const targets=[
    ["runtime",cfg.healthUrl],
@@ -649,7 +650,8 @@
    ["hrm",cfg.hrmUrl],
    ["civilization",cfg.civilizationStatusUrl],
    ["ecosystem",cfg.ecosystemStatusUrl],
-   ["mission","/mission/all-in-ai/mission/latest"]
+   ["mission","/mission/all-in-ai/mission/latest"],
+   ["evidence",cfg.evidenceGateUrl]
   ];
   const result=await Promise.allSettled(targets.map(async ([,url])=>{
    if(!url)throw new Error("Route unavailable");
@@ -661,7 +663,7 @@
   }));
   if(signal.aborted)return;
   const value=index=>result[index].status==="fulfilled"?result[index].value:null;
-  const health=value(0),functions=value(1),signals=value(2),gate=value(3),matrix=value(4),hrm=value(5),civilization=value(6),ecosystem=value(7),mission=value(8);
+  const health=value(0),functions=value(1),signals=value(2),gate=value(3),matrix=value(4),hrm=value(5),civilization=value(6),ecosystem=value(7),mission=value(8),evidenceGate=value(9);
   const count=Number(functions?.available_count||0),expected=Number(functions?.expected_count||0);
   const functionsProven=expected>0&&count===expected&&Number(functions?.proof_checked_count||0)===expected&&Number(functions?.proof_required_count||0)===0;
   const signalProven=signals?.ready===true&&signals?.signals_valid===true&&Number(signals?.signal_count)===21;
@@ -710,6 +712,10 @@
   setUnified("ecosystem",ecosystemComplete,
    ecosystemInternal?"Internal signals ready · "+provenGates+"/"+(requiredGates||"?")+" external gates · "+(ecosystemComplete?"source coverage proven; Founder Final separate":"NOT FULL GREEN"):
    ecosystem?"Internal ingestion not proven · NOT GREEN":"Ecosystem source unavailable · NOT PROVEN");
+  const evidenceContract=Array.isArray(evidenceGate?.required_gates)&&evidenceGate.required_gates.length===6&&evidenceGate?.execution_granted===false&&evidenceGate?.human_authority_final===true;
+  setUnified("evidence",evidenceContract,
+   evidenceContract?"Canonical 6-gate contract loaded · execution locked":
+   evidenceGate?"Evidence contract incomplete · NOT PROVEN":"Evidence gate unavailable · NOT PROVEN");
  }
  function setOpen(open){
   if(open===active)return;
