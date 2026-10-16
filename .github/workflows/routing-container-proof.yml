@@ -42,7 +42,9 @@ jobs:
           set -euo pipefail
           before="$(docker compose -f compose.routing.yml ps -q routing)"
           test -n "$before"
-          docker kill "$before"
+          # Kill the workload PID 1 from inside the container; Docker restart policy
+          # does not apply to an operator-initiated docker kill/stop command.
+          docker exec "$before" sh -c "kill -9 1" || true
           recovered=0
           for attempt in $(seq 1 24); do
             after="$(docker compose -f compose.routing.yml ps -q routing)"
