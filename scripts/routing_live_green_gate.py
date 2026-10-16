@@ -35,6 +35,19 @@ def _route_url(index: int) -> str:
     return f"{BASE}/route/v1/driving/{coords}?{query}"
 
 
+def _safe_failure_type(exc: Exception) -> str:
+    """Classify failures without exposing URLs, payloads or credentials."""
+    if isinstance(exc, error.HTTPError):
+        return "http_error"
+    if isinstance(exc, TimeoutError) or isinstance(getattr(exc, "reason", None), TimeoutError):
+        return "timeout"
+    if isinstance(exc, error.URLError):
+        return "connection_or_tls_error"
+    if isinstance(exc, (ValueError, UnicodeError)):
+        return "invalid_json_or_encoding"
+    return "request_or_response_error"
+
+
 def wait_until_ready() -> dict[str, object]:
     started = time.perf_counter()
     last_failure = "not_started"
@@ -66,7 +79,7 @@ def wait_until_ready() -> dict[str, object]:
                     }
                 last_failure = "invalid_response"
         except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
-            last_failure = "timeout" if isinstance(exc, TimeoutError) else "request_or_response_error"
+            last_failure = _safe_failure_type(exc)
         if attempt < WARMUP_ATTEMPTS:
             time.sleep(WARMUP_SLEEP_SECONDS)
     return {
@@ -97,7 +110,7 @@ def run_one(index: int) -> dict[str, object]:
             "route_id": route_id,
             "ok": False,
             "elapsed_s": elapsed,
-            "failure_type": "timeout" if isinstance(exc, TimeoutError) else "request_or_response_error",
+            "failure_type": _safe_failure_type(exc),
             "distance_m": 0.0,
             "duration_s": 0.0,
         }
