@@ -62,3 +62,29 @@ def research_blueprint(*, question: str, domain: str, sources: Mapping[str, str]
         json.dumps(record, sort_keys=True, ensure_ascii=False).encode("utf-8")
     ).hexdigest()
     return record
+
+
+def verify_blueprint_integrity(record: Mapping[str, object]) -> bool:
+    """Verify an advisory record has not changed since its provenance was sealed.
+
+    Integrity does not establish scientific validity or verify external sources.
+    """
+    if not isinstance(record, Mapping):
+        return False
+    digest = record.get("provenance_sha256")
+    if not isinstance(digest, str) or len(digest) != 64:
+        return False
+    if record.get("kind") != "advisory_research_blueprint":
+        return False
+    if record.get("execution_authorised") is not False:
+        return False
+    if record.get("medical_diagnosis_authorised") is not False:
+        return False
+    if record.get("identity_issuance_authorised") is not False:
+        return False
+    unsigned = {key: value for key, value in record.items() if key != "provenance_sha256"}
+    try:
+        actual = sha256(json.dumps(unsigned, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    except (TypeError, ValueError):
+        return False
+    return actual == digest
