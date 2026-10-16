@@ -79,8 +79,10 @@ def test_inference_child_path_resolves_package_and_preserves_prior_path(monkeypa
         captured.update(argv=argv, **kwargs)
         return object()
 
-    monkeypatch.setattr(supervisor.subprocess, "Popen", capture_spawn)
-    supervisor._spawn_inference()
+    # Patch only the supervisor spawn: subprocess.run needs the real Popen.
+    with monkeypatch.context() as spawn_patch:
+        spawn_patch.setattr(supervisor.subprocess, "Popen", capture_spawn)
+        supervisor._spawn_inference()
     assert captured["env"]["PYTHONPATH"].split(os.pathsep) == [str(ROOT), existing]
     assert os.environ["PYTHONPATH"] == existing
     assert captured["cwd"] == ROOT
