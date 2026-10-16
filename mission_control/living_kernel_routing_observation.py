@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
@@ -17,7 +17,7 @@ _MAX_BYTES = 262144
 
 def observe_local_routing(*, timeout: float = 3.0) -> dict[str, object]:
     """Return bounded, factual loopback evidence; fail closed on missing service."""
-    observed_at = datetime.now(timezone.utc).isoformat()
+    observed_at = datetime.now(UTC).isoformat()
     result: dict[str, object] = {
         "component": "osrm_routing",
         "observed_at": observed_at,
