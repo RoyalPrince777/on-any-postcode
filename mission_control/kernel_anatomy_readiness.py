@@ -55,7 +55,7 @@ def runtime_anatomy_snapshot() -> dict[str, Any]:
     The timestamp describes when the observation was collected, not when the
     worker heartbeat occurred. Runtime freshness remains runtime_status's job.
     """
-    from datetime import datetime, timezone
+    from datetime import UTC, datetime
 
     from .organism_runtime import runtime_status
 
@@ -70,7 +70,7 @@ def runtime_anatomy_snapshot() -> dict[str, Any]:
             "worker_fresh": False,
             "error": "runtime_probe_unavailable",
         }
-    observed_at = datetime.now(timezone.utc).isoformat()
+    observed_at = datetime.now(UTC).isoformat()
     heart = {
         "healthy": bool(status.get("ready") is True),
         "source": "organism_runtime.runtime_status",
