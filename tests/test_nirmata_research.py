@@ -5,10 +5,10 @@ from mission_control.nirmata_research import ANATOMY_LENSES, research_blueprint
 
 
 def _blueprint(**changes):
-    args = dict(question="How can recovery improve?", domain="software",
-                sources={"paper-1": "Author, study, 2025"},
-                hypotheses=["Recovery time decreases with redundancy"],
-                lenses=["structure", "repair"])
+    args = {"question": "How can recovery improve?", "domain": "software",
+            "sources": {"paper-1": "Author, study, 2025"},
+            "hypotheses": ["Recovery time decreases with redundancy"],
+            "lenses": ["structure", "repair"]}
     args.update(changes)
     return research_blueprint(**args)
 
