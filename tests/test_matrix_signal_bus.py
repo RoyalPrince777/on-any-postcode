@@ -27,6 +27,7 @@ def test_extended_matrix_names_remain_passport_review() -> None:
         "Apoc",
         "Switch",
         "Ghost",
+        *matrix_signal_bus.ADDITIONAL_REVIEW_ORDER,
     )
     projection = matrix_signal_bus.topology()
     extended = {
