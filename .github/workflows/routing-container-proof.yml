@@ -42,13 +42,17 @@ jobs:
           set -euo pipefail
           before="$(docker compose -f compose.routing.yml ps -q routing)"
           test -n "$before"
-          # Kill the workload PID 1 from inside the container; Docker restart policy
-          # does not apply to an operator-initiated docker kill/stop command.
-          docker exec "$before" sh -c "kill -9 1" || true
+          # An in-container kill of PID 1 can be ignored by Linux PID namespace
+          # semantics. Crash the real host PID instead; do not use docker kill,
+          # which Docker treats as an explicit operator stop.
+          restart_before="$(docker inspect -f '{{.RestartCount}}' "$before")"
+          pid_before="$(docker inspect -f '{{.State.Pid}}' "$before")"
+          test "$pid_before" -gt 1
+          sudo kill -9 "$pid_before"
           recovered=0
           for attempt in $(seq 1 24); do
             after="$(docker compose -f compose.routing.yml ps -q routing)"
-            if [ -n "$after" ] && [ "$(docker inspect -f '{{.State.Running}}' "$after")" = true ]; then
+            if [ "$after" = "$before" ] && [ "$(docker inspect -f '{{.State.Running}}' "$after")" = true ] && [ "$(docker inspect -f '{{.RestartCount}}' "$after")" -gt "$restart_before" ] && [ "$(docker inspect -f '{{.State.Pid}}' "$after")" != "$pid_before" ]; then
               if docker compose -f compose.routing.yml exec -T routing sh -c 'wget -q -O - "http://127.0.0.1:10000/route/v1/driving/-0.1687,51.4036;-0.0877,51.5079?overview=full&geometries=geojson"' > /tmp/oap-recovered-route.json; then
                 if python -c 'import json; p=json.load(open("/tmp/oap-recovered-route.json")); r=p["routes"][0]; assert p["code"]=="Ok" and r["distance"]>0 and r["duration"]>0 and r["geometry"]["type"]=="LineString" and len(r["geometry"]["coordinates"])>=2'; then
                   recovered=1
