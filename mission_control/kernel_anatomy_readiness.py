@@ -75,3 +75,35 @@ def runtime_anatomy_snapshot() -> dict[str, Any]:
         "observed_at": observed_at,
     }
     return projection
+
+
+MASTER_VITALS = (
+    "Pulse", "Awareness", "Circulation", "Integrity", "Continuity",
+    "Energy", "Balance", "Adaptation", "Participation", "Purpose",
+)
+
+
+def master_vitals_snapshot() -> dict[str, Any]:
+    """Expose ten named vitals without inventing measurements.
+
+    Pulse is backed by the existing runtime readiness check, but stays
+    UNVERIFIED at the whole-organism level. Other vitals remain UNKNOWN
+    until independently measured by their responsible subsystems.
+    """
+    anatomy = runtime_anatomy_snapshot()
+    runtime = anatomy["runtime"]
+    vitals = []
+    for name in MASTER_VITALS:
+        if name == "Pulse":
+            status = "UNVERIFIED" if runtime["ready"] else "DEGRADED"
+            source = "organism_runtime.runtime_status"
+        else:
+            status = "UNKNOWN"
+            source = None
+        vitals.append({"name": name, "status": status, "source": source})
+    return {
+        "ready": False,
+        "consequential_execution": False,
+        "vitals": vitals,
+        "anatomy": anatomy,
+    }
