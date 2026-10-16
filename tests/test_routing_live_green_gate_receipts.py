@@ -97,6 +97,24 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     assert receipt["bounded_capacity_proven"] is False
 
 
+def test_seven_warmup_attempts_remain_fail_closed(monkeypatch):
+    from urllib import error as url_error
+
+    attempts = []
+
+    def unavailable(*args, **kwargs):
+        attempts.append(1)
+        raise url_error.URLError("routing unavailable")
+
+    monkeypatch.setattr(gate, "WARMUP_SLEEP_SECONDS", 0.0)
+    monkeypatch.setattr(gate.request, "urlopen", unavailable)
+    result = gate.wait_until_ready()
+    assert len(attempts) == 7
+    assert result["attempts"] == 7
+    assert result["ready"] is False
+    assert result["failure_type"] == "request_or_response_error"
+
+
 def test_live_green_gate_warms_before_capacity_probe():
     source = Path("scripts/routing_live_green_gate.py").read_text(encoding="utf-8")
 
