@@ -47,3 +47,31 @@ def anatomy_readiness(observations: Mapping[str, Mapping[str, Any]] | None = Non
         "unknown_observations": sorted(set(supplied) - registered),
         "organs": organs,
     }
+
+
+def runtime_anatomy_snapshot() -> dict[str, Any]:
+    """Read existing runtime evidence without claiming whole-organism readiness.
+
+    The timestamp describes when the observation was collected, not when the
+    worker heartbeat occurred. Runtime freshness remains runtime_status's job.
+    """
+    from datetime import datetime, timezone
+
+    from .organism_runtime import runtime_status
+
+    status = runtime_status()
+    observed_at = datetime.now(timezone.utc).isoformat()
+    heart = {
+        "healthy": bool(status.get("ready") is True),
+        "source": "organism_runtime.runtime_status",
+        "timestamp": observed_at,
+    }
+    projection = anatomy_readiness({"living_kernel": heart})
+    projection["runtime"] = {
+        "ready": status.get("ready") is True,
+        "schema_ready": status.get("schema_ready") is True,
+        "worker_fresh": status.get("worker_fresh") is True,
+        "error": status.get("error"),
+        "observed_at": observed_at,
+    }
+    return projection
