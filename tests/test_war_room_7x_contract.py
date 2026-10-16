@@ -51,3 +51,16 @@ def test_war_room_ui_has_clear_research_vote_challenge_and_output_contract():
         "Human Authority remains final",
     ):
         assert marker in page
+
+
+def test_war_room_seven_star_starts_unknown_and_reads_private_evidence():
+    page = Path("mission_control/templates/war_room.html").read_text(encoding="utf-8")
+    assert 'id="smi-seven-star"' in page
+    assert 'data-star-check="{{ name }}"' in page
+    assert '<span data-star-symbol aria-hidden="true">☆</span>' in page
+    assert 'data-star-state>⚪ Unknown</small>' in page
+    assert 'fetch("/smi/deep-dive"' in page
+    assert 'data.seven_star_assessment' in page
+    assert 'board.proven+"/7 evidenced' in page
+    assert 'Evidence unavailable · no technical Green inferred' in page
+    assert '<div class="card">⭐<strong>Truth</strong>' not in page
