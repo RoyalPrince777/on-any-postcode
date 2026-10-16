@@ -73,7 +73,10 @@ def test_runtime_bridge_fails_closed_on_missing_worker(monkeypatch):
 
 def test_master_vitals_never_invent_unmeasured_health(monkeypatch):
     from mission_control import organism_runtime
-    from mission_control.kernel_anatomy_readiness import MASTER_VITALS, master_vitals_snapshot
+    from mission_control.kernel_anatomy_readiness import (
+        MASTER_VITALS,
+        master_vitals_snapshot,
+    )
 
     monkeypatch.setattr(
         organism_runtime,
