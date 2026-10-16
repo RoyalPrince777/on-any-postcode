@@ -219,6 +219,7 @@ def _canonical_nirmata() -> dict[str, Any]:
             "Universal anatomy cross-scale analysis",
             "Research provenance and hypothesis specification",
             "Evidence-based invention verification planning",
+            "Research integrity and tamper detection",
         ),
         "memory_access": "HRM Core — fully audited",
         "provider_assignment": "Not assigned",
