@@ -38,6 +38,13 @@ EXTENDED_REVIEW_ORDER: tuple[str, ...] = (
     "Ghost",
 )
 
+# Founder-selected core identities; passport review does not grant signal authority.
+ADDITIONAL_REVIEW_ORDER: tuple[str, ...] = (
+    "Link", "Agent Brown", "Agent Jones", "Agent Johnson",
+    "Agent Jackson", "Agent Thompson", "Mouse", "Merovingian",
+    "Persephone", "Captain Mifune", "The Analyst",
+)
+
 MATRIX_ROLE_CHANNELS: dict[str, str] = {
     "Neo": "recovery_and_anomaly",
     "Morpheus": "truth_and_false_green",
@@ -54,6 +61,17 @@ MATRIX_ROLE_CHANNELS: dict[str, str] = {
     "Apoc": "failure_and_collapse_warning",
     "Switch": "mode_and_state_transition_review",
     "Ghost": "quiet_observation_and_anomaly_review",
+    "Link": "communications_continuity",
+    "Agent Brown": "adversarial_pattern_review",
+    "Agent Jones": "defensive_weakness_review",
+    "Agent Johnson": "escalation_review",
+    "Agent Jackson": "adversarial_coordination_review",
+    "Agent Thompson": "resilience_review",
+    "Mouse": "edge_case_review",
+    "Merovingian": "causal_chain_review",
+    "Persephone": "hidden_motivation_review",
+    "Captain Mifune": "defensive_command_review",
+    "The Analyst": "behavioural_systems_review",
 }
 
 MATRIX_COMMUNICATION_LAW: tuple[str, ...] = (
@@ -104,7 +122,7 @@ def extended_review_names() -> tuple[str, ...]:
     }
     return tuple(
         name
-        for name in EXTENDED_REVIEW_ORDER
+        for name in EXTENDED_REVIEW_ORDER + ADDITIONAL_REVIEW_ORDER
         if candidates.get(name) == "passport_review"
     )
 
@@ -115,7 +133,7 @@ def topology() -> dict[str, Any]:
     registered = set(registered_matrix_names())
     review = set(extended_review_names())
     participants = []
-    for name in CORE_MATRIX_ORDER + EXTENDED_REVIEW_ORDER:
+    for name in CORE_MATRIX_ORDER + EXTENDED_REVIEW_ORDER + ADDITIONAL_REVIEW_ORDER:
         status = (
             "registered"
             if name in registered
