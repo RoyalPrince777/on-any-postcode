@@ -37,12 +37,14 @@ def test_only_canonical_authority_can_write(monkeypatch):
 @pytest.mark.parametrize("decision", ["APPROVE", "PASS", "YES", ""])
 def test_producer_cannot_approve(monkeypatch, decision):
     monkeypatch.setattr(decisions.authority, "identity_is_authority", lambda _id: True)
+    monkeypatch.setattr(decisions, "_canonical_founder_active", lambda _id: True)
     with pytest.raises(ValueError, match="Only HOLD or BLOCK"):
         _record(decision=decision)
 
 
 def test_invalid_review_envelope_fails_before_receipt(monkeypatch):
     monkeypatch.setattr(decisions.authority, "identity_is_authority", lambda _id: True)
+    monkeypatch.setattr(decisions, "_canonical_founder_active", lambda _id: True)
     monkeypatch.setattr(
         smi_receipt_backend, "write_receipt",
         lambda *_args, **_kwargs: pytest.fail("invalid review wrote a receipt"),
@@ -55,6 +57,7 @@ def test_invalid_review_envelope_fails_before_receipt(monkeypatch):
 
 def test_durable_hold_records_real_founder_action_without_votes(monkeypatch):
     monkeypatch.setattr(decisions.authority, "identity_is_authority", lambda _id: True)
+    monkeypatch.setattr(decisions, "_canonical_founder_active", lambda _id: True)
     calls = []
 
     def write(kind, payload, *, require_durable=False):
@@ -87,6 +90,7 @@ def test_durable_hold_records_real_founder_action_without_votes(monkeypatch):
 ])
 def test_receipt_failure_never_claims_founder_hold(monkeypatch, bad_receipt):
     monkeypatch.setattr(decisions.authority, "identity_is_authority", lambda _id: True)
+    monkeypatch.setattr(decisions, "_canonical_founder_active", lambda _id: True)
     monkeypatch.setattr(
         smi_receipt_backend, "write_receipt", lambda *_args, **_kwargs: bad_receipt
     )
@@ -112,3 +116,58 @@ def test_private_route_rejects_missing_csrf(client):
     )
     assert response.status_code == 403
     assert response.get_json()["error"]["code"] == "csrf_failed"
+
+
+def test_revoked_or_unavailable_canonical_founder_blocks_before_write(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(decisions.authority, "identity_is_authority", lambda _id: True)
+    monkeypatch.setattr(decisions, "_canonical_founder_active", lambda _id: False)
+    monkeypatch.setattr(
+        smi_receipt_backend,
+        "write_receipt",
+        lambda *_args, **_kwargs: pytest.fail("revoked authority wrote a receipt"),
+    )
+    with pytest.raises(PermissionError, match="human_authority_required"):
+        _record()
+
+
+def test_canonical_founder_check_uses_read_only_role_store_and_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class ReadOnlyStore:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    store = ReadOnlyStore()
+    calls = []
+    def connect(*, readonly=False):
+        calls.append(readonly)
+        return store
+
+    def active(connection, identity_id):
+        assert connection is store
+        assert identity_id == "founder-123"
+        return {"is_human_authority": True, "authority_level": 0}
+
+    monkeypatch.setattr(decisions.postgres_db, "connect", connect)
+    monkeypatch.setattr(decisions.authority, "require_human_authority", active)
+    assert decisions._canonical_founder_active("founder-123") is True
+    assert calls == [True]
+
+    monkeypatch.setattr(
+        decisions.authority, "require_human_authority",
+        lambda *_args: (_ for _ in ()).throw(
+            decisions.authority.HumanAuthorityRequired("revoked")
+        ),
+    )
+    assert decisions._canonical_founder_active("founder-123") is False
+
+    monkeypatch.setattr(
+        decisions.postgres_db, "connect",
+        lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("store unavailable")),
+    )
+    assert decisions._canonical_founder_active("founder-123") is False
