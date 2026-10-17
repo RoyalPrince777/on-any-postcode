@@ -806,3 +806,58 @@ Intelligent does not mean authorised.
 Connected does not mean public.
 Built does not mean proven.
 Green means proven.
+
+
+## 26. Full Master Blueprint 101 — breadth, not stages
+
+The Founder expansion target of **101** is now a canonical architecture register.
+
+It is deliberately **not** a 101-stage workflow, maturity ladder, percentage meter or simulation sequence.
+The existing direct-evidence protocol remains authoritative: unnecessary stages, repeated status loops,
+demos-as-progress, simulations where real verification exists, duplicate reports, repeated approvals,
+cosmetic percentages and stopping after every small fix are removed.
+
+The 101-point register is composed from existing first-party owners:
+
+```text
+11  Command Center Home doors
+ 7  Canonical mission links
+13  Function Health core functions
+21  Core Review Signals
+26  Intelligence lenses
+ 9  Interaction surfaces
+ 7  A1-A7 autonomy levels
+ 4  Infrastructure modules
+ 3  Governance locks
+---
+101 architecture capabilities
+```
+
+Live private status:
+
+```text
+GET /mission/smi/master-blueprint-101
+```
+
+Every register item carries:
+
+```text
+id
+name
+category
+owner
+evidence class
+truth state
+```
+
+Validation requires exactly 101 unique IDs and the locked category counts above.
+The register grants no execution, approval, payment, deployment, dispatch, permission change or autonomy expansion.
+
+The three permanent governance locks inside the 101 are:
+
+1. Human Authority remains final.
+2. No unreviewed consequential execution.
+3. No self-permission or self-constitution expansion.
+
+The blueprint is therefore a **single master map of capability ownership and proof obligations**,
+not another navigation maze or project-stage system.
