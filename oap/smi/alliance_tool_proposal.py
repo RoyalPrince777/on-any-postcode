@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from mission_control.oap_system_protocol import agent_handoff
 from oap.registry.tools import ToolRegistry
 from oap.smi.alliance_selection import AllianceSelection, select_alliance
 from oap.smi.capability_preflight import CapabilityPreflight, preflight
@@ -48,3 +49,26 @@ def propose_alliance_tool(
     return GovernedAllianceProposal(
         alliance, tool, True, tool.reason,
     )
+
+
+def propose_alliance_handoff(
+    proposal: GovernedAllianceProposal,
+    *,
+    requesting_agent: str,
+    helping_agent: str,
+    assignment: str,
+    permitted_evidence: tuple[str, ...] = (),
+) -> dict[str, object] | None:
+    """Prepare an advisory handoff only after canonical proposal preflight.
+
+    Never starts a worker, transfers authority, or writes an HRM receipt.
+    """
+    if not proposal.permitted_for_proposal:
+        return None
+    if helping_agent not in proposal.alliance.specialists:
+        return None
+    handoff = agent_handoff(
+        requesting_agent, helping_agent, assignment,
+        permitted_evidence=permitted_evidence,
+    )
+    return handoff if handoff["status"] == "READY" else None
