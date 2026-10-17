@@ -1,8 +1,13 @@
-from flask import Flask, request, redirect, url_for, render_template_string
+from flask import Flask, request, redirect, url_for, render_template_string, session, abort
+from markupsafe import escape
+import os
+import secrets
 import sqlite3
 from datetime import datetime
+from market_storefront import register_market_storefront
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("OAP_FLASK_SECRET") or secrets.token_hex(32)
 DB = "oap_public.db"
 
 def db():
@@ -34,10 +39,30 @@ def init_db():
             created_at TEXT
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS market_products (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            category TEXT NOT NULL,
+            description TEXT,
+            price_minor INTEGER NOT NULL CHECK(price_minor >= 0),
+            currency TEXT NOT NULL DEFAULT 'GBP',
+            image_url TEXT,
+            seller_name TEXT,
+            state TEXT NOT NULL DEFAULT 'DRAFT'
+                CHECK(state IN ('DRAFT','LIVE','PAUSED','SOLD_OUT')),
+            created_at TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS ix_market_products_state_category
+        ON market_products(state, category)
+    """)
     conn.commit()
     conn.close()
 
 init_db()
+register_market_storefront(app, db)
 
 BASE = """
 <!doctype html>
@@ -205,10 +230,6 @@ def creators():
 @app.route("/businesses")
 def businesses():
     return simple("🏪 Businesses", "Local business discovery, promo slots, trusted listings, and postcode commerce.")
-
-@app.route("/market")
-def market():
-    return simple("🛒 OAP Market", "Public preview for products, merch, creator goods, business offers, and future checkout.")
 
 @app.route("/explorer")
 def explorer():
