@@ -12,6 +12,8 @@ from typing import Any
 
 from . import (
     company_evidence_ingestion,
+    company_intelligence_evidence_registry,
+    company_intelligence_evidence_store,
     market_supplier_network,
     music_evidence,
     product_core_services,
@@ -224,12 +226,34 @@ def projection(identity_id: str) -> dict[str, Any]:
     items.extend(_music_items(identity_id))
     items.extend(_commerce_items(identity_id))
     snapshot = company_evidence_ingestion.ingest_snapshot(items)
+    try:
+        protocol_registry = (
+            company_intelligence_evidence_store.CompanyIntelligenceEvidenceStore()
+            .projection(owner_identity_id=identity_id)
+        )
+    except company_intelligence_evidence_store.CompanyIntelligenceEvidenceUnavailable:
+        protocol_registry = {
+            **company_intelligence_evidence_registry.snapshot(),
+            "receipt_chain_verified": False,
+            "receipt_count": 0,
+            "head_hash": company_intelligence_evidence_store.GENESIS_HASH,
+            "store_fail_closed": True,
+            "store_unavailable": True,
+        }
     software_green = True
     return {
         "name": "OAP Company Intelligence",
         "software_green": software_green,
         "evidence": snapshot,
         "evidence_items": tuple(items),
+        "protocol_registry": protocol_registry,
+        "protocol_check_count": protocol_registry["protocol_check_count"],
+        "protocol_proven_count": protocol_registry["proven_count"],
+        "protocol_green_gate_passed": protocol_registry["green_gate_passed"],
+        "protocol_receipt_chain_verified": protocol_registry.get(
+            "receipt_chain_verified", False
+        ),
+        "protocol_receipt_count": protocol_registry.get("receipt_count", 0),
         "proven_count": len(snapshot["proven_domains"]),
         "domain_count": snapshot["domain_count"],
         "evidence_percentage": round(
