@@ -19,9 +19,9 @@ def test_canonical_war_room_exposes_matrix_topology_without_promoting_candidates
     result = war_room.get_war_room_dashboard()
     matrix = result["matrix_signal_bus"]
     assert matrix["registered_count"] == 7
-    assert matrix["extended_review_count"] == 8
+    assert matrix["extended_review_count"] == 19
     assert matrix["full_green"] is False
-    assert len(matrix["participants"]) == 15
+    assert len(matrix["participants"]) == 26
     for item in matrix["participants"]:
         assert item["can_execute"] is False
         if item["status"] == "passport_review":
@@ -40,8 +40,8 @@ def test_consequential_signal_handoff_is_not_a_vote_receipt_or_approval():
     assert pack["actual_agent_votes"] == ()
     assert pack["simulated_specialist_views"] == ()
     assert pack["registered_core_count"] == 7
-    assert pack["extended_review_count"] == 8
-    assert len(pack["candidate_review_roster"]) == 8
+    assert pack["extended_review_count"] == 19
+    assert len(pack["candidate_review_roster"]) == 19
     assert pack["hrm_receipt_required"] is True
     assert pack["hrm_receipt_recorded"] is False
     assert pack["guardian_required"] is True
@@ -52,7 +52,7 @@ def test_consequential_signal_handoff_is_not_a_vote_receipt_or_approval():
     assert pack["full_green"] is False
 
 
-@pytest.mark.parametrize("sender", matrix_signal_bus.EXTENDED_REVIEW_ORDER)
+@pytest.mark.parametrize("sender", matrix_signal_bus.EXTENDED_REVIEW_ORDER + matrix_signal_bus.ADDITIONAL_REVIEW_ORDER)
 def test_review_only_candidate_cannot_be_a_war_room_signal_sender(sender):
     signal = consequential_signal()
     signal["sender"] = sender
@@ -97,3 +97,23 @@ def test_invalid_evidence_claim_shape_fails_closed(evidence):
     signal["evidence"] = evidence
     with pytest.raises(ValueError, match="evidence list"):
         matrix_war_room.review_pack(signal)
+
+
+def test_matrix_command_monitor_is_wired_into_canonical_dashboard_without_live_claims():
+    """Verify the dashboard-to-template data contract without claiming browser proof."""
+    dashboard = war_room.get_war_room_dashboard()
+    wall = dashboard["matrix_command_monitors"]
+    topology = matrix_signal_bus.topology()
+    assert wall["agent_monitor"]["registered"] == topology["registered_count"]
+    assert wall["agent_monitor"]["passport_review"] == topology["extended_review_count"]
+    assert wall["agent_monitor"]["participants"] == topology["participants"]
+    assert wall["agent_monitor"]["execution_granted"] is False
+    assert wall["telemetry_monitor"]["state"] == "not_connected"
+    assert wall["telemetry_monitor"]["cpu"] is None
+    assert wall["telemetry_monitor"]["latency_ms"] is None
+    assert wall["test_monitor"]["state"] == "not_connected"
+    assert wall["controls"]["run_tests"] == "not_connected"
+    assert wall["controls"]["recover"] == "not_connected"
+    assert wall["full_green"] is False
+    assert dashboard["can_execute"] is False
+    assert dashboard["can_approve"] is False
