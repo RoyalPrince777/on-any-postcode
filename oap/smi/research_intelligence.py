@@ -8,6 +8,10 @@ Human Authority.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
+
 RESEARCH_INTELLIGENCE_REVISION = "2026-09-04-v1"
 
 RESEARCH_STAGES = (
@@ -91,4 +95,148 @@ def status() -> dict[str, object]:
         "guardian_required": True,
         "hrm_audit_required": True,
         "human_authority_final": True,
+    }
+
+# CC21 reuses the Research Intelligence cluster. This only classifies
+# caller-supplied observations; it never fetches prices, publishes signals,
+# writes SIKA ledger entries, recommends trades, or executes transactions.
+FINANCIAL_OBSERVATION_MAX_AGE_SECONDS = 900
+_FINANCIAL_DISALLOWED_FIELDS = frozenset({
+    "trade_action", "auto_execute", "payment_instruction", "ledger_entry",
+    "win_rate", "profit_loss", "guaranteed_return",
+})
+
+
+def assess_financial_observation(
+    observation: Mapping[str, object],
+    *,
+    now: datetime,
+    trusted_sources: Mapping[str, Mapping[str, object]] | None = None,
+) -> dict[str, object]:
+    """Fail closed on provenance, freshness, permission and quote integrity.
+
+    Caller must supply a timezone-aware now and an independently provisioned
+    source registry with source-bound verified observation receipts. Untrusted
+    observation permission and claim flags grant no authority.
+    Passing observations remain research-only, never trade signals.
+    """
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("now must be timezone-aware")
+
+    reasons: list[str] = []
+    source_class = observation.get("source_class")
+    if not str(observation.get("source") or "").strip():
+        reasons.append("missing_source")
+    if source_class not in SOURCE_CLASSES:
+        reasons.append("invalid_source_class")
+    if source_class == "community_or_social_signal":
+        reasons.append("social_signal_not_a_verified_quote")
+    # Observations are untrusted input. Permission and source assurance cannot
+    # be granted by flags that the observation supplies about itself.
+    source_id = str(observation.get("source") or "").strip()
+    source_record = (trusted_sources or {}).get(source_id)
+    if not isinstance(source_record, Mapping):
+        reasons.append("untrusted_source")
+    else:
+        # Usage rights must be separately documented in the trusted registry,
+        # not self-declared by the observation or inferred from a source name.
+        agreement = source_record.get("rights_evidence")
+        if not isinstance(agreement, Mapping):
+            reasons.append("missing_source_rights_evidence")
+        else:
+            if not isinstance(agreement.get("reference"), str) or not agreement["reference"].strip():
+                reasons.append("missing_source_rights_reference")
+            if agreement.get("verified") is not True:
+                reasons.append("source_rights_not_verified")
+            if agreement.get("use_scope") != "private_research":
+                reasons.append("private_research_rights_not_proven")
+            expiry = agreement.get("expires_at")
+            try:
+                if not isinstance(expiry, str):
+                    raise TypeError("expiry must be a string")
+                expiry_at = datetime.fromisoformat(expiry.replace("Z", "+00:00"))
+                if expiry_at.tzinfo is None or expiry_at.utcoffset() is None:
+                    raise ValueError("expiry requires timezone")
+                if expiry_at <= now:
+                    reasons.append("source_rights_expired")
+            except (TypeError, ValueError, OverflowError):
+                reasons.append("invalid_source_rights_expiry")
+        if source_record.get("research_use_permitted") is not True:
+            reasons.append("research_permission_not_proven")
+        if source_record.get("verified") is not True:
+            reasons.append("source_not_verified")
+        if source_record.get("source_class") != source_class:
+            reasons.append("source_class_mismatch")
+        instruments = source_record.get("instruments")
+        if (
+            not isinstance(instruments, (tuple, list, frozenset))
+            or observation.get("instrument") not in instruments
+        ):
+            reasons.append("instrument_not_authorised")
+    # A source's general research approval does not verify a submitted quote.
+    # A separately provisioned, source-scoped receipt must match its content.
+    receipt_id = observation.get("evidence_id")
+    if not isinstance(receipt_id, str) or not receipt_id.strip():
+        reasons.append("missing_evidence_id")
+    else:
+        receipts = (
+            source_record.get("verified_observations")
+            if isinstance(source_record, Mapping) else None
+        )
+        receipt = receipts.get(receipt_id) if isinstance(receipts, Mapping) else None
+        if not isinstance(receipt, Mapping) or receipt.get("verified") is not True:
+            reasons.append("independent_evidence_not_verified")
+        elif (
+            receipt.get("instrument") != observation.get("instrument")
+            or receipt.get("value") != str(observation.get("value"))
+            or receipt.get("published_at") != observation.get("published_at")
+            or receipt.get("observed_at") != observation.get("observed_at")
+            or receipt.get("retrieved_at") != observation.get("retrieved_at")
+        ):
+            reasons.append("independent_evidence_mismatch")
+    if observation.get("observed_or_inferred") != "observed":
+        reasons.append("not_a_direct_observation")
+    if not str(observation.get("instrument") or "").strip():
+        reasons.append("missing_instrument")
+    if _FINANCIAL_DISALLOWED_FIELDS.intersection(observation):
+        reasons.append("execution_or_performance_claim_in_quote")
+
+    try:
+        quote = Decimal(str(observation["value"]))
+        if not quote.is_finite() or quote <= 0:
+            reasons.append("invalid_quote")
+    except (KeyError, ValueError, TypeError, InvalidOperation):
+        reasons.append("invalid_quote")
+
+    timestamps: dict[str, datetime] = {}
+    for field in ("published_at", "observed_at", "retrieved_at"):
+        raw = observation.get(field)
+        try:
+            if not isinstance(raw, str):
+                raise TypeError("timestamp must be a string")
+            parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            if parsed.tzinfo is None or parsed.utcoffset() is None:
+                raise ValueError("timestamp requires timezone")
+            timestamps[field] = parsed
+        except (TypeError, ValueError, OverflowError):
+            reasons.append("invalid_" + field)
+
+    if len(timestamps) == 3:
+        published, observed, retrieved = (
+            timestamps[field] for field in ("published_at", "observed_at", "retrieved_at")
+        )
+        if not (published <= observed <= retrieved <= now):
+            reasons.append("inconsistent_or_future_timestamps")
+        elif (now - observed).total_seconds() > FINANCIAL_OBSERVATION_MAX_AGE_SECONDS:
+            reasons.append("stale_observation")
+
+    return {
+        "usable_for_research": not reasons,
+        "reasons": tuple(reasons),
+        "read_only": True,
+        "trade_signal": False,
+        "execution_allowed": False,
+        "ledger_write_allowed": False,
+        "human_authority_final": True,
+        "source": str(observation.get("source") or "").strip(),
     }
