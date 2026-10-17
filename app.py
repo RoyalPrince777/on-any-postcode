@@ -56,6 +56,7 @@ from mission_control import (
     oware,
     product_store,
     products,
+    spot_apps_catalogue,
     public_store,
     public_studio_runtime,
     reviews,
@@ -2584,6 +2585,23 @@ def the_spot_front_door():
         render_template(
             "spot.html",
             hierarchy=products.get_public_product_hierarchy(),
+            spot_apps=spot_apps_catalogue.public_catalogue(
+                registered_routes=(
+                    {rule.rule for rule in app.url_map.iter_rules() if "GET" in rule.methods}
+                    | {
+                        f"/the-spot/{slug}"
+                        for slug in ("pulse", "market")
+                        if products.get_public_spot_capability(slug) is not None
+                        and any(
+                            rule.rule == "/the-spot/<capability_slug>" and "GET" in rule.methods
+                            for rule in app.url_map.iter_rules()
+                        )
+                    }
+                ),
+                public_routes={"/the-spot/pulse", "/arena", "/the-spot/market", "/the-link"},
+                query=request.args.get("app_search", ""),
+            ),
+            app_search=request.args.get("app_search", "")[:100],
         )
     )
     response.headers["Cache-Control"] = "no-store"

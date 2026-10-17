@@ -19,7 +19,7 @@
       <div class="spot-bar">
         <a href="{{ url_for('home') }}">🌍 OAP World</a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">📣 Drop a Signal</a>
-        <a href="/store" data-spot-apps-entry>📱 Apps · Open / Install</a>
+        <a href="#apps" data-spot-apps-entry>📱 Apps · Discover / Open</a>
       </div>
     </div>
   </header>
@@ -41,6 +41,24 @@
         <a href="{{ url_for('spot_capability_front_door', capability_slug='market') }}"><strong>🏪 Market</strong><small>Listings, local value and My Shop.</small></a>
         <a href="{{ url_for('spot_capability_front_door', capability_slug='my-world') }}"><strong>👤 My World</strong><small>Your OAP identity and private personal space.</small></a>
       </div>
+    </section>
+
+    <section class="mc-panel" id="apps" aria-labelledby="spot-apps-title">
+      <p class="mc-eyebrow">📱 OAP Apps · First-party discovery</p>
+      <h2 id="spot-apps-title">Discover and open apps</h2>
+      <form action="{{ url_for('the_spot_front_door') }}" method="get" role="search">
+        <label for="spot-app-search">Search apps</label>
+        <input id="spot-app-search" type="search" name="app_search" maxlength="100" value="{{ app_search }}" placeholder="Search by name or category">
+        <button type="submit">Search</button>
+      </form>
+      <div class="spot-core" aria-label="Available OAP apps">
+        {% for app_entry in spot_apps %}
+        <a href="{{ app_entry.route }}"><strong>{{ app_entry.name }}</strong><small>{{ app_entry.category }} · Open</small></a>
+        {% else %}
+        <p>No approved apps match this search right now.</p>
+        {% endfor %}
+      </div>
+      <p class="spot-truth">Only reviewed first-party routes are listed. Protected destinations still require their own access checks. Installation is not offered here.</p>
     </section>
 
     <section class="mc-panel" aria-labelledby="spot-platform-title">
