@@ -142,7 +142,12 @@ def test_war_room_status_is_redacted_and_preserves_human_authority(client):
     for private_key in ("password", "secret", "private_key", "database_url", "correlation_id", "message_body"):
         assert private_key not in serialized
     assert '"kaa"' not in serialized
-    assert "council" not in serialized
+    # The new read-only MATRIX council projection is intentional public status data.
+    # Preserve the real boundary: no execution authority or secret material.
+    assert payload["matrix_council"]["execution_authorised"] is False
+    assert payload["matrix_council"]["runtime_active"] is False
+    assert payload["matrix_council"]["production_ready"] is False
+    assert "private_key" not in serialized
 
 
 def test_mission_navigation_links_to_war_room(client):
