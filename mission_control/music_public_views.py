@@ -1,7 +1,7 @@
 """Public OAP Music first-party listener front door."""
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import entertainment_catalogue, music_public_catalogue
+from . import entertainment_catalogue, music_oap_data_schema, music_public_catalogue
 
 bp = Blueprint("oap_music_public", __name__)
 
@@ -122,3 +122,31 @@ def music_public_status():
             )
         )
     )
+
+
+@bp.get("/music/api/data")
+def music_oap_data():
+    """Consent-aware, first-party OAP Data metadata discovery."""
+    try:
+        items = music_oap_data_schema.discover_public_data(
+            genre=request.args.get("genre"),
+            language=request.args.get("language"),
+            country=request.args.get("country"),
+            limit=50,
+        )
+    except (TypeError, ValueError):
+        return _no_store(make_response(jsonify({"error": "invalid_metadata_filter"}), 400))
+    except Exception:  # noqa: BLE001
+        return _no_store(make_response(jsonify({
+            "catalogue": "OAP Data",
+            "items": [],
+            "temporarily_unavailable": True,
+            "playback_enabled": False,
+        }), 503))
+    return _no_store(make_response(jsonify({
+        "catalogue": "OAP Data",
+        "items": items,
+        "item_count": len(items),
+        "public_metadata_only": True,
+        "playback_enabled": False,
+    })))
