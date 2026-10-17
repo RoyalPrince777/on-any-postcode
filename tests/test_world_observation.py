@@ -11,13 +11,16 @@ def _observation(**overrides):
         "object_type": "weather",
         "event_type": "weather_observation",
         "evidence_class": "observed",
-        "source": "bounded_weather_provider",
+        "source": "api.open-meteo.com",
         "source_ownership": "external_public",
         "observed_at": "2026-10-03T03:29:30Z",
         "fresh_for_seconds": 60,
         "stale_after_seconds": 300,
         "expires_after_seconds": 3600,
-        "evidence": ("provider:bounded_weather_provider",),
+        "evidence": (
+            "provider:api.open-meteo.com",
+            "observation_time:2026-10-03T03:29:30Z",
+        ),
         "first_party": {
             "software": True,
             "processing": True,
@@ -90,7 +93,7 @@ def test_ecosystem_analysis_preserves_structured_world_observation():
                 "truth_state": "observed",
                 "horizon": "now",
                 "source": "oap_weather_live_source",
-                "evidence": ("provider:bounded_weather_provider",),
+                "evidence": ("provider:api.open-meteo.com",),
                 "geography": {"country": "United Kingdom"},
                 "observation": _observation(),
             },
@@ -196,3 +199,66 @@ def test_only_stale_observations_fail_closed_to_zero_current_pressure():
     assert result["current_signal_count"] == 0
     assert result["war_room_required"] is False
     assert result["risks"] == ()
+
+
+def test_unregistered_source_cannot_claim_live_or_trusted_ownership():
+    result = world_observation.normalise(
+        _observation(
+            source="unregistered.example",
+            source_ownership="unknown",
+            evidence=(
+                "provider:unregistered.example",
+                "observation_time:2026-10-03T03:29:30Z",
+            ),
+        ),
+        now=NOW,
+    )
+    assert result["source_registered"] is False
+    assert result["source_ownership"] == "unknown"
+    assert result["live_claim_allowed"] is False
+
+
+def test_unregistered_source_cannot_self_claim_external_public_ownership():
+    try:
+        world_observation.normalise(
+            _observation(
+                source="unregistered.example",
+                source_ownership="external_public",
+            ),
+            now=NOW,
+        )
+    except ValueError as exc:
+        assert "unregistered source cannot claim trusted ownership" in str(exc)
+    else:
+        raise AssertionError("unregistered source ownership must fail closed")
+
+
+def test_registered_source_requires_evidence_bound_to_same_provider_and_time():
+    result = world_observation.normalise(
+        _observation(
+            evidence=(
+                "provider:wrong.example",
+                "observation_time:2026-10-03T03:29:30Z",
+            )
+        ),
+        now=NOW,
+    )
+    assert result["source_registered"] is True
+    assert result["evidence_bound"] is False
+    assert result["live_claim_allowed"] is False
+
+
+def test_registered_source_rejects_freshness_beyond_source_policy():
+    try:
+        world_observation.normalise(
+            _observation(
+                fresh_for_seconds=901,
+                stale_after_seconds=3600,
+                expires_after_seconds=21600,
+            ),
+            now=NOW,
+        )
+    except ValueError as exc:
+        assert "exceeds trusted source policy" in str(exc)
+    else:
+        raise AssertionError("caller cannot extend trusted freshness policy")
