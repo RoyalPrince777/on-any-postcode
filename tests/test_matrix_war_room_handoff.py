@@ -97,3 +97,23 @@ def test_invalid_evidence_claim_shape_fails_closed(evidence):
     signal["evidence"] = evidence
     with pytest.raises(ValueError, match="evidence list"):
         matrix_war_room.review_pack(signal)
+
+
+def test_matrix_command_monitor_is_wired_into_canonical_dashboard_without_live_claims():
+    """Verify the dashboard-to-template data contract without claiming browser proof."""
+    dashboard = war_room.get_war_room_dashboard()
+    wall = dashboard["matrix_command_monitors"]
+    topology = matrix_signal_bus.topology()
+    assert wall["agent_monitor"]["registered"] == topology["registered_count"]
+    assert wall["agent_monitor"]["passport_review"] == topology["extended_review_count"]
+    assert wall["agent_monitor"]["participants"] == topology["participants"]
+    assert wall["agent_monitor"]["execution_granted"] is False
+    assert wall["telemetry_monitor"]["state"] == "not_connected"
+    assert wall["telemetry_monitor"]["cpu"] is None
+    assert wall["telemetry_monitor"]["latency_ms"] is None
+    assert wall["test_monitor"]["state"] == "not_connected"
+    assert wall["controls"]["run_tests"] == "not_connected"
+    assert wall["controls"]["recover"] == "not_connected"
+    assert wall["full_green"] is False
+    assert dashboard["can_execute"] is False
+    assert dashboard["can_approve"] is False
