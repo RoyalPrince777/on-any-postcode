@@ -23,7 +23,7 @@ def test_supplier_bridge_truth_status_fails_closed_on_external_execution():
     assert status["payment_capture_enabled"] is False
     assert status["money_transfer_enabled"] is False
     assert status["carrier_dispatch_enabled"] is False
-    assert status["delivery_destination_supported"] is False
+    assert status["delivery_destination_supported"] is True
     assert status["provider_connector_required"] is True
 
 

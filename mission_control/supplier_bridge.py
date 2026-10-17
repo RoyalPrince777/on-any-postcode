@@ -96,10 +96,9 @@ def normalize_provider_receipt(
 def handoff_candidate(*, order_id: object) -> dict[str, Any]:
     """Build a private provider-neutral manufacturing candidate.
 
-    The current Commerce schema does not yet own a delivery destination and OAP
-    has no authorized provider connector or proven payment capture path. Those
-    conditions therefore remain explicit blockers even when supplier/design
-    records are READY.
+    OAP owns delivery destinations first-party. Provider authorization,
+    credentials and proven payment capture remain explicit external blockers
+    even when supplier/design records are READY.
     """
 
     order = _uuid(order_id, "invalid_order_id")
@@ -123,6 +122,19 @@ def handoff_candidate(*, order_id: object) -> dict[str, Any]:
                    LIMIT 1""",
                 (order,),
             ).fetchone()
+            destination = None
+            destination_table = connection.execute(
+                "SELECT to_regclass('public.oap_commerce_delivery_destinations')"
+            ).fetchone()
+            if destination_table is not None and destination_table[0] is not None:
+                destination = connection.execute(
+                    """SELECT recipient_name,address_line1,address_line2,locality,
+                              region,postal_code,country_code,delivery_instructions
+                       FROM oap_commerce_delivery_destinations
+                       WHERE order_id=%s
+                       LIMIT 1""",
+                    (order,),
+                ).fetchone()
     except Exception as exc:
         raise SupplierBridgeUnavailable("supplier_bridge_read_failed") from exc
 
@@ -153,8 +165,7 @@ def handoff_candidate(*, order_id: object) -> dict[str, Any]:
     checks["colors_present"] = bool(list(row[15] or []))
     checks["sizes_present"] = bool(list(row[16] or []))
 
-    # Deliberate fail-closed boundaries until first-party support is added.
-    checks["delivery_destination_present"] = False
+    checks["delivery_destination_present"] = destination is not None
     checks["payment_capture_proven"] = False
     checks["provider_connector_authorized"] = False
     checks["provider_credentials_configured"] = False
@@ -176,6 +187,22 @@ def handoff_candidate(*, order_id: object) -> dict[str, Any]:
         "placements": list(row[14] or []),
         "colors": list(row[15] or []),
         "sizes": list(row[16] or []),
+        "delivery_destination": (
+            {
+                "recipient_name": str(destination[0]),
+                "address_line1": str(destination[1]),
+                "address_line2": str(destination[2]) if destination[2] else None,
+                "locality": str(destination[3]),
+                "region": str(destination[4]) if destination[4] else None,
+                "postal_code": str(destination[5]),
+                "country_code": str(destination[6]),
+                "delivery_instructions": (
+                    str(destination[7]) if destination[7] else None
+                ),
+            }
+            if destination is not None
+            else None
+        ),
         "bridge_ready": all(checks.values()),
         "checks": checks,
         "block_reasons": reasons,
@@ -200,7 +227,7 @@ def truth_status() -> dict[str, object]:
         "payment_capture_enabled": False,
         "money_transfer_enabled": False,
         "carrier_dispatch_enabled": False,
-        "delivery_destination_supported": False,
+        "delivery_destination_supported": True,
         "provider_connector_required": True,
         "human_authority_final": True,
     }
