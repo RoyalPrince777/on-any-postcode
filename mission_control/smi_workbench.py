@@ -5,6 +5,12 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from oap.smi.naming_vote import (
+    HISTORICAL_NAMING_ROUNDS,
+    NEW_CHALLENGERS,
+    project_naming_vote,
+)
+
 from . import (
     a7_certification,
     coherent_automation,
@@ -256,6 +262,7 @@ def get_workbench_status() -> dict[str, Any]:
             "owner_scoped": True,
             "library_url": "/mission/founder-library",
         },
+        "naming_vote": _naming_vote_workbench_projection(),
         "knowledge": {
             "name": "OAP operating context",
             "source": "versioned OAP code, protocols, receipts and Founder corrections",
@@ -268,4 +275,21 @@ def get_workbench_status() -> dict[str, Any]:
             "provider_reads_founder_only": True,
             "consequential_actions_require_separate_approval": True,
         },
+    }
+
+
+def _naming_vote_workbench_projection() -> dict[str, Any]:
+    """Advisory history only: never an authenticated agent ballot or deployment gate."""
+    vote = project_naming_vote(HISTORICAL_NAMING_ROUNDS, NEW_CHALLENGERS)
+    return {
+        "name": "OAP Language naming council",
+        "candidates": list(vote.candidates),
+        "recovered_leaders": list(vote.recovered_leaders),
+        "historical_wins": dict(vote.historical_wins),
+        "provenance": "illustrative_role_based_summary",
+        "advisory_only": True,
+        "founder_final_required": True,
+        "live_agent_ballots_verified": False,
+        "runtime_verified": False,
+        "persistent_ledger_ready": False,
     }
