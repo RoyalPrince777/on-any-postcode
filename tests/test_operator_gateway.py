@@ -49,3 +49,53 @@ def test_public_transport_view_uses_gateway_not_provider_adapter():
     assert "shared_bike.nearby_mitcham(" not in source
     assert "shared_bike.status()" not in source
     assert "operator_gateway.DEFAULT_SHARED_BIKE_RADIUS_KM" in source
+
+
+def test_gateway_exposes_normalized_availability_contract(monkeypatch):
+    monkeypatch.setattr(
+        operator_gateway,
+        "nearby_shared_bikes_mitcham",
+        lambda *, radius_km: {
+            "vehicles": [{"vehicle_id": "bike-1"}],
+            "vehicle_count": 1,
+        },
+    )
+
+    result = operator_gateway.availability(mode="E-BIKE", radius_km=2)
+
+    assert result["contract"] == "oap_transport_availability_v1"
+    assert result["mode"] == "e-bike"
+    assert result["available"] is True
+    assert result["option_count"] == 1
+    assert result["options"] == [{"vehicle_id": "bike-1"}]
+    assert result["operator_control_authorised"] is False
+    assert result["execution_available"] is False
+
+
+def test_gateway_car_and_transit_fail_closed_without_adapters():
+    for mode in ("car", "transit"):
+        result = operator_gateway.availability(mode=mode)
+
+        assert result["contract"] == "oap_transport_availability_v1"
+        assert result["mode"] == mode
+        assert result["available"] is False
+        assert result["option_count"] == 0
+        assert result["source_state"] == "adapter_not_configured"
+        assert result["operator_control_authorised"] is False
+        assert result["execution_available"] is False
+
+
+def test_gateway_rejects_unknown_transport_mode():
+    try:
+        operator_gateway.availability(mode="walk")
+    except ValueError as exc:
+        assert str(exc) == "unsupported_transport_mode"
+    else:
+        raise AssertionError("walk must not be accepted as an OAP Ride mode")
+
+
+def test_public_transport_exposes_operator_gateway_availability_route():
+    source = Path("mission_control/global_transport_views.py").read_text(encoding="utf-8")
+
+    assert '@bp.get("/transport/operator-gateway/availability")' in source
+    assert "operator_gateway.availability(" in source
