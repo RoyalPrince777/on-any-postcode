@@ -125,11 +125,14 @@ def station_projection(record: object) -> dict[str, object] | None:
     state = record.get("state")
     if state not in STATION_STATES:
         return None
+    stopped = record.get("stopped", True)
+    if type(stopped) is not bool:
+        return None
     return {
         "station_id": station_id,
         "name": name,
         "state": state,
-        "stopped": bool(record.get("stopped", True)),
+        "stopped": stopped,
         "broadcast_live": False,
         "public_stream_url": None,
     }
