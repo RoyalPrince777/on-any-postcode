@@ -7,7 +7,6 @@ import pytest
 
 from mission_control import internal_record_executor as executor
 
-
 # Deterministic signed-approval stand-in for existing bounded executor tests.
 # Production still queries and validates the real signed receipt.
 _TEST_APPROVALS: dict[str, tuple[str, str]] = {}
