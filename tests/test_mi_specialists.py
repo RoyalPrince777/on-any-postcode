@@ -17,3 +17,25 @@ def test_mi_definitions_do_not_modify_canonical_roster():
     assert not {agent["id"] for agent in MI_SPECIALISTS}.intersection(
         {agent.get("agent_id") for agent in AGENT_REGISTRY}
     )
+
+
+def test_mi_rejects_duplicate_identity():
+    roster = [dict(agent) for agent in MI_SPECIALISTS]
+    roster[1]["id"] = roster[0]["id"]
+    assert not validate_mi_specialists(roster)
+
+
+def test_mi_rejects_execution_and_tool_grants():
+    for field, value in (("execution", "enabled"), ("tools", ("shell",)),
+                         ("provider", "external"), ("authority", "admin")):
+        roster = [dict(agent) for agent in MI_SPECIALISTS]
+        roster[0][field] = value
+        assert not validate_mi_specialists(roster)
+
+
+def test_mi_rejects_unexpected_fields_and_malformed_roster():
+    roster = [dict(agent) for agent in MI_SPECIALISTS]
+    roster[0]["secret_tool"] = "shell"
+    assert not validate_mi_specialists(roster)
+    assert not validate_mi_specialists(roster[:-1])
+    assert not validate_mi_specialists([{}] * 14)
