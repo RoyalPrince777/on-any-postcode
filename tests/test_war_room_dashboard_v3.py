@@ -149,3 +149,28 @@ def test_mission_navigation_links_to_war_room(client):
     for path in ("/mission", "/mission/brain", "/mission/organism"):
         page = client.get(path).get_data(as_text=True)
         assert 'href="/mission/war-room"' in page
+
+
+def test_matrix_seven_display_wall_renders_for_founder_and_denies_anonymous_access(
+    client, anonymous_client
+):
+    """Actual Flask route/template integration; not a live Chromium claim."""
+    response = client.get("/mission/war-room")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert 'id="matrix-command-wall"' in page
+    assert 'id="matrix-wall-grid"' in page
+    for display in (
+        "MASTER COMMAND", "INTELLIGENCE", "PERFORMANCE", "TEST LAB",
+        "SECURITY / RECOVERY", "WORLD OPERATIONS", "FOUNDER DISPLAY",
+    ):
+        assert display in page
+    assert "7 registered" in page
+    assert "19 under passport review" in page
+    assert page.count("NOT CONNECTED") >= 3
+    assert 'id="matrix-wall-focus"' in page
+    assert 'id="matrix-wall-tv"' in page
+    assert "requestFullscreen" in page
+    assert "execution_granted" not in page
+    assert 'method="post"' not in page.lower()
+    assert anonymous_client.get("/mission/war-room").status_code == 302
