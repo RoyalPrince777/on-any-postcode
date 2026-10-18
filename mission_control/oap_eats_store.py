@@ -229,6 +229,26 @@ class EatsStore:
             connection.commit()
         return _row(row)
 
+    def require_customer_order(self, *, order_id: object, customer_identity_id: object) -> dict[str, Any]:
+        """Fail closed unless the caller owns the order as its customer.
+
+        Merchant read permission is intentionally insufficient for delivery booking.
+        """
+        order = _uuid(order_id, "order_id")
+        customer = _uuid(customer_identity_id, "customer_identity_id")
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT order_id,merchant_id,state,amount_minor,currency,
+                          fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
+                          created_at,updated_at
+                   FROM oap_eats_orders
+                   WHERE order_id=%s AND customer_identity_id=%s""",
+                (order, customer),
+            ).fetchone()
+        if row is None:
+            raise PermissionError("order_customer_required")
+        return _row(row)
+
     def bind_movement(self, *, order_id: object, customer_identity_id: object, booking_id: object) -> dict[str, Any]:
         order = _uuid(order_id, "order_id")
         customer = _uuid(customer_identity_id, "customer_identity_id")
