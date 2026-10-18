@@ -88,9 +88,9 @@ def test_delivery_retry_reuses_movement_booking_after_binding_failure(monkeypatc
     monkeypatch.setattr(oap_eats_fulfilment.movement_operations.STORE, "create_booking", create_booking)
     bind = Mock(side_effect=[RuntimeError("temporary_eats_store_failure"), {"movement_booking_id": "44444444-4444-4444-8444-444444444444"}])
     monkeypatch.setattr(oap_eats_fulfilment.oap_eats_store.STORE, "bind_movement", bind)
-    args = dict(order_id=ORDER, customer_identity_id=CUSTOMER,
-                pickup={"label": "A"}, destination={"label": "B"},
-                idempotency_key="eats-delivery-retry-0001")
+    args = {"order_id": ORDER, "customer_identity_id": CUSTOMER,
+            "pickup": {"label": "A"}, "destination": {"label": "B"},
+            "idempotency_key": "eats-delivery-retry-0001"}
     with pytest.raises(RuntimeError, match="temporary_eats_store_failure"):
         oap_eats_fulfilment.create_delivery(**args)
     result = oap_eats_fulfilment.create_delivery(**args)
@@ -119,9 +119,9 @@ def test_delivery_retry_changed_payload_rejected_before_binding(monkeypatch):
     monkeypatch.setattr(oap_eats_fulfilment.movement_operations.STORE, "create_booking", create_booking)
     bind = Mock(return_value={"movement_booking_id": "44444444-4444-4444-8444-444444444444"})
     monkeypatch.setattr(oap_eats_fulfilment.oap_eats_store.STORE, "bind_movement", bind)
-    args = dict(order_id=ORDER, customer_identity_id=CUSTOMER,
-                pickup={"label": "A"}, destination={"label": "B"},
-                idempotency_key="eats-delivery-retry-0002")
+    args = {"order_id": ORDER, "customer_identity_id": CUSTOMER,
+            "pickup": {"label": "A"}, "destination": {"label": "B"},
+            "idempotency_key": "eats-delivery-retry-0002"}
     oap_eats_fulfilment.create_delivery(**args)
     with pytest.raises(ValueError, match="idempotency_conflict"):
         oap_eats_fulfilment.create_delivery(**{**args, "destination": {"label": "C"}})
