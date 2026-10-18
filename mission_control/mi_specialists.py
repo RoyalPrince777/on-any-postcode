@@ -24,14 +24,28 @@ MI_SPECIALISTS = (
 )
 
 
-def validate_mi_specialists():
-    """Fail closed on duplicate identities or accidental execution grants."""
-    ids = [agent["id"] for agent in MI_SPECIALISTS]
-    names = [agent["name"] for agent in MI_SPECIALISTS]
-    return (len(ids) == 14 and len(set(ids)) == 14
+def validate_mi_specialists(specialists=None):
+    """Reject malformed identities, unexpected grants and roster drift."""
+    roster = MI_SPECIALISTS if specialists is None else tuple(specialists)
+    if len(roster) != 14:
+        return False
+    try:
+        ids = [agent["id"] for agent in roster]
+        names = [agent["name"] for agent in roster]
+        return (
+            set(ids) == {f"MI-{number:02d}" for number in range(1, 15)}
             and len(set(names)) == 14
-            and all(agent["execution"] == "disabled"
-                    and agent["provider"] is None
-                    and not agent["tools"]
-                    and agent["authority"] == "none"
-                    for agent in MI_SPECIALISTS))
+            and all(
+                isinstance(agent["name"], str) and bool(agent["name"].strip())
+                and isinstance(agent["role"], str) and bool(agent["role"].strip())
+                and agent["status"] == "design_approved"
+                and agent["execution"] == "disabled"
+                and agent["provider"] is None
+                and agent["tools"] == ()
+                and agent["authority"] == "none"
+                and set(agent) == {"id", "name", "role", "status", "execution", "provider", "tools", "authority"}
+                for agent in roster
+            )
+        )
+    except (KeyError, TypeError, ValueError):
+        return False
