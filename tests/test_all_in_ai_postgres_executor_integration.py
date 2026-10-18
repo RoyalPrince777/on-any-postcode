@@ -10,8 +10,8 @@ from uuid import uuid4
 
 import pytest
 
-from mission_control import governed_action_pipeline, internal_record_executor as executor
-from mission_control import postgres_db
+from mission_control import governed_action_pipeline, postgres_db
+from mission_control import internal_record_executor as executor
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("OAP_REAL_POSTGRES_PROOF") != "1",
