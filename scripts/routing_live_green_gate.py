@@ -12,7 +12,7 @@ from urllib import error, parse, request
 # Render address is the default only for backward compatibility; a suspended
 # endpoint must never be treated as ready.
 BASE = os.environ.get("OAP_ROUTING_BASE_URL", "https://oap-routing.onrender.com").rstrip("/")
-if not BASE.startswith("https://") or not parse.urlsplit(BASE).hostname or parse.urlsplit(BASE).username or parse.urlsplit(BASE).password or parse.urlsplit(BASE).query or parse.urlsplit(BASE).fragment:
+if not BASE.startswith("https://") or not parse.urlsplit(BASE).hostname or parse.urlsplit(BASE).username or parse.urlsplit(BASE).password or parse.urlsplit(BASE).query or parse.urlsplit(BASE).fragment or parse.urlsplit(BASE).path not in ("", "/"):
     raise ValueError("OAP_ROUTING_BASE_URL must be an HTTPS origin without credentials, query or fragment")
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
