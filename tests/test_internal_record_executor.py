@@ -6,19 +6,46 @@ import pytest
 
 from mission_control import internal_record_executor as executor
 
+from datetime import UTC, datetime, timedelta
+
+# Deterministic signed-approval stand-in for existing bounded executor tests.
+# Production still queries and validates the real signed receipt.
+_TEST_APPROVALS: dict[str, tuple[str, str]] = {}
+
+
+@pytest.fixture(autouse=True)
+def _valid_approval_for_executor_tests(monkeypatch):
+    _TEST_APPROVALS.clear()
+
+    def approval_row(request_id):
+        receipt, identity = _TEST_APPROVALS[request_id]
+        now = datetime.now(UTC)
+        return (receipt, request_id, identity, 0, "APPROVED", now,
+                now + timedelta(minutes=30), "digest", "nonce", "signature")
+
+    monkeypatch.setattr(executor.governed_action_pipeline, "_approval_row", approval_row)
+    monkeypatch.setattr(
+        executor.governed_action_pipeline, "_approval_valid",
+        lambda row, *, identity_id: row[2] == identity_id,
+    )
+
+
+
 
 def _authorization(identity_id: str) -> dict[str, object]:
-    _ = identity_id
+    request_id = str(uuid.uuid4())
+    receipt_id = str(uuid.uuid4())
+    _TEST_APPROVALS[request_id] = (receipt_id, identity_id)
     return {
         "signal_id": "all-in-ai:test",
-        "request_id": str(uuid.uuid4()),
+        "request_id": request_id,
         "action_name": "SYNC_INTERNAL_RECORD",
         "action_policy": {
             "external": False,
             "reversible": True,
             "authority_change": False,
         },
-        "approval_receipt_id": str(uuid.uuid4()),
+        "approval_receipt_id": receipt_id,
         "execution_authorized": True,
         "execution_performed": False,
         "authority_transferred": False,
