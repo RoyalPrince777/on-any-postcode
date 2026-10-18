@@ -49,7 +49,7 @@ def bind_payment(*, order_id: object, customer_identity_id: object, payment_id: 
 
 def create_delivery(*, order_id: object, customer_identity_id: object, pickup: object,
                     destination: object, idempotency_key: object) -> dict[str, Any]:
-    order = oap_eats_store.STORE.read_order(order_id=order_id, identity_id=customer_identity_id)
+    order = oap_eats_store.STORE.require_customer_order(order_id=order_id, customer_identity_id=customer_identity_id)
     if order["fulfilment_mode"] != "delivery":
         raise ValueError("delivery_not_required")
     if order["state"] not in {"authorised", "confirmed", "preparing", "ready", "courier_assigned"}:
