@@ -1,7 +1,7 @@
 """Regression checks for the advisory-only MI specialist roster."""
 
-from mission_control.mi_specialists import MI_SPECIALISTS, validate_mi_specialists
 from mission_control.agents import AGENT_REGISTRY, LOCKED_AGENT_COUNT
+from mission_control.mi_specialists import MI_SPECIALISTS, validate_mi_specialists
 
 
 def test_mi_roster_is_complete_and_fail_closed():
