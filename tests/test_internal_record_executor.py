@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from mission_control import internal_record_executor as executor
 
-from datetime import UTC, datetime, timedelta
 
 # Deterministic signed-approval stand-in for existing bounded executor tests.
 # Production still queries and validates the real signed receipt.
