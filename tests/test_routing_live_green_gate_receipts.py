@@ -104,3 +104,35 @@ def test_live_green_gate_warms_before_capacity_probe():
     assert "TOTAL_REQUESTS = 20" in source
     assert "WORKERS = 4" in source
     assert "P95_LIMIT_SECONDS = 6.0" in source
+
+
+def test_routing_endpoint_is_configurable_and_https_only():
+    import os
+    import subprocess
+    import sys
+
+    snippet = (
+        "from scripts import routing_live_green_gate as gate; "
+        "print(gate._route_url(0))"
+    )
+    env = dict(os.environ)
+    env["OAP_ROUTING_BASE_URL"] = "https://routing.example.org/"
+    valid = subprocess.run(
+        [sys.executable, "-c", snippet], env=env, capture_output=True, text=True, check=False
+    )
+    assert valid.returncode == 0, valid.stderr
+    assert valid.stdout.startswith("https://routing.example.org/route/v1/driving/")
+
+    for invalid in (
+        "http://routing.example.org",
+        "https://user:password@routing.example.org",
+        "https://routing.example.org/prefix",
+        "https://routing.example.org?x=1",
+        "https://routing.example.org#fragment",
+    ):
+        env["OAP_ROUTING_BASE_URL"] = invalid
+        result = subprocess.run(
+            [sys.executable, "-c", snippet], env=env, capture_output=True, text=True, check=False
+        )
+        assert result.returncode != 0, invalid
+        assert "ValueError" in result.stderr
