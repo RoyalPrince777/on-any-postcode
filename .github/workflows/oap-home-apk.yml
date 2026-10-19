@@ -55,6 +55,7 @@ jobs:
           "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
           sha256sum "$APK"
           stat -c 'APK size: %s bytes' "$APK"
+          test "$(stat -c %s "$APK")" -gt 10000
       - name: Adversarial APK archive tests
         shell: bash
         run: |
