@@ -131,6 +131,19 @@ def test_routing_endpoint_is_configurable_and_https_only():
         "https://routing.example.org/prefix",
         "https://routing.example.org?x=1",
         "https://routing.example.org#fragment",
+        "https://routing.example.org?",
+        "https://routing.example.org#",
+        "https://routing.example.org:",
+        "https://routing.example.org:abc",
+        "https://routing.example.org:65536",
+        "https://routing.example.org:0",
+        "https://routing.example.org\\\\@evil.example",
+        "https://routing.example.org%2f.evil.example",
+        "https://routing.example.org/route/",
+        "https://routing.example.org/\\n",
+        " https://routing.example.org",
+        "https://routing.example.org ",
+        "https://",
     ):
         env["OAP_ROUTING_BASE_URL"] = invalid
         result = subprocess.run(
@@ -138,3 +151,18 @@ def test_routing_endpoint_is_configurable_and_https_only():
         )
         assert result.returncode != 0, invalid
         assert "ValueError" in result.stderr
+
+
+def test_routing_endpoint_accepts_explicit_https_port():
+    import os
+    import subprocess
+    import sys
+
+    env = dict(os.environ)
+    env["OAP_ROUTING_BASE_URL"] = "https://routing.example.org:8443/"
+    result = subprocess.run(
+        [sys.executable, "-c", "from scripts import routing_live_green_gate as g; print(g.BASE)"],
+        env=env, capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "https://routing.example.org:8443"
