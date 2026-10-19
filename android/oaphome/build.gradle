@@ -10,11 +10,26 @@ android {
         applicationId 'com.onanypostcode.oaphome'
         minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName '0.1-founder'
+        versionCode 2
+        versionName '0.2-founder'
+    }
+
+    signingConfigs {
+        oapPersistent {
+            def keyPath = System.getenv('OAP_HOME_KEYSTORE_PATH')
+            if (keyPath) {
+                storeFile file(keyPath)
+                storePassword System.getenv('OAP_HOME_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('OAP_HOME_KEY_ALIAS')
+                keyPassword System.getenv('OAP_HOME_KEY_PASSWORD')
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.oapPersistent
+        }
         release {
             minifyEnabled false
         }
