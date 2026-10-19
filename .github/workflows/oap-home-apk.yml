@@ -40,6 +40,30 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+      - name: Require persistent OAP signing identity
+        shell: bash
+        env:
+          OAP_HOME_KEYSTORE_B64: ${{ secrets.OAP_HOME_KEYSTORE_B64 }}
+          OAP_HOME_KEYSTORE_PASSWORD: ${{ secrets.OAP_HOME_KEYSTORE_PASSWORD }}
+          OAP_HOME_KEY_ALIAS: ${{ secrets.OAP_HOME_KEY_ALIAS }}
+          OAP_HOME_KEY_PASSWORD: ${{ secrets.OAP_HOME_KEY_PASSWORD }}
+          OAP_HOME_CERT_SHA256: ${{ vars.OAP_HOME_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          for name in OAP_HOME_KEYSTORE_B64 OAP_HOME_KEYSTORE_PASSWORD OAP_HOME_KEY_ALIAS OAP_HOME_KEY_PASSWORD OAP_HOME_CERT_SHA256; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing $name. Refusing incompatible APK publication."
+              exit 1
+            fi
+          done
+          umask 077
+          printf '%s' "$OAP_HOME_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/oap-home-signing.jks"
+          test -s "$RUNNER_TEMP/oap-home-signing.jks"
+          echo "OAP_HOME_KEYSTORE_PATH=$RUNNER_TEMP/oap-home-signing.jks" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEYSTORE_PASSWORD=$OAP_HOME_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEY_ALIAS=$OAP_HOME_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEY_PASSWORD=$OAP_HOME_KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "OAP_HOME_CERT_SHA256=$OAP_HOME_CERT_SHA256" >> "$GITHUB_ENV"
       - name: Build OAP Home
         working-directory: android/oaphome
         run: gradle --no-daemon assembleDebug
@@ -54,6 +78,9 @@ jobs:
           "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
           grep -q "package: name='com.onanypostcode.oaphome'" /tmp/oap-apk-badging.txt
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$APK"
+          ACTUAL_CERT=$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1 | tr '[:upper:]' '[:lower:]')
+          EXPECTED_CERT=$(printf '%s' "$OAP_HOME_CERT_SHA256" | tr -d ': ' | tr '[:upper:]' '[:lower:]')
+          test -n "$ACTUAL_CERT" && test "$ACTUAL_CERT" = "$EXPECTED_CERT" || { echo "::error::OAP signing certificate mismatch"; exit 1; }
           "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
           sha256sum "$APK"
           stat -c 'APK size: %s bytes' "$APK"
