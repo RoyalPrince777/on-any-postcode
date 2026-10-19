@@ -57,3 +57,21 @@ def test_deployment_review_requires_real_host_and_recovery(monkeypatch):
     assert review["allowed"] is True
     assert review["execution_performed"] is False
     assert review["traffic_changed"] is False
+
+
+def test_declared_host_flags_cannot_prove_authenticated_node_connection(monkeypatch):
+    monkeypatch.setenv("OAP_HOST_NODE_ID", "oap-host-01")
+    for name in (
+        "OAP_SOVEREIGN_INFRA_SELF_HOSTED",
+        "OAP_SOVEREIGN_DATA_SELF_HOSTED",
+        "OAP_SOVEREIGN_NETWORK_EGRESS_CONTROLLED",
+        "OAP_SOVEREIGN_OBSERVABILITY_FIRST_PARTY",
+        "OAP_SOVEREIGN_RECOVERY_PROVEN",
+        "OAP_SOVEREIGN_SUPPLY_CHAIN_ATTESTED",
+        "OAP_HOST_DEPLOY_ROLLBACK_PROVEN",
+    ):
+        monkeypatch.setenv(name, "true")
+    state = oap_host.status()
+    assert state["runtime_ready"] is False
+    assert state["host_attestation"]["runtime_checks"]["authenticated_node_connection_proven"] is False
+    assert state["deployment_execution_enabled"] is False
