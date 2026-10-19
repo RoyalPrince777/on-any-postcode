@@ -55,6 +55,37 @@ jobs:
           "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
           sha256sum "$APK"
           stat -c 'APK size: %s bytes' "$APK"
+      - name: Adversarial APK archive tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          apk = Path("android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk")
+          with zipfile.ZipFile(apk) as z:
+              names = z.namelist()
+              assert len(names) == len(set(names)), "Duplicate ZIP entries"
+              assert z.testzip() is None, "Corrupt APK entry"
+              for required in ("AndroidManifest.xml", "classes.dex"):
+                  assert required in names, f"Missing {required}"
+              assert all(not n.startswith("/") and ".." not in Path(n).parts for n in names), "Unsafe archive path"
+              print(f"PASS: {len(names)} unique entries, archive CRC, manifest, dex and safe paths")
+          PY
+      - name: Record adversarial evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
+          mkdir -p adversarial-evidence
+          sha256sum "$APK" > adversarial-evidence/apk.sha256
+          stat -c 'APK bytes: %s' "$APK" > adversarial-evidence/build.txt
+          printf '%s\n' 'CI build and archive checks only; Android device installation NOT VERIFIED.' >> adversarial-evidence/build.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oap-home-adversarial-evidence
+          path: adversarial-evidence/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: oap-home-debug-apk
