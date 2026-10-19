@@ -24,6 +24,8 @@ _MAX_PENDING = 8
 _JOB_TTL_SECONDS = 45.0
 _RESULT_WAIT_SECONDS = 20.0
 _WORKER_RECENCY_SECONDS = 30.0
+_CONNECTION_TTL_SECONDS = 30.0
+_CONNECTION_RECEIPTS: dict[str, float] = {}
 
 
 def _shared_secret() -> str:
@@ -192,6 +194,28 @@ def complete(
                 job.result = text[:12000]
         job.event.set()
         return True
+
+
+def issue_connection_receipt() -> dict[str, Any]:
+    """Issue a one-time server-side receipt after the caller authenticates."""
+    now = time.monotonic()
+    with _LOCK:
+        for key, expires in list(_CONNECTION_RECEIPTS.items()):
+            if expires <= now:
+                del _CONNECTION_RECEIPTS[key]
+        nonce = secrets.token_urlsafe(32)
+        _CONNECTION_RECEIPTS[nonce] = now + _CONNECTION_TTL_SECONDS
+    return {"receipt": nonce, "expires_in_seconds": int(_CONNECTION_TTL_SECONDS)}
+
+
+def consume_connection_receipt(receipt: object) -> bool:
+    """Consume a server-issued receipt once; never infer infrastructure ownership."""
+    if not isinstance(receipt, str) or not receipt:
+        return False
+    now = time.monotonic()
+    with _LOCK:
+        expiry = _CONNECTION_RECEIPTS.pop(receipt, None)
+    return expiry is not None and now < expiry
 
 
 def status() -> dict[str, Any]:
