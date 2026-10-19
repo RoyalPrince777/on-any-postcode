@@ -53,7 +53,11 @@ def _spawn_organism() -> subprocess.Popen:
 
 
 def _spawn_inference() -> subprocess.Popen:
-    return subprocess.Popen([sys.executable, str(ROOT / "scripts" / "oap_home_node_inference_worker.py")], cwd=ROOT)
+    return subprocess.Popen(
+        [sys.executable, str(ROOT / "scripts" / "oap_home_node_inference_worker.py")],
+        cwd=ROOT,
+        env={**os.environ, "PYTHONPATH": str(ROOT) + os.pathsep + os.environ.get("PYTHONPATH", "")},
+    )
 
 
 def _stop(signum: int, frame: object) -> None:
