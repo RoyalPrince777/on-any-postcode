@@ -8,6 +8,9 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.net.Uri;
+import android.content.ActivityNotFoundException;
+import android.view.WindowManager;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -55,11 +58,11 @@ public class MainActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(3, 6, 14));
-        root.setPadding(18, 28, 18, 12);
+        root.setPadding(dp(12), dp(8), dp(12), dp(8));
         setContentView(root);
         TextView heading = label(title, 29);
         heading.setTypeface(Typeface.SERIF, Typeface.BOLD);
-        root.addView(heading, new LinearLayout.LayoutParams(-1, 78));
+        root.addView(heading, new LinearLayout.LayoutParams(-1, dp(54)));
         ScrollView scroll = new ScrollView(this);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         body = new LinearLayout(this);
@@ -69,8 +72,8 @@ public class MainActivity extends Activity {
 
     private void addButton(String text, View.OnClickListener click) {
         Button b = button(text, click);
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, 76);
-        p.setMargins(0, 7, 0, 7);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(54));
+        p.setMargins(0, dp(4), 0, dp(4));
         body.addView(b, p);
     }
 
@@ -78,8 +81,8 @@ public class MainActivity extends Activity {
         base("♛ OAP HOME");
         body.addView(label("ON ANY POSTCODE", 18));
         body.addView(label("BORN LOCAL · BUILT GLOBAL", 13));
-        clock = label("", 38);
-        body.addView(clock, new LinearLayout.LayoutParams(-1, 110));
+        clock = label("", 21);
+        body.addView(clock, new LinearLayout.LayoutParams(-1, dp(60)));
         updateClock();
         String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
                 "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
@@ -89,19 +92,37 @@ public class MainActivity extends Activity {
         for (String name : destinations) {
             Button b = button(name, v -> destination(name));
             GridLayout.LayoutParams p = new GridLayout.LayoutParams();
-            p.width = getResources().getDisplayMetrics().widthPixels / 3 - 22;
-            p.height = 105;
-            p.setMargins(3, 5, 3, 5);
+            p.width = (getResources().getDisplayMetrics().widthPixels - dp(42)) / 3;
+            p.height = dp(76);
+            p.setMargins(dp(2), dp(4), dp(2), dp(4));
             grid.addView(b, p);
         }
+        body.addView(label("EARTH IS OUR TURF", 16), new LinearLayout.LayoutParams(-1, dp(48)));
         addButton("ALL APPS", v -> allApps());
+        addButton("PHONE  ·  MESSAGES  ·  INTERNET  ·  CAMERA", v -> quickApps());
         addButton("ANDROID SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
     }
 
     private void updateClock() {
         if (clock == null) return;
-        clock.setText(DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.SHORT).format(new Date()));
+        clock.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()));
         clock.postDelayed(() -> updateClock(), 60000);
+    }
+
+    private int dp(int n) { return (int)(n * getResources().getDisplayMetrics().density + 0.5f); }
+
+    private void quickApps() {
+        base("QUICK APPS");
+        addButton("PHONE", v -> open(new Intent(Intent.ACTION_DIAL)));
+        addButton("MESSAGES", v -> open(new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:"))));
+        addButton("INTERNET", v -> open(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.onanypostcode.com"))));
+        addButton("CAMERA", v -> open(new Intent("android.media.action.IMAGE_CAPTURE")));
+        addButton("BACK", v -> home());
+    }
+
+    private void open(Intent intent) {
+        try { startActivity(intent); }
+        catch (ActivityNotFoundException e) { destination("No compatible app installed"); }
     }
 
     private void destination(String name) {
