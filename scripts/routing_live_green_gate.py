@@ -36,6 +36,7 @@ def _https_origin(value: str) -> str:
         or "?" in value
         or "#" in value
         or "@" in parsed.netloc
+        or (port is not None and port < 1)
         or (parsed.netloc.endswith(":") and port is None)
     ):
         raise ValueError(message)
