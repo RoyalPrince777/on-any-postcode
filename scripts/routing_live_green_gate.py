@@ -11,9 +11,38 @@ from urllib import error, parse, request
 # Explicit HTTPS endpoint for independently hosted OAP routing. The historical
 # Render address is the default only for backward compatibility; a suspended
 # endpoint must never be treated as ready.
-BASE = os.environ.get("OAP_ROUTING_BASE_URL", "https://oap-routing.onrender.com").rstrip("/")
-if not BASE.startswith("https://") or not parse.urlsplit(BASE).hostname or parse.urlsplit(BASE).username or parse.urlsplit(BASE).password or parse.urlsplit(BASE).query or parse.urlsplit(BASE).fragment or parse.urlsplit(BASE).path not in ("", "/"):
-    raise ValueError("OAP_ROUTING_BASE_URL must be an HTTPS origin without credentials, query or fragment")
+def _https_origin(value: str) -> str:
+    """Reject non-origin and ambiguous URL forms before issuing network requests."""
+    message = "OAP_ROUTING_BASE_URL must be a valid HTTPS origin without credentials, path, query or fragment"
+    if not value or value != value.strip() or any(ord(ch) <= 32 or ord(ch) == 127 for ch in value):
+        raise ValueError(message)
+    # Disallow ambiguous authorities, encoded delimiters and backslash normalization.
+    if "\\" in value or "%" in value:
+        raise ValueError(message)
+    try:
+        parsed = parse.urlsplit(value)
+        port = parsed.port  # Validate numeric/range of an optional port.
+    except ValueError as exc:
+        raise ValueError(message) from exc
+    if (
+        parsed.scheme != "https"
+        or not parsed.netloc
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in ("", "/")
+        or parsed.query
+        or parsed.fragment
+        or "?" in value
+        or "#" in value
+        or "@" in parsed.netloc
+        or (parsed.netloc.endswith(":") and port is None)
+    ):
+        raise ValueError(message)
+    return value.rstrip("/")
+
+
+BASE = _https_origin(os.environ.get("OAP_ROUTING_BASE_URL", "https://oap-routing.onrender.com"))
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
