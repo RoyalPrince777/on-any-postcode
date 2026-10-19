@@ -5,6 +5,7 @@ No sensor, tracking, identification or incident claim is established here.
 """
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class PredatorRole:
     role_id: str
