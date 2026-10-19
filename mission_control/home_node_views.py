@@ -27,6 +27,13 @@ def home_node_status():
     return _response(home_node_bridge.status())
 
 
+@bp.post("/home-node/connection/receipt")
+def home_node_connection_receipt():
+    if not _authorised():
+        return _response({"error": "not_found"}, 404)
+    return _response(home_node_bridge.issue_connection_receipt())
+
+
 @bp.get("/home-node/jobs/next")
 def home_node_next_job():
     if not _authorised():
