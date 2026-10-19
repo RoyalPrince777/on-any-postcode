@@ -41,6 +41,20 @@ jobs:
       - name: Build OAP Home
         working-directory: android/oaphome
         run: gradle --no-daemon assembleDebug
+      - name: Verify APK package and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
+          test -s "$APK"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          BUILD_TOOLS="$SDK_ROOT/build-tools/35.0.0"
+          "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
+          grep -q "package: name='com.onanypostcode.oaphome'" /tmp/oap-apk-badging.txt
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$APK"
+          "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
+          sha256sum "$APK"
+          stat -c 'APK size: %s bytes' "$APK"
       - uses: actions/upload-artifact@v4
         with:
           name: oap-home-debug-apk
