@@ -54,7 +54,8 @@ def test_deployment_review_requires_real_host_and_recovery(monkeypatch):
         human_authority_approved=True,
     )
 
-    assert review["allowed"] is True
+    assert review["allowed"] is False
+    assert "host_runtime_ready" in review["failed_checks"]
     assert review["execution_performed"] is False
     assert review["traffic_changed"] is False
 
