@@ -18,6 +18,11 @@ import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.EditText;
+import android.text.TextWatcher;
+import android.text.Editable;
+import android.widget.FrameLayout;
+import android.graphics.drawable.Drawable;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.List;
@@ -26,6 +31,7 @@ public class MainActivity extends Activity {
     private static final int GOLD = Color.rgb(236, 188, 75);
     private LinearLayout body;
     private TextView clock;
+    private TextView earth;
 
     private GradientDrawable panel() {
         GradientDrawable d = new GradientDrawable();
@@ -59,6 +65,8 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(3, 6, 14));
         root.setPadding(dp(12), dp(8), dp(12), dp(8));
+        getWindow().setStatusBarColor(Color.rgb(3, 6, 14));
+        getWindow().setNavigationBarColor(Color.BLACK);
         setContentView(root);
         TextView heading = label(title, 29);
         heading.setTypeface(Typeface.SERIF, Typeface.BOLD);
@@ -81,6 +89,9 @@ public class MainActivity extends Activity {
         base("♛ OAP HOME");
         body.addView(label("ON ANY POSTCODE", 18));
         body.addView(label("BORN LOCAL · BUILT GLOBAL", 13));
+        earth = label("◎  EARTH IS OUR TURF  ◎", 20);
+        earth.setTypeface(Typeface.SERIF, Typeface.BOLD);
+        body.addView(earth, new LinearLayout.LayoutParams(-1, dp(76)));
         clock = label("", 21);
         body.addView(clock, new LinearLayout.LayoutParams(-1, dp(60)));
         updateClock();
@@ -97,7 +108,8 @@ public class MainActivity extends Activity {
             p.setMargins(dp(2), dp(4), dp(2), dp(4));
             grid.addView(b, p);
         }
-        body.addView(label("EARTH IS OUR TURF", 16), new LinearLayout.LayoutParams(-1, dp(48)));
+
+        addButton("SEARCH APPS", v -> allApps());
         addButton("ALL APPS", v -> allApps());
         addButton("PHONE  ·  MESSAGES  ·  INTERNET  ·  CAMERA", v -> quickApps());
         addButton("ANDROID SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
@@ -133,17 +145,47 @@ public class MainActivity extends Activity {
 
     private void allApps() {
         base("ALL APPS");
+        EditText search = new EditText(this);
+        search.setSingleLine(true);
+        search.setHint("Search installed apps");
+        search.setHintTextColor(Color.LTGRAY);
+        search.setTextColor(Color.WHITE);
+        body.addView(search, new LinearLayout.LayoutParams(-1, dp(54)));
+        LinearLayout results = new LinearLayout(this);
+        results.setOrientation(LinearLayout.VERTICAL);
+        body.addView(results);
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> apps = getPackageManager().queryIntentActivities(intent, 0);
         apps.sort((a, b) -> a.loadLabel(getPackageManager()).toString()
                 .compareToIgnoreCase(b.loadLabel(getPackageManager()).toString()));
-        for (ResolveInfo app : apps) {
-            addButton(app.loadLabel(getPackageManager()).toString(), v -> {
-                Intent launch = getPackageManager().getLaunchIntentForPackage(app.activityInfo.packageName);
-                if (launch != null) startActivity(launch);
-            });
-        }
+        Runnable refresh = () -> {
+            results.removeAllViews();
+            String filter = search.getText().toString().trim().toLowerCase(java.util.Locale.ROOT);
+            for (ResolveInfo app : apps) {
+                String name = app.loadLabel(getPackageManager()).toString();
+                if (!name.toLowerCase(java.util.Locale.ROOT).contains(filter)) continue;
+                Button b = button(name, v -> {
+                    Intent launch = getPackageManager().getLaunchIntentForPackage(app.activityInfo.packageName);
+                    if (launch != null) open(launch);
+                });
+                Drawable icon = app.loadIcon(getPackageManager());
+                if (icon != null) {
+                    icon.setBounds(0, 0, dp(28), dp(28));
+                    b.setCompoundDrawables(icon, null, null, null);
+                    b.setCompoundDrawablePadding(dp(12));
+                }
+                LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(58));
+                p.setMargins(0, dp(3), 0, dp(3));
+                results.addView(b, p);
+            }
+        };
+        search.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) { refresh.run(); }
+            public void afterTextChanged(Editable e) {}
+        });
+        refresh.run();
         addButton("BACK TO OAP HOME", v -> home());
     }
 
