@@ -1,14 +1,20 @@
-<manifest package="com.onanypostcode.oaphome" xmlns:android="http://schemas.android.com/apk/res/android">
-    <application
-        android:label="OAP Home"
-        android:allowBackup="false"
-        android:usesCleartextTraffic="false">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.onanypostcode.oaphome">
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+        </intent>
+    </queries>
+    <application android:label="OAP Home" android:allowBackup="false" android:usesCleartextTraffic="false">
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.HOME"/>
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
     </application>
