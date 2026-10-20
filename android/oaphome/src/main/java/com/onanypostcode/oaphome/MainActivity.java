@@ -32,6 +32,15 @@ public class MainActivity extends Activity {
     private LinearLayout body;
     private TextView clock;
     private TextView earth;
+    private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable clockTick = new Runnable() {
+        @Override public void run() {
+            if (clock != null) {
+                clock.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()));
+                clockHandler.postDelayed(this, 60000);
+            }
+        }
+    };
 
     private GradientDrawable panel() {
         GradientDrawable d = new GradientDrawable();
@@ -61,6 +70,8 @@ public class MainActivity extends Activity {
     }
 
     private void base(String title) {
+        clockHandler.removeCallbacks(clockTick);
+        clock = null;
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(3, 6, 14));
@@ -94,7 +105,7 @@ public class MainActivity extends Activity {
         body.addView(earth, new LinearLayout.LayoutParams(-1, dp(76)));
         clock = label("", 21);
         body.addView(clock, new LinearLayout.LayoutParams(-1, dp(60)));
-        updateClock();
+        clockTick.run();
         String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
                 "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
         GridLayout grid = new GridLayout(this);
@@ -115,12 +126,6 @@ public class MainActivity extends Activity {
         addButton("ALL APPS", v -> allApps());
         addButton("PHONE  ·  MESSAGES  ·  INTERNET  ·  CAMERA", v -> quickApps());
         addButton("ANDROID SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
-    }
-
-    private void updateClock() {
-        if (clock == null) return;
-        clock.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()));
-        clock.postDelayed(() -> updateClock(), 60000);
     }
 
     private int dp(int n) { return (int)(n * getResources().getDisplayMetrics().density + 0.5f); }
@@ -232,6 +237,13 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        home();
+        if (clock == null) home();
+        else super.onBackPressed();
+    }
+
+    @Override protected void onDestroy() {
+        clockHandler.removeCallbacks(clockTick);
+        clock = null;
+        super.onDestroy();
     }
 }
