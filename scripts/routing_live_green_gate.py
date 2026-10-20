@@ -44,6 +44,16 @@ def _https_origin(value: str) -> str:
 
 
 BASE = _https_origin(os.environ.get("OAP_ROUTING_BASE_URL", "https://oap-routing.onrender.com"))
+# Never let a live proof silently follow a redirect to another provider,
+# an HTTP destination, or an unrelated host. Verify the configured origin itself.
+class _RejectRedirects(request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise error.HTTPError(req.full_url, code, "routing probe rejects redirects", headers, fp)
+
+
+_OPENER = request.build_opener(_RejectRedirects)
+
+
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
@@ -80,7 +90,7 @@ def wait_until_ready() -> dict[str, object]:
             headers={"Accept": "application/json", "User-Agent": "OAP-Green-Gate-Warmup/1.0"},
         )
         try:
-            with request.urlopen(req, timeout=WARMUP_TIMEOUT_SECONDS) as response:
+            with _OPENER.open(req, timeout=WARMUP_TIMEOUT_SECONDS) as response:
                 payload = json.loads(response.read().decode("utf-8"))
                 routes = payload.get("routes") if isinstance(payload, dict) else None
                 first = routes[0] if isinstance(routes, list) and routes else {}
@@ -122,7 +132,7 @@ def run_one(index: int) -> dict[str, object]:
     )
     started = time.perf_counter()
     try:
-        with request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
+        with _OPENER.open(req, timeout=TIMEOUT_SECONDS) as response:
             status = int(response.status)
             payload = json.loads(response.read().decode("utf-8"))
             if not isinstance(payload, dict):
