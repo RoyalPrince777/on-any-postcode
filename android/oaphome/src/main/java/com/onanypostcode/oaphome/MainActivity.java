@@ -109,6 +109,7 @@ public class MainActivity extends Activity {
             grid.addView(b, p);
         }
 
+        addButton("OAP INTERNET  ·  OPEN WEB", v -> openInternet());
         addButton("SEARCH APPS", v -> allApps());
         addButton("ALL APPS", v -> allApps());
         addButton("PHONE  ·  MESSAGES  ·  INTERNET  ·  CAMERA", v -> quickApps());
@@ -127,9 +128,15 @@ public class MainActivity extends Activity {
         base("QUICK APPS");
         addButton("PHONE", v -> open(new Intent(Intent.ACTION_DIAL)));
         addButton("MESSAGES", v -> open(new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:"))));
-        addButton("INTERNET", v -> open(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.onanypostcode.com"))));
+        addButton("INTERNET", v -> openInternet());
         addButton("CAMERA", v -> open(new Intent("android.media.action.IMAGE_CAPTURE")));
         addButton("BACK", v -> home());
+    }
+
+    private void openInternet() {
+        // Opens the configured OAP web entry point using an installed browser.
+        // This is not a first-party browser engine or a virtual Android runtime.
+        open(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.onanypostcode.com")));
     }
 
     private void open(Intent intent) {
