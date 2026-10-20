@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from oap.smi.alliance_selection import select_alliance
-
 # Named specialist roles are recommendations, not verified active agent processes.
 PROTOCOL_TEAMS: dict[str, tuple[str, tuple[str, ...]]] = {
     "coordination": ("Captain ALL IN", ("Oracle", "Octopus", "Gyata")),
