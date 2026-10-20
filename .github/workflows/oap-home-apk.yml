@@ -88,7 +88,7 @@ jobs:
           SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
           BUILD_TOOLS="$SDK_ROOT/build-tools/35.0.0"
           "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
-          grep -q "package: name='com.onanypostcode.oaphome'" /tmp/oap-apk-badging.txt
+          grep -q "package: name='com.onanypostcode.oaphome.v2'" /tmp/oap-apk-badging.txt
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$APK"
           ACTUAL_CERT=$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1 | tr '[:upper:]' '[:lower:]')
           EXPECTED_CERT=$(printf '%s' "$OAP_HOME_CERT_SHA256" | tr -d ': ' | tr '[:upper:]' '[:lower:]')
@@ -128,7 +128,7 @@ jobs:
           SOURCE_REVISION=$(git -C android/oaphome rev-parse HEAD)
           test -n "$SOURCE_REVISION"
           printf 'Source commit: %s\nWorkflow commit: %s\n' "$SOURCE_REVISION" "$GITHUB_SHA" >> adversarial-evidence/build.txt
-          printf 'Package: com.onanypostcode.oaphome\n' >> adversarial-evidence/build.txt
+          printf 'Package: com.onanypostcode.oaphome.v2\n' >> adversarial-evidence/build.txt
           "$APKSIGNER" verify --print-certs "$APK" | sed -n '/^Signer #1 certificate SHA-256 digest: /p' >> adversarial-evidence/build.txt
           grep -q '^Signer #1 certificate SHA-256 digest: [0-9a-fA-F]\{64\}$' adversarial-evidence/build.txt
           printf '%s\n' 'CI build and archive checks only; Android device installation NOT VERIFIED.' >> adversarial-evidence/build.txt
