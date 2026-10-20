@@ -19,6 +19,7 @@ android {
             def keyPath = System.getenv('OAP_HOME_KEYSTORE_PATH')
             if (keyPath) {
                 storeFile file(keyPath)
+                storeType 'pkcs12'
                 storePassword System.getenv('OAP_HOME_KEYSTORE_PASSWORD')
                 keyAlias System.getenv('OAP_HOME_KEY_ALIAS')
                 keyPassword System.getenv('OAP_HOME_KEY_PASSWORD')
