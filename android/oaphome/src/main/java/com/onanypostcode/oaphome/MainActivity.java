@@ -303,8 +303,13 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (clock == null) home();
-        else super.onBackPressed();
+        if (activeWebView != null && activeWebView.canGoBack()) {
+            activeWebView.goBack();
+        } else if (clock == null) {
+            home();
+        } else {
+            super.onBackPressed();
+        }
     }
 
     @Override protected void onDestroy() {
