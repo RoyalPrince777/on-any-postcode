@@ -20,7 +20,7 @@ def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, ex
     def fail_request(*args, **kwargs):
         raise failure
 
-    monkeypatch.setattr(gate.request, "urlopen", fail_request)
+    monkeypatch.setattr(gate._OPENER, "open", fail_request)
     result = gate.run_one(0)
     assert result["ok"] is False
     assert result["failure_type"] == expected_type
@@ -42,7 +42,7 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
         def read(self):
             return b"[]"
 
-    monkeypatch.setattr(gate.request, "urlopen", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(gate._OPENER, "open", lambda *args, **kwargs: FakeResponse())
     result = gate.run_one(0)
     assert result["ok"] is False
     assert result["failure_type"] == "request_or_response_error"
