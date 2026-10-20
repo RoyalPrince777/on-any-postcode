@@ -197,6 +197,8 @@ public class MainActivity extends Activity {
         settings.setSupportMultipleWindows(false);
         settings.setGeolocationEnabled(false);
         settings.setSaveFormData(false);
+        settings.setBlockNetworkImage(false);
+        settings.setBlockNetworkLoads(false);
         viewer.setWebChromeClient(new android.webkit.WebChromeClient() {
             @Override public boolean onJsAlert(android.webkit.WebView view, String url, String message, android.webkit.JsResult result) {
                 result.cancel();
