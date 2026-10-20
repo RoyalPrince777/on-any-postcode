@@ -59,6 +59,18 @@ jobs:
           umask 077
           printf '%s' "$OAP_HOME_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/oap-home-signing.jks"
           test -s "$RUNNER_TEMP/oap-home-signing.jks"
+          # Validate the keystore certificate before Gradle can compile an APK.
+          EXPECTED_CERT=$(printf '%s' "$OAP_HOME_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          if [[ ! "$EXPECTED_CERT" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::Expected signing certificate must be a 64-character SHA-256 hex digest."
+            exit 1
+          fi
+          ACTUAL_CERT=$(keytool -list -v -keystore "$RUNNER_TEMP/oap-home-signing.jks" -storepass "$OAP_HOME_KEYSTORE_PASSWORD" -alias "$OAP_HOME_KEY_ALIAS" 2>/dev/null | sed -n 's/^[[:space:]]*SHA256: //p' | head -n1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          if [[ -z "$ACTUAL_CERT" || "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
+            echo "::error::Signing keystore fingerprint does not match the pinned OAP identity."
+            exit 1
+          fi
+          echo "Verified pinned signing identity before build."
           echo "OAP_HOME_KEYSTORE_PATH=$RUNNER_TEMP/oap-home-signing.jks" >> "$GITHUB_ENV"
           echo "OAP_HOME_KEYSTORE_PASSWORD=$OAP_HOME_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           echo "OAP_HOME_KEY_ALIAS=$OAP_HOME_KEY_ALIAS" >> "$GITHUB_ENV"
