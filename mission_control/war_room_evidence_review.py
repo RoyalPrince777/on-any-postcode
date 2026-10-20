@@ -32,7 +32,7 @@ def project_mission_evidence(
         if not isinstance(name, str) or not name or len(name) > 120:
             raise ValueError("invalid check name")
         if not isinstance(raw, Mapping):
-            raise ValueError("invalid check receipt")
+            raise TypeError("invalid check receipt")
         status = raw.get("status")
         check_revision = raw.get("revision")
         if status not in _ALLOWED or check_revision != revision:
