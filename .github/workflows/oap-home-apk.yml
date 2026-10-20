@@ -30,6 +30,7 @@ jobs:
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
           grep -Fq "storeType 'pkcs12'" android/oaphome/build.gradle
           grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'BEGORO–KORADASO' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
           test "$(grep -Fc 'private final Runnable clockTick' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
           echo "Compiling OAP Home V2 source revision: $SOURCE_REVISION"
