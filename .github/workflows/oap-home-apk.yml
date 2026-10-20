@@ -119,9 +119,18 @@ jobs:
         run: |
           set -euo pipefail
           APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
+          test -s "$APK"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          APKSIGNER="$SDK_ROOT/build-tools/35.0.0/apksigner"
           mkdir -p adversarial-evidence
           sha256sum "$APK" > adversarial-evidence/apk.sha256
           stat -c 'APK bytes: %s' "$APK" > adversarial-evidence/build.txt
+          SOURCE_REVISION=$(git -C android/oaphome rev-parse HEAD)
+          test -n "$SOURCE_REVISION"
+          printf 'Source commit: %s\nWorkflow commit: %s\n' "$SOURCE_REVISION" "$GITHUB_SHA" >> adversarial-evidence/build.txt
+          printf 'Package: com.onanypostcode.oaphome\n' >> adversarial-evidence/build.txt
+          "$APKSIGNER" verify --print-certs "$APK" | sed -n '/^Signer #1 certificate SHA-256 digest: /p' >> adversarial-evidence/build.txt
+          grep -q '^Signer #1 certificate SHA-256 digest: [0-9a-fA-F]\{64\}$' adversarial-evidence/build.txt
           printf '%s\n' 'CI build and archive checks only; Android device installation NOT VERIFIED.' >> adversarial-evidence/build.txt
       - uses: actions/upload-artifact@v4
         with:
