@@ -1,7 +1,10 @@
 """Negative tests for Rabaty private launch eligibility."""
 import pytest
 
-from mission_control.rabaty_launch_gate import RabatyLaunchEvidence, evaluate_rabaty_launch
+from mission_control.rabaty_launch_gate import (
+    RabatyLaunchEvidence,
+    evaluate_rabaty_launch,
+)
 
 
 def test_default_is_private_and_non_orderable():
