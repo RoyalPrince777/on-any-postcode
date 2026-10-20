@@ -98,8 +98,10 @@ public class MainActivity extends Activity {
 
     private void home() {
         base("♛ OAP HOME");
-        body.addView(label("ON ANY POSTCODE", 18));
+        body.addView(label("BEGORO–KORADASO", 18));
+        body.addView(label("ON ANY POSTCODE", 15));
         body.addView(label("BORN LOCAL · BUILT GLOBAL", 13));
+        body.addView(label("OAP HOME · FOUNDER DIGITAL HOME", 12));
         earth = label("◎  EARTH IS OUR TURF  ◎", 20);
         earth.setTypeface(Typeface.SERIF, Typeface.BOLD);
         body.addView(earth, new LinearLayout.LayoutParams(-1, dp(76)));
