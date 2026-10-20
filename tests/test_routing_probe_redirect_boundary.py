@@ -1,6 +1,8 @@
 """Live routing checks must reject HTTP redirects."""
 from urllib import error, request
+
 import pytest
+
 from scripts import routing_live_green_gate as gate
 
 
