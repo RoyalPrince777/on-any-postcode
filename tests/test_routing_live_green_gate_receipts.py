@@ -9,6 +9,12 @@ import pytest
 from scripts import routing_live_green_gate as gate
 
 
+@pytest.fixture(autouse=True)
+def configured_routing_origin(monkeypatch):
+    # Controlled test origin only; production must explicitly configure its own.
+    monkeypatch.setattr(gate, "BASE", "https://routing.example.test")
+
+
 @pytest.mark.parametrize(
     ("failure", "expected_type"),
     [
@@ -53,6 +59,7 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
 def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     samples = (
         {"route_id": "a", "ok": True, "elapsed_s": 0.2},
         {"route_id": "b", "ok": False, "elapsed_s": 10.0, "failure_type": "timeout"},
@@ -79,6 +86,7 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
 def test_probe_preserves_p95_limit(monkeypatch, capsys):
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(
         gate,
         "run_one",
@@ -104,3 +112,16 @@ def test_live_green_gate_warms_before_capacity_probe():
     assert "TOTAL_REQUESTS = 20" in source
     assert "WORKERS = 4" in source
     assert "P95_LIMIT_SECONDS = 6.0" in source
+
+
+def test_missing_routing_origin_fails_closed(monkeypatch):
+    monkeypatch.setattr(gate, "BASE", "")
+    with pytest.raises(SystemExit, match="explicit HTTPS endpoint origin"):
+        gate.main()
+
+
+@pytest.mark.parametrize("unsafe_origin", ["http://routing.example.test", "https://user:pass@routing.example.test", "https://routing.example.test/path", "https://routing.example.test?x=1"])
+def test_unsafe_routing_origin_fails_closed(monkeypatch, unsafe_origin):
+    monkeypatch.setattr(gate, "BASE", unsafe_origin)
+    with pytest.raises(SystemExit, match="explicit HTTPS endpoint origin"):
+        gate.main()
