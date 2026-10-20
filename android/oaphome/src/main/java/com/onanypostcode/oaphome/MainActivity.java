@@ -191,6 +191,21 @@ public class MainActivity extends Activity {
         settings.setAllowContentAccess(false);
         settings.setDomStorageEnabled(false);
         settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        settings.setAllowFileAccessFromFileURLs(false);
+        settings.setAllowUniversalAccessFromFileURLs(false);
+        settings.setJavaScriptCanOpenWindowsAutomatically(false);
+        settings.setSupportMultipleWindows(false);
+        settings.setGeolocationEnabled(false);
+        settings.setSaveFormData(false);
+        viewer.setWebChromeClient(new android.webkit.WebChromeClient() {
+            @Override public boolean onJsAlert(android.webkit.WebView view, String url, String message, android.webkit.JsResult result) {
+                result.cancel();
+                return true;
+            }
+            @Override public void onGeolocationPermissionsShowPrompt(String origin, android.webkit.GeolocationPermissions.Callback callback) {
+                callback.invoke(origin, false, false);
+            }
+        });
         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);
         viewer.setWebViewClient(new android.webkit.WebViewClient() {
             @Override public void onReceivedSslError(android.webkit.WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
