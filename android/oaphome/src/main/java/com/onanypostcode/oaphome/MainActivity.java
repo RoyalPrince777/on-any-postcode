@@ -70,6 +70,7 @@ public class MainActivity extends Activity {
     }
 
     private void base(String title) {
+        if (activeWebView != null) closeWebView();
         clockHandler.removeCallbacks(clockTick);
         clock = null;
         LinearLayout root = new LinearLayout(this);
@@ -151,10 +152,29 @@ public class MainActivity extends Activity {
         addButton("BACK TO OAP HOME", v -> home());
     }
 
+    private android.webkit.WebView activeWebView;
+
+    private boolean safeWebAddress(Uri uri) {
+        return uri != null && "https".equalsIgnoreCase(uri.getScheme())
+                && uri.getHost() != null && !uri.getHost().isEmpty()
+                && uri.getUserInfo() == null && uri.getPort() == -1;
+    }
+
+    private void closeWebView() {
+        if (activeWebView != null) {
+            android.webkit.WebView old = activeWebView;
+            activeWebView = null;
+            old.stopLoading();
+            old.loadUrl("about:blank");
+            old.destroy();
+        }
+    }
+
     private void openInternet() {
+        closeWebView();
         base("OAP INTERNET");
-        body.addView(label("OAP INTERNET · WEB GATEWAY", 18));
-        body.addView(label("Web access uses your installed browser. OAP browser engine is not connected.", 14));
+        body.addView(label("OAP INTERNET · IN-APP HTTPS VIEWER", 18));
+        body.addView(label("Uses the device Android WebView provider, not an independent OAP browser engine. JavaScript and file access disabled.", 13));
         EditText address = new EditText(this);
         address.setSingleLine(true);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
@@ -163,17 +183,35 @@ public class MainActivity extends Activity {
         address.setTextColor(Color.WHITE);
         address.setHintTextColor(Color.LTGRAY);
         body.addView(address, new LinearLayout.LayoutParams(-1, dp(56)));
-        addButton("OPEN WEBSITE", v -> {
-            String raw = address.getText().toString().trim();
-            Uri uri = Uri.parse(raw);
-            if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getHost().isEmpty()
-                    || uri.getUserInfo() != null) {
-                android.widget.Toast.makeText(this, "Enter a valid HTTPS website", android.widget.Toast.LENGTH_SHORT).show();
+        android.webkit.WebView viewer = new android.webkit.WebView(this);
+        activeWebView = viewer;
+        android.webkit.WebSettings settings = viewer.getSettings();
+        settings.setJavaScriptEnabled(false);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
+        settings.setDomStorageEnabled(false);
+        settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);
+        viewer.setWebViewClient(new android.webkit.WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
+                if (!request.isForMainFrame()) return false;
+                if (!safeWebAddress(request.getUrl())) {
+                    android.widget.Toast.makeText(MainActivity.this, "Only standard HTTPS pages allowed", android.widget.Toast.LENGTH_SHORT).show();
+                    return true;
+                }
+                return false;
+            }
+        });
+        addButton("OPEN HTTPS PAGE", v -> {
+            Uri uri = Uri.parse(address.getText().toString().trim());
+            if (!safeWebAddress(uri)) {
+                android.widget.Toast.makeText(this, "Enter a standard HTTPS website", android.widget.Toast.LENGTH_SHORT).show();
                 return;
             }
-            open(new Intent(Intent.ACTION_VIEW, uri));
+            viewer.loadUrl(uri.toString());
         });
-        addButton("BACK TO OAP HOME", v -> home());
+        body.addView(viewer, new LinearLayout.LayoutParams(-1, dp(440)));
+        addButton("BACK TO OAP HOME", v -> { closeWebView(); home(); });
     }
 
     private void open(Intent intent) {
@@ -244,6 +282,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        closeWebView();
         clockHandler.removeCallbacks(clockTick);
         clock = null;
         super.onDestroy();
