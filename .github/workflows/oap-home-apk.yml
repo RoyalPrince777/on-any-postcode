@@ -21,6 +21,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: oap-home-apk-master777
+      - name: Verify checked-out V2 source and record revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_REVISION="$(git rev-parse HEAD)"
+          test -n "$SOURCE_REVISION"
+          grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
+          grep -Fq "storeType 'pkcs12'" android/oaphome/build.gradle
+          grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          echo "Compiling OAP Home V2 source revision: $SOURCE_REVISION"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
