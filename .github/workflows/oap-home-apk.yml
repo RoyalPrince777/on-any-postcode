@@ -34,6 +34,8 @@ jobs:
           grep -Fq 'private boolean safeWebAddress(Uri uri)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'settings.setJavaScriptEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'handler.cancel();' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'settings.setAllowUniversalAccessFromFileURLs(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'settings.setGeolocationEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'shouldInterceptRequest(android.webkit.WebView view' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
           test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
