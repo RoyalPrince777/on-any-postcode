@@ -193,6 +193,17 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);
         viewer.setWebViewClient(new android.webkit.WebViewClient() {
+            @Override public void onReceivedSslError(android.webkit.WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
+                handler.cancel();
+                android.widget.Toast.makeText(MainActivity.this, "HTTPS certificate rejected", android.widget.Toast.LENGTH_SHORT).show();
+            }
+            @Override public android.webkit.WebResourceResponse shouldInterceptRequest(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
+                if (!"https".equalsIgnoreCase(request.getUrl().getScheme())) {
+                    return new android.webkit.WebResourceResponse("text/plain", "UTF-8",
+                            new java.io.ByteArrayInputStream(new byte[0]));
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
             @Override public boolean shouldOverrideUrlLoading(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
                 if (!request.isForMainFrame()) return false;
                 if (!safeWebAddress(request.getUrl())) {
