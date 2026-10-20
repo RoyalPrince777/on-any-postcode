@@ -35,6 +35,15 @@ public class MainActivity extends Activity {
     private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable clockTick = new Runnable() {
         @Override public void run() {
+            if (clock != null && clock.isAttachedToWindow()) {
+                clock.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()));
+                clockHandler.postDelayed(this, 60000);
+            }
+        }
+    };
+    private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable clockTick = new Runnable() {
+        @Override public void run() {
             if (clock != null) {
                 clock.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()));
                 clockHandler.postDelayed(this, 60000);
@@ -70,6 +79,8 @@ public class MainActivity extends Activity {
     }
 
     private void base(String title) {
+        clockHandler.removeCallbacks(clockTick);
+        clock = null;
         clockHandler.removeCallbacks(clockTick);
         clock = null;
         LinearLayout root = new LinearLayout(this);
