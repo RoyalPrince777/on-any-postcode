@@ -110,6 +110,7 @@ public class MainActivity extends Activity {
         }
 
         addButton("OAP INTERNET  ·  OPEN WEB", v -> openInternet());
+        addButton("OAP VIRTUAL ANDROID  ·  STATUS", v -> virtualAndroid());
         addButton("SEARCH APPS", v -> allApps());
         addButton("ALL APPS", v -> allApps());
         addButton("PHONE  ·  MESSAGES  ·  INTERNET  ·  CAMERA", v -> quickApps());
@@ -131,6 +132,16 @@ public class MainActivity extends Activity {
         addButton("INTERNET", v -> openInternet());
         addButton("CAMERA", v -> open(new Intent("android.media.action.IMAGE_CAPTURE")));
         addButton("BACK", v -> home());
+    }
+
+    private void virtualAndroid() {
+        base("OAP VIRTUAL ANDROID");
+        body.addView(label("VIRTUAL DEVICE CONTROL", 19));
+        body.addView(label("Runtime: NOT CONNECTED", 17));
+        body.addView(label("No Android VM, remote session or virtual device has been provisioned.", 14));
+        body.addView(label("OAP Home V2: local launcher source; virtual-device integration pending.", 14));
+        addButton("OPEN OAP INTERNET", v -> openInternet());
+        addButton("BACK TO OAP HOME", v -> home());
     }
 
     private void openInternet() {
