@@ -166,3 +166,45 @@ def status(*, weather_ready: bool) -> dict[str, Any]:
             "Weather is the first live sensing connection; broader Earth and place observations remain gated."
         ),
     }
+
+# NASA Earth-observation evidence is deliberately read-only. This adapter
+# accepts externally retrieved metadata; it does not fetch, execute, or grant
+# authority from external sources.
+def validate_earth_observation(item: Mapping[str, Any]) -> dict[str, Any]:
+    """Fail closed on incomplete NASA Earthdata observation metadata."""
+    from datetime import datetime
+    from hashlib import sha256
+    from urllib.parse import urlsplit
+
+    required = ("observation_id", "dataset", "captured_at", "source_url", "checksum_sha256")
+    values = {key: _text(item.get(key)) for key in required}
+    if any(not value for value in values.values()):
+        return {"valid": False, "reason": "missing_required_metadata", "can_execute": False}
+    try:
+        parsed = datetime.fromisoformat(values["captured_at"].replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            raise ValueError("timezone_required")
+    except ValueError:
+        return {"valid": False, "reason": "invalid_capture_time", "can_execute": False}
+    url = urlsplit(values["source_url"])
+    if (url.scheme != "https" or not url.hostname or url.username or url.password
+            or url.hostname.lower() not in {"earthdata.nasa.gov", "data.nasa.gov", "cmr.earthdata.nasa.gov"}):
+        return {"valid": False, "reason": "untrusted_source", "can_execute": False}
+    digest = values["checksum_sha256"].lower()
+    if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+        return {"valid": False, "reason": "invalid_checksum", "can_execute": False}
+    return {
+        "valid": True,
+        "observation_id": values["observation_id"][:200],
+        "dataset": values["dataset"][:200],
+        "captured_at": parsed.isoformat(),
+        "source_url": values["source_url"],
+        "checksum_sha256": digest,
+        "metadata_fingerprint": sha256(
+            ("|".join(values[key] for key in required)).encode("utf-8")
+        ).hexdigest(),
+        "source_verified": False,
+        "payload_integrity_verified": False,
+        "can_execute": False,
+        "full_earth_runtime_ready": False,
+    }
