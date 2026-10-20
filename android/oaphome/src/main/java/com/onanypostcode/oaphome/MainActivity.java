@@ -134,9 +134,28 @@ public class MainActivity extends Activity {
     }
 
     private void openInternet() {
-        // Opens the configured OAP web entry point using an installed browser.
-        // This is not a first-party browser engine or a virtual Android runtime.
-        open(new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.onanypostcode.com")));
+        base("OAP INTERNET");
+        body.addView(label("OAP INTERNET · WEB GATEWAY", 18));
+        body.addView(label("Web access uses your installed browser. OAP browser engine is not connected.", 14));
+        EditText address = new EditText(this);
+        address.setSingleLine(true);
+        address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        address.setHint("Enter HTTPS website");
+        address.setText("https://www.onanypostcode.com");
+        address.setTextColor(Color.WHITE);
+        address.setHintTextColor(Color.LTGRAY);
+        body.addView(address, new LinearLayout.LayoutParams(-1, dp(56)));
+        addButton("OPEN WEBSITE", v -> {
+            String raw = address.getText().toString().trim();
+            Uri uri = Uri.parse(raw);
+            if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getHost().isEmpty()
+                    || uri.getUserInfo() != null) {
+                android.widget.Toast.makeText(this, "Enter a valid HTTPS website", android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
+            open(new Intent(Intent.ACTION_VIEW, uri));
+        });
+        addButton("BACK TO OAP HOME", v -> home());
     }
 
     private void open(Intent intent) {
