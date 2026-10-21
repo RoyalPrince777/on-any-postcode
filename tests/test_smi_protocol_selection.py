@@ -127,3 +127,34 @@ def test_candidate_eligibility_rejects_mismatched_identity_or_registry():
 
     assert not check_mission_candidate_eligibility("FOX-001", Registry())["eligible"]
     assert not check_mission_candidate_eligibility("FOX-001", object())["eligible"]
+
+
+def test_team_screening_does_not_assume_names_are_passport_ids():
+    from oap.smi.protocol_selection import recommend_mission_team, screen_mission_team_candidates
+
+    team = recommend_mission_team("routing", "recovery")
+    screened = screen_mission_team_candidates(team, object())
+    assert screened["all_eligible"] is False
+    assert screened["candidates"]["Fox"]["reason"] == "PASSPORT_ID_UNRESOLVED"
+    assert screened["agent_execution_verified"] is False
+    assert screened["founder_final_required"] is True
+
+
+def test_team_screening_partial_eligibility_never_promotes_team():
+    from oap.smi.protocol_selection import recommend_mission_team, screen_mission_team_candidates
+
+    class Registry:
+        def passport(self, agent_id):
+            return {
+                "agent_id": agent_id, "status": "ACTIVE",
+                "permissions": ["ANALYSE"], "audit_required": True,
+                "family_id": "recovery", "guardian": "Guardian",
+                "memory": {}, "restrictions": [],
+            }
+
+    team = recommend_mission_team("routing", "recovery", "3")
+    screened = screen_mission_team_candidates(team, Registry(), agent_ids={"Fox": "FOX-001"})
+    assert screened["candidates"]["Fox"]["eligible"] is True
+    assert screened["candidates"]["Dozer"]["eligible"] is False
+    assert screened["all_eligible"] is False
+    assert screened["grants_permissions"] is False
