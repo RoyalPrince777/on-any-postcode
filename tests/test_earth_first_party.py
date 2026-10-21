@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from mission_control import earth_first_party
+from mission_control import earth_first_party, earth_intelligence
 
 NOW = datetime(2026, 10, 21, 1, 0, tzinfo=UTC)
 GOOD = {
@@ -57,3 +57,19 @@ def test_policy_forbids_external_feeds_and_hosted_storage():
     assert policy["infrastructure"] == "oap_owned_physical_servers_first"
     assert policy["sensor_nodes_verified"] == 0
     assert policy["first_party_observation_runtime_ready"] is False
+
+
+def test_earth_core_accepts_owned_reading_but_never_claims_live():
+    result = earth_intelligence.from_owned_sensor(GOOD, now=NOW)
+    assert result["source_policy"] == "oap_owned_sensors_only"
+    assert result["observation"]["source_ownership"] == "oap_owned"
+    assert result["trusted_observations"] == 0
+    assert result["live_environment_ready"] is False
+    assert result["can_execute"] is False
+
+
+def test_earth_core_rejects_external_observations():
+    with pytest.raises(ValueError, match="external_observations_forbidden"):
+        earth_intelligence.from_owned_sensor(
+            {**GOOD, "source_ownership": "external_public"}, now=NOW
+        )
