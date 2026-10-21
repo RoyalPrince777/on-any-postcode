@@ -1,12 +1,12 @@
 """Founder-only Earth observation intake; no external sources, network or execution."""
 from __future__ import annotations
 
-from collections.abc import Mapping
-from datetime import UTC, datetime
-from hashlib import sha256
 import json
 import math
 import re
+from collections.abc import Mapping
+from datetime import datetime
+from hashlib import sha256
 from typing import Any
 
 from mission_control import world_observation
@@ -33,7 +33,7 @@ def intake(reading: Mapping[str, Any], *, now: datetime | None = None) -> dict[s
     transport must be independently proven before observations become trusted.
     """
     if not isinstance(reading, Mapping):
-        raise ValueError("reading_must_be_object")
+        raise TypeError("reading_must_be_object")
     if reading.get("source_ownership") != "oap_owned":
         raise ValueError("external_observations_forbidden")
     node = reading.get("node_id")
@@ -51,7 +51,7 @@ def intake(reading: Mapping[str, Any], *, now: datetime | None = None) -> dict[s
     observed = reading.get("observed_at")
     received = reading.get("received_at")
     if not isinstance(observed, str) or not isinstance(received, str):
-        raise ValueError("timestamps_required")
+        raise TypeError("timestamps_required")
     for timestamp in (observed, received):
         try:
             parsed = datetime.fromisoformat(timestamp)
