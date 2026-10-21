@@ -1,7 +1,8 @@
 """Receipt issuance is not authenticated host ownership or readiness proof."""
+from flask import Flask
+
 from mission_control import home_node_bridge, oap_host
 from mission_control.home_node_views import bp
-from flask import Flask
 
 
 def test_receipt_endpoint_requires_bridge_auth(monkeypatch):
