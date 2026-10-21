@@ -1,6 +1,19 @@
 """Fail-closed receipt checks; receipts are not self-hosting attestations."""
 
+import pytest
+
 from mission_control import home_node_bridge as bridge
+
+
+@pytest.fixture(autouse=True)
+def configured_bridge(monkeypatch):
+    monkeypatch.setenv("OAP_HOME_NODE_BRIDGE_SECRET", "a" * 40)
+
+
+def test_unconfigured_bridge_refuses_receipt(monkeypatch):
+    monkeypatch.delenv("OAP_HOME_NODE_BRIDGE_SECRET", raising=False)
+    with pytest.raises(RuntimeError, match="home_node_bridge_not_configured"):
+        bridge.issue_connection_receipt()
 
 
 def test_receipt_is_single_use():
