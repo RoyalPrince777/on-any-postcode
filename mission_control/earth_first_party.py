@@ -24,7 +24,6 @@ UNITS = {"temperature": "celsius", "humidity": "percent", "pressure": "hpa", "ai
 BOUNDS = {"temperature": (-90.0, 65.0), "humidity": (0.0, 100.0),
           "pressure": (300.0, 1100.0), "air_quality_pm25": (0.0, 10000.0)}
 NODE_ID = re.compile(r"^oap-[a-z0-9-]{3,60}$")
-DIGEST = re.compile(r"^[0-9a-f]{64}$")
 
 
 def intake(reading: Mapping[str, Any], *, now: datetime | None = None) -> dict[str, Any]:
