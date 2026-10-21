@@ -208,3 +208,29 @@ def validate_earth_observation(item: Mapping[str, Any]) -> dict[str, Any]:
         "can_execute": False,
         "full_earth_runtime_ready": False,
     }
+
+
+def nasa_observation_envelope(item: Mapping[str, Any], *, received_at: str) -> dict[str, Any]:
+    """Project validated metadata into the existing governed World Observation model.
+
+    Metadata alone is unverified: it cannot assert a live observation, prove
+    downloaded bytes, or grant any execution permission.
+    """
+    from mission_control import world_observation
+
+    checked = validate_earth_observation(item)
+    if not checked["valid"]:
+        raise ValueError(str(checked["reason"]))
+    if not _text(received_at):
+        raise ValueError("received_at_required")
+    return world_observation.normalise({
+        "object_id": checked["observation_id"],
+        "object_type": "nasa_earth_observation_metadata",
+        "evidence_class": "unverified",
+        "source": checked["source_url"],
+        "source_ownership": "external_public",
+        "observed_at": checked["captured_at"],
+        "received_at": received_at,
+        "evidence": (),
+        "first_party": {"software": True, "processing": True, "observation": False},
+    })
