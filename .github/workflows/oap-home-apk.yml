@@ -19,6 +19,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: oap-home-apk-master777
+      - name: Verify Internet source and record revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee /tmp/oap-home-source-revision.txt
+          SOURCE="android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java"
+          MANIFEST="android/oaphome/src/main/AndroidManifest.xml"
+          grep -Fq 'OAP INTERNET  ·  OPEN WEB' "$SOURCE"
+          grep -Fq 'private boolean safeWebAddress(Uri uri)' "$SOURCE"
+          grep -Fq 'settings.setJavaScriptEnabled(false)' "$SOURCE"
+          grep -Fq 'settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW)' "$SOURCE"
+          grep -Fq 'handler.cancel();' "$SOURCE"
+          grep -Fq 'BACK IN OAP INTERNET' "$SOURCE"
+          grep -Fq 'FORWARD IN OAP INTERNET' "$SOURCE"
+          grep -Fq 'RELOAD HTTPS PAGE' "$SOURCE"
+          grep -Fq 'android.permission.INTERNET' "$MANIFEST"
+          grep -Fq 'android:usesCleartextTraffic="false"' "$MANIFEST"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -91,6 +108,7 @@ jobs:
           APK="$(find android/oaphome/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -type f -print -quit)"
           test -n "$APK"
           mkdir -p adversarial-evidence
+          cp /tmp/oap-home-source-revision.txt adversarial-evidence/source-revision.txt
           sha256sum "$APK" > adversarial-evidence/apk.sha256
           stat -c 'APK bytes: %s' "$APK" > adversarial-evidence/build.txt
           printf '%s\n' 'CI build and archive checks only; Android device installation NOT VERIFIED.' >> adversarial-evidence/build.txt
