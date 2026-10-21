@@ -55,15 +55,28 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - name: Check persistent signing configuration
+      - name: Restore existing persistent signing key
         shell: bash
+        env:
+          OAP_HOME_KEYSTORE_BASE64: ${{ secrets.OAP_HOME_KEYSTORE_BASE64 }}
+          OAP_HOME_KEYSTORE_PASSWORD: ${{ secrets.OAP_HOME_KEYSTORE_PASSWORD }}
+          OAP_HOME_KEY_ALIAS: ${{ secrets.OAP_HOME_KEY_ALIAS }}
+          OAP_HOME_KEY_PASSWORD: ${{ secrets.OAP_HOME_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          test -n "${OAP_HOME_KEYSTORE_PATH:-}" || { echo "Persistent keystore path missing; refusing unverified signing"; exit 1; }
-          test -n "${OAP_HOME_KEYSTORE_PASSWORD:-}" || { echo "Persistent keystore password missing"; exit 1; }
-          test -n "${OAP_HOME_KEY_ALIAS:-}" || { echo "Persistent key alias missing"; exit 1; }
-          test -n "${OAP_HOME_KEY_PASSWORD:-}" || { echo "Persistent key password missing"; exit 1; }
-          test -s "$OAP_HOME_KEYSTORE_PATH" || { echo "Persistent keystore file unavailable"; exit 1; }
+          umask 077
+          test -n "$OAP_HOME_KEYSTORE_BASE64" || { echo "Existing keystore secret unavailable; signing blocked"; exit 1; }
+          test -n "$OAP_HOME_KEYSTORE_PASSWORD" || { echo "Existing keystore password unavailable"; exit 1; }
+          test -n "$OAP_HOME_KEY_ALIAS" || { echo "Existing signing alias unavailable"; exit 1; }
+          test -n "$OAP_HOME_KEY_PASSWORD" || { echo "Existing key password unavailable"; exit 1; }
+          KEYSTORE_PATH="$RUNNER_TEMP/oap-home-persistent.p12"
+          printf '%s' "$OAP_HOME_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH" || { echo "Existing keystore is empty"; exit 1; }
+          keytool -list -keystore "$KEYSTORE_PATH" -storetype PKCS12 -storepass "$OAP_HOME_KEYSTORE_PASSWORD" -alias "$OAP_HOME_KEY_ALIAS" >/dev/null
+          echo "OAP_HOME_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEYSTORE_PASSWORD=$OAP_HOME_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEY_ALIAS=$OAP_HOME_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEY_PASSWORD=$OAP_HOME_KEY_PASSWORD" >> "$GITHUB_ENV"
       - name: Build OAP Home
         working-directory: android/oaphome
         run: gradle --no-daemon assembleDebug
