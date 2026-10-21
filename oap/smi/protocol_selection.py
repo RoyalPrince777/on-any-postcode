@@ -119,7 +119,7 @@ def check_mission_candidate_eligibility(
         return {"agent_id": agent_id, "eligible": False, "reason": "REGISTRY_UNAVAILABLE", "grants_permissions": False}
     try:
         passport = passport_lookup(agent_id)
-    except Exception:
+    except Exception:  # noqa: BLE001 - fail closed on untrusted registry failures
         return {"agent_id": agent_id, "eligible": False, "reason": "REGISTRY_LOOKUP_FAILED", "grants_permissions": False, "execution_verified": False}
     if not isinstance(passport, dict) or passport.get("agent_id") != agent_id:
         return {"agent_id": agent_id, "eligible": False, "reason": "PASSPORT_NOT_FOUND", "grants_permissions": False}
