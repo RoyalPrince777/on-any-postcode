@@ -109,7 +109,7 @@ public class MainActivity extends Activity {
         clock = label("", 21);
         body.addView(clock, new LinearLayout.LayoutParams(-1, dp(60)));
         clockTick.run();
-        String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
+        String[] destinations = {"OAP WORLD", "PTT", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
                 "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
         GridLayout grid = new GridLayout(this);
         grid.setColumnCount(3);
@@ -247,7 +247,32 @@ public class MainActivity extends Activity {
         catch (ActivityNotFoundException e) { destination("No compatible app installed"); }
     }
 
+    private void pttMenu() {
+        base("🎙 PTT");
+        body.addView(label("OAP WORLD · PTT", 18));
+        body.addView(label("Standalone push-to-talk. Not owned by The Link or Link Up.", 13));
+        body.addView(label("Live device-to-device audio: NOT YET PROVEN ON THIS PHONE.", 13));
+        addButton("CONTACTS", v -> pttSection("CONTACTS", "Certified PTT contacts are not connected to this launcher yet."));
+        addButton("ROOMS", v -> pttSection("ROOMS", "PTT Rooms are not connected to this launcher yet."));
+        addButton("TALK", v -> pttSection("TALK", "Hold-to-talk transport is not connected to this launcher yet."));
+        addButton("INCOMING", v -> pttSection("INCOMING", "Incoming PTT signalling is not connected to this launcher yet."));
+        addButton("HISTORY", v -> pttSection("HISTORY", "PTT history is not connected to this launcher yet."));
+        addButton("SETTINGS", v -> pttSection("SETTINGS", "PTT permissions and transport settings are not connected to this launcher yet."));
+        addButton("BACK TO OAP HOME", v -> home());
+    }
+
+    private void pttSection(String title, String status) {
+        base("PTT · " + title);
+        body.addView(label(status, 16));
+        addButton("BACK TO PTT", v -> pttMenu());
+        addButton("BACK TO OAP HOME", v -> home());
+    }
+
     private void destination(String name) {
+        if ("PTT".equals(name)) {
+            pttMenu();
+            return;
+        }
         base(name);
         body.addView(label("This destination is not connected yet.", 18));
         addButton("BACK TO OAP HOME", v -> home());
