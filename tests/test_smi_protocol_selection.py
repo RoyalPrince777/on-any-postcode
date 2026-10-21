@@ -152,7 +152,7 @@ def test_team_screening_partial_eligibility_never_promotes_team():
     class Registry:
         def passport(self, agent_id):
             return {
-                "agent_id": agent_id, "status": "ACTIVE",
+                "agent_id": agent_id, "name": "Fox", "status": "ACTIVE",
                 "permissions": ["ANALYSE"], "audit_required": True,
                 "family_id": "recovery", "guardian": "Guardian",
                 "memory": {}, "restrictions": [],
@@ -178,3 +178,25 @@ def test_registry_lookup_exception_fails_closed():
     assert result["reason"] == "REGISTRY_LOOKUP_FAILED"
     assert result["grants_permissions"] is False
     assert result["execution_verified"] is False
+
+
+def test_candidate_name_must_match_registry_passport():
+    from oap.smi.protocol_selection import check_mission_candidate_eligibility
+
+    class Registry:
+        def passport(self, agent_id):
+            return {
+                "agent_id": agent_id, "name": "James Bond", "aliases": ["007"],
+                "status": "ACTIVE", "permissions": ["ANALYSE"],
+                "audit_required": True, "family_id": "investigation",
+                "guardian": "Guardian", "memory": {}, "restrictions": [],
+            }
+
+    assert check_mission_candidate_eligibility(
+        "BOND-001", Registry(), expected_name="Fox"
+    )["reason"] == "PASSPORT_NAME_MISMATCH"
+    allowed = check_mission_candidate_eligibility(
+        "BOND-001", Registry(), expected_name="007"
+    )
+    assert allowed["eligible"] is True
+    assert allowed["execution_verified"] is False
