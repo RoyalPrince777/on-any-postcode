@@ -246,7 +246,7 @@ public class MainActivity extends Activity {
 
     private android.webkit.WebView activeWebView;
 
-    private boolean safeWebAddress(Uri uri) {
+    boolean safeWebAddress(Uri uri) {
         return uri != null && "https".equalsIgnoreCase(uri.getScheme())
                 && uri.getHost() != null && !uri.getHost().isEmpty()
                 && uri.getUserInfo() == null && uri.getPort() == -1;
@@ -291,37 +291,9 @@ public class MainActivity extends Activity {
         settings.setSaveFormData(false);
         settings.setBlockNetworkImage(false);
         settings.setBlockNetworkLoads(false);
-        viewer.setWebChromeClient(new android.webkit.WebChromeClient() {
-            @Override public boolean onJsAlert(android.webkit.WebView view, String url, String message, android.webkit.JsResult result) {
-                result.cancel();
-                return true;
-            }
-            @Override public void onGeolocationPermissionsShowPrompt(String origin, android.webkit.GeolocationPermissions.Callback callback) {
-                callback.invoke(origin, false, false);
-            }
-        });
+        viewer.setWebChromeClient(new OapSecureChromeClient());
         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);
-        viewer.setWebViewClient(new android.webkit.WebViewClient() {
-            @Override public void onReceivedSslError(android.webkit.WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
-                handler.cancel();
-                android.widget.Toast.makeText(MainActivity.this, "HTTPS certificate rejected", android.widget.Toast.LENGTH_SHORT).show();
-            }
-            @Override public android.webkit.WebResourceResponse shouldInterceptRequest(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
-                if (!"https".equalsIgnoreCase(request.getUrl().getScheme())) {
-                    return new android.webkit.WebResourceResponse("text/plain", "UTF-8",
-                            new java.io.ByteArrayInputStream(new byte[0]));
-                }
-                return super.shouldInterceptRequest(view, request);
-            }
-            @Override public boolean shouldOverrideUrlLoading(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
-                if (!request.isForMainFrame()) return false;
-                if (!safeWebAddress(request.getUrl())) {
-                    android.widget.Toast.makeText(MainActivity.this, "Only standard HTTPS pages allowed", android.widget.Toast.LENGTH_SHORT).show();
-                    return true;
-                }
-                return false;
-            }
-        });
+        viewer.setWebViewClient(new OapSecureWebClient(this));
         addButton("OPEN HTTPS PAGE", v -> {
             Uri uri = Uri.parse(address.getText().toString().trim());
             if (!safeWebAddress(uri)) {
@@ -489,11 +461,7 @@ public class MainActivity extends Activity {
                 results.addView(b, p);
             }
         };
-        search.addTextChangedListener(new TextWatcher() {
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            public void onTextChanged(CharSequence s, int start, int before, int count) { refresh.run(); }
-            public void afterTextChanged(Editable e) {}
-        });
+        search.addTextChangedListener(new OapAppSearchWatcher(refresh));
         refresh.run();
         addButton("BACK TO OAP HOME", v -> home());
     }
@@ -519,4 +487,48 @@ public class MainActivity extends Activity {
         clock = null;
         super.onDestroy();
     }
+}
+
+// Named package-private callbacks avoid anonymous MainActivity$N classes in the
+// phone-only D8 pipeline while retaining the existing fail-closed policies.
+final class OapSecureChromeClient extends android.webkit.WebChromeClient {
+    @Override public boolean onJsAlert(android.webkit.WebView view, String url, String message, android.webkit.JsResult result) {
+        result.cancel();
+        return true;
+    }
+    @Override public void onGeolocationPermissionsShowPrompt(String origin, android.webkit.GeolocationPermissions.Callback callback) {
+        callback.invoke(origin, false, false);
+    }
+}
+
+final class OapSecureWebClient extends android.webkit.WebViewClient {
+    private final MainActivity host;
+    OapSecureWebClient(MainActivity host) { this.host = host; }
+    @Override public void onReceivedSslError(android.webkit.WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
+        handler.cancel();
+        android.widget.Toast.makeText(host, "HTTPS certificate rejected", android.widget.Toast.LENGTH_SHORT).show();
+    }
+    @Override public android.webkit.WebResourceResponse shouldInterceptRequest(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
+        if (!"https".equalsIgnoreCase(request.getUrl().getScheme())) {
+            return new android.webkit.WebResourceResponse("text/plain", "UTF-8",
+                    new java.io.ByteArrayInputStream(new byte[0]));
+        }
+        return super.shouldInterceptRequest(view, request);
+    }
+    @Override public boolean shouldOverrideUrlLoading(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
+        if (!request.isForMainFrame()) return false;
+        if (!host.safeWebAddress(request.getUrl())) {
+            android.widget.Toast.makeText(host, "Only standard HTTPS pages allowed", android.widget.Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        return false;
+    }
+}
+
+final class OapAppSearchWatcher implements TextWatcher {
+    private final Runnable refresh;
+    OapAppSearchWatcher(Runnable refresh) { this.refresh = refresh; }
+    @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+    @Override public void onTextChanged(CharSequence s, int start, int before, int count) { refresh.run(); }
+    @Override public void afterTextChanged(Editable e) {}
 }
