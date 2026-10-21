@@ -74,3 +74,56 @@ def test_small_depth_does_not_assign_unneeded_reviewers():
     assert result.specialists == ()
     assert result.challenger is None
     assert result.verifier is None
+
+
+def test_candidate_eligibility_fails_closed_without_passport():
+    from oap.smi.protocol_selection import check_mission_candidate_eligibility
+
+    class Registry:
+        def passport(self, agent_id):
+            return None
+
+    result = check_mission_candidate_eligibility("FOX-001", Registry())
+    assert result["eligible"] is False
+    assert result["reason"] == "PASSPORT_NOT_FOUND"
+    assert result["grants_permissions"] is False
+
+
+def test_candidate_eligibility_requires_active_permission_and_audit():
+    from oap.smi.protocol_selection import check_mission_candidate_eligibility
+
+    class Registry:
+        def __init__(self, passport):
+            self.record = passport
+
+        def passport(self, agent_id):
+            return self.record
+
+    passport = {
+        "agent_id": "FOX-001", "status": "ACTIVE",
+        "permissions": ["ANALYSE"], "audit_required": True,
+        "family_id": "recovery", "guardian": "Guardian",
+        "memory": {}, "restrictions": [],
+    }
+    allowed = check_mission_candidate_eligibility("FOX-001", Registry(passport))
+    assert allowed["eligible"] is True
+    assert allowed["execution_verified"] is False
+    assert allowed["performance_verified"] is False
+    for update in (
+        {"status": "INACTIVE"},
+        {"permissions": []},
+        {"audit_required": False},
+    ):
+        denied = check_mission_candidate_eligibility("FOX-001", Registry({**passport, **update}))
+        assert denied["eligible"] is False
+
+
+def test_candidate_eligibility_rejects_mismatched_identity_or_registry():
+    from oap.smi.protocol_selection import check_mission_candidate_eligibility
+
+    class Registry:
+        def passport(self, agent_id):
+            return {"agent_id": "OTHER", "status": "ACTIVE", "permissions": ["ANALYSE"]}
+
+    assert not check_mission_candidate_eligibility("FOX-001", Registry())["eligible"]
+    assert not check_mission_candidate_eligibility("FOX-001", object())["eligible"]
