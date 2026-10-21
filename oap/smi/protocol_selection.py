@@ -129,3 +129,47 @@ def check_mission_candidate_eligibility(
         "execution_verified": False,
         "performance_verified": False,
     }
+
+
+def screen_mission_team_candidates(
+    recommendation: MissionRoleRecommendation,
+    registry: object,
+    *,
+    agent_ids: dict[str, str] | None = None,
+) -> dict[str, object]:
+    """Screen all proposed people against actual registry passports, fail closed.
+
+    Names are not silently treated as passport IDs. Caller must provide an
+    explicit verified name-to-ID mapping; no eligible result grants a role.
+    """
+    ids = agent_ids if isinstance(agent_ids, dict) else {}
+    names = tuple(dict.fromkeys(
+        name for name in (
+            recommendation.lead,
+            recommendation.deputy,
+            *recommendation.specialists,
+            recommendation.challenger,
+            recommendation.verifier,
+            recommendation.recovery,
+        ) if name
+    ))
+    results: dict[str, dict[str, object]] = {}
+    for name in names:
+        identifier = ids.get(name)
+        if not isinstance(identifier, str) or not identifier.strip():
+            results[name] = {
+                "eligible": False, "reason": "PASSPORT_ID_UNRESOLVED",
+                "grants_permissions": False,
+            }
+            continue
+        results[name] = check_mission_candidate_eligibility(identifier, registry)
+    return {
+        "mission": recommendation.mission,
+        "protocol": recommendation.protocol,
+        "candidates": results,
+        "all_eligible": bool(names) and all(item["eligible"] for item in results.values()),
+        "status": "ADVISORY_SCREENED_NOT_ACTIVATED",
+        "grants_permissions": False,
+        "agent_execution_verified": False,
+        "founder_final_required": True,
+    }
