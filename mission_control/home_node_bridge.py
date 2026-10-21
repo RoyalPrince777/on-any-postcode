@@ -237,6 +237,8 @@ def verify_node_challenge(node_id: object, challenge: object, signature: object)
 
 def issue_connection_receipt() -> dict[str, Any]:
     """Issue a one-time server-side receipt after the caller authenticates."""
+    if not configured():
+        raise RuntimeError("home_node_bridge_not_configured")
     now = time.monotonic()
     with _LOCK:
         for key, expires in list(_CONNECTION_RECEIPTS.items()):
