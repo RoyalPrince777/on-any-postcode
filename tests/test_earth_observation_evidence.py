@@ -1,5 +1,11 @@
 """Fail-closed NASA Earth observation metadata tests."""
-from mission_control.earth_intelligence import nasa_observation_envelope, validate_earth_observation
+
+import pytest
+
+from mission_control.earth_intelligence import (
+    nasa_observation_envelope,
+    validate_earth_observation,
+)
 
 GOOD = {
     "observation_id": "obs-777",
@@ -54,12 +60,10 @@ def test_nasa_envelope_reuses_world_observation_without_live_claim():
 
 
 def test_nasa_envelope_rejects_missing_received_at():
-    import pytest
     with pytest.raises(ValueError, match="received_at_required"):
         nasa_observation_envelope(GOOD, received_at="")
 
 
 def test_nasa_envelope_rejects_observation_after_receipt():
-    import pytest
     with pytest.raises(ValueError, match="observed_at cannot be after received_at"):
         nasa_observation_envelope(GOOD, received_at="2026-10-19T00:00:00Z")
