@@ -131,6 +131,8 @@ public class MainActivity extends Activity {
 
         EditText search = new EditText(this);
         search.setSingleLine(true);
+        search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        search.setContentDescription("Search OAP destinations or enter a secure web address");
         search.setHint("⌕ Search apps, OAP or web...");
         search.setTextColor(Color.WHITE);
         search.setHintTextColor(Color.LTGRAY);
@@ -170,23 +172,27 @@ public class MainActivity extends Activity {
         GridLayout grid = new GridLayout(this);
         grid.setColumnCount(3);
         body.addView(grid);
-        int tileWidth = (getResources().getDisplayMetrics().widthPixels - dp(42)) / 3;
+        int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(32);
+        int tileWidth = Math.max(dp(86), (availableWidth - dp(12)) / 3);
         for (int i = 0; i < destinations.length; i++) {
             final String name = destinations[i];
             Button tile = button(icons[i] + "\n" + name + "\n" + captions[i], v -> destination(name));
             tile.setTextSize(11);
             tile.setGravity(Gravity.CENTER);
+            tile.setContentDescription(name + ". " + captions[i]);
             GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
             lp.width = tileWidth;
             lp.height = dp(112);
             lp.setMargins(dp(2), dp(4), dp(2), dp(4));
             grid.addView(tile, lp);
         }
-        body.addView(label("────  ON ANY POSTCODE  ────", 13));
+        TextView divider = label("────  ON ANY POSTCODE  ────", 13);
+        divider.setPadding(0, dp(10), 0, dp(10));
+        body.addView(divider);
         LinearLayout dock = new LinearLayout(this);
         dock.setOrientation(LinearLayout.HORIZONTAL);
         body.addView(dock, new LinearLayout.LayoutParams(-1, dp(82)));
-        String[] dockLabels = {"☎\nPhone", "▣\nMessages", "◎\nInternet", "◉\nCamera", "⌃\nAll Apps"};
+        String[] dockLabels = {"☎\nPhone", "▣\nMessages", "◎\nInternet\nBEGORO-KORADASO", "◉\nCamera", "⌃\nAll Apps"};
         for (int i = 0; i < dockLabels.length; i++) {
             final int index = i;
             Button item = button(dockLabels[i], v -> {
@@ -196,7 +202,8 @@ public class MainActivity extends Activity {
                 else if (index == 3) open(new Intent("android.media.action.IMAGE_CAPTURE"));
                 else allApps();
             });
-            item.setTextSize(11);
+            item.setTextSize(index == 2 ? 9 : 11);
+            item.setContentDescription(dockLabels[i].replace("\n", " "));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
             lp.setMargins(dp(2), dp(3), dp(2), dp(3));
             dock.addView(item, lp);
