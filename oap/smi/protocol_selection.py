@@ -56,3 +56,47 @@ def recommend_protocol_team(protocol: str) -> ProtocolRecommendation:
     if team is None:
         return ProtocolRecommendation(key, None, (), "UNRECOGNISED")
     return ProtocolRecommendation(key, team[0], team[1], "PROPOSED_UNVERIFIED")
+
+
+@dataclass(frozen=True)
+class MissionRoleRecommendation:
+    """A bounded mission assignment proposal, never an execution grant."""
+
+    mission: str
+    protocol: str
+    depth: str
+    lead: str | None
+    deputy: str | None
+    specialists: tuple[str, ...]
+    challenger: str | None
+    verifier: str | None
+    recovery: str | None
+    status: str
+    passport_verified: bool = False
+    permissions_verified: bool = False
+    evidence_verified: bool = False
+    agent_execution_verified: bool = False
+    grants_permissions: bool = False
+    human_authority_final: bool = True
+
+
+def recommend_mission_team(mission: str, protocol: str, depth: str = "AUTO") -> MissionRoleRecommendation:
+    """Select advisory roles from existing mappings, with unknowns failing closed.
+
+    AUTO uses a small team; it does not invent passport, performance or permission
+    evidence. A separate authenticated registry/permission gate is required
+    before any operational activation.
+    """
+    safe_mission = mission.strip() if isinstance(mission, str) else ""
+    safe_depth = depth.upper().strip() if isinstance(depth, str) else ""
+    selected = recommend_protocol_team(protocol)
+    if not safe_mission or len(safe_mission) > 160 or safe_depth not in {"AUTO", "3", "7", "21", "FULL"} or selected.lead is None:
+        return MissionRoleRecommendation(safe_mission[:160], selected.protocol, safe_depth, None, None, (), None, None, None, "UNRECOGNISED")
+    pool = tuple(dict.fromkeys(selected.specialists))
+    deputy = pool[0] if pool else None
+    specialists = pool[1:] if safe_depth != "3" else ()
+    # Reviewer and recovery roles are proposed only when their candidates exist.
+    challenger = "Shere Khan" if safe_depth in {"AUTO", "7", "21", "FULL"} and selected.lead != "Shere Khan" else None
+    verifier = "The Twins" if safe_depth in {"AUTO", "7", "21", "FULL"} else None
+    recovery = "Fox" if selected.protocol in {"recovery", "deployment", "dependencies"} and selected.lead != "Fox" else None
+    return MissionRoleRecommendation(safe_mission, selected.protocol, safe_depth, selected.lead, deputy, specialists, challenger, verifier, recovery, "PROPOSED_UNVERIFIED")
