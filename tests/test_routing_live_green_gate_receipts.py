@@ -17,6 +17,8 @@ from scripts import routing_live_green_gate as gate
     ],
 )
 def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, expected_type):
+    monkeypatch.setattr(gate.routing, "owned_base_url", lambda: "https://route.oap.example")
+
     def fail_request(*args, **kwargs):
         raise failure
 
@@ -30,6 +32,8 @@ def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, ex
 
 
 def test_non_object_json_is_bounded_failure(monkeypatch):
+    monkeypatch.setattr(gate.routing, "owned_base_url", lambda: "https://route.oap.example")
+
     class FakeResponse:
         status = 200
 
@@ -63,9 +67,9 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
     with pytest.raises(SystemExit, match="live routing probe had failed requests"):
         gate.main()
     receipts = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
-    assert receipts[0]["event"] == "oap_routing_bounded_external_warmup"
+    assert receipts[0]["event"] == "oap_routing_owned_warmup"
     receipt = receipts[-1]
-    assert receipt["event"] == "oap_routing_bounded_external_probe"
+    assert receipt["event"] == "oap_routing_owned_capacity_probe"
     assert receipt["requests"] == 2
     assert receipt["successes"] == 1
     assert receipt["failures"] == 1
