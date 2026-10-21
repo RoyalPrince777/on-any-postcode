@@ -45,3 +45,13 @@ def test_ptt_blueprint_is_registered():
 
     assert "from .ptt_routes import bp as ptt_bp" in init_source
     assert "app.register_blueprint(ptt_bp)" in init_source
+
+
+def test_ptt_contacts_api_reuses_canonical_accepted_contact_source():
+    source = _read("mission_control/ptt_routes.py")
+
+    assert '@bp.get("/ptt/contacts")' in source
+    assert "@web_security.login_required(api=True)" in source
+    assert "web_security.authenticated_identity()" in source
+    assert "jsonify(contacts=_accepted_contacts(identity_id))" in source
+    assert 'response.headers["Cache-Control"] = "no-store"' in source
