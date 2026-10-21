@@ -164,3 +164,17 @@ def test_team_screening_partial_eligibility_never_promotes_team():
     assert screened["candidates"]["Dozer"]["eligible"] is False
     assert screened["all_eligible"] is False
     assert screened["grants_permissions"] is False
+
+
+def test_registry_lookup_exception_fails_closed():
+    from oap.smi.protocol_selection import check_mission_candidate_eligibility
+
+    class BrokenRegistry:
+        def passport(self, agent_id):
+            raise RuntimeError("registry unavailable")
+
+    result = check_mission_candidate_eligibility("FOX-001", BrokenRegistry())
+    assert result["eligible"] is False
+    assert result["reason"] == "REGISTRY_LOOKUP_FAILED"
+    assert result["grants_permissions"] is False
+    assert result["execution_verified"] is False
