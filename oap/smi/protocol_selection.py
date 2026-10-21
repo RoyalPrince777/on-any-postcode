@@ -117,7 +117,10 @@ def check_mission_candidate_eligibility(
     passport_lookup = getattr(registry, "passport", None)
     if not callable(passport_lookup):
         return {"agent_id": agent_id, "eligible": False, "reason": "REGISTRY_UNAVAILABLE", "grants_permissions": False}
-    passport = passport_lookup(agent_id)
+    try:
+        passport = passport_lookup(agent_id)
+    except Exception:
+        return {"agent_id": agent_id, "eligible": False, "reason": "REGISTRY_LOOKUP_FAILED", "grants_permissions": False, "execution_verified": False}
     if not isinstance(passport, dict) or passport.get("agent_id") != agent_id:
         return {"agent_id": agent_id, "eligible": False, "reason": "PASSPORT_NOT_FOUND", "grants_permissions": False}
     decision = PermissionEngine().authorize_agent(passport, required_permission=required_permission)
