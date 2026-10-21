@@ -100,3 +100,32 @@ def recommend_mission_team(mission: str, protocol: str, depth: str = "AUTO") -> 
     verifier = "The Twins" if safe_depth in {"AUTO", "7", "21", "FULL"} else None
     recovery = "Fox" if selected.protocol in {"recovery", "deployment", "dependencies"} and selected.lead != "Fox" else None
     return MissionRoleRecommendation(safe_mission, selected.protocol, safe_depth, selected.lead, deputy, specialists, challenger, verifier, recovery, "PROPOSED_UNVERIFIED")
+
+
+def check_mission_candidate_eligibility(
+    agent_id: str, registry: object, *, required_permission: str = "ANALYSE"
+) -> dict[str, object]:
+    """Fail-closed read-only passport/permission eligibility for a candidate ID.
+
+    Eligibility does not prove execution, performance, approval of a new role,
+    or release readiness. Uses the existing RegistryEngine permission engine.
+    """
+    from oap.permissions import PermissionEngine
+
+    if not isinstance(agent_id, str) or not agent_id.strip():
+        return {"agent_id": "", "eligible": False, "reason": "INVALID_AGENT_ID", "grants_permissions": False}
+    passport_lookup = getattr(registry, "passport", None)
+    if not callable(passport_lookup):
+        return {"agent_id": agent_id, "eligible": False, "reason": "REGISTRY_UNAVAILABLE", "grants_permissions": False}
+    passport = passport_lookup(agent_id)
+    if not isinstance(passport, dict) or passport.get("agent_id") != agent_id:
+        return {"agent_id": agent_id, "eligible": False, "reason": "PASSPORT_NOT_FOUND", "grants_permissions": False}
+    decision = PermissionEngine().authorize_agent(passport, required_permission=required_permission)
+    return {
+        "agent_id": agent_id,
+        "eligible": bool(decision.allowed),
+        "reason": decision.reason,
+        "grants_permissions": False,
+        "execution_verified": False,
+        "performance_verified": False,
+    }
