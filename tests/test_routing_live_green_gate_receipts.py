@@ -13,7 +13,7 @@ from scripts import routing_live_green_gate as gate
     ("failure", "expected_type"),
     [
         (TimeoutError("read timed out"), "timeout"),
-        (error.URLError("unreachable"), "request_or_response_error"),
+        (error.URLError("unreachable"), "connection_or_tls_error"),
     ],
 )
 def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, expected_type):
@@ -45,7 +45,7 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
     monkeypatch.setattr(gate.request, "urlopen", lambda *args, **kwargs: FakeResponse())
     result = gate.run_one(0)
     assert result["ok"] is False
-    assert result["failure_type"] == "request_or_response_error"
+    assert result["failure_type"] == "invalid_json_or_encoding"
     assert result["distance_m"] == 0.0
     assert result["duration_s"] == 0.0
 
@@ -54,6 +54,7 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
     monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     samples = (
         {"route_id": "a", "ok": True, "elapsed_s": 0.2},
         {"route_id": "b", "ok": False, "elapsed_s": 10.0, "failure_type": "timeout"},
@@ -81,6 +82,7 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(
         gate,
         "run_one",
