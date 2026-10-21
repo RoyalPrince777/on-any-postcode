@@ -7,7 +7,8 @@ import statistics
 import time
 from urllib import error, parse, request
 
-BASE = "https://oap-routing.onrender.com"
+from mission_control import routing
+
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
@@ -21,6 +22,13 @@ WARMUP_TIMEOUT_SECONDS = 10
 WARMUP_SLEEP_SECONDS = 2.0
 
 
+def _owned_base() -> str:
+    base = routing.owned_base_url()
+    if not base:
+        raise SystemExit("routing_owned_endpoint_not_configured")
+    return base
+
+
 def _route_url(index: int) -> str:
     from_lon, from_lat, to_lon, to_lat, _route_id = ROUTES[index % len(ROUTES)]
     coords = f"{from_lon},{from_lat};{to_lon},{to_lat}"
@@ -32,7 +40,7 @@ def _route_url(index: int) -> str:
             "geometries": "geojson",
         }
     )
-    return f"{BASE}/route/v1/driving/{coords}?{query}"
+    return f"{_owned_base()}/route/v1/driving/{coords}?{query}"
 
 
 def wait_until_ready() -> dict[str, object]:
@@ -129,7 +137,7 @@ def main() -> None:
     print(
         json.dumps(
             {
-                "event": "oap_routing_bounded_external_warmup",
+                "event": "oap_routing_owned_warmup",
                 "ready": bool(warmup.get("ready")),
                 "attempts": int(warmup.get("attempts") or 0),
                 "elapsed_ms": round(float(warmup.get("elapsed_s") or 0) * 1000, 1),
@@ -153,7 +161,7 @@ def main() -> None:
     successes = sum(1 for item in results if item["ok"])
     timed_out = sum(1 for item in results if item.get("failure_type") == "timeout")
     receipt = {
-        "event": "oap_routing_bounded_external_probe",
+        "event": "oap_routing_owned_capacity_probe",
         "requests": TOTAL_REQUESTS,
         "workers": WORKERS,
         "successes": successes,
