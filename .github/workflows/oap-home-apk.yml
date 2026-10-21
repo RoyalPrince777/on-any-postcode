@@ -142,6 +142,16 @@ jobs:
       - name: Build OAP Home
         working-directory: android/oaphome
         run: gradle --no-daemon assembleDebug
+      - name: Inspect actual APK outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "APK outputs:"
+          find android/oaphome/build/outputs -maxdepth 6 -type f -print | sort
+          echo "APK metadata:"
+          find android/oaphome/build/outputs -type f -name '*.apk' -exec stat -c '%n %s bytes' {} \;
+          echo "Expected APK path:"
+          test -s android/oaphome/build/outputs/apk/debug/app-debug.apk || echo "Expected app-debug.apk is absent"
       - name: Verify APK package and signature
         shell: bash
         run: |
