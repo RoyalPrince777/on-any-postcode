@@ -250,21 +250,55 @@ public class MainActivity extends Activity {
     private void pttMenu() {
         base("🎙 PTT");
         body.addView(label("OAP WORLD · PTT", 18));
-        body.addView(label("Standalone push-to-talk. Not owned by The Link or Link Up.", 13));
-        body.addView(label("Live device-to-device audio: NOT YET PROVEN ON THIS PHONE.", 13));
-        addButton("CONTACTS", v -> pttSection("CONTACTS", "Certified PTT contacts are not connected to this launcher yet."));
-        addButton("ROOMS", v -> pttSection("ROOMS", "PTT Rooms are not connected to this launcher yet."));
-        addButton("TALK", v -> pttSection("TALK", "Hold-to-talk transport is not connected to this launcher yet."));
-        addButton("INCOMING", v -> pttSection("INCOMING", "Incoming PTT signalling is not connected to this launcher yet."));
-        addButton("HISTORY", v -> pttSection("HISTORY", "PTT history is not connected to this launcher yet."));
-        addButton("SETTINGS", v -> pttSection("SETTINGS", "PTT permissions and transport settings are not connected to this launcher yet."));
+        body.addView(label("Standalone push-to-talk · separate from The Link / Link Up", 13));
+
+        TextView target = label("SELECTED · NONE", 17);
+        target.setBackground(panel());
+        target.setPadding(dp(8), dp(14), dp(8), dp(14));
+        body.addView(target, new LinearLayout.LayoutParams(-1, dp(64)));
+
+        TextView state = label("LOCKED · MIC OFF", 19);
+        state.setTypeface(Typeface.DEFAULT_BOLD);
+        body.addView(state, new LinearLayout.LayoutParams(-1, dp(58)));
+
+        Button talk = button("🎙  HOLD TO TALK", v -> { });
+        talk.setEnabled(false);
+        talk.setAlpha(0.55f);
+        talk.setContentDescription("Hold to talk locked until a Certified PTT contact or Room and live transport are connected");
+        LinearLayout.LayoutParams talkLayout = new LinearLayout.LayoutParams(-1, dp(150));
+        talkLayout.setMargins(0, dp(8), 0, dp(10));
+        body.addView(talk, talkLayout);
+
+        body.addView(label("Choose a Certified contact or Room first. Live device-to-device audio is not yet proven on this phone.", 13));
+
+        GridLayout dock = new GridLayout(this);
+        dock.setColumnCount(2);
+        body.addView(dock);
+        String[] items = {"CONTACTS", "ROOMS", "INCOMING", "HISTORY", "SETTINGS"};
+        for (String item : items) {
+            Button nav = button(item, v -> pttSection(item, pttStatusFor(item)));
+            GridLayout.LayoutParams p = new GridLayout.LayoutParams();
+            p.width = (getResources().getDisplayMetrics().widthPixels - dp(34)) / 2;
+            p.height = dp(58);
+            p.setMargins(dp(2), dp(3), dp(2), dp(3));
+            dock.addView(nav, p);
+        }
         addButton("BACK TO OAP HOME", v -> home());
+    }
+
+    private String pttStatusFor(String title) {
+        if ("CONTACTS".equals(title)) return "Certified PTT contacts are not connected to this launcher yet.";
+        if ("ROOMS".equals(title)) return "PTT Rooms are not connected to this launcher yet.";
+        if ("INCOMING".equals(title)) return "Incoming PTT signalling is not connected to this launcher yet.";
+        if ("HISTORY".equals(title)) return "PTT history is not connected to this launcher yet.";
+        return "PTT permissions and transport settings are not connected to this launcher yet.";
     }
 
     private void pttSection(String title, String status) {
         base("PTT · " + title);
         body.addView(label(status, 16));
-        addButton("BACK TO PTT", v -> pttMenu());
+        body.addView(label("Nothing here is presented as live until the corresponding transport and device proof passes.", 12));
+        addButton("BACK TO TALK", v -> pttMenu());
         addButton("BACK TO OAP HOME", v -> home());
     }
 
