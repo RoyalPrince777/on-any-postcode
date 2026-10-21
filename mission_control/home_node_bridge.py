@@ -229,7 +229,7 @@ def verify_node_challenge(node_id: object, challenge: object, signature: object)
         return False
     expected = hmac.new(
         _shared_secret().encode("utf-8"),
-        (node_id + "\\n" + challenge).encode("utf-8"),
+        (node_id + "\n" + challenge).encode("utf-8"),
         "sha256",
     ).hexdigest()
     return hmac.compare_digest(signature, expected)
