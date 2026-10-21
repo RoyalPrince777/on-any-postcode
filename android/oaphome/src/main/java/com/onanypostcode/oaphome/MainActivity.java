@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
     private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private final Runnable clockTick = new Runnable() {
         @Override public void run() {
-            if (clock != null && clock.isAttachedToWindow()) {
+            if (clock != null) {
                 clock.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()));
                 clockHandler.postDelayed(this, 60000);
             }
