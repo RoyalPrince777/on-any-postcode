@@ -3,6 +3,9 @@ package com.onanypostcode.oaphome;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ResolveInfo;
+import android.content.pm.PackageManager;
+import android.Manifest;
+import android.view.MotionEvent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -29,6 +32,10 @@ import java.util.List;
 
 public class MainActivity extends Activity {
     private static final int GOLD = Color.rgb(236, 188, 75);
+    private static final int PTT_MIC_PERMISSION_REQUEST = 777;
+    private boolean pttTransportReady = false;
+    private boolean pttPressed = false;
+    private TextView pttStateView;
     private LinearLayout body;
     private TextView clock;
     private TextView earth;
@@ -257,14 +264,17 @@ public class MainActivity extends Activity {
         target.setPadding(dp(8), dp(14), dp(8), dp(14));
         body.addView(target, new LinearLayout.LayoutParams(-1, dp(64)));
 
-        TextView state = label("LOCKED · MIC OFF", 19);
-        state.setTypeface(Typeface.DEFAULT_BOLD);
-        body.addView(state, new LinearLayout.LayoutParams(-1, dp(58)));
+        pttStateView = label(pttTransportReady ? "READY · MIC OFF" : "LOCKED · MIC OFF", 19);
+        pttStateView.setTypeface(Typeface.DEFAULT_BOLD);
+        body.addView(pttStateView, new LinearLayout.LayoutParams(-1, dp(58)));
 
         Button talk = button("🎙  HOLD TO TALK", v -> { });
-        talk.setEnabled(false);
-        talk.setAlpha(0.55f);
-        talk.setContentDescription("Hold to talk locked until a Certified PTT contact or Room and live transport are connected");
+        talk.setEnabled(pttTransportReady);
+        talk.setAlpha(pttTransportReady ? 1.0f : 0.55f);
+        talk.setContentDescription(pttTransportReady
+                ? "Hold to request microphone access and talk"
+                : "Hold to talk locked until a Certified PTT contact or Room and live transport are connected");
+        talk.setOnTouchListener((view, event) -> handlePttTouch(event));
         LinearLayout.LayoutParams talkLayout = new LinearLayout.LayoutParams(-1, dp(150));
         talkLayout.setMargins(0, dp(8), 0, dp(10));
         body.addView(talk, talkLayout);
@@ -284,6 +294,41 @@ public class MainActivity extends Activity {
             dock.addView(nav, p);
         }
         addButton("BACK TO OAP HOME", v -> home());
+    }
+
+    private boolean handlePttTouch(MotionEvent event) {
+        if (!pttTransportReady) {
+            setPttState("LOCKED · MIC OFF");
+            return true;
+        }
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            pttPressed = true;
+            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                setPttState("MIC PERMISSION REQUIRED");
+                requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, PTT_MIC_PERMISSION_REQUEST);
+                return true;
+            }
+            setPttState("READY · MIC PERMITTED · TRANSPORT NOT CONNECTED");
+            return true;
+        }
+        if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
+            pttPressed = false;
+            setPttState("READY · MIC OFF");
+            return true;
+        }
+        return true;
+    }
+
+    private void setPttState(String value) {
+        if (pttStateView != null) pttStateView.setText(value);
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != PTT_MIC_PERMISSION_REQUEST) return;
+        boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+        pttPressed = false;
+        setPttState(granted ? "READY · MIC OFF" : "LOCKED · MIC DENIED");
     }
 
     private String pttStatusFor(String title) {
