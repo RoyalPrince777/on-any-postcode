@@ -48,6 +48,8 @@ jobs:
           grep -Fq 'handlePttTouch(MotionEvent event)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'MIC PERMISSION REQUIRED' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'private static final String PTT_CONTACTS_PATH = "/ptt/contacts"' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'authenticated native session not connected yet' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'shouldInterceptRequest(android.webkit.WebView view' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
           test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
