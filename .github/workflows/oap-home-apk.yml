@@ -88,7 +88,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
+          APK="$(find android/oaphome/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -type f -print -quit)"
+          test -n "$APK"
           mkdir -p adversarial-evidence
           sha256sum "$APK" > adversarial-evidence/apk.sha256
           stat -c 'APK bytes: %s' "$APK" > adversarial-evidence/build.txt
