@@ -42,14 +42,16 @@ public class MainActivity extends Activity {
     private TextView clock;
     private TextView earth;
     private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
-    private final Runnable clockTick = new Runnable() {
-        @Override public void run() {
-            if (clock != null) {
-                clock.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()));
-                clockHandler.postDelayed(this, 60000);
-            }
+    // Avoid an anonymous MainActivity$1 class in the on-device D8 build.
+    // Keep the same minute cadence and lifecycle cancellation.
+    private final Runnable clockTick = this::updateClock;
+
+    private void updateClock() {
+        if (clock != null) {
+            clock.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()));
+            clockHandler.postDelayed(clockTick, 60000);
         }
-    };
+    }
 
     private GradientDrawable panel() {
         GradientDrawable d = new GradientDrawable();
