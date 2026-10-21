@@ -108,36 +108,97 @@ public class MainActivity extends Activity {
 
     private void home() {
         base("♛ OAP HOME");
-        body.addView(label("BEGORO–KORADASO", 18));
-        body.addView(label("ON ANY POSTCODE", 15));
+        body.addView(label("ON ANY POSTCODE", 21));
         body.addView(label("BORN LOCAL · BUILT GLOBAL", 13));
-        body.addView(label("OAP HOME · FOUNDER DIGITAL HOME", 12));
-        earth = label("◎  EARTH IS OUR TURF  ◎", 20);
+        earth = label("🌍  OAP WORLD  ·  EARTH IS OUR TURF", 17);
         earth.setTypeface(Typeface.SERIF, Typeface.BOLD);
-        body.addView(earth, new LinearLayout.LayoutParams(-1, dp(76)));
-        clock = label("", 21);
-        body.addView(clock, new LinearLayout.LayoutParams(-1, dp(60)));
+        body.addView(earth, new LinearLayout.LayoutParams(-1, dp(64)));
+        clock = label("", 26);
+        body.addView(clock, new LinearLayout.LayoutParams(-1, dp(64)));
         clockTick.run();
-        String[] destinations = {"OAP WORLD", "PTT", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
+
+        LinearLayout info = new LinearLayout(this);
+        info.setOrientation(LinearLayout.HORIZONTAL);
+        body.addView(info, new LinearLayout.LayoutParams(-1, dp(94)));
+        String[] infoLabels = {"☀ WEATHER\\nNOT CONNECTED", "▣ NEXT EVENT\\nNOT CONNECTED", "🌐 WORLD CLOCK\\nNOT CONNECTED"};
+        for (String title : infoLabels) {
+            TextView tile = label(title.replace("\\n", "\n"), 12);
+            tile.setBackground(panel());
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
+            lp.setMargins(dp(2), dp(2), dp(2), dp(2));
+            info.addView(tile, lp);
+        }
+
+        EditText search = new EditText(this);
+        search.setSingleLine(true);
+        search.setHint("⌕ Search apps, OAP or web...");
+        search.setTextColor(Color.WHITE);
+        search.setHintTextColor(Color.LTGRAY);
+        search.setBackground(panel());
+        search.setPadding(dp(14), 0, dp(14), 0);
+        body.addView(search, new LinearLayout.LayoutParams(-1, dp(58)));
+        search.setOnEditorActionListener((v, actionId, event) -> {
+            String query = search.getText().toString().trim();
+            if (query.isEmpty()) return true;
+            if (query.startsWith("https://")) {
+                openInternetAddress(query);
+            } else {
+                allApps();
+            }
+            return true;
+        });
+
+        String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
                 "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
+        String[] icons = {"🌍", "◉", "◈", "⌖", "✉", "▣", "▶", "♟", "▤"};
+        String[] captions = {"ONE ECOSYSTEM", "PEOPLE & COMMUNITY", "FINANCE & OPPORTUNITY",
+                "PLACES & NAVIGATION", "YOUR INBOX", "BUY · SELL · GROW",
+                "WATCH & STREAM", "GAMES & CHALLENGES", "LEARN & EXPLORE"};
         GridLayout grid = new GridLayout(this);
         grid.setColumnCount(3);
         body.addView(grid);
-        for (String name : destinations) {
-            Button b = button(name, v -> destination(name));
-            GridLayout.LayoutParams p = new GridLayout.LayoutParams();
-            p.width = (getResources().getDisplayMetrics().widthPixels - dp(42)) / 3;
-            p.height = dp(76);
-            p.setMargins(dp(2), dp(4), dp(2), dp(4));
-            grid.addView(b, p);
+        int tileWidth = (getResources().getDisplayMetrics().widthPixels - dp(42)) / 3;
+        for (int i = 0; i < destinations.length; i++) {
+            final String name = destinations[i];
+            Button tile = button(icons[i] + "\n" + name + "\n" + captions[i], v -> destination(name));
+            tile.setTextSize(11);
+            tile.setGravity(Gravity.CENTER);
+            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+            lp.width = tileWidth;
+            lp.height = dp(112);
+            lp.setMargins(dp(2), dp(4), dp(2), dp(4));
+            grid.addView(tile, lp);
         }
+        body.addView(label("────  ON ANY POSTCODE  ────", 13));
+        LinearLayout dock = new LinearLayout(this);
+        dock.setOrientation(LinearLayout.HORIZONTAL);
+        body.addView(dock, new LinearLayout.LayoutParams(-1, dp(82)));
+        String[] dockLabels = {"☎\nPhone", "▣\nMessages", "◎\nInternet", "◉\nCamera", "⌃\nAll Apps"};
+        for (int i = 0; i < dockLabels.length; i++) {
+            final int index = i;
+            Button item = button(dockLabels[i], v -> {
+                if (index == 0) open(new Intent(Intent.ACTION_DIAL));
+                else if (index == 1) open(new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")));
+                else if (index == 2) openInternet();
+                else if (index == 3) open(new Intent("android.media.action.IMAGE_CAPTURE"));
+                else allApps();
+            });
+            item.setTextSize(11);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
+            lp.setMargins(dp(2), dp(3), dp(2), dp(3));
+            dock.addView(item, lp);
+        }
+        addButton("⚙ SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+        addButton("🎙 PTT", v -> pttMenu());
+    }
 
-        addButton("OAP INTERNET  ·  OPEN WEB", v -> openInternet());
-        addButton("OAP VIRTUAL ANDROID  ·  STATUS", v -> virtualAndroid());
-        addButton("SEARCH APPS", v -> allApps());
-        addButton("ALL APPS", v -> allApps());
-        addButton("PHONE  ·  MESSAGES  ·  INTERNET  ·  CAMERA", v -> quickApps());
-        addButton("ANDROID SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+    private void openInternetAddress(String url) {
+        if (!safeWebAddress(Uri.parse(url))) {
+            android.widget.Toast.makeText(this, "Only standard HTTPS pages allowed", android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        openInternet();
+        if (activeWebView != null) activeWebView.loadUrl(url);
     }
 
     private int dp(int n) { return (int)(n * getResources().getDisplayMetrics().density + 0.5f); }
