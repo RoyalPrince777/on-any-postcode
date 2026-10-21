@@ -74,6 +74,7 @@ def test_ptt_controller_is_press_release_and_reuses_first_party_voice_transport(
     assert 'control.addEventListener("pointerdown", begin)' in script
     assert 'control.addEventListener("pointerup", finish)' in script
     assert 'kind === "ptt"' in script
+    assert 'const transportReady = kind === "ptt" ? state.pttReady : state.ready' in script
     assert 'const pttEndpoint = document.body.dataset.oapPttEndpoint || "/linkup/ptt"' in script
     assert 'const pttStatusEndpoint = document.body.dataset.oapPttStatusEndpoint || "/linkup/ptt/status"' in script
     assert "navigator.mediaDevices.getUserMedia({ audio: true, video: false })" in script
