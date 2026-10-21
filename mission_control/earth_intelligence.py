@@ -165,6 +165,26 @@ def from_weather(weather: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+
+def first_party_status() -> dict[str, Any]:
+    """Founder-governed Earth readiness independent of legacy weather adapters."""
+    from mission_control import earth_first_party
+
+    return {
+        "name": "OAP First-Party Earth Intelligence",
+        "world_id": "earth",
+        "source_policy": "oap_owned_sensors_only",
+        "legacy_weather_is_authoritative": False,
+        "nasa_adapter_enabled": False,
+        "sensor_intake": earth_first_party.status(),
+        "verified_sensor_nodes": 0,
+        "verified_owned_physical_servers": 0,
+        "full_earth_runtime_ready": False,
+        "can_execute": False,
+        "human_authority_final": True,
+    }
+
+
 def status(*, weather_ready: bool) -> dict[str, Any]:
     """Return architecture/readiness without making network calls."""
 
