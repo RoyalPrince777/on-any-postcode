@@ -281,3 +281,15 @@ body:not(.smi-command-open):not(.smi-status-open) .smi-command-centre{
   .chat-head .chat-subtitle:not(#provider-state){display:none!important}
   .composer-box{box-shadow:0 0 18px rgba(25,153,255,.18)!important}
 }
+
+/* Redmi A5 and other narrow-screen alignment: respect safe areas and keyboard viewport. */
+@media (max-width:760px){
+  .smi-shell{height:100dvh!important;max-width:100%!important;overflow:hidden!important}
+  .workspace-grid{min-width:0!important;max-width:100%!important}
+  .workspace-grid>*{min-width:0!important}
+  .chat-head{min-width:0!important;max-width:calc(100vw - 96px)!important}
+  .chat-head>div{min-width:0!important;max-width:100%!important}
+  .chat-title,.chat-subtitle{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .composer-box{max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+  .history{max-width:calc(100vw - 24px)!important}
+}
