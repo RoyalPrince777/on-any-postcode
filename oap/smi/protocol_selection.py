@@ -103,7 +103,7 @@ def recommend_mission_team(mission: str, protocol: str, depth: str = "AUTO") -> 
 
 
 def check_mission_candidate_eligibility(
-    agent_id: str, registry: object, *, required_permission: str = "ANALYSE"
+    agent_id: str, registry: object, *, required_permission: str = "ANALYSE", expected_name: str | None = None
 ) -> dict[str, object]:
     """Fail-closed read-only passport/permission eligibility for a candidate ID.
 
@@ -123,6 +123,10 @@ def check_mission_candidate_eligibility(
         return {"agent_id": agent_id, "eligible": False, "reason": "REGISTRY_LOOKUP_FAILED", "grants_permissions": False, "execution_verified": False}
     if not isinstance(passport, dict) or passport.get("agent_id") != agent_id:
         return {"agent_id": agent_id, "eligible": False, "reason": "PASSPORT_NOT_FOUND", "grants_permissions": False}
+    if expected_name is not None:
+        labels = (passport.get("name"), *(passport.get("aliases") or ()))
+        if expected_name not in labels:
+            return {"agent_id": agent_id, "eligible": False, "reason": "PASSPORT_NAME_MISMATCH", "grants_permissions": False, "execution_verified": False}
     decision = PermissionEngine().authorize_agent(passport, required_permission=required_permission)
     return {
         "agent_id": agent_id,
@@ -165,7 +169,7 @@ def screen_mission_team_candidates(
                 "grants_permissions": False,
             }
             continue
-        results[name] = check_mission_candidate_eligibility(identifier, registry)
+        results[name] = check_mission_candidate_eligibility(identifier, registry, expected_name=name)
     return {
         "mission": recommendation.mission,
         "protocol": recommendation.protocol,
