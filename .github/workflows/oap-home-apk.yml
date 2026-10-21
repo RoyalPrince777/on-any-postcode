@@ -151,12 +151,12 @@ jobs:
           echo "APK metadata:"
           find android/oaphome/build/outputs -type f -name '*.apk' -exec stat -c '%n %s bytes' {} \;
           echo "Expected APK path:"
-          test -s android/oaphome/build/outputs/apk/debug/app-debug.apk || echo "Expected app-debug.apk is absent"
+          test -s android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk || echo "Expected app-debug.apk is absent"
       - name: Verify APK package and signature
         shell: bash
         run: |
           set -euo pipefail
-          APK="android/oaphome/build/outputs/apk/debug/app-debug.apk"
+          APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
           test -s "$APK"
           SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
           BUILD_TOOLS="$SDK_ROOT/build-tools/35.0.0"
@@ -177,7 +177,7 @@ jobs:
           python3 - <<'PY'
           import zipfile
           from pathlib import Path
-          apk = Path("android/oaphome/build/outputs/apk/debug/app-debug.apk")
+          apk = Path("android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk")
           with zipfile.ZipFile(apk) as z:
               names = z.namelist()
               assert len(names) == len(set(names)), "Duplicate ZIP entries"
@@ -191,7 +191,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK="android/oaphome/build/outputs/apk/debug/app-debug.apk"
+          APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
           test -s "$APK"
           SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
           APKSIGNER="$SDK_ROOT/build-tools/35.0.0/apksigner"
