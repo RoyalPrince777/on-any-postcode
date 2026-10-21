@@ -43,7 +43,11 @@ jobs:
           grep -Fq 'HOLD TO TALK' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'LOCKED · MIC OFF' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'Standalone push-to-talk · separate from The Link / Link Up' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
-          grep -Fq 'talk.setEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'android.permission.RECORD_AUDIO' android/oaphome/src/main/AndroidManifest.xml
+          grep -Fq 'private boolean pttTransportReady = false' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'handlePttTouch(MotionEvent event)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'MIC PERMISSION REQUIRED' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'shouldInterceptRequest(android.webkit.WebView view' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
           test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
