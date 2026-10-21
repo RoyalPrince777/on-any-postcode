@@ -181,7 +181,7 @@ def validate_earth_observation(item: Mapping[str, Any]) -> dict[str, Any]:
     if any(not value for value in values.values()):
         return {"valid": False, "reason": "missing_required_metadata", "can_execute": False}
     try:
-        parsed = datetime.fromisoformat(values["captured_at"].replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(values["captured_at"])
         if parsed.tzinfo is None:
             raise ValueError("timezone_required")
     except ValueError:
