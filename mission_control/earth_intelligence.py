@@ -89,6 +89,28 @@ def _place_model() -> dict[str, Any]:
     }
 
 
+
+def from_owned_sensor(reading: Mapping[str, Any], *, now: "datetime | None" = None) -> dict[str, Any]:
+    """Strict first-party Earth entry point; never accepts external observations.
+
+    An unverified sensor reading stays unverified. Existing legacy weather and
+    NASA adapters remain isolated and do not feed this entry point.
+    """
+    from mission_control import earth_first_party
+
+    record = earth_first_party.intake(reading, now=now)
+    return {
+        "world_id": "earth",
+        "source_policy": "oap_owned_sensors_only",
+        "observation": record,
+        "trusted_observations": 0,
+        "live_environment_ready": False,
+        "full_earth_runtime_ready": False,
+        "can_execute": False,
+        "human_authority_final": True,
+    }
+
+
 def from_weather(weather: Mapping[str, Any]) -> dict[str, Any]:
     """Project verified Weather Intelligence into bounded Earth context."""
 
