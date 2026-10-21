@@ -32,6 +32,8 @@ import java.util.List;
 
 public class MainActivity extends Activity {
     private static final int GOLD = Color.rgb(236, 188, 75);
+    private static final String OAP_API_ORIGIN = "https://www.onanypostcode.com";
+    private static final String PTT_CONTACTS_PATH = "/ptt/contacts";
     private static final int PTT_MIC_PERMISSION_REQUEST = 777;
     private boolean pttTransportReady = false;
     private boolean pttPressed = false;
@@ -342,7 +344,7 @@ public class MainActivity extends Activity {
     }
 
     private String pttStatusFor(String title) {
-        if ("CONTACTS".equals(title)) return "Certified PTT contacts are not connected to this launcher yet.";
+        if ("CONTACTS".equals(title)) return "Certified Contacts endpoint: " + OAP_API_ORIGIN + PTT_CONTACTS_PATH + " · authenticated native session not connected yet.";
         if ("ROOMS".equals(title)) return "PTT Rooms are not connected to this launcher yet.";
         if ("INCOMING".equals(title)) return "Incoming PTT signalling is not connected to this launcher yet.";
         if ("HISTORY".equals(title)) return "PTT history is not connected to this launcher yet.";
