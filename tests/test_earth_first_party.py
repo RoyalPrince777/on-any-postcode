@@ -73,3 +73,12 @@ def test_earth_core_rejects_external_observations():
         earth_intelligence.from_owned_sensor(
             {**GOOD, "source_ownership": "external_public"}, now=NOW
         )
+
+
+def test_first_party_status_does_not_trust_legacy_weather():
+    result = earth_intelligence.first_party_status()
+    assert result["source_policy"] == "oap_owned_sensors_only"
+    assert result["legacy_weather_is_authoritative"] is False
+    assert result["nasa_adapter_enabled"] is False
+    assert result["verified_owned_physical_servers"] == 0
+    assert result["full_earth_runtime_ready"] is False
