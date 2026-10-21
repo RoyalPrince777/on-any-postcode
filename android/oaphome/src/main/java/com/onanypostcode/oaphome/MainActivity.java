@@ -246,6 +246,16 @@ public class MainActivity extends Activity {
             viewer.loadUrl(uri.toString());
         });
         body.addView(viewer, new LinearLayout.LayoutParams(-1, dp(440)));
+        addButton("BACK IN OAP INTERNET", v -> {
+            if (activeWebView == viewer && viewer.canGoBack()) viewer.goBack();
+        });
+        addButton("FORWARD IN OAP INTERNET", v -> {
+            if (activeWebView == viewer && viewer.canGoForward()) viewer.goForward();
+        });
+        addButton("RELOAD HTTPS PAGE", v -> {
+            if (activeWebView == viewer && viewer.getUrl() != null
+                    && safeWebAddress(Uri.parse(viewer.getUrl()))) viewer.reload();
+        });
         addButton("BACK TO OAP HOME", v -> { closeWebView(); home(); });
     }
 
