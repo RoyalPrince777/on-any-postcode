@@ -86,6 +86,8 @@ jobs:
           done
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
+      - name: Validate OAP Home signing helper shell syntax
+        run: bash -n scripts/oap_home_signing_setup.sh
       - name: Run focused OAP Data security regressions
         run: |
           set -o pipefail
