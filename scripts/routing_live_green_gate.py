@@ -16,7 +16,7 @@ TOTAL_REQUESTS = 20
 WORKERS = 4
 TIMEOUT_SECONDS = 10
 P95_LIMIT_SECONDS = 6.0
-WARMUP_ATTEMPTS = 6
+WARMUP_ATTEMPTS = 7
 WARMUP_TIMEOUT_SECONDS = 10
 WARMUP_SLEEP_SECONDS = 2.0
 
@@ -38,6 +38,7 @@ def _route_url(index: int) -> str:
 def wait_until_ready() -> dict[str, object]:
     started = time.perf_counter()
     last_failure = "not_started"
+    last_http_status = None
     for attempt in range(1, WARMUP_ATTEMPTS + 1):
         req = request.Request(
             _route_url(0),
@@ -65,6 +66,9 @@ def wait_until_ready() -> dict[str, object]:
                         "elapsed_s": time.perf_counter() - started,
                     }
                 last_failure = "invalid_response"
+        except error.HTTPError as exc:
+            last_failure = "http_error"
+            last_http_status = int(exc.code)
         except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
             last_failure = "timeout" if isinstance(exc, TimeoutError) else "request_or_response_error"
         if attempt < WARMUP_ATTEMPTS:
@@ -74,6 +78,7 @@ def wait_until_ready() -> dict[str, object]:
         "attempts": WARMUP_ATTEMPTS,
         "elapsed_s": time.perf_counter() - started,
         "failure_type": last_failure,
+        "http_status": last_http_status,
     }
 
 
@@ -134,6 +139,7 @@ def main() -> None:
                 "attempts": int(warmup.get("attempts") or 0),
                 "elapsed_ms": round(float(warmup.get("elapsed_s") or 0) * 1000, 1),
                 "failure_type": warmup.get("failure_type"),
+                "http_status": warmup.get("http_status"),
                 "dispatch_performed": False,
                 "payment_performed": False,
                 "tracking_performed": False,

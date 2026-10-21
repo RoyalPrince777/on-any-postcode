@@ -23,7 +23,7 @@ def test_oap_os_manifest_is_installable_and_public_only(client):
         "512x512",
     }
     shortcut_urls = {shortcut["url"].split("?", 1)[0] for shortcut in manifest["shortcuts"]}
-    assert shortcut_urls == {"/the-spot", "/the-link", "/linkup", "/movement"}
+    assert shortcut_urls == {"/the-spot", "/the-link", "/linkup", "/movement", "/tv"}
     assert not any(
         route in str(manifest)
         for route in ("/mission", "/my-world", "/auth", "/infrastructure")
