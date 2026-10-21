@@ -142,8 +142,21 @@ public class MainActivity extends Activity {
             if (query.isEmpty()) return true;
             if (query.startsWith("https://")) {
                 openInternetAddress(query);
+            } else if (query.startsWith("http://") || query.contains("://")) {
+                android.widget.Toast.makeText(this, "Only HTTPS addresses allowed", android.widget.Toast.LENGTH_SHORT).show();
             } else {
-                allApps();
+                String normalized = query.toUpperCase(java.util.Locale.ROOT);
+                String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
+                        "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
+                boolean matched = false;
+                for (String name : destinations) {
+                    if (name.equals(normalized) || name.replace("OAP ", "").equals(normalized)) {
+                        destination(name);
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) allApps();
             }
             return true;
         });
