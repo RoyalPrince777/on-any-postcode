@@ -54,6 +54,7 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
     monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     samples = (
         {"route_id": "a", "ok": True, "elapsed_s": 0.2},
         {"route_id": "b", "ok": False, "elapsed_s": 10.0, "failure_type": "timeout"},
@@ -81,6 +82,7 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(
         gate,
         "run_one",
@@ -106,3 +108,14 @@ def test_live_green_gate_warms_before_capacity_probe():
     assert "TOTAL_REQUESTS = 20" in source
     assert "WORKERS = 4" in source
     assert "P95_LIMIT_SECONDS = 6.0" in source
+
+
+def test_unready_warmup_fails_closed_without_capacity_probe(monkeypatch, capsys):
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": False, "attempts": 1, "elapsed_s": 0.0, "failure_type": "timeout"})
+    monkeypatch.setattr(gate, "run_one", lambda index: pytest.fail("capacity probe must not run when warmup fails"))
+    with pytest.raises(SystemExit, match="live routing warmup did not become ready"):
+        gate.main()
+    receipts = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
+    assert len(receipts) == 1
+    assert receipts[0]["ready"] is False
+    assert receipts[0]["dispatch_performed"] is False
