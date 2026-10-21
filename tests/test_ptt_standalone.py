@@ -55,3 +55,36 @@ def test_ptt_contacts_api_reuses_canonical_accepted_contact_source():
     assert "web_security.authenticated_identity()" in source
     assert "jsonify(contacts=_accepted_contacts(identity_id))" in source
     assert 'response.headers["Cache-Control"] = "no-store"' in source
+
+
+def test_ptt_contacts_api_rejects_anonymous_access(anonymous_client):
+    response = anonymous_client.get("/ptt/contacts")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_ptt_contacts_api_returns_only_canonical_contacts(client, monkeypatch):
+    from mission_control import ptt_routes
+
+    expected = [
+        {
+            "identity_id": "22222222-2222-4222-8222-222222222222",
+            "display_name": "OAP Contact",
+            "card_id": "OAP-CARD-2222",
+        }
+    ]
+    observed = {}
+
+    def fake_contacts(identity_id):
+        observed["identity_id"] = identity_id
+        return expected
+
+    monkeypatch.setattr(ptt_routes, "_accepted_contacts", fake_contacts)
+    response = client.get("/ptt/contacts")
+
+    assert response.status_code == 200
+    assert response.get_json() == {"contacts": expected}
+    assert observed["identity_id"] == "11111111-1111-4111-8111-111111111111"
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
