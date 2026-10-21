@@ -130,7 +130,10 @@ def test_candidate_eligibility_rejects_mismatched_identity_or_registry():
 
 
 def test_team_screening_does_not_assume_names_are_passport_ids():
-    from oap.smi.protocol_selection import recommend_mission_team, screen_mission_team_candidates
+    from oap.smi.protocol_selection import (
+        recommend_mission_team,
+        screen_mission_team_candidates,
+    )
 
     team = recommend_mission_team("routing", "recovery")
     screened = screen_mission_team_candidates(team, object())
@@ -141,7 +144,10 @@ def test_team_screening_does_not_assume_names_are_passport_ids():
 
 
 def test_team_screening_partial_eligibility_never_promotes_team():
-    from oap.smi.protocol_selection import recommend_mission_team, screen_mission_team_candidates
+    from oap.smi.protocol_selection import (
+        recommend_mission_team,
+        screen_mission_team_candidates,
+    )
 
     class Registry:
         def passport(self, agent_id):
