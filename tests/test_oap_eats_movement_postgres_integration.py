@@ -55,6 +55,7 @@ def delivery(monkeypatch):
                 *postgres_db.MIGRATION_STATEMENTS,
                 *movement_operations.MOVEMENT_SCHEMA_STATEMENTS,
                 *oap_eats_store.SCHEMA_STATEMENTS,
+                *oap_eats_store.INTEGRITY_SCHEMA_STATEMENTS,
                 *sika_account_engine.SCHEMA_STATEMENTS,
                 *sika_payment_orchestrator.SCHEMA_STATEMENTS,
                 *sika_payment_reservations.SCHEMA_STATEMENTS,
@@ -73,6 +74,9 @@ def delivery(monkeypatch):
                    VALUES (%s,%s,%s,'authorised','[]',1599,'GBP','delivery',%s)""",
                 (order, customer, merchant, "order-" + order),
             )
+            # Existing lifecycle/payment cases seed their accepted order state.
+            # Catalogue creation itself is exercised separately below.
+            db.execute("UPDATE oap_eats_orders SET pricing_version=%s WHERE order_id=%s", (oap_eats_store.PRICING_VERSION, order))
             db.commit()
         yield {
             "order_id": order, "customer_identity_id": customer,
@@ -259,8 +263,14 @@ def test_invalid_state_skip_is_rejected_without_event(delivery):
 
 
 def _seed_payment(delivery):
-    account, intent, hold = (str(uuid4()) for _ in range(3))
+    account, intent, hold, payee = (str(uuid4()) for _ in range(4))
     with postgres_db.connect() as db:
+        db.execute(
+            """INSERT INTO oap_sika_accounts(account_id,owner_reference,legal_entity,
+                   jurisdiction,currency,ledger_account_id,status)
+               VALUES (%s,%s,'CI merchant','United Kingdom','GBP',%s,'OPEN')""",
+            (payee, delivery["merchant"], "ledger-" + payee),
+        )
         db.execute(
             """INSERT INTO oap_sika_accounts(account_id,owner_reference,legal_entity,
                    jurisdiction,currency,ledger_account_id,status)
@@ -271,14 +281,14 @@ def _seed_payment(delivery):
             """INSERT INTO oap_sika_payment_intents(payment_id,idempotency_key,payer_account_id,
                    payee_reference,amount,currency,jurisdiction,status)
                VALUES (%s,%s,%s,%s,15.99,'GBP','United Kingdom','AUTHORISED')""",
-            (intent, "intent-" + intent, account, delivery["merchant"]),
+            (intent, "intent-" + intent, account, payee),
         )
         db.execute(
             """INSERT INTO oap_sika_payment_holds(hold_id,payment_id,payer_account_id,amount,currency,status)
                VALUES (%s,%s,%s,15.99,'GBP','ACTIVE')""", (hold, intent, account),
         )
         db.commit()
-    return {"account": account, "intent": intent, "hold": hold}
+    return {"account": account, "intent": intent, "hold": hold, "payee": payee, "merchant": delivery["merchant"]}
 
 
 @pytest.fixture
@@ -303,6 +313,336 @@ def test_owned_payment_binding_persists_without_executing_payment(delivery, paym
     with postgres_db.connect(readonly=True) as db:
         assert db.execute("SELECT status FROM oap_sika_payment_intents WHERE payment_id=%s", (payment["intent"],)).fetchone()[0] == "AUTHORISED"
         assert db.execute("SELECT status FROM oap_sika_payment_holds WHERE hold_id=%s", (payment["hold"],)).fetchone()[0] == "ACTIVE"
+
+
+@pytest.fixture
+def catalogue(delivery):
+    first, second = sorted(str(uuid4()) for _ in range(2))
+    with postgres_db.connect() as db:
+        for item, name, amount in [(first, "Meal", 1200), (second, "Side", 399)]:
+            db.execute(
+                """INSERT INTO oap_eats_menu_items(item_id,merchant_id,name,amount_minor,currency)
+                   VALUES (%s,%s,%s,%s,'GBP')""", (item, delivery["merchant"], name, amount),
+            )
+        db.commit()
+    return [{"item_id": item, "quantity": 1} for item in (first, second)]
+
+
+def _catalogue_order(delivery, catalogue, **changes):
+    return oap_eats_store.STORE.create_order(**{
+        "customer_identity_id": delivery["customer_identity_id"], "merchant_id": delivery["merchant"],
+        "items": catalogue, "amount_minor": None, "currency": "GBP", "fulfilment_mode": "delivery",
+        "idempotency_key": "catalogue-" + delivery["order_id"], **changes,
+    })
+
+
+def test_catalogue_price_snapshot_and_payment_binding(delivery, catalogue, payment):
+    result = _catalogue_order(delivery, catalogue)
+    assert result["amount_minor"] == 1599
+    assert result["state"] == "created"
+    assert result["payment_captured"] is result["courier_dispatched"] is False
+    with postgres_db.connect(readonly=True) as db:
+        items, version = db.execute("SELECT items,pricing_version FROM oap_eats_orders WHERE order_id=%s", (result["order_id"],)).fetchone()
+    assert version == oap_eats_store.PRICING_VERSION
+    assert [item["unit_amount_minor"] for item in items] == [1200, 399]
+    assert [item["name"] for item in items] == ["Meal", "Side"]
+    bound = _bind_payment({**delivery, "order_id": result["order_id"]}, payment)
+    assert bound["payment_id"] == payment["intent"]
+    assert bound["money_moved_by_eats"] is False
+    with postgres_db.connect(readonly=True) as db:
+        evidence = db.execute(
+            "SELECT evidence FROM oap_eats_order_events WHERE order_id=%s AND evidence ? 'payment_id'",
+            (result["order_id"],),
+        ).fetchone()[0]
+    assert evidence["payee_account_id"] == payment["payee"]
+    assert evidence["merchant_id"] == delivery["merchant"]
+
+
+def test_retry_retains_original_quote_after_catalogue_change(delivery, catalogue):
+    first = _catalogue_order(delivery, catalogue, amount_minor=1599)
+    with postgres_db.connect() as db:
+        db.execute("UPDATE oap_eats_menu_items SET amount_minor=9999,available=FALSE WHERE merchant_id=%s", (delivery["merchant"],))
+        db.execute("UPDATE oap_eats_merchants SET active=FALSE WHERE merchant_id=%s", (delivery["merchant"],))
+        db.commit()
+    replay = _catalogue_order(delivery, list(reversed(catalogue)), amount_minor=1599)
+    assert replay == first
+    assert _order_readback({**delivery, "order_id": first["order_id"]}) == ("created", None, None, 1)
+
+
+@pytest.mark.parametrize("change", ["underquote", "overquote", "boolean_total", "float_total", "text_total",
+                                  "price_override", "quantity_zero", "quantity_bool", "quantity_float",
+                                  "quantity_text", "quantity_excess", "duplicate", "invalid_item", "missing_quantity"])
+def test_client_cannot_create_an_unpriced_or_ambiguous_order(delivery, catalogue, change):
+    changes = {}
+    items = [dict(item) for item in catalogue]
+    totals = {"underquote": 1, "overquote": 1600, "boolean_total": True, "float_total": 1599.0, "text_total": "1599"}
+    quantities = {"quantity_zero": 0, "quantity_bool": True, "quantity_float": 1.0, "quantity_text": "1", "quantity_excess": 100}
+    if change in totals:
+        changes["amount_minor"] = totals[change]
+    elif change in quantities:
+        items[0]["quantity"] = quantities[change]
+    elif change == "price_override":
+        items[0]["unit_amount_minor"] = 1
+    elif change == "duplicate":
+        items.append(dict(items[0]))
+    elif change == "invalid_item":
+        items[0]["item_id"] = "meal-1"
+    else:
+        del items[0]["quantity"]
+    with pytest.raises(ValueError):
+        _catalogue_order(delivery, items, **changes)
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_eats_orders").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM oap_eats_order_events").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("change,error", [("foreign", "menu_item_unavailable"), ("missing", "menu_item_unavailable"),
+                                        ("unavailable", "menu_item_unavailable"), ("currency", "menu_currency_mismatch"),
+                                        ("inactive_merchant", "merchant_unavailable"), ("overflow", "order_total_out_of_range")])
+def test_catalogue_boundaries_fail_without_an_order(delivery, catalogue, change, error):
+    with postgres_db.connect() as db:
+        if change == "foreign":
+            foreign = str(uuid4())
+            db.execute("INSERT INTO oap_eats_merchants(merchant_id,owner_identity_id,name,active) VALUES (%s,%s,'Other',TRUE)", (foreign, delivery["outsider"]))
+            db.execute("UPDATE oap_eats_menu_items SET merchant_id=%s WHERE item_id=%s", (foreign, catalogue[0]["item_id"]))
+        elif change == "missing":
+            db.execute("DELETE FROM oap_eats_menu_items WHERE item_id=%s", (catalogue[0]["item_id"],))
+        elif change == "inactive_merchant":
+            db.execute("UPDATE oap_eats_merchants SET active=FALSE WHERE merchant_id=%s", (delivery["merchant"],))
+        else:
+            assignments = {"unavailable": "available=FALSE", "currency": "currency='USD'", "overflow": "amount_minor=2147483647"}
+            db.execute(sql.SQL("UPDATE oap_eats_menu_items SET " + assignments[change] + " WHERE item_id=%s"), (catalogue[0]["item_id"],))
+        db.commit()
+    with pytest.raises(ValueError, match=error):
+        _catalogue_order(delivery, catalogue)
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_eats_orders").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("field", ["items", "merchant_id", "currency", "fulfilment_mode", "amount_minor"])
+def test_existing_key_cannot_change_order_contract(delivery, catalogue, field):
+    original = _catalogue_order(delivery, catalogue)
+    changes = {"items": [catalogue[0]], "merchant_id": delivery["outsider"], "currency": "USD",
+               "fulfilment_mode": "collection", "amount_minor": 1}
+    with pytest.raises(ValueError, match="idempotency_conflict"):
+        _catalogue_order(delivery, catalogue, **{field: changes[field]})
+    assert _order_readback({**delivery, "order_id": original["order_id"]}) == ("created", None, None, 1)
+
+
+@pytest.mark.parametrize("same_basket", [True, False])
+def test_concurrent_order_creation_has_one_snapshot_and_event(delivery, catalogue, same_basket):
+    barrier = Barrier(2)
+
+    def worker(index):
+        items = [dict(item) for item in catalogue]
+        if index and not same_basket:
+            items[0]["quantity"] = 2
+        barrier.wait(timeout=10)
+        try:
+            return _catalogue_order(delivery, items)["order_id"]
+        except ValueError as exc:
+            assert str(exc) == "idempotency_conflict"
+            return None
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(worker, (0, 1)))
+    assert len({result for result in results if result}) == 1
+    assert results.count(None) == (0 if same_basket else 1)
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_eats_orders").fetchone()[0] == 2
+        assert db.execute("SELECT count(*) FROM oap_eats_order_events").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("change", ["foreign_owner", "FROZEN", "CLOSED", "missing", "currency", "merchant_label", "customer_account"])
+def test_payee_must_be_a_canonical_open_merchant_owned_account(delivery, payment, change):
+    with postgres_db.connect() as db:
+        if change == "foreign_owner":
+            db.execute("UPDATE oap_sika_accounts SET owner_reference=%s WHERE account_id=%s", (delivery["outsider"], payment["payee"]))
+        elif change == "missing":
+            db.execute("DELETE FROM oap_sika_accounts WHERE account_id=%s", (payment["payee"],))
+        elif change == "currency":
+            db.execute("UPDATE oap_sika_accounts SET currency='USD' WHERE account_id=%s", (payment["payee"],))
+        elif change in {"merchant_label", "customer_account"}:
+            reference = delivery["merchant"] if change == "merchant_label" else payment["account"]
+            db.execute("UPDATE oap_sika_payment_intents SET payee_reference=%s WHERE payment_id=%s", (reference, payment["intent"]))
+        else:
+            db.execute("UPDATE oap_sika_accounts SET status=%s WHERE account_id=%s", (change, payment["payee"]))
+        db.commit()
+    error = ValueError if change == "currency" else PermissionError
+    with pytest.raises(error, match="payment_currency_mismatch|payment_payee_not_owned_by_merchant_or_open"):
+        _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("change", ["merchant_owner", "payee_owner", "payee_closed", "payee_reference", "unpriced_order"])
+def test_payment_revalidates_merchant_and_pricing_after_preflight(delivery, payment, monkeypatch, change):
+    original = oap_eats_store.STORE.bind_payment
+
+    def change_then_bind(**kwargs):
+        with postgres_db.connect() as db:
+            if change == "merchant_owner":
+                db.execute("UPDATE oap_eats_merchants SET owner_identity_id=%s WHERE merchant_id=%s", (delivery["outsider"], delivery["merchant"]))
+            elif change == "payee_owner":
+                db.execute("UPDATE oap_sika_accounts SET owner_reference=%s WHERE account_id=%s", (delivery["outsider"], payment["payee"]))
+            elif change == "payee_closed":
+                db.execute("UPDATE oap_sika_accounts SET status='CLOSED' WHERE account_id=%s", (payment["payee"],))
+            elif change == "payee_reference":
+                db.execute("UPDATE oap_sika_payment_intents SET payee_reference='arbitrary-merchant' WHERE payment_id=%s", (payment["intent"],))
+            else:
+                db.execute("UPDATE oap_eats_orders SET pricing_version=NULL WHERE order_id=%s", (delivery["order_id"],))
+            db.commit()
+        return original(**kwargs)
+
+    monkeypatch.setattr(oap_eats_store.STORE, "bind_payment", change_then_bind)
+    with pytest.raises((PermissionError, ValueError)):
+        _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+def test_changed_payee_after_lock_hint_is_rejected(delivery, payment, monkeypatch):
+    other = _seed_payment(delivery)
+    connect = postgres_db.connect
+
+    class ChangedPayeeConnection:
+        def __init__(self, db):
+            self.db = db
+
+        def execute(self, statement, *args):
+            if "SELECT account_id,owner_reference,status,currency" in str(statement):
+                with connect() as writer:
+                    writer.execute("UPDATE oap_sika_payment_intents SET payee_reference=%s WHERE payment_id=%s", (other["payee"], payment["intent"]))
+                    writer.commit()
+            return self.db.execute(statement, *args)
+
+        def commit(self):
+            self.db.commit()
+
+    @contextmanager
+    def changing_connect(*, readonly=False):
+        with connect(readonly=readonly) as db:
+            yield db if readonly else ChangedPayeeConnection(db)
+
+    monkeypatch.setattr(postgres_db, "connect", changing_connect)
+    with pytest.raises(ValueError, match="payment_payee_binding_changed"):
+        _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("version", [None, "unverified"])
+def test_legacy_pricing_cannot_bind_or_replay_as_server_priced(delivery, catalogue, payment, version):
+    with postgres_db.connect() as db:
+        db.execute("UPDATE oap_eats_orders SET pricing_version=%s WHERE order_id=%s", (version, delivery["order_id"]))
+        db.commit()
+    with pytest.raises(ValueError, match="legacy_order_reprice_required"):
+        _bind_payment(delivery, payment)
+    with pytest.raises(ValueError, match="legacy_order_reprice_required"):
+        _catalogue_order(delivery, catalogue, idempotency_key="order-" + delivery["order_id"])
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+def test_integrity_migration_is_recorded_and_leaves_legacy_orders_unverified(delivery, payment):
+    with postgres_db.connect() as db:
+        db.execute("ALTER TABLE oap_eats_orders DROP COLUMN pricing_version")
+        db.commit()
+    for _ in range(2):
+        result = oap_eats_store.init_schema(assume_yes=True)
+        assert result["integrity_checksum"] == oap_eats_store.INTEGRITY_MIGRATION_CHECKSUM
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT pricing_version FROM oap_eats_orders WHERE order_id=%s", (delivery["order_id"],)).fetchone()[0] is None
+        assert db.execute("SELECT checksum FROM oap_schema_migrations WHERE version=%s", (oap_eats_store.INTEGRITY_MIGRATION_VERSION,)).fetchall() == [(oap_eats_store.INTEGRITY_MIGRATION_CHECKSUM,)]
+    with pytest.raises(ValueError, match="legacy_order_reprice_required"):
+        _bind_payment(delivery, payment)
+
+
+def test_integrity_migration_checksum_mismatch_fails_closed(delivery):
+    with postgres_db.connect() as db:
+        db.execute("INSERT INTO oap_schema_migrations(version,checksum) VALUES (%s,'different')", (oap_eats_store.INTEGRITY_MIGRATION_VERSION,))
+        db.commit()
+    with pytest.raises(RuntimeError, match="checksum mismatch"):
+        oap_eats_store.init_schema(assume_yes=True)
+
+
+def test_catalogue_event_failure_rolls_back_order_and_allows_retry(delivery, catalogue):
+    with postgres_db.connect() as db:
+        db.execute("""CREATE FUNCTION reject_order_event() RETURNS trigger LANGUAGE plpgsql AS $$
+                     BEGIN RAISE EXCEPTION 'injected_catalogue_event_failure'; END $$""")
+        db.execute("CREATE TRIGGER reject_order_event BEFORE INSERT ON oap_eats_order_events FOR EACH ROW EXECUTE FUNCTION reject_order_event()")
+        db.commit()
+    with pytest.raises(errors.RaiseException, match="injected_catalogue_event_failure"):
+        _catalogue_order(delivery, catalogue)
+    with postgres_db.connect() as db:
+        assert db.execute("SELECT count(*) FROM oap_eats_orders").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM oap_eats_order_events").fetchone()[0] == 0
+        db.execute("DROP TRIGGER reject_order_event ON oap_eats_order_events")
+        db.commit()
+    result = _catalogue_order(delivery, catalogue)
+    assert _order_readback({**delivery, "order_id": result["order_id"]}) == ("created", None, None, 1)
+
+
+@pytest.mark.parametrize("merchant_change", [False, True])
+def test_catalogue_snapshot_locks_prices_and_merchant_until_commit(delivery, catalogue, monkeypatch, merchant_change):
+    connect = postgres_db.connect
+    locked, release = Event(), Event()
+
+    class PausedCatalogueConnection:
+        def __init__(self, db):
+            self.db = db
+
+        def execute(self, statement, *args):
+            if "INSERT INTO oap_eats_orders" in str(statement):
+                locked.set()
+                assert release.wait(timeout=10)
+            return self.db.execute(statement, *args)
+
+        def commit(self):
+            self.db.commit()
+
+    @contextmanager
+    def paused_connect(*, readonly=False):
+        with connect(readonly=readonly) as db:
+            yield db if readonly else PausedCatalogueConnection(db)
+
+    monkeypatch.setattr(postgres_db, "connect", paused_connect)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(_catalogue_order, delivery, catalogue)
+        try:
+            assert locked.wait(timeout=10)
+            with pytest.raises(errors.LockNotAvailable), connect() as db:
+                db.execute("SET LOCAL lock_timeout = '250ms'")
+                if merchant_change:
+                    db.execute("UPDATE oap_eats_merchants SET active=FALSE WHERE merchant_id=%s", (delivery["merchant"],))
+                else:
+                    db.execute("UPDATE oap_eats_menu_items SET amount_minor=1 WHERE item_id=%s", (catalogue[0]["item_id"],))
+                db.commit()
+        finally:
+            release.set()
+        result = future.result(timeout=10)
+    assert result["amount_minor"] == 1599
+
+
+def test_concurrent_integrity_initializers_record_one_checksum(delivery):
+    barrier = Barrier(2)
+
+    def worker(_):
+        barrier.wait(timeout=10)
+        return oap_eats_store.init_schema(assume_yes=True)["integrity_checksum"]
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert list(pool.map(worker, (0, 1))) == [oap_eats_store.INTEGRITY_MIGRATION_CHECKSUM] * 2
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_schema_migrations WHERE version=%s", (oap_eats_store.INTEGRITY_MIGRATION_VERSION,)).fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("missing", [True, False])
+def test_integrity_receipt_cannot_hide_schema_drift(delivery, missing):
+    oap_eats_store.init_schema(assume_yes=True)
+    with postgres_db.connect() as db:
+        db.execute("ALTER TABLE oap_eats_orders DROP COLUMN pricing_version")
+        if not missing:
+            db.execute("ALTER TABLE oap_eats_orders ADD COLUMN pricing_version INTEGER")
+        db.commit()
+    with pytest.raises(RuntimeError, match="schema mismatch"):
+        oap_eats_store.init_schema(assume_yes=True)
 
 
 @pytest.mark.parametrize("caller", ["merchant", "outsider"])
@@ -428,6 +768,7 @@ def _second_order(delivery):
                VALUES (%s,%s,%s,'authorised','[]',1599,'GBP','delivery',%s)""",
             (order, delivery["customer_identity_id"], delivery["merchant"], "order-" + order),
         )
+        db.execute("UPDATE oap_eats_orders SET pricing_version=%s WHERE order_id=%s", (oap_eats_store.PRICING_VERSION, order))
         db.commit()
     return {**delivery, "order_id": order}
 
@@ -554,6 +895,8 @@ def test_payment_event_failure_rolls_back_binding(delivery, payment, monkeypatch
 
 @pytest.mark.parametrize("statement,key", [
     ("UPDATE oap_sika_accounts SET status='CLOSED' WHERE account_id=%s", "account"),
+    ("UPDATE oap_sika_accounts SET status='CLOSED' WHERE account_id=%s", "payee"),
+    ("UPDATE oap_eats_merchants SET active=FALSE WHERE merchant_id=%s", "merchant"),
     ("UPDATE oap_sika_payment_intents SET status='CANCELLED' WHERE payment_id=%s", "intent"),
     ("UPDATE oap_sika_payment_holds SET status='RELEASED' WHERE hold_id=%s", "hold"),
 ])

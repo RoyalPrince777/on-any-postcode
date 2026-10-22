@@ -106,6 +106,8 @@ def status() -> dict[str, object]:
         "payer_ownership_rechecked_on_binding": True,
         "payment_evidence_locked_on_binding": True,
         "cross_order_payment_reuse_denied": True,
+        "server_catalogue_pricing_required": True,
+        "payee_reference_contract": "merchant_owned_sika_account_id_v1",
         "movement_delivery_reused": True,
         "movement_booking_idempotency_reused": True,
         "payment_capture_performed": False,

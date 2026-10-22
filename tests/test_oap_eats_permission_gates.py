@@ -15,7 +15,7 @@ from mission_control import (
 CUSTOMER = "11111111-1111-4111-8111-111111111111"
 OUTSIDER = "22222222-2222-4222-8222-222222222222"
 ORDER = "33333333-3333-4333-8333-333333333333"
-PATHS = [f"/eats/orders/{ORDER}/{suffix}" for suffix in ("state", "payment", "delivery")]
+PATHS = ["/eats/orders", *[f"/eats/orders/{ORDER}/{suffix}" for suffix in ("state", "payment", "delivery")]]
 
 
 @pytest.mark.parametrize("path", PATHS)
@@ -33,13 +33,14 @@ def test_writes_require_csrf(client, path):
 @pytest.mark.parametrize("path", PATHS)
 def test_write_rate_limit_precedes_all_service_calls(client, csrf, monkeypatch, path):
     monkeypatch.setattr(oap_eats_routes.web_security.PUBLIC_WRITE_LIMITER, "allow", lambda _: False)
-    state, payment, delivery = Mock(), Mock(), Mock()
+    state, payment, delivery, create = Mock(), Mock(), Mock(), Mock()
+    monkeypatch.setattr(oap_eats_store.STORE, "create_order", create)
     monkeypatch.setattr(oap_eats_store.STORE, "transition", state)
     monkeypatch.setattr(oap_eats_fulfilment, "bind_payment", payment)
     monkeypatch.setattr(oap_eats_fulfilment, "create_delivery", delivery)
     response = client.post(path, json={}, headers={"X-OAP-CSRF": csrf["csrf_token"]})
     assert response.status_code == 429
-    for service in (state, payment, delivery):
+    for service in (state, payment, delivery, create):
         service.assert_not_called()
 
 
@@ -52,6 +53,18 @@ def test_non_customer_is_denied_before_payment_evidence_is_read(monkeypatch):
     with pytest.raises(PermissionError, match="order_customer_required"):
         oap_eats_fulfilment.bind_payment(order_id=ORDER, customer_identity_id=OUTSIDER, payment_id="pay-1")
     intent.assert_not_called()
+
+
+def test_order_creation_uses_session_customer_not_payload(client, csrf, monkeypatch):
+    create = Mock(side_effect=PermissionError("permission_denied"))
+    monkeypatch.setattr(oap_eats_store.STORE, "create_order", create)
+    response = client.post(
+        "/eats/orders", json={"customer_identity_id": OUTSIDER, "pricing_version": "eats_catalogue_v1"},
+        headers={"X-OAP-CSRF": csrf["csrf_token"], "Idempotency-Key": "creation-identity"},
+    )
+    assert response.status_code == 403
+    assert create.call_args.kwargs["customer_identity_id"] == CUSTOMER
+    assert "pricing_version" not in create.call_args.kwargs
 
 
 def test_foreign_payer_is_denied_before_hold_lookup_or_order_write(monkeypatch):

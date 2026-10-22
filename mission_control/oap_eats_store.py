@@ -71,6 +71,15 @@ SCHEMA_STATEMENTS = (
 )
 MIGRATION_CHECKSUM = hashlib.sha256("\n".join(SCHEMA_STATEMENTS).encode()).hexdigest()
 
+# A separate, recorded migration preserves the original schema checksum. NULL
+# deliberately leaves historical client-priced orders unverified.
+PRICING_VERSION = "eats_catalogue_v1"
+INTEGRITY_MIGRATION_VERSION = "0002_oap_eats_order_integrity"
+INTEGRITY_SCHEMA_STATEMENTS = (
+    "ALTER TABLE oap_eats_orders ADD COLUMN IF NOT EXISTS pricing_version TEXT",
+)
+INTEGRITY_MIGRATION_CHECKSUM = hashlib.sha256("\n".join(INTEGRITY_SCHEMA_STATEMENTS).encode()).hexdigest()
+
 
 def _uuid(value: object, name: str) -> str:
     try:
@@ -88,16 +97,61 @@ def _key(value: object) -> str:
     return key
 
 
+def _basket(items: object) -> list[dict[str, Any]]:
+    if not isinstance(items, list) or not 1 <= len(items) <= 100:
+        raise ValueError("items_required")
+    basket = {}
+    for item in items:
+        if not isinstance(item, dict) or set(item) != {"item_id", "quantity"}:
+            raise ValueError("invalid_order_item")
+        item_id = _uuid(item["item_id"], "item_id")
+        quantity = item["quantity"]
+        if type(quantity) is not int or not 1 <= quantity <= 99:
+            raise ValueError("invalid_item_quantity")
+        if item_id in basket:
+            raise ValueError("duplicate_order_item")
+        basket[item_id] = quantity
+    return [{"item_id": item_id, "quantity": basket[item_id]} for item_id in sorted(basket)]
+
+
 def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str, object]:
     if not assume_yes:
         raise RuntimeError("Explicit human approval required: pass --yes")
     if dry_run:
-        return {"migration": MIGRATION_VERSION, "checksum": MIGRATION_CHECKSUM, "schema_ready": False, "dry_run": True, "human_authority_final": True}
+        return {"migration": MIGRATION_VERSION, "checksum": MIGRATION_CHECKSUM,
+                "integrity_migration": INTEGRITY_MIGRATION_VERSION,
+                "integrity_checksum": INTEGRITY_MIGRATION_CHECKSUM,
+                "schema_ready": False, "dry_run": True, "human_authority_final": True}
     with postgres_db.connect() as connection:
+        connection.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+        connection.execute("SELECT pg_advisory_xact_lock(%s)", (25820002,))
         for statement in SCHEMA_STATEMENTS:
             connection.execute(statement)
+        applied = connection.execute(
+            "SELECT checksum FROM oap_schema_migrations WHERE version=%s",
+            (INTEGRITY_MIGRATION_VERSION,),
+        ).fetchone()
+        if applied is not None and str(applied[0]) != INTEGRITY_MIGRATION_CHECKSUM:
+            raise RuntimeError("Eats integrity migration checksum mismatch")
+        if applied is None:
+            for statement in INTEGRITY_SCHEMA_STATEMENTS:
+                connection.execute(statement)
+            connection.execute(
+                "INSERT INTO oap_schema_migrations(version,checksum) VALUES (%s,%s)",
+                (INTEGRITY_MIGRATION_VERSION, INTEGRITY_MIGRATION_CHECKSUM),
+            )
+        column = connection.execute(
+            """SELECT format_type(atttypid,atttypmod) FROM pg_attribute
+               WHERE attrelid='oap_eats_orders'::regclass AND attname='pricing_version'
+                 AND NOT attisdropped""",
+        ).fetchone()
+        if column is None or str(column[0]) != "text":
+            raise RuntimeError("Eats integrity schema mismatch")
         connection.commit()
-    return {"migration": MIGRATION_VERSION, "checksum": MIGRATION_CHECKSUM, "schema_ready": True, "tables": 4, "human_authority_final": True}
+    return {"migration": MIGRATION_VERSION, "checksum": MIGRATION_CHECKSUM,
+            "integrity_migration": INTEGRITY_MIGRATION_VERSION,
+            "integrity_checksum": INTEGRITY_MIGRATION_CHECKSUM,
+            "schema_ready": True, "tables": 4, "human_authority_final": True}
 
 
 class EatsStore:
@@ -107,51 +161,76 @@ class EatsStore:
         customer = _uuid(customer_identity_id, "customer_identity_id")
         merchant = _uuid(merchant_id, "merchant_id")
         key = _key(idempotency_key)
-        if not isinstance(items, list) or not items:
-            raise ValueError("items_required")
-        try:
-            amount = int(amount_minor)
-        except (TypeError, ValueError) as exc:
-            raise ValueError("invalid_amount_minor") from exc
-        if amount < 0:
+        basket = _basket(items)
+        # A supplied total is only a quote assertion. It cannot set the price.
+        if amount_minor is not None and (type(amount_minor) is not int or amount_minor < 0):
             raise ValueError("invalid_amount_minor")
         curr = str(currency or "").upper().strip()
-        if len(curr) != 3:
+        if len(curr) != 3 or not curr.isascii() or not curr.isalpha():
             raise ValueError("invalid_currency")
         mode = str(fulfilment_mode or "").lower().strip()
         if mode not in {"delivery", "collection"}:
             raise ValueError("invalid_fulfilment_mode")
-        payload = json.dumps(items, separators=(",", ":"), sort_keys=True)
         with postgres_db.connect() as connection:
+            connection.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+            lock = int.from_bytes(hashlib.sha256(f"eats-order:{customer}:{key}".encode()).digest()[:8], signed=True)
+            connection.execute("SELECT pg_advisory_xact_lock(%s)", (lock,))
+            existing = connection.execute(
+                """SELECT order_id,merchant_id,state,amount_minor,currency,
+                          fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
+                          created_at,updated_at,items,pricing_version
+                   FROM oap_eats_orders WHERE customer_identity_id=%s AND idempotency_key=%s
+                   FOR UPDATE""", (customer, key),
+            ).fetchone()
+            if existing is not None:
+                if existing[12] != PRICING_VERSION:
+                    raise ValueError("legacy_order_reprice_required")
+                original_basket = [{"item_id": item["item_id"], "quantity": item["quantity"]} for item in existing[11]]
+                if (str(existing[1]) != merchant or original_basket != basket
+                        or str(existing[4]) != curr or str(existing[5]) != mode
+                        or (amount_minor is not None and amount_minor != int(existing[3]))):
+                    raise ValueError("idempotency_conflict")
+                connection.commit()
+                return _row(existing)
             active = connection.execute(
-                "SELECT 1 FROM oap_eats_merchants WHERE merchant_id=%s AND active=TRUE",
+                "SELECT 1 FROM oap_eats_merchants WHERE merchant_id=%s AND active=TRUE FOR SHARE",
                 (merchant,),
             ).fetchone()
             if active is None:
                 raise ValueError("merchant_unavailable")
+            menu = connection.execute(
+                """SELECT item_id,merchant_id,name,amount_minor,currency,available
+                   FROM oap_eats_menu_items WHERE item_id=ANY(%s::uuid[])
+                   ORDER BY item_id FOR SHARE""", ([item["item_id"] for item in basket],),
+            ).fetchall()
+            if (len(menu) != len(basket)
+                    or any(str(item[1]) != merchant or item[5] is not True for item in menu)):
+                raise ValueError("menu_item_unavailable")
+            if any(str(item[4]) != curr for item in menu):
+                raise ValueError("menu_currency_mismatch")
+            snapshot = [{**requested, "name": str(item[2]), "unit_amount_minor": int(item[3]),
+                         "currency": str(item[4])} for requested, item in zip(basket, menu, strict=True)]
+            amount = sum(item["quantity"] * item["unit_amount_minor"] for item in snapshot)
+            if amount > 2_147_483_647:
+                raise ValueError("order_total_out_of_range")
+            if amount_minor is not None and amount_minor != amount:
+                raise ValueError("order_total_mismatch")
+            payload = json.dumps(snapshot, separators=(",", ":"), sort_keys=True)
             row = connection.execute(
                 """INSERT INTO oap_eats_orders(
                        customer_identity_id,merchant_id,state,items,amount_minor,currency,
-                       fulfilment_mode,idempotency_key)
-                   VALUES (%s,%s,'created',%s::jsonb,%s,%s,%s,%s)
-                   ON CONFLICT (customer_identity_id,idempotency_key) DO UPDATE
-                   SET idempotency_key=EXCLUDED.idempotency_key
-                   WHERE oap_eats_orders.merchant_id=EXCLUDED.merchant_id
-                     AND oap_eats_orders.items IS NOT DISTINCT FROM EXCLUDED.items
-                     AND oap_eats_orders.amount_minor=EXCLUDED.amount_minor
-                     AND oap_eats_orders.currency=EXCLUDED.currency
-                     AND oap_eats_orders.fulfilment_mode=EXCLUDED.fulfilment_mode
+                       fulfilment_mode,idempotency_key,pricing_version)
+                   VALUES (%s,%s,'created',%s::jsonb,%s,%s,%s,%s,%s)
                    RETURNING order_id,merchant_id,state,amount_minor,currency,
                              fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
                              created_at,updated_at""",
-                (customer, merchant, payload, amount, curr, mode, key),
+                (customer, merchant, payload, amount, curr, mode, key, PRICING_VERSION),
             ).fetchone()
-            if row is None:
-                raise ValueError("idempotency_conflict")
             connection.execute(
                 """INSERT INTO oap_eats_order_events(order_id,actor_identity_id,from_state,to_state,evidence)
                    VALUES (%s,%s,NULL,'created',%s::jsonb)""",
-                (str(row[0]), customer, json.dumps({"idempotency_key": key})),
+                (str(row[0]), customer, json.dumps({"idempotency_key": key, "pricing_version": PRICING_VERSION,
+                                                   "amount_minor": amount, "currency": curr})),
             )
             connection.commit()
         return _row(row)
@@ -213,8 +292,10 @@ class EatsStore:
                      hold_id: object, payer_account_id: object) -> dict[str, Any]:
         """Bind canonical SIKA evidence atomically; never execute a payment.
 
-        Preflight reads are advisory. Lock order is Eats order, payer account,
-        intent, then hold, consistent with SIKA's account-first creation and
+        Eats defines payee_reference as a SIKA account ID owned by the current
+        merchant owner. An arbitrary merchant label is insufficient.
+        Preflight reads are advisory. Lock order is Eats order, merchant,
+        accounts in ID order, intent, then hold, consistent with account-first creation and
         intent-before-hold lifecycle updates. Serializing on the intent makes
         the subsequent cross-order lookup see a competing binder's commit.
         """
@@ -232,14 +313,37 @@ class EatsStore:
             owned = self.require_customer_order(
                 order_id=order, customer_identity_id=customer, connection=connection,
             )
-            account = connection.execute(
-                """SELECT owner_reference,status,currency FROM oap_sika_accounts
-                   WHERE account_id=%s FOR SHARE""", (payer,),
+            pricing = connection.execute(
+                "SELECT pricing_version FROM oap_eats_orders WHERE order_id=%s", (order,),
             ).fetchone()
-            if account is None or str(account[0]) != customer or str(account[1]) != "OPEN":
+            if pricing is None or pricing[0] != PRICING_VERSION:
+                raise ValueError("legacy_order_reprice_required")
+            merchant = connection.execute(
+                """SELECT owner_identity_id,active FROM oap_eats_merchants
+                   WHERE merchant_id=%s FOR SHARE""", (owned["merchant_id"],),
+            ).fetchone()
+            if merchant is None or merchant[1] is not True:
+                raise ValueError("merchant_unavailable")
+            # Only a hint for account lock ordering; the locked intent below
+            # must still name exactly this account before any binding write.
+            payee_hint = connection.execute(
+                "SELECT payee_reference FROM oap_sika_payment_intents WHERE payment_id=%s", (payment,),
+            ).fetchone()
+            if payee_hint is None:
+                raise ValueError("payment_intent_not_found")
+            payee = str(payee_hint[0])
+            accounts = {str(row[0]): row for row in connection.execute(
+                """SELECT account_id,owner_reference,status,currency FROM oap_sika_accounts
+                   WHERE account_id=ANY(%s) ORDER BY account_id FOR SHARE""", ([payer, payee],),
+            ).fetchall()}
+            account = accounts.get(payer)
+            recipient = accounts.get(payee)
+            if account is None or str(account[1]) != customer or str(account[2]) != "OPEN":
                 raise PermissionError("order_payment_binding_denied")
+            if recipient is None or str(recipient[1]) != str(merchant[0]) or str(recipient[2]) != "OPEN":
+                raise PermissionError("payment_payee_not_owned_by_merchant_or_open")
             intent = connection.execute(
-                """SELECT payer_account_id,amount,currency,status
+                """SELECT payer_account_id,amount,currency,status,payee_reference
                    FROM oap_sika_payment_intents WHERE payment_id=%s FOR UPDATE""",
                 (payment,),
             ).fetchone()
@@ -247,6 +351,8 @@ class EatsStore:
                 raise ValueError("payment_intent_not_found")
             if str(intent[0]) != payer:
                 raise ValueError("payment_payer_binding_changed")
+            if str(intent[4]) != payee:
+                raise ValueError("payment_payee_binding_changed")
             if str(intent[3]) not in {"AUTHORISED", "SUBMITTED"}:
                 raise ValueError("payment_intent_not_bindable")
             reservation = connection.execute(
@@ -261,7 +367,7 @@ class EatsStore:
             expected = Decimal(owned["amount_minor"]) / Decimal(100)
             if Decimal(intent[1]) != expected or Decimal(reservation[2]) != expected:
                 raise ValueError("payment_amount_mismatch")
-            if any(str(currency) != owned["currency"] for currency in (account[2], intent[2], reservation[3])):
+            if any(str(currency) != owned["currency"] for currency in (account[3], recipient[3], intent[2], reservation[3])):
                 raise ValueError("payment_currency_mismatch")
             reused = connection.execute(
                 """SELECT 1 FROM oap_eats_orders
@@ -291,7 +397,10 @@ class EatsStore:
             connection.execute(
                 """INSERT INTO oap_eats_order_events(order_id,actor_identity_id,from_state,to_state,evidence)
                    VALUES (%s,%s,%s,%s,%s::jsonb)""",
-                (order, customer, str(row[2]), str(row[2]), json.dumps({"payment_id": payment, "hold_id": hold})),
+                (order, customer, str(row[2]), str(row[2]), json.dumps({
+                    "payment_id": payment, "hold_id": hold, "payee_account_id": payee,
+                    "merchant_id": owned["merchant_id"], "pricing_version": PRICING_VERSION,
+                })),
             )
             connection.commit()
         return {**_row(row), "payment_status": str(intent[3]), "hold_status": str(reservation[4])}
