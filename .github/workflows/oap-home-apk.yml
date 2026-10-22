@@ -30,8 +30,8 @@ jobs:
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
           grep -Fq "storeType 'pkcs12'" android/oaphome/build.gradle
           grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
-          grep -Fq 'BEGORO–KORADASO' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
-          grep -Fq 'private boolean safeWebAddress(Uri uri)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'BEGORO-KORADASO' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'boolean safeWebAddress(Uri uri)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'settings.setJavaScriptEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'handler.cancel();' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'settings.setAllowUniversalAccessFromFileURLs(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
@@ -39,6 +39,17 @@ jobs:
           grep -Fq 'activeWebView.canGoBack()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'activeWebView.goBack()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'settings.setBlockNetworkLoads(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq '"PTT"' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'HOLD TO TALK' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'LOCKED · MIC OFF' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'Standalone push-to-talk · separate from The Link / Link Up' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'android.permission.RECORD_AUDIO' android/oaphome/src/main/AndroidManifest.xml
+          grep -Fq 'private boolean pttTransportReady = false' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'handlePttTouch(MotionEvent event)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'MIC PERMISSION REQUIRED' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'private static final String PTT_CONTACTS_PATH = "/ptt/contacts"' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'authenticated native session not connected yet' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'shouldInterceptRequest(android.webkit.WebView view' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
           test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
@@ -131,6 +142,16 @@ jobs:
       - name: Build OAP Home
         working-directory: android/oaphome
         run: gradle --no-daemon assembleDebug
+      - name: Inspect actual APK outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "APK outputs:"
+          find android/oaphome/build/outputs -maxdepth 6 -type f -print | sort
+          echo "APK metadata:"
+          find android/oaphome/build/outputs -type f -name '*.apk' -exec stat -c '%n %s bytes' {} \;
+          echo "Expected APK path:"
+          test -s android/oaphome/build/outputs/apk/debug/app-debug.apk
       - name: Verify APK package and signature
         shell: bash
         run: |
