@@ -33,3 +33,17 @@ def test_status_does_not_fabricate_completion():
     assert status["runtime_verified_count"] == 0
     assert status["runtime_completion_percent"] is None
     assert status["execution_enabled"] is False
+
+def test_all_fourteen_names_have_scoped_responsibilities():
+    from oap.aegis.heritage import PARENT_ORGAN, PARENT_RESPONSIBILITY
+    assert PARENT_ORGAN == "AEGIS"
+    assert PARENT_RESPONSIBILITY
+    assert len(CAPABILITIES) + 1 == 14
+    assert all(item.proposed_responsibility.strip() for item in CAPABILITIES)
+
+def test_design_metadata_cannot_be_mistaken_for_live_runtime():
+    status = inventory_status()
+    assert status["historical_named_components"] == 14
+    assert status["responsibilities_are_proposals"] is True
+    assert status["runtime_completion_percent"] is None
+    assert status["execution_enabled"] is False
