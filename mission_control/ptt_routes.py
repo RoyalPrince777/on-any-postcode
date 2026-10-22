@@ -6,7 +6,7 @@ by The Link or Link Up.
 """
 from __future__ import annotations
 
-from flask import Blueprint, make_response, render_template
+from flask import Blueprint, jsonify, make_response, render_template
 
 from . import link_relationships, product_store, web_security
 
@@ -52,6 +52,13 @@ def _accepted_contacts(identity_id: str) -> list[dict[str, str]]:
         link_relationships.LinkRelationshipsUnavailable,
     ):
         return []
+
+
+@bp.get("/ptt/contacts")
+@web_security.login_required(api=True)
+def contacts_api():
+    identity_id = web_security.authenticated_identity()
+    return _no_store(make_response(jsonify(contacts=_accepted_contacts(identity_id))))
 
 
 @bp.get("/ptt")

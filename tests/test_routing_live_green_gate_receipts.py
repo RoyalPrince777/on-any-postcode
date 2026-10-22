@@ -9,6 +9,11 @@ import pytest
 from scripts import routing_live_green_gate as gate
 
 
+@pytest.fixture(autouse=True)
+def _configured_routing_origin(monkeypatch):
+    monkeypatch.setenv("OAP_ROUTING_BASE_URL", "https://routing.oap.invalid")
+
+
 @pytest.mark.parametrize(
     ("failure", "expected_type"),
     [
@@ -137,6 +142,10 @@ def test_routing_endpoint_is_configurable_and_https_only():
         "https://routing.example.org:abc",
         "https://routing.example.org:65536",
         "https://routing.example.org:0",
+        "https://routing.example.org:8443",
+        "https://oap-routing.onrender.com",
+        "https://OAP-ROUTING.ONRENDER.COM./",
+        "https://onrender.com",
         "https://routing.example.org\\\\@evil.example",
         "https://routing.example.org%2f.evil.example",
         "https://routing.example.org/route/",
@@ -159,10 +168,10 @@ def test_routing_endpoint_accepts_explicit_https_port():
     import sys
 
     env = dict(os.environ)
-    env["OAP_ROUTING_BASE_URL"] = "https://routing.example.org:8443/"
+    env["OAP_ROUTING_BASE_URL"] = "https://routing.example.org:443/"
     result = subprocess.run(
-        [sys.executable, "-c", "from scripts import routing_live_green_gate as g; print(g.BASE)"],
+        [sys.executable, "-c", "from scripts import routing_live_green_gate as g; print(g.routing_base())"],
         env=env, capture_output=True, text=True, check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "https://routing.example.org:8443"
+    assert result.stdout.strip() == "https://routing.example.org:443"
