@@ -57,3 +57,37 @@ def agent_passport_projection(agent: dict[str, Any]) -> dict[str, Any]:
         "human_birth_certificate": False,
         "can_approve_as_founder": False,
     }
+
+
+def founder_card_projection() -> dict[str, Any]:
+    """Minimal internal card: no legal documents, aliases, or secret credentials."""
+    passport = founder_passport()
+    return {
+        "kind": "internal_founder_card",
+        "codename": passport["primary_codename"],
+        "authority_label": "Founder Final (human only)",
+        "whole_human_dimension_count": len(passport["dimensions"]),
+        "credential_status": passport["credential_status"],
+        "government_id": False,
+        "auth_grant": False,
+    }
+
+
+def agent_registry_passport_projections(agents: object) -> tuple[dict[str, Any], ...]:
+    """Project an existing registry without mutating it or inventing entries.
+
+    Duplicate or missing IDs fail closed, including before a partial output.
+    """
+    if not isinstance(agents, (tuple, list)):
+        raise ValueError("Existing registry sequence required")
+    ids: set[str] = set()
+    result: list[dict[str, Any]] = []
+    for agent in agents:
+        if not isinstance(agent, dict):
+            raise ValueError("Registry entries must be dictionaries")
+        agent_id = agent.get("agent_id")
+        if not isinstance(agent_id, str) or not agent_id.strip() or agent_id in ids:
+            raise ValueError("Missing or duplicate agent ID")
+        ids.add(agent_id)
+        result.append(agent_passport_projection(agent))
+    return tuple(result)
