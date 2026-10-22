@@ -1,0 +1,52 @@
+name: oap-routing-host
+
+services:
+  osrm:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        OAP_ROUTING_PBF_URL: ${OAP_ROUTING_PBF_URL:-https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf}
+    image: oap-routing-osrm:${OAP_ROUTING_IMAGE_TAG:-local}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    expose:
+      - "10000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          wget -q -O - 'http://127.0.0.1:10000/route/v1/driving/-0.1687,51.4036;-0.0877,51.5079?overview=false'
+          | grep -q '"code":"Ok"'
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  gateway:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      OAP_ROUTING_HOST: ${OAP_ROUTING_HOST:?OAP_ROUTING_HOST is required}
+    depends_on:
+      osrm:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - oap-routing-caddy-data:/data
+      - oap-routing-caddy-config:/config
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  oap-routing-caddy-data:
+  oap-routing-caddy-config:

@@ -86,6 +86,24 @@ jobs:
           done
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
+      - name: Validate OAP-hosted OSRM configuration without deployment
+        run: |
+          set -euo pipefail
+          if OAP_ROUTING_HOST= docker compose -f routing/oap-host.compose.yml config >/tmp/oap-routing-missing-host.log 2>&1; then
+            echo "OAP routing bundle accepted a missing hostname" >&2
+            exit 1
+          fi
+          OAP_ROUTING_HOST=routing.oap.invalid docker compose -f routing/oap-host.compose.yml config --format json >/tmp/oap-routing-compose.json
+          python - <<'PY'
+          import json
+          with open('/tmp/oap-routing-compose.json') as f:
+              services = json.load(f)['services']
+          assert not services['osrm'].get('ports'), 'OSRM must remain private'
+          assert {str(p['target']) for p in services['gateway']['ports']} == {'80', '443'}
+          PY
+          docker run --rm --entrypoint caddy -e OAP_ROUTING_HOST=routing.oap.invalid \
+            -v "$PWD/routing/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.10.2-alpine \
+            validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Validate OAP Home signing helper shell syntax
         run: bash -n scripts/oap_home_signing_setup.sh
       - name: Run focused OAP Data security regressions
@@ -140,8 +158,8 @@ jobs:
           set -o pipefail
           python -m pytest -q 2>&1 | tee /tmp/oap-pytest.log
 
-      # The external routing service is a hard gate, but an outage must not
-      # suppress unrelated recovery regression evidence.
+      # Preserve software regression evidence; the separate routing-live-ready
+      # job remains a blocking operational check for exact-SHA promotion.
       - name: Run governed regression suite
         run: |
           set -o pipefail
@@ -151,9 +169,6 @@ jobs:
           OAP_PRIMARY_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
           OAP_REAL_POSTGRES_PROOF: "1"
         run: python -m pytest -q tests/test_distribution_market_postgres_integration.py tests/test_all_in_ai_postgres_executor_integration.py
-      - name: Observe bounded external live routing Green Gate
-        continue-on-error: true
-        run: python scripts/routing_live_green_gate.py
       - name: Observe bounded external live weather proof
         continue-on-error: true
         run: python scripts/weather_live_green_gate.py
@@ -165,3 +180,27 @@ jobs:
           path: /tmp/oap-pytest.log
           if-no-files-found: error
           retention-days: 1
+
+  routing-live-ready:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Prove explicit OAP-hosted live routing readiness
+        env:
+          OAP_ROUTING_BASE_URL: ${{ vars.OAP_ROUTING_BASE_URL }}
+        run: |
+          set -o pipefail
+          python scripts/routing_live_green_gate.py | tee /tmp/oap-routing-live-proof.jsonl
+      - name: Preserve routing readiness receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: routing-live-readiness-receipt
+          path: /tmp/oap-routing-live-proof.jsonl
+          if-no-files-found: error
+          retention-days: 7
