@@ -123,11 +123,17 @@ def check_mission_candidate_eligibility(
         return {"agent_id": agent_id, "eligible": False, "reason": "REGISTRY_LOOKUP_FAILED", "grants_permissions": False, "execution_verified": False}
     if not isinstance(passport, dict) or passport.get("agent_id") != agent_id:
         return {"agent_id": agent_id, "eligible": False, "reason": "PASSPORT_NOT_FOUND", "grants_permissions": False}
-    if expected_name is not None:
-        labels = (passport.get("name"), *(passport.get("aliases") or ()))
-        if expected_name not in labels:
-            return {"agent_id": agent_id, "eligible": False, "reason": "PASSPORT_NAME_MISMATCH", "grants_permissions": False, "execution_verified": False}
-    decision = PermissionEngine().authorize_agent(passport, required_permission=required_permission)
+    try:
+        if expected_name is not None:
+            aliases = passport.get("aliases", ())
+            if not isinstance(aliases, (list, tuple)) or not all(isinstance(alias, str) for alias in aliases):
+                raise ValueError("Malformed passport aliases")
+            labels = (passport.get("name"), *aliases)
+            if expected_name not in labels:
+                return {"agent_id": agent_id, "eligible": False, "reason": "PASSPORT_NAME_MISMATCH", "grants_permissions": False, "execution_verified": False}
+        decision = PermissionEngine().authorize_agent(passport, required_permission=required_permission)
+    except (TypeError, ValueError, AttributeError, KeyError):
+        return {"agent_id": agent_id, "eligible": False, "reason": "MALFORMED_PASSPORT", "grants_permissions": False, "execution_verified": False, "performance_verified": False}
     return {
         "agent_id": agent_id,
         "eligible": bool(decision.allowed),
