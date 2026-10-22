@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from contextlib import nullcontext
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -358,7 +359,13 @@ class PostgresMovementStore:
         scheduled_for: object = None,
         route_snapshot: dict[str, Any] | None = None,
         idempotency_key: object,
+        connection: Any = None,
     ) -> dict[str, Any]:
+        """Create/replay a booking, optionally inside the caller's transaction.
+
+        A supplied connection is never committed here. The caller owns rollback
+        and must commit the booking together with its associated product record.
+        """
         member = _uuid(member_identity_id, "member_identity_id")
         service = _service(service_type)
         pickup_value = normalize_place(pickup, name="pickup")
@@ -374,8 +381,8 @@ class PostgresMovementStore:
         route_value = dict(route_snapshot or {})
         if len(json.dumps(route_value, separators=(",", ":"))) > 4096:
             raise ValueError("route_snapshot_too_large")
-        with postgres_db.connect() as connection:
-            row = connection.execute(
+        with (nullcontext(connection) if connection is not None else postgres_db.connect()) as db:
+            row = db.execute(
                 """INSERT INTO oap_movement_bookings
                    (member_identity_id,service_type,pickup,destination,
                     scheduled_for,state,route_snapshot,idempotency_key)
@@ -406,7 +413,8 @@ class PostgresMovementStore:
             ).fetchone()
             if row is None:
                 raise ValueError("idempotency_conflict")
-            connection.commit()
+            if connection is None:
+                db.commit()
         return {
             "booking_id": str(row[0]),
             "service_type": str(row[1]),

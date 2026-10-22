@@ -30,6 +30,15 @@ class _Connection:
     def fetchone(self):
         return self.row
 
+    def commit(self):
+        pass
+
+
+@pytest.fixture(autouse=True)
+def _unit_transaction(monkeypatch):
+    connection = _Connection(None)
+    monkeypatch.setattr(oap_eats_fulfilment.postgres_db, "connect", lambda **_: connection)
+
 
 def test_customer_preflight_rejects_non_customer(monkeypatch):
     connection = _Connection(None)

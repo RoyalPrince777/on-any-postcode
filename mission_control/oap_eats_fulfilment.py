@@ -12,6 +12,7 @@ from typing import Any
 from . import (
     movement_operations,
     oap_eats_store,
+    postgres_db,
     sika_payment_orchestrator,
     sika_payment_reservations,
 )
@@ -49,24 +50,34 @@ def bind_payment(*, order_id: object, customer_identity_id: object, payment_id: 
 
 def create_delivery(*, order_id: object, customer_identity_id: object, pickup: object,
                     destination: object, idempotency_key: object) -> dict[str, Any]:
-    order = oap_eats_store.STORE.require_customer_order(order_id=order_id, customer_identity_id=customer_identity_id)
-    if order["fulfilment_mode"] != "delivery":
-        raise ValueError("delivery_not_required")
-    if order["state"] not in {"authorised", "confirmed", "preparing", "ready", "courier_assigned"}:
-        raise ValueError("order_not_ready_for_delivery_booking")
-    booking = movement_operations.STORE.create_booking(
-        member_identity_id=customer_identity_id,
-        service_type="delivery",
-        pickup=pickup,
-        destination=destination,
-        idempotency_key=idempotency_key,
-        route_snapshot={"source": "oap_eats", "order_id": str(order_id)},
-    )
-    bound = oap_eats_store.STORE.bind_movement(
-        order_id=order_id,
-        customer_identity_id=customer_identity_id,
-        booking_id=booking["booking_id"],
-    )
+    # Both records share PostgreSQL: lock the owned order and commit its binding
+    # with the existing Movement booking in one transaction. A bind failure or a
+    # competing retry rolls back the booking instead of leaving an orphan.
+    with postgres_db.connect() as connection:
+        order = oap_eats_store.STORE.require_customer_order(
+            order_id=order_id, customer_identity_id=customer_identity_id,
+            connection=connection,
+        )
+        if order["fulfilment_mode"] != "delivery":
+            raise ValueError("delivery_not_required")
+        if order["state"] not in {"authorised", "confirmed", "preparing", "ready", "courier_assigned"}:
+            raise ValueError("order_not_ready_for_delivery_booking")
+        booking = movement_operations.STORE.create_booking(
+            member_identity_id=customer_identity_id,
+            service_type="delivery",
+            pickup=pickup,
+            destination=destination,
+            idempotency_key=idempotency_key,
+            route_snapshot={"source": "oap_eats", "order_id": str(order_id)},
+            connection=connection,
+        )
+        bound = oap_eats_store.STORE.bind_movement(
+            order_id=order_id,
+            customer_identity_id=customer_identity_id,
+            booking_id=booking["booking_id"],
+            connection=connection,
+        )
+        connection.commit()
     return {
         **bound,
         "movement": booking,

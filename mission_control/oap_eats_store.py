@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from contextlib import nullcontext
 from typing import Any
 from uuid import UUID
 
@@ -229,32 +230,35 @@ class EatsStore:
             connection.commit()
         return _row(row)
 
-    def require_customer_order(self, *, order_id: object, customer_identity_id: object) -> dict[str, Any]:
+    def require_customer_order(self, *, order_id: object, customer_identity_id: object,
+                               connection: Any = None) -> dict[str, Any]:
         """Fail closed unless the caller owns the order as its customer.
 
         Merchant read permission is intentionally insufficient for delivery booking.
         """
         order = _uuid(order_id, "order_id")
         customer = _uuid(customer_identity_id, "customer_identity_id")
-        with postgres_db.connect(readonly=True) as connection:
-            row = connection.execute(
+        with (nullcontext(connection) if connection is not None else postgres_db.connect(readonly=True)) as db:
+            row = db.execute(
                 """SELECT order_id,merchant_id,state,amount_minor,currency,
                           fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
                           created_at,updated_at
                    FROM oap_eats_orders
-                   WHERE order_id=%s AND customer_identity_id=%s""",
+                   WHERE order_id=%s AND customer_identity_id=%s"""
+                + (" FOR UPDATE" if connection is not None else ""),
                 (order, customer),
             ).fetchone()
         if row is None:
             raise PermissionError("order_customer_required")
         return _row(row)
 
-    def bind_movement(self, *, order_id: object, customer_identity_id: object, booking_id: object) -> dict[str, Any]:
+    def bind_movement(self, *, order_id: object, customer_identity_id: object, booking_id: object,
+                      connection: Any = None) -> dict[str, Any]:
         order = _uuid(order_id, "order_id")
         customer = _uuid(customer_identity_id, "customer_identity_id")
         booking = _uuid(booking_id, "booking_id")
-        with postgres_db.connect() as connection:
-            row = connection.execute(
+        with (nullcontext(connection) if connection is not None else postgres_db.connect()) as db:
+            row = db.execute(
                 """UPDATE oap_eats_orders
                    SET movement_booking_id=%s,updated_at=CURRENT_TIMESTAMP
                    WHERE order_id=%s AND customer_identity_id=%s
@@ -267,12 +271,13 @@ class EatsStore:
             ).fetchone()
             if row is None:
                 raise PermissionError("order_movement_binding_denied")
-            connection.execute(
+            db.execute(
                 """INSERT INTO oap_eats_order_events(order_id,actor_identity_id,from_state,to_state,evidence)
                    VALUES (%s,%s,%s,%s,%s::jsonb)""",
                 (order, customer, str(row[2]), str(row[2]), json.dumps({"movement_booking_id": booking})),
             )
-            connection.commit()
+            if connection is None:
+                db.commit()
         return _row(row)
 
 
