@@ -73,6 +73,14 @@ def _base_url() -> str:
     return _validated_base_url(os.environ.get("OAP_OSRM_BASE_URL", ""))
 
 
+def owned_base_url() -> str:
+    """Return the configured OAP-owned routing origin, or empty when unproven."""
+    return _validated_base_url(
+        os.environ.get("OAP_OSRM_BASE_URL", ""),
+        require_owned=True,
+    )
+
+
 def configured() -> bool:
     return bool(_base_url())
 

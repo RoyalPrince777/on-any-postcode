@@ -23,6 +23,19 @@ def test_routing_requires_https_and_explicit_host_allowlist(monkeypatch):
     assert routing.configured() is False
 
 
+def test_owned_base_url_requires_allowlisted_owned_https_host(monkeypatch):
+    monkeypatch.setenv("OAP_OSRM_BASE_URL", "https://route.oap.example")
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "route.oap.example")
+    monkeypatch.delenv("OAP_ROUTING_OWNED_HOSTS", raising=False)
+    assert routing.owned_base_url() == ""
+
+    monkeypatch.setenv("OAP_ROUTING_OWNED_HOSTS", "route.oap.example")
+    assert routing.owned_base_url() == "https://route.oap.example"
+
+    monkeypatch.setenv("OAP_OSRM_BASE_URL", "http://route.oap.example")
+    assert routing.owned_base_url() == ""
+
+
 def test_routing_rejects_credentials_and_unapproved_host(monkeypatch):
     monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "router.example.test")
     monkeypatch.setenv(
