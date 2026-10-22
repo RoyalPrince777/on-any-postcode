@@ -294,6 +294,20 @@ public class MainActivity extends Activity {
         viewer.setWebChromeClient(new OapSecureChromeClient());
         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);
         viewer.setWebViewClient(new OapSecureWebClient(this));
+        TextView loadStatus = label("No page loaded", 12);
+        body.addView(loadStatus);
+        viewer.setWebViewClient(new OapSecureWebClient(this) {
+            @Override public void onPageStarted(android.webkit.WebView view, String url, android.graphics.Bitmap favicon) {
+                loadStatus.setText("Loading HTTPS page…");
+            }
+            @Override public void onPageFinished(android.webkit.WebView view, String url) {
+                loadStatus.setText("Page loaded. Some interactive services require JavaScript, currently disabled for safety.");
+            }
+            @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request,
+                    android.webkit.WebResourceError error) {
+                if (request.isForMainFrame()) loadStatus.setText("Page unavailable: " + error.getDescription());
+            }
+        });
         addButton("OPEN HTTPS PAGE", v -> {
             Uri uri = Uri.parse(address.getText().toString().trim());
             if (!safeWebAddress(uri)) {
@@ -518,7 +532,7 @@ final class OapSecureChromeClient extends android.webkit.WebChromeClient {
     }
 }
 
-final class OapSecureWebClient extends android.webkit.WebViewClient {
+class OapSecureWebClient extends android.webkit.WebViewClient {
     private final MainActivity host;
     OapSecureWebClient(MainActivity host) { this.host = host; }
     @Override public void onReceivedSslError(android.webkit.WebView view, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
