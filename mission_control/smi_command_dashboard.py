@@ -183,9 +183,9 @@ def status() -> dict[str, Any]:
         "war_room": {
             "validation_passed": bool(war_validation.get("passed")),
             "rated_areas": int(war_summary.get("rated_areas") or 0),
-            "overall_evidence_score": int(war_summary.get("overall_evidence_score") or 0),
-            "runtime_verified": int(war_summary.get("runtime_verified") or 0),
-            "operationally_certified": int(war_summary.get("operationally_certified") or 0),
+            "overall_evidence_score": war_summary.get("overall_evidence_score"),
+            "runtime_verified": war_summary.get("runtime_verified"),
+            "operationally_certified": war_summary.get("operationally_certified"),
         },
         "inference": {
             "first_party_ready": bool(inference.get("first_party_inference_ready")),

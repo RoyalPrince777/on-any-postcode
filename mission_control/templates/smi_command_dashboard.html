@@ -257,7 +257,7 @@
           <a class="intel" href="{{ command.character.href }}"><div class="intel-head"><strong>SMI Character</strong><span class="signal">🟢 software</span></div><p>{{ command.character.states|length }} governed states · movement bound to state · animation never counts as learning.</p></a>
           <a class="intel" href="{{ command.movement.href }}"><div class="intel-head"><strong>Movement Intelligence</strong><span class="signal">{{ '🟢' if command.movement.architecture_ready else '🟣' }}</span></div><p>{{ command.movement.component_count }} components · {{ command.movement.mode_count }} movement modes · owned route intelligence.</p></a>
           <a class="intel" href="{{ command.learning.href }}"><div class="intel-head"><strong>Learning Intelligence</strong><span class="signal">{{ '🟢' if command.learning.receipt_learning_defined else '🟣' }}</span></div><p>HRM + receipts + bounded behaviour learning. No self-authorised change.</p></a>
-          <a class="intel" href="/mission/war-room"><div class="intel-head"><strong>War Room</strong><span class="signal">{{ '🟢' if command.war_room.validation_passed else '🟣' }}</span></div><p>Challenge, evidence, recovery and Founder review without pretending simulation is proof.</p></a>
+          <a class="intel" href="/mission/war-room"><div class="intel-head"><strong>War Room</strong><span class="signal">🟣 Advisory review</span></div><p>Challenge, evidence, recovery and Founder review without pretending simulation is proof.</p></a>
         </div>
       </aside>
     </section>

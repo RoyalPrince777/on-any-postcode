@@ -48,7 +48,8 @@ def test_war_room_upgrade_preserves_existing_governed_controls():
 
 
 def test_war_room_status_matrix_uses_existing_evidence_not_fake_percentages():
-    assert "{{ war_room.summary.overall_evidence_score }}%" in PAGE
-    assert "{{ war_room.summary.runtime_verified }}/{{ war_room.summary.rated_areas }}" in PAGE
-    assert "{{ war_room.summary.operationally_certified }}/{{ war_room.summary.rated_areas }}" in PAGE
+    assert "war_room.summary.overall_evidence_score" not in PAGE
+    assert "VPI: N/A" in PAGE
+    assert "Exact-release proof required" in PAGE
+    assert "Live journey proof required" in PAGE
     assert "a visible button, high percentage, unanimous vote or attractive dashboard never creates proof" in PAGE
