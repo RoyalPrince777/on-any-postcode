@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "OAPAndroid"
 include(":android:oapworld")
+include(":android:oaphome")
