@@ -60,3 +60,61 @@ Change policy: UPGRADE ONLY. Preserve existing canonical passports, family owner
 - Separate user-confirmed identity from independently inspected footage and promotional/advertising claims.
 - Private by default; avoid committing raw chats, personal identifiers, private media or export archives to public GitHub. Only Founder-approved redacted summaries belong in this repository.
 - No claim of automatic ChatGPT chat export, continuous archival, live Hathi memory ingestion or PDF completion without demonstrated evidence.
+
+## OAP World SMI 21 unified advisory council — Founder upgrade (22 October 2026)
+Scope: improve *all existing specialists* through their canonical role contracts. This is a role-by-role recommendation matrix, NOT creation of 21 replacement agents, live autonomous deliberation, activation, deployment or a verified vote.
+
+### Twenty-one specialist recommendations (preserve canonical registry names and ownership)
+1. Lion / Gyata — coherent World identity, Founder Final authority.
+2. Octopus — reuse cross-service shared infrastructure; no second dispatcher.
+3. Fox — safe interrupted-journey recovery; no duplicate execution.
+4. Eagle — local-first discovery with global expansion.
+5. Leopard — minimum reliable customer journey.
+6. Owl — transparent reasons and evidence for recommendations.
+7. Wolf / Akela — community trust and accountable support; permanent Pack stays distinct from temporary mission packs.
+8. Dolphin — accessible and respectful communications.
+9. Ant — decomposed verifiable customer tasks.
+10. Cheetah — low-memory, phone-first performance.
+11. Buffalo — resilience over cosmetics.
+12. Falcon — relevant next action, minimal friction.
+13. Bear — operational continuity.
+14. Elephant / Hathi — original histories, corrections, jokes and private records.
+15. Rhino — robust permissions and misuse protection.
+16. Tiger / Shere Khan — adversarial false-readiness challenge.
+17. Crocodile — defensive fraud and threat detection.
+18. Monkey — creative discovery and assumption challenges.
+19. Spider — dependencies and duplicated-work prevention.
+20. Bee / Queen Bee — bounded work coordination without extra authority.
+21. Whale — long-term cultural and institutional memory.
+
+### Permanent Wolf Pack
+- Akela: Pack coordination and community trust.
+- Raksha: protection.
+- Father Wolf: operational support.
+- Grey Brother: scouting and continuity.
+- Phao: succession readiness.
+Do not replace permanent Pack membership with mission-specific packs. Do not claim actual agent wake-up or independent execution.
+
+### Seven-round Captain ALL IN advisory review
+| Round | Subject | Lead | Decision | Rationale |
+| --- | --- | --- | --- | --- |
+| 1 | World identity | Gyata + Eagle | KEEP | One connected World, Founder authority |
+| 2 | Four movement services | Octopus + Spider | KEEP | Eats, Ride, Courier, Quick share existing dispatch architecture |
+| 3 | Community trust | Akela + Bagheera | UPGRADE | Accountable support with purpose-limited permissions |
+| 4 | Truth and safety | Shere Khan + Guardian | UPGRADE | Evidence-backed readiness and fail-closed actions |
+| 5 | Continuity | Fox + Gorilla | UPGRADE | Recover interrupted journeys without duplicated actions |
+| 6 | History and culture | Hathi + Baloo | KEEP | Private original records, culture and humour |
+| 7 | Speed and simplicity | Cheetah + Falcon | UPGRADE | Remove unnecessary steps, not mandatory safeguards |
+
+### Wider alliance contributions
+Bagheera: purpose-limited data access. Baloo: onboarding and education. Mowgli: human-friendly interface. King Louie: creative culture. Gorilla: defensive resilience. Matrix: independent reality verification. Mission: Impossible: recovery and contingency planning. NIRMATA: invention. AEI: authorised execution only. Guardian: permission boundary. HRM: evidence and receipts. Captain ALL IN: coordination and synthesis under Founder Final. Existing canonical specialists and family-specific definitions remain authoritative; this summary never renames or reassigns them.
+
+### Engineering acceptance contract for follow-up code
+- Read-only advisory projection from existing registry and proof sources, not a new agent runtime or second hierarchy.
+- Never present authored recommendations as live votes, live agent messages, independently executed actions or verified readiness.
+- Preserve OAP Spot, The Link / Link Up, OAP Library, OAP TV, SIKA and World services.
+- Existing Green Gate and movement proofs remain authoritative; no competing static readiness labels.
+- Payments, real-world dispatch, unproven reservation confirmations, hidden tracking and private-media leakage remain blocked.
+- Validate canonical registry references and permission boundaries before runtime integration; test unchanged authority, Pack separation, missing-evidence fail-closed behaviour and no duplicate dispatch.
+- For all agents, report verified coverage and overall VPI only from measured evidence; otherwise N/A.
+- No claims of CI pass, deployment or production activation from this documentation update.
