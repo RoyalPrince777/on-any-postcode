@@ -57,6 +57,17 @@ ROLES = {
     "courier": EatsRole("courier", ("see_eligible_jobs", "accept_job", "collect", "deliver")),
 }
 
+# Public order owners can request only their own bounded software actions.
+# Finance/courier states require separately authenticated service evidence; the
+# generic customer/merchant endpoint cannot manufacture those events.
+PUBLIC_TRANSITION_ROLES = {
+    "confirmed": frozenset({"merchant"}),
+    "preparing": frozenset({"merchant"}),
+    "ready": frozenset({"merchant"}),
+    "cancelled": frozenset({"customer", "merchant"}),
+    "disputed": frozenset({"customer"}),
+}
+
 
 def can_transition(current: str, target: str) -> bool:
     try:
@@ -85,6 +96,8 @@ def status() -> dict[str, object]:
         ],
         "roles": {key: list(role.permissions) for key, role in ROLES.items()},
         "order_states": [state.value for state in EatsOrderState],
+        "public_transition_roles": {state: sorted(roles) for state, roles in PUBLIC_TRANSITION_ROLES.items()},
+        "evidence_dependent_transitions_locked": True,
         "courier_engine": "oap_rides_movement",
         "duplicate_map_stack": False,
         "duplicate_payment_stack": False,

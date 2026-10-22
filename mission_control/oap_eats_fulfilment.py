@@ -13,23 +13,34 @@ from . import (
     movement_operations,
     oap_eats_store,
     postgres_db,
+    sika_account_engine,
     sika_payment_orchestrator,
     sika_payment_reservations,
 )
 
 
 def bind_payment(*, order_id: object, customer_identity_id: object, payment_id: object) -> dict[str, Any]:
-    order = oap_eats_store.STORE.read_order(order_id=order_id, identity_id=customer_identity_id)
+    order = oap_eats_store.STORE.require_customer_order(
+        order_id=order_id, customer_identity_id=customer_identity_id,
+    )
     intent = sika_payment_orchestrator.read_intent(payment_id)
     if intent is None:
         raise ValueError("payment_intent_not_found")
+    try:
+        payer = sika_account_engine.resolve_owned_account(
+            account_id=intent.payer_account_id, owner_reference=str(customer_identity_id),
+        )
+    except sika_account_engine.AccountEngineError as exc:
+        raise PermissionError("payment_payer_not_owned_or_open") from exc
+    if intent.status not in {"AUTHORISED", "SUBMITTED"}:
+        raise ValueError("payment_intent_not_bindable")
     hold = sika_payment_reservations.read_hold(payment_id)
     if hold is None or not hold.active:
         raise ValueError("active_payment_hold_required")
     expected = Decimal(order["amount_minor"]) / Decimal(100)
     if intent.amount != expected or hold.amount != expected:
         raise ValueError("payment_amount_mismatch")
-    if intent.currency != order["currency"] or hold.currency != order["currency"]:
+    if intent.currency != order["currency"] or hold.currency != order["currency"] or payer.currency != order["currency"]:
         raise ValueError("payment_currency_mismatch")
     if hold.payment_id != intent.payment_id or hold.payer_account_id != intent.payer_account_id:
         raise ValueError("payment_hold_binding_mismatch")
@@ -38,12 +49,13 @@ def bind_payment(*, order_id: object, customer_identity_id: object, payment_id: 
         customer_identity_id=customer_identity_id,
         payment_id=intent.payment_id,
         hold_id=hold.hold_id,
+        payer_account_id=intent.payer_account_id,
     )
     return {
         **bound,
         "payment_status": intent.status,
         "hold_status": hold.status,
-        "payment_captured": intent.status == "SETTLED",
+        "payment_captured": False,
         "money_moved_by_eats": False,
     }
 
@@ -92,6 +104,8 @@ def status() -> dict[str, object]:
         "sika_payment_binding": True,
         "active_hold_required": True,
         "amount_currency_match_required": True,
+        "customer_owned_open_payer_required": True,
+        "payer_ownership_rechecked_on_binding": True,
         "movement_delivery_reused": True,
         "movement_booking_idempotency_reused": True,
         "payment_capture_performed": False,

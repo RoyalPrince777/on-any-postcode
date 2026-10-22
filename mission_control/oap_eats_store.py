@@ -12,7 +12,7 @@ from typing import Any
 from uuid import UUID
 
 from . import postgres_db
-from .oap_eats import can_transition
+from .oap_eats import PUBLIC_TRANSITION_ROLES, can_transition
 
 MIGRATION_VERSION = "0001_oap_eats_core"
 SCHEMA_STATEMENTS = (
@@ -169,6 +169,13 @@ class EatsStore:
                 raise PermissionError("order_not_owned")
             if not can_transition(str(current[0]), target):
                 raise ValueError("order_transition_not_allowed")
+            roles = set()
+            if actor == str(current[1]):
+                roles.add("customer")
+            if actor == str(current[2]):
+                roles.add("merchant")
+            if not roles.intersection(PUBLIC_TRANSITION_ROLES.get(target, ())):
+                raise PermissionError("order_transition_role_denied")
             row = connection.execute(
                 """UPDATE oap_eats_orders SET state=%s,updated_at=CURRENT_TIMESTAMP
                    WHERE order_id=%s
@@ -201,12 +208,14 @@ class EatsStore:
             raise PermissionError("order_not_owned")
         return _row(row)
 
-    def bind_payment(self, *, order_id: object, customer_identity_id: object, payment_id: object, hold_id: object) -> dict[str, Any]:
+    def bind_payment(self, *, order_id: object, customer_identity_id: object, payment_id: object,
+                     hold_id: object, payer_account_id: object) -> dict[str, Any]:
         order = _uuid(order_id, "order_id")
         customer = _uuid(customer_identity_id, "customer_identity_id")
         payment = str(payment_id or "").strip()
         hold = str(hold_id or "").strip()
-        if not payment or not hold:
+        payer = str(payer_account_id or "").strip()
+        if not payment or not hold or not payer:
             raise ValueError("payment_binding_required")
         with postgres_db.connect() as connection:
             row = connection.execute(
@@ -215,10 +224,14 @@ class EatsStore:
                    WHERE order_id=%s AND customer_identity_id=%s
                      AND (payment_id IS NULL OR payment_id=%s)
                      AND (payment_hold_id IS NULL OR payment_hold_id=%s)
+                     AND EXISTS (
+                         SELECT 1 FROM oap_sika_accounts a
+                         WHERE a.account_id=%s AND a.owner_reference=%s
+                           AND a.status='OPEN' AND a.currency=oap_eats_orders.currency)
                    RETURNING order_id,merchant_id,state,amount_minor,currency,
                              fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
                              created_at,updated_at""",
-                (payment, hold, order, customer, payment, hold),
+                (payment, hold, order, customer, payment, hold, payer, customer),
             ).fetchone()
             if row is None:
                 raise PermissionError("order_payment_binding_denied")

@@ -1,4 +1,4 @@
-"""Ephemeral PostgreSQL proof of Eats ownership and atomic Movement binding.
+"""Ephemeral PostgreSQL proof of Eats permissions and atomic Movement binding.
 
 The explicit CI gate and loopback-only database guard prevent these schema
 fixtures from being pointed at a remote application database.
@@ -20,6 +20,9 @@ from mission_control import (
     oap_eats_fulfilment,
     oap_eats_store,
     postgres_db,
+    sika_account_engine,
+    sika_payment_orchestrator,
+    sika_payment_reservations,
 )
 
 pytestmark = pytest.mark.skipif(
@@ -52,6 +55,9 @@ def delivery(monkeypatch):
                 *postgres_db.MIGRATION_STATEMENTS,
                 *movement_operations.MOVEMENT_SCHEMA_STATEMENTS,
                 *oap_eats_store.SCHEMA_STATEMENTS,
+                *sika_account_engine.SCHEMA_STATEMENTS,
+                *sika_payment_orchestrator.SCHEMA_STATEMENTS,
+                *sika_payment_reservations.SCHEMA_STATEMENTS,
             ):
                 db.execute(statement)
             customer, merchant, outsider, order = (str(uuid4()) for _ in range(4))
@@ -177,3 +183,188 @@ def test_ineligible_order_cannot_create_booking(delivery, state, mode, error):
     with pytest.raises(ValueError, match=error):
         _create(delivery)
     assert _readback(delivery) == ([], None)
+
+
+# Independent acceptance cases for the generic customer/merchant endpoint.
+# Database fixtures below label software states; they attest no physical event.
+_PUBLIC_STATE_CASES = [
+    ("created", "authorised", ()),
+    ("created", "cancelled", ("customer", "merchant")),
+    ("created", "failed", ()),
+    ("authorised", "confirmed", ("merchant",)),
+    ("authorised", "refunded", ()),
+    ("authorised", "failed", ()),
+    ("confirmed", "preparing", ("merchant",)),
+    ("confirmed", "cancelled", ("customer", "merchant")),
+    ("preparing", "ready", ("merchant",)),
+    ("preparing", "cancelled", ("customer", "merchant")),
+    ("ready", "courier_assigned", ()),
+    ("ready", "collected", ()),
+    ("ready", "cancelled", ("customer", "merchant")),
+    ("courier_assigned", "collected", ()),
+    ("courier_assigned", "cancelled", ("customer", "merchant")),
+    ("collected", "delivered", ()),
+    ("collected", "disputed", ("customer",)),
+    ("delivered", "settlement_pending", ()),
+    ("delivered", "disputed", ("customer",)),
+    ("settlement_pending", "settled", ()),
+    ("settlement_pending", "disputed", ("customer",)),
+    ("settled", "disputed", ("customer",)),
+    ("cancelled", "refunded", ()),
+    ("disputed", "refunded", ()),
+    ("disputed", "settled", ()),
+]
+
+
+def _order_readback(delivery):
+    with postgres_db.connect(readonly=True) as db:
+        state, payment, hold = db.execute(
+            "SELECT state,payment_id,payment_hold_id FROM oap_eats_orders WHERE order_id=%s",
+            (delivery["order_id"],),
+        ).fetchone()
+        events = db.execute(
+            "SELECT count(*) FROM oap_eats_order_events WHERE order_id=%s",
+            (delivery["order_id"],),
+        ).fetchone()[0]
+    return state, payment, hold, events
+
+
+@pytest.mark.parametrize("source,target,allowed_roles", _PUBLIC_STATE_CASES)
+@pytest.mark.parametrize("role", ["customer", "merchant", "outsider"])
+def test_public_state_authority_is_owner_role_specific(delivery, source, target, allowed_roles, role):
+    with postgres_db.connect() as db:
+        db.execute("UPDATE oap_eats_orders SET state=%s WHERE order_id=%s", (source, delivery["order_id"]))
+        db.commit()
+    identity = delivery["customer_identity_id"] if role == "customer" else delivery[role]
+    args = {"order_id": delivery["order_id"], "actor_identity_id": identity, "target_state": target}
+    if role in allowed_roles:
+        result = oap_eats_store.STORE.transition(**args)
+        assert result["state"] == target
+        assert result["payment_captured"] is False
+        assert result["courier_dispatched"] is False
+        assert _order_readback(delivery) == (target, None, None, 1)
+    else:
+        with pytest.raises(PermissionError, match="order_not_owned|order_transition_role_denied"):
+            oap_eats_store.STORE.transition(**args)
+        assert _order_readback(delivery) == (source, None, None, 0)
+    assert _readback(delivery) == ([], None)
+
+
+def test_invalid_state_skip_is_rejected_without_event(delivery):
+    with pytest.raises(ValueError, match="order_transition_not_allowed"):
+        oap_eats_store.STORE.transition(
+            order_id=delivery["order_id"], actor_identity_id=delivery["merchant"], target_state="settled",
+        )
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.fixture
+def payment(delivery):
+    account, intent, hold = (str(uuid4()) for _ in range(3))
+    with postgres_db.connect() as db:
+        db.execute(
+            """INSERT INTO oap_sika_accounts(account_id,owner_reference,legal_entity,
+                   jurisdiction,currency,ledger_account_id,status)
+               VALUES (%s,%s,'CI fixture','United Kingdom','GBP',%s,'OPEN')""",
+            (account, delivery["customer_identity_id"], "ledger-" + account),
+        )
+        db.execute(
+            """INSERT INTO oap_sika_payment_intents(payment_id,idempotency_key,payer_account_id,
+                   payee_reference,amount,currency,jurisdiction,status)
+               VALUES (%s,%s,%s,%s,15.99,'GBP','United Kingdom','AUTHORISED')""",
+            (intent, "intent-" + intent, account, delivery["merchant"]),
+        )
+        db.execute(
+            """INSERT INTO oap_sika_payment_holds(hold_id,payment_id,payer_account_id,amount,currency,status)
+               VALUES (%s,%s,%s,15.99,'GBP','ACTIVE')""", (hold, intent, account),
+        )
+        db.commit()
+    return {"account": account, "intent": intent, "hold": hold}
+
+
+def _bind_payment(delivery, payment, **changes):
+    return oap_eats_fulfilment.bind_payment(**{
+        "order_id": delivery["order_id"], "customer_identity_id": delivery["customer_identity_id"],
+        "payment_id": payment["intent"], **changes,
+    })
+
+
+def test_owned_payment_binding_persists_without_executing_payment(delivery, payment):
+    result = _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", payment["intent"], payment["hold"], 1)
+    assert result["payment_status"] == "AUTHORISED"
+    assert result["hold_status"] == "ACTIVE"
+    assert result["payment_captured"] is False
+    assert result["money_moved_by_eats"] is False
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT status FROM oap_sika_payment_intents WHERE payment_id=%s", (payment["intent"],)).fetchone()[0] == "AUTHORISED"
+        assert db.execute("SELECT status FROM oap_sika_payment_holds WHERE hold_id=%s", (payment["hold"],)).fetchone()[0] == "ACTIVE"
+
+
+@pytest.mark.parametrize("caller", ["merchant", "outsider"])
+def test_non_customer_cannot_bind_payment(delivery, payment, caller):
+    with pytest.raises(PermissionError, match="order_customer_required"):
+        _bind_payment(delivery, payment, customer_identity_id=delivery[caller])
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("change", ["foreign_owner", "FROZEN", "CLOSED", "missing", "currency"])
+def test_payer_account_must_be_owned_open_and_matching_currency(delivery, payment, change):
+    with postgres_db.connect() as db:
+        if change == "foreign_owner":
+            db.execute("UPDATE oap_sika_accounts SET owner_reference=%s WHERE account_id=%s", (delivery["outsider"], payment["account"]))
+        elif change == "missing":
+            db.execute("DELETE FROM oap_sika_accounts WHERE account_id=%s", (payment["account"],))
+        elif change == "currency":
+            db.execute("UPDATE oap_sika_accounts SET currency='USD' WHERE account_id=%s", (payment["account"],))
+        else:
+            db.execute("UPDATE oap_sika_accounts SET status=%s WHERE account_id=%s", (change, payment["account"]))
+        db.commit()
+    error = ValueError if change == "currency" else PermissionError
+    with pytest.raises(error, match="payment_currency_mismatch|payment_payer_not_owned_or_open"):
+        _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("state", ["DRAFT", "REVIEW", "SETTLED", "FAILED", "CANCELLED"])
+def test_intent_label_cannot_bypass_payment_binding_eligibility(delivery, payment, state):
+    with postgres_db.connect() as db:
+        db.execute("UPDATE oap_sika_payment_intents SET status=%s WHERE payment_id=%s", (state, payment["intent"]))
+        db.commit()
+    with pytest.raises(ValueError, match="payment_intent_not_bindable"):
+        _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("change", ["payer", "amount", "currency", "inactive", "missing"])
+def test_inconsistent_hold_never_binds(delivery, payment, change):
+    statements = {
+        "payer": "UPDATE oap_sika_payment_holds SET payer_account_id='other' WHERE hold_id=%s",
+        "amount": "UPDATE oap_sika_payment_holds SET amount=1 WHERE hold_id=%s",
+        "currency": "UPDATE oap_sika_payment_holds SET currency='USD' WHERE hold_id=%s",
+        "inactive": "UPDATE oap_sika_payment_holds SET status='RELEASED' WHERE hold_id=%s",
+        "missing": "DELETE FROM oap_sika_payment_holds WHERE hold_id=%s",
+    }
+    with postgres_db.connect() as db:
+        db.execute(statements[change], (payment["hold"],))
+        db.commit()
+    with pytest.raises(ValueError):
+        _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("change", ["foreign_owner", "closed"])
+def test_payment_write_rechecks_account_after_preflight(delivery, payment, monkeypatch, change):
+    original = oap_eats_store.STORE.bind_payment
+    def change_account_then_bind(**kwargs):
+        with postgres_db.connect() as db:
+            if change == "foreign_owner":
+                db.execute("UPDATE oap_sika_accounts SET owner_reference=%s WHERE account_id=%s", (delivery["outsider"], payment["account"]))
+            else:
+                db.execute("UPDATE oap_sika_accounts SET status='CLOSED' WHERE account_id=%s", (payment["account"],))
+            db.commit()
+        return original(**kwargs)
+    monkeypatch.setattr(oap_eats_store.STORE, "bind_payment", change_account_then_bind)
+    with pytest.raises(PermissionError, match="order_payment_binding_denied"):
+        _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
