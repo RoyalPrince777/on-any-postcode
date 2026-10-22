@@ -71,8 +71,8 @@ def delivery(monkeypatch):
         yield {
             "order_id": order, "customer_identity_id": customer,
             "merchant": merchant, "outsider": outsider,
-            "pickup": {"label": "Mitcham", "zone": "CR4"},
-            "destination": {"label": "London Bridge", "zone": "SE1"},
+            "pickup": {"label": "Mitcham", "zone": "CR4", "latitude": 51.4036, "longitude": -0.1687},
+            "destination": {"label": "London Bridge", "zone": "SE1", "latitude": 51.5079, "longitude": -0.0877},
             "idempotency_key": "delivery-" + order,
         }
     finally:
@@ -134,7 +134,7 @@ def test_lost_response_same_key_retry_reads_one_committed_booking(delivery):
 def test_changed_payload_same_key_is_rejected_without_extra_booking(delivery):
     first = _create(delivery)
     with pytest.raises(ValueError, match="idempotency_conflict"):
-        _create(delivery, destination={"label": "Brixton", "zone": "SW9"})
+        _create(delivery, destination={"label": "Brixton", "zone": "SW9", "latitude": 51.462, "longitude": -0.115})
     assert _readback(delivery) == ([first["movement_booking_id"]], first["movement_booking_id"])
 
 
