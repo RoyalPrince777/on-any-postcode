@@ -419,9 +419,26 @@ public class MainActivity extends Activity {
             pttMenu();
             return;
         }
-        base(name);
-        body.addView(label("This destination is not connected yet.", 18));
-        addButton("BACK TO OAP HOME", v -> home());
+        // Consolidated V2 navigation: open existing OAP routes rather than
+        // displaying a dead-end placeholder. This does not certify service uptime.
+        final String path;
+        switch (name) {
+            case "OAP WORLD": path = "/world"; break;
+            case "LINK UP": path = "/linkup"; break;
+            case "SIKA": path = "/sika"; break;
+            case "OAP MAPS": path = "/maps"; break;
+            case "OAP MAIL": path = "/mail"; break;
+            case "OAP MARKET": path = "/market"; break;
+            case "OAP TV": path = "/tv"; break;
+            case "OAP ARENA": path = "/arena"; break;
+            case "OAP LIBRARY": path = "/library"; break;
+            default:
+                base(name);
+                body.addView(label("No verified OAP route for this destination.", 18));
+                addButton("BACK TO OAP HOME", v -> home());
+                return;
+        }
+        openInternetAddress(OAP_API_ORIGIN + path);
     }
 
     private void allApps() {
