@@ -6,7 +6,7 @@
         android:label="OAP Home"
         android:theme="@style/Theme.OAPWorld">
         <activity
-            android:name="com.onanypostcode.oapworld.MainActivity"
+            android:name="com.onanypostcode.oapworld.OapHomeActivity"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>
