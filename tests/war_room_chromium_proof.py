@@ -135,8 +135,13 @@ def main() -> None:
             # Actual Chromium loads the production dashboard script. Auth is the
             # local fixture above; this does not attest a production session.
             page.goto(base_url + "/mission/ollama", wait_until="domcontentloaded")
+            expect(page.locator("#smi-dashboard")).to_be_attached()
+            page.get_by_role("button", name="Open SMI signals", exact=True).click()
             expect(page.locator("#smi-dashboard")).to_be_visible()
             expect(page.locator("#smi-refresh")).to_be_visible()
+            page.locator("#smi-refresh").click()
+            expect(page.locator("#smi-monitor-list")).to_contain_text("VPI: N/A", timeout=10000)
+            expect(page.locator("#smi-monitor-list")).to_contain_text("STRUCTURE VALID")
             assert page_errors == [], page_errors
 
             print("WAR_ROOM_CHROMIUM_ACCEPTANCE=PASS")
