@@ -32,6 +32,12 @@ class MeritLadderTests(unittest.TestCase):
                               peer_reviews=reviews, candidate_id="candidate")
         self.assertEqual(result["decision"], "HOLD")
 
+    def test_nonfinite_scores_fail_closed(self):
+        for invalid in (float("nan"), float("inf"), -float("inf")):
+            with self.subTest(value=str(invalid)):
+                with self.assertRaises(ValueError):
+                    assess_merit({**scores(95), "mission_results": invalid})
+
     def test_invalid_scores(self):
         with self.assertRaises(ValueError):
             assess_merit(scores(101))
