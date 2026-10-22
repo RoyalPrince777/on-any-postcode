@@ -90,7 +90,7 @@ def main() -> None:
 
             page = context.new_page()
             page_errors: list[str] = []
-            page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+            page.on("pageerror", lambda exc: page_errors.append(exc.stack or str(exc)))
 
             page.goto(base_url + "/mission/war-room", wait_until="domcontentloaded")
             expect(page.get_by_role("heading", name="WAR ROOM", exact=True)).to_be_visible()

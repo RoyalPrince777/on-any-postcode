@@ -42,6 +42,10 @@ assert.match(elements['smi-monitor-list'].innerHTML, /VPI: N\/A/);
 assert.match(elements['smi-monitor-list'].innerHTML, /STRUCTURE VALID/);
 assert.doesNotMatch(elements['smi-monitor-list'].innerHTML, /PROVEN|Evidence score null/);
 assert.match(elements['smi-next-gate'].innerHTML, /Completion unverified/);
+// The compact status layout intentionally omits this optional legacy card.
+delete elements['smi-next-gate'];
+renderMonitor(null,null,{validation:{passed:true}},null,null,null,[]);
+assert.match(elements['smi-monitor-list'].innerHTML, /VPI: N\/A/);
 (async()=>{
  await context.testFns.refresh();
  assert.deepEqual(delays, [4500,4500,4500,4500,4500,4500]);

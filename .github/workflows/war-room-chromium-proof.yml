@@ -8,6 +8,7 @@ on:
       - "mission_control/war_room.py"
       - "mission_control/war_room_evidence_review.py"
       - "mission_control/static/smi_sovereign_dashboard.js"
+      - "mission_control/static/smi_sovereign_dashboard.css"
       - "mission_control/smi_command_dashboard.py"
       - "mission_control/templates/smi_command_dashboard.html"
       - "mission_control/war_room_simulation_actions.py"
