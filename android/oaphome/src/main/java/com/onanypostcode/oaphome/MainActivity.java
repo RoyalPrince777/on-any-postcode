@@ -219,6 +219,7 @@ public class MainActivity extends Activity {
             android.widget.Toast.makeText(this, "Only standard HTTPS pages allowed", android.widget.Toast.LENGTH_SHORT).show();
             return;
         }
+        pendingInternetAddress = url;
         openInternet();
         if (activeWebView != null) activeWebView.loadUrl(url);
     }
@@ -245,6 +246,7 @@ public class MainActivity extends Activity {
     }
 
     private android.webkit.WebView activeWebView;
+    private String pendingInternetAddress;
 
     boolean safeWebAddress(Uri uri) {
         return uri != null && "https".equalsIgnoreCase(uri.getScheme())
@@ -271,7 +273,8 @@ public class MainActivity extends Activity {
         address.setSingleLine(true);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
         address.setHint("Enter HTTPS website");
-        address.setText("https://www.onanypostcode.com");
+        address.setText(pendingInternetAddress != null ? pendingInternetAddress : "https://www.onanypostcode.com");
+        pendingInternetAddress = null;
         address.setTextColor(Color.WHITE);
         address.setHintTextColor(Color.LTGRAY);
         body.addView(address, new LinearLayout.LayoutParams(-1, dp(56)));
