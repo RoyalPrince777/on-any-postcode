@@ -200,3 +200,35 @@ def test_candidate_name_must_match_registry_passport():
     )
     assert allowed["eligible"] is True
     assert allowed["execution_verified"] is False
+
+
+def test_malformed_passport_fields_fail_closed_without_activation():
+    from oap.smi.protocol_selection import check_mission_candidate_eligibility
+
+    class Registry:
+        def __init__(self, record):
+            self.record = record
+
+        def passport(self, agent_id):
+            return self.record
+
+    valid = {
+        "agent_id": "FOX-001", "name": "Fox", "aliases": [],
+        "status": "ACTIVE", "permissions": ["ANALYSE"],
+        "restrictions": [], "audit_required": True,
+        "family_id": "recovery", "guardian": "Guardian", "memory": {},
+    }
+    for changes in (
+        {"aliases": 777},
+        {"aliases": ["Fox", None]},
+        {"permissions": None},
+        {"restrictions": None},
+        {"memory": None},
+    ):
+        result = check_mission_candidate_eligibility(
+            "FOX-001", Registry({**valid, **changes}), expected_name="Fox"
+        )
+        assert result["eligible"] is False
+        assert result["reason"] == "MALFORMED_PASSPORT"
+        assert result["grants_permissions"] is False
+        assert result["execution_verified"] is False
