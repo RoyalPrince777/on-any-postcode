@@ -9,6 +9,7 @@ remain fail-closed until real sources exist.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 COMPONENTS = (
@@ -90,7 +91,7 @@ def _place_model() -> dict[str, Any]:
 
 
 
-def from_owned_sensor(reading: Mapping[str, Any], *, now: "datetime | None" = None) -> dict[str, Any]:
+def from_owned_sensor(reading: Mapping[str, Any], *, now: datetime | None = None) -> dict[str, Any]:
     """Strict first-party Earth entry point; never accepts external observations.
 
     An unverified sensor reading stays unverified. Existing legacy weather and
