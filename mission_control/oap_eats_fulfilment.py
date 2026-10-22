@@ -53,8 +53,6 @@ def bind_payment(*, order_id: object, customer_identity_id: object, payment_id: 
     )
     return {
         **bound,
-        "payment_status": intent.status,
-        "hold_status": hold.status,
         "payment_captured": False,
         "money_moved_by_eats": False,
     }
@@ -106,6 +104,8 @@ def status() -> dict[str, object]:
         "amount_currency_match_required": True,
         "customer_owned_open_payer_required": True,
         "payer_ownership_rechecked_on_binding": True,
+        "payment_evidence_locked_on_binding": True,
+        "cross_order_payment_reuse_denied": True,
         "movement_delivery_reused": True,
         "movement_booking_idempotency_reused": True,
         "payment_capture_performed": False,

@@ -8,12 +8,12 @@ from __future__ import annotations
 import os
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from threading import Barrier
+from threading import Barrier, Event
 from urllib.parse import urlsplit
 from uuid import uuid4
 
 import pytest
-from psycopg import sql
+from psycopg import errors, sql
 
 from mission_control import (
     movement_operations,
@@ -258,8 +258,7 @@ def test_invalid_state_skip_is_rejected_without_event(delivery):
     assert _order_readback(delivery) == ("authorised", None, None, 0)
 
 
-@pytest.fixture
-def payment(delivery):
+def _seed_payment(delivery):
     account, intent, hold = (str(uuid4()) for _ in range(3))
     with postgres_db.connect() as db:
         db.execute(
@@ -280,6 +279,11 @@ def payment(delivery):
         )
         db.commit()
     return {"account": account, "intent": intent, "hold": hold}
+
+
+@pytest.fixture
+def payment(delivery):
+    return _seed_payment(delivery)
 
 
 def _bind_payment(delivery, payment, **changes):
@@ -368,3 +372,227 @@ def test_payment_write_rechecks_account_after_preflight(delivery, payment, monke
     with pytest.raises(PermissionError, match="order_payment_binding_denied"):
         _bind_payment(delivery, payment)
     assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("statement,key,error", [
+    ("UPDATE oap_sika_payment_intents SET status='CANCELLED' WHERE payment_id=%s", "intent", "payment_intent_not_bindable"),
+    ("UPDATE oap_sika_payment_intents SET amount=1 WHERE payment_id=%s", "intent", "payment_amount_mismatch"),
+    ("UPDATE oap_sika_payment_intents SET currency='USD' WHERE payment_id=%s", "intent", "payment_currency_mismatch"),
+    ("UPDATE oap_sika_payment_intents SET payer_account_id='other' WHERE payment_id=%s", "intent", "payment_payer_binding_changed"),
+    ("DELETE FROM oap_sika_payment_intents WHERE payment_id=%s", "intent", "payment_intent_not_found"),
+    ("UPDATE oap_sika_payment_holds SET status='RELEASED' WHERE hold_id=%s", "hold", "active_payment_hold_required"),
+    ("UPDATE oap_sika_payment_holds SET amount=1 WHERE hold_id=%s", "hold", "payment_amount_mismatch"),
+    ("UPDATE oap_sika_payment_holds SET currency='USD' WHERE hold_id=%s", "hold", "payment_currency_mismatch"),
+    ("UPDATE oap_sika_payment_holds SET payer_account_id='other' WHERE hold_id=%s", "hold", "payment_hold_binding_mismatch"),
+    ("UPDATE oap_sika_payment_holds SET hold_id='replacement' WHERE hold_id=%s", "hold", "payment_hold_binding_mismatch"),
+    ("DELETE FROM oap_sika_payment_holds WHERE hold_id=%s", "hold", "active_payment_hold_required"),
+])
+def test_payment_write_rejects_evidence_changed_after_preflight(
+    delivery, payment, monkeypatch, statement, key, error,
+):
+    original = oap_eats_store.STORE.bind_payment
+
+    def change_then_bind(**kwargs):
+        with postgres_db.connect() as db:
+            db.execute(statement, (payment[key],))
+            db.commit()
+        return original(**kwargs)
+
+    monkeypatch.setattr(oap_eats_store.STORE, "bind_payment", change_then_bind)
+    with pytest.raises(ValueError, match=error):
+        _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+def test_binding_response_uses_locked_intent_status(delivery, payment, monkeypatch):
+    original = oap_eats_store.STORE.bind_payment
+
+    def submit_then_bind(**kwargs):
+        with postgres_db.connect() as db:
+            db.execute("UPDATE oap_sika_payment_intents SET status='SUBMITTED' WHERE payment_id=%s", (payment["intent"],))
+            db.commit()
+        return original(**kwargs)
+
+    monkeypatch.setattr(oap_eats_store.STORE, "bind_payment", submit_then_bind)
+    result = _bind_payment(delivery, payment)
+    assert result["payment_status"] == "SUBMITTED"
+    assert result["payment_captured"] is result["money_moved_by_eats"] is False
+
+
+def _second_order(delivery):
+    order = str(uuid4())
+    with postgres_db.connect() as db:
+        db.execute(
+            """INSERT INTO oap_eats_orders(order_id,customer_identity_id,merchant_id,
+                   state,items,amount_minor,currency,fulfilment_mode,idempotency_key)
+               VALUES (%s,%s,%s,'authorised','[]',1599,'GBP','delivery',%s)""",
+            (order, delivery["customer_identity_id"], delivery["merchant"], "order-" + order),
+        )
+        db.commit()
+    return {**delivery, "order_id": order}
+
+
+@pytest.mark.parametrize("same_order", [True, False])
+def test_payment_retry_or_cross_order_reuse(delivery, payment, same_order):
+    first = _bind_payment(delivery, payment)
+    target = delivery if same_order else _second_order(delivery)
+    if same_order:
+        assert _bind_payment(target, payment) == first
+        assert _order_readback(target) == ("authorised", payment["intent"], payment["hold"], 1)
+    else:
+        with pytest.raises(PermissionError, match="payment_already_bound_to_order"):
+            _bind_payment(target, payment)
+        assert _order_readback(target) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("same_order", [True, False])
+def test_competing_payment_binds_have_one_durable_event(delivery, payment, same_order):
+    target = delivery if same_order else _second_order(delivery)
+    barrier = Barrier(2)
+
+    def worker(order):
+        barrier.wait(timeout=10)
+        try:
+            return _bind_payment(order, payment)["order_id"]
+        except PermissionError as exc:
+            assert str(exc) == "payment_already_bound_to_order"
+            return None
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(worker, [delivery, target]))
+    assert results.count(None) == (0 if same_order else 1)
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_eats_orders WHERE payment_id=%s", (payment["intent"],)).fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM oap_eats_order_events").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("concurrent", [False, True])
+def test_order_cannot_switch_to_another_valid_payment(delivery, payment, concurrent):
+    other = _seed_payment(delivery)
+    barrier = Barrier(2)
+
+    def worker(candidate):
+        if concurrent:
+            barrier.wait(timeout=10)
+        try:
+            return _bind_payment(delivery, candidate)["payment_id"]
+        except PermissionError as exc:
+            assert str(exc) == "order_payment_binding_denied"
+            return None
+
+    if concurrent:
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(worker, [payment, other]))
+    else:
+        results = [worker(payment), worker(other)]
+    winner = next(result for result in results if result is not None)
+    winner_hold = payment["hold"] if winner == payment["intent"] else other["hold"]
+    assert results.count(None) == 1
+    assert _order_readback(delivery) == ("authorised", winner, winner_hold, 1)
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT status FROM oap_sika_payment_intents").fetchall() == [("AUTHORISED",), ("AUTHORISED",)]
+        assert db.execute("SELECT status FROM oap_sika_payment_holds").fetchall() == [("ACTIVE",), ("ACTIVE",)]
+
+
+@pytest.mark.parametrize("field,key", [("payment_id", "intent"), ("payment_hold_id", "hold")])
+def test_existing_partial_binding_blocks_reuse(delivery, payment, field, key):
+    other = _second_order(delivery)
+    with postgres_db.connect() as db:
+        db.execute(
+            sql.SQL("UPDATE oap_eats_orders SET {}=%s WHERE order_id=%s").format(sql.Identifier(field)),
+            (payment[key], other["order_id"]),
+        )
+        db.commit()
+    with pytest.raises(PermissionError, match="payment_already_bound_to_order"):
+        _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("field,key", [("hold_id", "hold"), ("payer_account_id", "account")])
+def test_direct_store_call_cannot_supply_unrelated_evidence(delivery, payment, field, key):
+    args = {"order_id": delivery["order_id"], "customer_identity_id": delivery["customer_identity_id"],
+            "payment_id": payment["intent"], "hold_id": payment["hold"], "payer_account_id": payment["account"]}
+    args[field] = "unrelated-" + payment[key]
+    with pytest.raises((ValueError, PermissionError)):
+        oap_eats_store.STORE.bind_payment(**args)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+
+
+@pytest.mark.parametrize("after_event", [False, True])
+def test_payment_event_failure_rolls_back_binding(delivery, payment, monkeypatch, after_event):
+    connect = postgres_db.connect
+
+    class FailingConnection:
+        def __init__(self, db):
+            self.db = db
+
+        def execute(self, statement, *args):
+            is_event = "INSERT INTO oap_eats_order_events" in str(statement)
+            if is_event and not after_event:
+                raise RuntimeError("injected_payment_event_failure")
+            result = self.db.execute(statement, *args)
+            if is_event:
+                raise RuntimeError("injected_payment_event_failure")
+            return result
+
+        def commit(self):
+            self.db.commit()
+
+    @contextmanager
+    def failing_connect(*, readonly=False):
+        with connect(readonly=readonly) as db:
+            yield db if readonly else FailingConnection(db)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(postgres_db, "connect", failing_connect)
+        with pytest.raises(RuntimeError, match="injected_payment_event_failure"):
+            _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", None, None, 0)
+    _bind_payment(delivery, payment)
+    assert _order_readback(delivery) == ("authorised", payment["intent"], payment["hold"], 1)
+
+
+@pytest.mark.parametrize("statement,key", [
+    ("UPDATE oap_sika_accounts SET status='CLOSED' WHERE account_id=%s", "account"),
+    ("UPDATE oap_sika_payment_intents SET status='CANCELLED' WHERE payment_id=%s", "intent"),
+    ("UPDATE oap_sika_payment_holds SET status='RELEASED' WHERE hold_id=%s", "hold"),
+])
+def test_binding_locks_canonical_evidence_until_commit(delivery, payment, monkeypatch, statement, key):
+    connect = postgres_db.connect
+    locked, release = Event(), Event()
+
+    class PausedConnection:
+        def __init__(self, db):
+            self.db = db
+
+        def execute(self, query, *args):
+            if "UPDATE oap_eats_orders" in str(query):
+                locked.set()
+                assert release.wait(timeout=10)
+            return self.db.execute(query, *args)
+
+        def commit(self):
+            self.db.commit()
+
+    @contextmanager
+    def paused_connect(*, readonly=False):
+        with connect(readonly=readonly) as db:
+            yield db if readonly else PausedConnection(db)
+
+    monkeypatch.setattr(postgres_db, "connect", paused_connect)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(_bind_payment, delivery, payment)
+        try:
+            assert locked.wait(timeout=10)
+            # This is a second real database connection. A competing state
+            # change cannot pass the final checks and precede the binding commit.
+            with pytest.raises(errors.LockNotAvailable), connect() as db:
+                db.execute("SET LOCAL lock_timeout = '250ms'")
+                db.execute(statement, (payment[key],))
+                db.commit()
+        finally:
+            release.set()
+        result = future.result(timeout=10)
+    assert result["payment_status"] == "AUTHORISED"
+    assert result["hold_status"] == "ACTIVE"
+    assert _order_readback(delivery) == ("authorised", payment["intent"], payment["hold"], 1)

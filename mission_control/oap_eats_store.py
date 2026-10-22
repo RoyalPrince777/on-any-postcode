@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 from contextlib import nullcontext
+from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
@@ -210,6 +211,13 @@ class EatsStore:
 
     def bind_payment(self, *, order_id: object, customer_identity_id: object, payment_id: object,
                      hold_id: object, payer_account_id: object) -> dict[str, Any]:
+        """Bind canonical SIKA evidence atomically; never execute a payment.
+
+        Preflight reads are advisory. Lock order is Eats order, payer account,
+        intent, then hold, consistent with SIKA's account-first creation and
+        intent-before-hold lifecycle updates. Serializing on the intent makes
+        the subsequent cross-order lookup see a competing binder's commit.
+        """
         order = _uuid(order_id, "order_id")
         customer = _uuid(customer_identity_id, "customer_identity_id")
         payment = str(payment_id or "").strip()
@@ -218,20 +226,65 @@ class EatsStore:
         if not payment or not hold or not payer:
             raise ValueError("payment_binding_required")
         with postgres_db.connect() as connection:
+            # The lookup after waiting for the intent lock must see the prior
+            # binder's commit, even if the database default is repeatable read.
+            connection.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+            owned = self.require_customer_order(
+                order_id=order, customer_identity_id=customer, connection=connection,
+            )
+            account = connection.execute(
+                """SELECT owner_reference,status,currency FROM oap_sika_accounts
+                   WHERE account_id=%s FOR SHARE""", (payer,),
+            ).fetchone()
+            if account is None or str(account[0]) != customer or str(account[1]) != "OPEN":
+                raise PermissionError("order_payment_binding_denied")
+            intent = connection.execute(
+                """SELECT payer_account_id,amount,currency,status
+                   FROM oap_sika_payment_intents WHERE payment_id=%s FOR UPDATE""",
+                (payment,),
+            ).fetchone()
+            if intent is None:
+                raise ValueError("payment_intent_not_found")
+            if str(intent[0]) != payer:
+                raise ValueError("payment_payer_binding_changed")
+            if str(intent[3]) not in {"AUTHORISED", "SUBMITTED"}:
+                raise ValueError("payment_intent_not_bindable")
+            reservation = connection.execute(
+                """SELECT hold_id,payer_account_id,amount,currency,status
+                   FROM oap_sika_payment_holds WHERE payment_id=%s FOR UPDATE""",
+                (payment,),
+            ).fetchone()
+            if reservation is None or str(reservation[4]) != "ACTIVE":
+                raise ValueError("active_payment_hold_required")
+            if str(reservation[0]) != hold or str(reservation[1]) != payer:
+                raise ValueError("payment_hold_binding_mismatch")
+            expected = Decimal(owned["amount_minor"]) / Decimal(100)
+            if Decimal(intent[1]) != expected or Decimal(reservation[2]) != expected:
+                raise ValueError("payment_amount_mismatch")
+            if any(str(currency) != owned["currency"] for currency in (account[2], intent[2], reservation[3])):
+                raise ValueError("payment_currency_mismatch")
+            reused = connection.execute(
+                """SELECT 1 FROM oap_eats_orders
+                   WHERE order_id<>%s AND (payment_id=%s OR payment_hold_id=%s)
+                   LIMIT 1""", (order, payment, hold),
+            ).fetchone()
+            if reused is not None:
+                raise PermissionError("payment_already_bound_to_order")
+            if owned["payment_id"] == payment and owned["payment_hold_id"] == hold:
+                # A lost-response retry is a read of the existing binding,
+                # without another event or a changed timestamp.
+                connection.commit()
+                return {**owned, "payment_status": str(intent[3]), "hold_status": str(reservation[4])}
             row = connection.execute(
                 """UPDATE oap_eats_orders
                    SET payment_id=%s,payment_hold_id=%s,updated_at=CURRENT_TIMESTAMP
                    WHERE order_id=%s AND customer_identity_id=%s
                      AND (payment_id IS NULL OR payment_id=%s)
                      AND (payment_hold_id IS NULL OR payment_hold_id=%s)
-                     AND EXISTS (
-                         SELECT 1 FROM oap_sika_accounts a
-                         WHERE a.account_id=%s AND a.owner_reference=%s
-                           AND a.status='OPEN' AND a.currency=oap_eats_orders.currency)
                    RETURNING order_id,merchant_id,state,amount_minor,currency,
                              fulfilment_mode,movement_booking_id,payment_id,payment_hold_id,
                              created_at,updated_at""",
-                (payment, hold, order, customer, payment, hold, payer, customer),
+                (payment, hold, order, customer, payment, hold),
             ).fetchone()
             if row is None:
                 raise PermissionError("order_payment_binding_denied")
@@ -241,7 +294,7 @@ class EatsStore:
                 (order, customer, str(row[2]), str(row[2]), json.dumps({"payment_id": payment, "hold_id": hold})),
             )
             connection.commit()
-        return _row(row)
+        return {**_row(row), "payment_status": str(intent[3]), "hold_status": str(reservation[4])}
 
     def require_customer_order(self, *, order_id: object, customer_identity_id: object,
                                connection: Any = None) -> dict[str, Any]:
