@@ -2,7 +2,8 @@
 import unittest
 
 from oap.smi.founder_mirror_777 import (
-    WHOLE_HUMAN_DIMENSIONS, agent_passport_projection, founder_passport,
+    WHOLE_HUMAN_DIMENSIONS, agent_passport_projection, founder_passport, 
+    founder_card_projection, agent_registry_passport_projections,
 )
 
 
@@ -31,6 +32,33 @@ class FounderMirrorPassportTests(unittest.TestCase):
     def test_missing_agent_id_rejected(self):
         with self.assertRaises(ValueError):
             agent_passport_projection({"name": "Invented"})
+
+
+    def test_card_excludes_private_identity_data(self):
+        card = founder_card_projection()
+        self.assertEqual(card["codename"], "N24-7")
+        self.assertEqual(card["whole_human_dimension_count"], 21)
+        self.assertFalse(card["auth_grant"])
+        self.assertNotIn("birth_certificate", card)
+        self.assertNotIn("aliases", card)
+
+    def test_registry_projection_rejects_duplicate_ids(self):
+        agents = [{"agent_id": "NEO-001"}, {"agent_id": "NEO-001"}]
+        with self.assertRaises(ValueError):
+            agent_registry_passport_projections(agents)
+
+    def test_registry_projection_preserves_order_and_does_not_mutate(self):
+        agents = [{"agent_id": "NEO-001"}, {"agent_id": "FOX-001"}]
+        original = [dict(agent) for agent in agents]
+        passports = agent_registry_passport_projections(agents)
+        self.assertEqual([p["agent_id"] for p in passports], ["NEO-001", "FOX-001"])
+        self.assertEqual(agents, original)
+
+    def test_registry_rejects_invalid_entries(self):
+        for agents in (None, {}, [{"name": "Missing"}], ["bad"]):
+            with self.subTest(agents=agents):
+                with self.assertRaises(ValueError):
+                    agent_registry_passport_projections(agents)
 
 
 if __name__ == "__main__":
