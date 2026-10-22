@@ -197,3 +197,15 @@ def test_all_advisory_stages_passed_cannot_claim_release_green():
     assert result["score"] is None
     assert result["release_evidence_verified"] is False
     assert result["human_approval_required"] is True
+
+
+def test_summary_consumers_preserve_unknown_instead_of_converting_to_zero(client, csrf):
+    action_response = client.post(
+        "/mission/war-room/actions/status", json={}, headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert action_response.status_code == 200
+    action = action_response.get_json()["war_room"]
+    command = client.get("/mission/smi/status").get_json()["war_room"]
+    for summary in (command, action):
+        for name in ("overall_evidence_score", "runtime_verified", "operationally_certified"):
+            assert summary[name] is None

@@ -95,6 +95,9 @@ def main() -> None:
             page.goto(base_url + "/mission/war-room", wait_until="domcontentloaded")
             expect(page.get_by_role("heading", name="WAR ROOM", exact=True)).to_be_visible()
             expect(page.get_by_role("heading", name="UI · UX · Buttons · Functions · Proof · Authority")).to_be_visible()
+            expect(page.get_by_text("VPI: N/A", exact=True)).to_be_visible()
+            expect(page.locator('[data-proof-status="not_verified"]')).to_have_count(7)
+            expect(page.get_by_text("Not verified · no star awarded", exact=True)).to_have_count(7)
 
             control_count = page.locator("[data-wr-control-count]")
             function_count = page.locator("[data-wr-function-count]")
@@ -129,6 +132,13 @@ def main() -> None:
             assert page.locator('button[data-proof="isolation-recovery"]').is_visible()
             assert page_errors == [], page_errors
 
+            # Actual Chromium loads the production dashboard script. Auth is the
+            # local fixture above; this does not attest a production session.
+            page.goto(base_url + "/mission/ollama", wait_until="domcontentloaded")
+            expect(page.locator("#smi-dashboard")).to_be_visible()
+            expect(page.locator("#smi-refresh")).to_be_visible()
+            assert page_errors == [], page_errors
+
             print("WAR_ROOM_CHROMIUM_ACCEPTANCE=PASS")
             print("FOUNDER_AUTHENTICATED_ROUTE=PASS")
             print("STATUS_MATRIX_VISIBLE=PASS")
@@ -138,6 +148,8 @@ def main() -> None:
             print("ALIGNMENT_POST_ACTION=PASS")
             print("RECOVERY_CONTROLS_VISIBLE=PASS")
             print("FOUNDER_FINAL_SEPARATE=PASS")
+            print("UNVERIFIED_STARS_AND_VPI=PASS")
+            print("SMI_DASHBOARD_SCRIPT_BOOT=PASS")
             print("PAGE_ERRORS=0")
 
             context.close()
