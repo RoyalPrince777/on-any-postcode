@@ -17,14 +17,20 @@ const elements = {
  'smi-last-refresh': {textContent: ''},
  'smi-next-gate': {innerHTML: ''},
 };
-const context = {window: {}, document: {
+const delays = [];
+const context = {window: {OAP_SMI_UI: {
+ workbenchUrl:'/workbench', healthUrl:'/health', warRoomStatusUrl:'/war',
+ functionHealthUrl:'/functions', greenGateUrl:'/gate', signalsUrl:'/signals',
+}}, AbortController, setTimeout(callback, delay) {delays.push(delay); return 1;},
+ clearTimeout() {}, fetch:async()=>({ok:true,json:async()=>({validation:{passed:true}})}),
+ document: {
  readyState: 'loading', addEventListener() {},
- getElementById(id) {return elements[id] || null;},
+ getElementById(id) {return elements[id] || null;}, querySelectorAll() {return [];},
 }};
 vm.createContext(context);
 let source = fs.readFileSync(process.argv[1], 'utf8');
 // Expose the actual closure functions in this test context only.
-source = source.replace(/\}\)\(\);\s*$/, 'globalThis.testFns={stateClass,renderMonitor};})();');
+source = source.replace(/\}\)\(\);\s*$/, 'globalThis.testFns={stateClass,renderMonitor,refresh};})();');
 vm.runInContext(source, context);
 const {stateClass, renderMonitor} = context.testFns;
 for (const state of ['unavailable','not_ready','not proven','unproven','disconnected','incomplete','unknown', null]) {
@@ -36,6 +42,11 @@ assert.match(elements['smi-monitor-list'].innerHTML, /VPI: N\/A/);
 assert.match(elements['smi-monitor-list'].innerHTML, /STRUCTURE VALID/);
 assert.doesNotMatch(elements['smi-monitor-list'].innerHTML, /PROVEN|Evidence score null/);
 assert.match(elements['smi-next-gate'].innerHTML, /Completion unverified/);
+(async()=>{
+ await context.testFns.refresh();
+ assert.deepEqual(delays, [4500,4500,4500,4500,4500,4500]);
+ assert.match(elements['smi-monitor-list'].innerHTML, /VPI: N\/A/);
+})().catch(error=>{console.error(error);process.exitCode=1;});
 """
     result = subprocess.run(
         ["node", "-e", script, str(DASHBOARD_JS)],
