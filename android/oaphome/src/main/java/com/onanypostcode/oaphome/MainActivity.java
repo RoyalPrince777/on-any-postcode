@@ -293,7 +293,6 @@ public class MainActivity extends Activity {
         settings.setBlockNetworkLoads(false);
         viewer.setWebChromeClient(new OapSecureChromeClient());
         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);
-        viewer.setWebViewClient(new OapSecureWebClient(this));
         TextView loadStatus = label("No page loaded", 12);
         body.addView(loadStatus);
         viewer.setWebViewClient(new OapSecureWebClient(this) {
@@ -306,6 +305,20 @@ public class MainActivity extends Activity {
             @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request,
                     android.webkit.WebResourceError error) {
                 if (request.isForMainFrame()) loadStatus.setText("Page unavailable: " + error.getDescription());
+            }
+        });
+        addButton("OPEN IN SYSTEM BROWSER (INTERACTIVE SITES)", v -> {
+            Uri uri = Uri.parse(address.getText().toString().trim());
+            if (!safeWebAddress(uri)) {
+                android.widget.Toast.makeText(this, "Only standard HTTPS pages allowed", android.widget.Toast.LENGTH_SHORT).show();
+                return;
+            }
+            try {
+                Intent external = new Intent(Intent.ACTION_VIEW, uri);
+                external.addCategory(Intent.CATEGORY_BROWSABLE);
+                startActivity(external);
+            } catch (ActivityNotFoundException error) {
+                loadStatus.setText("No browser installed to open this page.");
             }
         });
         addButton("OPEN HTTPS PAGE", v -> {
