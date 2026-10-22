@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from math import isfinite
 from typing import Any
 
 WEIGHTS = {
@@ -29,7 +30,7 @@ def assess_merit(
     """
     if set(scores) != set(WEIGHTS) or any(
         isinstance(scores[k], bool) or not isinstance(scores[k], (int, float))
-        or not 0 <= scores[k] <= 100 for k in WEIGHTS
+        or not isfinite(scores[k]) or not 0 <= scores[k] <= 100 for k in WEIGHTS
     ):
         raise ValueError("all six bounded merit scores required")
     score = round(sum(float(scores[k]) * WEIGHTS[k] for k in WEIGHTS) / 100, 2)
