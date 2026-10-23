@@ -325,7 +325,7 @@ def status() -> dict[str, object]:
     weather_verified = fresh.get("api.open-meteo.com", False)
     if not _external_weather_allowed():
         weather_verified = False
-    intelligence = weather_intelligence.status(weather_verified)
+    intelligence = weather_intelligence.status(weather_verified, source_mode=("external_live_bootstrap" if _external_weather_allowed() else "strict_oap_owned"))
     return {
         "postcode_provider_verified": postcode_verified,
         "global_provider_verified": global_verified,
