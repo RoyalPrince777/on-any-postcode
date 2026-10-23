@@ -11,6 +11,8 @@
       ? "OAP Pay"
     : location.pathname === "/linkup" || location.pathname.startsWith("/linkup/")
       ? "Link Up"
+    : location.pathname === "/ptt" || location.pathname.startsWith("/ptt/")
+      ? "OAP PTT"
     : location.pathname === "/transport" || location.pathname.startsWith("/transport/")
       ? "OAP Transport"
       : "OAP OS";
