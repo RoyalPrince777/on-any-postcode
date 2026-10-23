@@ -51,3 +51,23 @@ def test_design_metadata_cannot_be_mistaken_for_live_runtime():
     assert status["responsibilities_are_proposals"] is True
     assert status["runtime_completion_percent"] is None
     assert status["execution_enabled"] is False
+
+
+def test_aegis_blocks_constitutional_bypass_before_guardian():
+    from oap.aegis import AegisEngine
+    import inspect
+
+    # Contract check: real AEGIS inspection remains an explicit dependency
+    # of Guardian rather than a capability-name registry permission.
+    assert callable(AegisEngine.inspect)
+    assert "final_authority" in inspect.getsource(AegisEngine.status)
+    assert AegisEngine().status()["final_authority"] is False
+
+
+def test_guardian_requires_aegis_findings_as_explicit_input():
+    import inspect
+    from oap.guardian import GuardianEngine
+
+    signature = inspect.signature(GuardianEngine.protect)
+    assert "aegis_findings" in signature.parameters
+    assert GuardianEngine().status()["final_authority"] is False
