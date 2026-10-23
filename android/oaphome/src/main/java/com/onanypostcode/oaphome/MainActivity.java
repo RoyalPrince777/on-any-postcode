@@ -99,6 +99,9 @@ public class MainActivity extends Activity {
         body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(body);
+        if ("♛ OAP HOME".equals(title)) {
+            addPersistentHomeDock(root);
+        }
     }
 
     private void addButton(String text, View.OnClickListener click) {
@@ -213,9 +216,13 @@ public class MainActivity extends Activity {
         TextView divider = label("────  ON ANY POSTCODE  ────", 13);
         divider.setPadding(0, dp(10), 0, dp(10));
         body.addView(divider);
+        addButton("⚙ SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+    }
+
+    private void addPersistentHomeDock(LinearLayout root) {
         LinearLayout dock = new LinearLayout(this);
         dock.setOrientation(LinearLayout.HORIZONTAL);
-        body.addView(dock, new LinearLayout.LayoutParams(-1, dp(82)));
+        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(82)));
         String[] dockLabels = {"☎\nPhone", "▣\nMessages", "◎\nInternet\nBEGORO-KORADASO", "◉\nCamera", "⌃\nAll Apps"};
         for (int i = 0; i < dockLabels.length; i++) {
             final int index = i;
@@ -232,7 +239,6 @@ public class MainActivity extends Activity {
             lp.setMargins(dp(2), dp(3), dp(2), dp(3));
             dock.addView(item, lp);
         }
-        addButton("⚙ SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
     }
 
     private void openPttApp() {
