@@ -13,6 +13,7 @@ from urllib import request as urlrequest
 
 from . import weather_intelligence
 
+
 # Sovereign default: external weather observations are not admitted.
 # Explicit legacy opt-in is retained only for compatibility during migration.
 def _external_weather_allowed() -> bool:
