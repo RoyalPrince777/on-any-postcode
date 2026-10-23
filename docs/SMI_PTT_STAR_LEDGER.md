@@ -46,3 +46,10 @@ Never mark OAP PTT live-ready solely from signalling, a JavaScript syntax check,
 The canonical scoring unit is **an individual agent's career star**, not a shared mission score. Each agent has an independent cumulative total across missions. A verified, distinct contribution can earn that agent one star even when other agents work on the same mission. A round is only a reporting interval; career totals never reset at round boundaries. Keep per-agent award records with agent registry identity, task, round, evidence link, judging outcomes and referee decision. Do not create a duplicate agent registry or fabricate existing rank totals. The four judges' own contributions require independent review. A mission's sum of awards is reporting only and must not replace individual rankings.
 
 **Existing Round 1–4 entries record zero awarded career stars because no individual awards have passed judging.** A CI pass is evidence, not an automatic award. Ranking integration remains unimplemented and must reuse the existing agent registry.
+
+## Round 8 — achievement proof CI (2026-10-24)
+| Task | Responsible role | Evidence | Status | New stars |
+| --- | --- | --- | --- | ---: |
+| Individual achievement ranking test workflow | Seraph (CI role), Neo (implementation role) | [SMI agent achievement proof #1](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40040348041) for commit `33b8170c08123a622aeaaf6dc24d3d4bcc97dae5`: completed, success | CI verified; independent four-judge award decisions not recorded | 0 |
+
+**Round 8 stars awarded: 0; cumulative official career awards: 0.** Successful CI is an evidence receipt for future agent attribution, not an autonomous agent vote.
