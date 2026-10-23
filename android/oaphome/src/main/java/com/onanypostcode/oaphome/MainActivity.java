@@ -119,6 +119,14 @@ public class MainActivity extends Activity {
         body.addView(clock, new LinearLayout.LayoutParams(-1, dp(64)));
         clockTick.run();
 
+        Button pttQuick = button("🎙 PTT\nSTANDALONE · MIC OFF", v -> pttMenu());
+        pttQuick.setTextSize(16);
+        pttQuick.setGravity(Gravity.CENTER_VERTICAL);
+        pttQuick.setContentDescription("Open standalone PTT. Microphone stays off until you hold the talk control.");
+        LinearLayout.LayoutParams pttQuickLayout = new LinearLayout.LayoutParams(-1, dp(72));
+        pttQuickLayout.setMargins(0, dp(6), 0, dp(8));
+        body.addView(pttQuick, pttQuickLayout);
+
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.HORIZONTAL);
         body.addView(info, new LinearLayout.LayoutParams(-1, dp(94)));
@@ -153,11 +161,17 @@ public class MainActivity extends Activity {
                 String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
                         "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
                 boolean matched = false;
-                for (String name : destinations) {
-                    if (name.equals(normalized) || name.replace("OAP ", "").equals(normalized)) {
-                        destination(name);
-                        matched = true;
-                        break;
+                if ("PTT".equals(normalized) || "PUSH TO TALK".equals(normalized)
+                        || "PUSH-TO-TALK".equals(normalized)) {
+                    pttMenu();
+                    matched = true;
+                } else {
+                    for (String name : destinations) {
+                        if (name.equals(normalized) || name.replace("OAP ", "").equals(normalized)) {
+                            destination(name);
+                            matched = true;
+                            break;
+                        }
                     }
                 }
                 if (!matched) allApps();
@@ -165,10 +179,7 @@ public class MainActivity extends Activity {
             return true;
         });
 
-        // Keep PTT within immediate one-handed reach on the primary Home screen.
-        addButton("🎙 PTT", v -> pttMenu());
-
-        String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
+         String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
                 "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
         String[] icons = {"🌍", "◉", "◈", "⌖", "✉", "▣", "▶", "♟", "▤"};
         String[] captions = {"ONE ECOSYSTEM", "PEOPLE & COMMUNITY", "FINANCE & OPPORTUNITY",
