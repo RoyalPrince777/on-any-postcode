@@ -1,7 +1,7 @@
 """Universal SMI growth records remain advisory and fail closed."""
-import pytest
-
 from oap.smi.universal_intelligence import PROTOCOL, advisory_growth_record
+
+import pytest
 
 
 EVIDENCE = {"source": "review", "reference": "case-1", "observation": "observed"}
