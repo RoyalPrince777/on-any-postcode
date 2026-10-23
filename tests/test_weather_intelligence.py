@@ -84,6 +84,7 @@ def test_missing_weather_field_only_affects_its_own_signal():
 
 
 def test_invalid_weather_payload_revokes_transport_success(monkeypatch):
+    monkeypatch.setenv("OAP_WEATHER_SOURCE_MODE", "external_live_bootstrap")
     monkeypatch.setattr(location_intelligence, "_CACHE", {})
     monkeypatch.setattr(
         location_intelligence, "_PROVIDER_SUCCESS", {"api.open-meteo.com": 123.0}
@@ -103,6 +104,7 @@ def test_invalid_weather_payload_revokes_transport_success(monkeypatch):
 
 
 def test_invalid_weather_payload_missing_time_revokes_transport_success(monkeypatch):
+    monkeypatch.setenv("OAP_WEATHER_SOURCE_MODE", "external_live_bootstrap")
     monkeypatch.setattr(location_intelligence, "_CACHE", {})
     monkeypatch.setattr(
         location_intelligence, "_PROVIDER_SUCCESS", {"api.open-meteo.com": 123.0}
@@ -121,6 +123,7 @@ def test_invalid_weather_payload_missing_time_revokes_transport_success(monkeypa
 
 
 def test_unknown_weather_code_revokes_live_weather_truth(monkeypatch):
+    monkeypatch.setenv("OAP_WEATHER_SOURCE_MODE", "external_live_bootstrap")
     monkeypatch.setattr(location_intelligence, "_CACHE", {})
     monkeypatch.setattr(location_intelligence, "_PROVIDER_SUCCESS", {})
     monkeypatch.setattr(location_intelligence, "_PROVIDER_ERROR", {})
