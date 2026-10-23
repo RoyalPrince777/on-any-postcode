@@ -27,6 +27,10 @@ class StrictWeatherRoutingTests(unittest.TestCase):
         self.assertFalse(status["weather_provider_verified"])
         self.assertFalse(status["strict_oap_owned_observation_ready"])
         self.assertFalse(status["ready"])
+        self.assertEqual(status["weather_intelligence"]["source_mode"], "strict_oap_owned")
+        self.assertFalse(status["weather_intelligence"]["ready"])
+        self.assertFalse(status["weather_intelligence"]["live_observation_verified"])
+        self.assertFalse(status["weather_intelligence"]["external_dependency_present"])
 
 
 if __name__ == "__main__":
