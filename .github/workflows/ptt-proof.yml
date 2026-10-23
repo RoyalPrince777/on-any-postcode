@@ -1,0 +1,54 @@
+name: OAP PTT proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'mission_control/ptt_guest.py'
+      - 'mission_control/ptt_routes.py'
+      - 'mission_control/link_voice.py'
+      - 'mission_control/link_voice_routes.py'
+      - 'mission_control/oap_store.py'
+      - 'mission_control/templates/ptt.html'
+      - 'static/ptt_guest.js'
+      - 'static/ptt_room.js'
+      - 'static/linkup_voice.js'
+      - 'tests/test_ptt_guest.py'
+      - 'tests/test_ptt_standalone.py'
+      - 'tests/test_link_voice.py'
+      - 'tests/test_link_voice_ui.py'
+      - 'tests/test_oap_store_install.py'
+      - '.github/workflows/ptt-proof.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ptt-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install PTT test dependencies
+        run: python -m pip install -r requirements.txt pytest ruff
+      - name: Compile PTT Python
+        run: |
+          python -m py_compile             mission_control/ptt_guest.py             mission_control/ptt_routes.py             mission_control/link_voice.py             mission_control/link_voice_routes.py             mission_control/oap_store.py
+      - name: Validate PTT browser JavaScript
+        run: |
+          node --check static/ptt_guest.js
+          node --check static/ptt_room.js
+          node --check static/linkup_voice.js
+      - name: Lint PTT implementation
+        run: |
+          ruff check             mission_control/ptt_guest.py             mission_control/ptt_routes.py             mission_control/link_voice.py             mission_control/link_voice_routes.py             tests/test_ptt_guest.py             tests/test_ptt_standalone.py             tests/test_link_voice.py
+      - name: Run complete PTT regression slice
+        run: |
+          pytest -q             tests/test_ptt_guest.py             tests/test_ptt_standalone.py             tests/test_link_voice.py             tests/test_link_voice_ui.py             tests/test_oap_store_install.py
