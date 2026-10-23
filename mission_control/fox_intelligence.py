@@ -92,3 +92,43 @@ def assess_foxy_mission(**kwargs: Any) -> dict[str, Any]:
     """Give FOXY an independent advisory record using the existing proof gates."""
     record = assess_mission(**kwargs)
     return {**record, "agent": "Foxy"}
+
+
+
+def assess_fox_routes(*, routes: list[Mapping[str, Any]],
+                      blocked_route_names: list[str] | None = None) -> dict[str, Any]:
+    """FOX-only route discovery assessment over supplied candidate routes.
+
+    This does not fetch map data, calculate road geometry, or dispatch travel.
+    Unknown or blocked routes never become recommendations.
+    """
+    blocked = blocked_route_names if blocked_route_names is not None else []
+    if any(not isinstance(name, str) or not name.strip() for name in blocked):
+        raise ValueError("blocked route names must be non-empty strings")
+    if len(set(blocked)) != len(blocked):
+        raise ValueError("duplicate blocked route")
+    if not isinstance(routes, list):
+        raise TypeError("routes must be a list")
+    names: set[str] = set()
+    eligible = []
+    for route in routes:
+        if not isinstance(route, Mapping):
+            raise TypeError("route must be a mapping")
+        name = route.get("name")
+        if not isinstance(name, str) or not name.strip() or name in names:
+            raise ValueError("route names must be unique non-empty strings")
+        names.add(name)
+        if name in blocked:
+            continue
+        eligible.append(route)
+    ranked = rank_alternatives(eligible)
+    return {
+        "agent": "Fox", "specialism": "route_reconnaissance",
+        "mode": "advisory", "founder_final": True,
+        "guardian_review_required": True, "production_gate": "blocked",
+        "route_data_verified": False,
+        "alternatives": ranked,
+        "recommended": ranked[0]["name"] if ranked else None,
+        "blocked_routes": sorted(set(blocked).intersection(names)),
+        "missing": ["verified_route_source", "live_navigation_proof"],
+    }
