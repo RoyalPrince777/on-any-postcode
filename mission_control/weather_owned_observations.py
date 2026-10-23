@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 MAX_AGE_SECONDS = 300
@@ -42,14 +42,14 @@ def admit_owned_observation(
         raise ValueError("external_source_rejected")
     timestamp = payload.get("observed_at")
     if not isinstance(timestamp, str):
-        raise ValueError("observation_timestamp_required")
+        raise TypeError("observation_timestamp_required")
     try:
-        observed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        observed = datetime.fromisoformat(timestamp)
     except ValueError as exc:
         raise ValueError("invalid_observation_timestamp") from exc
     if observed.tzinfo is None:
         raise ValueError("timezone_required")
-    current = now or datetime.now(timezone.utc)
+    current = now or datetime.now(UTC)
     age = (current - observed).total_seconds()
     if not 0 <= age <= MAX_AGE_SECONDS:
         raise ValueError("stale_or_future_observation")
