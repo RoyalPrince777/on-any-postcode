@@ -16,7 +16,7 @@ from flask import (
     session,
 )
 
-from . import link_relationships, product_store, ptt_guest, web_security
+from . import link_relationships, product_store, ptt_guest, ptt_signalling, web_security
 
 bp = Blueprint("ptt_ui", __name__, template_folder="templates")
 
@@ -253,6 +253,39 @@ def leave_room():
 def contacts_api():
     identity_id = web_security.authenticated_identity()
     return _no_store(make_response(jsonify(contacts=_accepted_contacts(identity_id))))
+
+
+@bp.post("/ptt/live/signal")
+def send_live_signal():
+    identity = _guest_identity()
+    if not identity:
+        return _no_store(make_response(jsonify(error={"code": "ptt_pair_required"}), 403))
+    guard = _mutation_guard(f"ptt-signal:{identity}")
+    if guard:
+        return guard
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _no_store(make_response(jsonify(error={"code": "invalid_signal"}), 400))
+    try:
+        signal_id = ptt_signalling.send(identity, data.get("kind"), data.get("payload"))
+        return _no_store(make_response(jsonify(id=signal_id), 202))
+    except ValueError as exc:
+        return _no_store(make_response(jsonify(error={"code": str(exc)}), 400))
+    except (ptt_guest.PttGuestUnavailable, Exception):
+        return _no_store(make_response(jsonify(error={"code": "signalling_unavailable"}), 503))
+
+
+@bp.get("/ptt/live/signals")
+def receive_live_signals():
+    identity = _guest_identity()
+    if not identity:
+        return _no_store(make_response(jsonify(error={"code": "ptt_pair_required"}), 403))
+    try:
+        return _no_store(make_response(jsonify(signals=ptt_signalling.receive(identity)), 200))
+    except ValueError as exc:
+        return _no_store(make_response(jsonify(error={"code": str(exc)}), 403))
+    except (ptt_guest.PttGuestUnavailable, Exception):
+        return _no_store(make_response(jsonify(error={"code": "signalling_unavailable"}), 503))
 
 
 @bp.get("/ptt/live/status")
