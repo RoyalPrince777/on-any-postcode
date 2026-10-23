@@ -2,6 +2,7 @@
 import os
 import unittest
 from unittest.mock import patch
+
 from mission_control import location_intelligence
 
 
