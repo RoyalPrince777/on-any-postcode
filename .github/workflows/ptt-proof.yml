@@ -1,6 +1,16 @@
 name: OAP PTT proof
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/ptt-proof.yml'
+      - 'mission_control/ptt_*.py'
+      - 'mission_control/oap_store.py'
+      - 'static/ptt_*.js'
+      - 'mission_control/templates/ptt.html'
+      - 'migrations/0013_ptt_webrtc_signals.sql'
+      - 'tests/test_ptt_*.py'
+      - 'tests/test_oap_store_install.py'
   workflow_dispatch:
   push:
     branches: [main]
