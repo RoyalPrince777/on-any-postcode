@@ -34,3 +34,10 @@ Never mark OAP PTT live-ready solely from signalling, a JavaScript syntax check,
 | Restore Connect button after session close | Neo (implementation role), Fox (investigation role) | Commit `853f6003c3a13463e50cc8177dc673886ede20f3` changes `static/ptt_live.js` | Committed, CI and behavioural proof pending | 0 |
 
 **Round 2 stars: 0. Cumulative stars: 0.** Judges have not issued independent, evidenced approvals. This commit does not establish TURN, two-phone audio or production readiness.
+
+## Round 4 — governed CI completion (2026-10-24)
+| Task | Responsible role | Evidence | Status | New stars |
+| --- | --- | --- | --- | ---: |
+| Governed CI completion | Seraph (CI role), Captain ALL IN (record) | [GitHub Actions run #6778](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40035070429) for commit `0cf49a439972404b8b6b82a779899fab40e89878`: `completed`, `success` | Verified workflow conclusion; four independent judging criteria and PTT behavioural proof pending | 0 |
+
+**Round 4 stars: 0. Cumulative awarded stars: 0.** This workflow success does not certify physical-device audio, HOLD/STOP behaviour or deployment.
