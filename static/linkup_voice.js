@@ -260,6 +260,9 @@
     }
   };
 
+  let pendingPttControl = null;
+  let pendingPttRelease = false;
+
   const startRecording = async (control, kind = "voice") => {
     const transportReady = kind === "ptt" ? state.pttReady : state.ready;
     if (!transportReady || state.current || !browserReady()) {
@@ -271,6 +274,11 @@
       return;
     }
 
+    if (kind === "ptt") {
+      if (pendingPttControl) return;
+      pendingPttControl = control;
+      pendingPttRelease = false;
+    }
     let stream = null;
     try {
       const mimeType = preferredMime();
@@ -317,6 +325,14 @@
 
       state.current = { peerId, recorder, stream, chunks, startedAt, cancelled: false, kind };
       recorder.start(1000);
+      if (kind === "ptt") {
+        pendingPttControl = null;
+        if (pendingPttRelease) {
+          pendingPttRelease = false;
+          finishRecording();
+          return;
+        }
+      }
       state.autoStopTimer = window.setTimeout(finishRecording, state.maxDurationMs);
       setStatus(
         kind === "ptt"
@@ -325,6 +341,10 @@
       );
       refreshControls();
     } catch (error) {
+      if (kind === "ptt") {
+        pendingPttControl = null;
+        pendingPttRelease = false;
+      }
       stopTracks(stream);
       state.current = null;
       refreshControls();
@@ -352,6 +372,10 @@
       }
     });
     const finish = () => {
+      if (pendingPttControl === control) {
+        pendingPttRelease = true;
+        return;
+      }
       if (state.current && state.current.kind === "ptt" && state.current.peerId === recipientFor(control)) {
         finishRecording();
       }
