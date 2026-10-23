@@ -31,3 +31,25 @@ def test_country_room_continent_and_privacy(country, continent):
 def test_unknown_country_fails_closed():
     with pytest.raises(ValueError, match="unknown_country"):
         country_room_contract("Unknown Neverland")
+
+
+@pytest.mark.parametrize("country,continent,legacy", [
+    ("Ghana", "africa", "Africa"),
+    ("United Kingdom", "europe", "Europe"),
+    ("Barbados", "north-america", "Caribbean"),
+])
+def test_existing_country_reference_only_populates_known_fields(country, continent, legacy):
+    from mission_control.country_room_identity import country_room_reference
+    reference = country_room_reference(country)
+    assert reference["continent"] == continent
+    assert reference["legacy_region"] == legacy
+    assert reference["source_backed_fields"] == ("country", "continent", "legacy_region")
+    assert "passport_reference" in reference["unverified_fields"]
+    assert "nationality_demonym" in reference["unverified_fields"]
+    assert reference["country_room_route_published"] is False
+
+
+def test_country_reference_unknown_fails_closed():
+    from mission_control.country_room_identity import country_room_reference
+    with pytest.raises(ValueError, match="unknown_country"):
+        country_room_reference("Unknown Neverland")
