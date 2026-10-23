@@ -476,3 +476,158 @@ def test_guest_ptt_history_and_media_use_current_pair(anonymous_client, monkeypa
     assert response.data == media
     assert response.headers["Content-Type"] == "audio/webm"
     assert response.headers["X-OAP-Content-SHA256"] == digest
+
+
+def test_room_ptt_fans_out_only_to_current_members(anonymous_client, monkeypatch):
+    identity = str(uuid.uuid4())
+    peer_a = str(uuid.uuid4())
+    peer_b = str(uuid.uuid4())
+    owner = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session["oap_ptt_room_identity_id"] = identity
+        current_session["oap_ptt_room_owner_id"] = owner
+        current_session[link_voice_routes.web_security.CSRF_SESSION_KEY] = (
+            "ptt-room-csrf-token-value-1234567890"
+        )
+
+    monkeypatch.setattr(
+        link_voice_routes.ptt_guest,
+        "room_state",
+        lambda who, room_owner: {
+            "active": True,
+            "identity_id": who,
+            "owner_id": room_owner,
+            "member_ids": [identity, peer_a, peer_b],
+            "member_count": 3,
+        },
+    )
+    monkeypatch.setattr(
+        link_voice_routes.link_voice,
+        "status",
+        lambda: {"ptt_ready": True},
+    )
+    observed = []
+
+    def create_voice(sender, recipient, **kwargs):
+        observed.append((sender, recipient, kwargs))
+        return {
+            "voice_id": str(uuid.uuid4()),
+            "kind": "ptt",
+            "byte_size": len(kwargs["media"]),
+        }
+
+    monkeypatch.setattr(link_voice_routes.link_voice, "create_voice", create_voice)
+
+    response = anonymous_client.post(
+        "/ptt/room",
+        data={
+            "duration_ms": "500",
+            "voice": (io.BytesIO(_webm()), "room.webm", "audio/webm"),
+        },
+        headers={"X-OAP-CSRF": "ptt-room-csrf-token-value-1234567890"},
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 201
+    assert response.get_json()["delivered"] == 2
+    assert {recipient for _sender, recipient, _kwargs in observed} == {peer_a, peer_b}
+    assert all(sender == identity for sender, _recipient, _kwargs in observed)
+    assert all(kwargs["kind"] == "ptt" for _sender, _recipient, kwargs in observed)
+
+
+def test_room_ptt_history_merges_received_and_dedupes_sent_per_peer(anonymous_client, monkeypatch):
+    identity = str(uuid.uuid4())
+    peer_a = str(uuid.uuid4())
+    peer_b = str(uuid.uuid4())
+    owner = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session["oap_ptt_room_identity_id"] = identity
+        current_session["oap_ptt_room_owner_id"] = owner
+
+    monkeypatch.setattr(
+        link_voice_routes.ptt_guest,
+        "room_state",
+        lambda who, room_owner: {
+            "active": True,
+            "identity_id": who,
+            "owner_id": room_owner,
+            "member_ids": [identity, peer_a, peer_b],
+            "member_count": 3,
+        },
+    )
+
+    sent_id = str(uuid.uuid4())
+    received_a = str(uuid.uuid4())
+    received_b = str(uuid.uuid4())
+
+    def list_voice(who, peer):
+        if peer == peer_a:
+            return [
+                {
+                    "voice_id": received_a,
+                    "direction": "received",
+                    "kind": "ptt",
+                    "created_at": "2026-10-23T11:00:00+00:00",
+                },
+                {
+                    "voice_id": sent_id,
+                    "direction": "sent",
+                    "kind": "ptt",
+                    "created_at": "2026-10-23T10:59:00+00:00",
+                },
+            ]
+        return [
+            {
+                "voice_id": received_b,
+                "direction": "received",
+                "kind": "ptt",
+                "created_at": "2026-10-23T11:01:00+00:00",
+            },
+            {
+                "voice_id": str(uuid.uuid4()),
+                "direction": "sent",
+                "kind": "ptt",
+                "created_at": "2026-10-23T10:59:00+00:00",
+            },
+        ]
+
+    monkeypatch.setattr(link_voice_routes.link_voice, "list_voice", list_voice)
+
+    response = anonymous_client.get("/ptt/room/voice")
+    assert response.status_code == 200
+    voices = response.get_json()["voices"]
+    assert [voice["voice_id"] for voice in voices] == [received_b, received_a, sent_id]
+    assert {voice["peer_id"] for voice in voices} <= {peer_a, peer_b}
+
+
+def test_room_ptt_media_rejects_peer_outside_room(anonymous_client, monkeypatch):
+    identity = str(uuid.uuid4())
+    owner = str(uuid.uuid4())
+    allowed_peer = str(uuid.uuid4())
+    outsider = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session["oap_ptt_room_identity_id"] = identity
+        current_session["oap_ptt_room_owner_id"] = owner
+
+    monkeypatch.setattr(
+        link_voice_routes.ptt_guest,
+        "room_state",
+        lambda who, room_owner: {
+            "active": True,
+            "identity_id": who,
+            "owner_id": room_owner,
+            "member_ids": [identity, allowed_peer],
+            "member_count": 2,
+        },
+    )
+    monkeypatch.setattr(
+        link_voice_routes.link_voice,
+        "read_voice",
+        lambda *args, **kwargs: pytest.fail("outsider media must not be read"),
+    )
+
+    response = anonymous_client.get(
+        f"/ptt/room/voice/{uuid.uuid4()}/media?peer_id={outsider}"
+    )
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "ptt_room_peer_required"
