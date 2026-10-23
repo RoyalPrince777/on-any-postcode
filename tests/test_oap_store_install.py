@@ -283,3 +283,27 @@ def test_spot_apps_uses_existing_governed_store(client):
     assert 'href="/world"' in store_html
     assert 'Install OAP World' in store_html
     assert 'signed native Android APK' in store_html
+
+
+def test_connect4_is_oap_store_only_and_not_installable_without_proof(client):
+    apps = {app["app_id"]: app for app in oap_store.catalogue()}
+    connect4 = apps["oap.arena.connect4"]
+    assert connect4["publisher"] == "ON ANY POSTCODE LTD"
+    assert connect4["distribution"] == "OAP Store"
+    assert connect4["first_party"] is True
+    assert connect4["open_url"] == "/arena/connect4"
+    assert connect4["release_state"] == "open_ready"
+    assert connect4["install_enabled"] is False
+    assert connect4["install_url"] is None
+    assert connect4["manifest_url"] is None
+    assert connect4["native_apk"] is False
+    assert connect4["native_package_available"] is False
+    assert connect4["physical_device_certified"] is False
+
+    response = client.get("/oap-store/apps/oap.arena.connect4")
+    assert response.status_code == 200
+    assert response.get_json()["install_enabled"] is False
+    body = client.get("/store").get_data(as_text=True)
+    assert 'data-oap-store-app="oap.arena.connect4"' in body
+    assert "Open OAP Connect 4" in body
+    assert "Install OAP Connect 4" not in body
