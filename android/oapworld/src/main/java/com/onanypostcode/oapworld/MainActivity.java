@@ -155,6 +155,18 @@ public final class MainActivity extends ComponentActivity {
                 0,
                 1f
         ));
+
+        // Persistent one-tap destinations: reachable even on long OAP pages.
+        LinearLayout quickNavigation = new LinearLayout(this);
+        quickNavigation.setOrientation(LinearLayout.HORIZONTAL);
+        quickNavigation.setBackgroundColor(Color.rgb(11, 23, 16));
+        addQuickDestination(quickNavigation, "World", "/world");
+        addQuickDestination(quickNavigation, "Store", "/store");
+        addQuickDestination(quickNavigation, "PTT", "/ptt");
+        root.addView(quickNavigation, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
         setContentView(root);
 
         WebSettings settings = webView.getSettings();
@@ -256,6 +268,22 @@ public final class MainActivity extends ComponentActivity {
         button.setMinWidth(0);
         button.setMinimumWidth(0);
         return button;
+    }
+
+    private void addQuickDestination(LinearLayout bar, String label, String path) {
+        Button destination = navButton(label);
+        destination.setContentDescription("Open OAP " + label);
+        destination.setMinHeight((int) (48 * getResources().getDisplayMetrics().density));
+        destination.setOnClickListener(view -> {
+            if (engineActive && path.equals(engineSourcePath)) {
+                engineScrollView.smoothScrollTo(0, 0);
+                return;
+            }
+            openFirstPartyPath(path);
+        });
+        bar.addView(destination, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
+        ));
     }
 
     private void navigate(String rawInput) {
