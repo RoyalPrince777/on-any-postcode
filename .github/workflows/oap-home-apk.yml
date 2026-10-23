@@ -53,12 +53,14 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           source = Path("android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java").read_text()
-          ptt = 'Button pttQuick = button("🎙 PTT\\nSTANDALONE · MIC OFF", v -> pttMenu());'
+          ptt = 'Button pttQuick = button("🎙 PTT\\nSTANDALONE · MIC OFF", v -> openPttApp());'
           info = 'LinearLayout info = new LinearLayout(this);'
           assert source.count(ptt) == 1, "PTT quick action must appear exactly once"
           assert source.index(ptt) < source.index(info), "PTT must stay above info tiles for immediate reach"
           assert '"PTT".equals(normalized)' in source, "Home search must route PTT directly"
           assert '"PUSH TO TALK".equals(normalized)' in source, "Home search must recognise Push to Talk"
+          assert 'private void openPttApp()' in source, "OAP Home must expose the standalone PTT launch helper"
+          assert 'new Intent(Intent.ACTION_VIEW, uri)' in source, "PTT must launch through Android app/browser routing"
           store = 'Button storeQuick = button("▣ OAP STORE\\nINSTALL OAP APPS", v -> destination("OAP STORE"));'
           assert source.count(store) == 1, "OAP Store quick action must appear exactly once"
           assert 'case "OAP STORE": path = "/store"; break;' in source, "OAP Home must route directly to OAP Store"
