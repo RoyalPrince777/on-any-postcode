@@ -240,3 +240,97 @@ def test_standalone_ptt_browser_runtime_uses_ptt_readiness_and_guest_endpoints()
     assert 'const listEndpoint = standalonePtt ? "/ptt/voice" : "/linkup/voice";' in source
     assert 'const mediaBase = standalonePtt ? "/ptt/voice" : "/linkup/voice";' in source
     assert 'window.setInterval(() => renderVoiceList(peerId), 2000);' in source
+
+
+def test_anonymous_ptt_can_create_and_join_room(anonymous_client, monkeypatch):
+    from mission_control import ptt_routes
+
+    owner = str(uuid.uuid4())
+    member = str(uuid.uuid4())
+    monkeypatch.setattr(
+        ptt_routes.ptt_guest,
+        "create_room",
+        lambda: {
+            "identity_id": owner,
+            "owner_id": owner,
+            "code": "87654321",
+            "expires_at": "2099-01-01T00:00:00+00:00",
+        },
+    )
+    token = _csrf_for(anonymous_client)
+    created = anonymous_client.post(
+        "/ptt/room/create",
+        json={},
+        headers={"X-OAP-CSRF": token},
+    )
+    assert created.status_code == 201
+    assert created.get_json()["code"] == "87654321"
+
+    monkeypatch.setattr(
+        ptt_routes.ptt_guest,
+        "join_room",
+        lambda code, existing: {
+            "active": True,
+            "identity_id": member,
+            "owner_id": owner,
+            "member_ids": [owner, member],
+            "member_count": 2,
+            "expires_at": "2099-01-01T00:00:00+00:00",
+        },
+    )
+    joined = anonymous_client.post(
+        "/ptt/room/join",
+        json={"code": "87654321"},
+        headers={"X-OAP-CSRF": token},
+    )
+    assert joined.status_code == 200
+    assert joined.get_json()["member_count"] == 2
+    with anonymous_client.session_transaction() as current_session:
+        assert current_session[ptt_routes.PTT_ROOM_ID_KEY] == member
+        assert current_session[ptt_routes.PTT_ROOM_OWNER_KEY] == owner
+
+
+def test_room_host_sees_share_code_until_second_member_joins(anonymous_client, monkeypatch):
+    from mission_control import ptt_routes
+
+    owner = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session[ptt_routes.PTT_ROOM_ID_KEY] = owner
+        current_session[ptt_routes.PTT_ROOM_OWNER_KEY] = owner
+        current_session[ptt_routes.PTT_ROOM_CODE_KEY] = "87654321"
+
+    monkeypatch.setattr(
+        ptt_routes.ptt_guest,
+        "room_state",
+        lambda identity, room_owner: {
+            "active": True,
+            "identity_id": identity,
+            "owner_id": room_owner,
+            "member_ids": [owner],
+            "member_count": 1,
+        },
+    )
+
+    response = anonymous_client.get("/ptt")
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Your Room code" in body
+    assert "87654321" in body
+    assert "Waiting for Room members" in body
+
+
+def test_room_ui_exposes_all_declared_ptt_surfaces(anonymous_client):
+    body = anonymous_client.get("/ptt").get_data(as_text=True)
+    for label in ("Connect another phone", "Rooms", "Incoming", "History", "Settings"):
+        assert label in body
+    assert 'src="/static/ptt_room.js"' in body
+
+
+def test_room_browser_runtime_has_hold_release_incoming_and_cleanup():
+    source = _read("static/ptt_room.js")
+    assert 'roomControl.addEventListener("pointerdown", start);' in source
+    assert 'roomControl.addEventListener("pointerup", finish);' in source
+    assert 'fetch("/ptt/room"' in source
+    assert 'apiJson("/ptt/room/voice")' in source
+    assert 'window.setInterval(renderHistory, 2000);' in source
+    assert 'window.addEventListener("pagehide"' in source
