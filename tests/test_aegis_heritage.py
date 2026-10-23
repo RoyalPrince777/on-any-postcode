@@ -54,8 +54,9 @@ def test_design_metadata_cannot_be_mistaken_for_live_runtime():
 
 
 def test_aegis_blocks_constitutional_bypass_before_guardian():
-    from oap.aegis import AegisEngine
     import inspect
+
+    from oap.aegis import AegisEngine
 
     # Contract check: real AEGIS inspection remains an explicit dependency
     # of Guardian rather than a capability-name registry permission.
@@ -66,6 +67,7 @@ def test_aegis_blocks_constitutional_bypass_before_guardian():
 
 def test_guardian_requires_aegis_findings_as_explicit_input():
     import inspect
+
     from oap.guardian import GuardianEngine
 
     signature = inspect.signature(GuardianEngine.protect)
