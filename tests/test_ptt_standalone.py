@@ -232,3 +232,11 @@ def test_ptt_guest_ui_exposes_talk_history_and_disconnect(monkeypatch, anonymous
     assert "HOLD TO TALK" in body
     assert 'data-oap-voice-list' in body
     assert 'action="/ptt/pair/stop"' in body
+
+
+def test_standalone_ptt_browser_runtime_uses_ptt_readiness_and_guest_endpoints():
+    source = _read("static/linkup_voice.js")
+    assert 'const transportReady = kind === "ptt" ? state.pttReady : state.ready;' in source
+    assert 'const listEndpoint = standalonePtt ? "/ptt/voice" : "/linkup/voice";' in source
+    assert 'const mediaBase = standalonePtt ? "/ptt/voice" : "/linkup/voice";' in source
+    assert 'window.setInterval(() => renderVoiceList(peerId), 2000);' in source
