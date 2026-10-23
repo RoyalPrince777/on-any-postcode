@@ -124,8 +124,16 @@ public class MainActivity extends Activity {
         pttQuick.setGravity(Gravity.CENTER_VERTICAL);
         pttQuick.setContentDescription("Open standalone PTT. Microphone stays off until you hold the talk control.");
         LinearLayout.LayoutParams pttQuickLayout = new LinearLayout.LayoutParams(-1, dp(72));
-        pttQuickLayout.setMargins(0, dp(6), 0, dp(8));
+        pttQuickLayout.setMargins(0, dp(6), 0, dp(4));
         body.addView(pttQuick, pttQuickLayout);
+
+        Button storeQuick = button("▣ OAP STORE\nINSTALL OAP APPS", v -> destination("OAP STORE"));
+        storeQuick.setTextSize(14);
+        storeQuick.setGravity(Gravity.CENTER_VERTICAL);
+        storeQuick.setContentDescription("Open OAP Store to install first-party OAP apps into the phone and OAP Home app list.");
+        LinearLayout.LayoutParams storeQuickLayout = new LinearLayout.LayoutParams(-1, dp(64));
+        storeQuickLayout.setMargins(0, dp(4), 0, dp(8));
+        body.addView(storeQuick, storeQuickLayout);
 
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.HORIZONTAL);
@@ -158,7 +166,7 @@ public class MainActivity extends Activity {
                 android.widget.Toast.makeText(this, "Only HTTPS addresses allowed", android.widget.Toast.LENGTH_SHORT).show();
             } else {
                 String normalized = query.toUpperCase(java.util.Locale.ROOT);
-                String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
+                String[] destinations = {"OAP WORLD", "OAP STORE", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
                         "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
                 boolean matched = false;
                 if ("PTT".equals(normalized) || "PUSH TO TALK".equals(normalized)
@@ -467,6 +475,7 @@ public class MainActivity extends Activity {
         final String path;
         switch (name) {
             case "OAP WORLD": path = "/world"; break;
+            case "OAP STORE": path = "/store"; break;
             case "LINK UP": path = "/linkup"; break;
             case "SIKA": path = "/sika"; break;
             case "OAP MAPS": path = "/maps"; break;
