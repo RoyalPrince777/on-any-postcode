@@ -659,6 +659,11 @@ def root_front_door():
     return redirect("/world", code=302)
 
 
+@app.get("/home-v2")
+def oap_home_v2():
+    return render_template("home_v2.html")
+
+
 @app.get("/world")
 def home():
     if request.args.get("source") == "oap-os":
