@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, make_response, request, session
 
-from . import link_share, link_voice, web_security
+from . import link_share, link_voice, ptt_guest, web_security
 
 bp = Blueprint("link_voice", __name__)
 
@@ -25,6 +25,24 @@ def _error(code: str, status_code: int):
 
 def _identity() -> str:
     return web_security.authenticated_identity()
+
+
+def _guest_identity() -> str:
+    value = session.get("oap_ptt_guest_id")
+    if not value:
+        raise ValueError("ptt_pair_required")
+    return str(value)
+
+
+def _guest_pair() -> tuple[str, dict[str, object]]:
+    identity = _guest_identity()
+    try:
+        pair = ptt_guest.active_pair(identity)
+    except ptt_guest.PttGuestUnavailable as exc:
+        raise link_voice.LinkVoiceUnavailable("ptt_pairing_unavailable") from exc
+    if pair is None:
+        raise ValueError("ptt_pair_required")
+    return identity, pair
 
 
 def _mutation_guard(identity: str):
@@ -115,10 +133,9 @@ def create_voice():
     return _create_voice_kind("voice")
 
 
-@bp.get("/ptt/status")
 @bp.get("/linkup/ptt/status")
 @web_security.login_required(api=True)
-def ptt_status():
+def linkup_ptt_status():
     state = link_voice.status()
     return _no_store(
         make_response(
@@ -134,13 +151,111 @@ def ptt_status():
     )
 
 
-@bp.post("/ptt")
+@bp.get("/ptt/status")
+def guest_ptt_status():
+    state = link_voice.status()
+    identity = session.get("oap_ptt_guest_id")
+    pair = None
+    if identity:
+        try:
+            pair = ptt_guest.active_pair(identity)
+        except (ValueError, ptt_guest.PttGuestUnavailable):
+            pair = None
+    return _no_store(
+        make_response(
+            jsonify(
+                ready=bool(state.get("ptt_ready") and pair),
+                transport_ready=bool(state.get("ptt_ready")),
+                paired=bool(pair),
+                peer_id=pair.get("peer_id") if pair else None,
+                first_party=bool(state.get("first_party")),
+                transport="oap_voice_store",
+                push_to_talk=True,
+                max_ptt_bytes=state.get("max_voice_bytes"),
+                max_ptt_duration_ms=state.get("max_voice_duration_ms"),
+            )
+        )
+    )
+
+
 @bp.post("/linkup/ptt")
 @web_security.login_required(api=True)
-def create_ptt():
+def create_linkup_ptt():
     if not link_voice.status().get("ptt_ready"):
         return _error("ptt_unavailable", 503)
     return _create_voice_kind("ptt")
+
+
+@bp.post("/ptt")
+def create_guest_ptt():
+    if not link_voice.status().get("ptt_ready"):
+        return _error("ptt_unavailable", 503)
+    try:
+        identity, pair = _guest_pair()
+        if guarded := _mutation_guard(identity):
+            return guarded
+        upload = request.files.get("voice")
+        if upload is None:
+            raise ValueError("voice_required")
+        media = upload.stream.read(link_voice.MAX_VOICE_BYTES + 1)
+        if len(media) > link_voice.MAX_VOICE_BYTES:
+            raise ValueError("voice_too_large")
+        created = link_voice.create_voice(
+            identity,
+            pair["peer_id"],
+            media=media,
+            mime_type=upload.mimetype,
+            duration_ms=request.form.get("duration_ms"),
+            kind="ptt",
+        )
+        return _no_store(make_response(jsonify(created), 201))
+    except VOICE_ERRORS as exc:
+        return _failure(exc)
+
+
+@bp.get("/ptt/voice")
+def list_guest_ptt():
+    try:
+        identity, pair = _guest_pair()
+        notes = [
+            note for note in link_voice.list_voice(identity, pair["peer_id"])
+            if note.get("kind") == "ptt"
+        ]
+        return _no_store(make_response(jsonify(voices=notes), 200))
+    except VOICE_ERRORS as exc:
+        return _failure(exc)
+
+
+@bp.get("/ptt/voice/<voice_id>/media")
+def guest_ptt_media(voice_id: str):
+    try:
+        identity, pair = _guest_pair()
+        result = link_voice.read_voice(identity, pair["peer_id"], voice_id)
+        if result is None:
+            return _error("voice_not_found", 404)
+        media, mime_type, digest = result
+        response = make_response(media)
+        response.headers["Content-Type"] = mime_type
+        response.headers["Content-Length"] = str(len(media))
+        response.headers["X-OAP-Content-SHA256"] = digest
+        response.headers["Content-Disposition"] = 'inline; filename="ptt"'
+        return _no_store(response)
+    except VOICE_ERRORS as exc:
+        return _failure(exc)
+
+
+@bp.delete("/ptt/voice/<voice_id>")
+def delete_guest_ptt(voice_id: str):
+    try:
+        identity, _pair = _guest_pair()
+        if guarded := _mutation_guard(identity):
+            return guarded
+        deleted = link_voice.delete_voice(identity, voice_id)
+        if not deleted:
+            return _error("voice_not_found", 404)
+        return _no_store(make_response(jsonify(deleted=True), 200))
+    except VOICE_ERRORS as exc:
+        return _failure(exc)
 
 
 @bp.get("/linkup/voice/<voice_id>/media")
