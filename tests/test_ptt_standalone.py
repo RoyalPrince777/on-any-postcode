@@ -1,4 +1,7 @@
 from pathlib import Path
+import uuid
+
+from mission_control import web_security
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,8 +31,9 @@ def test_ptt_front_door_is_public_install_shell_without_sign_in(anonymous_client
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert "Install OAP PTT" in body
-    assert "No sign-in required to install OAP PTT." in body
-    assert "Temporary device-to-device pairing is not connected yet" in body
+    assert "<strong>No sign-in.</strong>" in body
+    assert "Create pairing code" in body
+    assert "Join PTT" in body
     assert 'rel="manifest" href="/ptt/manifest.webmanifest"' in body
     assert response.headers["Cache-Control"] == "no-store"
 
@@ -101,3 +105,130 @@ def test_ptt_contacts_api_returns_only_canonical_contacts(client, monkeypatch):
     assert observed["identity_id"] == "11111111-1111-4111-8111-111111111111"
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
+
+
+def _csrf_for(client):
+    token = "ptt-guest-csrf-token-value-1234567890"
+    with client.session_transaction() as current_session:
+        current_session[web_security.CSRF_SESSION_KEY] = token
+    return token
+
+
+def test_anonymous_ptt_can_create_pairing_code(anonymous_client, monkeypatch):
+    from mission_control import ptt_routes
+
+    identity = str(uuid.uuid4())
+    monkeypatch.setattr(
+        ptt_routes.ptt_guest,
+        "create_invite",
+        lambda: {
+            "identity_id": identity,
+            "code": "12345678",
+            "expires_at": "2099-01-01T00:00:00+00:00",
+        },
+    )
+    token = _csrf_for(anonymous_client)
+    response = anonymous_client.post(
+        "/ptt/pair/create",
+        json={},
+        headers={"X-OAP-CSRF": token},
+    )
+    assert response.status_code == 201
+    assert response.get_json()["code"] == "12345678"
+    with anonymous_client.session_transaction() as current_session:
+        assert current_session[ptt_routes.PTT_GUEST_ID_KEY] == identity
+        assert current_session[ptt_routes.PTT_GUEST_CODE_KEY] == "12345678"
+
+
+def test_anonymous_ptt_can_join_pairing_code(anonymous_client, monkeypatch):
+    from mission_control import ptt_routes
+
+    identity = str(uuid.uuid4())
+    peer = str(uuid.uuid4())
+    observed = {}
+    monkeypatch.setattr(
+        ptt_routes.ptt_guest,
+        "join_invite",
+        lambda code, existing: observed.update(code=code, existing=existing) or {
+            "active": True,
+            "identity_id": identity,
+            "peer_id": peer,
+            "relationship_id": str(uuid.uuid4()),
+            "expires_at": "2099-01-01T00:00:00+00:00",
+        },
+    )
+    token = _csrf_for(anonymous_client)
+    response = anonymous_client.post(
+        "/ptt/pair/join",
+        json={"code": "12345678"},
+        headers={"X-OAP-CSRF": token},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["active"] is True
+    assert response.get_json()["peer_id"] == peer
+    assert observed["code"] == "12345678"
+    with anonymous_client.session_transaction() as current_session:
+        assert current_session[ptt_routes.PTT_GUEST_ID_KEY] == identity
+
+
+def test_ptt_pair_status_and_stop_are_no_sign_in(anonymous_client, monkeypatch):
+    from mission_control import ptt_routes
+
+    identity = str(uuid.uuid4())
+    peer = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session[ptt_routes.PTT_GUEST_ID_KEY] = identity
+    monkeypatch.setattr(
+        ptt_routes.ptt_guest,
+        "invite_state",
+        lambda who, code: {
+            "active": True,
+            "identity_id": who,
+            "peer_id": peer,
+            "code": None,
+            "expires_at": "2099-01-01T00:00:00+00:00",
+        },
+    )
+    monkeypatch.setattr(ptt_routes.ptt_guest, "stop", lambda who: who == identity)
+
+    status = anonymous_client.get("/ptt/pair/status")
+    assert status.status_code == 200
+    assert status.get_json()["active"] is True
+    assert status.get_json()["peer_id"] == peer
+
+    token = _csrf_for(anonymous_client)
+    stopped = anonymous_client.post(
+        "/ptt/pair/stop",
+        json={},
+        headers={"X-OAP-CSRF": token},
+    )
+    assert stopped.status_code == 200
+    assert stopped.get_json()["stopped"] is True
+
+
+def test_ptt_guest_ui_exposes_talk_history_and_disconnect(monkeypatch, anonymous_client):
+    from mission_control import ptt_routes
+
+    identity = str(uuid.uuid4())
+    peer = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session[ptt_routes.PTT_GUEST_ID_KEY] = identity
+    monkeypatch.setattr(
+        ptt_routes.ptt_guest,
+        "invite_state",
+        lambda who, code: {
+            "active": True,
+            "identity_id": who,
+            "peer_id": peer,
+            "code": None,
+            "expires_at": "2099-01-01T00:00:00+00:00",
+        },
+    )
+
+    response = anonymous_client.get("/ptt")
+    body = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "CONNECTED · TEMPORARY PTT" in body
+    assert "HOLD TO TALK" in body
+    assert 'data-oap-voice-list' in body
+    assert 'action="/ptt/pair/stop"' in body
