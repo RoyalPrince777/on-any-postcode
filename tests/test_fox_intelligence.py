@@ -45,8 +45,8 @@ def test_all_evidence_still_only_eligible_for_human_review():
 
 def test_fox_foxy_independent_comparison_blocks_execution():
     from mission_control.fox_intelligence import compare_fox_assessments
-    fox = {"agent": "Fox", "mode": "advisory", "production_gate": "blocked", "recommended": "route_a"}
-    foxy = {"agent": "Foxy", "mode": "advisory", "production_gate": "blocked", "recommended": "route_b"}
+    fox = {"agent": "Fox", "mode": "advisory", "production_gate": "blocked", "founder_final": True, "recommended": "route_a"}
+    foxy = {"agent": "Foxy", "mode": "advisory", "production_gate": "blocked", "founder_final": True, "recommended": "route_b"}
     result = compare_fox_assessments(fox=fox, foxy=foxy)
     assert result["needs_review"] is True
     assert result["production_gate"] == "blocked"
@@ -58,3 +58,19 @@ def test_fox_foxy_rejects_identity_spoofing():
     from mission_control.fox_intelligence import compare_fox_assessments
     with pytest.raises(ValueError):
         compare_fox_assessments(fox={"agent": "Foxy", "mode": "advisory", "production_gate": "blocked"}, foxy={"agent": "Foxy", "mode": "advisory", "production_gate": "blocked"})
+
+
+def test_comparison_rejects_missing_founder_final():
+    from mission_control.fox_intelligence import compare_fox_assessments
+    fox = {"agent": "Fox", "mode": "advisory", "production_gate": "blocked", "founder_final": True}
+    foxy = {"agent": "Foxy", "mode": "advisory", "production_gate": "blocked"}
+    with pytest.raises(ValueError):
+        compare_fox_assessments(fox=fox, foxy=foxy)
+
+
+def test_comparison_rejects_invalid_recommendation():
+    from mission_control.fox_intelligence import compare_fox_assessments
+    fox = {"agent": "Fox", "mode": "advisory", "production_gate": "blocked", "founder_final": True, "recommended": 5}
+    foxy = {"agent": "Foxy", "mode": "advisory", "production_gate": "blocked", "founder_final": True}
+    with pytest.raises(ValueError):
+        compare_fox_assessments(fox=fox, foxy=foxy)
