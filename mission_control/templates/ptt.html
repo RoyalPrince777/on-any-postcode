@@ -112,13 +112,15 @@
       {% endif %}
     </section>
 
-    {% if guest.active %}
     <section class="card" aria-labelledby="ptt-incoming-title">
       <h2 id="ptt-incoming-title">Incoming · History</h2>
+      {% if guest.active %}
       <p>Incoming PTT is checked automatically. Tap any item to replay it.</p>
       <p>History is temporary and bounded to this active pair.</p>
+      {% else %}
+      <p>Connect a phone to receive PTT and build temporary History.</p>
+      {% endif %}
     </section>
-    {% endif %}
 
     <section class="card" aria-labelledby="ptt-settings-title">
       <h2 id="ptt-settings-title">Settings</h2>
