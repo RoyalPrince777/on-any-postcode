@@ -235,6 +235,8 @@ public class MainActivity extends Activity {
             });
             item.setTextSize(index == 2 ? 9 : 11);
             item.setContentDescription(dockLabels[i].replace("\n", " "));
+            item.setMinWidth(dp(48));
+            item.setMinHeight(dp(48));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
             lp.setMargins(dp(2), dp(3), dp(2), dp(3));
             dock.addView(item, lp);
