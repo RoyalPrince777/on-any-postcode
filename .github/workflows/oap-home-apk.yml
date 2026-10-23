@@ -59,6 +59,9 @@ jobs:
           assert source.index(ptt) < source.index(info), "PTT must stay above info tiles for immediate reach"
           assert '"PTT".equals(normalized)' in source, "Home search must route PTT directly"
           assert '"PUSH TO TALK".equals(normalized)' in source, "Home search must recognise Push to Talk"
+          store = 'Button storeQuick = button("▣ OAP STORE\\nINSTALL OAP APPS", v -> destination("OAP STORE"));'
+          assert source.count(store) == 1, "OAP Store quick action must appear exactly once"
+          assert 'case "OAP STORE": path = "/store"; break;' in source, "OAP Home must route directly to OAP Store"
           PY
           grep -Fq 'shouldInterceptRequest(android.webkit.WebView view' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
