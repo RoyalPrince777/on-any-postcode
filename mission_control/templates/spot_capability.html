@@ -123,6 +123,27 @@
         <article class="mc-status-card"><strong>🏙️ Borough / District</strong><span>Borough, district or equivalent local authority.</span></article>
         <article class="mc-status-card"><strong>📮 Postcode</strong><span>Postcode or equivalent local code and closest public local room.</span></article>
       </div>
+      <section aria-labelledby="continent-selector-title">
+        <h3 id="continent-selector-title">Explore the seven continents</h3>
+        <p>Select a continent to keep its context in this existing Earth route. Country and postcode discovery still require source-backed geographic resolution.</p>
+        {% set continent_options = [('africa', 'Africa'), ('europe', 'Europe'), ('asia', 'Asia'), ('north-america', 'North America'), ('south-america', 'South America'), ('oceania', 'Oceania'), ('antarctica', 'Antarctica')] %}
+        {% set selected_continent = request.args.get('continent', '') %}
+        <nav class="atlas-action-row" aria-label="OAP World continents">
+          {% for continent_id, continent_name in continent_options %}
+          <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms', continent=continent_id) }}"{% if selected_continent == continent_id %} aria-current="page"{% endif %}>{{ continent_name }}</a>
+          {% endfor %}
+        </nav>
+        {% for continent_id, continent_name in continent_options %}
+          {% if selected_continent == continent_id %}
+          <div class="atlas-empty" role="status">
+            <strong>Earth › {{ continent_name }} › The Spot</strong>
+            <p>Continent selected. Open the existing map search to resolve a real place; country passports and regional rooms appear only when their data is verified.</p>
+            {% if continent_id == 'antarctica' %}<p>Antarctica has research stations and geographic sectors, not sovereign countries or a general postcode system.</p>{% endif %}
+            <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}">Open On Any Postcode Maps →</a>
+          </div>
+          {% endif %}
+        {% endfor %}
+      </section>
       <p class="atlas-warning"><strong>Truth lock:</strong> National Anthem is country culture, not a geography level. OAP will not invent anthem audio, lyrics or official metadata; those require a source-backed, rights-safe record.</p>
       <h3>Post to your local room</h3>
       <form method="post" action="{{ url_for('postcode_room') }}">
