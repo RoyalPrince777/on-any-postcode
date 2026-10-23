@@ -134,3 +134,30 @@ def test_fox_routes_no_candidates_never_claim_navigation():
     result = assess_fox_routes(routes=[])
     assert result["recommended"] is None
     assert "live_navigation_proof" in result["missing"]
+
+
+def test_foxy_prefers_reversible_contingency_and_fox_prefers_low_risk():
+    from mission_control.fox_intelligence import compare_route_strategies
+
+    routes = [
+        {"name": "low-risk", "cost": 1, "risk": 0, "dependencies": 0, "reversible": False},
+        {"name": "reversible", "cost": 2, "risk": 1, "dependencies": 0, "reversible": True},
+    ]
+    result = compare_route_strategies(routes=routes)
+    assert result["recommendations"] == {"Fox": "low-risk", "Foxy": "reversible"}
+    assert result["needs_review"] is True
+    assert result["production_gate"] == "blocked"
+
+
+def test_foxy_route_exclusions_share_fox_validation():
+    from mission_control.fox_intelligence import assess_foxy_routes
+
+    routes = [
+        {"name": "closed", "cost": 0, "risk": 0, "dependencies": 0, "reversible": True},
+        {"name": "open", "cost": 1, "risk": 1, "dependencies": 0, "reversible": True},
+    ]
+    result = assess_foxy_routes(routes=routes, blocked_route_names=["closed"])
+    assert result["recommended"] == "open"
+    assert result["blocked_routes"] == ["closed"]
+    assert result["route_data_verified"] is False
+    assert result["founder_final"] is True
