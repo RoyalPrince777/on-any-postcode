@@ -1,0 +1,10 @@
+# Requires publicly resolvable hostname and working ACME certificate issuance.
+{$OAP_HOSTNAME} {
+  encode zstd gzip
+  reverse_proxy web:10000
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    X-Frame-Options DENY
+  }
+}
