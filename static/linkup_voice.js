@@ -414,12 +414,13 @@
     .then(([status, pttStatus]) => {
       state.ready = status.ready === true && status.first_party === true;
       state.pttReady = pttStatus.ready === true && pttStatus.first_party === true;
-      state.maxBytes = Number(
-        standalonePtt ? pttStatus.max_ptt_bytes : status.max_voice_bytes,
-      ) || state.maxBytes;
-      state.maxDurationMs = Number(
-        standalonePtt ? pttStatus.max_ptt_duration_ms : status.max_voice_duration_ms,
-      ) || state.maxDurationMs;
+      if (standalonePtt) {
+        state.maxBytes = Number(pttStatus.max_ptt_bytes) || state.maxBytes;
+        state.maxDurationMs = Number(pttStatus.max_ptt_duration_ms) || state.maxDurationMs;
+      } else {
+        state.maxBytes = Number(status.max_voice_bytes) || state.maxBytes;
+        state.maxDurationMs = Number(status.max_voice_duration_ms) || state.maxDurationMs;
+      }
       const activeTransport = standalonePtt ? state.pttReady : state.ready;
       setStatus(
         activeTransport && browserReady()
