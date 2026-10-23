@@ -27,3 +27,10 @@ Record: round number, date, scoped task, responsible role, exact commit/test/dev
 
 ## Live-readiness gate
 Never mark OAP PTT live-ready solely from signalling, a JavaScript syntax check, or local browser controls. Require authenticated first-party STUN/TURN or justified ICE reachability, two physical devices on separate networks, verified audio transmission, HOLD release and immediate STOP microphone shutdown, plus operational deployment evidence.
+
+## Round 2 — PTT reconnection control (2026-10-23)
+| Task | Responsible role | Evidence | Status | New stars |
+| --- | --- | --- | --- | ---: |
+| Restore Connect button after session close | Neo (implementation role), Fox (investigation role) | Commit `853f6003c3a13463e50cc8177dc673886ede20f3` changes `static/ptt_live.js` | Committed, CI and behavioural proof pending | 0 |
+
+**Round 2 stars: 0. Cumulative stars: 0.** Judges have not issued independent, evidenced approvals. This commit does not establish TURN, two-phone audio or production readiness.
