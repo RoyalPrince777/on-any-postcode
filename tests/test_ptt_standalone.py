@@ -290,40 +290,14 @@ def test_anonymous_ptt_can_create_and_join_room(anonymous_client, monkeypatch):
         assert current_session[ptt_routes.PTT_ROOM_OWNER_KEY] == owner
 
 
-def test_room_host_sees_share_code_until_second_member_joins(anonymous_client, monkeypatch):
-    from mission_control import ptt_routes
-
-    owner = str(uuid.uuid4())
-    with anonymous_client.session_transaction() as current_session:
-        current_session[ptt_routes.PTT_ROOM_ID_KEY] = owner
-        current_session[ptt_routes.PTT_ROOM_OWNER_KEY] = owner
-        current_session[ptt_routes.PTT_ROOM_CODE_KEY] = "87654321"
-
-    monkeypatch.setattr(
-        ptt_routes.ptt_guest,
-        "room_state",
-        lambda identity, room_owner: {
-            "active": True,
-            "identity_id": identity,
-            "owner_id": room_owner,
-            "member_ids": [owner],
-            "member_count": 1,
-        },
-    )
-
-    response = anonymous_client.get("/ptt")
-    body = response.get_data(as_text=True)
-    assert response.status_code == 200
-    assert "Your Room code" in body
-    assert "87654321" in body
-    assert "Waiting for Room members" in body
-
-
-def test_room_ui_exposes_all_declared_ptt_surfaces(anonymous_client):
+def test_room_ui_deferred_without_removing_room_backend(anonymous_client):
     body = anonymous_client.get("/ptt").get_data(as_text=True)
-    for label in ("Connect another phone", "Rooms", "Incoming", "History", "Settings"):
+    for label in ("Connect another phone", "Incoming", "History", "Settings"):
         assert label in body
-    assert 'src="/static/ptt_room.js"' in body
+    assert 'data-oap-ptt-room' not in body
+    assert 'src="/static/ptt_room.js"' not in body
+    assert 'data-oap-ptt-pair' in body
+    assert 'src="/static/ptt_guest.js"' in body
 
 
 def test_room_browser_runtime_has_hold_release_incoming_and_cleanup():
