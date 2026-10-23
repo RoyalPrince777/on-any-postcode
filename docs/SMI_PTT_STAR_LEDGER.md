@@ -6,7 +6,7 @@ Status: proposed, review-only; no autonomous agent votes or production readiness
 - Founder Final controls release. Captain ALL IN is the named scoreboard custodian; SMI is referee.
 - Four judging criteria: Shere Khan (reliability), Fox (evidence), Bagheera (risk), Gorilla (security).
 - All four criteria must have traceable human-reviewed evidence before a star is awarded. A judge's own contribution requires independent review.
-- One verified, distinct completed task earns at most one star for its accountable owner. No stars for plans, simulations, duplicate reports, or passing CI presented as live voice.
+- Achievement tiers: minor movement = 1 star, major integrated movement = 3 stars, completed verified protocol = 5 stars. A single achievement is awarded once at its highest approved tier; do not stack minor steps already included in a major/protocol award. No stars for plans, simulations, duplicate reports, or passing CI presented as live voice.
 - Store evidence references and dates. Reassess a star if proof is invalidated.
 - No independent agent activity, voting, or approval is implied by these role names.
 
@@ -53,3 +53,16 @@ The canonical scoring unit is **an individual agent's career star**, not a share
 | Individual achievement ranking test workflow | Seraph (CI role), Neo (implementation role) | [SMI agent achievement proof #1](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40040348041) for commit `33b8170c08123a622aeaaf6dc24d3d4bcc97dae5`: completed, success | CI verified; independent four-judge award decisions not recorded | 0 |
 
 **Round 8 stars awarded: 0; cumulative official career awards: 0.** Successful CI is an evidence receipt for future agent attribution, not an autonomous agent vote.
+
+## Round 9 — star reconciliation and CI status (2026-10-24)
+Verified on commit `33b8170c08123a622aeaaf6dc24d3d4bcc97dae5`:
+- [SMI agent achievement proof #1](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40040348041): completed, **success**.
+- [OAP governed checks #6783](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40040348003): completed, **success**.
+- [OAP runtime image #2870](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40040348066): completed, **cancelled** (not deployment proof).
+
+| Proposed accountable role | Distinct minor movement | Evidence | Candidate stars | Official stars |
+| --- | --- | --- | ---: | ---: |
+| Neo | Implement individual ranking calculator | Commit `d26b21da8bfe88224f137fa10009d23cb0b05de4` and achievement proof #1 | +1 | 0 |
+| Seraph | Introduce automated achievement proof workflow | Commit `33b8170c08123a622aeaaf6dc24d3d4bcc97dae5` and achievement proof #1 | +1 | 0 |
+
+**Round 9:** 2 candidate stars; 0 official awards. These are role attributions to repository work, not evidence of independent agent action. Four distinct evidence-backed judge decisions and SMI referee sign-off remain missing. Judge roles are not awarded points for routine review or for judging themselves. Career rankings must keep existing capability ratings separate.
