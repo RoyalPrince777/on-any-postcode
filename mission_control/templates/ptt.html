@@ -75,42 +75,7 @@
     </section>
     {% endif %}
 
-    <section class="card" aria-labelledby="ptt-room-title" data-oap-ptt-room>
-      <h2 id="ptt-room-title">Rooms</h2>
-      {% if room.active %}
-        <p><strong>ROOM CONNECTED · {{ room.member_count }} MEMBER{{ '' if room.member_count == 1 else 'S' }}</strong></p>
-        <p>Temporary room · maximum 7 devices · no sign-in.</p>
-        <button type="button" data-oap-room-ptt-control>🎙️ HOLD TO TALK TO ROOM</button>
-        <button type="button" data-oap-room-ptt-stop hidden>🛑 STOP</button>
-        <p><strong>Incoming</strong></p>
-        <div data-oap-room-voice-list aria-live="polite"></div>
-        <form method="post" action="/ptt/room/leave">
-          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-          <button type="submit">{{ 'Close Room' if room.identity_id == room.owner_id else 'Leave Room' }}</button>
-        </form>
-      {% elif room.code %}
-        <p><strong>Your Room code</strong></p>
-        <p><code data-oap-ptt-room-code>{{ room.code }}</code></p>
-        <button type="button" data-oap-ptt-copy-room-code>Copy Room code</button>
-        <p data-oap-ptt-room-status>Waiting for Room members…</p>
-        <form method="post" action="/ptt/room/leave">
-          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-          <button type="submit">Cancel Room</button>
-        </form>
-      {% else %}
-        <p>Create a temporary Room or enter a Room code.</p>
-        <form method="post" action="/ptt/room/create">
-          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-          <button type="submit">Create Room</button>
-        </form>
-        <form method="post" action="/ptt/room/join">
-          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-          <label for="ptt-room-code">Room code</label>
-          <input id="ptt-room-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{8,12}" required>
-          <button type="submit">Join Room</button>
-        </form>
-      {% endif %}
-    </section>
+
 
     <section class="card" aria-labelledby="ptt-incoming-title">
       <h2 id="ptt-incoming-title">Incoming · History</h2>
@@ -151,7 +116,6 @@
     </nav>
   </main>
   <script src="{{ url_for('static', filename='ptt_guest.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='ptt_room.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
 </body>
 </html>
