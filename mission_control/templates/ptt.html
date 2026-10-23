@@ -18,12 +18,66 @@
       <p>Hold to talk. Release to listen. Your microphone stays off until you press the talk control.</p>
       <p><button type="button" data-oap-install hidden>Install OAP PTT</button></p>
       <p><strong data-oap-install-status role="status">Checking install support…</strong></p>
-      <p><strong data-oap-voice-status>Checking PTT…</strong></p>
+      <p><strong data-oap-voice-status role="status">Checking PTT…</strong></p>
     </section>
 
+    <section class="card" aria-labelledby="ptt-pair-title" data-oap-ptt-pair>
+      <h2 id="ptt-pair-title">Connect another phone</h2>
+      {% if guest.active %}
+        <p><strong>CONNECTED · TEMPORARY PTT</strong></p>
+        <p>This pair expires automatically. No email, password or account is required.</p>
+        <form method="post" action="/ptt/pair/stop">
+          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+          <button type="submit">🛑 Disconnect</button>
+        </form>
+      {% elif guest.code %}
+        <p><strong>Your pairing code</strong></p>
+        <p><code data-oap-ptt-code>{{ guest.code }}</code></p>
+        <button type="button" data-oap-ptt-copy-code>Copy code</button>
+        <p data-oap-ptt-pair-status>Waiting for the other phone to join…</p>
+        <form method="post" action="/ptt/pair/stop">
+          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+          <button type="submit">Cancel pairing</button>
+        </form>
+      {% else %}
+        <p><strong>No sign-in.</strong> Create a code on one phone, enter it on the other.</p>
+        <form method="post" action="/ptt/pair/create">
+          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+          <button type="submit">Create pairing code</button>
+        </form>
+        <form method="post" action="/ptt/pair/join">
+          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+          <label for="ptt-pair-code">Pairing code</label>
+          <input id="ptt-pair-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{8,12}" required>
+          <button type="submit">Join PTT</button>
+        </form>
+      {% endif %}
+    </section>
+
+    {% if guest.active %}
+    <section class="card" aria-labelledby="ptt-live-title">
+      <h2 id="ptt-live-title">Talk</h2>
+      <input id="ptt-guest-peer" type="hidden" value="{{ guest.peer_id }}">
+      <button
+        type="button"
+        data-oap-ptt-control
+        data-recipient-source="#ptt-guest-peer"
+        aria-label="Hold to talk"
+      >🎙️ HOLD TO TALK</button>
+      <button
+        type="button"
+        data-oap-ptt-stop
+        data-recipient-source="#ptt-guest-peer"
+        hidden
+      >🛑 STOP</button>
+      <p>Release to listen. Incoming PTT appears below.</p>
+      <div data-oap-voice-list data-recipient-id="{{ guest.peer_id }}" aria-live="polite"></div>
+    </section>
+    {% endif %}
+
+    {% if contacts %}
     <section class="card" aria-labelledby="ptt-contact-title">
-      <h2 id="ptt-contact-title">Contact</h2>
-      {% if contacts %}
+      <h2 id="ptt-contact-title">Saved OAP contacts</h2>
       <label for="ptt-contact">Talk to</label>
       <select id="ptt-contact">
         <option value="">Choose an accepted contact</option>
@@ -31,34 +85,17 @@
         <option value="{{ contact.identity_id }}">{{ contact.display_name }} · {{ contact.card_id }}</option>
         {% endfor %}
       </select>
-
-      <button
-        type="button"
-        data-oap-ptt-control
-        data-recipient-source="#ptt-contact"
-        aria-label="Hold to talk"
-      >🎙️ Hold to talk</button>
-      <button
-        type="button"
-        data-oap-ptt-stop
-        data-recipient-source="#ptt-contact"
-        hidden
-      >🛑 STOP</button>
-      {% else %}
-        {% if authenticated %}
-        <p>No accepted contacts are available for PTT.</p>
-        {% else %}
-        <p><strong>No sign-in required to install OAP PTT.</strong></p>
-        <p>Temporary device-to-device pairing is not connected yet, so talking stays locked rather than pretending a guest connection exists.</p>
-        {% endif %}
-      {% endif %}
+      <button type="button" data-oap-ptt-control data-recipient-source="#ptt-contact">🎙️ Hold to talk</button>
+      <button type="button" data-oap-ptt-stop data-recipient-source="#ptt-contact" hidden>🛑 STOP</button>
     </section>
+    {% endif %}
 
     <nav class="card" aria-label="PTT navigation">
+      <a href="/store">OAP Store</a>
       <a href="/world">OAP World</a>
-      <a href="/my-line">My Line</a>
     </nav>
   </main>
+  <script src="{{ url_for('static', filename='ptt_guest.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
 </body>
 </html>
