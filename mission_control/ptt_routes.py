@@ -255,6 +255,29 @@ def contacts_api():
     return _no_store(make_response(jsonify(contacts=_accepted_contacts(identity_id))))
 
 
+@bp.get("/ptt/live/status")
+def live_status():
+    """Fail closed until authenticated signalling and live transport are proven.
+
+    Pairing alone is not evidence of a WebRTC connection. Never advertise
+    recorded-message delivery as live digital PTT.
+    """
+    paired = bool(_guest_state().get("active"))
+    return _no_store(
+        make_response(
+            jsonify(
+                paired=paired,
+                live_ready=False,
+                signalling_ready=False,
+                media_ready=False,
+                recording_enabled=False,
+                reason="live_transport_not_implemented",
+            ),
+            200,
+        )
+    )
+
+
 @bp.get("/ptt")
 def front_door():
     user = web_security.current_authenticated_user()
