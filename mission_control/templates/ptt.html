@@ -10,7 +10,7 @@
   <title>PTT — ON ANY POSTCODE</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 </head>
-<body data-oap-ptt-standalone="true" data-oap-ptt-endpoint="/ptt" data-oap-ptt-status-endpoint="/ptt/status">
+<body data-oap-ptt-identity="{{ guest.identity_id or '' }}" data-oap-ptt-standalone="true" data-oap-ptt-endpoint="/ptt" data-oap-ptt-status-endpoint="/ptt/status">
   <main class="shell">
     <section class="card">
       <p>OAP WORLD · PTT</p>
@@ -71,7 +71,7 @@
         data-recipient-source="#ptt-guest-peer"
         hidden
       >🛑 STOP</button>
-      <p role="status">Live audio is not connected yet. Pairing is available; recorded voice delivery is disabled.</p>
+      <p role="status">Live audio disconnected. Connect only after pairing; no recordings.</p>
     </section>
     {% endif %}
 
@@ -106,5 +106,6 @@
     </nav>
   </main>
   <script src="{{ url_for('static', filename='ptt_guest.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='ptt_live.js') }}" defer></script>
 </body>
 </html>
