@@ -258,6 +258,118 @@ def delete_guest_ptt(voice_id: str):
         return _failure(exc)
 
 
+def _guest_room() -> tuple[str, dict[str, object]]:
+    identity = session.get("oap_ptt_room_identity_id")
+    owner = session.get("oap_ptt_room_owner_id")
+    if not identity or not owner:
+        raise ValueError("ptt_room_required")
+    try:
+        state = ptt_guest.room_state(identity, owner)
+    except ptt_guest.PttGuestUnavailable as exc:
+        raise link_voice.LinkVoiceUnavailable("ptt_room_unavailable") from exc
+    if not state.get("active"):
+        raise ValueError("ptt_room_required")
+    return str(identity), state
+
+
+@bp.post("/ptt/room")
+def create_room_ptt():
+    if not link_voice.status().get("ptt_ready"):
+        return _error("ptt_unavailable", 503)
+    try:
+        identity, room = _guest_room()
+        if guarded := _mutation_guard(identity):
+            return guarded
+        upload = request.files.get("voice")
+        if upload is None:
+            raise ValueError("voice_required")
+        media = upload.stream.read(link_voice.MAX_VOICE_BYTES + 1)
+        if len(media) > link_voice.MAX_VOICE_BYTES:
+            raise ValueError("voice_too_large")
+        peers = [
+            str(peer)
+            for peer in room.get("member_ids", [])
+            if str(peer) != identity
+        ]
+        if not peers:
+            raise ValueError("ptt_room_no_other_members")
+        delivered = []
+        for peer in peers:
+            delivered.append(
+                link_voice.create_voice(
+                    identity,
+                    peer,
+                    media=media,
+                    mime_type=upload.mimetype,
+                    duration_ms=request.form.get("duration_ms"),
+                    kind="ptt",
+                )
+            )
+        return _no_store(
+            make_response(
+                jsonify(
+                    delivered=len(delivered),
+                    room_member_count=room.get("member_count"),
+                    receipts=delivered,
+                ),
+                201,
+            )
+        )
+    except VOICE_ERRORS as exc:
+        return _failure(exc)
+
+
+@bp.get("/ptt/room/voice")
+def list_room_ptt():
+    try:
+        identity, room = _guest_room()
+        peers = [
+            str(peer)
+            for peer in room.get("member_ids", [])
+            if str(peer) != identity
+        ]
+        voices = []
+        for index, peer in enumerate(peers):
+            for note in link_voice.list_voice(identity, peer):
+                if note.get("kind") != "ptt":
+                    continue
+                if note.get("direction") == "sent" and index > 0:
+                    continue
+                item = dict(note)
+                item["peer_id"] = peer
+                voices.append(item)
+        voices.sort(key=lambda item: str(item.get("created_at") or ""), reverse=True)
+        return _no_store(make_response(jsonify(voices=voices[:100]), 200))
+    except VOICE_ERRORS as exc:
+        return _failure(exc)
+
+
+@bp.get("/ptt/room/voice/<voice_id>/media")
+def room_ptt_media(voice_id: str):
+    try:
+        identity, room = _guest_room()
+        peer_id = str(request.args.get("peer_id") or "")
+        allowed_peers = {
+            str(peer)
+            for peer in room.get("member_ids", [])
+            if str(peer) != identity
+        }
+        if peer_id not in allowed_peers:
+            raise ValueError("ptt_room_peer_required")
+        result = link_voice.read_voice(identity, peer_id, voice_id)
+        if result is None:
+            return _error("voice_not_found", 404)
+        media, mime_type, digest = result
+        response = make_response(media)
+        response.headers["Content-Type"] = mime_type
+        response.headers["Content-Length"] = str(len(media))
+        response.headers["X-OAP-Content-SHA256"] = digest
+        response.headers["Content-Disposition"] = 'inline; filename="ptt-room"'
+        return _no_store(response)
+    except VOICE_ERRORS as exc:
+        return _failure(exc)
+
+
 @bp.get("/linkup/voice/<voice_id>/media")
 @web_security.login_required(api=True)
 def voice_media(voice_id: str):
