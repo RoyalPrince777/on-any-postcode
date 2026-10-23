@@ -165,6 +165,12 @@ def _room_state() -> dict[str, object]:
             state = ptt_guest.room_state(identity, owner)
             if state.get("active"):
                 state["code"] = code
+                if (
+                    code
+                    and str(identity) == str(owner)
+                    and int(state.get("member_count") or 0) <= 1
+                ):
+                    state["active"] = False
                 return state
         except (ValueError, ptt_guest.PttGuestUnavailable):
             pass
