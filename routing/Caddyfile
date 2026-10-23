@@ -1,0 +1,21 @@
+{
+  admin off
+}
+
+{$OAP_ROUTING_HOST} {
+  encode zstd gzip
+
+  header {
+    X-OAP-Routing-Deployment "oap-host-bundle"
+    X-OAP-Map-Source "first-party-routing-graph"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "no-referrer"
+  }
+
+  @route_api path /route/*
+  handle @route_api {
+    reverse_proxy osrm:10000
+  }
+
+  respond "Not Found" 404
+}

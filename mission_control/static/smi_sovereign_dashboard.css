@@ -70,3 +70,6 @@ body.smi-sovereign-ready.smi-home-open .workspace-grid{display:none!important}
 .smi-secondary-proof{margin-top:10px;padding-top:10px;border-top:1px solid rgba(77,142,205,.28)}
 .smi-secondary-proof>strong{display:block;font-size:.72rem;margin-bottom:7px}.smi-secondary-proof>small{display:block;margin-top:7px;color:var(--smi-muted);font-size:.58rem}
 .smi-secondary-proof-actions{display:flex;flex-wrap:wrap;gap:6px}.smi-secondary-proof-actions a,.smi-secondary-proof-actions button{border:1px solid var(--smi-line);background:#07101c;color:#a9d7ff;border-radius:9px;padding:6px 8px;text-decoration:none;font:inherit;font-size:.62rem;cursor:pointer}
+
+/* Explicit status navigation uses the existing secondary panel. */
+body.smi-noise-strip.smi-status-open .smi-dashboard-layer{display:flex!important}

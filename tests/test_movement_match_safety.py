@@ -35,6 +35,8 @@ class _Connection:
     def execute(self, sql, params=()):
         del params
         self.queries.append(sql)
+        if sql.startswith("SET TRANSACTION"):
+            return _Result(None)
         if not self.steps:
             raise AssertionError(f"unexpected SQL: {sql}")
         expected, row = self.steps.pop(0)
@@ -94,8 +96,10 @@ def test_accept_rejects_expired_availability_before_assignment(monkeypatch):
     expired = datetime.now(UTC) - timedelta(seconds=1)
     connection = _Connection(
         [
-            ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
+            ("SELECT booking_id FROM oap_movement_match_proposals", (BOOKING,)),
             ("FROM oap_movement_bookings", ("MATCH_PROPOSED",)),
+            ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
+            ("FROM oap_identities", ("ACTIVE",)),
             ("FROM oap_movement_availability", ("ONLINE", expired)),
         ]
     )
@@ -117,8 +121,10 @@ def test_accept_rejects_role_revoked_after_proposal(monkeypatch):
     available_until = datetime.now(UTC) + timedelta(minutes=15)
     connection = _Connection(
         [
-            ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
+            ("SELECT booking_id FROM oap_movement_match_proposals", (BOOKING,)),
             ("FROM oap_movement_bookings", ("MATCH_PROPOSED",)),
+            ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
+            ("FROM oap_identities", ("ACTIVE",)),
             ("FROM oap_movement_availability", ("ONLINE", available_until)),
             ("FROM oap_identity_roles", None),
         ]
@@ -142,10 +148,13 @@ def test_accept_locks_revalidates_expires_competing_proposals_and_marks_busy(mon
     available_until = now + timedelta(minutes=15)
     connection = _Connection(
         [
-            ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
+            ("SELECT booking_id FROM oap_movement_match_proposals", (BOOKING,)),
             ("FROM oap_movement_bookings", ("MATCH_PROPOSED",)),
+            ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
+            ("FROM oap_identities", ("ACTIVE",)),
             ("FROM oap_movement_availability", ("ONLINE", available_until)),
             ("FROM oap_identity_roles", (1,)),
+            ("b.booking_id<>%s", None),
             ("WHERE booking_id=%s AND state='ACCEPTED'", None),
             ("SET state='ACCEPTED'", (BOOKING, "driver", now)),
             ("SET state='EXPIRED'", None),
@@ -170,5 +179,6 @@ def test_accept_locks_revalidates_expires_competing_proposals_and_marks_busy(mon
     assert result["other_proposals_expired"] is True
     assert result["external_dispatch_performed"] is False
     assert connection.committed is True
-    locking_reads = [query for query in connection.queries[:3] if "FOR UPDATE" in query]
-    assert len(locking_reads) == 3
+    locking_reads = [query for query in connection.queries if "FOR UPDATE" in query]
+    assert "FROM oap_movement_bookings" in locking_reads[0]
+    assert "FROM oap_movement_match_proposals" in locking_reads[1]

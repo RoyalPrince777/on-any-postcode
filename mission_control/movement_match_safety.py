@@ -152,25 +152,30 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
         proposal = _uuid(proposal_id, "proposal_id")
         worker = _uuid(worker_identity_id, "worker_identity_id")
         with postgres_db.connect() as connection:
-            proposal_row = connection.execute(
-                """SELECT booking_id,worker_role,state
-                   FROM oap_movement_match_proposals
-                   WHERE proposal_id=%s AND worker_identity_id=%s
-                   FOR UPDATE""",
+            connection.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+            hint = connection.execute(
+                "SELECT booking_id FROM oap_movement_match_proposals WHERE proposal_id=%s AND worker_identity_id=%s",
                 (proposal, worker),
             ).fetchone()
-            if proposal_row is None or str(proposal_row[2]) != "PROPOSED":
+            if hint is None:
                 raise PermissionError("match_proposal_not_available")
-            booking = str(proposal_row[0])
-            role = str(proposal_row[1])
-
+            booking = str(hint[0])
             booking_row = connection.execute(
-                """SELECT state FROM oap_movement_bookings
-                   WHERE booking_id=%s FOR UPDATE""",
-                (booking,),
+                "SELECT state FROM oap_movement_bookings WHERE booking_id=%s FOR UPDATE", (booking,),
             ).fetchone()
             if booking_row is None or str(booking_row[0]) != "MATCH_PROPOSED":
                 raise PermissionError("booking_not_available_for_match")
+            proposal_row = connection.execute(
+                """SELECT booking_id,worker_role,state FROM oap_movement_match_proposals
+                   WHERE proposal_id=%s AND worker_identity_id=%s FOR UPDATE""", (proposal, worker),
+            ).fetchone()
+            if proposal_row is None or str(proposal_row[0]) != booking or str(proposal_row[2]) != "PROPOSED":
+                raise PermissionError("match_proposal_not_available")
+            role = str(proposal_row[1])
+
+            identity = connection.execute("SELECT status FROM oap_identities WHERE identity_id=%s FOR UPDATE", (worker,)).fetchone()
+            if identity is None or str(identity[0]) != "ACTIVE":
+                raise PermissionError("active_worker_identity_required")
 
             availability = connection.execute(
                 """SELECT availability_state,available_until
@@ -189,6 +194,14 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                     raise PermissionError("worker_availability_expired")
             if not _certified(connection, worker, role):
                 raise PermissionError("certified_movement_role_required")
+            other_booking = connection.execute(
+                """SELECT 1 FROM oap_movement_match_proposals p
+                   JOIN oap_movement_bookings b ON b.booking_id=p.booking_id
+                   WHERE p.worker_identity_id=%s AND p.state='ACCEPTED'
+                     AND b.booking_id<>%s AND b.state IN ('ACCEPTED','IN_PROGRESS') LIMIT 1""", (worker, booking),
+            ).fetchone()
+            if other_booking is not None:
+                raise PermissionError("worker_already_assigned")
 
             accepted = connection.execute(
                 """SELECT proposal_id FROM oap_movement_match_proposals
@@ -253,6 +266,13 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
         proposal = _uuid(proposal_id, "proposal_id")
         worker = _uuid(worker_identity_id, "worker_identity_id")
         with postgres_db.connect() as connection:
+            hint = connection.execute(
+                "SELECT booking_id FROM oap_movement_match_proposals WHERE proposal_id=%s AND worker_identity_id=%s",
+                (proposal, worker),
+            ).fetchone()
+            if hint is None:
+                raise PermissionError("match_proposal_not_available")
+            connection.execute("SELECT state FROM oap_movement_bookings WHERE booking_id=%s FOR UPDATE", (hint[0],)).fetchone()
             row = connection.execute(
                 """UPDATE oap_movement_match_proposals
                    SET state='DECLINED',updated_at=CURRENT_TIMESTAMP

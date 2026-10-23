@@ -64,6 +64,7 @@ def _booking(store):
 def test_booking_retry_binds_owner_and_immutable_payload(monkeypatch, row):
     connection = _Connection(row)
     monkeypatch.setattr(movement_operations.postgres_db, "connect", lambda **_: connection)
+    monkeypatch.setattr(movement_operations.global_journey_store, "ensure_booking_journey", lambda *_, **__: OTHER_BOOKING)
     if row is None:
         with pytest.raises(ValueError, match="^idempotency_conflict$"):
             _booking(movement_operations.STORE)

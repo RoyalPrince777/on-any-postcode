@@ -37,7 +37,10 @@ def test_star_ratings_are_sequential_and_never_skip_missing_evidence():
                 break
             prefix += 1
         assert item["stars"] == prefix
-        assert item["score"] == item["stars"] * 20
+        assert item["score"] is None
+        assert item["assessment_basis"] == "advisory_stage_flags"
+        assert item["release_evidence_verified"] is False
+        assert item["human_approval_required"] is True
         assert len(item["stars_display"]) == 5
 
     physical = next(item for item in _ratings(projection) if item["id"] == "physical_oap_silicon")
@@ -149,3 +152,60 @@ def test_mission_navigation_links_to_war_room(client):
     for path in ("/mission", "/mission/brain", "/mission/organism"):
         page = client.get(path).get_data(as_text=True)
         assert 'href="/mission/war-room"' in page
+
+
+def test_dashboard_never_turns_advisory_flags_into_completion_or_certification(client):
+    response = client.get("/mission/war-room/status")
+    assert response.status_code == 200
+    payload = response.get_json()
+    summary = payload["summary"]
+    for name in ("overall_evidence_score", "vpi_percent", "runtime_verified",
+                 "operationally_certified"):
+        assert summary[name] is None
+    assert summary["acceptance_inventory_verified"] is False
+    for category in payload["categories"]:
+        assert category["runtime_verified"] is None
+        assert category["certified"] is None
+    evidence = payload["mission_evidence"]
+    assert evidence["judge_votes"] is None
+    assert evidence["revision"] is None
+    assert evidence["full_green"] is False
+    assert len(evidence["proof_dimensions"]) == 7
+    assert not any(d["star_awarded"] for d in evidence["proof_dimensions"])
+
+    page = client.get("/mission/war-room").get_data(as_text=True)
+    assert "VPI: N/A" in page
+    assert "None%" not in page
+    assert 'aria-label="Overall evidence score"' not in page
+    for dimension in evidence["proof_dimensions"]:
+        assert f'data-proof-dimension="{dimension["name"]}" data-proof-status="not_verified"' in page
+    assert page.count("Not verified · no star awarded") == 7
+    assert "Passing software tests do not prove live booking, dispatch or payments" in page
+    assert "not mandatory stages or repeated approval stops" in page
+
+
+def test_all_advisory_stages_passed_cannot_claim_release_green():
+    result = war_room._rating(
+        item_id="test", name="All supplied flags", category="test", summary="test",
+        stages=tuple({"stage": name, "passed": True, "evidence": "supplied flag"}
+                     for name in ("scope", "code", "tests", "runtime", "operations")),
+        next_gate="Authenticated release evidence", impact=5,
+    )
+    assert result["stars"] == 5
+    assert result["label"].startswith("Advisory · ")
+    assert result["signal"] == "purple"
+    assert result["score"] is None
+    assert result["release_evidence_verified"] is False
+    assert result["human_approval_required"] is True
+
+
+def test_summary_consumers_preserve_unknown_instead_of_converting_to_zero(client, csrf):
+    action_response = client.post(
+        "/mission/war-room/actions/status", json={}, headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert action_response.status_code == 200
+    action = action_response.get_json()["war_room"]
+    command = client.get("/mission/smi/status").get_json()["war_room"]
+    for summary in (command, action):
+        for name in ("overall_evidence_score", "runtime_verified", "operationally_certified"):
+            assert summary[name] is None
