@@ -119,7 +119,7 @@ public class MainActivity extends Activity {
         body.addView(clock, new LinearLayout.LayoutParams(-1, dp(64)));
         clockTick.run();
 
-        Button pttQuick = button("🎙 PTT\nSTANDALONE · MIC OFF", v -> pttMenu());
+        Button pttQuick = button("🎙 PTT\nSTANDALONE · MIC OFF", v -> openPttApp());
         pttQuick.setTextSize(16);
         pttQuick.setGravity(Gravity.CENTER_VERTICAL);
         pttQuick.setContentDescription("Open standalone PTT. Microphone stays off until you hold the talk control.");
@@ -171,7 +171,7 @@ public class MainActivity extends Activity {
                 boolean matched = false;
                 if ("PTT".equals(normalized) || "PUSH TO TALK".equals(normalized)
                         || "PUSH-TO-TALK".equals(normalized)) {
-                    pttMenu();
+                    openPttApp();
                     matched = true;
                 } else {
                     for (String name : destinations) {
@@ -233,6 +233,17 @@ public class MainActivity extends Activity {
             dock.addView(item, lp);
         }
         addButton("⚙ SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+    }
+
+    private void openPttApp() {
+        Uri uri = Uri.parse(OAP_API_ORIGIN + "/ptt");
+        try {
+            Intent ptt = new Intent(Intent.ACTION_VIEW, uri);
+            ptt.addCategory(Intent.CATEGORY_BROWSABLE);
+            startActivity(ptt);
+        } catch (ActivityNotFoundException error) {
+            pttMenu();
+        }
     }
 
     private void openInternetAddress(String url) {
@@ -467,7 +478,7 @@ public class MainActivity extends Activity {
 
     private void destination(String name) {
         if ("PTT".equals(name)) {
-            pttMenu();
+            openPttApp();
             return;
         }
         // Consolidated V2 navigation: open existing OAP routes rather than
