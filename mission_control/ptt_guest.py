@@ -385,8 +385,8 @@ def _deactivate_guest(identity_id: str) -> None:
         with postgres_db.connect() as connection:
             connection.execute(
                 """UPDATE users SET status='inactive',updated_at=CURRENT_TIMESTAMP
-                   WHERE id=%s AND display_name=%s""",
-                (identity_id, GUEST_DISPLAY_NAME),
+                   WHERE id=%s AND display_name IN (%s,%s)""",
+                (identity_id, GUEST_DISPLAY_NAME, ROOM_HOST_DISPLAY_NAME),
             )
             connection.commit()
     except Exception as exc:
