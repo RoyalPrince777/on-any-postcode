@@ -311,3 +311,33 @@ def test_room_browser_runtime_has_hold_release_incoming_and_cleanup():
     assert 'apiJson("/ptt/room/voice")' in source
     assert 'window.setInterval(renderHistory, 2000);' in source
     assert 'window.addEventListener("pagehide"' in source
+
+
+def test_live_status_fails_closed_without_live_transport(anonymous_client):
+    response = anonymous_client.get("/ptt/live/status")
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    payload = response.get_json()
+    assert payload["paired"] is False
+    assert payload["live_ready"] is False
+    assert payload["signalling_ready"] is False
+    assert payload["media_ready"] is False
+    assert payload["recording_enabled"] is False
+    assert payload["reason"] == "live_transport_not_implemented"
+
+
+def test_live_status_does_not_claim_ready_when_pair_is_active(anonymous_client, monkeypatch):
+    from mission_control import ptt_routes
+
+    identity = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session[ptt_routes.PTT_GUEST_ID_KEY] = identity
+    monkeypatch.setattr(
+        ptt_routes.ptt_guest,
+        "invite_state",
+        lambda who, code: {"active": True, "identity_id": who, "peer_id": str(uuid.uuid4())},
+    )
+    payload = anonymous_client.get("/ptt/live/status").get_json()
+    assert payload["paired"] is True
+    assert payload["live_ready"] is False
+    assert payload["media_ready"] is False
