@@ -954,6 +954,16 @@ def test_binding_locks_canonical_evidence_until_commit(delivery, payment, monkey
     assert _order_readback(delivery) == ("authorised", payment["intent"], payment["hold"], 1)
 
 
+@pytest.fixture
+def cancellable(delivery):
+    # Preserve the existing graph: authorised -> cancelled is not an edge.
+    # These scenarios seed a confirmed order rather than widening policy.
+    with postgres_db.connect() as db:
+        db.execute("UPDATE oap_eats_orders SET state='confirmed' WHERE order_id=%s", (delivery["order_id"],))
+        db.commit()
+    return delivery
+
+
 def _cancel(delivery, actor=None):
     return oap_eats_store.STORE.transition(
         order_id=delivery["order_id"], actor_identity_id=actor or delivery["customer_identity_id"], target_state="cancelled",
@@ -1034,7 +1044,8 @@ def test_delivery_binding_cannot_accept_unrelated_or_changed_evidence(delivery, 
 
 @pytest.mark.parametrize("actor", ["customer_identity_id", "merchant"])
 @pytest.mark.parametrize("accepted", [False, True])
-def test_order_cancellation_commits_booking_proposals_consent_and_receipt(delivery, actor, accepted):
+def test_order_cancellation_commits_booking_proposals_consent_and_receipt(cancellable, actor, accepted):
+    delivery = cancellable
     first = _create(delivery)
     booking = first["movement_booking_id"]
     match = _match_fixture(delivery, booking)
@@ -1067,18 +1078,20 @@ def test_order_cancellation_commits_booking_proposals_consent_and_receipt(delive
 
 
 @pytest.mark.parametrize("state", ["IN_PROGRESS", "COMPLETED"])
-def test_active_or_completed_booking_blocks_order_cancellation_atomically(delivery, state):
+def test_active_or_completed_booking_blocks_order_cancellation_atomically(cancellable, state):
+    delivery = cancellable
     first = _create(delivery)
     with postgres_db.connect() as db:
         db.execute("UPDATE oap_movement_bookings SET state=%s WHERE booking_id=%s", (state, first["movement_booking_id"]))
         db.commit()
     with pytest.raises(ValueError, match="booking_not_cancellable"):
         _cancel(delivery)
-    assert _order_readback(delivery)[0] == "authorised"
+    assert _order_readback(delivery)[0] == "confirmed"
     assert _delivery_snapshot(delivery)["booking_state"] == state
 
 
-def test_product_cancel_cannot_be_bypassed_and_does_not_refund(delivery, payment):
+def test_product_cancel_cannot_be_bypassed_and_does_not_refund(cancellable, payment):
+    delivery = cancellable
     first = _create(delivery)
     _bind_payment(delivery, payment)
     with pytest.raises(PermissionError, match="cancel_through_product_required"):
@@ -1093,7 +1106,8 @@ def test_product_cancel_cannot_be_bypassed_and_does_not_refund(delivery, payment
 
 
 @pytest.mark.parametrize("operation", ["accept", "decline", "create", "cancel"])
-def test_cancellation_races_cannot_reopen_or_orphan_a_delivery(delivery, operation):
+def test_cancellation_races_cannot_reopen_or_orphan_a_delivery(cancellable, operation):
+    delivery = cancellable
     first = None if operation == "create" else _create(delivery)
     match = _match_fixture(delivery, first["movement_booking_id"]) if operation in {"accept", "decline"} else None
     barrier = Barrier(2)
@@ -1119,7 +1133,8 @@ def test_cancellation_races_cannot_reopen_or_orphan_a_delivery(delivery, operati
         assert db.execute("SELECT count(*) FROM oap_global_journey_associations").fetchone()[0] == len(_readback(delivery)[0])
 
 
-def test_cancellation_receipt_failure_rolls_back_every_state(delivery):
+def test_cancellation_receipt_failure_rolls_back_every_state(cancellable):
+    delivery = cancellable
     first = _create(delivery)
     _match_fixture(delivery, first["movement_booking_id"])
     with postgres_db.connect() as db:
@@ -1129,7 +1144,7 @@ def test_cancellation_receipt_failure_rolls_back_every_state(delivery):
         db.commit()
     with pytest.raises(errors.RaiseException):
         _cancel(delivery)
-    assert _order_readback(delivery)[0] == "authorised"
+    assert _order_readback(delivery)[0] == "confirmed"
     assert _delivery_snapshot(delivery)["booking_state"] == "MATCH_PROPOSED"
     with postgres_db.connect() as db:
         assert db.execute("SELECT state FROM oap_movement_match_proposals").fetchone()[0] == "PROPOSED"
@@ -1141,7 +1156,8 @@ def test_cancellation_receipt_failure_rolls_back_every_state(delivery):
 
 @pytest.mark.parametrize("action", ["create", "cancel"])
 @pytest.mark.parametrize("phase", ["before_commit", "after_commit"])
-def test_sigkill_before_or_after_commit_recovers_one_linked_journey(delivery, action, phase):
+def test_sigkill_before_or_after_commit_recovers_one_linked_journey(cancellable, action, phase):
+    delivery = cancellable
     if action == "cancel":
         _create(delivery)
         args = {"order_id": delivery["order_id"], "actor_identity_id": delivery["customer_identity_id"], "target_state": "cancelled"}
@@ -1264,3 +1280,11 @@ def test_worker_cannot_cancel_customer_product(delivery, accepted):
     with pytest.raises(PermissionError, match="booking_not_found"):
         movement_operations.STORE.cancel_booking(booking_id=first["movement_booking_id"], member_identity_id=delivery["outsider"])
     assert _delivery_snapshot(delivery)["order_state"] == "authorised"
+
+
+def test_authorised_order_cannot_bypass_existing_cancellation_graph(delivery):
+    _create(delivery)
+    with pytest.raises(ValueError, match="order_transition_not_allowed"):
+        _cancel(delivery)
+    assert _delivery_snapshot(delivery)["order_state"] == "authorised"
+    assert _delivery_snapshot(delivery)["booking_state"] == "REQUESTED"

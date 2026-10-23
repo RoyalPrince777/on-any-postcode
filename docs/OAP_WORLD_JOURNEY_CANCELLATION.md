@@ -32,6 +32,10 @@ CSRF and rate-limit guards. In-progress/completed bookings cannot be cancelled
 by this path. An identical cancellation has one receipt and no duplicate order
 event. A cancelled order cannot create a fresh delivery.
 
+The existing order graph is preserved: `authorised -> cancelled` is not an
+allowed edge. Positive product-cancellation proofs start with confirmed orders;
+this path does not widen cancellation authority or invent financial transitions.
+
 Cancellation expires proposed/accepted match records, revokes tracking consent,
 closes the trip channel and cancels pending internal connectivity/payment drafts.
 An assigned worker is set OFFLINE rather than automatically made available;
