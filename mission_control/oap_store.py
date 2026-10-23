@@ -318,6 +318,32 @@ def oap_world_store_entry():
     return response
 
 
+@bp.get("/arena/connect4/manifest.webmanifest")
+def connect4_manifest():
+    """Dedicated first-party install identity; does not unlock installation."""
+    payload = {
+        "name": "OAP Connect 4 · ON ANY POSTCODE",
+        "short_name": "Connect 4",
+        "description": "Free first-party Connect 4 in OAP Arena.",
+        "id": "/arena/connect4",
+        "start_url": "/arena/connect4?source=oap-store",
+        "scope": "/arena/connect4",
+        "display": "standalone",
+        "background_color": "#050403",
+        "theme_color": "#050403",
+        "prefer_related_applications": False,
+        "categories": ["games"],
+        "icons": [
+            {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+            {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+        ],
+    }
+    response = make_response(jsonify(payload), 200)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
 @bp.get("/linkup/manifest.webmanifest")
 def link_up_manifest():
     payload = {
