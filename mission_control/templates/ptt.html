@@ -15,7 +15,7 @@
     <section class="card">
       <p>OAP WORLD · PTT</p>
       <h1>🎙️ PTT</h1>
-      <p>Hold to talk. Release to listen. Your microphone stays off until you press the talk control.</p>
+      <p>Live digital PTT only. No recordings or message history. Live voice is not available until the real-time connection is verified.</p>
       <p><button type="button" data-oap-install hidden>Install OAP PTT</button></p>
       <p><strong data-oap-install-status role="status">Checking install support…</strong></p>
       <p><strong data-oap-voice-status role="status">Checking PTT…</strong></p>
@@ -63,34 +63,24 @@
         data-oap-ptt-control
         data-recipient-source="#ptt-guest-peer"
         aria-label="Hold to talk"
-      >🎙️ HOLD TO TALK</button>
+        disabled
+      >🎙️ HOLD TO TALK · LIVE COMING SOON</button>
       <button
         type="button"
         data-oap-ptt-stop
         data-recipient-source="#ptt-guest-peer"
         hidden
       >🛑 STOP</button>
-      <p>Release to listen. Incoming PTT appears below.</p>
-      <div data-oap-voice-list data-recipient-id="{{ guest.peer_id }}" aria-live="polite"></div>
+      <p role="status">Live audio is not connected yet. Pairing is available; recorded voice delivery is disabled.</p>
     </section>
     {% endif %}
 
 
 
-    <section class="card" aria-labelledby="ptt-incoming-title">
-      <h2 id="ptt-incoming-title">Incoming · History</h2>
-      {% if guest.active %}
-      <p>Incoming PTT is checked automatically. Tap any item to replay it.</p>
-      <p>History is temporary and bounded to this active pair.</p>
-      {% else %}
-      <p>Connect a phone to receive PTT and build temporary History.</p>
-      {% endif %}
-    </section>
-
     <section class="card" aria-labelledby="ptt-settings-title">
       <h2 id="ptt-settings-title">Settings</h2>
       <p><strong>Microphone:</strong> off until HOLD TO TALK is pressed.</p>
-      <p><strong>Account:</strong> not required for temporary pairing or Rooms.</p>
+      <p><strong>Account:</strong> not required for temporary pairing.</p>
       <p><strong>Install:</strong> available through OAP Store as standalone OAP PTT.</p>
       <p><strong>Safety:</strong> temporary Links expire automatically; STOP/Disconnect revokes the active connection.</p>
     </section>
@@ -105,7 +95,7 @@
         <option value="{{ contact.identity_id }}">{{ contact.display_name }} · {{ contact.card_id }}</option>
         {% endfor %}
       </select>
-      <button type="button" data-oap-ptt-control data-recipient-source="#ptt-contact">🎙️ Hold to talk</button>
+      <button type="button" disabled>🎙️ Hold to talk · Live coming soon</button>
       <button type="button" data-oap-ptt-stop data-recipient-source="#ptt-contact" hidden>🛑 STOP</button>
     </section>
     {% endif %}
@@ -116,6 +106,5 @@
     </nav>
   </main>
   <script src="{{ url_for('static', filename='ptt_guest.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
 </body>
 </html>
