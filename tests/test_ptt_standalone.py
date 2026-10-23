@@ -341,3 +341,35 @@ def test_live_status_does_not_claim_ready_when_pair_is_active(anonymous_client, 
     assert payload["paired"] is True
     assert payload["live_ready"] is False
     assert payload["media_ready"] is False
+
+
+def test_live_signalling_requires_guest_session(anonymous_client):
+    response = anonymous_client.get("/ptt/live/signals")
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "ptt_pair_required"
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_live_signalling_requires_active_pair(monkeypatch):
+    import pytest
+    from mission_control import ptt_signalling
+
+    monkeypatch.setattr(ptt_signalling.ptt_guest, "active_pair", lambda identity: None)
+    with pytest.raises(ValueError, match="ptt_pair_required"):
+        ptt_signalling.send(str(uuid.uuid4()), "offer", {"type": "offer", "sdp": "test"})
+
+
+def test_live_signalling_rejects_bad_payload_before_database(monkeypatch):
+    import pytest
+    from mission_control import ptt_signalling
+
+    monkeypatch.setattr(
+        ptt_signalling.ptt_guest,
+        "active_pair",
+        lambda identity: {"peer_id": str(uuid.uuid4())},
+    )
+    identity = str(uuid.uuid4())
+    with pytest.raises(ValueError, match="invalid_signal"):
+        ptt_signalling.send(identity, "recording", {"audio": "forbidden"})
+    with pytest.raises(ValueError, match="signal_too_large"):
+        ptt_signalling.send(identity, "offer", {"sdp": "x" * 17000})
