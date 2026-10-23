@@ -373,12 +373,17 @@ def test_ptt_kind_rejects_unknown_mode_before_storage(monkeypatch):
         )
 
 
-def test_ptt_routes_are_registered_and_protected(anonymous_client):
-    for path in ("/ptt/status", "/linkup/ptt/status"):
-        response = anonymous_client.get(path)
-        assert response.status_code == 401
-        assert response.get_json()["error"]["code"] == "authentication_required"
+def test_standalone_ptt_status_is_public_but_linkup_ptt_stays_protected(anonymous_client):
+    public_status = anonymous_client.get("/ptt/status")
+    assert public_status.status_code == 200
+    payload = public_status.get_json()
+    assert payload["first_party"] is True
+    assert payload["paired"] is False
+    assert payload["ready"] is False
 
-    for path in ("/ptt", "/linkup/ptt"):
-        response = anonymous_client.post(path)
-        assert response.status_code == 401
+    protected_status = anonymous_client.get("/linkup/ptt/status")
+    assert protected_status.status_code == 401
+    assert protected_status.get_json()["error"]["code"] == "authentication_required"
+
+    protected_post = anonymous_client.post("/linkup/ptt")
+    assert protected_post.status_code == 401
