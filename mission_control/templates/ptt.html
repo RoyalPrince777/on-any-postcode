@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {% set oap_app_name = "OAP PTT" %}
+  {% set oap_manifest_url = "/ptt/manifest.webmanifest" %}
+  {% include "_oap_install_head.html" %}
   <meta name="oap-csrf-token" content="{{ oap_csrf_token }}">
   <title>PTT — ON ANY POSTCODE</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
@@ -13,6 +16,8 @@
       <p>OAP WORLD · PTT</p>
       <h1>🎙️ PTT</h1>
       <p>Hold to talk. Release to listen. Your microphone stays off until you press the talk control.</p>
+      <p><button type="button" data-oap-install hidden>Install OAP PTT</button></p>
+      <p><strong data-oap-install-status role="status">Checking install support…</strong></p>
       <p><strong data-oap-voice-status>Checking PTT…</strong></p>
     </section>
 
@@ -40,7 +45,12 @@
         hidden
       >🛑 STOP</button>
       {% else %}
-      <p>No accepted contacts are available for PTT.</p>
+        {% if authenticated %}
+        <p>No accepted contacts are available for PTT.</p>
+        {% else %}
+        <p><strong>No sign-in required to install OAP PTT.</strong></p>
+        <p>Temporary device-to-device pairing is not connected yet, so talking stays locked rather than pretending a guest connection exists.</p>
+        {% endif %}
       {% endif %}
     </section>
 
