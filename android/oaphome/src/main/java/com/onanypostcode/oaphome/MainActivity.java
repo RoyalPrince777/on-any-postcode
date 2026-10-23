@@ -165,6 +165,9 @@ public class MainActivity extends Activity {
             return true;
         });
 
+        // Keep PTT within immediate one-handed reach on the primary Home screen.
+        addButton("🎙 PTT", v -> pttMenu());
+
         String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
                 "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
         String[] icons = {"🌍", "◉", "◈", "⌖", "✉", "▣", "▶", "♟", "▤"};
@@ -211,7 +214,6 @@ public class MainActivity extends Activity {
             dock.addView(item, lp);
         }
         addButton("⚙ SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
-        addButton("🎙 PTT", v -> pttMenu());
     }
 
     private void openInternetAddress(String url) {
