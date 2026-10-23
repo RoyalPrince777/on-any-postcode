@@ -26,7 +26,7 @@ def advisory_growth_record(*, agent: str, capability: str,
     if not isinstance(capability, str) or not capability.strip():
         raise ValueError("capability required")
     if not isinstance(evidence, Mapping):
-        raise ValueError("evidence mapping required")
+        raise TypeError("evidence mapping required")
     if any(not isinstance(evidence.get(k), str) or not evidence[k].strip()
            for k in ("source", "reference", "observation")):
         raise ValueError("traceable evidence fields required")
