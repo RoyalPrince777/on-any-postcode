@@ -54,6 +54,10 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
     monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(
+        gate, "wait_until_ready",
+        lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0},
+    )
     samples = (
         {"route_id": "a", "ok": True, "elapsed_s": 0.2},
         {"route_id": "b", "ok": False, "elapsed_s": 10.0, "failure_type": "timeout"},
@@ -81,6 +85,10 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(
+        gate, "wait_until_ready",
+        lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0},
+    )
     monkeypatch.setattr(
         gate,
         "run_one",
