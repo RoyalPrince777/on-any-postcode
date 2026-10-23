@@ -271,7 +271,7 @@ def send_live_signal():
         return _no_store(make_response(jsonify(id=signal_id), 202))
     except ValueError as exc:
         return _no_store(make_response(jsonify(error={"code": str(exc)}), 400))
-    except (ptt_guest.PttGuestUnavailable, Exception):
+    except ptt_guest.PttGuestUnavailable:
         return _no_store(make_response(jsonify(error={"code": "signalling_unavailable"}), 503))
 
 
@@ -284,7 +284,7 @@ def receive_live_signals():
         return _no_store(make_response(jsonify(signals=ptt_signalling.receive(identity)), 200))
     except ValueError as exc:
         return _no_store(make_response(jsonify(error={"code": str(exc)}), 403))
-    except (ptt_guest.PttGuestUnavailable, Exception):
+    except ptt_guest.PttGuestUnavailable:
         return _no_store(make_response(jsonify(error={"code": "signalling_unavailable"}), 503))
 
 
