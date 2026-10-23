@@ -323,3 +323,12 @@ def test_connect4_dedicated_manifest_does_not_unlock_install(client):
     listing = {a["app_id"]: a for a in oap_store.catalogue()}["oap.arena.connect4"]
     assert listing["install_enabled"] is False
     assert listing["manifest_url"] is None
+
+
+def test_connect4_pages_advertise_dedicated_manifest_without_install_claim(client):
+    for route in ("/arena/connect4", "/arena/connect4/room"):
+        response = client.get(route)
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert 'rel="manifest" href="/arena/connect4/manifest.webmanifest"' in body
+        assert "Install OAP Connect 4" not in body
