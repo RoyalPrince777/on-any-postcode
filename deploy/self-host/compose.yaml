@@ -1,0 +1,66 @@
+# Minimal OAP Store/PTT self-host stack — NOT DEPLOYED
+#
+# Requires an OAP-administered Linux host, DNS, valid TLS and separately
+# provisioned secrets. Do not publish before the release contract is met.
+#
+# Usage after review:
+# docker compose -f deploy/self-host/compose.yaml --env-file deploy/self-host/.env up -d --build
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: Dockerfile.runtime
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "10000"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:?Set POSTGRES_DB}"
+    expose:
+      - "10000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - internal
+
+  database:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  gateway:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      OAP_HOSTNAME: ${OAP_HOSTNAME:?Set OAP_HOSTNAME}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+    networks:
+      - internal
+
+networks:
+  internal:
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
