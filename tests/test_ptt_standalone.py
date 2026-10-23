@@ -229,8 +229,10 @@ def test_ptt_guest_ui_exposes_talk_history_and_disconnect(monkeypatch, anonymous
     body = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "CONNECTED · TEMPORARY PTT" in body
-    assert "HOLD TO TALK" in body
-    assert 'data-oap-voice-list' in body
+    assert "HOLD TO TALK · LIVE COMING SOON" in body
+    assert "recorded voice delivery is disabled" in body
+    assert 'data-oap-voice-list' not in body
+    assert 'src="/static/linkup_voice.js"' not in body
     assert 'action="/ptt/pair/stop"' in body
 
 
@@ -292,12 +294,13 @@ def test_anonymous_ptt_can_create_and_join_room(anonymous_client, monkeypatch):
 
 def test_room_ui_deferred_without_removing_room_backend(anonymous_client):
     body = anonymous_client.get("/ptt").get_data(as_text=True)
-    for label in ("Connect another phone", "Incoming", "History", "Settings"):
+    for label in ("Connect another phone", "Settings"):
         assert label in body
     assert 'data-oap-ptt-room' not in body
     assert 'src="/static/ptt_room.js"' not in body
     assert 'data-oap-ptt-pair' in body
     assert 'src="/static/ptt_guest.js"' in body
+    assert "Incoming · History" not in body
 
 
 def test_room_browser_runtime_has_hold_release_incoming_and_cleanup():
