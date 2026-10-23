@@ -112,10 +112,7 @@ def create_invite() -> dict[str, str]:
                 code = f"{secrets.randbelow(10 ** PAIR_CODE_DIGITS):0{PAIR_CODE_DIGITS}d}"
                 username = _guest_username(code)
                 exists = connection.execute(
-                    """SELECT 1 FROM users
-                       WHERE username=%s
-                         AND updated_at >= CURRENT_TIMESTAMP - INTERVAL '10 minutes'
-                       LIMIT 1""",
+                    "SELECT 1 FROM users WHERE username=%s LIMIT 1",
                     (username,),
                 ).fetchone()
                 if exists is not None:
@@ -154,7 +151,6 @@ def ensure_session_guest(identity_id: object | None = None) -> str:
 def join_invite(code_value: object, joiner_identity_id: object | None = None) -> dict[str, Any]:
     code = _code(code_value)
     username = _guest_username(code)
-    joiner = ensure_session_guest(joiner_identity_id)
     try:
         with postgres_db.connect(readonly=True) as connection:
             row = connection.execute(
@@ -169,6 +165,9 @@ def join_invite(code_value: object, joiner_identity_id: object | None = None) ->
         if row is None:
             raise ValueError("pair_code_expired_or_unknown")
         creator = str(row[0])
+        if joiner_identity_id and creator == _uuid(joiner_identity_id, "invalid_guest_identity"):
+            raise ValueError("cannot_pair_same_device")
+        joiner = ensure_session_guest(joiner_identity_id)
         if creator == joiner:
             raise ValueError("cannot_pair_same_device")
         if _active_pair_from_relations(creator) is not None:
@@ -200,15 +199,49 @@ def join_invite(code_value: object, joiner_identity_id: object | None = None) ->
         raise PttGuestUnavailable("ptt_pairing_unavailable") from exc
 
 
+def _deactivate_guest(identity_id: str) -> None:
+    try:
+        with postgres_db.connect() as connection:
+            connection.execute(
+                """UPDATE users SET status='inactive',updated_at=CURRENT_TIMESTAMP
+                   WHERE id=%s AND display_name=%s""",
+                (identity_id, GUEST_DISPLAY_NAME),
+            )
+            connection.commit()
+    except Exception as exc:
+        raise PttGuestUnavailable("ptt_guest_deactivate_failed") from exc
+
+
 def stop(identity_id: object) -> bool:
     identity = _uuid(identity_id, "invalid_guest_identity")
     try:
         pair = _active_pair_from_relations(identity)
         if pair is None:
+            _deactivate_guest(identity)
             return False
-        return link_relationships.revoke(identity, pair["relationship_id"])
+        revoked = link_relationships.revoke(identity, pair["relationship_id"])
+        _deactivate_guest(identity)
+        return revoked
     except link_relationships.LinkRelationshipsUnavailable as exc:
         raise PttGuestUnavailable("ptt_pairing_unavailable") from exc
+
+
+def _invite_valid(identity_id: str, code: str) -> bool:
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT 1 FROM users
+                   WHERE id=%s
+                     AND username=%s
+                     AND display_name=%s
+                     AND status='active'
+                     AND updated_at >= CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+                   LIMIT 1""",
+                (identity_id, _guest_username(code), GUEST_DISPLAY_NAME),
+            ).fetchone()
+        return row is not None
+    except Exception as exc:
+        raise PttGuestUnavailable("ptt_invite_status_failed") from exc
 
 
 def invite_state(identity_id: object, code_value: object | None) -> dict[str, Any]:
@@ -219,7 +252,8 @@ def invite_state(identity_id: object, code_value: object | None) -> dict[str, An
     code = None
     if code_value:
         try:
-            code = _code(code_value)
+            candidate = _code(code_value)
+            code = candidate if _invite_valid(identity, candidate) else None
         except ValueError:
             code = None
     return {
