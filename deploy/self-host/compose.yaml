@@ -14,6 +14,7 @@ services:
     env_file: .env
     environment:
       PORT: "10000"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:?Set POSTGRES_DB}"
     expose:
       - "10000"
     depends_on:
