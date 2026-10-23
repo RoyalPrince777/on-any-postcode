@@ -86,3 +86,9 @@ def compare_fox_assessments(*, fox: Mapping[str, Any], foxy: Mapping[str, Any]) 
         "production_gate": "blocked",
         "learning_verified": False, "rank_change": None,
     }
+
+
+def assess_foxy_mission(**kwargs: Any) -> dict[str, Any]:
+    """Give FOXY an independent advisory record using the existing proof gates."""
+    record = assess_mission(**kwargs)
+    return {**record, "agent": "Foxy"}
