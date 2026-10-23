@@ -103,3 +103,34 @@ def test_foxy_can_disagree_with_fox_without_execution():
     assert result["needs_review"] is True
     assert result["recommendations"] == {"Fox": "safe", "Foxy": "alternate"}
     assert result["production_gate"] == "blocked"
+
+
+def test_fox_route_reconnaissance_skips_blocked_route():
+    from mission_control.fox_intelligence import assess_fox_routes
+
+    routes = [
+        {"name": "blocked", "cost": 0, "risk": 0, "dependencies": 0, "reversible": True},
+        {"name": "alternative", "cost": 2, "risk": 1, "dependencies": 1, "reversible": True},
+    ]
+    result = assess_fox_routes(routes=routes, blocked_route_names=["blocked"])
+    assert result["agent"] == "Fox"
+    assert result["recommended"] == "alternative"
+    assert result["blocked_routes"] == ["blocked"]
+    assert result["production_gate"] == "blocked"
+    assert result["route_data_verified"] is False
+
+
+def test_fox_routes_fail_closed_on_duplicate_names():
+    from mission_control.fox_intelligence import assess_fox_routes
+
+    route = {"name": "a", "cost": 1, "risk": 1, "dependencies": 1, "reversible": True}
+    with pytest.raises(ValueError):
+        assess_fox_routes(routes=[route, route])
+
+
+def test_fox_routes_no_candidates_never_claim_navigation():
+    from mission_control.fox_intelligence import assess_fox_routes
+
+    result = assess_fox_routes(routes=[])
+    assert result["recommended"] is None
+    assert "live_navigation_proof" in result["missing"]
