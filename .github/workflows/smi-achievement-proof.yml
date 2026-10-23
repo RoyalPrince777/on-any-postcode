@@ -1,0 +1,37 @@
+name: SMI agent achievement proof
+
+on:
+  pull_request:
+    paths:
+      - 'mission_control/agent_achievements.py'
+      - 'mission_control/agents.py'
+      - 'mission_control/agents_legacy.py'
+      - 'tests/test_agent_achievements.py'
+      - '.github/workflows/smi-achievement-proof.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'mission_control/agent_achievements.py'
+      - 'mission_control/agents.py'
+      - 'mission_control/agents_legacy.py'
+      - 'tests/test_agent_achievements.py'
+      - '.github/workflows/smi-achievement-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  achievements:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: python -m pip install -r requirements.txt pytest
+      - name: Compile ranking code and tests
+        run: python -m py_compile mission_control/agent_achievements.py tests/test_agent_achievements.py
+      - name: Run individual achievement tests
+        run: python -m pytest -q tests/test_agent_achievements.py
