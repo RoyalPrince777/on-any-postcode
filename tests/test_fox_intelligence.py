@@ -1,7 +1,11 @@
 """Fox V2 fail-closed advisory checks."""
 import pytest
 
-from mission_control.fox_intelligence import assess_mission, evidence_valid, rank_alternatives
+from mission_control.fox_intelligence import (
+    assess_mission,
+    evidence_valid,
+    rank_alternatives,
+)
 
 
 def test_evidence_requires_traceable_observation():
@@ -85,7 +89,10 @@ def test_foxy_uses_same_fail_closed_evidence_gate():
 
 
 def test_foxy_can_disagree_with_fox_without_execution():
-    from mission_control.fox_intelligence import assess_foxy_mission, compare_fox_assessments
+    from mission_control.fox_intelligence import (
+        assess_foxy_mission,
+        compare_fox_assessments,
+    )
     options = [
         {"name": "safe", "cost": 2, "risk": 1, "dependencies": 1, "reversible": True},
         {"name": "alternate", "cost": 1, "risk": 2, "dependencies": 1, "reversible": True},
