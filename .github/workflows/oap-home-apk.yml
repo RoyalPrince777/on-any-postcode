@@ -54,7 +54,7 @@ jobs:
           from pathlib import Path
           source = Path("android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java").read_text()
           ptt = 'addButton("🎙 PTT", v -> pttMenu());'
-          grid = 'String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",'
+          grid = 'GridLayout grid = new GridLayout(this);'
           assert source.count(ptt) == 1, "PTT main entry must appear exactly once"
           assert source.index(ptt) < source.index(grid), "PTT must stay above the app grid for immediate reach"
           PY
