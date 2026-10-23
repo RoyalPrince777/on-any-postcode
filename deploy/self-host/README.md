@@ -14,3 +14,11 @@ This is the **smallest app/database/HTTPS skeleton**, not a live PTT release.
 - Do not change DNS, enable public PTT, or assert Green without Founder Final and physical-device evidence.
 
 See `docs/OAP_PTT_SELF_HOST_RELEASE_CONTRACT.md`.
+
+## Verified database binding
+
+The Compose web service now supplies `DATABASE_URL` to the existing Flask PostgreSQL configuration using the private `database` hostname. **Do not use a password with URL-reserved characters in this simple URI interpolation** until a reviewed percent-encoding or secret-file strategy is implemented. Production provisioning must use a high-entropy credential compatible with the URI syntax, not weaken credential strength. Check existing `OAP_PRIMARY_DATABASE_URL` overrides before deployment because they take precedence over `DATABASE_URL`.
+
+## Android Termux boundary
+
+The preflight observed Docker and Docker Compose unavailable in Termux. Do not interpret this as a Linux-host validation. The preflight must be rerun on the actual Docker-capable server.
