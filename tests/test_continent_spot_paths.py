@@ -70,3 +70,24 @@ def test_public_continent_ui_keeps_existing_route_and_privacy_boundaries():
     assert "No autoplay." in template
     assert "never published by selecting a continent" in template
     assert "not yet populated globally" in template
+
+
+def test_country_adapter_keeps_legacy_caribbean_bucket():
+    from mission_control.world_geography import continent_for_country
+    from mission_control.continent_spot_paths import world_continent_for_country, country_breadcrumbs
+    assert continent_for_country("Barbados") == "Caribbean"
+    assert world_continent_for_country("Barbados") == "north-america"
+    assert country_breadcrumbs("Barbados")[1]["label"] == "north-america"
+
+
+def test_country_adapter_known_and_unknown():
+    import pytest
+    from mission_control.continent_spot_paths import world_continent_for_country, country_breadcrumbs
+    assert world_continent_for_country("Ghana") == "africa"
+    assert world_continent_for_country("United Kingdom") == "europe"
+    assert world_continent_for_country("Unknown Neverland") is None
+    with pytest.raises(ValueError, match="unknown_country"):
+        country_breadcrumbs("Unknown Neverland")
+    result = country_breadcrumbs("Ghana", region="Eastern Region", district="Begoro")
+    assert result[-1]["level"] == "the-spot"
+    assert all("route" not in item for item in result)
