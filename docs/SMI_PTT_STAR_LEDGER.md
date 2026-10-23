@@ -41,3 +41,8 @@ Never mark OAP PTT live-ready solely from signalling, a JavaScript syntax check,
 | Governed CI completion | Seraph (CI role), Captain ALL IN (record) | [GitHub Actions run #6778](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40035070429) for commit `0cf49a439972404b8b6b82a779899fab40e89878`: `completed`, `success` | Verified workflow conclusion; four independent judging criteria and PTT behavioural proof pending | 0 |
 
 **Round 4 stars: 0. Cumulative awarded stars: 0.** This workflow success does not certify physical-device audio, HOLD/STOP behaviour or deployment.
+
+## Founder clarification — individual career stars (2026-10-24)
+The canonical scoring unit is **an individual agent's career star**, not a shared mission score. Each agent has an independent cumulative total across missions. A verified, distinct contribution can earn that agent one star even when other agents work on the same mission. A round is only a reporting interval; career totals never reset at round boundaries. Keep per-agent award records with agent registry identity, task, round, evidence link, judging outcomes and referee decision. Do not create a duplicate agent registry or fabricate existing rank totals. The four judges' own contributions require independent review. A mission's sum of awards is reporting only and must not replace individual rankings.
+
+**Existing Round 1–4 entries record zero awarded career stars because no individual awards have passed judging.** A CI pass is evidence, not an automatic award. Ranking integration remains unimplemented and must reuse the existing agent registry.
