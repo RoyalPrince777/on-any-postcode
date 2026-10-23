@@ -175,8 +175,16 @@
       return;
     }
     try {
-      const result = await apiJson(`/linkup/voice?peer_id=${encodeURIComponent(peerId)}`);
+      const listEndpoint = standalonePtt ? "/ptt/voice" : "/linkup/voice";
+      const result = await apiJson(`${listEndpoint}?peer_id=${encodeURIComponent(peerId)}`);
+      const signature = (result.voices || []).map((voice) => voice.voice_id).join(",");
+      if (container.dataset.voiceSignature === signature) {
+        return;
+      }
+      container.dataset.voiceSignature = signature;
       container.replaceChildren();
+      let newestIncomingAudio = null;
+      let newestIncomingId = "";
       for (const voice of result.voices || []) {
         const item = document.createElement("div");
         item.className = "oap-voice-note";
@@ -190,8 +198,13 @@
         const audio = document.createElement("audio");
         audio.controls = true;
         audio.preload = "none";
-        audio.src = `/linkup/voice/${encodeURIComponent(voice.voice_id)}/media?peer_id=${encodeURIComponent(peerId)}`;
+        const mediaBase = standalonePtt ? "/ptt/voice" : "/linkup/voice";
+        audio.src = `${mediaBase}/${encodeURIComponent(voice.voice_id)}/media?peer_id=${encodeURIComponent(peerId)}`;
         item.appendChild(audio);
+        if (!newestIncomingAudio && voice.direction === "received") {
+          newestIncomingAudio = audio;
+          newestIncomingId = voice.voice_id;
+        }
 
         if (voice.direction === "sent") {
           const remove = document.createElement("button");
@@ -218,8 +231,16 @@
       }
       if (!container.childNodes.length) {
         const empty = document.createElement("p");
-        empty.textContent = "No Voice yet.";
+        empty.textContent = standalonePtt ? "No PTT received yet." : "No Voice yet.";
         container.appendChild(empty);
+      } else if (
+        standalonePtt &&
+        newestIncomingAudio &&
+        newestIncomingId &&
+        container.dataset.playedVoiceId !== newestIncomingId
+      ) {
+        container.dataset.playedVoiceId = newestIncomingId;
+        newestIncomingAudio.play().catch(() => {});
       }
     } catch (_error) {
       container.replaceChildren();
@@ -240,7 +261,8 @@
   };
 
   const startRecording = async (control, kind = "voice") => {
-    if (!state.ready || state.current || !browserReady()) {
+    const transportReady = kind === "ptt" ? state.pttReady : state.ready;
+    if (!transportReady || state.current || !browserReady()) {
       return;
     }
     const peerId = recipientFor(control);
@@ -392,20 +414,32 @@
     .then(([status, pttStatus]) => {
       state.ready = status.ready === true && status.first_party === true;
       state.pttReady = pttStatus.ready === true && pttStatus.first_party === true;
-      state.maxBytes = Number(status.max_voice_bytes) || state.maxBytes;
-      state.maxDurationMs = Number(status.max_voice_duration_ms) || state.maxDurationMs;
+      state.maxBytes = Number(
+        standalonePtt ? pttStatus.max_ptt_bytes : status.max_voice_bytes,
+      ) || state.maxBytes;
+      state.maxDurationMs = Number(
+        standalonePtt ? pttStatus.max_ptt_duration_ms : status.max_voice_duration_ms,
+      ) || state.maxDurationMs;
+      const activeTransport = standalonePtt ? state.pttReady : state.ready;
       setStatus(
-        state.ready && browserReady()
-          ? state.pttReady
-            ? "Voice and PTT are ready. Microphone stays off until you use a control."
-            : "Voice is ready. PTT stays locked until its OAP Data schema is proven."
-          : "Voice remains locked until OAP Data Voice and browser recording are ready.",
+        activeTransport && browserReady()
+          ? standalonePtt
+            ? "PTT ready. Hold to talk; release to listen. Microphone stays off otherwise."
+            : state.pttReady
+              ? "Voice and PTT are ready. Microphone stays off until you use a control."
+              : "Voice is ready. PTT stays locked until its OAP Data schema is proven."
+          : standalonePtt && pttStatus.transport_ready === true
+            ? "PTT transport is ready; connect another phone to unlock talk."
+            : "Voice and PTT are unavailable. Microphone remains off.",
       );
       refreshControls();
       lists.forEach((node) => {
         const peerId = node.dataset.recipientId || "";
         if (peerId) {
           renderVoiceList(peerId);
+          if (standalonePtt) {
+            window.setInterval(() => renderVoiceList(peerId), 2000);
+          }
         }
       });
     })
