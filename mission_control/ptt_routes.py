@@ -62,14 +62,14 @@ def contacts_api():
 
 
 @bp.get("/ptt")
-@web_security.login_required()
 def front_door():
     user = web_security.current_authenticated_user()
-    identity_id = str(user["id"])
+    identity_id = str(user["id"]) if user is not None else None
     response = make_response(
         render_template(
             "ptt.html",
-            contacts=_accepted_contacts(identity_id),
+            contacts=_accepted_contacts(identity_id) if identity_id else [],
+            authenticated=bool(user),
             oap_csrf_token=web_security.csrf_token(),
         )
     )
