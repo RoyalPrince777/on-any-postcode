@@ -53,10 +53,12 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           source = Path("android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java").read_text()
-          ptt = 'addButton("🎙 PTT", v -> pttMenu());'
-          grid = 'GridLayout grid = new GridLayout(this);'
-          assert source.count(ptt) == 1, "PTT main entry must appear exactly once"
-          assert source.index(ptt) < source.index(grid), "PTT must stay above the app grid for immediate reach"
+          ptt = 'Button pttQuick = button("🎙 PTT\\nSTANDALONE · MIC OFF", v -> pttMenu());'
+          info = 'LinearLayout info = new LinearLayout(this);'
+          assert source.count(ptt) == 1, "PTT quick action must appear exactly once"
+          assert source.index(ptt) < source.index(info), "PTT must stay above info tiles for immediate reach"
+          assert '"PTT".equals(normalized)' in source, "Home search must route PTT directly"
+          assert '"PUSH TO TALK".equals(normalized)' in source, "Home search must recognise Push to Talk"
           PY
           grep -Fq 'shouldInterceptRequest(android.webkit.WebView view' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
