@@ -352,6 +352,7 @@ def test_live_signalling_requires_guest_session(anonymous_client):
 
 def test_live_signalling_requires_active_pair(monkeypatch):
     import pytest
+
     from mission_control import ptt_signalling
 
     monkeypatch.setattr(ptt_signalling.ptt_guest, "active_pair", lambda identity: None)
@@ -361,6 +362,7 @@ def test_live_signalling_requires_active_pair(monkeypatch):
 
 def test_live_signalling_rejects_bad_payload_before_database(monkeypatch):
     import pytest
+
     from mission_control import ptt_signalling
 
     monkeypatch.setattr(
