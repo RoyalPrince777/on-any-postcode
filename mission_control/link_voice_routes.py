@@ -154,6 +154,7 @@ def linkup_ptt_status():
 @bp.get("/ptt/status")
 def guest_ptt_status():
     state = link_voice.status()
+    user = web_security.current_authenticated_user()
     identity = session.get("oap_ptt_guest_id")
     pair = None
     if identity:
@@ -161,12 +162,14 @@ def guest_ptt_status():
             pair = ptt_guest.active_pair(identity)
         except (ValueError, ptt_guest.PttGuestUnavailable):
             pair = None
+    authenticated = user is not None
     return _no_store(
         make_response(
             jsonify(
-                ready=bool(state.get("ptt_ready") and pair),
+                ready=bool(state.get("ptt_ready") and (pair or authenticated)),
                 transport_ready=bool(state.get("ptt_ready")),
                 paired=bool(pair),
+                authenticated_contact_mode=authenticated,
                 peer_id=pair.get("peer_id") if pair else None,
                 first_party=bool(state.get("first_party")),
                 transport="oap_voice_store",
@@ -191,7 +194,13 @@ def create_guest_ptt():
     if not link_voice.status().get("ptt_ready"):
         return _error("ptt_unavailable", 503)
     try:
-        identity, pair = _guest_pair()
+        user = web_security.current_authenticated_user()
+        if user is not None and request.form.get("recipient_id"):
+            identity = str(user["id"])
+            recipient = request.form.get("recipient_id")
+        else:
+            identity, pair = _guest_pair()
+            recipient = pair["peer_id"]
         if guarded := _mutation_guard(identity):
             return guarded
         upload = request.files.get("voice")
@@ -202,7 +211,7 @@ def create_guest_ptt():
             raise ValueError("voice_too_large")
         created = link_voice.create_voice(
             identity,
-            pair["peer_id"],
+            recipient,
             media=media,
             mime_type=upload.mimetype,
             duration_ms=request.form.get("duration_ms"),
