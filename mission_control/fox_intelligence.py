@@ -61,3 +61,23 @@ def assess_mission(*, evidence: Mapping[str, Any], alternatives: list[Mapping[st
             ("tests", test_passed is True), ("runtime", runtime_observed is True),
             ("founder_approval", human_approved is True)) if not passed],
     }
+
+
+def compare_fox_assessments(*, fox: Mapping[str, Any], foxy: Mapping[str, Any]) -> dict[str, Any]:
+    """Compare two independent advisory assessments without inventing learning or rank."""
+    assessments = {}
+    for name, item in (("Fox", fox), ("Foxy", foxy)):
+        if not isinstance(item, Mapping) or item.get("agent") != name or item.get("mode") != "advisory":
+            raise ValueError(f"{name} must provide its own advisory assessment")
+        if item.get("production_gate") not in ("blocked", "eligible_for_human_review"):
+            raise ValueError("invalid production gate")
+        assessments[name] = dict(item)
+    recommendations = {name: item.get("recommended") for name, item in assessments.items()}
+    agreement = recommendations["Fox"] is not None and recommendations["Fox"] == recommendations["Foxy"]
+    return {
+        "mode": "advisory", "founder_final": True,
+        "agents": assessments, "recommendations": recommendations,
+        "agreement": agreement, "needs_review": not agreement,
+        "production_gate": "blocked",
+        "learning_verified": False, "rank_change": None,
+    }
