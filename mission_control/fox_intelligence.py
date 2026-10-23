@@ -132,3 +132,31 @@ def assess_fox_routes(*, routes: list[Mapping[str, Any]],
         "blocked_routes": sorted(set(blocked).intersection(names)),
         "missing": ["verified_route_source", "live_navigation_proof"],
     }
+
+
+def assess_foxy_routes(*, routes: list[Mapping[str, Any]],
+                       blocked_route_names: list[str] | None = None) -> dict[str, Any]:
+    """FOXY-only alternative strategy: prefer reversibility before risk.
+
+    Same validated candidates and exclusion rules as FOX; no live navigation.
+    """
+    fox_record = assess_fox_routes(routes=routes, blocked_route_names=blocked_route_names)
+    ranked = sorted(
+        fox_record["alternatives"],
+        key=lambda o: (not o["reversible"], o["risk"], o["dependencies"], o["cost"], o["name"]),
+    )
+    return {
+        **fox_record,
+        "agent": "Foxy",
+        "specialism": "route_contingency_strategy",
+        "alternatives": ranked,
+        "recommended": ranked[0]["name"] if ranked else None,
+    }
+
+
+def compare_route_strategies(*, routes: list[Mapping[str, Any]],
+                             blocked_route_names: list[str] | None = None) -> dict[str, Any]:
+    """Contrast FOX route risk with FOXY reversible contingency priorities."""
+    fox = assess_fox_routes(routes=routes, blocked_route_names=blocked_route_names)
+    foxy = assess_foxy_routes(routes=routes, blocked_route_names=blocked_route_names)
+    return compare_fox_assessments(fox=fox, foxy=foxy)
