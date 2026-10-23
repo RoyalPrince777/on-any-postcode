@@ -6,7 +6,15 @@ by The Link or Link Up.
 """
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, redirect, render_template, request, session
+from flask import (
+    Blueprint,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    session,
+)
 
 from . import link_relationships, product_store, ptt_guest, web_security
 
