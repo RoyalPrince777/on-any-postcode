@@ -13,6 +13,7 @@
   let running = false;
   let holding = false;
   let starting = false;
+  let pendingCandidates = [];
   let generation = 0;
   const endpoint = "/ptt/live";
   const signal = async (kind, payload) => {
@@ -37,6 +38,7 @@
     timer = null;
     if (pc) { pc.onicecandidate = null; pc.ontrack = null; pc.close(); }
     pc = null;
+    pendingCandidates = [];
     if (stream) stream.getTracks().forEach((track) => track.stop());
     stream = null;
     if (remote) { remote.pause(); remote.srcObject = null; remote.remove(); }
@@ -51,12 +53,15 @@
     if (item.kind === "offer") {
       if (pc.signalingState !== "stable") return;
       await pc.setRemoteDescription(item.payload);
+      for (const candidate of pendingCandidates.splice(0)) await pc.addIceCandidate(candidate);
       await pc.setLocalDescription(await pc.createAnswer());
       await signal("answer", { type: pc.localDescription.type, sdp: pc.localDescription.sdp });
     } else if (item.kind === "answer" && pc.signalingState === "have-local-offer") {
       await pc.setRemoteDescription(item.payload);
-    } else if (item.kind === "candidate" && pc.remoteDescription) {
-      await pc.addIceCandidate(item.payload);
+      for (const candidate of pendingCandidates.splice(0)) await pc.addIceCandidate(candidate);
+    } else if (item.kind === "candidate") {
+      if (pc.remoteDescription) await pc.addIceCandidate(item.payload);
+      else pendingCandidates.push(item.payload);
     }
   };
   const poll = async (token) => {
