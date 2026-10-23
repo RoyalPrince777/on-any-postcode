@@ -22,6 +22,9 @@ bp = Blueprint("ptt_ui", __name__, template_folder="templates")
 
 PTT_GUEST_ID_KEY = "oap_ptt_guest_id"
 PTT_GUEST_CODE_KEY = "oap_ptt_guest_code"
+PTT_ROOM_ID_KEY = "oap_ptt_room_identity_id"
+PTT_ROOM_OWNER_KEY = "oap_ptt_room_owner_id"
+PTT_ROOM_CODE_KEY = "oap_ptt_room_code"
 
 
 def _no_store(response):
@@ -153,6 +156,92 @@ def stop_pair():
         return _pair_error(exc)
 
 
+def _room_state() -> dict[str, object]:
+    identity = session.get(PTT_ROOM_ID_KEY)
+    owner = session.get(PTT_ROOM_OWNER_KEY)
+    code = session.get(PTT_ROOM_CODE_KEY)
+    if identity and owner:
+        try:
+            state = ptt_guest.room_state(identity, owner)
+            if state.get("active"):
+                state["code"] = code
+                return state
+        except (ValueError, ptt_guest.PttGuestUnavailable):
+            pass
+    return {
+        "active": False,
+        "identity_id": str(identity) if identity else None,
+        "owner_id": str(owner) if owner else None,
+        "member_ids": [],
+        "member_count": 0,
+        "code": code,
+    }
+
+
+@bp.post("/ptt/room/create")
+def create_room():
+    guard = _mutation_guard(f"ptt-room-create:{request.remote_addr or 'unknown'}")
+    if guard:
+        return guard
+    try:
+        room = ptt_guest.create_room()
+        session[PTT_ROOM_ID_KEY] = room["identity_id"]
+        session[PTT_ROOM_OWNER_KEY] = room["owner_id"]
+        session[PTT_ROOM_CODE_KEY] = room["code"]
+        if request.is_json:
+            return _no_store(make_response(jsonify(room), 201))
+        return redirect("/ptt", code=303)
+    except (ValueError, ptt_guest.PttGuestUnavailable) as exc:
+        return _pair_error(exc)
+
+
+@bp.post("/ptt/room/join")
+def join_room():
+    guard = _mutation_guard(f"ptt-room-join:{request.remote_addr or 'unknown'}")
+    if guard:
+        return guard
+    payload = request.get_json(silent=True) if request.is_json else request.form
+    try:
+        room = ptt_guest.join_room(
+            payload.get("code"),
+            session.get(PTT_ROOM_ID_KEY),
+        )
+        session[PTT_ROOM_ID_KEY] = room["identity_id"]
+        session[PTT_ROOM_OWNER_KEY] = room["owner_id"]
+        session.pop(PTT_ROOM_CODE_KEY, None)
+        if request.is_json:
+            return _no_store(make_response(jsonify(room), 200))
+        return redirect("/ptt", code=303)
+    except (ValueError, ptt_guest.PttGuestUnavailable) as exc:
+        return _pair_error(exc)
+
+
+@bp.get("/ptt/room/status")
+def room_status():
+    return _no_store(make_response(jsonify(_room_state()), 200))
+
+
+@bp.post("/ptt/room/leave")
+def leave_room():
+    identity = session.get(PTT_ROOM_ID_KEY)
+    owner = session.get(PTT_ROOM_OWNER_KEY)
+    guard = _mutation_guard(
+        f"ptt-room-leave:{identity or request.remote_addr or 'unknown'}"
+    )
+    if guard:
+        return guard
+    try:
+        changed = bool(identity and owner and ptt_guest.leave_room(identity, owner))
+        session.pop(PTT_ROOM_ID_KEY, None)
+        session.pop(PTT_ROOM_OWNER_KEY, None)
+        session.pop(PTT_ROOM_CODE_KEY, None)
+        if request.is_json:
+            return _no_store(make_response(jsonify(left=changed), 200))
+        return redirect("/ptt", code=303)
+    except (ValueError, ptt_guest.PttGuestUnavailable) as exc:
+        return _pair_error(exc)
+
+
 @bp.get("/ptt/contacts")
 @web_security.login_required(api=True)
 def contacts_api():
@@ -170,6 +259,7 @@ def front_door():
             contacts=_accepted_contacts(identity_id) if identity_id else [],
             authenticated=bool(user),
             guest=_guest_state(),
+            room=_room_state(),
             oap_csrf_token=web_security.csrf_token(),
         )
     )
