@@ -16,6 +16,7 @@ from oap.guardian.engine import GuardianEngine
 from oap.war_room import WarRoomEngine
 
 from . import (
+    agent_achievements,
     agents,
     authority,
     brain,
@@ -1405,6 +1406,13 @@ def get_war_room_dashboard() -> dict[str, Any]:
             ),
             "star_counts": star_counts,
             "meaning": "Portfolio evidence view; not a release or safety certification.",
+        },
+        "agent_achievement_rankings": {
+            "status": "read_only_unawarded",
+            "award_source": "No persisted independently approved award records connected",
+            "awarded_movements": 0,
+            "ranking": tuple(agent_achievements.career_rankings(())),
+            "separate_from_readiness_ratings": True,
         },
         "top_next": top_next,
         "conflict_audit": conflict_audit,
