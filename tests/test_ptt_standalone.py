@@ -375,3 +375,29 @@ def test_live_signalling_rejects_bad_payload_before_database(monkeypatch):
         ptt_signalling.send(identity, "recording", {"audio": "forbidden"})
     with pytest.raises(ValueError, match="signal_too_large"):
         ptt_signalling.send(identity, "offer", {"sdp": "x" * 17000})
+
+
+def test_webrtc_signalling_accepts_only_expected_shapes():
+    import pytest
+
+    from mission_control import ptt_signalling
+
+    valid = [
+        ("offer", {"type": "offer", "sdp": "v=0\\r\\n"}),
+        ("answer", {"type": "answer", "sdp": "v=0\\r\\n"}),
+        ("candidate", {"candidate": "candidate:1 1 UDP 1 192.0.2.1 1234 typ host", "sdpMid": "0", "sdpMLineIndex": 0}),
+        ("hangup", {}),
+    ]
+    for kind, payload in valid:
+        ptt_signalling._validate(kind, payload)
+    invalid = [
+        ("offer", {"type": "answer", "sdp": "v=0"}),
+        ("offer", {"type": "offer", "sdp": "invalid"}),
+        ("candidate", {"candidate": 3}),
+        ("candidate", {"candidate": "x", "sdpMLineIndex": True}),
+        ("hangup", {"audio": "not allowed"}),
+        ("recording", {}),
+    ]
+    for kind, payload in invalid:
+        with pytest.raises(ValueError, match="invalid_signal"):
+            ptt_signalling._validate(kind, payload)
