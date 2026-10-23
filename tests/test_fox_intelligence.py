@@ -74,3 +74,25 @@ def test_comparison_rejects_invalid_recommendation():
     foxy = {"agent": "Foxy", "mode": "advisory", "production_gate": "blocked", "founder_final": True}
     with pytest.raises(ValueError):
         compare_fox_assessments(fox=fox, foxy=foxy)
+
+
+def test_foxy_uses_same_fail_closed_evidence_gate():
+    from mission_control.fox_intelligence import assess_foxy_mission
+    result = assess_foxy_mission(evidence={}, alternatives=[], dissent=[], recovery={})
+    assert result["agent"] == "Foxy"
+    assert result["production_gate"] == "blocked"
+    assert result["founder_final"] is True
+
+
+def test_foxy_can_disagree_with_fox_without_execution():
+    from mission_control.fox_intelligence import assess_foxy_mission, compare_fox_assessments
+    options = [
+        {"name": "safe", "cost": 2, "risk": 1, "dependencies": 1, "reversible": True},
+        {"name": "alternate", "cost": 1, "risk": 2, "dependencies": 1, "reversible": True},
+    ]
+    fox = assess_mission(evidence={}, alternatives=options, dissent=[], recovery={})
+    foxy = assess_foxy_mission(evidence={}, alternatives=[options[1]], dissent=[], recovery={})
+    result = compare_fox_assessments(fox=fox, foxy=foxy)
+    assert result["needs_review"] is True
+    assert result["recommendations"] == {"Fox": "safe", "Foxy": "alternate"}
+    assert result["production_gate"] == "blocked"
