@@ -20,6 +20,10 @@ PAIR_TTL_MINUTES = 60
 GUEST_DISPLAY_NAME = "OAP PTT Guest"
 GUEST_USERNAME_PREFIX = "oap-ptt-guest-"
 PAIR_PURPOSE = "OAP PTT temporary pairing"
+ROOM_PURPOSE_PREFIX = "OAP PTT room:"
+ROOM_HOST_DISPLAY_NAME = "OAP PTT Room Host"
+ROOM_USERNAME_PREFIX = "oap-ptt-room-"
+ROOM_MAX_MEMBERS = 7
 MAX_CODE_ATTEMPTS = 12
 
 
@@ -197,6 +201,183 @@ def join_invite(code_value: object, joiner_identity_id: object | None = None) ->
         raise PttGuestUnavailable("ptt_pairing_unavailable") from exc
     except Exception as exc:
         raise PttGuestUnavailable("ptt_pairing_unavailable") from exc
+
+
+def _room_username(code: str) -> str:
+    return f"{ROOM_USERNAME_PREFIX}{code}"
+
+
+def _room_purpose(owner_id: str) -> str:
+    return f"{ROOM_PURPOSE_PREFIX}{owner_id}"
+
+
+def create_room() -> dict[str, str]:
+    owner_id = str(uuid.uuid4())
+    try:
+        with postgres_db.connect() as connection:
+            for _attempt in range(MAX_CODE_ATTEMPTS):
+                code = f"{secrets.randbelow(10 ** PAIR_CODE_DIGITS):0{PAIR_CODE_DIGITS}d}"
+                username = _room_username(code)
+                exists = connection.execute(
+                    "SELECT 1 FROM users WHERE username=%s LIMIT 1",
+                    (username,),
+                ).fetchone()
+                if exists is not None:
+                    continue
+                connection.execute(
+                    """INSERT INTO users(id,username,display_name,status)
+                       VALUES (%s,%s,%s,'active')""",
+                    (owner_id, username, ROOM_HOST_DISPLAY_NAME),
+                )
+                connection.commit()
+                return {
+                    "identity_id": owner_id,
+                    "owner_id": owner_id,
+                    "code": code,
+                    "expires_at": (
+                        datetime.now(UTC) + timedelta(minutes=INVITE_TTL_MINUTES)
+                    ).isoformat(),
+                }
+        raise PttGuestUnavailable("room_code_generation_failed")
+    except PttGuestUnavailable:
+        raise
+    except Exception as exc:
+        raise PttGuestUnavailable("ptt_room_store_failed") from exc
+
+
+def _room_owner_from_code(code_value: object) -> str:
+    code = _code(code_value)
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT id FROM users
+                   WHERE username=%s
+                     AND display_name=%s
+                     AND status='active'
+                     AND updated_at >= CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+                   LIMIT 1""",
+                (_room_username(code), ROOM_HOST_DISPLAY_NAME),
+            ).fetchone()
+    except Exception as exc:
+        raise PttGuestUnavailable("ptt_room_lookup_failed") from exc
+    if row is None:
+        raise ValueError("room_code_expired_or_unknown")
+    return str(row[0])
+
+
+def _room_members(owner_id: str) -> list[str]:
+    purpose = _room_purpose(owner_id)
+    try:
+        relations = link_relationships.list_for_identity(owner_id)
+    except link_relationships.LinkRelationshipsUnavailable as exc:
+        raise PttGuestUnavailable("ptt_room_unavailable") from exc
+    members: list[str] = []
+    for relation in relations:
+        if relation.get("status") != "accepted":
+            continue
+        if relation.get("link_kind") != "purpose":
+            continue
+        if relation.get("purpose_text") != purpose:
+            continue
+        peer = (
+            str(relation["recipient_id"])
+            if str(relation["requester_id"]) == owner_id
+            else str(relation["requester_id"])
+        )
+        if peer not in members:
+            members.append(peer)
+    return members
+
+
+def room_state(identity_id: object, owner_id: object) -> dict[str, Any]:
+    identity = _uuid(identity_id, "invalid_room_identity")
+    owner = _uuid(owner_id, "invalid_room_owner")
+    members = _room_members(owner)
+    allowed = identity == owner or identity in members
+    if not allowed:
+        return {
+            "active": False,
+            "identity_id": identity,
+            "owner_id": owner,
+            "member_ids": [],
+            "member_count": 0,
+        }
+    all_members = [owner, *members]
+    return {
+        "active": True,
+        "identity_id": identity,
+        "owner_id": owner,
+        "member_ids": all_members,
+        "member_count": len(all_members),
+    }
+
+
+def join_room(
+    code_value: object,
+    member_identity_id: object | None = None,
+) -> dict[str, Any]:
+    owner = _room_owner_from_code(code_value)
+    if member_identity_id and owner == _uuid(member_identity_id, "invalid_room_identity"):
+        raise ValueError("cannot_join_own_room")
+    member = ensure_session_guest(member_identity_id)
+    if member == owner:
+        raise ValueError("cannot_join_own_room")
+    existing = _room_members(owner)
+    if member in existing:
+        return room_state(member, owner)
+    if 1 + len(existing) >= ROOM_MAX_MEMBERS:
+        raise ValueError("ptt_room_full")
+    expiry = datetime.now(UTC) + timedelta(minutes=PAIR_TTL_MINUTES)
+    purpose = _room_purpose(owner)
+    peers = [owner, *existing]
+    try:
+        for peer in peers:
+            relationship_id = link_relationships.request_link(
+                peer,
+                member,
+                link_kind="purpose",
+                purpose_text=purpose,
+                expires_at=expiry,
+            )
+            if not link_relationships.respond(member, relationship_id, "accepted"):
+                raise PttGuestUnavailable("ptt_room_accept_failed")
+    except (ValueError, PttGuestUnavailable):
+        raise
+    except link_relationships.LinkRelationshipsUnavailable as exc:
+        raise PttGuestUnavailable("ptt_room_unavailable") from exc
+    result = room_state(member, owner)
+    result["expires_at"] = expiry.isoformat()
+    return result
+
+
+def leave_room(identity_id: object, owner_id: object) -> bool:
+    identity = _uuid(identity_id, "invalid_room_identity")
+    owner = _uuid(owner_id, "invalid_room_owner")
+    purpose = _room_purpose(owner)
+    try:
+        if identity == owner:
+            participants = [owner, *_room_members(owner)]
+        else:
+            participants = [identity]
+        changed = False
+        seen: set[str] = set()
+        for participant in participants:
+            for relation in link_relationships.list_for_identity(participant):
+                relationship_id = str(relation.get("relationship_id") or "")
+                if not relationship_id or relationship_id in seen:
+                    continue
+                if relation.get("status") != "accepted":
+                    continue
+                if relation.get("link_kind") != "purpose":
+                    continue
+                if relation.get("purpose_text") != purpose:
+                    continue
+                seen.add(relationship_id)
+                changed = link_relationships.revoke(participant, relationship_id) or changed
+        _deactivate_guest(identity)
+        return changed
+    except link_relationships.LinkRelationshipsUnavailable as exc:
+        raise PttGuestUnavailable("ptt_room_unavailable") from exc
 
 
 def _deactivate_guest(identity_id: str) -> None:
