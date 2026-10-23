@@ -374,7 +374,7 @@ def test_live_signalling_rejects_bad_payload_before_database(monkeypatch):
     with pytest.raises(ValueError, match="invalid_signal"):
         ptt_signalling.send(identity, "recording", {"audio": "forbidden"})
     with pytest.raises(ValueError, match="signal_too_large"):
-        ptt_signalling.send(identity, "offer", {"sdp": "x" * 17000})
+        ptt_signalling.send(identity, "offer", {"type": "offer", "sdp": "v=0" + "x" * 17000})
 
 
 def test_webrtc_signalling_accepts_only_expected_shapes():
