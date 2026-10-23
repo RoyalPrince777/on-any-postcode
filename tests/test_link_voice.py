@@ -631,3 +631,53 @@ def test_room_ptt_media_rejects_peer_outside_room(anonymous_client, monkeypatch)
     )
     assert response.status_code == 400
     assert response.get_json()["error"]["code"] == "ptt_room_peer_required"
+
+
+def test_standalone_ptt_preserves_authenticated_saved_contact_mode(client, monkeypatch):
+    peer = str(uuid.uuid4())
+    observed = {}
+    monkeypatch.setattr(
+        link_voice_routes.link_voice,
+        "status",
+        lambda: {
+            "ptt_ready": True,
+            "first_party": True,
+            "max_voice_bytes": link_voice.MAX_VOICE_BYTES,
+            "max_voice_duration_ms": link_voice.MAX_VOICE_DURATION_MS,
+        },
+    )
+    monkeypatch.setattr(
+        link_voice_routes.link_voice,
+        "create_voice",
+        lambda sender, recipient, **kwargs: observed.update(
+            sender=sender, recipient=recipient, kwargs=kwargs
+        ) or {
+            "voice_id": str(uuid.uuid4()),
+            "kind": "ptt",
+            "byte_size": len(kwargs["media"]),
+        },
+    )
+    with client.session_transaction() as current_session:
+        current_session[link_voice_routes.web_security.CSRF_SESSION_KEY] = (
+            "saved-contact-csrf-token-value-1234567890"
+        )
+
+    status = client.get("/ptt/status")
+    assert status.status_code == 200
+    assert status.get_json()["ready"] is True
+    assert status.get_json()["authenticated_contact_mode"] is True
+
+    response = client.post(
+        "/ptt",
+        data={
+            "recipient_id": peer,
+            "duration_ms": "500",
+            "voice": (io.BytesIO(_webm()), "ptt.webm", "audio/webm"),
+        },
+        headers={"X-OAP-CSRF": "saved-contact-csrf-token-value-1234567890"},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 201
+    assert observed["sender"] == "11111111-1111-4111-8111-111111111111"
+    assert observed["recipient"] == peer
+    assert observed["kwargs"]["kind"] == "ptt"
