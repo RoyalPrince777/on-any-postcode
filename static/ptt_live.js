@@ -131,7 +131,11 @@
   ["pointerup", "pointercancel", "lostpointercapture", "pointerleave"].forEach((name) => talk.addEventListener(name, release));
   window.addEventListener("blur", release);
   document.addEventListener("visibilitychange", () => { if (document.hidden) release(); });
-  stop.addEventListener("click", async () => { if (running) await signal("hangup", {}).catch(() => {}); close("Disconnected"); });
+  stop.addEventListener("click", () => {
+    const wasRunning = running;
+    close("Disconnected");
+    if (wasRunning) signal("hangup", {}).catch(() => {});
+  });
   window.addEventListener("pagehide", () => close("Disconnected"));
   const connect = document.createElement("button");
   connect.type = "button";
