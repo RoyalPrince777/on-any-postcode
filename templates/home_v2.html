@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OAP Home V2</title>
+<style>
+:root{color-scheme:dark;--gold:#f4cb65;--bg:#09090c;--panel:#17151a;--line:#776032}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 50% 0%,#423013 0%,#101016 44%,var(--bg) 78%);color:#fff9eb;font:16px/1.45 system-ui,sans-serif}
+main{max-width:980px;margin:auto;padding:24px 16px calc(110px + env(safe-area-inset-bottom))}
+header{text-align:center;padding:20px 0 12px}h1{color:var(--gold);font-size:clamp(2rem,8vw,4rem);margin:0;letter-spacing:.06em}header p{margin:4px 0 16px;color:#e8d8b0}
+.time{font-size:clamp(2.2rem,10vw,4rem);font-variant-numeric:tabular-nums;font-weight:800}.date{color:#dfd0ac}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tile{border:1px solid var(--line);background:linear-gradient(135deg,#282018,#111116);border-radius:16px;min-height:104px;padding:17px;text-decoration:none;color:inherit;display:flex;flex-direction:column;justify-content:center;gap:7px}.tile strong{color:var(--gold);font-size:1rem}.tile span{color:#e4d8c5;font-size:.83rem}.tile.featured{border-color:var(--gold)}
+h2{font-size:1rem;color:var(--gold);margin:26px 0 12px}.dock{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#101014f5;border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:5}.dock a{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:10px;color:#fff9eb;text-decoration:none;font-weight:700}.dock a[aria-current]{background:var(--gold);color:#14110a}a:focus-visible{outline:3px solid #fff;outline-offset:3px}@media(min-width:700px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.dock{max-width:980px;margin:auto;border:1px solid var(--line);border-radius:16px 16px 0 0}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body><main>
+<header><h1>♛ OAP HOME</h1><p>ON ANY POSTCODE · Born Local. Built Global.</p><div class="time" id="home-clock" aria-label="Local time">--:--</div><div class="date" id="home-date">Time unavailable</div></header>
+<section aria-label="Priority apps"><h2>Quick access</h2><div class="tiles">
+<a class="tile featured" href="/store"><strong>🛍️ OAP Store</strong><span>Install OAP apps</span></a>
+<a class="tile featured" href="/ptt"><strong>🎙️ OAP PTT</strong><span>Push to talk</span></a>
+<a class="tile" href="/world"><strong>🌍 OAP World</strong><span>One ecosystem</span></a>
+<a class="tile" href="/the-link"><strong>🔗 The Link</strong><span>People and community</span></a>
+</div></section>
+<section aria-label="OAP destinations"><h2>Explore OAP</h2><div class="tiles">
+<a class="tile" href="/pay/bank"><strong>🪙 SIKA</strong><span>Finance and opportunity</span></a>
+<a class="tile" href="/travel"><strong>🗺️ OAP Maps & Travel</strong><span>Places and navigation</span></a>
+<a class="tile" href="/my-world"><strong>👤 My World</strong><span>Your OAP space</span></a>
+<a class="tile" href="/arena/chess"><strong>🎮 OAP Arena</strong><span>Games and challenges</span></a>
+<a class="tile" href="/linkup"><strong>💬 Link Up</strong><span>Communication</span></a>
+</div></section>
+<p role="note">Device phone, camera and system controls require a separately verified Android integration. No live weather or calendar data is claimed.</p>
+</main><nav class="dock" aria-label="OAP Home navigation"><a href="/home-v2" aria-current="page">⌂ Home</a><a href="/world">🌍 World</a><a href="/store">▣ Store</a><a href="/ptt">🎙 PTT</a></nav>
+<script>(()=>{const clock=document.getElementById("home-clock"),date=document.getElementById("home-date");function update(){const now=new Date();clock.textContent=new Intl.DateTimeFormat(undefined,{hour:"2-digit",minute:"2-digit"}).format(now);date.textContent=new Intl.DateTimeFormat(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(now)}update();setInterval(update,30000)})();</script>
+</body></html>
