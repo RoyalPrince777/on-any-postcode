@@ -38,3 +38,29 @@ def country_room_contract(country: str) -> dict[str, object]:
         "nationality_inferred_from_location": False,
         "verified_profile_data": False,
     }
+
+
+def country_room_reference(country: str) -> dict[str, object]:
+    """Populate only the country label and continent from the existing registry.
+
+    All nationality, passport, flag, anthem, language and culture fields remain
+    unpopulated until individually source-verified. This is not live coverage.
+    """
+    from mission_control.world_geography import continent_for_country
+
+    legacy_region = continent_for_country(country)
+    contract = country_room_contract(country)
+    return {
+        "country": contract["country"],
+        "continent": contract["continent"],
+        "legacy_region": legacy_region,
+        "source": "existing_oap_world_geography_reference",
+        "source_backed_fields": ("country", "continent", "legacy_region"),
+        "unverified_fields": tuple(
+            field for field in COUNTRY_ROOM_FIELDS
+            if field not in ("country", "continent")
+        ),
+        "country_room_route_published": False,
+        "passport_issuance_enabled": False,
+        "anthem_autoplay": False,
+    }
