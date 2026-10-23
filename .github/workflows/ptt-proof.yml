@@ -51,4 +51,4 @@ jobs:
           ruff check             mission_control/ptt_guest.py             mission_control/ptt_routes.py             mission_control/link_voice.py             mission_control/link_voice_routes.py             tests/test_ptt_guest.py             tests/test_ptt_standalone.py             tests/test_link_voice.py
       - name: Run complete PTT regression slice
         run: |
-          pytest -q             tests/test_ptt_guest.py             tests/test_ptt_standalone.py             tests/test_link_voice.py             tests/test_link_voice_ui.py             tests/test_oap_store_install.py
+          python -m pytest -q             tests/test_ptt_guest.py             tests/test_ptt_standalone.py             tests/test_link_voice.py             tests/test_link_voice_ui.py             tests/test_oap_store_install.py
