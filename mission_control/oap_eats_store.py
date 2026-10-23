@@ -12,7 +12,7 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from . import postgres_db
+from . import global_journey_store, movement_operations, postgres_db
 from .oap_eats import PUBLIC_TRANSITION_ROLES, can_transition
 
 MIGRATION_VERSION = "0001_oap_eats_core"
@@ -240,14 +240,16 @@ class EatsStore:
         actor = _uuid(actor_identity_id, "actor_identity_id")
         target = str(target_state or "").lower().strip()
         with postgres_db.connect() as connection:
+            connection.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
             current = connection.execute(
-                """SELECT o.state,o.customer_identity_id,m.owner_identity_id
+                """SELECT o.state,o.customer_identity_id,m.owner_identity_id,o.movement_booking_id
                    FROM oap_eats_orders o JOIN oap_eats_merchants m ON m.merchant_id=o.merchant_id
                    WHERE o.order_id=%s FOR UPDATE""", (order,)
             ).fetchone()
             if current is None or actor not in {str(current[1]), str(current[2])}:
                 raise PermissionError("order_not_owned")
-            if not can_transition(str(current[0]), target):
+            replay = str(current[0]) == target == "cancelled"
+            if not replay and not can_transition(str(current[0]), target):
                 raise ValueError("order_transition_not_allowed")
             roles = set()
             if actor == str(current[1]):
@@ -256,6 +258,15 @@ class EatsStore:
                 roles.add("merchant")
             if not roles.intersection(PUBLIC_TRANSITION_ROLES.get(target, ())):
                 raise PermissionError("order_transition_role_denied")
+            if target == "cancelled" and current[3] is not None:
+                movement_operations.STORE.cancel_booking(
+                    booking_id=current[3], member_identity_id=current[1], actor_identity_id=actor,
+                    product_order_id=order, connection=connection,
+                )
+            if replay:
+                result = self.require_customer_order(order_id=order, customer_identity_id=current[1], connection=connection)
+                connection.commit()
+                return result
             row = connection.execute(
                 """UPDATE oap_eats_orders SET state=%s,updated_at=CURRENT_TIMESTAMP
                    WHERE order_id=%s
@@ -433,6 +444,22 @@ class EatsStore:
         customer = _uuid(customer_identity_id, "customer_identity_id")
         booking = _uuid(booking_id, "booking_id")
         with (nullcontext(connection) if connection is not None else postgres_db.connect()) as db:
+            if connection is None:
+                db.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+            owned = self.require_customer_order(order_id=order, customer_identity_id=customer, connection=db)
+            evidence = db.execute(
+                """SELECT member_identity_id,service_type,route_snapshot FROM oap_movement_bookings
+                   WHERE booking_id=%s FOR UPDATE""", (booking,),
+            ).fetchone()
+            if (evidence is None or str(evidence[0]) != customer or str(evidence[1]) != "delivery"
+                    or evidence[2] != {"source": "oap_eats", "order_id": order}
+                    or owned["state"] not in {"authorised", "confirmed", "preparing", "ready", "courier_assigned"}):
+                raise PermissionError("order_movement_binding_denied")
+            if db.execute("SELECT 1 FROM oap_eats_orders WHERE movement_booking_id=%s AND order_id<>%s LIMIT 1", (booking, order)).fetchone() is not None:
+                raise PermissionError("order_movement_binding_denied")
+            global_journey_store.ensure_booking_journey(db, booking_id=booking, owner_identity_id=customer)
+            if owned["movement_booking_id"] == booking:
+                return owned
             row = db.execute(
                 """UPDATE oap_eats_orders
                    SET movement_booking_id=%s,updated_at=CURRENT_TIMESTAMP
@@ -454,6 +481,29 @@ class EatsStore:
             if connection is None:
                 db.commit()
         return _row(row)
+
+
+    def read_delivery(self, *, order_id: object, customer_identity_id: object) -> dict[str, Any]:
+        order = _uuid(order_id, "order_id")
+        customer = _uuid(customer_identity_id, "customer_identity_id")
+        with postgres_db.connect(readonly=True) as db:
+            row = db.execute(
+                """SELECT o.order_id,o.state,o.payment_id,b.booking_id,b.state,a.journey_id,c.cancelled_at
+                   FROM oap_eats_orders o JOIN oap_movement_bookings b ON b.booking_id=o.movement_booking_id
+                   JOIN oap_global_journey_associations a ON a.booking_id=b.booking_id
+                   LEFT JOIN oap_journey_cancellations c ON c.booking_id=b.booking_id
+                   WHERE o.order_id=%s AND o.customer_identity_id=%s AND b.member_identity_id=%s
+                     AND a.owner_identity_id=%s AND a.version=1 AND a.intent_id IS NULL AND b.service_type='delivery'
+                     AND b.route_snapshot=%s::jsonb""",
+                (order, customer, customer, customer, json.dumps({"source": "oap_eats", "order_id": order})),
+            ).fetchone()
+        if row is None:
+            raise PermissionError("order_delivery_not_verified")
+        return {"order_id": str(row[0]), "order_state": str(row[1]), "movement_booking_id": str(row[3]),
+                "booking_state": str(row[4]), "journey_id": str(row[5]),
+                "cancelled_at": row[6].isoformat() if row[6] else None,
+                "payment_action_required": str(row[1]) == "cancelled" and row[2] is not None,
+                "payment_captured": False, "refund_performed": False, "courier_dispatched": False}
 
 
 def _row(row) -> dict[str, Any]:

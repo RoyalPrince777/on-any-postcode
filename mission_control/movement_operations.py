@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from . import postgres_db
+from . import global_journey_store, postgres_db
 
 MOVEMENT_MIGRATION_VERSION = "0005_movement_operations"
 MOVEMENT_TABLES = frozenset(
@@ -413,10 +413,14 @@ class PostgresMovementStore:
             ).fetchone()
             if row is None:
                 raise ValueError("idempotency_conflict")
+            journey_id = global_journey_store.ensure_booking_journey(
+                db, booking_id=str(row[0]), owner_identity_id=member,
+            )
             if connection is None:
                 db.commit()
         return {
             "booking_id": str(row[0]),
+            "journey_id": journey_id,
             "service_type": str(row[1]),
             "state": str(row[2]),
             "scheduled_for": row[3].isoformat() if row[3] else None,
@@ -429,11 +433,13 @@ class PostgresMovementStore:
         identity = _uuid(identity_id, "identity_id")
         with postgres_db.connect(readonly=True) as connection:
             row = connection.execute(
-                """SELECT booking_id,member_identity_id,service_type,pickup,
-                          destination,scheduled_for,state,route_snapshot,
-                          created_at,updated_at
-                   FROM oap_movement_bookings
-                   WHERE booking_id=%s AND member_identity_id=%s""",
+                """SELECT b.booking_id,b.member_identity_id,b.service_type,b.pickup,
+                          b.destination,b.scheduled_for,b.state,b.route_snapshot,
+                          b.created_at,b.updated_at,a.journey_id
+                   FROM oap_movement_bookings b
+                   LEFT JOIN oap_global_journey_associations a ON a.booking_id=b.booking_id
+                   WHERE b.booking_id=%s AND b.member_identity_id=%s
+                     AND (a.owner_identity_id IS NULL OR (a.owner_identity_id=b.member_identity_id AND a.version=1 AND a.intent_id IS NULL))""",
                 (booking, identity),
             ).fetchone()
         if row is None:
@@ -449,7 +455,78 @@ class PostgresMovementStore:
             "route_snapshot": dict(row[7]) if row[7] else None,
             "created_at": row[8].isoformat(),
             "updated_at": row[9].isoformat(),
+            "journey_id": str(row[10]) if row[10] else None,
         }
+
+    def cancel_booking(self, *, booking_id: object, member_identity_id: object,
+                       actor_identity_id: object = None, product_order_id: object = None,
+                       connection: Any = None) -> dict[str, Any]:
+        """Cancel digital coordination atomically, never refund or notify a provider.
+
+        Product-bound callers must use the product's authorized transaction.
+        Lock order is product order, booking, proposals, then availability.
+        """
+        booking = _uuid(booking_id, "booking_id")
+        member = _uuid(member_identity_id, "member_identity_id")
+        actor = _uuid(actor_identity_id or member, "actor_identity_id")
+        product = _uuid(product_order_id, "order_id") if product_order_id else None
+        with (nullcontext(connection) if connection is not None else postgres_db.connect()) as db:
+            if connection is None:
+                db.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
+            if db.execute("SELECT 1 FROM oap_movement_bookings WHERE booking_id=%s AND member_identity_id=%s", (booking, member)).fetchone() is None:
+                raise PermissionError("booking_not_found")
+            table = db.execute("SELECT to_regclass('oap_eats_orders')").fetchone()
+            orders = db.execute(
+                """SELECT order_id,customer_identity_id FROM oap_eats_orders
+                   WHERE movement_booking_id=%s ORDER BY order_id FOR UPDATE""", (booking,),
+            ).fetchall() if table and table[0] is not None else []
+            if orders and (connection is None or len(orders) != 1 or str(orders[0][0]) != product
+                           or str(orders[0][1]) != member):
+                raise PermissionError("cancel_through_product_required")
+            current = db.execute(
+                """SELECT state FROM oap_movement_bookings
+                   WHERE booking_id=%s AND member_identity_id=%s FOR UPDATE""", (booking, member),
+            ).fetchone()
+            if current is None:
+                raise PermissionError("booking_not_found")
+            state = str(current[0])
+            if state not in {"DRAFT", "REQUESTED", "MATCH_PROPOSED", "ACCEPTED", "CANCELLED"}:
+                raise ValueError("booking_not_cancellable")
+            journey = global_journey_store.ensure_booking_journey(db, booking_id=booking, owner_identity_id=member)
+            proposals = db.execute(
+                """SELECT worker_identity_id,worker_role,state FROM oap_movement_match_proposals
+                   WHERE booking_id=%s ORDER BY worker_identity_id,worker_role FOR UPDATE""", (booking,),
+            ).fetchall()
+            db.execute(
+                """UPDATE oap_movement_match_proposals SET state='EXPIRED',updated_at=CURRENT_TIMESTAMP
+                   WHERE booking_id=%s AND state IN ('PROPOSED','ACCEPTED')""", (booking,),
+            )
+            for worker, role, proposal_state in proposals:
+                if str(proposal_state) == "ACCEPTED":
+                    db.execute(
+                        """UPDATE oap_movement_availability SET availability_state='OFFLINE',updated_at=CURRENT_TIMESTAMP
+                           WHERE identity_id=%s AND role_type=%s AND availability_state='BUSY'
+                             AND NOT EXISTS (SELECT 1 FROM oap_movement_match_proposals p
+                               JOIN oap_movement_bookings b ON b.booking_id=p.booking_id
+                               WHERE p.worker_identity_id=%s AND p.worker_role=%s AND p.state='ACCEPTED'
+                                 AND b.booking_id<>%s AND b.state IN ('ACCEPTED','IN_PROGRESS'))""",
+                        (worker, role, worker, role, booking),
+                    )
+            db.execute("UPDATE oap_movement_tracking_consents SET state='REVOKED',updated_at=CURRENT_TIMESTAMP WHERE booking_id=%s AND state='ACTIVE'", (booking,))
+            db.execute("UPDATE oap_movement_trip_channels SET state='CLOSED',updated_at=CURRENT_TIMESTAMP WHERE booking_id=%s AND state<>'CLOSED'", (booking,))
+            db.execute("UPDATE oap_movement_esim_requests SET state='CANCELLED' WHERE booking_id=%s AND state IN ('PROVIDER_REQUIRED','REQUESTED')", (booking,))
+            db.execute("UPDATE oap_movement_payment_intents SET state='CANCELLED',updated_at=CURRENT_TIMESTAMP WHERE booking_id=%s AND state IN ('PROVIDER_REQUIRED','CREATED')", (booking,))
+            db.execute("UPDATE oap_movement_bookings SET state='CANCELLED',updated_at=CURRENT_TIMESTAMP WHERE booking_id=%s AND state<>'CANCELLED'", (booking,))
+            db.execute(
+                """INSERT INTO oap_journey_cancellations(booking_id,actor_identity_id,prior_state)
+                   VALUES (%s,%s,%s) ON CONFLICT (booking_id) DO NOTHING""", (booking, actor, state),
+            )
+            receipt = db.execute("SELECT cancelled_at FROM oap_journey_cancellations WHERE booking_id=%s", (booking,)).fetchone()
+            if connection is None:
+                db.commit()
+        return {"booking_id": booking, "journey_id": journey, "state": "CANCELLED",
+                "cancelled_at": receipt[0].isoformat(), "external_dispatch_performed": False,
+                "payment_performed": False, "refund_performed": False}
 
     def certified_for_role(self, *, identity_id: object, role_type: object) -> bool:
         identity = _uuid(identity_id, "identity_id")
@@ -576,39 +653,9 @@ class PostgresMovementStore:
         }
 
     def accept_match(self, *, proposal_id: object, worker_identity_id: object) -> dict[str, Any]:
-        proposal = _uuid(proposal_id, "proposal_id")
-        worker = _uuid(worker_identity_id, "worker_identity_id")
-        with postgres_db.connect() as connection:
-            row = connection.execute(
-                """UPDATE oap_movement_match_proposals
-                   SET state='ACCEPTED',updated_at=CURRENT_TIMESTAMP
-                   WHERE proposal_id=%s AND worker_identity_id=%s
-                     AND state='PROPOSED'
-                   RETURNING booking_id,worker_role,updated_at""",
-                (proposal, worker),
-            ).fetchone()
-            if row is None:
-                raise PermissionError("match_proposal_not_available")
-            connection.execute(
-                """UPDATE oap_movement_bookings
-                   SET state='ACCEPTED',updated_at=CURRENT_TIMESTAMP
-                   WHERE booking_id=%s""",
-                (row[0],),
-            )
-            connection.execute(
-                """UPDATE oap_movement_availability
-                   SET availability_state='BUSY',updated_at=CURRENT_TIMESTAMP
-                   WHERE identity_id=%s AND role_type=%s""",
-                (worker, row[1]),
-            )
-            connection.commit()
-        return {
-            "booking_id": str(row[0]),
-            "worker_role": str(row[1]),
-            "state": "ACCEPTED",
-            "updated_at": row[2].isoformat(),
-            "external_dispatch_performed": False,
-        }
+        # Keep all callers on the currently certified, booking-locked path.
+        from .movement_match_safety import STORE
+        return STORE.accept_match(proposal_id=proposal_id, worker_identity_id=worker_identity_id)
 
     def is_participant(self, *, booking_id: object, identity_id: object) -> bool:
         booking = _uuid(booking_id, "booking_id")
@@ -616,7 +663,7 @@ class PostgresMovementStore:
         with postgres_db.connect(readonly=True) as connection:
             row = connection.execute(
                 """SELECT 1 FROM oap_movement_bookings b
-                   WHERE b.booking_id=%s AND (
+                   WHERE b.booking_id=%s AND b.state<>'CANCELLED' AND (
                      b.member_identity_id=%s OR EXISTS (
                        SELECT 1 FROM oap_movement_match_proposals p
                        WHERE p.booking_id=b.booking_id
@@ -642,6 +689,9 @@ class PostgresMovementStore:
         if not self.is_participant(booking_id=booking, identity_id=identity):
             raise PermissionError("booking_participant_required")
         with postgres_db.connect() as connection:
+            state = connection.execute("SELECT state FROM oap_movement_bookings WHERE booking_id=%s FOR UPDATE", (booking,)).fetchone()
+            if state is None or str(state[0]) == "CANCELLED":
+                raise PermissionError("booking_participant_required")
             row = connection.execute(
                 """INSERT INTO oap_movement_tracking_consents
                    (booking_id,identity_id,state,expires_at)
@@ -689,6 +739,9 @@ class PostgresMovementStore:
         lat = _coordinate(latitude, name="latitude", minimum=-90, maximum=90)
         lon = _coordinate(longitude, name="longitude", minimum=-180, maximum=180)
         with postgres_db.connect() as connection:
+            state = connection.execute("SELECT state FROM oap_movement_bookings WHERE booking_id=%s FOR UPDATE", (booking,)).fetchone()
+            if state is None or str(state[0]) == "CANCELLED":
+                raise PermissionError("active_tracking_consent_required")
             consent = connection.execute(
                 """SELECT expires_at FROM oap_movement_tracking_consents
                    WHERE booking_id=%s AND identity_id=%s AND state='ACTIVE'
@@ -726,6 +779,10 @@ class PostgresMovementStore:
         if booking and not self.is_participant(booking_id=booking, identity_id=identity):
             raise PermissionError("booking_participant_required")
         with postgres_db.connect() as connection:
+            if booking:
+                state = connection.execute("SELECT state FROM oap_movement_bookings WHERE booking_id=%s FOR UPDATE", (booking,)).fetchone()
+                if state is None or str(state[0]) == "CANCELLED":
+                    raise PermissionError("booking_participant_required")
             row = connection.execute(
                 """INSERT INTO oap_movement_esim_requests
                    (booking_id,identity_id,purpose,state)
@@ -766,7 +823,7 @@ class PostgresMovementStore:
         with postgres_db.connect() as connection:
             owner = connection.execute(
                 """SELECT 1 FROM oap_movement_bookings
-                   WHERE booking_id=%s AND member_identity_id=%s""",
+                   WHERE booking_id=%s AND member_identity_id=%s AND state<>'CANCELLED' FOR UPDATE""",
                 (booking, member),
             ).fetchone()
             if owner is None:
@@ -807,6 +864,9 @@ class PostgresMovementStore:
         if not self.is_participant(booking_id=booking, identity_id=identity):
             raise PermissionError("booking_participant_required")
         with postgres_db.connect() as connection:
+            state = connection.execute("SELECT state FROM oap_movement_bookings WHERE booking_id=%s FOR UPDATE", (booking,)).fetchone()
+            if state is None or str(state[0]) == "CANCELLED":
+                raise PermissionError("booking_participant_required")
             row = connection.execute(
                 """INSERT INTO oap_movement_trip_channels
                    (booking_id,state) VALUES (%s,'PENDING_LINK_UP')

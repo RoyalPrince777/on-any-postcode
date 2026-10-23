@@ -313,6 +313,34 @@ Organism grows.
 
 Human Authority is final.
 
+## Mission-to-100 execution protocol (Founder-approved upgrade)
+
+This protocol applies to SMI, Captain ALL IN, engineering, War Room and Green Gate missions. It strengthens the existing upgrade-only, Guardian, HRM and Human Authority locks; it never replaces them.
+
+### One continuous evidence-led mission
+
+- Work on the authorised objective continuously within existing permissions. Do not stop after each minor fix or request repeated approval for the same bounded, reversible action.
+- Inspect the canonical agent passports before selecting advisers. Match task, approved role, permissions and runtime status; select the smallest relevant set. Systems such as SMI and Guardian are not agents. An advisory passport does not confer deployment or security-change authority.
+- Reuse the existing application, tests, services, source files and PRs. Do not create duplicate agents, reports, apps, infrastructure or cosmetic stages.
+- Prefer actual implementation, available real tests and end-to-end verification. Fixtures and simulations may support tests but never substitute for available real evidence or count as production completion.
+- Correct related defects in a coherent engineering batch, then run the relevant real checks. Do not turn each small correction into a new status cycle.
+- Do not weaken authentication, authorisation, rights, privacy, youth safety, financial gates, production security or fail-closed behaviour to accelerate delivery or make tests green.
+
+### Single truthful mission receipt
+
+- Report once per meaningful milestone or genuine blocker, using compact DONE / NEXT / RECOVERY and the exact code revision, tests, failures and remaining release gates.
+- Never call a draft PR, green individual test, demo, placeholder, simulation, advisory selection or unmerged change a completed or deployed product.
+- Only show a percentage when a fixed, named acceptance inventory exists. Numerator = independently verified passed criteria; denominator = all applicable criteria. Show the denominator and blockers. No invented percentages or progress inflation.
+- Ratings, stars and agent votes are clearly labelled advisory assessments, never substituted for test evidence, live execution or Founder approval.
+- Green requires the existing Master Upgrade Lock proof, exact release revision, governed checks, Guardian boundaries, audit evidence and the relevant real end-to-end journey. Otherwise show BUILDING, BLOCKED, LOCKED or UNCERTAIN.
+
+### Authority and recovery
+
+- A4 remains supervised and cannot independently deploy, publish publicly, alter auth/security/permissions, spend or transfer value, migrate production, or self-approve. A5 stays locked.
+- Continue approved reversible engineering work without unnecessary prompts. Stop and request Human Authority only for a genuinely new restricted action, material security or scope change, or irreversible effect.
+- On failure: preserve logs and receipts, identify the root cause, fix without weakening gates, rerun applicable tests, and resume the same mission. Do not reset progress or fabricate a Green state.
+- The existing 21-item build-to-green order below is a **coverage checklist**, not 21 mandatory sequential approvals, ceremonies or status reports. Combine checks when technically appropriate without omitting required evidence.
+
 ## Build-to-green order
 
 1. Access green: public browse, Founder-only private side, fail-closed Command Center, audit access attempts.

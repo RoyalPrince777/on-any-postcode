@@ -5,9 +5,15 @@ fixtures from being pointed at a remote application database.
 """
 from __future__ import annotations
 
+import json
 import os
+import select
+import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from threading import Barrier, Event
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -16,6 +22,9 @@ import pytest
 from psycopg import errors, sql
 
 from mission_control import (
+    global_journey_schema,
+    global_journey_store,
+    movement_match_safety,
     movement_operations,
     oap_eats_fulfilment,
     oap_eats_store,
@@ -54,6 +63,8 @@ def delivery(monkeypatch):
             for statement in (
                 *postgres_db.MIGRATION_STATEMENTS,
                 *movement_operations.MOVEMENT_SCHEMA_STATEMENTS,
+                *global_journey_schema.STATEMENTS,
+                *global_journey_schema.LIFECYCLE_STATEMENTS,
                 *oap_eats_store.SCHEMA_STATEMENTS,
                 *oap_eats_store.INTEGRITY_SCHEMA_STATEMENTS,
                 *sika_account_engine.SCHEMA_STATEMENTS,
@@ -64,6 +75,7 @@ def delivery(monkeypatch):
             customer, merchant, outsider, order = (str(uuid4()) for _ in range(4))
             for identity in (customer, merchant, outsider):
                 db.execute("INSERT INTO users(id,username) VALUES (%s,%s)", (identity, identity))
+                db.execute("INSERT INTO oap_identities(identity_id,display_name,identity_type,status) VALUES (%s,%s,'PERSON','ACTIVE')", (identity, identity))
             db.execute(
                 "INSERT INTO oap_eats_merchants(merchant_id,owner_identity_id,name,active) VALUES (%s,%s,'CI merchant',TRUE)",
                 (merchant, merchant),
@@ -78,6 +90,7 @@ def delivery(monkeypatch):
             # Catalogue creation itself is exercised separately below.
             db.execute("UPDATE oap_eats_orders SET pricing_version=%s WHERE order_id=%s", (oap_eats_store.PRICING_VERSION, order))
             db.commit()
+        monkeypatch.setenv("OAP_EATS_TEST_SCHEMA", schema)
         yield {
             "order_id": order, "customer_identity_id": customer,
             "merchant": merchant, "outsider": outsider,
@@ -939,3 +952,315 @@ def test_binding_locks_canonical_evidence_until_commit(delivery, payment, monkey
     assert result["payment_status"] == "AUTHORISED"
     assert result["hold_status"] == "ACTIVE"
     assert _order_readback(delivery) == ("authorised", payment["intent"], payment["hold"], 1)
+
+
+def _cancel(delivery, actor=None):
+    return oap_eats_store.STORE.transition(
+        order_id=delivery["order_id"], actor_identity_id=actor or delivery["customer_identity_id"], target_state="cancelled",
+    )
+
+
+def _delivery_snapshot(delivery):
+    return oap_eats_store.STORE.read_delivery(order_id=delivery["order_id"], customer_identity_id=delivery["customer_identity_id"])
+
+
+def _match_fixture(delivery, booking):
+    worker, proposal = delivery["outsider"], str(uuid4())
+    with postgres_db.connect() as db:
+        db.execute("INSERT INTO oap_identity_roles(identity_id,role_id) VALUES (%s,'MOVEMENT_COURIER') ON CONFLICT DO NOTHING", (worker,))
+        db.execute("INSERT INTO oap_movement_availability(identity_id,role_type,availability_state) VALUES (%s,'courier','ONLINE') ON CONFLICT DO NOTHING", (worker,))
+        db.execute("INSERT INTO oap_movement_match_proposals(proposal_id,booking_id,worker_identity_id,worker_role,score,reason) VALUES (%s,%s,%s,'courier',1,'CI fixture')", (proposal, booking, worker))
+        db.execute("UPDATE oap_movement_bookings SET state='MATCH_PROPOSED' WHERE booking_id=%s", (booking,))
+        db.commit()
+    return {"proposal_id": proposal, "worker_identity_id": worker}
+
+
+@pytest.mark.parametrize("service", ["ride", "delivery", "ebike"])
+def test_shared_engine_mints_one_durable_journey_per_booking(delivery, service):
+    args = {"member_identity_id": delivery["customer_identity_id"], "service_type": service,
+            "pickup": delivery["pickup"], "destination": delivery["destination"],
+            "idempotency_key": "journey-" + delivery["order_id"]}
+    first = movement_operations.STORE.create_booking(**args)
+    assert movement_operations.PostgresMovementStore().create_booking(**args) == first
+    read = global_journey_store.read_journey(journey_id=first["journey_id"], identity_id=delivery["customer_identity_id"])
+    assert read["booking_id"] == first["booking_id"]
+    assert read["service_type"] == service
+    assert read["external_dispatch_performed"] is read["payment_performed"] is False
+    for actor in (delivery["merchant"], delivery["outsider"]):
+        assert global_journey_store.read_journey(journey_id=first["journey_id"], identity_id=actor) is None
+        assert movement_operations.STORE.get_booking(booking_id=first["booking_id"], identity_id=actor) is None
+    cancelled = movement_operations.STORE.cancel_booking(booking_id=first["booking_id"], member_identity_id=delivery["customer_identity_id"])
+    assert movement_operations.STORE.cancel_booking(booking_id=first["booking_id"], member_identity_id=delivery["customer_identity_id"]) == cancelled
+    assert global_journey_store.read_journey(journey_id=first["journey_id"], identity_id=delivery["customer_identity_id"])["state"] == "CANCELLED"
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_global_journey_associations").fetchone()[0] == 1
+
+
+def test_eats_readback_verifies_each_durable_owner_and_replay_has_one_event(delivery):
+    first = _create(delivery)
+    assert _create(delivery) == first
+    snapshot = _delivery_snapshot(delivery)
+    assert snapshot["journey_id"] == first["movement"]["journey_id"]
+    assert snapshot["movement_booking_id"] == first["movement_booking_id"]
+    assert _order_readback(delivery)[3] == 1
+    for actor in (delivery["merchant"], delivery["outsider"]):
+        with pytest.raises(PermissionError, match="order_delivery_not_verified"):
+            oap_eats_store.STORE.read_delivery(order_id=delivery["order_id"], customer_identity_id=actor)
+
+
+@pytest.mark.parametrize("change", ["booking_owner", "association_owner", "origin", "service", "unready_order"])
+def test_delivery_binding_cannot_accept_unrelated_or_changed_evidence(delivery, change):
+    first = _create(delivery)
+    booking = first["movement_booking_id"]
+    with postgres_db.connect() as db:
+        if change == "booking_owner":
+            db.execute("UPDATE oap_movement_bookings SET member_identity_id=%s WHERE booking_id=%s", (delivery["outsider"], booking))
+        elif change == "association_owner":
+            db.execute("UPDATE oap_global_journey_associations SET owner_identity_id=%s WHERE booking_id=%s", (delivery["outsider"], booking))
+        elif change == "origin":
+            db.execute("UPDATE oap_movement_bookings SET route_snapshot='{}' WHERE booking_id=%s", (booking,))
+        elif change == "service":
+            db.execute("UPDATE oap_movement_bookings SET service_type='ride' WHERE booking_id=%s", (booking,))
+        else:
+            db.execute("UPDATE oap_eats_orders SET state='created' WHERE order_id=%s", (delivery["order_id"],))
+        db.commit()
+    with pytest.raises(PermissionError):
+        oap_eats_store.STORE.bind_movement(order_id=delivery["order_id"], customer_identity_id=delivery["customer_identity_id"], booking_id=booking)
+    assert _order_readback(delivery)[3] == 1
+    if change in {"booking_owner", "association_owner", "origin", "service"}:
+        with pytest.raises(PermissionError):
+            _delivery_snapshot(delivery)
+
+
+@pytest.mark.parametrize("actor", ["customer_identity_id", "merchant"])
+@pytest.mark.parametrize("accepted", [False, True])
+def test_order_cancellation_commits_booking_proposals_consent_and_receipt(delivery, actor, accepted):
+    first = _create(delivery)
+    booking = first["movement_booking_id"]
+    match = _match_fixture(delivery, booking)
+    if accepted:
+        movement_match_safety.STORE.accept_match(**match)
+    movement_operations.STORE.grant_tracking_consent(booking_id=booking, identity_id=delivery["customer_identity_id"], expires_at=datetime.now(UTC) + timedelta(minutes=10))
+    with postgres_db.connect() as db:
+        db.execute("INSERT INTO oap_movement_trip_channels(booking_id,state) VALUES (%s,'READY')", (booking,))
+        db.commit()
+    first_cancel = _cancel(delivery, delivery[actor])
+    assert _cancel(delivery, delivery[actor]) == first_cancel
+    snapshot = _delivery_snapshot(delivery)
+    assert snapshot["order_state"] == "cancelled"
+    assert snapshot["booking_state"] == "CANCELLED"
+    assert snapshot["cancelled_at"]
+    assert _order_readback(delivery)[3] == 2
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT state FROM oap_movement_match_proposals").fetchall() == [("EXPIRED",)]
+        assert db.execute("SELECT state FROM oap_movement_tracking_consents").fetchall() == [("REVOKED",)]
+        assert db.execute("SELECT state FROM oap_movement_trip_channels").fetchall() == [("CLOSED",)]
+        assert db.execute("SELECT count(*) FROM oap_journey_cancellations").fetchone()[0] == 1
+        if accepted:
+            assert db.execute("SELECT availability_state FROM oap_movement_availability").fetchone()[0] == "OFFLINE"
+    with pytest.raises(PermissionError):
+        movement_match_safety.STORE.accept_match(**match)
+    with pytest.raises(PermissionError):
+        movement_operations.STORE.grant_tracking_consent(booking_id=booking, identity_id=delivery["customer_identity_id"], expires_at=datetime.now(UTC) + timedelta(minutes=10))
+    with pytest.raises(PermissionError):
+        movement_operations.STORE.record_tracking_point(booking_id=booking, identity_id=delivery["customer_identity_id"], latitude=51, longitude=0)
+
+
+@pytest.mark.parametrize("state", ["IN_PROGRESS", "COMPLETED"])
+def test_active_or_completed_booking_blocks_order_cancellation_atomically(delivery, state):
+    first = _create(delivery)
+    with postgres_db.connect() as db:
+        db.execute("UPDATE oap_movement_bookings SET state=%s WHERE booking_id=%s", (state, first["movement_booking_id"]))
+        db.commit()
+    with pytest.raises(ValueError, match="booking_not_cancellable"):
+        _cancel(delivery)
+    assert _order_readback(delivery)[0] == "authorised"
+    assert _delivery_snapshot(delivery)["booking_state"] == state
+
+
+def test_product_cancel_cannot_be_bypassed_and_does_not_refund(delivery, payment):
+    first = _create(delivery)
+    _bind_payment(delivery, payment)
+    with pytest.raises(PermissionError, match="cancel_through_product_required"):
+        movement_operations.STORE.cancel_booking(booking_id=first["movement_booking_id"], member_identity_id=delivery["customer_identity_id"])
+    _cancel(delivery)
+    read = _delivery_snapshot(delivery)
+    assert read["payment_action_required"] is True
+    assert read["refund_performed"] is read["payment_captured"] is False
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT status FROM oap_sika_payment_intents WHERE payment_id=%s", (payment["intent"],)).fetchone()[0] == "AUTHORISED"
+        assert db.execute("SELECT status FROM oap_sika_payment_holds WHERE hold_id=%s", (payment["hold"],)).fetchone()[0] == "ACTIVE"
+
+
+@pytest.mark.parametrize("operation", ["accept", "decline", "create", "cancel"])
+def test_cancellation_races_cannot_reopen_or_orphan_a_delivery(delivery, operation):
+    first = None if operation == "create" else _create(delivery)
+    match = _match_fixture(delivery, first["movement_booking_id"]) if operation in {"accept", "decline"} else None
+    barrier = Barrier(2)
+
+    def worker(index):
+        barrier.wait(timeout=10)
+        try:
+            if index == 0 or operation == "cancel":
+                return _cancel(delivery)
+            if operation == "create":
+                return _create(delivery)
+            return getattr(movement_match_safety.STORE, operation + "_match")(**match)
+        except (PermissionError, ValueError) as exc:
+            return str(exc)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        list(pool.map(worker, (0, 1)))
+    assert _order_readback(delivery)[0] == "cancelled"
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_movement_bookings WHERE state<>'CANCELLED'").fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM oap_movement_match_proposals WHERE state IN ('PROPOSED','ACCEPTED')").fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM oap_movement_availability WHERE availability_state='BUSY'").fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM oap_global_journey_associations").fetchone()[0] == len(_readback(delivery)[0])
+
+
+def test_cancellation_receipt_failure_rolls_back_every_state(delivery):
+    first = _create(delivery)
+    _match_fixture(delivery, first["movement_booking_id"])
+    with postgres_db.connect() as db:
+        db.execute("""CREATE FUNCTION reject_cancellation() RETURNS trigger LANGUAGE plpgsql AS $$
+                     BEGIN RAISE EXCEPTION 'injected_cancellation_failure'; END $$""")
+        db.execute("CREATE TRIGGER reject_cancellation BEFORE INSERT ON oap_journey_cancellations FOR EACH ROW EXECUTE FUNCTION reject_cancellation()")
+        db.commit()
+    with pytest.raises(errors.RaiseException):
+        _cancel(delivery)
+    assert _order_readback(delivery)[0] == "authorised"
+    assert _delivery_snapshot(delivery)["booking_state"] == "MATCH_PROPOSED"
+    with postgres_db.connect() as db:
+        assert db.execute("SELECT state FROM oap_movement_match_proposals").fetchone()[0] == "PROPOSED"
+        db.execute("DROP TRIGGER reject_cancellation ON oap_journey_cancellations")
+        db.commit()
+    _cancel(delivery)
+    assert _delivery_snapshot(delivery)["booking_state"] == "CANCELLED"
+
+
+@pytest.mark.parametrize("action", ["create", "cancel"])
+@pytest.mark.parametrize("phase", ["before_commit", "after_commit"])
+def test_sigkill_before_or_after_commit_recovers_one_linked_journey(delivery, action, phase):
+    if action == "cancel":
+        _create(delivery)
+        args = {"order_id": delivery["order_id"], "actor_identity_id": delivery["customer_identity_id"], "target_state": "cancelled"}
+    else:
+        args = {key: value for key, value in delivery.items() if key not in {"merchant", "outsider"}}
+    worker = Path(__file__).with_name("journey_crash_worker.py")
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1])}
+    process = subprocess.Popen([sys.executable, str(worker)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+    try:
+        process.stdin.write(json.dumps({"args": args, "phase": phase, "action": action}))
+        process.stdin.close()
+        ready, _, _ = select.select([process.stdout], [], [], 15)
+        assert ready, "Crash worker did not reach its real commit boundary"
+        marker = process.stdout.readline().strip()
+        if marker != phase:
+            raise AssertionError(process.stderr.read())
+        process.kill()
+        process.wait(timeout=10)
+        assert process.returncode < 0
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=10)
+        process.stdout.close()
+        process.stderr.close()
+    if action == "create":
+        assert len(_readback(delivery)[0]) == (1 if phase == "after_commit" else 0)
+        result = _create(delivery)
+        assert _create(delivery) == result
+    else:
+        expected = "CANCELLED" if phase == "after_commit" else "REQUESTED"
+        assert _delivery_snapshot(delivery)["booking_state"] == expected
+        _cancel(delivery)
+        assert _delivery_snapshot(delivery)["booking_state"] == "CANCELLED"
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_movement_bookings").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM oap_global_journey_associations").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM oap_journey_cancellations").fetchone()[0] == (1 if action == "cancel" else 0)
+
+
+def test_journey_migrations_record_both_checksums_without_changing_base(delivery):
+    for _ in range(2):
+        assert global_journey_schema.init_schema(assume_yes=True)["applied"] is True
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT checksum FROM oap_schema_migrations WHERE version=%s", (global_journey_schema.LIFECYCLE_VERSION,)).fetchone()[0] == global_journey_schema.LIFECYCLE_CHECKSUM
+
+
+@pytest.mark.parametrize("same_booking", [True, False])
+def test_competing_acceptances_have_one_booking_per_worker_and_one_worker_per_booking(delivery, same_booking):
+    first = _create(delivery)
+    match1 = _match_fixture(delivery, first["movement_booking_id"])
+    if same_booking:
+        match2 = {"proposal_id": str(uuid4()), "worker_identity_id": delivery["merchant"]}
+        with postgres_db.connect() as db:
+            db.execute("INSERT INTO oap_identity_roles(identity_id,role_id) VALUES (%s,'MOVEMENT_COURIER')", (delivery["merchant"],))
+            db.execute("INSERT INTO oap_movement_availability(identity_id,role_type,availability_state) VALUES (%s,'courier','ONLINE')", (delivery["merchant"],))
+            db.execute("INSERT INTO oap_movement_match_proposals(proposal_id,booking_id,worker_identity_id,worker_role,score,reason) VALUES (%s,%s,%s,'courier',1,'CI')", (match2["proposal_id"], first["movement_booking_id"], delivery["merchant"]))
+            db.commit()
+    else:
+        other = _second_order(delivery)
+        second = _create(other, idempotency_key="second-" + other["order_id"])
+        match2 = _match_fixture(delivery, second["movement_booking_id"])
+        # A second available role must not bypass identity-level exclusivity.
+        with postgres_db.connect() as db:
+            db.execute("INSERT INTO oap_identity_roles(identity_id,role_id) VALUES (%s,'MOVEMENT_RIDER')", (delivery["outsider"],))
+            db.execute("INSERT INTO oap_movement_availability(identity_id,role_type,availability_state) VALUES (%s,'rider','ONLINE')", (delivery["outsider"],))
+            db.execute("UPDATE oap_movement_match_proposals SET worker_role='rider' WHERE proposal_id=%s", (match2["proposal_id"],))
+            db.commit()
+    barrier = Barrier(2)
+
+    def worker(match):
+        barrier.wait(timeout=10)
+        try:
+            return movement_match_safety.STORE.accept_match(**match)["state"]
+        except PermissionError:
+            return "DENIED"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert sorted(pool.map(worker, (match1, match2))) == ["ACCEPTED", "DENIED"]
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_movement_match_proposals WHERE state='ACCEPTED'").fetchone()[0] == 1
+        assert db.execute("SELECT count(*) FROM oap_movement_bookings WHERE state='ACCEPTED'").fetchone()[0] == 1
+
+
+@pytest.mark.parametrize("state", ["SUSPENDED", "REVOKED", "missing"])
+def test_journey_creation_requires_durable_active_owner_and_rolls_back(delivery, state):
+    with postgres_db.connect() as db:
+        if state == "missing":
+            db.execute("DELETE FROM oap_identities WHERE identity_id=%s", (delivery["customer_identity_id"],))
+        else:
+            db.execute("UPDATE oap_identities SET status=%s WHERE identity_id=%s", (state, delivery["customer_identity_id"]))
+        db.commit()
+    with pytest.raises(PermissionError, match="journey_owner_required"):
+        _create(delivery)
+    assert _readback(delivery) == ([], None)
+    with postgres_db.connect(readonly=True) as db:
+        assert db.execute("SELECT count(*) FROM oap_global_journey_associations").fetchone()[0] == 0
+
+
+def test_unverified_booking_core_intent_is_not_adopted(delivery):
+    first = _create(delivery)
+    with postgres_db.connect() as db:
+        db.execute("UPDATE oap_global_journey_associations SET intent_id=%s WHERE booking_id=%s", ("oap-book-" + "a" * 16, first["movement_booking_id"]))
+        db.commit()
+    assert global_journey_store.read_journey(journey_id=first["movement"]["journey_id"], identity_id=delivery["customer_identity_id"]) is None
+    with pytest.raises(PermissionError, match="intent_owner_evidence_required"):
+        _create(delivery)
+    with pytest.raises(PermissionError):
+        _delivery_snapshot(delivery)
+
+
+@pytest.mark.parametrize("accepted", [False, True])
+def test_worker_cannot_cancel_customer_product(delivery, accepted):
+    first = _create(delivery)
+    match = _match_fixture(delivery, first["movement_booking_id"])
+    if accepted:
+        movement_match_safety.STORE.accept_match(**match)
+    with pytest.raises(PermissionError, match="order_not_owned"):
+        _cancel(delivery, delivery["outsider"])
+    with pytest.raises(PermissionError, match="booking_not_found"):
+        movement_operations.STORE.cancel_booking(booking_id=first["movement_booking_id"], member_identity_id=delivery["outsider"])
+    assert _delivery_snapshot(delivery)["order_state"] == "authorised"

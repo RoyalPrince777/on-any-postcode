@@ -64,6 +64,7 @@ def create_delivery(*, order_id: object, customer_identity_id: object, pickup: o
     # with the existing Movement booking in one transaction. A bind failure or a
     # competing retry rolls back the booking instead of leaving an orphan.
     with postgres_db.connect() as connection:
+        connection.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
         order = oap_eats_store.STORE.require_customer_order(
             order_id=order_id, customer_identity_id=customer_identity_id,
             connection=connection,

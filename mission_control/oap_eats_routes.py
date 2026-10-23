@@ -287,6 +287,22 @@ def create_order_delivery(order_id: str):
         return _error("eats_delivery_bridge_unavailable", 503)
 
 
+@bp.get("/eats/orders/<order_id>/delivery")
+@web_security.login_required(api=True)
+def read_delivery(order_id: str):
+    try:
+        result = oap_eats_store.STORE.read_delivery(
+            order_id=order_id, customer_identity_id=web_security.authenticated_identity(),
+        )
+        return _no_store(make_response(jsonify(result), 200))
+    except PermissionError as exc:
+        return _error(str(exc), 403)
+    except ValueError as exc:
+        return _error(str(exc), 400)
+    except RuntimeError:
+        return _error("eats_store_unavailable", 503)
+
+
 @bp.get("/eats/fulfilment-status")
 def eats_fulfilment_status():
     return _no_store(make_response(jsonify(oap_eats_fulfilment.status()), 200))

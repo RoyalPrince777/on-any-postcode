@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
     first_party_route_proof,
+    global_journey_store,
     location_intelligence,
     movement,
     movement_match_safety,
@@ -322,6 +323,31 @@ def get_booking(booking_id: str):
         )
         if result is None:
             return _error("booking_not_found", "Booking not found.", 404)
+        return _no_store(make_response(jsonify(booking=result), 200))
+    except Exception as exc:  # noqa: BLE001
+        return _operation_error(exc)
+
+
+@bp.get("/movement/journeys/<journey_id>")
+@web_security.login_required(api=True)
+def get_journey(journey_id: str):
+    try:
+        result = global_journey_store.read_journey(journey_id=journey_id, identity_id=_private_identity())
+        if result is None:
+            return _error("journey_not_found", "Journey not found.", 404)
+        return _no_store(make_response(jsonify(journey=result), 200))
+    except Exception as exc:  # noqa: BLE001
+        return _operation_error(exc)
+
+
+@bp.post("/movement/bookings/<booking_id>/cancel")
+@web_security.login_required(api=True)
+def cancel_booking(booking_id: str):
+    identity = _private_identity()
+    if guard := _write_guard(identity):
+        return guard
+    try:
+        result = movement_operations.STORE.cancel_booking(booking_id=booking_id, member_identity_id=identity)
         return _no_store(make_response(jsonify(booking=result), 200))
     except Exception as exc:  # noqa: BLE001
         return _operation_error(exc)

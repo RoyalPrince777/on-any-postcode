@@ -9,6 +9,11 @@ import pytest
 from scripts import routing_live_green_gate as gate
 
 
+@pytest.fixture(autouse=True)
+def _configured_routing_origin(monkeypatch):
+    monkeypatch.setenv("OAP_ROUTING_BASE_URL", "https://routing.oap.invalid")
+
+
 @pytest.mark.parametrize(
     ("failure", "expected_type"),
     [
@@ -20,7 +25,7 @@ def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, ex
     def fail_request(*args, **kwargs):
         raise failure
 
-    monkeypatch.setattr(gate.request, "urlopen", fail_request)
+    monkeypatch.setattr(gate._OPENER, "open", fail_request)
     result = gate.run_one(0)
     assert result["ok"] is False
     assert result["failure_type"] == expected_type
@@ -42,7 +47,7 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
         def read(self):
             return b"[]"
 
-    monkeypatch.setattr(gate.request, "urlopen", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(gate._OPENER, "open", lambda *args, **kwargs: FakeResponse())
     result = gate.run_one(0)
     assert result["ok"] is False
     assert result["failure_type"] == "request_or_response_error"
@@ -51,7 +56,6 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
 
 
 def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
-    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
     samples = (
@@ -59,6 +63,7 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
         {"route_id": "b", "ok": False, "elapsed_s": 10.0, "failure_type": "timeout"},
     )
     monkeypatch.setattr(gate, "run_one", lambda index: samples[index])
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
 
     with pytest.raises(SystemExit, match="live routing probe had failed requests"):
         gate.main()
@@ -78,7 +83,6 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
 
 
 def test_probe_preserves_p95_limit(monkeypatch, capsys):
-    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
     monkeypatch.setattr(
@@ -86,6 +90,7 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
         "run_one",
         lambda index: {"route_id": str(index), "ok": True, "elapsed_s": 7.0},
     )
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     with pytest.raises(SystemExit, match="p95 exceeded 6.0s"):
         gate.main()
     receipts = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
@@ -106,3 +111,67 @@ def test_live_green_gate_warms_before_capacity_probe():
     assert "TOTAL_REQUESTS = 20" in source
     assert "WORKERS = 4" in source
     assert "P95_LIMIT_SECONDS = 6.0" in source
+
+
+def test_routing_endpoint_is_configurable_and_https_only():
+    import os
+    import subprocess
+    import sys
+
+    snippet = (
+        "from scripts import routing_live_green_gate as gate; "
+        "print(gate._route_url(0))"
+    )
+    env = dict(os.environ)
+    env["OAP_ROUTING_BASE_URL"] = "https://routing.example.org/"
+    valid = subprocess.run(
+        [sys.executable, "-c", snippet], env=env, capture_output=True, text=True, check=False
+    )
+    assert valid.returncode == 0, valid.stderr
+    assert valid.stdout.startswith("https://routing.example.org/route/v1/driving/")
+
+    for invalid in (
+        "http://routing.example.org",
+        "https://user:password@routing.example.org",
+        "https://routing.example.org/prefix",
+        "https://routing.example.org?x=1",
+        "https://routing.example.org#fragment",
+        "https://routing.example.org?",
+        "https://routing.example.org#",
+        "https://routing.example.org:",
+        "https://routing.example.org:abc",
+        "https://routing.example.org:65536",
+        "https://routing.example.org:0",
+        "https://routing.example.org:8443",
+        "https://oap-routing.onrender.com",
+        "https://OAP-ROUTING.ONRENDER.COM./",
+        "https://onrender.com",
+        "https://routing.example.org\\\\@evil.example",
+        "https://routing.example.org%2f.evil.example",
+        "https://routing.example.org/route/",
+        "https://routing.example.org/\\n",
+        " https://routing.example.org",
+        "https://routing.example.org ",
+        "https://",
+    ):
+        env["OAP_ROUTING_BASE_URL"] = invalid
+        result = subprocess.run(
+            [sys.executable, "-c", snippet], env=env, capture_output=True, text=True, check=False
+        )
+        assert result.returncode != 0, invalid
+        assert "ValueError" in result.stderr
+
+
+def test_routing_endpoint_accepts_explicit_https_port():
+    import os
+    import subprocess
+    import sys
+
+    env = dict(os.environ)
+    env["OAP_ROUTING_BASE_URL"] = "https://routing.example.org:443/"
+    result = subprocess.run(
+        [sys.executable, "-c", "from scripts import routing_live_green_gate as g; print(g.routing_base())"],
+        env=env, capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "https://routing.example.org:443"

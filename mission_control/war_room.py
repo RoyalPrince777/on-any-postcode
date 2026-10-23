@@ -2,8 +2,8 @@
 
 The War Room aggregates existing canonical status sources.  It does not create
 another architecture registry, probe external providers, mutate state, approve
-work or execute actions.  Ratings are evidence stages rather than opinions:
-later evidence cannot skip an earlier missing stage.
+work or execute actions.  Ratings are advisory stage assessments, not authenticated release evidence.
+Later stages cannot skip an earlier missing stage; stage flags do not certify a product.
 """
 
 from __future__ import annotations
@@ -39,6 +39,7 @@ from . import (
     sovereign_digital_soc,
     sovereign_digital_soc_v02,
     telemetry,
+    war_room_evidence_review,
 )
 
 _REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -329,14 +330,16 @@ def _rating(
         "summary": summary,
         "stars": stars,
         "stars_display": "★" * stars + "☆" * (5 - stars),
-        "score": stars * 20,
-        "label": rubric["label"],
-        "signal": rubric["signal"],
+        "score": None,
+        "assessment_basis": "advisory_stage_flags",
+        "release_evidence_verified": False,
+        "label": "Advisory · " + rubric["label"],
+        "signal": "purple" if rubric["signal"] == "green" else rubric["signal"],
         "first_missing_stage": first_missing,
         "next_gate": next_gate,
         "impact": impact,
         "truth_boundary": truth_boundary,
-        "human_approval_required": stars < 5,
+        "human_approval_required": True,
         "stages": stages,
     }
 
@@ -1338,8 +1341,9 @@ def get_war_room_dashboard() -> dict[str, Any]:
                 )
                 if items
                 else 0,
-                "runtime_verified": sum(int(item["stars"]) >= 4 for item in items),
-                "certified": sum(int(item["stars"]) == 5 for item in items),
+                "runtime_verified": None,
+                "certified": None,
+                "assessment_basis": "advisory_stage_flags",
             }
         )
 
@@ -1367,9 +1371,6 @@ def get_war_room_dashboard() -> dict[str, Any]:
         str(stars): sum(int(item["stars"]) == stars for item in ratings)
         for stars in range(6)
     }
-    overall = round(
-        sum(int(item["stars"]) for item in ratings) / (len(ratings) * 5) * 100
-    )
     conflict_audit = _conflict_audit(snapshot)
     scope = validate_war_room_scope()
     validation_errors = tuple(scope["errors"]) + tuple(
@@ -1394,18 +1395,20 @@ def get_war_room_dashboard() -> dict[str, Any]:
         "review_lenses": REVIEW_LENSES,
         "categories": tuple(categories),
         "summary": {
-            "overall_evidence_score": overall,
+            "overall_evidence_score": None,
+            "vpi_percent": None,
+            "acceptance_inventory_verified": False,
+            "assessment_basis": "advisory_stage_flags",
             "average_stars": round(
                 sum(int(item["stars"]) for item in ratings) / len(ratings), 1
             ),
             "rated_areas": len(ratings),
-            "runtime_verified": sum(int(item["stars"]) >= 4 for item in ratings),
-            "operationally_certified": sum(
-                int(item["stars"]) == 5 for item in ratings
-            ),
+            "runtime_verified": None,
+            "operationally_certified": None,
             "star_counts": star_counts,
-            "meaning": "Portfolio evidence view; not a release or safety certification.",
+            "meaning": "Advisory stage flags; no verified acceptance inventory or exact-release proof. VPI: N/A.",
         },
+        "mission_evidence": war_room_evidence_review.unverified_review(),
         "top_next": top_next,
         "conflict_audit": conflict_audit,
         "controls_enabled": False,
