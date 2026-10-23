@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import time
@@ -11,6 +12,11 @@ from urllib import parse as urlparse
 from urllib import request as urlrequest
 
 from . import weather_intelligence
+
+# Sovereign default: external weather observations are not admitted.
+# Explicit legacy opt-in is retained only for compatibility during migration.
+def _external_weather_allowed() -> bool:
+    return os.getenv('OAP_WEATHER_SOURCE_MODE', 'strict_oap_owned') == 'external_live_bootstrap'
 
 MAX_RESPONSE_BYTES = 128 * 1024
 LOOKUP_TIMEOUT_SECONDS = 6
@@ -224,6 +230,8 @@ def weather(latitude: object, longitude: object) -> dict[str, Any]:
         raise ValueError("invalid_coordinates") from exc
     if not -90 <= lat <= 90 or not -180 <= lon <= 180:
         raise ValueError("invalid_coordinates")
+    if not _external_weather_allowed():
+        raise LocationUnavailable("oap_owned_observation_not_connected")
     cache_key = f"weather:{lat}:{lon}"
     if cached := _cached(cache_key):
         return cached
@@ -315,11 +323,15 @@ def status() -> dict[str, object]:
     postcode_verified = fresh.get("api.postcodes.io", False)
     global_verified = fresh.get("geocoding-api.open-meteo.com", False)
     weather_verified = fresh.get("api.open-meteo.com", False)
+    if not _external_weather_allowed():
+        weather_verified = False
     intelligence = weather_intelligence.status(weather_verified)
     return {
         "postcode_provider_verified": postcode_verified,
         "global_provider_verified": global_verified,
         "weather_provider_verified": weather_verified,
+        "weather_source_mode": "external_live_bootstrap" if _external_weather_allowed() else "strict_oap_owned",
+        "strict_oap_owned_observation_ready": False,
         "weather_intelligence": intelligence,
         "weather_intelligence_architecture_passed": bool(intelligence["architecture_passed"]),
         "weather_intelligence_component_count": int(intelligence["component_count"]),
@@ -337,5 +349,5 @@ def status() -> dict[str, object]:
             if now - last_success > CACHE_SECONDS
         ),
         "errors": errors,
-        "ready": postcode_verified and global_verified and weather_verified,
+        "ready": postcode_verified and global_verified and weather_verified and _external_weather_allowed(),
     }
