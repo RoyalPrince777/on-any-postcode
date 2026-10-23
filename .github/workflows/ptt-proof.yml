@@ -13,6 +13,9 @@ on:
       - 'mission_control/templates/ptt.html'
       - 'static/ptt_guest.js'
       - 'static/ptt_room.js'
+      - 'static/ptt_live.js'
+      - 'mission_control/ptt_signalling.py'
+      - 'migrations/0013_ptt_webrtc_signals.sql'
       - 'static/linkup_voice.js'
       - 'tests/test_ptt_guest.py'
       - 'tests/test_ptt_standalone.py'
@@ -45,6 +48,7 @@ jobs:
         run: |
           node --check static/ptt_guest.js
           node --check static/ptt_room.js
+          node --check static/ptt_live.js
           node --check static/linkup_voice.js
       - name: Lint PTT implementation
         run: |
