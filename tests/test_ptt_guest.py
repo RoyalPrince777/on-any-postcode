@@ -118,6 +118,33 @@ def test_stop_revokes_only_current_temporary_pair(monkeypatch):
         "revoke",
         lambda who, rel: observed.update(identity=who, relationship=rel) or True,
     )
+    monkeypatch.setattr(
+        ptt_guest,
+        "_deactivate_guest",
+        lambda who: observed.update(deactivated=who),
+    )
 
     assert ptt_guest.stop(identity) is True
-    assert observed == {"identity": identity, "relationship": relationship}
+    assert observed == {
+        "identity": identity,
+        "relationship": relationship,
+        "deactivated": identity,
+    }
+
+
+def test_join_invite_rejects_same_device_before_overwriting_creator(monkeypatch):
+    creator = str(uuid.uuid4())
+    connection = _Connection(creator_id=creator)
+    monkeypatch.setattr(ptt_guest.postgres_db, "connect", lambda *a, **k: _Context(connection))
+    touched = {"ensure": False}
+
+    def ensure(value=None):
+        touched["ensure"] = True
+        return str(value)
+
+    monkeypatch.setattr(ptt_guest, "ensure_session_guest", ensure)
+
+    with pytest.raises(ValueError, match="cannot_pair_same_device"):
+        ptt_guest.join_invite("12345678", creator)
+
+    assert touched["ensure"] is False
