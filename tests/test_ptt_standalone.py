@@ -15,10 +15,23 @@ def test_ptt_front_door_is_standalone_and_not_under_linkup():
     assert 'data-oap-ptt-standalone="true"' in template
     assert 'data-oap-ptt-endpoint="/ptt"' in template
     assert 'data-oap-ptt-status-endpoint="/ptt/status"' in template
+    assert 'oap_manifest_url = "/ptt/manifest.webmanifest"' in template
+    assert "Install OAP PTT" in template
     assert "Hold to talk" in template
     assert 'href="/world"' in template
     assert "/the-link" not in template
     assert "/linkup" not in template
+
+
+def test_ptt_front_door_is_public_install_shell_without_sign_in(anonymous_client):
+    response = anonymous_client.get("/ptt")
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert "Install OAP PTT" in body
+    assert "No sign-in required to install OAP PTT." in body
+    assert "Temporary device-to-device pairing is not connected yet" in body
+    assert 'rel="manifest" href="/ptt/manifest.webmanifest"' in body
+    assert response.headers["Cache-Control"] == "no-store"
 
 
 def test_ptt_front_door_reuses_existing_contact_and_voice_governance():
