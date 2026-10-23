@@ -1,9 +1,10 @@
 """Negative tests for the strict owned-weather admission boundary."""
 import unittest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
+
 from mission_control.weather_owned_observations import admit_owned_observation
 
-NOW = datetime(2026, 10, 23, 12, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 23, 12, tzinfo=UTC)
 REGISTRY = {"oap-station-1": {"owner": "OAP", "enabled": True}}
 PAYLOAD = {"station_id": "oap-station-1", "source": "oap_owned_sensor",
            "observed_at": NOW.isoformat(),
