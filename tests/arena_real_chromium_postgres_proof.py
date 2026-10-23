@@ -299,6 +299,15 @@ def main():
             }""")
             assert manifest["id"] == "/arena/connect4"
             assert manifest["start_url"].startswith(manifest["scope"])
+            # Verify the actual icon responses, not just declared manifest fields.
+            for icon in manifest["icons"]:
+                icon_response = pwa_page.request.get(BASE + icon["src"])
+                assert icon_response.ok, f"Missing PWA icon: {icon['src']}"
+                assert icon_response.headers.get("content-type", "").startswith(icon["type"])
+                assert len(icon_response.body()) > 0
+            # Launch URL must render in the same browser and stay within scope.
+            pwa_page.goto(BASE + manifest["start_url"], wait_until="domcontentloaded")
+            assert pwa_page.locator("h1").count() > 0
             pwa_page.goto(BASE + "/arena/connect4/room", wait_until="domcontentloaded")
             assert pwa_page.locator('link[rel="manifest"]').get_attribute("href") == "/arena/connect4/manifest.webmanifest"
             store_page = browser.new_page()
