@@ -1,8 +1,12 @@
 """Fail-closed AEGIS heritage inventory regression tests."""
 from oap.aegis.heritage import (
-    APPROVED_NINE, EARLIER_HISTORICAL, CAPABILITIES,
-    get_capability, inventory_status,
+    APPROVED_NINE,
+    CAPABILITIES,
+    EARLIER_HISTORICAL,
+    get_capability,
+    inventory_status,
 )
+
 
 def test_preserves_distinct_historical_names_without_duplicate_parent():
     assert len(APPROVED_NINE) == 9
