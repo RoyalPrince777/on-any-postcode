@@ -387,3 +387,92 @@ def test_standalone_ptt_status_is_public_but_linkup_ptt_stays_protected(anonymou
 
     protected_post = anonymous_client.post("/linkup/ptt")
     assert protected_post.status_code == 401
+
+
+def test_guest_ptt_status_reports_active_temporary_pair(anonymous_client, monkeypatch):
+    identity = str(uuid.uuid4())
+    peer = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session["oap_ptt_guest_id"] = identity
+
+    monkeypatch.setattr(
+        link_voice_routes.link_voice,
+        "status",
+        lambda: {
+            "ptt_ready": True,
+            "first_party": True,
+            "max_voice_bytes": 1024,
+            "max_voice_duration_ms": 5000,
+        },
+    )
+    monkeypatch.setattr(
+        link_voice_routes.ptt_guest,
+        "active_pair",
+        lambda who: {"active": True, "peer_id": peer, "relationship_id": str(uuid.uuid4())},
+    )
+
+    response = anonymous_client.get("/ptt/status")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ready"] is True
+    assert payload["paired"] is True
+    assert payload["peer_id"] == peer
+    assert payload["transport"] == "oap_voice_store"
+
+
+def test_guest_ptt_history_and_media_use_current_pair(anonymous_client, monkeypatch):
+    identity = str(uuid.uuid4())
+    peer = str(uuid.uuid4())
+    voice_id = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session["oap_ptt_guest_id"] = identity
+
+    monkeypatch.setattr(
+        link_voice_routes.ptt_guest,
+        "active_pair",
+        lambda who: {"active": True, "peer_id": peer, "relationship_id": str(uuid.uuid4())},
+    )
+    monkeypatch.setattr(
+        link_voice_routes.link_voice,
+        "list_voice",
+        lambda who, other: [
+            {
+                "voice_id": voice_id,
+                "direction": "received",
+                "mime_type": "audio/webm",
+                "byte_size": 8,
+                "duration_ms": 500,
+                "created_at": "2026-10-23T10:00:00+00:00",
+                "kind": "ptt",
+            },
+            {
+                "voice_id": str(uuid.uuid4()),
+                "direction": "received",
+                "mime_type": "audio/webm",
+                "byte_size": 8,
+                "duration_ms": 500,
+                "created_at": "2026-10-23T09:59:00+00:00",
+                "kind": "voice",
+            },
+        ],
+    )
+    media = b"\x1aE\xdf\xa3test"
+    digest = hashlib.sha256(media).hexdigest()
+    monkeypatch.setattr(
+        link_voice_routes.link_voice,
+        "read_voice",
+        lambda who, other, note: (media, "audio/webm", digest) if note == voice_id else None,
+    )
+
+    history = anonymous_client.get("/ptt/voice")
+    assert history.status_code == 200
+    voices = history.get_json()["voices"]
+    assert len(voices) == 1
+    assert voices[0]["voice_id"] == voice_id
+    assert voices[0]["kind"] == "ptt"
+
+    response = anonymous_client.get(f"/ptt/voice/{voice_id}/media")
+    assert response.status_code == 200
+    assert response.data == media
+    assert response.headers["Content-Type"] == "audio/webm"
+    assert response.headers["X-OAP-Content-SHA256"] == digest
