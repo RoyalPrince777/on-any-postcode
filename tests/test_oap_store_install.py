@@ -307,3 +307,19 @@ def test_connect4_is_oap_store_only_and_not_installable_without_proof(client):
     assert 'data-oap-store-app="oap.arena.connect4"' in body
     assert "Open OAP Connect 4" in body
     assert "Install OAP Connect 4" not in body
+
+
+def test_connect4_dedicated_manifest_does_not_unlock_install(client):
+    response = client.get("/arena/connect4/manifest.webmanifest")
+    assert response.status_code == 200
+    assert response.content_type == "application/manifest+json"
+    manifest = response.get_json()
+    assert manifest["id"] == "/arena/connect4"
+    assert manifest["start_url"].startswith("/arena/connect4")
+    assert manifest["scope"] == "/arena/connect4"
+    assert manifest["display"] == "standalone"
+    assert manifest["prefer_related_applications"] is False
+    assert len(manifest["icons"]) == 2
+    listing = {a["app_id"]: a for a in oap_store.catalogue()}["oap.arena.connect4"]
+    assert listing["install_enabled"] is False
+    assert listing["manifest_url"] is None
