@@ -283,3 +283,74 @@ def test_spot_apps_uses_existing_governed_store(client):
     assert 'href="/world"' in store_html
     assert 'Install OAP World' in store_html
     assert 'signed native Android APK' in store_html
+
+
+def test_connect4_is_oap_store_only_and_not_installable_without_proof(client):
+    apps = {app["app_id"]: app for app in oap_store.catalogue()}
+    connect4 = apps["oap.arena.connect4"]
+    assert connect4["publisher"] == "ON ANY POSTCODE LTD"
+    assert connect4["distribution"] == "OAP Store"
+    assert connect4["first_party"] is True
+    assert connect4["open_url"] == "/arena/connect4"
+    assert connect4["release_state"] == "open_ready"
+    assert connect4["install_enabled"] is False
+    assert connect4["install_url"] is None
+    assert connect4["manifest_url"] is None
+    assert connect4["native_apk"] is False
+    assert connect4["native_package_available"] is False
+    assert connect4["physical_device_certified"] is False
+
+    response = client.get("/oap-store/apps/oap.arena.connect4")
+    assert response.status_code == 200
+    assert response.get_json()["install_enabled"] is False
+    body = client.get("/store").get_data(as_text=True)
+    assert 'data-oap-store-app="oap.arena.connect4"' in body
+    assert "Open OAP Connect 4" in body
+    assert "Install OAP Connect 4" not in body
+
+
+def test_connect4_dedicated_manifest_does_not_unlock_install(client):
+    response = client.get("/arena/connect4/manifest.webmanifest")
+    assert response.status_code == 200
+    assert response.content_type == "application/manifest+json"
+    manifest = response.get_json()
+    assert manifest["id"] == "/arena/connect4"
+    assert manifest["start_url"].startswith("/arena/connect4")
+    assert manifest["scope"] == "/arena/connect4"
+    assert manifest["display"] == "standalone"
+    assert manifest["prefer_related_applications"] is False
+    assert len(manifest["icons"]) == 2
+    listing = {a["app_id"]: a for a in oap_store.catalogue()}["oap.arena.connect4"]
+    assert listing["install_enabled"] is False
+    assert listing["manifest_url"] is None
+
+
+def test_connect4_pages_advertise_dedicated_manifest_without_install_claim(client):
+    for route in ("/arena/connect4", "/arena/connect4/room"):
+        response = client.get(route)
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert 'rel="manifest" href="/arena/connect4/manifest.webmanifest"' in body
+        assert "Install OAP Connect 4" not in body
+
+
+def test_connect4_manifest_icons_resolve_and_game_routes_stay_in_scope(client):
+    """Route-level PWA preflight; not browser or physical-device certification."""
+    manifest_response = client.get("/arena/connect4/manifest.webmanifest")
+    assert manifest_response.status_code == 200
+    manifest = manifest_response.get_json()
+    assert manifest["id"].startswith(manifest["scope"])
+    assert manifest["start_url"].startswith(manifest["scope"])
+    for path in ("/arena/connect4", "/arena/connect4/room"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert path.startswith(manifest["scope"])
+    for icon in manifest["icons"]:
+        assert icon["src"].startswith("/")
+        response = client.get(icon["src"])
+        assert response.status_code == 200, icon["src"]
+        assert response.mimetype == icon["type"], icon["src"]
+        assert len(response.data) > 0
+    listing = {item["app_id"]: item for item in oap_store.catalogue()}["oap.arena.connect4"]
+    assert listing["install_enabled"] is False
+    assert listing["physical_device_certified"] is False
