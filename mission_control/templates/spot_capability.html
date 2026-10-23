@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
     .atlas-action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.atlas-action-row a{display:inline-flex}.atlas-warning{border-left:4px solid #d7b759;background:#211b0b;padding:11px 13px;border-radius:0 12px 12px 0;color:#e6dcb7}.atlas-mini{font-size:.86rem;color:#b8d6c0}
+    .atlas-continent-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:12px 0}.atlas-continent-card{display:grid;gap:8px;min-height:100px;padding:16px;border:1px solid rgba(215,183,89,.35);border-radius:16px;background:rgba(7,20,13,.72);color:inherit;text-decoration:none}.atlas-continent-card:hover,.atlas-continent-card:focus-visible,.atlas-continent-card[aria-current="page"]{border-color:#d7b759;background:rgba(55,48,24,.8)}.atlas-continent-card strong{color:#e9c66d}.atlas-passport-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0}.atlas-passport-grid article{border:1px solid rgba(126,240,163,.2);border-radius:14px;padding:14px;background:rgba(7,20,13,.6)}.atlas-passport-grid strong,.atlas-passport-grid span{display:block}.atlas-passport-grid span{color:#b8d6c0;font-size:.86rem;margin-top:6px}
     .atlas-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin:14px 0}.atlas-search label{grid-column:1/-1}.atlas-search input{min-width:0}.atlas-search button{white-space:nowrap}
     .atlas-empty,.atlas-truth{margin-top:12px;padding:12px 14px;border:1px solid rgba(126,240,163,.2);border-radius:14px;background:rgba(7,20,13,.55);color:#b8d6c0}
     .atlas-result{display:grid;gap:14px;margin-top:16px}.atlas-result-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}.atlas-result-head h3{margin:0}.atlas-path{display:flex;gap:7px;flex-wrap:wrap;align-items:center;font-size:.9rem;color:#b8d6c0}.atlas-path span+span:before{content:"›";margin-right:7px;opacity:.55}
@@ -128,18 +129,38 @@
         <p>Select a continent to keep its context in this existing Earth route. Country and postcode discovery still require source-backed geographic resolution.</p>
         {% set continent_options = [('africa', 'Africa'), ('europe', 'Europe'), ('asia', 'Asia'), ('north-america', 'North America'), ('south-america', 'South America'), ('oceania', 'Oceania'), ('antarctica', 'Antarctica')] %}
         {% set selected_continent = request.args.get('continent', '') %}
-        <nav class="atlas-action-row" aria-label="OAP World continents">
+        <nav class="atlas-continent-grid" aria-label="OAP World continents">
           {% for continent_id, continent_name in continent_options %}
-          <a class="mc-secondary-link" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms', continent=continent_id) }}"{% if selected_continent == continent_id %} aria-current="page"{% endif %}>{{ continent_name }}</a>
+          <a class="atlas-continent-card" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms', continent=continent_id) }}"{% if selected_continent == continent_id %} aria-current="page"{% endif %}>
+            <span aria-hidden="true">{{ '🧊' if continent_id == 'antarctica' else '🌍' if continent_id in ('africa', 'europe') else '🌎' if continent_id in ('north-america', 'south-america') else '🌏' }}</span>
+            <strong>{{ continent_name }}</strong>
+            <small>{{ 'Selected' if selected_continent == continent_id else 'Explore continent' }}</small>
+          </a>
           {% endfor %}
         </nav>
+        {% if selected_continent and selected_continent not in (continent_options | map(attribute=0) | list) %}
+          <p class="atlas-warning" role="alert">Unknown continent. Choose one of the seven listed above.</p>
+        {% endif %}
         {% for continent_id, continent_name in continent_options %}
           {% if selected_continent == continent_id %}
           <div class="atlas-empty" role="status">
-            <strong>Earth › {{ continent_name }} › The Spot</strong>
-            <p>Continent selected. Open the existing map search to resolve a real place; country passports and regional rooms appear only when their data is verified.</p>
-            {% if continent_id == 'antarctica' %}<p>Antarctica has research stations and geographic sectors, not sovereign countries or a general postcode system.</p>{% endif %}
-            <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}">Open On Any Postcode Maps →</a>
+            <p class="mc-eyebrow">OAP World · Geographic journey</p>
+            <h3>🌍 Earth › {{ continent_name }} › The Spot</h3>
+            <p>Explore country or territory → region → district → local postcode where applicable. Verified country records and local rooms are not yet populated globally.</p>
+            {% if continent_id == 'antarctica' %}<p>Antarctica uses research sectors and stations; no sovereign country or general postcode layer.</p>{% endif %}
+            <div class="atlas-passport-grid" aria-label="Country passport and Spot features">
+              <article><strong>🏳️ Country Passport</strong><span>Flag, maps, identity, history and culture. Source verification required.</span></article>
+              <article><strong>🎵 National Anthem</strong><span>Title and licensed audio only when rights and provenance are proven. No autoplay.</span></article>
+              <article><strong>🗣️ World Languages</strong><span>Regional languages and learning. Use the existing OAP language hub.</span></article>
+              <article><strong>📍 The Spot</strong><span>Public places, community, activities and businesses where source-backed.</span></article>
+              <article><strong>👑 My World</strong><span>Private identity and personal Spot stay owner-controlled, never published by selecting a continent.</span></article>
+              <article><strong>🏆 OAP Sport</strong><span>World Cup country hubs remain nested sport experiences, not separate geography.</span></article>
+            </div>
+            <div class="atlas-action-row">
+              <a class="mc-secondary-link" href="{{ url_for('travel_supply.public_atlas') }}">🗺️ Explore On Any Postcode Maps →</a>
+              <a class="mc-secondary-link" href="{{ url_for('the_link_front_door') }}">🔗 The Link →</a>
+              <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">📍 The Spot →</a>
+            </div>
           </div>
           {% endif %}
         {% endfor %}
