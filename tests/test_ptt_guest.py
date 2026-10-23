@@ -148,3 +148,83 @@ def test_join_invite_rejects_same_device_before_overwriting_creator(monkeypatch)
         ptt_guest.join_invite("12345678", creator)
 
     assert touched["ensure"] is False
+
+
+def test_create_room_is_eight_digit_no_sign_in_host(monkeypatch):
+    connection = _Connection()
+    monkeypatch.setattr(ptt_guest.postgres_db, "connect", lambda *a, **k: _Context(connection))
+    monkeypatch.setattr(ptt_guest.secrets, "randbelow", lambda _limit: 87654321)
+
+    room = ptt_guest.create_room()
+
+    uuid.UUID(room["identity_id"])
+    assert room["owner_id"] == room["identity_id"]
+    assert room["code"] == "87654321"
+    assert room["expires_at"]
+    inserts = [call for call in connection.executed if "INSERT INTO users" in call[0]]
+    assert len(inserts) == 1
+    assert inserts[0][1][2] == ptt_guest.ROOM_HOST_DISPLAY_NAME
+
+
+def test_join_room_links_new_member_to_existing_room_members(monkeypatch):
+    owner = str(uuid.uuid4())
+    existing = str(uuid.uuid4())
+    member = str(uuid.uuid4())
+    monkeypatch.setattr(ptt_guest, "_room_owner_from_code", lambda code: owner)
+    monkeypatch.setattr(ptt_guest, "ensure_session_guest", lambda value=None: member)
+    monkeypatch.setattr(ptt_guest, "_room_members", lambda who: [existing] if who == owner else [])
+    observed = []
+
+    def request_link(requester, recipient, **kwargs):
+        observed.append((requester, recipient, kwargs))
+        return str(uuid.uuid4())
+
+    monkeypatch.setattr(ptt_guest.link_relationships, "request_link", request_link)
+    monkeypatch.setattr(ptt_guest.link_relationships, "respond", lambda *a, **k: True)
+    monkeypatch.setattr(
+        ptt_guest,
+        "room_state",
+        lambda identity, room_owner: {
+            "active": True,
+            "identity_id": identity,
+            "owner_id": room_owner,
+            "member_ids": [room_owner, existing, identity],
+            "member_count": 3,
+        },
+    )
+
+    room = ptt_guest.join_room("12345678", member)
+
+    assert room["active"] is True
+    assert room["member_count"] == 3
+    assert {(a, b) for a, b, _kwargs in observed} == {
+        (owner, member),
+        (existing, member),
+    }
+    assert all(
+        kwargs["purpose_text"] == ptt_guest._room_purpose(owner)
+        for _a, _b, kwargs in observed
+    )
+
+
+def test_join_room_rejects_when_seven_devices_are_already_present(monkeypatch):
+    owner = str(uuid.uuid4())
+    member = str(uuid.uuid4())
+    existing = [str(uuid.uuid4()) for _ in range(ptt_guest.ROOM_MAX_MEMBERS - 1)]
+    monkeypatch.setattr(ptt_guest, "_room_owner_from_code", lambda code: owner)
+    monkeypatch.setattr(ptt_guest, "ensure_session_guest", lambda value=None: member)
+    monkeypatch.setattr(ptt_guest, "_room_members", lambda who: existing)
+
+    with pytest.raises(ValueError, match="ptt_room_full"):
+        ptt_guest.join_room("12345678", member)
+
+
+def test_room_state_rejects_non_member(monkeypatch):
+    owner = str(uuid.uuid4())
+    member = str(uuid.uuid4())
+    monkeypatch.setattr(ptt_guest, "_room_members", lambda who: [])
+
+    state = ptt_guest.room_state(member, owner)
+
+    assert state["active"] is False
+    assert state["member_count"] == 0
