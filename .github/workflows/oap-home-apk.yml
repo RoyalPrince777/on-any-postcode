@@ -50,6 +50,14 @@ jobs:
           grep -Fq 'MIC PERMISSION REQUIRED' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'private static final String PTT_CONTACTS_PATH = "/ptt/contacts"' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'authenticated native session not connected yet' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java").read_text()
+          ptt = 'addButton("🎙 PTT", v -> pttMenu());'
+          grid = 'String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",'
+          assert source.count(ptt) == 1, "PTT main entry must appear exactly once"
+          assert source.index(ptt) < source.index(grid), "PTT must stay above the app grid for immediate reach"
+          PY
           grep -Fq 'shouldInterceptRequest(android.webkit.WebView view' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
           test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
