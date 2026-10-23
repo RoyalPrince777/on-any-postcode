@@ -17,10 +17,32 @@ def _peer(identity: str) -> str:
     return str(pair["peer_id"])
 
 
-def send(identity: str, kind: str, payload: object) -> str:
-    peer = _peer(identity)
+def _validate(kind: str, payload: object) -> None:
     if kind not in KINDS or not isinstance(payload, dict):
         raise ValueError("invalid_signal")
+    if kind in {"offer", "answer"}:
+        if set(payload) != {"type", "sdp"} or payload["type"] != kind:
+            raise ValueError("invalid_signal")
+        if not isinstance(payload["sdp"], str) or not payload["sdp"].startswith("v=0"):
+            raise ValueError("invalid_signal")
+    elif kind == "candidate":
+        if set(payload) - {"candidate", "sdpMid", "sdpMLineIndex", "usernameFragment"}:
+            raise ValueError("invalid_signal")
+        if not isinstance(payload.get("candidate"), str):
+            raise ValueError("invalid_signal")
+        if "sdpMid" in payload and payload["sdpMid"] is not None and not isinstance(payload["sdpMid"], str):
+            raise ValueError("invalid_signal")
+        if "sdpMLineIndex" in payload and (type(payload["sdpMLineIndex"]) is not int or payload["sdpMLineIndex"] < 0):
+            raise ValueError("invalid_signal")
+        if "usernameFragment" in payload and not isinstance(payload["usernameFragment"], str):
+            raise ValueError("invalid_signal")
+    elif payload:
+        raise ValueError("invalid_signal")
+
+
+def send(identity: str, kind: str, payload: object) -> str:
+    peer = _peer(identity)
+    _validate(kind, payload)
     encoded = json.dumps(payload, separators=(",", ":"))
     if len(encoded.encode("utf-8")) > MAX_PAYLOAD_BYTES:
         raise ValueError("signal_too_large")
