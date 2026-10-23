@@ -7,7 +7,6 @@ or a new command hierarchy. They guard the existing review boundary.
 from mission_control import war_room
 from oap.war_room.engine import WarRoomEngine
 
-
 TOP_THREE_ADVISORY_ROLES = (
     ("Captain ALL IN", "mission coordination"),
     ("Gyata", "leadership challenge"),
