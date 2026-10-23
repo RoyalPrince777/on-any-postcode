@@ -71,6 +71,11 @@ def compare_fox_assessments(*, fox: Mapping[str, Any], foxy: Mapping[str, Any]) 
             raise ValueError(f"{name} must provide its own advisory assessment")
         if item.get("production_gate") not in ("blocked", "eligible_for_human_review"):
             raise ValueError("invalid production gate")
+        if item.get("founder_final") is not True:
+            raise ValueError("Founder Final must be preserved")
+        recommendation = item.get("recommended")
+        if recommendation is not None and (not isinstance(recommendation, str) or not recommendation.strip()):
+            raise ValueError("recommendation must be non-empty text or None")
         assessments[name] = dict(item)
     recommendations = {name: item.get("recommended") for name, item in assessments.items()}
     agreement = recommendations["Fox"] is not None and recommendations["Fox"] == recommendations["Foxy"]
