@@ -984,6 +984,18 @@ body.smi-noise-strip .messages{top:92px!important}
 }
 
 
+/* SMI capture tabs must sit below the two fixed home rails, never behind
+   their clickable surfaces. Keep actual touch/click targets accessible. */
+body.smi-noise-strip #interaction-strip{
+  position:relative!important;
+  z-index:106!important;
+  margin-top:90px!important;
+}
+body.smi-noise-strip .messages{top:142px!important}
+@media(max-width:760px){
+  body.smi-noise-strip .messages{top:138px!important}
+}
+
 /* Unified System Intelligence: one evidence surface, only when SMI System opens. */
 body.smi-noise-strip .smi-unified-intelligence{
   margin:8px 0!important;
