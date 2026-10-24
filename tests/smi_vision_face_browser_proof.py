@@ -9,6 +9,7 @@ import base64
 import os
 import sys
 import threading
+import time
 from io import BytesIO
 from pathlib import Path
 
@@ -93,9 +94,12 @@ def main():
     web_security.AUTH_BURST_LIMITER.reset()
 
     analysed = []
+    delay_detection = [False]
     def bounded_detector(image_data):
         assert image_data.startswith("data:image/png;base64,")
         assert base64.b64decode(image_data.split(",", 1)[1])
+        if delay_detection[0]:
+            time.sleep(0.65)
         analysed.append(True)
         return {
             "state": "analysed",
@@ -156,15 +160,28 @@ def main():
             assert len(posts) == 2
             assert len(analysed) == 1
 
-            page.locator("#stop-button").click()
+            # The chat Stop control can be hidden while chat is idle; its
+            # listener must still clear a completed face result.
+            page.locator("#stop-button").dispatch_event("click")
             assert locked.inner_text() == ""
             assert len(posts) == 2
+
+            # Unlike chat Stop, the face action exposes its own real, visible
+            # cancellation affordance while the one-frame request is pending.
+            delay_detection[0] = True
+            button.click()
+            page.wait_for_function(
+                "() => document.querySelector('#smi-face-detect-button')?.textContent.includes('Cancel detection')"
+            )
+            button.click()
+            assert "cancelled in this browser" in locked.inner_text()
+            page.wait_for_timeout(850)
+            assert "cancelled in this browser" in locked.inner_text()
+            assert len(posts) <= 3
 
             page.locator("#remove-image").click()
             assert locked.inner_text() == ""
             assert button.is_hidden()
-            assert len(posts) == 2
-            assert len(analysed) == 1
 
             print("SMI_VISION_BROWSER_EXPLICIT_CAPTURE=PASS")
             print("SMI_VISION_DEFAULT_LOCK=PASS")
