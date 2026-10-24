@@ -20,6 +20,7 @@ from flask import (
 from . import agents as agent_registry
 from . import (
     approval_service,
+    agents_hq,
     authority,
     brain,
     civilization,
@@ -309,6 +310,26 @@ def smi_command_dashboard_status():
     """Return the same read-only Founder command projection as JSON."""
 
     return _no_store(make_response(jsonify(smi_command_dashboard.status())))
+
+
+@bp.get("/smi/agents-hq/rooms")
+@web_security.login_required(api=True, founder_only=True)
+def smi_agents_hq_rooms():
+    """Founder-only canonical room directory; no chat or writes."""
+
+    return _no_store(make_response(jsonify(agents_hq.room_directory())))
+
+
+@bp.get("/smi/agents-hq/rooms/<path:room_id>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_agents_hq_room(room_id: str):
+    """Founder-only registered room membership, fail closed on unknown IDs."""
+
+    try:
+        context = agents_hq.room_context(room_id)
+    except ValueError:
+        return _no_store(make_response(jsonify({"error": "unknown_room"}), 404))
+    return _no_store(make_response(jsonify(context)))
 
 
 @bp.get("/brain")
