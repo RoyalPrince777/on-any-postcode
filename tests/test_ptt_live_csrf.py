@@ -19,7 +19,7 @@ def _session(client):
 
 
 def test_ptt_signalling_rejects_wrong_csrf_header(anonymous_client, monkeypatch):
-    identity, token = _session(anonymous_client)
+    _identity, token = _session(anonymous_client)
     touched = []
     monkeypatch.setattr(
         ptt_routes.ptt_signalling, "send",
@@ -73,7 +73,7 @@ def test_ptt_signalling_rejects_missing_guest_session(anonymous_client, monkeypa
 
 
 def test_ptt_pairing_does_not_claim_live_audio_ready(anonymous_client, monkeypatch):
-    identity, _token = _session(anonymous_client)
+    _identity, _token = _session(anonymous_client)
     monkeypatch.setattr(
         ptt_routes.ptt_guest, "invite_state",
         lambda value, _code: {
