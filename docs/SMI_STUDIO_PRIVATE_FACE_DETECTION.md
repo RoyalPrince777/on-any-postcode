@@ -24,7 +24,7 @@ SMI Chat and existing Face Up/Vision controls are **capture** surfaces. OAP Stud
 - The existing selected-image preview adds an explicit **Detect faces** button and a visible OAP Studio server-processing disclosure. Merely selecting/capturing an image does **not** send it to this detector.
 - The handler uses the existing `studioFaceDetectUrl` route, same-origin credentials, CSRF and a user-clicked POST. It never starts the camera, requests additional permissions, or processes video frames automatically.
 - A locked route reports 423 without pretending detection succeeded. A successful result shows estimated count and pixel coordinates, **not** identity, liveness or emotion.
-- Changing/removing the image, the existing Stop button, or leaving the page aborts the pending browser request and clears its result. Browser cancellation cannot guarantee that a POST already received by the server stopped processing.
+- While detection is pending, the Detect faces button becomes an explicit **Cancel detection** control. Changing/removing the image, the existing Stop button (when available), or leaving the page also aborts the pending browser request and clears its result. Browser cancellation cannot guarantee that a POST already received by the server stopped processing.
 - The selected still is processed on the private OAP Studio **server**, not on the phone. Server privacy, logging and transport require live validation before activation.
 
 ## Optional local setup and verification
