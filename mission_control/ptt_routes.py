@@ -6,6 +6,8 @@ by The Link or Link Up.
 """
 from __future__ import annotations
 
+import os
+
 from flask import (
     Blueprint,
     jsonify,
@@ -282,6 +284,12 @@ def live_ice_credentials():
     if not peer_id:
         return _no_store(
             make_response(jsonify(error={"code": "ptt_pair_required"}), 403)
+        )
+    # Link Up's verified relay is not by itself approval for anonymous PTT.
+    # PTT access requires its own explicit Founder-controlled enablement.
+    if os.environ.get("OAP_PTT_TURN_ENABLED", "").strip().casefold() != "true":
+        return _no_store(
+            make_response(jsonify(error={"code": "ptt_turn_disabled"}), 503)
         )
     # Configuration-only and expired proof never enables a live microphone.
     if not link_turn.status()["relay_verified"]:
