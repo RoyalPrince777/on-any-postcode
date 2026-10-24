@@ -19,8 +19,8 @@ from flask import (
 
 from . import agents as agent_registry
 from . import (
-    approval_service,
     agents_hq,
+    approval_service,
     authority,
     brain,
     civilization,
