@@ -1377,6 +1377,7 @@ def get_war_room_dashboard() -> dict[str, Any]:
     validation_errors = tuple(scope["errors"]) + tuple(
         conflict_audit["active_conflicts"]
     )
+    achievement_rankings = tuple(agent_achievements.career_rankings(()))
 
     return {
         "name": "OAP War Room",
@@ -1408,12 +1409,14 @@ def get_war_room_dashboard() -> dict[str, Any]:
             "star_counts": star_counts,
             "meaning": "Portfolio evidence view; not a release or safety certification.",
         },
-        "intelligence_alliance_board": intelligence_alliances.get_founder_alliance_board(),
+        "intelligence_alliance_board": intelligence_alliances.get_founder_alliance_board(
+            career_rankings=achievement_rankings,
+        ),
         "agent_achievement_rankings": {
             "status": "read_only_unawarded",
             "award_source": "No persisted independently approved award records connected",
             "awarded_movements": 0,
-            "ranking": tuple(agent_achievements.career_rankings(())),
+            "ranking": achievement_rankings,
             "separate_from_readiness_ratings": True,
         },
         "top_next": top_next,
