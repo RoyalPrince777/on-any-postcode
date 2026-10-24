@@ -36,9 +36,10 @@
     release();
     if (timer) clearTimeout(timer);
     timer = null;
-    if (pc) { pc.onicecandidate = null; pc.ontrack = null; pc.close(); }
+    if (pc) { pc.onicecandidate = null; pc.ontrack = null; pc.onconnectionstatechange = null; pc.close(); }
     pc = null;
     pendingCandidates = [];
+    connect.disabled = false;
     if (stream) stream.getTracks().forEach((track) => track.stop());
     stream = null;
     if (remote) { remote.pause(); remote.srcObject = null; remote.remove(); }
@@ -80,6 +81,7 @@
   const start = async () => {
     if (starting || running) return;
     starting = true;
+    connect.disabled = true;
     const token = ++generation;
     try {
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection)

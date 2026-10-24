@@ -38,6 +38,33 @@
 @media(max-width:850px){.wr-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wr-flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.wr-status-grid,.wr-flow{grid-template-columns:1fr}.wr-audit{font-size:.82rem}}
 </style>
+
+<style>
+/* Founder reference board: advisory snapshots, not live scores or privileges. */
+.smi-roster-board{border:1px solid #7152a5;background:linear-gradient(145deg,#111324,#08130c);border-radius:18px;padding:18px;margin-block:15px}
+.smi-roster-board h2{margin:6px 0;font-size:clamp(1.2rem,3vw,1.8rem)}
+.smi-roster-command{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.smi-roster-command article{padding:12px;border:1px solid #594b72;border-radius:12px;background:#111122}
+.smi-roster-command strong{display:block;color:#ecd59a}
+.smi-roster-command small{display:block;color:#b6adc5;margin-top:6px;line-height:1.5}
+.smi-roster-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+.smi-roster-panel{background:#090d14;border:1px solid #35324e;border-radius:12px;padding:12px;min-width:0}
+.smi-roster-panel h3{margin:0 0 8px}
+.smi-roster-scroll{overflow-x:auto}
+.smi-roster-history{border-collapse:collapse;width:100%;font-size:.85rem}
+.smi-roster-history th,.smi-roster-history td{padding:7px 8px;border-bottom:1px solid #292638;text-align:left}
+.smi-roster-history th{color:#c6b6e6;font-weight:750}
+.smi-roster-history td:first-child{font-variant-numeric:tabular-nums;color:#e7c77a;font-weight:800}
+.smi-roster-history td:last-child{text-align:right;white-space:nowrap}
+.smi-roster-note{font-size:.81rem;color:#b9adc8;line-height:1.5}
+.smi-alliance-list{display:grid;gap:8px}
+.smi-alliance-list details{border:1px solid #39334b;background:#11101d;border-radius:10px;padding:10px}
+.smi-alliance-list summary{cursor:pointer;font-weight:750;line-height:1.5}
+.smi-alliance-list ul{margin:9px 0 4px;padding-left:19px;line-height:1.6}
+.smi-alliance-list li{margin-bottom:3px}
+.smi-roster-status{color:#eed293}
+@media(max-width:760px){.smi-roster-command,.smi-roster-layout{grid-template-columns:1fr}.smi-roster-board{padding:12px}}
+</style>
 </head><body><main class="w">
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
@@ -81,6 +108,61 @@
     </tbody>
   </table>
   <p class="truth"><strong>Truth mode:</strong> a visible button, high percentage, unanimous vote or attractive dashboard never creates proof. Existing evidence gates remain authoritative.</p>
+
+</section>
+
+{% set alliance_board = war_room.intelligence_alliance_board %}
+<section class="smi-roster-board" id="smi-agent-rankings" aria-labelledby="smi-agent-rankings-title">
+  <div class="ey">🟣 SMI · Founder-only intelligence reference board</div>
+  <h2 id="smi-agent-rankings-title">🏆 Historic Top 21 + Six Specialist Alliances</h2>
+  <p class="smi-roster-note">The dated Top 21 is an advisory role-fit snapshot, not a live performance ranking. Individual lifetime achievement stars are tracked separately. Fiction-inspired names do not become registered OAP agents by appearing here.</p>
+  <div class="smi-roster-command" aria-label="Command authority and role separation">
+    <article><strong>👑 Founder Final</strong><small>Only final human authority; not a competing agent or automatic vote.</small></article>
+    <article><strong>🧠 {{ alliance_board.smi.name }}</strong><small>One coordinating intelligence brain above specialist rankings; no agent career-star score.</small></article>
+    <article><strong>👑 {{ alliance_board.mission_coordinator.name }}</strong><small>Mission and scoreboard coordination; historical standing shown below, without adding a duplicate agent passport.</small></article>
+  </div>
+  <div class="smi-roster-layout">
+    <div class="smi-roster-panel">
+      <h3>Historical Top 21 · {{ alliance_board.historical_top_21.as_of }}</h3>
+      <div class="smi-roster-scroll">
+        <table class="smi-roster-history" aria-label="Dated advisory Top 21 rankings">
+          <thead><tr><th scope="col">Rank</th><th scope="col">Agent / role</th><th scope="col">Rating</th><th scope="col">Earned ⭐</th></tr></thead>
+          <tbody>
+          {% for entry in alliance_board.historical_top_21.entries %}
+            <tr>
+              <td>#{{ entry.rank }}</td>
+              <td>{{ entry.name }}{% if not entry.registry_linked %} <span class="smi-roster-note">(reference only)</span>{% endif %}</td>
+              <td>{{ entry.historical_rating }}/{{ entry.historical_rating_max }} ⭐</td>
+              <td>{% if entry.career_stars is not none %}{{ entry.career_stars }}{% else %}—{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="smi-roster-note">Source: {{ alliance_board.historical_top_21.source }}. Unlinked historical labels have no canonical passport in this board.</p>
+      <p class="smi-roster-note"><strong>Earned lifetime stars:</strong> {{ war_room.agent_achievement_rankings.awarded_movements }} approved movements recorded; no candidate or historical rating is silently awarded. {{ war_room.agent_achievement_rankings.award_source }}.</p>
+    </div>
+    <div class="smi-roster-panel">
+      <h3>Six alliances · advisory and specialist context</h3>
+      <div class="smi-alliance-list">
+      {% for alliance in alliance_board.alliances %}
+        <details {% if alliance.id == "jungle_book" %}open{% endif %}>
+          <summary>{{ alliance.name }} · {{ alliance.members|length }} references</summary>
+          <p class="smi-roster-note smi-roster-status">{{ alliance.status|replace('_', ' ')|capitalize }}{% if alliance.id != "jungle_book" %} · Unranked{% endif %}</p>
+          <ul>
+          {% for member in alliance.members %}
+            <li>{{ member.name }}{% if member.agent_id %} <span class="smi-roster-note">· registered</span>{% else %} <span class="smi-roster-note">· design reference</span>{% endif %}</li>
+          {% endfor %}
+          </ul>
+          {% if alliance.threat_models_not_agents is defined %}
+          <p class="smi-roster-note">Threat models only: {{ alliance.threat_models_not_agents|join(', ') }}.</p>
+          {% endif %}
+        </details>
+      {% endfor %}
+      </div>
+      <p class="smi-roster-note">Guardian and HRM remain separate oversight systems. No new execution, approval, voting or ranking authority is created.</p>
+    </div>
+  </div>
 </section>
 
 <section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
