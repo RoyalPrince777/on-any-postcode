@@ -214,7 +214,7 @@
     });
     imageInput.addEventListener("change", cancelFaceDetection);
     document.getElementById("remove-image")?.addEventListener("click", cancelFaceDetection);
-    document.getElementById("stop-button")?.addEventListener("click", cancelFaceDetection);
+    window.addEventListener("oap-smi-human-stop", cancelFaceDetection);
 
     function applyVisionImage(dataUrl, name) {
       cancelFaceDetection();
