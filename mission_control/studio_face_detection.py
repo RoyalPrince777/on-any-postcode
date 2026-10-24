@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import base64
 import binascii
-from io import BytesIO
 import re
+from io import BytesIO
 from typing import Any
 
 MAX_IMAGE_BYTES = 3 * 1024 * 1024
@@ -25,7 +25,7 @@ def detect_faces(image_data: object) -> dict[str, Any]:
     image hash is saved/returned. A missing local detector fails closed.
     """
     if not isinstance(image_data, str):
-        raise ValueError("invalid_face_image")
+        raise TypeError("invalid_face_image")
     # Reject before allocating an unbounded decoded buffer.
     if len(image_data) > (4 * MAX_IMAGE_BYTES // 3 + 256):
         raise ValueError("face_image_too_large")
