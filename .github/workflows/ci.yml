@@ -41,6 +41,8 @@ jobs:
           node-version: "22"
       - name: Install runtime and verification dependencies
         run: python -m pip install -r requirements.txt pytest ruff
+      - name: Install isolated Studio Vision test dependencies
+        run: python -m pip install -r requirements-vision.txt
       - name: Install RTL simulator
         run: |
           if ! command -v iverilog >/dev/null 2>&1; then
