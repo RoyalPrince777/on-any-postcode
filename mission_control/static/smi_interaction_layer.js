@@ -134,9 +134,15 @@
       if (faceDetectRequest) faceDetectRequest.abort();
       faceDetectRequest = null;
       faceDetectButton.disabled = false;
+      faceDetectButton.textContent = "👁 Detect faces";
       faceDetectStatus.textContent = "";
     }
     faceDetectButton.addEventListener("click", async () => {
+      if (faceDetectRequest) {
+        cancelFaceDetection();
+        faceDetectStatus.textContent = "Detection cancelled in this browser. A submitted server request may still finish processing.";
+        return;
+      }
       const frame = typeof selectedImage === "string" ? selectedImage : "";
       if (!imagePreview?.classList.contains("show") || !/^data:image\/(?:png|jpeg|webp);base64,/i.test(frame)) {
         faceDetectStatus.textContent = "Select a PNG, JPEG or WebP still image first.";
@@ -154,7 +160,7 @@
       cancelFaceDetection();
       const controller = new AbortController();
       faceDetectRequest = controller;
-      faceDetectButton.disabled = true;
+      faceDetectButton.textContent = "■ Cancel detection";
       faceDetectStatus.textContent = "Sending one still to private OAP Studio for detection…";
       try {
         const response = await fetch(url, {
@@ -202,7 +208,7 @@
       } finally {
         if (faceDetectRequest === controller) {
           faceDetectRequest = null;
-          faceDetectButton.disabled = false;
+          faceDetectButton.textContent = "👁 Detect faces";
         }
       }
     });
