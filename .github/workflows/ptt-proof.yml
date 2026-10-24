@@ -6,7 +6,10 @@ on:
       - 'static/ptt_live.js'
       - 'mission_control/ptt_routes.py'
       - 'mission_control/ptt_signalling.py'
+      - 'mission_control/link_turn.py'
       - 'tests/test_ptt_live_csrf.py'
+      - 'tests/test_ptt_live_turn.py'
+      - 'tests/test_link_turn.py'
       - 'tests/ptt_live_controls.cjs'
       - '.github/workflows/ptt-proof.yml'
   workflow_dispatch:
@@ -15,6 +18,7 @@ on:
     paths:
       - 'mission_control/ptt_guest.py'
       - 'mission_control/ptt_signalling.py'
+      - 'mission_control/link_turn.py'
       - 'mission_control/ptt_routes.py'
       - 'mission_control/link_voice.py'
       - 'mission_control/link_voice_routes.py'
@@ -26,6 +30,8 @@ on:
       - 'static/linkup_voice.js'
       - 'tests/test_ptt_guest.py'
       - 'tests/test_ptt_live_csrf.py'
+      - 'tests/test_ptt_live_turn.py'
+      - 'tests/test_link_turn.py'
       - 'tests/ptt_live_controls.cjs'
       - 'tests/test_ptt_standalone.py'
       - 'tests/test_link_voice.py'
@@ -52,7 +58,7 @@ jobs:
         run: python -m pip install -r requirements.txt pytest ruff
       - name: Compile PTT Python
         run: |
-          python -m py_compile             mission_control/ptt_guest.py             mission_control/ptt_signalling.py             mission_control/ptt_routes.py             mission_control/link_voice.py             mission_control/link_voice_routes.py             mission_control/oap_store.py
+          python -m py_compile             mission_control/ptt_guest.py             mission_control/ptt_signalling.py             mission_control/link_turn.py             mission_control/ptt_routes.py             mission_control/link_voice.py             mission_control/link_voice_routes.py             mission_control/oap_store.py
       - name: Validate PTT browser JavaScript
         run: |
           node --check static/ptt_guest.js
@@ -63,7 +69,7 @@ jobs:
           node --check static/linkup_voice.js
       - name: Lint PTT implementation
         run: |
-          ruff check             mission_control/ptt_guest.py             mission_control/ptt_routes.py             mission_control/link_voice.py             mission_control/link_voice_routes.py             tests/test_ptt_guest.py             tests/test_ptt_standalone.py             tests/test_ptt_live_csrf.py             tests/test_link_voice.py
+          ruff check             mission_control/ptt_guest.py             mission_control/ptt_routes.py             mission_control/link_voice.py             mission_control/link_voice_routes.py             tests/test_ptt_guest.py             tests/test_ptt_standalone.py             tests/test_ptt_live_csrf.py             tests/test_ptt_live_turn.py             tests/test_link_turn.py             tests/test_link_voice.py
       - name: Run complete PTT regression slice
         run: |
-          python -m pytest -q             tests/test_ptt_guest.py             tests/test_ptt_standalone.py             tests/test_ptt_live_csrf.py             tests/test_link_voice.py             tests/test_link_voice_ui.py             tests/test_oap_store_install.py
+          python -m pytest -q             tests/test_ptt_guest.py             tests/test_ptt_standalone.py             tests/test_ptt_live_csrf.py             tests/test_ptt_live_turn.py             tests/test_link_turn.py             tests/test_link_voice.py             tests/test_link_voice_ui.py             tests/test_oap_store_install.py
