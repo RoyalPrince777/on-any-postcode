@@ -19,6 +19,7 @@ def test_historical_top_21_keeps_order_and_advisory_rating_not_earnings():
     assert all(row["historical_rating_max"] == 7 for row in rows)
     assert "Kaa" not in {row["name"] for row in rows}
     assert all("achievement_stars" not in row for row in rows)
+    assert all(row["career_stars"] is None for row in rows if not row["registry_linked"])
 
 
 def test_unregistered_historical_labels_remain_reference_only():
@@ -29,9 +30,11 @@ def test_unregistered_historical_labels_remain_reference_only():
     for name in ("Captain ALL IN", "Queen Bee", "Tigress", "Lioness", "Bee Swarm"):
         assert by_name[name]["agent_id"] is None
         assert by_name[name]["registry_linked"] is False
+        assert by_name[name]["career_stars"] is None
     for name in ("Gyata", "Neo", "Shere Khan", "Bagheera", "Gorilla", "Fox"):
         assert by_name[name]["agent_id"] is not None
         assert by_name[name]["registry_linked"] is True
+        assert by_name[name]["career_stars"] == 0
     assert agents.validate_agent_registry()["passed"] is True
 
 
@@ -56,6 +59,7 @@ def test_founder_war_room_has_smi_top21_and_all_six_alliances(client):
         "(reference only)",
         "separately",
         "0 approved movements recorded",
+        "Earned ⭐",
     ):
         assert expected in html
     assert 'method="post"' not in html.lower()
@@ -71,6 +75,11 @@ def test_existing_dashboard_exposes_snapshot_without_minting_stars():
     dashboard = war_room.get_war_room_dashboard()
     board = dashboard["intelligence_alliance_board"]
     assert len(board["historical_top_21"]["entries"]) == 21
+    assert all(
+        entry["career_stars"] == 0
+        for entry in board["historical_top_21"]["entries"]
+        if entry["registry_linked"]
+    )
     assert len(board["alliances"]) == 6
     assert dashboard["agent_achievement_rankings"]["awarded_movements"] == 0
     assert all(
