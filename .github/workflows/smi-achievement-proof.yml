@@ -6,11 +6,13 @@ on:
       - 'mission_control/agent_achievements.py'
       - 'mission_control/intelligence_alliances.py'
       - 'mission_control/war_room.py'
+      - 'mission_control/templates/war_room.html'
       - 'mission_control/agents.py'
       - 'mission_control/agents_legacy.py'
       - 'tests/test_agent_achievements.py'
       - 'tests/test_war_room_agent_achievements.py'
       - 'tests/test_smi_intelligence_alliances.py'
+      - 'tests/test_smi_historical_leaderboard.py'
       - '.github/workflows/smi-achievement-proof.yml'
   push:
     branches: [main]
@@ -18,11 +20,13 @@ on:
       - 'mission_control/agent_achievements.py'
       - 'mission_control/intelligence_alliances.py'
       - 'mission_control/war_room.py'
+      - 'mission_control/templates/war_room.html'
       - 'mission_control/agents.py'
       - 'mission_control/agents_legacy.py'
       - 'tests/test_agent_achievements.py'
       - 'tests/test_war_room_agent_achievements.py'
       - 'tests/test_smi_intelligence_alliances.py'
+      - 'tests/test_smi_historical_leaderboard.py'
       - '.github/workflows/smi-achievement-proof.yml'
   workflow_dispatch:
 
@@ -40,6 +44,6 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -r requirements.txt pytest
       - name: Compile ranking code and tests
-        run: python -m py_compile mission_control/agent_achievements.py mission_control/intelligence_alliances.py mission_control/war_room.py tests/test_agent_achievements.py tests/test_war_room_agent_achievements.py tests/test_smi_intelligence_alliances.py
+        run: python -m py_compile mission_control/agent_achievements.py mission_control/intelligence_alliances.py mission_control/war_room.py tests/test_agent_achievements.py tests/test_war_room_agent_achievements.py tests/test_smi_intelligence_alliances.py tests/test_smi_historical_leaderboard.py
       - name: Run individual achievement tests
         run: python -m pytest -q tests/test_agent_achievements.py tests/test_war_room_agent_achievements.py tests/test_smi_intelligence_alliances.py
