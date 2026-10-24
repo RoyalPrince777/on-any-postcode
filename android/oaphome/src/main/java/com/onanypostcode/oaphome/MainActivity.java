@@ -205,7 +205,8 @@ public class MainActivity extends Activity {
             final String name = destinations[i];
             Button tile = button(icons[i] + "\n" + name + "\n" + captions[i], v -> destination(name));
             tile.setTextSize(12);
-            tile.setGravity(Gravity.CENTER);\n            tile.setPadding(dp(3), dp(3), dp(3), dp(3));
+            tile.setGravity(Gravity.CENTER);
+            tile.setPadding(dp(3), dp(3), dp(3), dp(3));
             tile.setContentDescription(name + ". " + captions[i]);
             GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
             lp.width = tileWidth;
