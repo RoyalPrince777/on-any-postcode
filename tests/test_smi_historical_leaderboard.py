@@ -35,7 +35,7 @@ def test_unregistered_historical_labels_remain_reference_only():
     assert agents.validate_agent_registry()["passed"] is True
 
 
-def test_founder_war_room_has_smi_top21_and_all_six_alliances(client, anonymous_client):
+def test_founder_war_room_has_smi_top21_and_all_six_alliances(client):
     response = client.get("/mission/war-room")
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -59,6 +59,10 @@ def test_founder_war_room_has_smi_top21_and_all_six_alliances(client, anonymous_
     ):
         assert expected in html
     assert 'method="post"' not in html.lower()
+
+
+def test_private_war_room_requires_login(anonymous_client):
+    # Avoid overlapping Flask test-client request contexts and their cached g-user.
     assert anonymous_client.get("/mission/war-room").status_code == 302
     assert anonymous_client.get("/mission/war-room/status").status_code == 401
 
