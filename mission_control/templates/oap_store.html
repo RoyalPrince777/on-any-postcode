@@ -43,6 +43,15 @@
         <a class="install-link" href="{{ app.install_url }}">Install {{ app.name }}</a>
       {% endif %}
     </div>
+    {% if app.app_id == "oap.ptt" %}
+      <p class="truth" data-oap-store-ptt-install-help>
+        From OAP Home V2, <strong>Install OAP PTT</strong> opens the standalone PTT installation page.
+        The app installs through a compatible browser, not as a native APK from V2.
+        If the install prompt does not appear in the V2 embedded view, open the same OAP PTT page in your Android browser
+        and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.
+        Live two-phone talking remains locked until real-device and relay verification.
+      </p>
+    {% endif %}
     {% if app.install_enabled %}
       <p class="truth">PWA install is a browser installation. It is not a signed native Android APK and does not certify physical-device acceptance.</p>
     {% elif app.open_url %}
