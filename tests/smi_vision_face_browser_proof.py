@@ -6,11 +6,11 @@ never reach public services. Server image decoding is separately unit-tested.
 from __future__ import annotations
 
 import base64
-from io import BytesIO
 import os
-from pathlib import Path
 import sys
 import threading
+from io import BytesIO
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -134,7 +134,6 @@ def main():
 
             button.click()
             locked = page.locator("#smi-face-detect-status")
-            locked.get_by_text("locked", exact=False).count() if False else None
             page.wait_for_function(
                 "() => document.querySelector('#smi-face-detect-status')?.textContent.includes('locked')"
             )
