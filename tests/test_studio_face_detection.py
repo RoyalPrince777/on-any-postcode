@@ -92,3 +92,18 @@ def test_malformed_data_rejected():
     payload = "data:image/png;base64," + base64.b64encode(b"fake png").decode("ascii")
     with pytest.raises(ValueError, match="invalid_face_image"):
         vision.detect_faces(payload)
+
+
+def test_private_route_keeps_auth_csrf_rate_and_default_lock():
+    views = (Path(__file__).resolve().parents[1] / "mission_control" / "views.py").read_text()
+    segment = views.split('@bp.post("/studio/vision/faces")', 1)[1].split(
+        '@bp.post("/studio/generate")', 1
+    )[0]
+    assert "@web_security.login_required(api=True, founder_only=True)" in segment
+    assert "web_security.csrf_valid(request)" in segment
+    assert 'environ.get("OAP_SMI_FACE_DETECTION_ENABLED", "false")' in segment
+    assert "_chat_rate_allowed(_chat_identity())" in segment
+    assert "request.content_length" in segment
+    assert "studio_face_detection.detect_faces(payload.get(\"image_data\"))" in segment
+    assert "face_detector_unavailable" in segment
+    assert "return _no_store(make_response(jsonify(result)))" in segment
