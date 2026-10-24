@@ -21,6 +21,7 @@ from . import (
     authority,
     brain,
     infrastructure,
+    intelligence_alliances,
     judgement,
     matrix_signal_bus,
     matrix_simulation,
@@ -1407,6 +1408,7 @@ def get_war_room_dashboard() -> dict[str, Any]:
             "star_counts": star_counts,
             "meaning": "Portfolio evidence view; not a release or safety certification.",
         },
+        "intelligence_alliance_board": intelligence_alliances.get_founder_alliance_board(),
         "agent_achievement_rankings": {
             "status": "read_only_unawarded",
             "award_source": "No persisted independently approved award records connected",
