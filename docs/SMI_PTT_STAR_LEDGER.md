@@ -73,3 +73,19 @@ Historical advisory capability ratings are **not career awards** and must not be
 Recognition queue: Captain ALL IN (scoreboard coordination), Fox (evidence inspection), Bagheera (risk assessment), Shere Khan (reliability review), Gorilla (security/Guardian review). Each needs an attributable distinct completed task, evidence, independent criterion review and referee approval before career points accrue. Neo (+1 candidate) and Seraph (+1 candidate) remain awaiting independent review. No automatic awards for role titles, proposals, or simulated votes.
 
 Round 10 commit `8eaafcafa4daa753e20217599abaabe2b59c92a4` CI evidence: [achievement proof](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40042595501), [War Room Chromium acceptance](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40042595352), [governed checks](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40042595371), and [runtime image build](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40042595437) all completed successfully. An image build is not a live deployment. Official individual career awards remain zero pending genuine independent review.
+
+## Round 12 — SMI visibility and recovered allied intelligence (2026-10-24)
+
+Founder requested that Mission: Impossible, Terminator, Predator, Transformers, Jungle Book and Batman intelligence all appear in the SMI ranking reference, with SMI itself visible rather than omitted from the Top 21.
+
+- **Command:** Founder Final → SMI (one intelligence brain) → Captain ALL IN (mission coordinator) → existing canonically registered agents and design-only allied capabilities. Guardian and HRM remain oversight organs, not agents.
+- **SMI does not compete for agent career stars.** Show it prominently above the specialist leaderboard with a brain/coordination label, not a fabricated #0/#1 performance position.
+- **Jungle Book:** project approved identities directly from canonical registry, including Shere Khan and Bagheera; Kaa remains excluded.
+- **Mission: Impossible:** preserve previously recovered 14 advisory character roles; execution disabled, no new passports.
+- **Terminator:** reuse approved capability overlays with the existing agents; T-800/T-1000/T-X/Rev-9/Cameron and John/Sarah/Kyle are design references, not newly registered agents; Skynet/Legion threat models only.
+- **Predator:** tracking, sensing, survival, defensive threat-analysis capability references, no invented character passports.
+- **Transformers:** Optimus Prime and Bumblebee design concepts, unregistered.
+- **Batman:** Batman and Robin design concepts, unregistered.
+- **Ranking truth:** No new numerical placements, capability ratings or individual lifetime stars are awarded by alliance membership or this display upgrade. Previously recorded historical Top 21 remains a dated snapshot.
+
+Evidence: added `mission_control/intelligence_alliances.py`, wired `get_war_room_dashboard()` read-only presentation, added `tests/test_smi_intelligence_alliances.py`, expanded SMI achievement CI paths and test suite. This branch has not been merged or deployed simply by recording this entry.
