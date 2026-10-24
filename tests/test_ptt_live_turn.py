@@ -51,7 +51,7 @@ def test_ptt_turn_credentials_require_temporary_pair(anonymous_client, monkeypat
 
 
 def test_ptt_turn_credentials_require_canonical_csrf_header(anonymous_client, monkeypatch):
-    identity, peer, token = _pair_session(anonymous_client, monkeypatch)
+    _identity, _peer, token = _pair_session(anonymous_client, monkeypatch)
     monkeypatch.setattr(
         ptt_routes.link_turn,
         "issue_credentials",
@@ -63,7 +63,7 @@ def test_ptt_turn_credentials_require_canonical_csrf_header(anonymous_client, mo
 
 
 def test_ptt_turn_refuses_inactive_pair_before_issuer(anonymous_client, monkeypatch):
-    identity, peer, token = _pair_session(anonymous_client, monkeypatch, active=False)
+    _identity, _peer, token = _pair_session(anonymous_client, monkeypatch, active=False)
     monkeypatch.setattr(
         ptt_routes.link_turn,
         "issue_credentials",
@@ -75,7 +75,7 @@ def test_ptt_turn_refuses_inactive_pair_before_issuer(anonymous_client, monkeypa
 
 
 def test_ptt_turn_unverified_relay_blocks_credentials(anonymous_client, monkeypatch):
-    identity, peer, token = _pair_session(anonymous_client, monkeypatch)
+    _identity, _peer, token = _pair_session(anonymous_client, monkeypatch)
     monkeypatch.setattr(ptt_routes.link_turn, "status", lambda: {
         "credential_ready": True, "relay_verified": False
     })
@@ -135,7 +135,7 @@ def test_ptt_turn_credentials_use_existing_signed_oap_issuer(anonymous_client, m
 
 
 def test_ptt_turn_blocked_peer_returns_forbidden(anonymous_client, monkeypatch):
-    identity, peer, token = _pair_session(anonymous_client, monkeypatch)
+    _identity, _peer, token = _pair_session(anonymous_client, monkeypatch)
     monkeypatch.setattr(
         ptt_routes.link_turn, "status", lambda: {"relay_verified": True}
     )
@@ -150,7 +150,7 @@ def test_ptt_turn_blocked_peer_returns_forbidden(anonymous_client, monkeypatch):
 
 
 def test_ptt_turn_unavailable_does_not_leak_secret(anonymous_client, monkeypatch):
-    identity, peer, token = _pair_session(anonymous_client, monkeypatch)
+    _identity, _peer, token = _pair_session(anonymous_client, monkeypatch)
     monkeypatch.setattr(
         ptt_routes.link_turn, "status", lambda: {"relay_verified": True}
     )
@@ -168,7 +168,7 @@ def test_ptt_turn_unavailable_does_not_leak_secret(anonymous_client, monkeypatch
 
 
 def test_ptt_turn_never_promotes_pairing_to_live_readiness(anonymous_client, monkeypatch):
-    identity, peer, token = _pair_session(anonymous_client, monkeypatch)
+    _identity, _peer, token = _pair_session(anonymous_client, monkeypatch)
     response = anonymous_client.get("/ptt/live/status")
     state = response.get_json()
     assert state["paired"] is True
