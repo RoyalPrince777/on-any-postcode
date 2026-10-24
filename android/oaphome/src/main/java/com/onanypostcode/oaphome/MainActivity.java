@@ -204,12 +204,12 @@ public class MainActivity extends Activity {
         for (int i = 0; i < destinations.length; i++) {
             final String name = destinations[i];
             Button tile = button(icons[i] + "\n" + name + "\n" + captions[i], v -> destination(name));
-            tile.setTextSize(11);
-            tile.setGravity(Gravity.CENTER);
+            tile.setTextSize(12);
+            tile.setGravity(Gravity.CENTER);\n            tile.setPadding(dp(3), dp(3), dp(3), dp(3));
             tile.setContentDescription(name + ". " + captions[i]);
             GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
             lp.width = tileWidth;
-            lp.height = dp(112);
+            lp.height = dp(92);
             lp.setMargins(dp(2), dp(4), dp(2), dp(4));
             grid.addView(tile, lp);
         }
@@ -222,8 +222,8 @@ public class MainActivity extends Activity {
     private void addPersistentHomeDock(LinearLayout root) {
         LinearLayout dock = new LinearLayout(this);
         dock.setOrientation(LinearLayout.HORIZONTAL);
-        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(82)));
-        String[] dockLabels = {"☎\nPhone", "▣\nMessages", "◎\nInternet\nBEGORO-KORADASO", "◉\nCamera", "⌃\nAll Apps"};
+        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(64)));
+        String[] dockLabels = {"☎\nPhone", "▣\nMessages", "◎\nInternet", "◉\nCamera", "⌃\nApps"};
         for (int i = 0; i < dockLabels.length; i++) {
             final int index = i;
             Button item = button(dockLabels[i], v -> {
@@ -233,7 +233,7 @@ public class MainActivity extends Activity {
                 else if (index == 3) open(new Intent("android.media.action.IMAGE_CAPTURE"));
                 else allApps();
             });
-            item.setTextSize(index == 2 ? 9 : 11);
+            item.setTextSize(11);
             item.setContentDescription(dockLabels[i].replace("\n", " "));
             item.setMinWidth(dp(48));
             item.setMinHeight(dp(48));
