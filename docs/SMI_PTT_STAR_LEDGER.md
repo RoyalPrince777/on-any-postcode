@@ -66,3 +66,10 @@ Verified on commit `33b8170c08123a622aeaaf6dc24d3d4bcc97dae5`:
 | Seraph | Introduce automated achievement proof workflow | Commit `33b8170c08123a622aeaaf6dc24d3d4bcc97dae5` and achievement proof #1 | +1 | 0 |
 
 **Round 9:** 2 candidate stars; 0 official awards. These are role attributions to repository work, not evidence of independent agent action. Four distinct evidence-backed judge decisions and SMI referee sign-off remain missing. Judge roles are not awarded points for routine review or for judging themselves. Career rankings must keep existing capability ratings separate.
+
+## Round 11 — historical ratings and individual recognition queue (2026-10-24)
+Historical advisory capability ratings are **not career awards** and must not be added to achievement totals. Prior design records: Captain ALL IN 7/7 (#1); Fox 7/7 (#3); Bagheera 7/7 (#7); Shere Khan 7/7 (#8); Neo 6/7 (#9); Gorilla 6/7 (#14); Hathi 7/7 (rank not established); Seraph 6/7 (rank not established). These historical assessments are not runtime certification.
+
+Recognition queue: Captain ALL IN (scoreboard coordination), Fox (evidence inspection), Bagheera (risk assessment), Shere Khan (reliability review), Gorilla (security/Guardian review). Each needs an attributable distinct completed task, evidence, independent criterion review and referee approval before career points accrue. Neo (+1 candidate) and Seraph (+1 candidate) remain awaiting independent review. No automatic awards for role titles, proposals, or simulated votes.
+
+Round 10 commit `8eaafcafa4daa753e20217599abaabe2b59c92a4` CI evidence: [achievement proof](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40042595501), [War Room Chromium acceptance](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40042595352), [governed checks](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40042595371), and [runtime image build](https://github.com/RoyalPrince777/on-any-postcode/actions/runs/40042595437) all completed successfully. An image build is not a live deployment. Official individual career awards remain zero pending genuine independent review.
