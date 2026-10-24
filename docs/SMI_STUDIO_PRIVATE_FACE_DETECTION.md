@@ -41,7 +41,8 @@ The optional dependencies do not modify the base `requirements.txt`. OpenCV uses
 ## Proof gaps before Green Gate
 
 - Full-repository CI and real Chromium acceptance must pass on the exact final head; browser implementation alone is not certification.
-- A real authenticated non-fixture Founder browser/device path, plus UI failure/cancellation and first-party transport evidence.
+- Face Up camera/microphone now inherit the canonical SMI human STOP and browser pagehide boundary. Pending getUserMedia permission requests are invalidated with a generation guard; if a late stream resolves, both tracks are immediately stopped. The real Chromium proof checks End, STOP and pagehide with controlled simulated permission timing. **No physical Android device test has been claimed.**
+- A real authenticated non-fixture Founder browser/device path, plus camera/mic permission denial, background/relaunch and first-party transport evidence.
 - Real Founder-device consent/STOP/relaunch/permission-denial evidence and latency/memory checks.
 - Detection quality checks with appropriately consented diverse faces and non-face images, including false positives, misses and lighting/pose limitations.
 - Security review of crafted media decoding, dependency vulnerability scanning, audit/release evidence and Founder Final.
