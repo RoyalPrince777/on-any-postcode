@@ -1143,7 +1143,7 @@ def smi_studio_detect_faces():
         return _error("invalid_request", "A JSON object is required.", 400)
     try:
         result = studio_face_detection.detect_faces(payload.get("image_data"))
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         oversized = str(exc) in {"face_image_too_large", "face_image_dimensions_exceeded"}
         return _error(
             "face_image_too_large" if oversized else "invalid_face_image",
