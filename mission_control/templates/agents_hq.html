@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SMI Agents HQ · ON ANY POSTCODE</title>
+<style>
+body{margin:0;background:#07101e;color:#f5f7ff;font:16px system-ui,sans-serif}
+main{max-width:1000px;margin:auto;padding:24px}
+a{color:#9bd5ff}
+header{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+nav{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
+button{background:#172942;color:white;border:1px solid #526d91;border-radius:10px;padding:12px;cursor:pointer}
+button:focus-visible{outline:3px solid #e2bd69}
+button[aria-pressed="true"]{border-color:#e2bd69}
+section{border:1px solid #365171;border-radius:14px;padding:20px;margin:16px 0}
+small{color:#b9cce1}
+</style>
+</head>
+<body>
+<main>
+<header><h1>🏛 SMI Agents HQ</h1><a href="/mission/smi">← Command Centre</a></header>
+<p>Founder-only · Canonical read-only room directory · Founder Final</p>
+<nav aria-label="Room types">
+<button type="button" data-kind="all_agents" aria-pressed="true">All Agents</button>
+<button type="button" data-kind="individual" aria-pressed="false">Individual</button>
+<button type="button" data-kind="family" aria-pressed="false">Families</button>
+</nav>
+<section aria-labelledby="rooms-title">
+<h2 id="rooms-title">Rooms</h2>
+<div id="rooms">
+{% for room in directory.rooms %}
+<div data-room-kind="{{ room.kind }}"><button type="button" data-room-id="{{ room.id }}">{{ room.name }}</button> <small>{{ room.agent_ids|length }} members</small></div>
+{% endfor %}
+</div>
+</section>
+<section aria-live="polite"><h2 id="selected-room">Select a room</h2><p id="members">Membership only. No message history or autonomous agent chat is available.</p></section>
+<script>
+const directory = {{ directory|tojson }};
+const rooms = directory.rooms;
+const buttons = document.querySelectorAll('[data-kind]');
+function filterRooms(kind){
+  buttons.forEach(b => b.setAttribute('aria-pressed',String(b.dataset.kind===kind)));
+  document.querySelectorAll('[data-room-kind]').forEach(e=>e.hidden=e.dataset.roomKind!==kind);
+}
+buttons.forEach(b=>b.addEventListener('click',()=>filterRooms(b.dataset.kind)));
+document.querySelectorAll('[data-room-id]').forEach(b=>b.addEventListener('click',()=>{
+ const room=rooms.find(r=>r.id===b.dataset.roomId);
+ if(!room)return;
+ document.getElementById('selected-room').textContent=room.name;
+ document.getElementById('members').textContent=room.agent_ids.length+' registered members · Read-only · No messages or agent execution';
+}));
+filterRooms('all_agents');
+</script>
+</main>
+</body>
+</html>
