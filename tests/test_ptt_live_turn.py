@@ -168,7 +168,7 @@ def test_ptt_turn_unavailable_does_not_leak_secret(anonymous_client, monkeypatch
 
 
 def test_ptt_turn_never_promotes_pairing_to_live_readiness(anonymous_client, monkeypatch):
-    _identity, _peer, token = _pair_session(anonymous_client, monkeypatch)
+    _identity, _peer, _token = _pair_session(anonymous_client, monkeypatch)
     response = anonymous_client.get("/ptt/live/status")
     state = response.get_json()
     assert state["paired"] is True
