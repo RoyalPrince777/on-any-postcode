@@ -16,7 +16,14 @@ from flask import (
     session,
 )
 
-from . import link_relationships, link_turn, product_store, ptt_guest, ptt_signalling, web_security
+from . import (
+    link_relationships,
+    link_turn,
+    product_store,
+    ptt_guest,
+    ptt_signalling,
+    web_security,
+)
 
 bp = Blueprint("ptt_ui", __name__, template_folder="templates")
 
