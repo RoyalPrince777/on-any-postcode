@@ -14,6 +14,8 @@ from mission_control import link_turn, ptt_routes, web_security
 
 
 def _pair_session(anonymous_client, monkeypatch, *, active=True):
+    # Test PTT enablement explicitly; actual application default is disabled.
+    monkeypatch.setenv("OAP_PTT_TURN_ENABLED", "true")
     identity = str(uuid.uuid4())
     recipient = str(uuid.uuid4())
     token = "ptt-turn-first-party-csrf-1234567890"
@@ -72,6 +74,27 @@ def test_ptt_turn_refuses_inactive_pair_before_issuer(anonymous_client, monkeypa
     result = _post(anonymous_client, token)
     assert result.status_code == 403
     assert result.get_json()["error"]["code"] == "ptt_pair_required"
+
+
+def test_ptt_turn_default_off_even_when_linkup_turn_is_ready(anonymous_client, monkeypatch):
+    _identity, _peer, token = _pair_session(anonymous_client, monkeypatch)
+    monkeypatch.delenv("OAP_PTT_TURN_ENABLED")
+    monkeypatch.setattr(
+        ptt_routes.link_turn,
+        "status",
+        lambda: {"relay_verified": True},
+    )
+    monkeypatch.setattr(
+        ptt_routes.link_turn,
+        "issue_credentials",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("Anonymous PTT must not use Link Up relay by default")
+        ),
+    )
+    result = _post(anonymous_client, token)
+    assert result.status_code == 503
+    assert result.get_json()["error"]["code"] == "ptt_turn_disabled"
+    assert result.headers["Cache-Control"] == "no-store"
 
 
 def test_ptt_turn_unverified_relay_blocks_credentials(anonymous_client, monkeypatch):
