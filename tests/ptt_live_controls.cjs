@@ -9,6 +9,14 @@ const path = require("node:path");
 async function main() {
   const requests = [];
   const token = "first-party-csrf-value";
+  const iceServers = [{
+    urls: ["turn:turn.oap.internal:3478?transport=udp"],
+    username: "1800000300:00000000-0000-4000-8000-000000000001",
+    credential: "temporary-HMAC",
+    credentialType: "password",
+  }];
+  let relayMode = "verified";
+  let microphoneRequests = 0;
   const listeners = () => Object.create(null);
   const makeElement = () => ({
     listeners: listeners(),
@@ -64,7 +72,7 @@ async function main() {
   class FakePeer {
     static instances = [];
     constructor(config) {
-      assert.deepEqual(JSON.parse(JSON.stringify(config)), { iceServers: [] });
+      assert.deepEqual(JSON.parse(JSON.stringify(config)), { iceServers });
       this.connectionState = "new";
       this.signalingState = "stable";
       this.localDescription = null;
@@ -86,6 +94,7 @@ async function main() {
   const sandbox = {
     document,
     navigator: { mediaDevices: { getUserMedia: async (constraints) => {
+      microphoneRequests += 1;
       assert.equal(constraints.audio, true);
       assert.equal(constraints.video, false);
       return localStream;
@@ -98,6 +107,13 @@ async function main() {
     },
     fetch: async (url, opts) => {
       requests.push({ url, opts });
+      if (url === "/ptt/live/ice") {
+        if (relayMode === "unverified") return { ok: false, status: 503 };
+        if (relayMode === "malformed") {
+          return { ok: true, json: async () => ({ relay_verified: false, ice_servers: iceServers }) };
+        }
+        return { ok: true, json: async () => ({ relay_verified: true, ice_servers: iceServers }) };
+      }
       if (url === "/ptt/live/signals") {
         return { ok: true, json: async () => ({ signals: [] }) };
       }
@@ -117,6 +133,13 @@ async function main() {
   assert.equal(typeof connect.listeners.click, "function");
   await connect.listeners.click();
 
+  const relayRequest = requests.find((request) => request.url === "/ptt/live/ice");
+  assert.ok(relayRequest, "Verify OAP-owned relay before permission request");
+  assert.equal(requests[0].url, "/ptt/live/ice");
+  assert.equal(relayRequest.opts.method, "POST");
+  assert.equal(relayRequest.opts.credentials, "same-origin");
+  assert.equal(relayRequest.opts.headers["X-OAP-CSRF"], token);
+  assert.equal(microphoneRequests, 1);
   const sentOffer = requests.find((request) => request.url === "/ptt/live/signal");
   assert.ok(sentOffer, "Initiator must send a signalling offer");
   assert.equal(sentOffer.opts.headers["X-OAP-CSRF"], token);
@@ -153,6 +176,17 @@ async function main() {
       JSON.parse(request.opts.body).kind === "hangup"),
     "STOP must signal hangup",
   );
-  console.log("PTT client control proof: CSRF, offer, mute, HOLD, release, STOP and reconnect PASS");
+  relayMode = "unverified";
+  await connect.listeners.click();
+  assert.equal(microphoneRequests, 1, "An unverified relay must not trigger microphone permission");
+  assert.equal(FakePeer.instances.length, 1, "Unverified relay must not create another peer");
+  assert.equal(connect.disabled, false, "An unavailable relay must allow manual retry");
+  assert.match(status.textContent, /OAP TURN relay unavailable/);
+  relayMode = "malformed";
+  await connect.listeners.click();
+  assert.equal(microphoneRequests, 1, "Response marked unverified must fail closed");
+  assert.equal(FakePeer.instances.length, 1);
+
+  console.log("PTT client control proof: verified TURN before mic, CSRF, offer, HOLD, release, STOP, retry and fail-closed relay PASS");
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });
