@@ -40,6 +40,7 @@ from . import (
     smi_workbench,
     status,
     studio_build_preview,
+    studio_face_detection,
     studio_intelligence,
     studio_workspace_orchestrator,
     war_room,
@@ -1117,6 +1118,45 @@ def smi_android_live_evidence_receipt():
     if result.get("reasons") == ["durable_hrm_receipt_unconfirmed"]:
         status_code = 503
     return _no_store(make_response(jsonify(result), status_code))
+
+
+@bp.post("/studio/vision/faces")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_detect_faces():
+    """Founder-only, explicitly enabled, one-frame Studio Vision face boxes."""
+
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired.", 403)
+    # Production and public routes stay locked until local/device proof and Founder Final.
+    from os import environ
+
+    if environ.get("OAP_SMI_FACE_DETECTION_ENABLED", "false").strip().lower() != "true":
+        return _error("face_detection_locked", "Studio face detection is not enabled.", 423)
+    # Require a declared request size before JSON parsing to bound allocations.
+    max_body_size = 4 * studio_face_detection.MAX_IMAGE_BYTES // 3 + 1024
+    if request.content_length is None or request.content_length > max_body_size:
+        return _error("face_image_too_large", "Image request is too large.", 413)
+    if not _chat_rate_allowed(_chat_identity()):
+        return _error("rate_limited", "Vision requests are temporarily limited.", 429)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = studio_face_detection.detect_faces(payload.get("image_data"))
+    except ValueError as exc:
+        oversized = str(exc) in {"face_image_too_large", "face_image_dimensions_exceeded"}
+        return _error(
+            "face_image_too_large" if oversized else "invalid_face_image",
+            "Image exceeds Vision limits." if oversized else "Image cannot be processed.",
+            413 if oversized else 400,
+        )
+    except RuntimeError:
+        return _error(
+            "face_detector_unavailable",
+            "The offline Studio face detector is unavailable.",
+            503,
+        )
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.post("/studio/generate")
