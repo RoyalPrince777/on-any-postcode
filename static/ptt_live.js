@@ -24,6 +24,20 @@
     });
     if (!response.ok) throw new Error("Signalling unavailable");
   };
+  const iceConfig = async () => {
+    const response = await fetch(endpoint + "/ice", {
+      method: "POST", credentials: "same-origin", cache: "no-store",
+      headers: { "Content-Type": "application/json", "X-OAP-CSRF": csrf },
+      body: "{}",
+    });
+    if (!response.ok) throw new Error("OAP TURN relay unavailable · live audio locked");
+    const result = await response.json();
+    if (result?.relay_verified !== true ||
+        !Array.isArray(result.ice_servers) || result.ice_servers.length === 0) {
+      throw new Error("OAP TURN relay not verified · live audio locked");
+    }
+    return result.ice_servers;
+  };
   const release = () => {
     holding = false;
     if (stream) stream.getAudioTracks().forEach((track) => { track.enabled = false; });
@@ -86,12 +100,15 @@
     try {
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection)
         throw new Error("Secure browser with WebRTC required");
+      setStatus("Checking OAP-owned TURN relay…");
+      const iceServers = await iceConfig();
+      if (token !== generation) return;
       setStatus("Requesting microphone permission…");
       const local = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       if (token !== generation) { local.getTracks().forEach((track) => track.stop()); return; }
       stream = local;
       release();
-      pc = new RTCPeerConnection({ iceServers: [] });
+      pc = new RTCPeerConnection({ iceServers });
       stream.getAudioTracks().forEach((track) => pc.addTrack(track, stream));
       remote = document.createElement("audio");
       remote.autoplay = true;
