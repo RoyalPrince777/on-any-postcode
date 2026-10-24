@@ -126,13 +126,14 @@
       <h3>Historical Top 21 · {{ alliance_board.historical_top_21.as_of }}</h3>
       <div class="smi-roster-scroll">
         <table class="smi-roster-history" aria-label="Dated advisory Top 21 rankings">
-          <thead><tr><th scope="col">Rank</th><th scope="col">Agent / role</th><th scope="col">Rating</th></tr></thead>
+          <thead><tr><th scope="col">Rank</th><th scope="col">Agent / role</th><th scope="col">Rating</th><th scope="col">Earned ⭐</th></tr></thead>
           <tbody>
           {% for entry in alliance_board.historical_top_21.entries %}
             <tr>
               <td>#{{ entry.rank }}</td>
               <td>{{ entry.name }}{% if not entry.registry_linked %} <span class="smi-roster-note">(reference only)</span>{% endif %}</td>
               <td>{{ entry.historical_rating }}/{{ entry.historical_rating_max }} ⭐</td>
+              <td>{% if entry.career_stars is not none %}{{ entry.career_stars }}{% else %}—{% endif %}</td>
             </tr>
           {% endfor %}
           </tbody>
