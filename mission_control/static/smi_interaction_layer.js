@@ -125,7 +125,10 @@
     faceDetectStatus.id = "smi-face-detect-status";
     faceDetectStatus.setAttribute("role", "status");
     faceDetectStatus.setAttribute("aria-live", "polite");
-    if (imagePreview) imagePreview.append(faceDetectButton, faceDetectStatus);
+    const faceDetectNotice = document.createElement("small");
+    faceDetectNotice.id = "smi-face-detect-notice";
+    faceDetectNotice.textContent = "Detect faces sends one selected still to the private OAP Studio server on tap. Not on-device or continuous.";
+    if (imagePreview) imagePreview.append(faceDetectButton, faceDetectNotice, faceDetectStatus);
     let faceDetectRequest = null;
     function cancelFaceDetection() {
       if (faceDetectRequest) faceDetectRequest.abort();
