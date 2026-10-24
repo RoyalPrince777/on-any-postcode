@@ -46,4 +46,4 @@ jobs:
       - name: Compile ranking code and tests
         run: python -m py_compile mission_control/agent_achievements.py mission_control/intelligence_alliances.py mission_control/war_room.py tests/test_agent_achievements.py tests/test_war_room_agent_achievements.py tests/test_smi_intelligence_alliances.py tests/test_smi_historical_leaderboard.py
       - name: Run individual achievement tests
-        run: python -m pytest -q tests/test_agent_achievements.py tests/test_war_room_agent_achievements.py tests/test_smi_intelligence_alliances.py
+        run: python -m pytest -q tests/test_agent_achievements.py tests/test_war_room_agent_achievements.py tests/test_smi_intelligence_alliances.py tests/test_smi_historical_leaderboard.py tests/test_war_room_dashboard_v3.py
