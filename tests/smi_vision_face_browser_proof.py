@@ -183,6 +183,72 @@ def main():
             assert locked.inner_text() == ""
             assert button.is_hidden()
 
+            # Browser-backed synthetic permission timing only: verify that
+            # End, Human STOP and pagehide release camera+mic tracks. This
+            # intentionally does NOT claim physical Android hardware proof.
+            page.evaluate("""
+            () => {
+              const proof = {stopped: 0, requests: []};
+              proof.makeStream = () => {
+                const stream = new MediaStream();
+                const tracks = ["video", "audio"].map(kind => ({
+                  kind, enabled: true, stop: () => { proof.stopped += 1; }
+                }));
+                stream.getTracks = () => tracks;
+                stream.getVideoTracks = () => [tracks[0]];
+                stream.getAudioTracks = () => [tracks[1]];
+                return stream;
+              };
+              window.__visionPermissionProof = proof;
+              const devices = navigator.mediaDevices || {};
+              devices.getUserMedia = () => new Promise(resolve => proof.requests.push(resolve));
+              if (!navigator.mediaDevices) {
+                Object.defineProperty(navigator, "mediaDevices", {configurable: true, value: devices});
+              }
+              document.querySelector("#faceup-video").play = () => Promise.resolve();
+            }
+            """)
+
+            # Permission is granted *after* closing the still-pending drawer:
+            # both tracks must be immediately stopped, never exposed as active.
+            page.locator("#faceup-button").click()
+            page.wait_for_function("() => window.__visionPermissionProof.requests.length === 1")
+            page.locator("#faceup-close").click()
+            page.evaluate(
+                "() => window.__visionPermissionProof.requests.shift()(window.__visionPermissionProof.makeStream())"
+            )
+            page.wait_for_function("() => window.__visionPermissionProof.stopped === 2")
+            assert page.locator("#faceup-panel").is_hidden()
+            assert page.locator("#faceup-video").evaluate("(v) => v.srcObject === null")
+
+            # When a valid session is running, SMI's single canonical Stop
+            # must terminate camera and microphone, not merely chat output.
+            page.locator("#faceup-button").click()
+            page.wait_for_function("() => window.__visionPermissionProof.requests.length === 1")
+            page.evaluate(
+                "() => window.__visionPermissionProof.requests.shift()(window.__visionPermissionProof.makeStream())"
+            )
+            page.wait_for_function(
+                "() => document.querySelector('#faceup-status')?.textContent.includes('session active')"
+            )
+            page.locator("#stop-button").dispatch_event("click")
+            page.wait_for_function("() => window.__visionPermissionProof.stopped === 4")
+            assert page.locator("#faceup-panel").is_hidden()
+            assert page.locator("#faceup-video").evaluate("(v) => v.srcObject === null")
+
+            # Closing the browser while a permission prompt is pending must
+            # also invalidate and stop a late-resolved camera/mic stream.
+            page.locator("#faceup-button").click()
+            page.wait_for_function("() => window.__visionPermissionProof.requests.length === 1")
+            page.evaluate("() => window.dispatchEvent(new Event('pagehide'))")
+            page.evaluate(
+                "() => window.__visionPermissionProof.requests.shift()(window.__visionPermissionProof.makeStream())"
+            )
+            page.wait_for_function("() => window.__visionPermissionProof.stopped === 6")
+            assert page.locator("#faceup-panel").is_hidden()
+            print("SMI_FACEUP_PERMISSION_RACE_CLOSED=PASS")
+            print("SMI_FACEUP_CAMERA_MIC_STOP_RELEASED=PASS")
+
             print("SMI_VISION_BROWSER_EXPLICIT_CAPTURE=PASS")
             print("SMI_VISION_DEFAULT_LOCK=PASS")
             print("SMI_VISION_FOUNDER_SERVER_HANDOFF=PASS")
