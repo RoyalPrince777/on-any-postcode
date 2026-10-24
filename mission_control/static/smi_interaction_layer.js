@@ -214,7 +214,10 @@
     });
     imageInput.addEventListener("change", cancelFaceDetection);
     document.getElementById("remove-image")?.addEventListener("click", cancelFaceDetection);
-    window.addEventListener("oap-smi-human-stop", cancelFaceDetection);
+    window.addEventListener("oap-smi-human-stop", () => {
+      cancelFaceDetection();
+      if (faceUpStarting || faceUpStream || !drawer.hidden) stopFaceUp();
+    });
 
     function applyVisionImage(dataUrl, name) {
       cancelFaceDetection();
@@ -283,12 +286,18 @@
     }
 
     let faceUpStream = null;
+    let faceUpRequestGeneration = 0;
+    let faceUpStarting = false;
     const faceVideo = drawer.querySelector("#faceup-video");
     const faceStatus = drawer.querySelector("#faceup-status");
     const faceCamera = drawer.querySelector("#faceup-camera-toggle");
     const faceMic = drawer.querySelector("#faceup-mic-toggle");
 
     const stopFaceUp = () => {
+      // Revoke the pending permission request's authority before closing tracks.
+      // A browser may grant camera permission *after* the Founder pressed End.
+      faceUpRequestGeneration += 1;
+      faceUpStarting = false;
       if (faceUpStream) faceUpStream.getTracks().forEach((track) => track.stop());
       faceUpStream = null;
       faceVideo.srcObject = null;
@@ -305,28 +314,48 @@
     async function startFaceUp() {
       activate("faceup-button");
       drawer.hidden = false;
-      if (faceUpStream) return;
+      if (faceUpStream || faceUpStarting) return;
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         faceStatus.textContent = "Camera/mic access is unavailable in this browser.";
         setStatus("Face Up is unavailable in this browser.");
         return;
       }
+      const generation = ++faceUpRequestGeneration;
+      faceUpStarting = true;
+      let acquiredStream = null;
       try {
         faceStatus.textContent = "Requesting camera and microphone permission…";
-        faceUpStream = await navigator.mediaDevices.getUserMedia({
+        acquiredStream = await navigator.mediaDevices.getUserMedia({
           video: {facingMode: "user"},
           audio: true,
         });
+        if (generation !== faceUpRequestGeneration || drawer.hidden) {
+          acquiredStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        faceUpStream = acquiredStream;
         faceVideo.srcObject = faceUpStream;
         await faceVideo.play();
+        if (generation !== faceUpRequestGeneration || drawer.hidden) {
+          acquiredStream.getTracks().forEach((track) => track.stop());
+          if (faceUpStream === acquiredStream) {
+            faceUpStream = null;
+            faceVideo.srcObject = null;
+          }
+          return;
+        }
         faceStatus.textContent = "Local Face Up session active. Nothing is sent until you capture and send.";
         setStatus("Face Up active · camera/mic under your control");
         recordSurfaceProof("face-up", "face-up-" + Date.now());
       } catch (error) {
+        if (acquiredStream) acquiredStream.getTracks().forEach((track) => track.stop());
+        if (generation !== faceUpRequestGeneration) return;
         faceUpStream = null;
         faceVideo.srcObject = null;
         faceStatus.textContent = "Camera/mic permission blocked or unavailable.";
         setStatus("Face Up did not start.");
+      } finally {
+        if (generation === faceUpRequestGeneration) faceUpStarting = false;
       }
     }
 
@@ -426,7 +455,7 @@
 
     window.addEventListener("pagehide", () => {
       cancelFaceDetection();
-      if (faceUpStream) faceUpStream.getTracks().forEach((track) => track.stop());
+      stopFaceUp();
     }, {once: true});
   }
 
