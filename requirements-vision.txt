@@ -3,4 +3,4 @@
 # Setup: pip install -r requirements-vision.txt
 opencv-python-headless>=4.10,<5
 numpy>=1.26,<3
-Pillow>=10,<13
+Pillow>=10,<14
