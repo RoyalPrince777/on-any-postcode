@@ -312,6 +312,13 @@ def smi_command_dashboard_status():
     return _no_store(make_response(jsonify(smi_command_dashboard.status())))
 
 
+@bp.get("/smi/agents-hq")
+@web_security.login_required(founder_only=True)
+def smi_agents_hq_page():
+    """Render read-only Founder room selector."""
+    return _no_store(make_response(render_template("agents_hq.html", directory=agents_hq.room_directory())))
+
+
 @bp.get("/smi/agents-hq/rooms")
 @web_security.login_required(api=True, founder_only=True)
 def smi_agents_hq_rooms():
