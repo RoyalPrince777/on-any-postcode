@@ -354,3 +354,12 @@ def test_connect4_manifest_icons_resolve_and_game_routes_stay_in_scope(client):
     listing = {item["app_id"]: item for item in oap_store.catalogue()}["oap.arena.connect4"]
     assert listing["install_enabled"] is False
     assert listing["physical_device_certified"] is False
+
+
+def test_connect4_room_has_exactly_one_quick_match_control():
+    """Prevent duplicate matchmaking actions in the public room UI."""
+    from pathlib import Path
+
+    room = (Path(__file__).resolve().parents[1] / "mission_control" / "templates" / "arena_connect4_room.html").read_text(encoding="utf-8")
+    assert room.count("data-matchmake") == 1
+    assert room.count(">Quick Match</button>") == 1
