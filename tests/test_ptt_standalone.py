@@ -229,8 +229,10 @@ def test_ptt_guest_ui_exposes_talk_history_and_disconnect(monkeypatch, anonymous
     body = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "CONNECTED · TEMPORARY PTT" in body
-    assert "HOLD TO TALK" in body
-    assert 'data-oap-voice-list' in body
+    assert "HOLD TO TALK · LIVE COMING SOON" in body
+    assert "recorded voice delivery is disabled" in body
+    assert 'data-oap-voice-list' not in body
+    assert 'src="/static/linkup_voice.js"' not in body
     assert 'action="/ptt/pair/stop"' in body
 
 
@@ -290,40 +292,15 @@ def test_anonymous_ptt_can_create_and_join_room(anonymous_client, monkeypatch):
         assert current_session[ptt_routes.PTT_ROOM_OWNER_KEY] == owner
 
 
-def test_room_host_sees_share_code_until_second_member_joins(anonymous_client, monkeypatch):
-    from mission_control import ptt_routes
-
-    owner = str(uuid.uuid4())
-    with anonymous_client.session_transaction() as current_session:
-        current_session[ptt_routes.PTT_ROOM_ID_KEY] = owner
-        current_session[ptt_routes.PTT_ROOM_OWNER_KEY] = owner
-        current_session[ptt_routes.PTT_ROOM_CODE_KEY] = "87654321"
-
-    monkeypatch.setattr(
-        ptt_routes.ptt_guest,
-        "room_state",
-        lambda identity, room_owner: {
-            "active": True,
-            "identity_id": identity,
-            "owner_id": room_owner,
-            "member_ids": [owner],
-            "member_count": 1,
-        },
-    )
-
-    response = anonymous_client.get("/ptt")
-    body = response.get_data(as_text=True)
-    assert response.status_code == 200
-    assert "Your Room code" in body
-    assert "87654321" in body
-    assert "Waiting for Room members" in body
-
-
-def test_room_ui_exposes_all_declared_ptt_surfaces(anonymous_client):
+def test_room_ui_deferred_without_removing_room_backend(anonymous_client):
     body = anonymous_client.get("/ptt").get_data(as_text=True)
-    for label in ("Connect another phone", "Rooms", "Incoming", "History", "Settings"):
+    for label in ("Connect another phone", "Settings"):
         assert label in body
-    assert 'src="/static/ptt_room.js"' in body
+    assert 'data-oap-ptt-room' not in body
+    assert 'src="/static/ptt_room.js"' not in body
+    assert 'data-oap-ptt-pair' in body
+    assert 'src="/static/ptt_guest.js"' in body
+    assert "Incoming · History" not in body
 
 
 def test_room_browser_runtime_has_hold_release_incoming_and_cleanup():
@@ -334,3 +311,93 @@ def test_room_browser_runtime_has_hold_release_incoming_and_cleanup():
     assert 'apiJson("/ptt/room/voice")' in source
     assert 'window.setInterval(renderHistory, 2000);' in source
     assert 'window.addEventListener("pagehide"' in source
+
+
+def test_live_status_fails_closed_without_live_transport(anonymous_client):
+    response = anonymous_client.get("/ptt/live/status")
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    payload = response.get_json()
+    assert payload["paired"] is False
+    assert payload["live_ready"] is False
+    assert payload["signalling_ready"] is False
+    assert payload["media_ready"] is False
+    assert payload["recording_enabled"] is False
+    assert payload["reason"] == "live_transport_not_implemented"
+
+
+def test_live_status_does_not_claim_ready_when_pair_is_active(anonymous_client, monkeypatch):
+    from mission_control import ptt_routes
+
+    identity = str(uuid.uuid4())
+    with anonymous_client.session_transaction() as current_session:
+        current_session[ptt_routes.PTT_GUEST_ID_KEY] = identity
+    monkeypatch.setattr(
+        ptt_routes.ptt_guest,
+        "invite_state",
+        lambda who, code: {"active": True, "identity_id": who, "peer_id": str(uuid.uuid4())},
+    )
+    payload = anonymous_client.get("/ptt/live/status").get_json()
+    assert payload["paired"] is True
+    assert payload["live_ready"] is False
+    assert payload["media_ready"] is False
+
+
+def test_live_signalling_requires_guest_session(anonymous_client):
+    response = anonymous_client.get("/ptt/live/signals")
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "ptt_pair_required"
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_live_signalling_requires_active_pair(monkeypatch):
+    import pytest
+
+    from mission_control import ptt_signalling
+
+    monkeypatch.setattr(ptt_signalling.ptt_guest, "active_pair", lambda identity: None)
+    with pytest.raises(ValueError, match="ptt_pair_required"):
+        ptt_signalling.send(str(uuid.uuid4()), "offer", {"type": "offer", "sdp": "test"})
+
+
+def test_live_signalling_rejects_bad_payload_before_database(monkeypatch):
+    import pytest
+
+    from mission_control import ptt_signalling
+
+    monkeypatch.setattr(
+        ptt_signalling.ptt_guest,
+        "active_pair",
+        lambda identity: {"peer_id": str(uuid.uuid4())},
+    )
+    identity = str(uuid.uuid4())
+    with pytest.raises(ValueError, match="invalid_signal"):
+        ptt_signalling.send(identity, "recording", {"audio": "forbidden"})
+    with pytest.raises(ValueError, match="signal_too_large"):
+        ptt_signalling.send(identity, "offer", {"type": "offer", "sdp": "v=0" + "x" * 17000})
+
+
+def test_webrtc_signalling_accepts_only_expected_shapes():
+    import pytest
+
+    from mission_control import ptt_signalling
+
+    valid = [
+        ("offer", {"type": "offer", "sdp": "v=0\\r\\n"}),
+        ("answer", {"type": "answer", "sdp": "v=0\\r\\n"}),
+        ("candidate", {"candidate": "candidate:1 1 UDP 1 192.0.2.1 1234 typ host", "sdpMid": "0", "sdpMLineIndex": 0}),
+        ("hangup", {}),
+    ]
+    for kind, payload in valid:
+        ptt_signalling._validate(kind, payload)
+    invalid = [
+        ("offer", {"type": "answer", "sdp": "v=0"}),
+        ("offer", {"type": "offer", "sdp": "invalid"}),
+        ("candidate", {"candidate": 3}),
+        ("candidate", {"candidate": "x", "sdpMLineIndex": True}),
+        ("hangup", {"audio": "not allowed"}),
+        ("recording", {}),
+    ]
+    for kind, payload in invalid:
+        with pytest.raises(ValueError, match="invalid_signal"):
+            ptt_signalling._validate(kind, payload)

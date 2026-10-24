@@ -6,6 +6,8 @@ by The Link or Link Up.
 """
 from __future__ import annotations
 
+import os
+
 from flask import (
     Blueprint,
     jsonify,
@@ -16,7 +18,14 @@ from flask import (
     session,
 )
 
-from . import link_relationships, product_store, ptt_guest, web_security
+from . import (
+    link_relationships,
+    link_turn,
+    product_store,
+    ptt_guest,
+    ptt_signalling,
+    web_security,
+)
 
 bp = Blueprint("ptt_ui", __name__, template_folder="templates")
 
@@ -253,6 +262,115 @@ def leave_room():
 def contacts_api():
     identity_id = web_security.authenticated_identity()
     return _no_store(make_response(jsonify(contacts=_accepted_contacts(identity_id))))
+
+
+@bp.post("/ptt/live/ice")
+def live_ice_credentials():
+    """Reuse OAP's existing short-lived TURN issuer for an active guest pair.
+
+    A paired identity and verified OAP relay are required. This does not
+    certify end-to-end PTT audio, media permissions or deployment.
+    """
+    identity = _guest_identity()
+    if not identity:
+        return _no_store(
+            make_response(jsonify(error={"code": "ptt_pair_required"}), 403)
+        )
+    guard = _mutation_guard(f"ptt-live-ice:{identity}")
+    if guard:
+        return guard
+    state = _guest_state()
+    peer_id = state.get("peer_id") if state.get("active") else None
+    if not peer_id:
+        return _no_store(
+            make_response(jsonify(error={"code": "ptt_pair_required"}), 403)
+        )
+    # Link Up's verified relay is not by itself approval for anonymous PTT.
+    # PTT access requires its own explicit Founder-controlled enablement.
+    if os.environ.get("OAP_PTT_TURN_ENABLED", "").strip().casefold() != "true":
+        return _no_store(
+            make_response(jsonify(error={"code": "ptt_turn_disabled"}), 503)
+        )
+    # Configuration-only and expired proof never enables a live microphone.
+    if not link_turn.status()["relay_verified"]:
+        return _no_store(
+            make_response(jsonify(error={"code": "ptt_turn_unverified"}), 503)
+        )
+    try:
+        credentials = link_turn.issue_credentials(identity, peer_id)
+        if not credentials.get("relay_verified"):
+            return _no_store(
+                make_response(jsonify(error={"code": "ptt_turn_unverified"}), 503)
+            )
+        return _no_store(make_response(jsonify(**credentials), 200))
+    except ValueError as exc:
+        code = str(exc)
+        if code in {"accepted_link_required", "link_blocked"}:
+            return _no_store(make_response(jsonify(error={"code": code}), 403))
+        return _no_store(make_response(jsonify(error={"code": "invalid_pair"}), 400))
+    except (
+        link_turn.LinkTurnUnavailable,
+        ptt_guest.PttGuestUnavailable,
+    ):
+        return _no_store(
+            make_response(jsonify(error={"code": "ptt_turn_unavailable"}), 503)
+        )
+
+
+@bp.post("/ptt/live/signal")
+def send_live_signal():
+    identity = _guest_identity()
+    if not identity:
+        return _no_store(make_response(jsonify(error={"code": "ptt_pair_required"}), 403))
+    guard = _mutation_guard(f"ptt-signal:{identity}")
+    if guard:
+        return guard
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _no_store(make_response(jsonify(error={"code": "invalid_signal"}), 400))
+    try:
+        signal_id = ptt_signalling.send(identity, data.get("kind"), data.get("payload"))
+        return _no_store(make_response(jsonify(id=signal_id), 202))
+    except ValueError as exc:
+        return _no_store(make_response(jsonify(error={"code": str(exc)}), 400))
+    except ptt_guest.PttGuestUnavailable:
+        return _no_store(make_response(jsonify(error={"code": "signalling_unavailable"}), 503))
+
+
+@bp.get("/ptt/live/signals")
+def receive_live_signals():
+    identity = _guest_identity()
+    if not identity:
+        return _no_store(make_response(jsonify(error={"code": "ptt_pair_required"}), 403))
+    try:
+        return _no_store(make_response(jsonify(signals=ptt_signalling.receive(identity)), 200))
+    except ValueError as exc:
+        return _no_store(make_response(jsonify(error={"code": str(exc)}), 403))
+    except ptt_guest.PttGuestUnavailable:
+        return _no_store(make_response(jsonify(error={"code": "signalling_unavailable"}), 503))
+
+
+@bp.get("/ptt/live/status")
+def live_status():
+    """Fail closed until authenticated signalling and live transport are proven.
+
+    Pairing alone is not evidence of a WebRTC connection. Never advertise
+    recorded-message delivery as live digital PTT.
+    """
+    paired = bool(_guest_state().get("active"))
+    return _no_store(
+        make_response(
+            jsonify(
+                paired=paired,
+                live_ready=False,
+                signalling_ready=False,
+                media_ready=False,
+                recording_enabled=False,
+                reason="live_transport_not_implemented",
+            ),
+            200,
+        )
+    )
 
 
 @bp.get("/ptt")

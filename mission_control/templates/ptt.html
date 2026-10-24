@@ -10,14 +10,20 @@
   <title>PTT — ON ANY POSTCODE</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 </head>
-<body data-oap-ptt-standalone="true" data-oap-ptt-endpoint="/ptt" data-oap-ptt-status-endpoint="/ptt/status">
+<body data-oap-ptt-identity="{{ guest.identity_id or '' }}" data-oap-ptt-standalone="true" data-oap-ptt-endpoint="/ptt" data-oap-ptt-status-endpoint="/ptt/status">
   <main class="shell">
     <section class="card">
       <p>OAP WORLD · PTT</p>
       <h1>🎙️ PTT</h1>
-      <p>Hold to talk. Release to listen. Your microphone stays off until you press the talk control.</p>
+      <p>Live digital PTT only. No recordings or message history. Live voice is not available until the real-time connection is verified.</p>
       <p><button type="button" data-oap-install hidden>Install OAP PTT</button></p>
       <p><strong data-oap-install-status role="status">Checking install support…</strong></p>
+      <p data-oap-ptt-browser-install-help>
+        In OAP Home V2, use the Store's install link to open this page.
+        To add a separate OAP PTT icon, open the same page in a compatible Android browser
+        and choose <strong>Install app</strong> or <strong>Add to Home screen</strong> if prompted.
+        This installs the PWA shell, not a native Android APK; live talking remains locked until verified.
+      </p>
       <p><strong data-oap-voice-status role="status">Checking PTT…</strong></p>
     </section>
 
@@ -63,69 +69,24 @@
         data-oap-ptt-control
         data-recipient-source="#ptt-guest-peer"
         aria-label="Hold to talk"
-      >🎙️ HOLD TO TALK</button>
+        disabled
+      >🎙️ HOLD TO TALK · LIVE COMING SOON</button>
       <button
         type="button"
         data-oap-ptt-stop
         data-recipient-source="#ptt-guest-peer"
         hidden
       >🛑 STOP</button>
-      <p>Release to listen. Incoming PTT appears below.</p>
-      <div data-oap-voice-list data-recipient-id="{{ guest.peer_id }}" aria-live="polite"></div>
+      <p role="status">Live audio disconnected. Connect only after pairing; recorded voice delivery is disabled.</p>
     </section>
     {% endif %}
 
-    <section class="card" aria-labelledby="ptt-room-title" data-oap-ptt-room>
-      <h2 id="ptt-room-title">Rooms</h2>
-      {% if room.active %}
-        <p><strong>ROOM CONNECTED · {{ room.member_count }} MEMBER{{ '' if room.member_count == 1 else 'S' }}</strong></p>
-        <p>Temporary room · maximum 7 devices · no sign-in.</p>
-        <button type="button" data-oap-room-ptt-control>🎙️ HOLD TO TALK TO ROOM</button>
-        <button type="button" data-oap-room-ptt-stop hidden>🛑 STOP</button>
-        <p><strong>Incoming</strong></p>
-        <div data-oap-room-voice-list aria-live="polite"></div>
-        <form method="post" action="/ptt/room/leave">
-          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-          <button type="submit">{{ 'Close Room' if room.identity_id == room.owner_id else 'Leave Room' }}</button>
-        </form>
-      {% elif room.code %}
-        <p><strong>Your Room code</strong></p>
-        <p><code data-oap-ptt-room-code>{{ room.code }}</code></p>
-        <button type="button" data-oap-ptt-copy-room-code>Copy Room code</button>
-        <p data-oap-ptt-room-status>Waiting for Room members…</p>
-        <form method="post" action="/ptt/room/leave">
-          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-          <button type="submit">Cancel Room</button>
-        </form>
-      {% else %}
-        <p>Create a temporary Room or enter a Room code.</p>
-        <form method="post" action="/ptt/room/create">
-          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-          <button type="submit">Create Room</button>
-        </form>
-        <form method="post" action="/ptt/room/join">
-          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-          <label for="ptt-room-code">Room code</label>
-          <input id="ptt-room-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{8,12}" required>
-          <button type="submit">Join Room</button>
-        </form>
-      {% endif %}
-    </section>
 
-    <section class="card" aria-labelledby="ptt-incoming-title">
-      <h2 id="ptt-incoming-title">Incoming · History</h2>
-      {% if guest.active %}
-      <p>Incoming PTT is checked automatically. Tap any item to replay it.</p>
-      <p>History is temporary and bounded to this active pair.</p>
-      {% else %}
-      <p>Connect a phone to receive PTT and build temporary History.</p>
-      {% endif %}
-    </section>
 
     <section class="card" aria-labelledby="ptt-settings-title">
       <h2 id="ptt-settings-title">Settings</h2>
       <p><strong>Microphone:</strong> off until HOLD TO TALK is pressed.</p>
-      <p><strong>Account:</strong> not required for temporary pairing or Rooms.</p>
+      <p><strong>Account:</strong> not required for temporary pairing.</p>
       <p><strong>Install:</strong> available through OAP Store as standalone OAP PTT.</p>
       <p><strong>Safety:</strong> temporary Links expire automatically; STOP/Disconnect revokes the active connection.</p>
     </section>
@@ -140,7 +101,7 @@
         <option value="{{ contact.identity_id }}">{{ contact.display_name }} · {{ contact.card_id }}</option>
         {% endfor %}
       </select>
-      <button type="button" data-oap-ptt-control data-recipient-source="#ptt-contact">🎙️ Hold to talk</button>
+      <button type="button" disabled>🎙️ Hold to talk · Live coming soon</button>
       <button type="button" data-oap-ptt-stop data-recipient-source="#ptt-contact" hidden>🛑 STOP</button>
     </section>
     {% endif %}
@@ -151,7 +112,6 @@
     </nav>
   </main>
   <script src="{{ url_for('static', filename='ptt_guest.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='ptt_room.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='linkup_voice.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='ptt_live.js') }}" defer></script>
 </body>
 </html>
