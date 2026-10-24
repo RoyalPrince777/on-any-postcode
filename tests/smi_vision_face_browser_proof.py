@@ -21,7 +21,12 @@ from playwright.sync_api import sync_playwright
 from werkzeug.serving import make_server
 
 import app as app_module
-from mission_control import neon_auth, smi_chat_runtime, studio_face_detection, web_security
+from mission_control import (
+    neon_auth,
+    smi_chat_runtime,
+    studio_face_detection,
+    web_security,
+)
 
 AUTH_ID = "11111111-1111-4111-8111-111111111111"
 AUTH_COOKIE = "better-auth.session_token"
