@@ -19,7 +19,7 @@
   const signal = async (kind, payload) => {
     const response = await fetch(endpoint + "/signal", {
       method: "POST", credentials: "same-origin", cache: "no-store",
-      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+      headers: { "Content-Type": "application/json", "X-OAP-CSRF": csrf },
       body: JSON.stringify({ kind, payload }),
     });
     if (!response.ok) throw new Error("Signalling unavailable");
