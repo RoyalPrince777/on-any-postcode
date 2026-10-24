@@ -35,6 +35,55 @@ PREDATOR_CAPABILITIES = (
 TRANSFORMERS = ("Optimus Prime", "Bumblebee")
 BATMAN = ("Batman", "Robin")
 
+# Dated advisory snapshot recovered from the Founder's earlier SMI discussions.
+# Ratings are historical role-fit assessments, NOT career achievement awards.
+# Some historical labels have no current passport and must stay unregistered.
+HISTORICAL_TOP_21_2026_10_15: tuple[tuple[str, int], ...] = (
+    ("Gyata", 7),
+    ("Captain ALL IN", 7),
+    ("Neo", 7),
+    ("Nirmata", 7),
+    ("Shere Khan", 7),
+    ("Bagheera", 7),
+    ("Oracle", 7),
+    ("Octopus", 7),
+    ("Owl", 7),
+    ("Elephant", 7),
+    ("Queen Bee", 7),
+    ("Fox", 7),
+    ("Panther", 6),
+    ("Eagle", 6),
+    ("Gorilla", 6),
+    ("Tigress", 6),
+    ("Lioness", 6),
+    ("Spider", 6),
+    ("Falcon", 6),
+    ("Bee Swarm", 6),
+    ("Keymaker", 6),
+)
+
+
+def _historical_top_21() -> tuple[dict[str, Any], ...]:
+    """Link dated references only to exact canonical agent names.
+
+    Never register unknown historical names, infer aliases, or confer rank-based
+    permissions/achievement stars.
+    """
+    by_name = {str(agent["name"]).casefold(): str(agent["agent_id"])
+               for agent in agents.AGENT_REGISTRY}
+    return tuple(
+        {
+            "rank": index,
+            "name": name,
+            "historical_rating": rating,
+            "historical_rating_max": 7,
+            "agent_id": by_name.get(name.casefold()),
+            "registry_linked": name.casefold() in by_name,
+        }
+        for index, (name, rating)
+        in enumerate(HISTORICAL_TOP_21_2026_10_15, start=1)
+    )
+
 
 def get_founder_alliance_board() -> dict[str, Any]:
     """Expose recovered design alliances without granting agent status.
@@ -69,6 +118,13 @@ def get_founder_alliance_board() -> dict[str, Any]:
             "name": "Captain ALL IN",
             "kind": "mission_coordination_role",
             "ranking": "Separate from canonical agent achievement totals",
+        },
+        "historical_top_21": {
+            "as_of": "2026-10-15",
+            "source": "Recovered Founder conversation snapshot; not runtime evidence",
+            "rating_kind": "historical_advisory_role_fit",
+            "separate_from_career_stars": True,
+            "entries": _historical_top_21(),
         },
         "oversight": ("Guardian", "HRM Core"),
         "alliances": (
