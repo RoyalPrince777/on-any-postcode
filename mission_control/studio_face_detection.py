@@ -50,7 +50,7 @@ def detect_faces(image_data: object) -> dict[str, Any]:
         with Image.open(BytesIO(raw)) as header:
             width, height = header.size
             actual_format = header.format
-    except (OSError, ValueError, UnidentifiedImageError) as exc:
+    except (OSError, ValueError, UnidentifiedImageError, Image.DecompressionBombError) as exc:
         raise ValueError("invalid_face_image") from exc
     if actual_format != _FORMATS[mime]:
         raise ValueError("face_image_format_mismatch")
@@ -73,15 +73,18 @@ def detect_faces(image_data: object) -> dict[str, Any]:
         raise ValueError("invalid_face_image") from exc
     if frame is None or frame.shape[1] != width or frame.shape[0] != height:
         raise ValueError("invalid_face_image")
-    cascade = cv2.CascadeClassifier(
-        cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-    )
-    if cascade.empty():
-        raise RuntimeError("face_detector_unavailable")
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    found = cascade.detectMultiScale(
-        gray, scaleFactor=1.1, minNeighbors=5, minSize=(24, 24)
-    )
+    try:
+        cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        )
+        if cascade.empty():
+            raise RuntimeError("face_detector_unavailable")
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        found = cascade.detectMultiScale(
+            gray, scaleFactor=1.1, minNeighbors=5, minSize=(24, 24)
+        )
+    except cv2.error as exc:
+        raise RuntimeError("face_detector_unavailable") from exc
     boxes = []
     for x, y, w, h in found:
         x, y, w, h = map(int, (x, y, w, h))
