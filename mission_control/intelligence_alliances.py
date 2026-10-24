@@ -6,6 +6,7 @@ No capability rating or career stars are inferred from membership.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from . import agents
@@ -63,7 +64,7 @@ HISTORICAL_TOP_21_2026_10_15: tuple[tuple[str, int], ...] = (
 )
 
 
-def _historical_top_21() -> tuple[dict[str, Any], ...]:
+def _historical_top_21(career_stars: Mapping[str, int]) -> tuple[dict[str, Any], ...]:
     """Link dated references only to exact canonical agent names.
 
     Never register unknown historical names, infer aliases, or confer rank-based
@@ -79,19 +80,27 @@ def _historical_top_21() -> tuple[dict[str, Any], ...]:
             "historical_rating_max": 7,
             "agent_id": by_name.get(name.casefold()),
             "registry_linked": name.casefold() in by_name,
+            "career_stars": career_stars.get(by_name[name.casefold()], 0)
+            if name.casefold() in by_name else None,
         }
         for index, (name, rating)
         in enumerate(HISTORICAL_TOP_21_2026_10_15, start=1)
     )
 
 
-def get_founder_alliance_board() -> dict[str, Any]:
+def get_founder_alliance_board(
+    *, career_rankings: Iterable[Mapping[str, Any]] = (),
+) -> dict[str, Any]:
     """Expose recovered design alliances without granting agent status.
 
     The Jungle Book listing is projected from the canonical registry. The
     others are recorded *unranked* until a separately approved canonical
     identity and independently reviewed evidence exist.
     """
+    stars_by_id = {
+        str(row["agent_id"]): int(row["achievement_stars"])
+        for row in career_rankings
+    }
     jungle_book = tuple(
         {"name": str(agent["name"]), "agent_id": str(agent["agent_id"]),
          "ranking_eligible": True}
@@ -124,7 +133,7 @@ def get_founder_alliance_board() -> dict[str, Any]:
             "source": "Recovered Founder conversation snapshot; not runtime evidence",
             "rating_kind": "historical_advisory_role_fit",
             "separate_from_career_stars": True,
-            "entries": _historical_top_21(),
+            "entries": _historical_top_21(stars_by_id),
         },
         "oversight": ("Guardian", "HRM Core"),
         "alliances": (
