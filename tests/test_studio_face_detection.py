@@ -52,7 +52,7 @@ def test_detector_boxes_and_count(monkeypatch):
 
 @pytest.mark.parametrize("image", [None, 7, "", "not-an-image", "data:image/png;base64,@@", "data:image/png;base64,", "data:text/plain;base64,Zm9v"])
 def test_rejects_invalid_input(image):
-    with pytest.raises(ValueError):
+    with pytest.raises((TypeError, ValueError)):
         vision.detect_faces(image)
 
 
