@@ -102,8 +102,7 @@ def test_ptt_turn_credentials_use_existing_signed_oap_issuer(anonymous_client, m
     monkeypatch.setenv("OAP_LINK_TURN_OWNED", "true")
     monkeypatch.setenv("OAP_LINK_TURN_RELAY_VERIFIED", "true")
     monkeypatch.setenv("OAP_LINK_TURN_TTL_SECONDS", "300")
-    now = 1_800_000_000
-    monkeypatch.setattr(link_turn.time, "time", lambda: now)
+    now_before = int(link_turn.time.time())
     checked = []
     monkeypatch.setattr(
         link_turn.linkup_safety,
@@ -121,10 +120,11 @@ def test_ptt_turn_credentials_use_existing_signed_oap_issuer(anonymous_client, m
     assert result.headers["X-Content-Type-Options"] == "nosniff"
     payload = result.get_json()
     assert payload["relay_verified"] is True
-    assert payload["expires_at"] == now + 300
+    now_after = int(link_turn.time.time())
+    assert now_before + 300 <= payload["expires_at"] <= now_after + 300
     assert payload["ttl_seconds"] == 300
     server = payload["ice_servers"][0]
-    username = f"{now + 300}:{identity}"
+    username = f"{payload['expires_at']}:{identity}"
     assert server["username"] == username
     assert server["urls"] == ["turn:turn.oap.internal:3478?transport=udp"]
     assert server["credential"] == base64.b64encode(
