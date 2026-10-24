@@ -24,8 +24,10 @@ PTT must not add an independent TURN authority or third-party relay. Reuse:
   messages; this change does not add media storage, recording or transcript.
 
 The `POST /ptt/live/ice` route requires the guest session, OAP-CSRF header,
-existing rate limiter, a currently active guest pair, a configured verified
-OAP-owned relay and existing accepted Link / block checks. Success returns only
+existing rate limiter, a currently active guest pair, the separate default-off
+`OAP_PTT_TURN_ENABLED=true` product gate, a configured verified OAP-owned
+relay and existing accepted Link / block checks. Link Up being ready does
+**not** automatically authorise guest PTT TURN allocations. Success returns only
 time-limited ICE server credentials. Missing proof, expired pairing, blocked
 peers and infrastructure errors fail closed; responses use `Cache-Control:
 no-store`. Unverified relay returns 503 without credentials.
@@ -47,7 +49,10 @@ sends a hangup signal. This code does not establish that a relay is reachable.
    network*, preserve the exact host and timestamped evidence, and require
    `OAP_TURN_EXTERNAL_RELAY_PROOF_V1_PASS` before setting the
    `OAP_LINK_TURN_RELAY_VERIFIED=true` operator flag. The environment flag
-   is an operator assertion, **not independent proof** by itself.
+   is an operator assertion, **not independent proof** by itself. Set
+   `OAP_PTT_TURN_ENABLED=true` only for a separately approved, controlled
+   PTT test with bounded guest access; its default must remain disabled.
+   This flag is **not** a declaration that PTT is production ready.
 3. Check that PostgreSQL migration
    `migrations/0013_ptt_webrtc_signals.sql` has actually run against the
    deployment, and that both guest sessions have separate cookies, pairing
