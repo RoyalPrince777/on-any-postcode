@@ -114,7 +114,101 @@
       });
     };
 
+    // Explicit, one-frame Studio analysis. No camera permission or automatic upload.
+    const faceDetectButton = document.createElement("button");
+    faceDetectButton.id = "smi-face-detect-button";
+    faceDetectButton.className = "tool-btn";
+    faceDetectButton.type = "button";
+    faceDetectButton.textContent = "👁 Detect faces";
+    faceDetectButton.title = "Sends the selected still to your first-party OAP Studio server only on this click; not on-device analysis.";
+    const faceDetectStatus = document.createElement("span");
+    faceDetectStatus.id = "smi-face-detect-status";
+    faceDetectStatus.setAttribute("role", "status");
+    faceDetectStatus.setAttribute("aria-live", "polite");
+    if (imagePreview) imagePreview.append(faceDetectButton, faceDetectStatus);
+    let faceDetectRequest = null;
+    function cancelFaceDetection() {
+      if (faceDetectRequest) faceDetectRequest.abort();
+      faceDetectRequest = null;
+      faceDetectButton.disabled = false;
+      faceDetectStatus.textContent = "";
+    }
+    faceDetectButton.addEventListener("click", async () => {
+      const frame = typeof selectedImage === "string" ? selectedImage : "";
+      if (!imagePreview?.classList.contains("show") || !/^data:image\/(?:png|jpeg|webp);base64,/i.test(frame)) {
+        faceDetectStatus.textContent = "Select a PNG, JPEG or WebP still image first.";
+        return;
+      }
+      if (frame.length > 4 * 3 * 1024 * 1024 / 3 + 256) {
+        faceDetectStatus.textContent = "Image exceeds the private detector's 3 MiB limit.";
+        return;
+      }
+      const url = window.OAP_SMI_UI?.studioFaceDetectUrl;
+      if (typeof url !== "string" || !url.startsWith("/mission/")) {
+        faceDetectStatus.textContent = "Face detection is locked in this workspace.";
+        return;
+      }
+      cancelFaceDetection();
+      const controller = new AbortController();
+      faceDetectRequest = controller;
+      faceDetectButton.disabled = true;
+      faceDetectStatus.textContent = "Sending one still to private OAP Studio for detection…";
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "X-OAP-CSRF": window.csrfToken || window.OAP_SMI_UI?.csrfToken || ""
+          },
+          body: JSON.stringify({image_data: frame}),
+          signal: controller.signal
+        });
+        const result = await response.json();
+        if (controller.signal.aborted || selectedImage !== frame) return;
+        if (response.status === 423) {
+          faceDetectStatus.textContent = "🔒 Face detection is locked pending Founder/device verification.";
+        } else if (!response.ok) {
+          faceDetectStatus.textContent = response.status === 413
+            ? "Image exceeds the detector limits."
+            : "Private face detection unavailable (" + response.status + ").";
+        } else if (
+          result?.state === "analysed" &&
+          Number.isInteger(result.face_count) &&
+          result.face_count >= 0 &&
+          Array.isArray(result.faces) &&
+          result.identity_verified === false
+        ) {
+          const boxes = result.faces.slice(0, 10).map(face => {
+            const vals = [face.x, face.y, face.width, face.height];
+            return vals.every(v => Number.isInteger(v) && v >= 0)
+              ? "(" + vals.join(", ") + ")"
+              : "";
+          }).filter(Boolean);
+          faceDetectStatus.textContent =
+            result.face_count + " face(s) detected (estimate, not identity proof)." +
+            (boxes.length ? " Boxes x/y/w/h: " + boxes.join("; ") : "") +
+            (result.faces.length > 10 ? " · More boxes omitted." : "");
+        } else {
+          faceDetectStatus.textContent = "Detector response was not verified.";
+        }
+      } catch (error) {
+        if (!controller.signal.aborted && selectedImage === frame) {
+          faceDetectStatus.textContent = "Private face detection unavailable; no result certified.";
+        }
+      } finally {
+        if (faceDetectRequest === controller) {
+          faceDetectRequest = null;
+          faceDetectButton.disabled = false;
+        }
+      }
+    });
+    imageInput.addEventListener("change", cancelFaceDetection);
+    document.getElementById("remove-image")?.addEventListener("click", cancelFaceDetection);
+    document.getElementById("stop-button")?.addEventListener("click", cancelFaceDetection);
+
     function applyVisionImage(dataUrl, name) {
+      cancelFaceDetection();
       selectedImage = dataUrl;
       if (previewImg) previewImg.src = selectedImage;
       if (previewName) previewName.textContent = name;
@@ -322,6 +416,7 @@
     }
 
     window.addEventListener("pagehide", () => {
+      cancelFaceDetection();
       if (faceUpStream) faceUpStream.getTracks().forEach((track) => track.stop());
     }, {once: true});
   }
