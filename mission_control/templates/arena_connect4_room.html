@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="oap-csrf-token" content="{{ csrf_token }}">
   <meta name="referrer" content="no-referrer">
-  <title>Connect 4 Rooms · OAP Arena</title>
+  <link rel="manifest" href="/arena/connect4/manifest.webmanifest"><title>Connect 4 Rooms · OAP Arena</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
   <script src="{{ url_for('static', filename='arena_connect4_room.js') }}" defer></script>
@@ -29,7 +29,7 @@
     <div data-entry>
       <h2>Create</h2>
       <label>Your display name <input data-host maxlength="40" autocomplete="nickname" placeholder="Player One"></label>
-      <div class="room-actions"><button type="button" data-create>Create Room</button> <button type="button" data-matchmake>Quick Match</button> <button type="button" data-matchmake>Quick Match</button></div>
+      <div class="room-actions"><button type="button" data-create>Create Room</button> <button type="button" data-matchmake>Quick Match</button></div>
       <h2>Join</h2>
       <label>Room code <input data-join-code maxlength="6" autocapitalize="characters" autocomplete="off" placeholder="ABC234"></label>
       <label>Your display name <input data-guest maxlength="40" autocomplete="nickname" placeholder="Player Two"></label>

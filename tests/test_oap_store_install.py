@@ -69,31 +69,6 @@ def test_store_routes_expose_installable_pwa_without_native_claim(client):
     assert payload["native_package_available"] is False
 
 
-def test_ptt_store_and_ptt_page_explain_v2_browser_install_without_apk_claim(client):
-    store = client.get("/store")
-    assert store.status_code == 200
-    body = store.get_data(as_text=True)
-    assert 'data-oap-store-ptt-install-help' in body
-    assert 'href="/ptt?source=oap-store&amp;install=1"' in body
-    assert "From OAP Home V2" in body
-    assert "open the same OAP PTT page in your Android browser" in body
-    assert "not as a native APK from V2" in body
-
-    ptt = client.get("/ptt")
-    assert ptt.status_code == 200
-    ptt_html = ptt.get_data(as_text=True)
-    assert 'data-oap-ptt-browser-install-help' in ptt_html
-    assert 'rel="manifest" href="/ptt/manifest.webmanifest"' in ptt_html
-    assert "To add a separate OAP PTT icon" in ptt_html
-    assert "live talking remains locked until verified" in ptt_html
-
-    controller = client.get("/assets/oap-os.js")
-    assert controller.status_code == 200
-    script = controller.get_data(as_text=True)
-    assert "isAndroidEmbeddedView" in script
-    assert "this alone does not prove it was installed separately" in script
-
-
 def test_link_up_store_entry_and_manifest_are_dedicated(client):
     entry = client.get("/oap-store/apps/oap.linkup")
     assert entry.status_code == 200
@@ -308,3 +283,108 @@ def test_spot_apps_uses_existing_governed_store(client):
     assert 'href="/world"' in store_html
     assert 'Install OAP World' in store_html
     assert 'signed native Android APK' in store_html
+
+
+def test_connect4_is_oap_store_only_and_not_installable_without_proof(client):
+    apps = {app["app_id"]: app for app in oap_store.catalogue()}
+    connect4 = apps["oap.arena.connect4"]
+    assert connect4["publisher"] == "ON ANY POSTCODE LTD"
+    assert connect4["distribution"] == "OAP Store"
+    assert connect4["first_party"] is True
+    assert connect4["open_url"] == "/arena/connect4"
+    assert connect4["release_state"] == "open_ready"
+    assert connect4["install_enabled"] is False
+    assert connect4["install_url"] is None
+    assert connect4["manifest_url"] is None
+    assert connect4["native_apk"] is False
+    assert connect4["native_package_available"] is False
+    assert connect4["physical_device_certified"] is False
+
+    response = client.get("/oap-store/apps/oap.arena.connect4")
+    assert response.status_code == 200
+    assert response.get_json()["install_enabled"] is False
+    body = client.get("/store").get_data(as_text=True)
+    assert 'data-oap-store-app="oap.arena.connect4"' in body
+    assert "Open OAP Connect 4" in body
+    assert "Install OAP Connect 4" not in body
+
+
+def test_connect4_dedicated_manifest_does_not_unlock_install(client):
+    response = client.get("/arena/connect4/manifest.webmanifest")
+    assert response.status_code == 200
+    assert response.content_type == "application/manifest+json"
+    manifest = response.get_json()
+    assert manifest["id"] == "/arena/connect4"
+    assert manifest["start_url"].startswith("/arena/connect4")
+    assert manifest["scope"] == "/arena/connect4"
+    assert manifest["display"] == "standalone"
+    assert manifest["prefer_related_applications"] is False
+    assert len(manifest["icons"]) == 2
+    listing = {a["app_id"]: a for a in oap_store.catalogue()}["oap.arena.connect4"]
+    assert listing["install_enabled"] is False
+    assert listing["manifest_url"] is None
+
+
+def test_connect4_pages_advertise_dedicated_manifest_without_install_claim(client):
+    for route in ("/arena/connect4", "/arena/connect4/room"):
+        response = client.get(route)
+        assert response.status_code == 200
+        body = response.get_data(as_text=True)
+        assert 'rel="manifest" href="/arena/connect4/manifest.webmanifest"' in body
+        assert "Install OAP Connect 4" not in body
+
+
+def test_connect4_manifest_icons_resolve_and_game_routes_stay_in_scope(client):
+    """Route-level PWA preflight; not browser or physical-device certification."""
+    manifest_response = client.get("/arena/connect4/manifest.webmanifest")
+    assert manifest_response.status_code == 200
+    manifest = manifest_response.get_json()
+    assert manifest["id"].startswith(manifest["scope"])
+    assert manifest["start_url"].startswith(manifest["scope"])
+    for path in ("/arena/connect4", "/arena/connect4/room"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert path.startswith(manifest["scope"])
+    for icon in manifest["icons"]:
+        assert icon["src"].startswith("/")
+        response = client.get(icon["src"])
+        assert response.status_code == 200, icon["src"]
+        assert response.mimetype == icon["type"], icon["src"]
+        assert len(response.data) > 0
+    listing = {item["app_id"]: item for item in oap_store.catalogue()}["oap.arena.connect4"]
+    assert listing["install_enabled"] is False
+    assert listing["physical_device_certified"] is False
+
+
+def test_connect4_room_has_exactly_one_quick_match_control():
+    """Prevent duplicate matchmaking actions in the public room UI."""
+    from pathlib import Path
+
+    room = (Path(__file__).resolve().parents[1] / "mission_control" / "templates" / "arena_connect4_room.html").read_text(encoding="utf-8")
+    assert room.count("data-matchmake") == 1
+    assert room.count(">Quick Match</button>") == 1
+
+
+def test_ptt_store_and_ptt_page_explain_v2_browser_install_without_apk_claim(client):
+    store = client.get("/store")
+    assert store.status_code == 200
+    body = store.get_data(as_text=True)
+    assert 'data-oap-store-ptt-install-help' in body
+    assert 'href="/ptt?source=oap-store&amp;install=1"' in body
+    assert "From OAP Home V2" in body
+    assert "open the same OAP PTT page in your Android browser" in body
+    assert "not as a native APK from V2" in body
+
+    ptt = client.get("/ptt")
+    assert ptt.status_code == 200
+    ptt_html = ptt.get_data(as_text=True)
+    assert 'data-oap-ptt-browser-install-help' in ptt_html
+    assert 'rel="manifest" href="/ptt/manifest.webmanifest"' in ptt_html
+    assert "To add a separate OAP PTT icon" in ptt_html
+    assert "live talking remains locked until verified" in ptt_html
+
+    controller = client.get("/assets/oap-os.js")
+    assert controller.status_code == 200
+    script = controller.get_data(as_text=True)
+    assert "isAndroidEmbeddedView" in script
+    assert "this alone does not prove it was installed separately" in script
