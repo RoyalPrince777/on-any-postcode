@@ -21,6 +21,7 @@
   const platform = navigator.userAgentData?.platform || navigator.platform || "";
   const isIOS = /iPad|iPhone|iPod/i.test(ua) || (platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const isAndroid = /Android/i.test(ua);
+  const isAndroidEmbeddedView = isAndroid && /;\s*wv(?:;|\))/i.test(ua);
   const isWindows = /Win/i.test(platform) || /Windows/i.test(ua);
   const isMac = !isIOS && (/Mac/i.test(platform) || /Macintosh/i.test(ua));
   const isChromeOS = /CrOS/i.test(ua);
@@ -50,6 +51,7 @@
   const installed = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
   const fallbackInstruction = () => {
+    if (isAndroidEmbeddedView) return "This embedded OAP Home V2 view cannot install the PWA directly. Open this OAP PTT page in your Android browser, then choose Install app or Add to Home screen.";
     if (isIOS) return "In Safari, tap Share, then Add to Home Screen.";
     if (isMac && isSafari) return "In Safari, use File → Add to Dock. In a Chromium browser, use Install app.";
     if (isAndroid) return "Open the browser menu and choose Install app or Add to Home screen.";
@@ -57,9 +59,14 @@
     return "Use your browser menu and choose Install app or Add to Home screen when supported.";
   };
 
-  if (installed) {
+  if (isAndroidEmbeddedView && productName === "OAP PTT") {
     if (installButton) installButton.hidden = true;
-    setStatus(`${productName} is installed on ${platformName}.`);
+    setStatus(fallbackInstruction());
+  } else if (installed) {
+    if (installButton) installButton.hidden = true;
+    setStatus(productName === "OAP PTT"
+      ? `OAP PTT is open in a standalone window on ${platformName}; this alone does not prove it was installed separately.`
+      : `${productName} is installed on ${platformName}.`);
   } else if (!("serviceWorker" in navigator)) {
     if (installButton) installButton.hidden = false;
     setStatus(`Secure app installation is not available in this browser. ${fallbackInstruction()}`);
@@ -73,6 +80,7 @@
   }
 
   window.addEventListener("beforeinstallprompt", (event) => {
+    if (isAndroidEmbeddedView && productName === "OAP PTT") return;
     event.preventDefault();
     deferredInstall = event;
     if (installButton) installButton.hidden = false;

@@ -69,6 +69,31 @@ def test_store_routes_expose_installable_pwa_without_native_claim(client):
     assert payload["native_package_available"] is False
 
 
+def test_ptt_store_and_ptt_page_explain_v2_browser_install_without_apk_claim(client):
+    store = client.get("/store")
+    assert store.status_code == 200
+    body = store.get_data(as_text=True)
+    assert 'data-oap-store-ptt-install-help' in body
+    assert 'href="/ptt?source=oap-store&amp;install=1"' in body
+    assert "From OAP Home V2" in body
+    assert "open the same OAP PTT page in your Android browser" in body
+    assert "not as a native APK from V2" in body
+
+    ptt = client.get("/ptt")
+    assert ptt.status_code == 200
+    ptt_html = ptt.get_data(as_text=True)
+    assert 'data-oap-ptt-browser-install-help' in ptt_html
+    assert 'rel="manifest" href="/ptt/manifest.webmanifest"' in ptt_html
+    assert "To add a separate OAP PTT icon" in ptt_html
+    assert "live talking remains locked until verified" in ptt_html
+
+    controller = client.get("/assets/oap-os.js")
+    assert controller.status_code == 200
+    script = controller.get_data(as_text=True)
+    assert "isAndroidEmbeddedView" in script
+    assert "this alone does not prove it was installed separately" in script
+
+
 def test_link_up_store_entry_and_manifest_are_dedicated(client):
     entry = client.get("/oap-store/apps/oap.linkup")
     assert entry.status_code == 200

@@ -4,6 +4,11 @@ on:
   pull_request:
     paths:
       - 'static/ptt_live.js'
+      - 'static/oap-os.js'
+      - 'mission_control/templates/oap_store.html'
+      - 'mission_control/templates/ptt.html'
+      - 'tests/ptt_store_browser_install.cjs'
+      - 'tests/test_oap_store_install.py'
       - 'mission_control/ptt_routes.py'
       - 'mission_control/ptt_signalling.py'
       - 'mission_control/link_turn.py'
@@ -26,6 +31,11 @@ on:
       - 'mission_control/templates/ptt.html'
       - 'static/ptt_guest.js'
       - 'static/ptt_live.js'
+      - 'static/oap-os.js'
+      - 'mission_control/templates/oap_store.html'
+      - 'mission_control/templates/ptt.html'
+      - 'tests/ptt_store_browser_install.cjs'
+      - 'tests/test_oap_store_install.py'
       - 'static/ptt_room.js'
       - 'static/linkup_voice.js'
       - 'tests/test_ptt_guest.py'
@@ -65,6 +75,9 @@ jobs:
           node --check static/ptt_live.js
           node --check tests/ptt_live_controls.cjs
           node tests/ptt_live_controls.cjs
+          node --check static/oap-os.js
+          node --check tests/ptt_store_browser_install.cjs
+          node tests/ptt_store_browser_install.cjs
           node --check static/ptt_room.js
           node --check static/linkup_voice.js
       - name: Lint PTT implementation
