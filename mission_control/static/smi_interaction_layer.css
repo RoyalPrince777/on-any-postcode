@@ -64,6 +64,7 @@
 #image-preview:has(#smi-face-detect-button){flex-wrap:wrap}
 #smi-face-detect-button{flex:0 0 auto;font-size:.64rem}
 #smi-face-detect-button:disabled{opacity:.55;cursor:progress}
+#smi-face-detect-notice{flex:1 0 100%;color:var(--muted);font-size:.6rem;line-height:1.35}
 #smi-face-detect-status{
   flex:1 0 100%;min-width:0;overflow-wrap:anywhere;
   color:var(--muted);font-size:.62rem;line-height:1.4
