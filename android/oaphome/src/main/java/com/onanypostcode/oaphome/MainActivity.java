@@ -41,19 +41,42 @@ public class MainActivity extends Activity {
     private LinearLayout body;
     private TextView clock;
     private TextView earth;
+    private TextView homeDate;
+    private TextView worldClock;
+    private static final String OAP_INTERNET_PACKAGE = "com.onanypostcode.oapworld";
     private final android.os.Handler clockHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     // Avoid an anonymous MainActivity$1 class in the on-device D8 build.
     // Keep the same minute cadence and lifecycle cancellation.
     private final Runnable clockTick = this::updateClock;
 
     private void updateClock() {
-        if (clock != null) {
-            clock.setText(DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(new Date()));
-            clockHandler.postDelayed(clockTick, 60000);
+        if (clock == null) return;
+        Date now = new Date();
+        java.text.SimpleDateFormat time = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.UK);
+        clock.setText(time.format(now));
+        if (homeDate != null) {
+            java.text.SimpleDateFormat date = new java.text.SimpleDateFormat(
+                    "EEEE d MMMM yyyy", java.util.Locale.getDefault());
+            homeDate.setText(date.format(now).toUpperCase(java.util.Locale.getDefault()));
         }
+        if (worldClock != null) {
+            worldClock.setText("🌍 WORLD CLOCK\n"
+                    + "LONDON " + cityTime(now, "Europe/London")
+                    + " · NEW YORK " + cityTime(now, "America/New_York")
+                    + "\nDUBAI " + cityTime(now, "Asia/Dubai")
+                    + " · ACCRA " + cityTime(now, "Africa/Accra"));
+        }
+        clockHandler.postDelayed(clockTick, 60000);
     }
 
-    private GradientDrawable panel() {
+    private String cityTime(Date instant, String zone) {
+        java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat(
+                "HH:mm", java.util.Locale.UK);
+        formatter.setTimeZone(java.util.TimeZone.getTimeZone(zone));
+        return formatter.format(instant);
+    }
+
+        private GradientDrawable panel() {
         GradientDrawable d = new GradientDrawable();
         d.setColor(Color.rgb(15, 18, 25));
         d.setCornerRadius(22);
@@ -108,6 +131,8 @@ public class MainActivity extends Activity {
         if (activeWebView != null) closeWebView();
         clockHandler.removeCallbacks(clockTick);
         clock = null;
+        homeDate = null;
+        worldClock = null;
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(3, 6, 14));
@@ -115,9 +140,13 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(3, 6, 14));
         getWindow().setNavigationBarColor(Color.BLACK);
         setContentView(root);
-        TextView heading = label(title, 29);
-        heading.setTypeface(Typeface.SERIF, Typeface.BOLD);
-        root.addView(heading, new LinearLayout.LayoutParams(-1, dp(54)));
+        // The Home surface draws its own crowned native hero. Other screens
+        // retain the standard native heading.
+        if (!"♛ OAP HOME".equals(title)) {
+            TextView heading = label(title, 29);
+            heading.setTypeface(Typeface.SERIF, Typeface.BOLD);
+            root.addView(heading, new LinearLayout.LayoutParams(-1, dp(54)));
+        }
         ScrollView scroll = new ScrollView(this);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         body = new LinearLayout(this);
@@ -137,21 +166,41 @@ public class MainActivity extends Activity {
 
     private void home() {
         base("♛ OAP HOME");
-        TextView royalBrand = label("♛  OAP  ♛\nON ANY POSTCODE", 23);
-        royalBrand.setTypeface(Typeface.SERIF, Typeface.BOLD);
-        royalBrand.setBackground(royalHeader());
-        body.addView(royalBrand, new LinearLayout.LayoutParams(-1, dp(96)));
-        body.addView(label("BORN LOCAL · BUILT GLOBAL · EARTH IS OUR TURF", 12));
-        earth = label("🌍  OAP WORLD", 17);
-        earth.setTypeface(Typeface.SERIF, Typeface.BOLD);
-        body.addView(earth, new LinearLayout.LayoutParams(-1, dp(64)));
-        clock = label("", 30);
-        clock.setTypeface(Typeface.SERIF, Typeface.BOLD);
-        clock.setBackground(royalHeader());
-        body.addView(clock, new LinearLayout.LayoutParams(-1, dp(68)));
-        clockTick.run();
+        // Real Android Views and Canvas: no localhost HTTP, browser frame or HTML.
+        FrameLayout royalHero = new FrameLayout(this);
+        royalHero.setBackground(new RoyalHomeArt.EarthBackdrop());
+        body.addView(royalHero, new LinearLayout.LayoutParams(-1, dp(227)));
 
-        Button pttQuick = button("🎙 PTT\nSTANDALONE · MIC OFF", v -> openPttApp());
+        LinearLayout heroContents = new LinearLayout(this);
+        heroContents.setOrientation(LinearLayout.VERTICAL);
+        heroContents.setPadding(dp(12), dp(8), dp(12), dp(9));
+        royalHero.addView(heroContents, new FrameLayout.LayoutParams(-1, -1));
+
+        LinearLayout brandRow = new LinearLayout(this);
+        brandRow.setOrientation(LinearLayout.HORIZONTAL);
+        brandRow.setGravity(Gravity.TOP | Gravity.CENTER_VERTICAL);
+        heroContents.addView(brandRow, new LinearLayout.LayoutParams(-1, dp(133)));
+
+        TextView royalBrand = label("♛\nOAP\nON ANY POSTCODE\nHOME", 20);
+        royalBrand.setTypeface(Typeface.SERIF, Typeface.BOLD);
+        royalBrand.setGravity(Gravity.START | Gravity.TOP);
+        royalBrand.setLineSpacing(0, 0.88f);
+        brandRow.addView(royalBrand, new LinearLayout.LayoutParams(0, -1, 2f));
+
+        TextView slogan = label("Born Local.\nBuilt Global.", 12);
+        slogan.setTypeface(Typeface.SERIF, Typeface.ITALIC);
+        slogan.setGravity(Gravity.RIGHT | Gravity.TOP);
+        brandRow.addView(slogan, new LinearLayout.LayoutParams(0, -1, 1f));
+
+        homeDate = label("", 11);
+        homeDate.setLetterSpacing(.11f);
+        heroContents.addView(homeDate, new LinearLayout.LayoutParams(-1, dp(25)));
+        clock = label("", 43);
+        clock.setTypeface(Typeface.SERIF, Typeface.BOLD);
+        clock.setContentDescription("Current device time");
+        heroContents.addView(clock, new LinearLayout.LayoutParams(-1, dp(56)));
+
+                Button pttQuick = button("🎙 PTT\nSTANDALONE · MIC OFF", v -> openPttApp());
         pttQuick.setTextSize(16);
         pttQuick.setGravity(Gravity.CENTER_VERTICAL);
         pttQuick.setContentDescription("Open standalone PTT. Microphone stays off until you hold the talk control.");
@@ -169,17 +218,20 @@ public class MainActivity extends Activity {
 
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.HORIZONTAL);
-        body.addView(info, new LinearLayout.LayoutParams(-1, dp(94)));
-        String[] infoLabels = {"☀ WEATHER\\nNOT CONNECTED", "▣ NEXT EVENT\\nNOT CONNECTED", "🌐 WORLD CLOCK\\nNOT CONNECTED"};
-        for (String title : infoLabels) {
-            TextView tile = label(title.replace("\\n", "\n"), 12);
-            tile.setBackground(panel());
+        body.addView(info, new LinearLayout.LayoutParams(-1, dp(108)));
+        String[] infoLabels = {"☀ WEATHER\nNOT CONNECTED", "▣ NEXT EVENT\nNOT CONNECTED", "🌍 WORLD CLOCK\n—"};
+        for (int index = 0; index < infoLabels.length; index++) {
+            TextView tile = label(infoLabels[index], 11);
+            tile.setBackground(royalHeader());
+            tile.setPadding(dp(3), dp(4), dp(3), dp(4));
+            if (index == 2) worldClock = tile;
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
             lp.setMargins(dp(2), dp(2), dp(2), dp(2));
             info.addView(tile, lp);
         }
+        clockTick.run();
 
-        EditText search = new EditText(this);
+                EditText search = new EditText(this);
         search.setSingleLine(true);
         search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
         search.setContentDescription("Search OAP destinations or enter a secure web address");
@@ -238,22 +290,25 @@ public class MainActivity extends Activity {
         int tileWidth = Math.max(dp(1), (availableWidth - dp(12)) / 3);
         for (int i = 0; i < destinations.length; i++) {
             final String name = destinations[i];
-            Button tile = button(icons[i] + "\n" + name + "\n" + captions[i], v -> destination(name));
-            tile.setBackground(royalTile(i));
-            tile.setTextSize(12);
-            tile.setGravity(Gravity.CENTER);
-            tile.setPadding(dp(3), dp(3), dp(3), dp(3));
+            Button tile = button(name + "\n" + captions[i], v -> destination(name));
+            tile.setBackground(new RoyalHomeArt.TileDrawable(i));
+            tile.setTextSize(11);
+            tile.setTypeface(Typeface.SERIF, Typeface.BOLD);
+            tile.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+            tile.setPadding(dp(3), dp(82), dp(3), dp(10));
             tile.setContentDescription(name + ". " + captions[i]);
             GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
             lp.width = tileWidth;
-            lp.height = dp(92);
+            lp.height = dp(134);
             lp.setMargins(dp(2), dp(4), dp(2), dp(4));
             grid.addView(tile, lp);
         }
         TextView divider = label("────  ON ANY POSTCODE  ────", 13);
         divider.setPadding(0, dp(10), 0, dp(10));
         body.addView(divider);
-        addButton("⚙ SETTINGS", v -> startActivity(new Intent(Settings.ACTION_SETTINGS)));
+        addButton("⚙ SETTINGS", v -> open(new Intent(Settings.ACTION_SETTINGS)));
+        addButton("↩ CHANGE DEFAULT HOME · ANDROID SETTINGS",
+                v -> open(new Intent(Settings.ACTION_HOME_SETTINGS)));
     }
 
     private void addPersistentHomeDock(LinearLayout root) {
@@ -266,7 +321,7 @@ public class MainActivity extends Activity {
             Button item = button(dockLabels[i], v -> {
                 if (index == 0) open(new Intent(Intent.ACTION_DIAL));
                 else if (index == 1) open(new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")));
-                else if (index == 2) openInternet();
+                else if (index == 2) launchOapInternet();
                 else if (index == 3) open(new Intent("android.media.action.IMAGE_CAPTURE"));
                 else allApps();
             });
@@ -277,6 +332,27 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
             lp.setMargins(dp(2), dp(3), dp(2), dp(3));
             dock.addView(item, lp);
+        }
+    }
+
+    /** The Internet dock opens the separate OAP Android browser package. */
+    private void launchOapInternet() {
+        Intent launch = getPackageManager().getLaunchIntentForPackage(OAP_INTERNET_PACKAGE);
+        if (launch == null) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("OAP Internet is separate")
+                    .setMessage("The OAP Internet Android app is not installed or visible. "
+                            + "Home V2 stays on this native home screen. "
+                            + "No browser fallback or installation is started.")
+                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                    .show();
+            return;
+        }
+        try {
+            startActivity(launch);
+        } catch (ActivityNotFoundException error) {
+            android.widget.Toast.makeText(this,
+                    "OAP Internet could not be opened.", android.widget.Toast.LENGTH_LONG).show();
         }
     }
 
@@ -307,7 +383,7 @@ public class MainActivity extends Activity {
         base("QUICK APPS");
         addButton("PHONE", v -> open(new Intent(Intent.ACTION_DIAL)));
         addButton("MESSAGES", v -> open(new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:"))));
-        addButton("INTERNET", v -> openInternet());
+        addButton("INTERNET", v -> launchOapInternet());
         addButton("CAMERA", v -> open(new Intent("android.media.action.IMAGE_CAPTURE")));
         addButton("BACK", v -> home());
     }
@@ -318,7 +394,7 @@ public class MainActivity extends Activity {
         body.addView(label("Runtime: NOT CONNECTED", 17));
         body.addView(label("No Android VM, remote session or virtual device has been provisioned.", 14));
         body.addView(label("OAP Home V2: local launcher source; virtual-device integration pending.", 14));
-        addButton("OPEN OAP INTERNET", v -> openInternet());
+        addButton("OPEN OAP INTERNET", v -> launchOapInternet());
         addButton("BACK TO OAP HOME", v -> home());
     }
 
