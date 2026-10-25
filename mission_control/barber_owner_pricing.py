@@ -62,7 +62,7 @@ def owner_slots(*, owner_identity_id: object) -> dict[str, object]:
                WHERE p.owner_identity_id=%s AND p.supplier_type='service'
                  AND p.state='CERTIFIED' AND p.commercial_terms_state='CERTIFIED'
                  AND l.category='barber' AND l.state='ACTIVE'
-                 AND s.ends_at>CURRENT_TIMESTAMP
+                 AND s.starts_at>CURRENT_TIMESTAMP
                ORDER BY s.starts_at ASC LIMIT 100""",
             (owner,),
         ).fetchall()
