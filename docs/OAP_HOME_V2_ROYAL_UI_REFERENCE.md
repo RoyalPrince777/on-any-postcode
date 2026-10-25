@@ -37,6 +37,22 @@ event, browser integration or all nine destinations operate independently.
   public OAP app catalogue. No cross-site crawl, AI web answers, microphone
   recognition, access to private chat or SMI data is implied.
 
+## Local first screen versus public World
+
+- With the explicit `OAP_LOCAL_MODE=true` V2 test server on
+  `127.0.0.1:5050`, visiting the bare `/` address now redirects to
+  `/home-v2` instead of `/world`. This is the personal phone homepage.
+- `/home-v2` always remains the explicit Royal Home V2 URL.
+- `/world` remains a separate World route. Its default public-store
+  fallback can show Local Marketplace; that is **not** the personal homepage.
+- `/world?source=oap-os` remains the public OAP World front door used by
+  the existing OAP OS browser/PWA manifest. Do not retarget that shared
+  manifest to Home V2 or to the local marketplace.
+- A browser bookmark, previously opened tab, or preinstalled PWA pointing
+  at `/world` will still open `/world`. For personal Home V2, use the
+  direct `/home-v2` URL or a separate bookmark. No phone system launcher
+  or installed app start URL has been changed by the root redirect.
+
 ## Separate identity boundaries
 
 - **OAP Home V2** — personal browser-based dashboard.
