@@ -1,8 +1,17 @@
-# OAP Browser v1 — first-party front door to OAP and the open web
+# BEGORO-KORADASO Internet — first-party front door to OAP and the open web
 
 Status: **bounded Android browser-shell implementation**
 
 ## Identity
+
+**Founder-approved product name:** BEGORO-KORADASO Internet. **Short name:** KORADASO.
+
+**Parent:** ON ANY POSTCODE. **Home:** OAP World. **Intelligence:** SMI. **Underlying technology:** OAP Engine.
+
+The existing `OAP Browser` labels in code and Android host are legacy implementation identifiers, not a second public browser product. `ON ANY PLANET` is not the browser name. This naming approval is not evidence that installed UI, package metadata, icon, app title or production build has been rebranded.
+
+**Founder-approved UI contract:** Preserve `/world` as the single home; Back + OAP World + one omnibox + OAP WORLD/OPEN WEB trust label. Keep optional history, tabs and settings in an overflow menu when implemented; never show unfinished controls as operational. Do not silently change Android application identity, package ID, manifest scope, permissions or trust boundaries to perform a rename.
+
 
 OAP Browser is not a Safari, Edge, Chrome, Brave, AOL or Internet Explorer clone.
 
