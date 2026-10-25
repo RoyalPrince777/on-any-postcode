@@ -198,11 +198,11 @@ MISSION_TO_100_PROTOCOL: tuple[dict[str, str], ...] = (
 )
 
 
-def status() -> dict[str, Any]:
+def status(*, include_private_research: bool = False) -> dict[str, Any]:
     """Return the canonical archive projection without creating new authority."""
 
     current = next(item for item in SMI_LINEAGE if item["position"] == "canonical_current")
-    return {
+    report = {
         "component": "SMI Archive",
         "ready": True,
         "mode": "read_only_organised_projection",
@@ -210,23 +210,6 @@ def status() -> dict[str, Any]:
         "lineage": tuple(dict(item) for item in SMI_LINEAGE),
         "sections": tuple(dict(item) for item in ARCHIVE_SECTIONS),
         "council": tuple(dict(item) for item in COUNCIL_ROLES),
-        "film_intelligence_research": {
-            "mode": "read_only_fictional_reference",
-            "entries": tuple(dict(item) for item in FILM_INTELLIGENCE_REFERENCES),
-            "source_receipts": tuple(dict(item) for item in FILM_RESEARCH_SOURCE_RECEIPTS),
-            "source_receipts_mode": "manually_checked_public_metadata_only",
-            "public_source_provenance_present": True,
-            "source_pages_crawled_by_oap": False,
-            "live_fetch_enabled": False,
-            "untrusted_source_content_as_instructions": False,
-            "private_communication_ingestion_enabled": False,
-            "source_status": "snapshot_2026_10_25_not_live",
-            "agent_passports_created": 0,
-            "new_brains_created": 0,
-            "execution_enabled": False,
-            "system_access_granted": False,
-            "human_authority_final": True,
-        },
         "shere_khan": {
             "canonical_role": "Adversarial Stress-Test / Threat Intelligence / Failure-Hunter",
             "mode": "The Claw Test",
@@ -244,3 +227,22 @@ def status() -> dict[str, Any]:
         "new_execution_authority_created": False,
         "human_authority_final": True,
     }
+    if include_private_research:
+        report["film_intelligence_research"] = {
+            "mode": "read_only_fictional_reference",
+            "entries": tuple(dict(item) for item in FILM_INTELLIGENCE_REFERENCES),
+            "source_receipts": tuple(dict(item) for item in FILM_RESEARCH_SOURCE_RECEIPTS),
+            "source_receipts_mode": "manually_checked_public_metadata_only",
+            "public_source_provenance_present": True,
+            "source_pages_crawled_by_oap": False,
+            "live_fetch_enabled": False,
+            "untrusted_source_content_as_instructions": False,
+            "private_communication_ingestion_enabled": False,
+            "source_status": "snapshot_2026_10_25_not_live",
+            "agent_passports_created": 0,
+            "new_brains_created": 0,
+            "execution_enabled": False,
+            "system_access_granted": False,
+            "human_authority_final": True,
+        }
+    return report
