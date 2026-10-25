@@ -81,6 +81,12 @@ def m3gan_consented_booking(payload: Mapping[str, Any]) -> dict[str, Any]:
             "data_read_performed": False,
         }
     query = _bounded_text(payload.get("request"), name="request", limit=240).casefold()
+    area_input = payload.get("area")
+    area = (
+        _bounded_text(area_input, name="area", limit=80).casefold()
+        if area_input not in (None, "")
+        else None
+    )
     matches = []
     if any(word in query for word in ("barber", "barbers", "haircut", "hair cut")):
         matches.append("barber")
@@ -123,6 +129,11 @@ def m3gan_consented_booking(payload: Mapping[str, Any]) -> dict[str, Any]:
             type(item.get("available_quantity")) is not int or
             item["available_quantity"] <= 0):
             continue
+        if area and not any(
+            area in str(item.get(field) or "").casefold()
+            for field in ("place_label", "postcode", "borough")
+        ):
+            continue
         offers.append({
             key: item.get(key) for key in (
                 "listing_id", "title", "place_label", "starts_at", "ends_at",
@@ -139,6 +150,8 @@ def m3gan_consented_booking(payload: Mapping[str, Any]) -> dict[str, Any]:
         "source": "oap_direct",
         "data_read_performed": True,
         "booking_confirmed": False,
+        "area_filter_applied": area is not None,
+        "area": area,
         "no_customer_message_stored": True,
     }
 
