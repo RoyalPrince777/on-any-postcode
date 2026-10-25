@@ -176,8 +176,6 @@ def test_founder_original_film_powers_view_links_real_film_references(monkeypatc
 
 
 def test_original_three_gateway_is_founder_only_and_csrf_guarded(monkeypatch):
-    from mission_control import film_capability_gateway
-
     blocked = _client(monkeypatch, founder=False)
     assert blocked.get("/mission/organiser/original-three/status").status_code == 403
     assert blocked.post("/mission/organiser/original-three/evaluate",
