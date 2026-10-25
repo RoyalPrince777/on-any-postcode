@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>OAP Digital Government | Founder Chamber</title>
+<style>
+:root{--bg:#060810;--panel:#101522;--line:#344139;--ink:#f4fff5;--muted:#b5c6b9;--green:#52e39c;--purple:#ba9dfb;--gold:#e5c77a;--chip:#1d2630}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 78% 1%,#262041 0%,transparent 32%),var(--bg);color:var(--ink);font-family:Inter,system-ui,Arial,sans-serif;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 18px 76px}a{color:var(--green)}a:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:12px}.monogram{border:1px solid #628c72;background:linear-gradient(145deg,#182d25,#211931);display:grid;place-items:center;width:60px;height:60px;border-radius:14px;color:var(--green);font-weight:900;letter-spacing:-.08em;font-size:1.5rem}.brand small{color:var(--muted)}.topnav{display:flex;gap:9px;flex-wrap:wrap}.topnav a,.link{padding:9px 13px;border-radius:999px;border:1px solid #4e5c53;text-decoration:none;color:var(--ink);font-weight:700;font-size:.88rem}.topnav a:hover,.link:hover{border-color:var(--green)}
+.hero{padding:30px 24px;margin:20px 0;border:1px solid #52765d;background:linear-gradient(140deg,#10241c 0%,#141328 75%);border-radius:22px}.ey{font-size:.77rem;color:var(--green);text-transform:uppercase;letter-spacing:.16em;font-weight:850}h1{font-size:clamp(2.1rem,6.4vw,4rem);line-height:1.05;letter-spacing:-.04em;margin:11px 0}h2{margin:26px 0 12px;font-size:1.5rem}h3{margin:.3em 0}.lead{font-size:1.1rem;max-width:820px;color:#e0e9e1}.note{border-left:4px solid var(--gold);background:#242319;padding:12px 14px;color:#f5eac8;margin:14px 0;border-radius:3px}.pill{display:inline-flex;gap:6px;align-items:center;padding:7px 10px;border-radius:999px;border:1px solid #596447;color:var(--gold);font-weight:750;font-size:.76rem}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.metric,.chamber,.law,.ministry,details{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:16px}.metric strong{display:block;font-size:2rem;color:var(--green)}.metric small,.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.chamber{min-height:162px}.chamber-top{display:flex;align-items:center;justify-content:space-between;gap:8px}.chamber .emoji{font-size:1.5rem}.chamber p,.law p,.ministry p{color:var(--muted)}.chamber .link{display:inline-block;margin-top:5px}.off{font-size:.83rem;color:var(--gold);font-weight:700}.laws{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.law strong{color:var(--green)}.law p{margin-bottom:0}.ministry-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.ministry strong{font-size:1.35rem;color:var(--purple)}.ministry small{color:var(--muted)}.footer{border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.9rem}details{margin:10px 0}summary{cursor:pointer;font-weight:800}dt{font-weight:700}dd{margin:0 0 8px;color:var(--muted)}
+@media(max-width:850px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ministry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){.wrap{padding:16px 12px 54px}.hero{padding:22px 16px}.grid,.laws,.ministry-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:12px}.metric strong{font-size:1.6rem}}
+</style>
+</head>
+<body><main class="wrap">
+<header class="top">
+  <div class="brand"><div class="monogram" aria-hidden="true">OAP</div><div><strong>ON ANY POSTCODE</strong><div><small>EARTH IS OUR TURF 🌍</small></div></div></div>
+  <nav class="topnav" aria-label="Founder navigation">
+    <a href="{{ url_for('mission_control.war_room_dashboard') }}">War Room</a>
+    <a href="{{ url_for('mission_control.secure_seat_board') }}">Agent Seats</a>
+    <a href="{{ url_for('mission_control.smi_command_dashboard_view') }}">SMI Command</a>
+  </nav>
+</header>
+<section class="hero" aria-labelledby="gov-title">
+  <div class="ey">👑 Founder Chamber · First-party OAP governance</div>
+  <h1 id="gov-title">OAP DIGITAL<br>GOVERNMENT</h1>
+  <p class="lead">One world. One front door. Independent houses inside. A digital constitution for how OAP organises its own teams, protects its community and records human decisions.</p>
+  <span class="pill">🔒 Founder-only · Internal governance · Not a public government</span>
+</section>
+<p class="note"><strong>OAP Law boundary:</strong> This is OAP's voluntary internal governance model, not a nation, court, public authority or statutory company constitution. Real laws, registered company articles, member rights and human oversight always apply. No seat gives political, judicial or enforcement power.</p>
+<section class="stats" aria-label="Evidence-backed government readiness">
+  <div class="metric"><strong>{{ govt.registered_existing_agents }}</strong><small>Existing registered SMI agents</small></div>
+  <div class="metric"><strong>{{ govt.draft_agent_seats }}</strong><small>New review-only agent seats</small></div>
+  <div class="metric"><strong>{{ govt.mapped_seat_count }}</strong><small>Mapped SMI placements</small></div>
+  <div class="metric"><strong>NOT LIVE</strong><small>OAP community elections</small></div>
+</section>
+<h2 id="houses">The Seven OAP Houses</h2>
+<div class="grid">
+{% for house in govt.houses %}
+  <section class="chamber" id="{{ house.anchor }}" aria-label="{{ house.name }}">
+    <div class="chamber-top"><span class="emoji" aria-hidden="true">{{ house.emoji }}</span>
+    {% if house.route %}<span class="pill">Existing OAP link</span>{% else %}<span class="off">Not yet implemented</span>{% endif %}</div>
+    <h3>{{ house.name }}</h3>
+    <p>{{ house.purpose }}</p>
+    {% if house.route %}<a class="link" href="{{ url_for(house.route) }}">Open governed workspace</a>{% else %}<span class="muted">No live voting, office or public action available</span>{% endif %}
+  </section>
+{% endfor %}
+</div>
+<h2 id="law">OAP Law · Seven internal principles</h2>
+<div class="laws">{% for item in govt.oap_law %}
+  <div class="law"><strong>{{ item.id }} · {{ item.title }}</strong><p>{{ item.rule }}</p></div>
+{% endfor %}</div>
+<h2 id="cabinet-seats">Cabinet Research Ministries</h2>
+<p class="muted">Ministries group existing specialist research briefs; they are not newly appointed government employees.</p>
+<div class="ministry-grid">
+{% for ministry in govt.ministries %}
+  <div class="ministry"><strong>{{ ministry.draft_seats }}</strong><h3>{{ ministry.name }}</h3><small>{{ ministry.family_keys|length }} families · research seats only</small></div>
+{% endfor %}
+</div>
+<h2>Real decision evidence</h2>
+<div class="metric">
+{% if govt.judgement.schema_connected %}
+  <p>Existing SMI Judgement database: <strong>connected</strong>.</p>
+  <p><strong>{{ govt.judgement.recorded_reviews }}</strong> recorded reviews · <strong>{{ govt.judgement.recorded_human_decisions }}</strong> recorded human decisions.</p>
+{% else %}
+  <p>Existing SMI Judgement store: <strong>not verified available</strong>. No decisions are invented.</p>
+{% endif %}
+  <a class="link" href="{{ url_for('mission_control.judgement_dashboard') }}">Open human decision records</a>
+</div>
+<details><summary>What this hub cannot do yet</summary>
+  <p class="muted">No community membership roll, public OAP voting, mayoral elections, tax powers, court rulings, autonomous presidential orders or agent-granted authority. Those would each require distinct lawful product specifications, consent and independent testing.</p>
+</details>
+<footer class="footer">OAP Digital Government · {{ govt.charter_version }} · Human Authority and Founder Final preserved. Governance review only; production VPI N/A.</footer>
+</main></body></html>
