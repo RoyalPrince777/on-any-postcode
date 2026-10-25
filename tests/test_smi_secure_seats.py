@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from mission_control import agents, smi_secure_seats
+from mission_control import civic_judiciary_candidates as civic
 from mission_control import specialist_agent_candidates as draft
 from mission_control import specialist_command_candidates as expanded
 
@@ -10,28 +11,29 @@ def test_every_registered_and_candidate_agent_has_distinct_seat():
     p = smi_secure_seats.board()
     assert p["checks_passed"] is True, p["errors"]
     assert p["placed_existing_agents"] == 78
-    assert p["reserved_new_candidates"] == 42
-    assert p["total_expected"] == 120
+    assert p["reserved_new_candidates"] == 84
+    assert p["total_expected"] == 162
     assert p["seat_placement_coverage_percent"] == 100.0
     original = [seat for family in p["existing_families"] for seat in family["seats"]]
     proposed = [seat for branch in p["branches"] for seat in branch["candidate_seats"]]
     assert len(original) == 78
-    assert len(proposed) == 42
-    assert len({s["seat_key"] for s in (*original, *proposed)}) == 120
+    assert len(proposed) == 84
+    assert len({s["seat_key"] for s in (*original, *proposed)}) == 162
     assert {s["name"] for s in original} == {
         s["name"] for s in agents.AGENT_REGISTRY
     }
     assert {s["name"] for s in proposed} == {
-        s["name"] for s in (*draft.PROPOSED_AGENTS, *expanded.EXTENDED_AGENTS)
+        s["name"] for s in (*draft.PROPOSED_AGENTS, *expanded.EXTENDED_AGENTS,
+                             *civic.COURT_AND_GOVERNMENT_AGENTS)
     }
 
 
-def test_all_eight_branches_and_seven_existing_families_present():
+def test_all_twelve_branches_and_seven_existing_families_present():
     p = smi_secure_seats.board()
-    assert len(p["branches"]) == 8
+    assert len(p["branches"]) == 12
     assert len(p["existing_families"]) == 7
     assert all(branch["candidate_seats"] for branch in p["branches"])
-    assert sum(len(b["candidate_seats"]) for b in p["branches"]) == 42
+    assert sum(len(b["candidate_seats"]) for b in p["branches"]) == 84
     assert sum(len(b["seats"]) for b in p["existing_families"]) == 78
 
 
@@ -74,7 +76,8 @@ def test_real_offices_chess_pieces_and_guardian_system_are_not_agent_seats():
 
 
 def test_fail_closed_if_duplicate_candidate_is_inserted():
-    bad = list(draft.PROPOSED_AGENTS) + list(expanded.EXTENDED_AGENTS)
+    bad = (list(draft.PROPOSED_AGENTS) + list(expanded.EXTENDED_AGENTS)
+           + list(civic.COURT_AND_GOVERNMENT_AGENTS))
     bad[-1] = dict(bad[0])
     p = smi_secure_seats.board(proposed_agents=bad)
     assert p["checks_passed"] is False
@@ -85,7 +88,8 @@ def test_fail_closed_if_duplicate_candidate_is_inserted():
 
 
 def test_fail_closed_if_injected_candidate_is_privileged():
-    bad = list(draft.PROPOSED_AGENTS) + list(expanded.EXTENDED_AGENTS)
+    bad = (list(draft.PROPOSED_AGENTS) + list(expanded.EXTENDED_AGENTS)
+           + list(civic.COURT_AND_GOVERNMENT_AGENTS))
     bad[0] = {**bad[0], "execution_enabled": True, "permissions": ("EXECUTE",)}
     p = smi_secure_seats.board(proposed_agents=bad)
     assert p["checks_passed"] is False
@@ -100,6 +104,37 @@ def test_fail_closed_if_existing_agent_count_is_changed():
     assert p["existing_families"] == ()
 
 
+
+def test_21_court_and_21_civic_seats_preserve_separation_of_powers():
+    p = smi_secure_seats.board()
+    assert p["checks_passed"] is True
+    assert p["new_court_research_seats"] == 21
+    assert p["new_civic_research_seats"] == 21
+    refs = p["reference_positions"]
+    assert refs["court_agents_are_not_real_judges"] is True
+    assert refs["political_agents_are_nonpartisan_research_only"] is True
+    assert {"US", "UK", "Ghana"} == set(refs["constitutional_relations"])
+    assert "judiciary" in refs["civic_independent_powers"]
+    branch_keys = {branch["key"] for branch in p["branches"]}
+    assert {"court_process", "legal_rights", "constitutional",
+            "local_accountability"} <= branch_keys
+
+
+def test_political_targeting_or_fake_court_power_blocks_all_seats():
+    bad = (list(draft.PROPOSED_AGENTS) + list(expanded.EXTENDED_AGENTS)
+           + list(civic.COURT_AND_GOVERNMENT_AGENTS))
+    bad[-1] = {**bad[-1], "election_persuasion_enabled": True}
+    p = smi_secure_seats.board(proposed_agents=bad)
+    assert p["checks_passed"] is False
+    assert "privileged_or_invalid_seat" in p["errors"]
+    assert p["branches"] == ()
+    bad[-1] = {**bad[-1], "election_persuasion_enabled": False,
+               "court_order_enabled": True}
+    p = smi_secure_seats.board(proposed_agents=bad)
+    assert p["checks_passed"] is False
+    assert p["existing_families"] == ()
+
+
 def test_private_founder_only_routes_and_no_write(client):
     page = client.get("/mission/war-room/secure-seats")
     data = client.get("/mission/war-room/secure-seats/status")
@@ -109,7 +144,7 @@ def test_private_founder_only_routes_and_no_write(client):
     assert "no-store" in data.headers["Cache-Control"]
     assert "SMI Secure Seats" in page.get_data(as_text=True)
     assert "Reserved for review only" in page.get_data(as_text=True)
-    assert "42" in page.get_data(as_text=True)
+    assert "84" in page.get_data(as_text=True)
     assert data.get_json()["checks_passed"] is True
     assert data.get_json()["new_agents_activated"] == 0
     assert client.post("/mission/war-room/secure-seats").status_code == 405
