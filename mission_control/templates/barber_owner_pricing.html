@@ -31,7 +31,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <div class="tag">ON ANY POSTCODE · MY BUSINESS</div>
 <h1>💈 My Services &amp; Prices</h1>
 <p>You control prices for your own approved appointment slots. SIKA is the pricing unit: 1 SIKA = £1. Existing holds and booked prices cannot be changed here.</p>
-<nav><a href="/spot">The Spot</a><a href="/travel/direct?category=barber">Available appointments</a><a href="/pay">SIKA Pay</a></nav>
+<nav><a href="{{ url_for('the_spot_front_door') }}">The Spot</a><a href="/travel/direct?category=barber">Available appointments</a><a href="/pay">SIKA Pay</a></nav>
 </header>
 {% if unavailable %}
 <section class="card"><h2>Setup required</h2><p>Owner-certified barber supply is not enabled. No listings, payments or bookings have been activated.</p></section>
