@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Read-only, fail-closed APK identity gate before an OAP Home V2 in-place upgrade.
+"""Read-only APK update gate for the existing V2 Android app.
 
-This never installs, uninstalls, signs, starts or changes an Android app.
-Requires authorized copies of the *currently installed original* and candidate APK.
+V2 stays com.onanypostcode.oaphome.v2, with the visible label OAP Home.
+The older com.onanypostcode.oaphome is a *different* package and must not be
+confused with the V2 signing certificate or silently uninstalled here.
+
+This tool never installs, uninstalls, signs, starts or changes any Android app.
+Requires trusted copies of the currently installed V2 and candidate V2 APKs.
 """
 from __future__ import annotations
 
@@ -13,7 +17,8 @@ import shutil
 import subprocess
 import sys
 
-EXPECTED_PACKAGE = "com.onanypostcode.oaphome"
+EXPECTED_PACKAGE = "com.onanypostcode.oaphome.v2"
+LEGACY_PACKAGE = "com.onanypostcode.oaphome"
 EXPECTED_LABEL = "OAP Home"
 PACKAGE_LINE = re.compile(
     r"^package: name='([^']+)' versionCode='([0-9]+)'(?: versionName='([^']*)')?"
@@ -61,32 +66,37 @@ def inspect_apk(path: Path) -> tuple[str, int, str, tuple[str, ...]]:
     return package, code, version, (certs[0][1],)
 
 
-def verify(original: Path, candidate: Path) -> str:
-    original_package, original_code, _, original_certs = inspect_apk(original)
+def verify(installed_v2: Path, candidate: Path) -> str:
+    installed_package, installed_code, _, installed_certs = inspect_apk(installed_v2)
     candidate_package, candidate_code, candidate_version, candidate_certs = inspect_apk(candidate)
-    if original_package != EXPECTED_PACKAGE or candidate_package != EXPECTED_PACKAGE:
-        raise BlockedUpgrade("Both APKs must identify the one ORIGINAL OAP Home app")
-    if original_certs != candidate_certs:
-        raise BlockedUpgrade("APK certificates DIFFER: replacement would be unsafe")
-    if candidate_code <= original_code:
-        raise BlockedUpgrade("Candidate Android versionCode is not higher than installed")
+    if installed_package != EXPECTED_PACKAGE or candidate_package != EXPECTED_PACKAGE:
+        raise BlockedUpgrade(
+            "Expected the existing V2 package on BOTH APKs; old Home is separate"
+        )
+    if installed_certs != candidate_certs:
+        raise BlockedUpgrade("V2 APK certificates DIFFER: update would be unsafe")
+    if candidate_code <= installed_code:
+        raise BlockedUpgrade("Candidate Android versionCode is not higher than installed V2")
     if not candidate_version.startswith("2."):
         raise BlockedUpgrade("Candidate is not an OAP Home V2 version")
     candidate_badging = command("aapt", "dump", "badging", str(candidate))
     if f"application-label:'{EXPECTED_LABEL}'" not in candidate_badging:
-        raise BlockedUpgrade("Candidate Home display name is not OAP Home")
-    return ("IDENTITY_GATE_PASSED (offline only): original package, one matching "
-            "signer, higher versionCode, V2 label. No installation or data migration "
-            "has been performed. Device acceptance and Founder Final remain required.")
+        raise BlockedUpgrade("Candidate V2 display name must be OAP Home")
+    return (
+        "V2_UPDATE_IDENTITY_PASSED (offline only): same installed V2 package, "
+        "one matching signer, higher versionCode, OAP Home label. "
+        "No installation, default Home switch, or old Home removal performed. "
+        "Physical device acceptance and Founder Final remain required."
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--installed-original-apk", required=True, type=Path)
+    parser.add_argument("--installed-v2-apk", required=True, type=Path)
     parser.add_argument("--candidate-apk", required=True, type=Path)
     args = parser.parse_args()
     try:
-        print(verify(args.installed_original_apk, args.candidate_apk))
+        print(verify(args.installed_v2_apk, args.candidate_apk))
         return 0
     except BlockedUpgrade as exc:
         print(f"BLOCKED: {exc}", file=sys.stderr)
