@@ -602,6 +602,15 @@ class PostgresTravelSupplyStore:
                    WHERE oap_supply_inventory_slots.capacity_held
                          + oap_supply_inventory_slots.capacity_confirmed
                          <= EXCLUDED.capacity_total
+                     AND (
+                       (oap_supply_inventory_slots.capacity_held=0
+                        AND oap_supply_inventory_slots.capacity_confirmed=0)
+                       OR (
+                         oap_supply_inventory_slots.price_minor=EXCLUDED.price_minor
+                         AND oap_supply_inventory_slots.currency=EXCLUDED.currency
+                         AND oap_supply_inventory_slots.price_basis=EXCLUDED.price_basis
+                       )
+                     )
                    RETURNING slot_id,starts_at,ends_at,capacity_total,capacity_held,
                              capacity_confirmed,price_minor,currency,price_basis,state,
                              observed_at""",
