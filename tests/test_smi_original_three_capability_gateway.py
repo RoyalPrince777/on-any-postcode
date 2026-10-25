@@ -36,123 +36,88 @@ def test_all_three_roles_share_one_smi_and_cannot_execute():
     assert status["physical_motherboard_built"] is False
     assert status["network_isolation_enforced_at_os_level"] is False
     assert status["live_film_character_equivalence"] is False
+    assert status["other_business_missions_in_scope"] is False
 
 
-def test_m3gan_consent_denial_prevents_inventory_read(monkeypatch):
+def test_m3gan_consent_denial_prevents_film_source_read(monkeypatch):
     monkeypatch.setattr(
-        gateway.travel_marketplace, "public_offers",
-        lambda **kwargs: pytest.fail("no read without consent"),
+        gateway.smi_archive, "FILM_CANON_ABILITIES",
+        None,
     )
-    result = gateway.m3gan_consented_booking(
-        {"request": "Find me a barber", "consent": False},
+    result = gateway.m3gan_consented_research(
+        {"question": "What can M3GAN do?", "consent": False},
     )
     assert result["state"] == "blocked"
-    assert result["data_read_performed"] is False
+    assert result["source_access_performed"] is False
     assert result["reason"] == "explicit_consent_required"
 
 
-def test_m3gan_rejects_unknown_or_ambiguous_request_without_fetch(monkeypatch):
-    monkeypatch.setattr(
-        gateway.travel_marketplace, "public_offers",
-        lambda **kwargs: pytest.fail("ambiguous must not fetch"),
+def test_m3gan_original_film_abilities_are_sourced_and_identity_scoped():
+    response = gateway.evaluate(
+        "m3gan", {"question": "What can M3GAN do?", "consent": True},
     )
-    for query in ("find a barber or event", "what is the universe"):
-        result = gateway.m3gan_consented_booking({"request": query, "consent": True})
-        assert result["state"] == "needs_specific_category"
-
-
-def test_m3gan_read_only_actual_offer_with_privacy_redaction(monkeypatch):
-    monkeypatch.setattr(gateway.travel_supply_core, "SUPPLY_CATEGORIES", {"event", "barber"})
-    calls = []
-
-    def offers(**kwargs):
-        calls.append(kwargs)
-        return {
-            "ready": True,
-            "offers": [
-                {
-                    "category": "event", "certified_supplier": True,
-                    "observed_not_inferred": True, "available_quantity": 3,
-                    "listing_id": "listing-1", "title": "Real event",
-                    "place_label": "Mitcham", "starts_at": "2026-11-01T12:00Z",
-                    "ends_at": "2026-11-01T13:00Z", "unit_price_minor": 1000,
-                    "currency": "GBP", "source": "oap_direct",
-                    "supplier_name": "Certified organiser", "observed_at": "2026-10-25T20:00Z",
-                    "buyer_identity_id": "private-buyer",
-                    "api_secret": "must-not-leak",
-                },
-                {"category": "event", "certified_supplier": False,
-                 "observed_not_inferred": True, "available_quantity": 9},
-                {"category": "barber", "certified_supplier": True,
-                 "observed_not_inferred": True, "available_quantity": 4},
-            ],
-        }
-
-    monkeypatch.setattr(gateway.travel_marketplace, "public_offers", offers)
-    result = gateway.m3gan_consented_booking(
-        {"request": "Find concert tickets", "area": "Mitcham", "consent": True},
+    assert response["state"] == "source_backed_matches"
+    assert response["match_count"] == 6
+    assert response["lookup_type"] == "deterministic_source_search_not_model_inference"
+    assert response["autonomous_learning_performed"] is False
+    assert response["external_fetch_performed"] is False
+    assert response["question_stored"] is False
+    assert response["context_stored"] is False
+    assert response["operation_performed"] is False
+    assert all(
+        item["source_url"].startswith("https://")
+        and item["publisher"]
+        and item["source_id"]
+        for item in response["matches"]
     )
-    assert calls == [{"category": "event", "limit": 5}]
-    assert result["state"] == "offers_found"
-    assert result["count"] == 1
-    assert result["booking_confirmed"] is False
-    assert "buyer_identity_id" not in result["offers"][0]
-    assert "api_secret" not in result["offers"][0]
-    assert result["operation_performed"] is False
+    assert {item["ability_id"] for item in response["matches"]} == {
+        "multi_sensor_perception", "adaptive_social_learning",
+        "unsupervised_goal_selection", "digital_survival",
+        "upgraded_android_combat", "connected_body_control",
+    }
 
 
-def test_m3gan_explicit_area_prevents_other_area_result(monkeypatch):
-    monkeypatch.setattr(gateway.travel_supply_core, "SUPPLY_CATEGORIES", {"event"})
-    monkeypatch.setattr(
-        gateway.travel_marketplace, "public_offers",
-        lambda **kwargs: {
-            "ready": True,
-            "offers": [{
-                "category": "event", "certified_supplier": True,
-                "observed_not_inferred": True, "available_quantity": 4,
-                "place_label": "Croydon", "postcode": "CR0", "borough": "Croydon",
-                "title": "Real source event", "source": "oap_direct",
-            }],
-        },
-    )
+def test_m3gan_relevance_uses_bounded_user_supplied_context():
     result = gateway.evaluate(
         "m3gan",
-        {"request": "Any events?", "area": "Mitcham", "consent": True},
+        {"question": "Tell me more", "context": ["digital survival"], "consent": True},
     )
-    assert result["state"] == "no_verified_offers"
-    assert result["count"] == 0
-    assert result["area_filter_applied"] is True
-    assert result["area"] == "mitcham"
+    assert result["state"] == "source_backed_matches"
+    assert any(i["ability_id"] == "digital_survival" for i in result["matches"])
+    assert result["context_stored"] is False
 
 
-def test_m3gan_missing_barber_category_fails_closed(monkeypatch):
-    monkeypatch.setattr(gateway.travel_supply_core, "SUPPLY_CATEGORIES", {"event"})
-    monkeypatch.setattr(
-        gateway.travel_marketplace, "public_offers",
-        lambda **kwargs: pytest.fail("uninstalled category must not be queried"),
+def test_m3gan_out_of_scope_terms_have_no_invented_film_facts():
+    result = gateway.evaluate(
+        "m3gan", {"question": "quantum graviton hyperdrive", "consent": True},
     )
-    result = gateway.evaluate("m3gan", {"request": "Need a haircut", "consent": True})
-    assert result["state"] == "not_ready"
-    assert result["reason"] == "certified_category_not_installed"
+    assert result["state"] == "no_verified_match"
+    assert result["matches"] == []
 
 
-def test_m3gan_empty_inventory_cannot_invent_availability(monkeypatch):
-    monkeypatch.setattr(gateway.travel_supply_core, "SUPPLY_CATEGORIES", {"event"})
-    monkeypatch.setattr(gateway.travel_marketplace, "public_offers",
-                        lambda **kwargs: {"ready": True, "offers": []})
-    result = gateway.evaluate("m3gan", {"request": "Any events?", "consent": True})
-    assert result["state"] == "no_verified_offers"
-    assert result["count"] == 0
-    assert result["offers"] == []
+def test_m3gan_rejects_unbounded_or_private_history():
+    for bad_context in (
+        ["a"] * 4,
+        ["a" * 121],
+        "someone's entire private messages",
+        [1],
+    ):
+        with pytest.raises((ValueError, TypeError)):
+            gateway.evaluate(
+                "m3gan",
+                {"question": "digital survival", "context": bad_context, "consent": True},
+            )
 
 
-def test_m3gan_unready_supply_does_not_claim_current_availability(monkeypatch):
-    monkeypatch.setattr(gateway.travel_supply_core, "SUPPLY_CATEGORIES", {"event"})
-    monkeypatch.setattr(gateway.travel_marketplace, "public_offers",
-                        lambda **kwargs: {"ready": False, "error": "supply_core_not_ready"})
-    result = gateway.evaluate("m3gan", {"request": "events today", "consent": True})
-    assert result["state"] == "not_ready"
-    assert result["reason"] == "supply_core_not_ready"
+def test_m3gan_response_excludes_business_and_other_mission_data():
+    response = gateway.evaluate(
+        "m3gan", {"question": "original abilities", "consent": True},
+    )
+    assert response["source"] == "oap_founder_private_film_canon_snapshot"
+    assert response["physical_action_performed"] is False
+    assert "offers" not in response
+    assert "booking_confirmed" not in response
+    assert "area" not in response
 
 
 def test_amelia_prevents_powerful_actions_even_with_self_declared_evidence():
