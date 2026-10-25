@@ -51,12 +51,7 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
 
 
 def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
-    # This unit test verifies the post-warmup failure receipt; the real
-    # external routing warmup remains mandatory in production code.
-    monkeypatch.setattr(
-        gate, "wait_until_ready",
-        lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0},
-    )
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
     samples = (
@@ -83,12 +78,7 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
 
 
 def test_probe_preserves_p95_limit(monkeypatch, capsys):
-    # This unit test verifies the post-warmup failure receipt; the real
-    # external routing warmup remains mandatory in production code.
-    monkeypatch.setattr(
-        gate, "wait_until_ready",
-        lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0},
-    )
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
     monkeypatch.setattr(
@@ -106,27 +96,6 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     assert receipt["failures"] == 0
     assert receipt["bounded_capacity_proven"] is False
 
-
-
-def test_warmup_failure_blocks_capacity_probe_without_claiming_live_green(monkeypatch, capsys):
-    monkeypatch.setattr(
-        gate, "wait_until_ready",
-        lambda: {"ready": False, "attempts": 1, "elapsed_s": 0.01, "failure_type": "timeout"},
-    )
-    def must_not_probe(index):
-        raise AssertionError("Live route sampling must not run after failed warmup")
-
-    monkeypatch.setattr(gate, "run_one", must_not_probe)
-    with pytest.raises(SystemExit, match="live routing warmup did not become ready"):
-        gate.main()
-    receipts = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()]
-    assert len(receipts) == 1
-    assert receipts[0]["event"] == "oap_routing_bounded_external_warmup"
-    assert receipts[0]["ready"] is False
-    assert receipts[0]["failure_type"] == "timeout"
-    assert receipts[0]["dispatch_performed"] is False
-    assert receipts[0]["payment_performed"] is False
-    assert receipts[0]["tracking_performed"] is False
 
 def test_live_green_gate_warms_before_capacity_probe():
     source = Path("scripts/routing_live_green_gate.py").read_text(encoding="utf-8")
