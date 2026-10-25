@@ -27,6 +27,57 @@ SMI_LINEAGE: tuple[dict[str, str], ...] = (
     },
 )
 
+# Fictional screen references only. These are not SMI agents, passports,
+# actual intelligent systems, implementation claims, or permission holders.
+# Keep original story identities distinct while preserving SMI's single brain.
+FILM_INTELLIGENCE_REFERENCES: tuple[dict[str, object], ...] = (
+    {
+        "reference_key": "m3gan",
+        "name": "M3GAN",
+        "fictional_entity_type": "adaptive_android_ai",
+        "film_history": ("M3GAN (2022)", "M3GAN 2.0 (2025)"),
+        "versions": ("original", "2.0"),
+        "identity_rule": "One continuing fictional AI identity; 2.0 is an upgrade, not another agent.",
+        "portrayed_specialities": (
+            "adaptive learning",
+            "social interaction",
+            "physical android operation",
+            "protective decision-making with dangerous autonomy failures",
+        ),
+        "research_boundary": "Character reference only; no agent passport or runtime capability.",
+    },
+    {
+        "reference_key": "amelia",
+        "name": "AMELIA",
+        "fictional_entity_type": "military_grade_android_ai",
+        "film_history": ("M3GAN 2.0 (2025)",),
+        "versions": ("original",),
+        "identity_rule": "Separate fictional intelligence; never a M3GAN version or alias.",
+        "portrayed_specialities": (
+            "infiltration",
+            "tactical adaptation",
+            "autonomous decision-making",
+            "loss-of-control and takeover threat modelling",
+        ),
+        "research_boundary": "Adversarial screen reference only; no agent passport or runtime access.",
+    },
+    {
+        "reference_key": "black_box",
+        "name": "BLACK BOX",
+        "fictional_entity_type": "contained_ai_system",
+        "film_history": ("M3GAN 2.0 (2025)",),
+        "versions": ("original",),
+        "identity_rule": "Distinct motherboard-contained fictional AI system; not an android or SMI brain.",
+        "portrayed_specialities": (
+            "contained artificial intelligence",
+            "system connectivity and takeover risk",
+            "AMELIA's attempt to obtain greater capabilities through connection",
+        ),
+        "research_boundary": "System-level screen reference only; no second brain, memory store or execution.",
+    },
+)
+
+
 ARCHIVE_SECTIONS: tuple[dict[str, str], ...] = (
     {"id": "identity-lineage", "name": "Identity & Lineage", "purpose": "SMI names, meanings and evolution."},
     {"id": "anatomy", "name": "Anatomy", "purpose": "Brain, memory, interconnect, protection, execution and recovery."},
@@ -116,6 +167,15 @@ def status() -> dict[str, Any]:
         "lineage": tuple(dict(item) for item in SMI_LINEAGE),
         "sections": tuple(dict(item) for item in ARCHIVE_SECTIONS),
         "council": tuple(dict(item) for item in COUNCIL_ROLES),
+        "film_intelligence_research": {
+            "mode": "read_only_fictional_reference",
+            "entries": tuple(dict(item) for item in FILM_INTELLIGENCE_REFERENCES),
+            "agent_passports_created": 0,
+            "new_brains_created": 0,
+            "execution_enabled": False,
+            "system_access_granted": False,
+            "human_authority_final": True,
+        },
         "shere_khan": {
             "canonical_role": "Adversarial Stress-Test / Threat Intelligence / Failure-Hunter",
             "mode": "The Claw Test",
