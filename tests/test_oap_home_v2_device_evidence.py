@@ -36,7 +36,6 @@ def _unknown_v2():
     }
 
 
-
 class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
     def test_package_visibility_failure_is_unknown_not_not_installed(self):
         with mock.patch.object(probe, "_run", return_value=None):
@@ -49,15 +48,16 @@ class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
         assert report["visibility"] == "unknown"
         assert report["version_code"] is None
 
-
     def test_unreadable_installed_apk_never_approves_signature(self):
-        with mock.patch.object(probe, "_run", return_value="package:/data/app/x/base.apk\n"):
-            with mock.patch.object(probe, "_apk_info", return_value=_metadata(None, None, None, None)):
-                report = probe.installed_package(probe.V2_PACKAGE)
+        with mock.patch.object(
+            probe, "_run", return_value="package:/data/app/x/base.apk\n"
+        ), mock.patch.object(
+            probe, "_apk_info", return_value=_metadata(None, None, None, None)
+        ):
+            report = probe.installed_package(probe.V2_PACKAGE)
         assert report["visibility"] == "visible"
         assert report["version_code"] is None
         assert report["signer_sha256"] is None
-
 
     def test_apk_info_uses_successful_package_and_signer_inspection_only(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -76,7 +76,6 @@ class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
                 unreadable = probe._apk_info(apk)
             assert unreadable == _metadata(None, None, None, None)
 
-
     def test_fully_verified_candidate_only_proves_identity_not_install(self):
         with mock.patch.object(probe, "installed_package", side_effect=[
             _visible_v2(), _unknown_v2(),
@@ -87,7 +86,6 @@ class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
         assert result["candidate_update_verdict"] == "IDENTITY_COMPATIBLE_NOT_INSTALLED"
         assert result["no_install_or_uninstall"] is True
         assert result["founder_final_required"] is True
-
 
     def test_new_candidate_rejected_on_signature_mismatch_or_version(self):
         cases = (
@@ -103,7 +101,6 @@ class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
             ):
                 result = probe.inspect(Path("candidate.apk"))
             assert result["candidate_update_verdict"] == expected
-
 
     def test_wrong_package_or_label_or_unknown_installed_v2_blocks(self):
         candidates = (
@@ -123,7 +120,6 @@ class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
         ):
             result = probe.inspect(Path("candidate.apk"))
         assert result["candidate_update_verdict"] == "HOLD_MISSING_EVIDENCE"
-
 
     def test_no_candidate_is_read_only_and_old_home_never_automatically_removed(self):
         with mock.patch.object(probe, "installed_package", side_effect=[
