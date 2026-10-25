@@ -86,7 +86,7 @@ def test_unavailable_detector_fails_closed(client, csrf, monkeypatch):
 
 def test_rate_limit_fails_closed(client, csrf, monkeypatch):
     monkeypatch.setenv("OAP_SMI_FACE_DETECTION_ENABLED", "true")
-    monkeypatch.setattr(views, "_chat_rate_allowed", lambda _: False)
+    monkeypatch.setattr(views, "_vision_face_rate_allowed", lambda _: False)
     result = _send(client, csrf["csrf_token"])
     assert result.status_code == 429
     assert result.json["error"]["code"] == "rate_limited"
