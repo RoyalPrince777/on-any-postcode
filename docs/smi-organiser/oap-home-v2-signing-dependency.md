@@ -1,29 +1,50 @@
-# SMI Organiser — OAP Home V2 signing dependency
+# SMI Organiser — OAP Home V2 in-place signing dependency
 
-Status: **Pending Founder secure setup**. This is an organisational record, not a deployed organiser application or proof of automated reminders.
+Status: **BLOCKED pending certificate evidence from installed original Home**.
+This is an organisational record, not a deployed organiser or automatic installation.
 
-## Objective
-Provide a persistent signing identity for `com.onanypostcode.oaphome.v2` without changing the installed Build #19 package or weakening release gates.
+## Founder decision
+**One OAP Home icon and one Android Home destination**, running the upgraded
+Royal V2 native interface with original package identity
+`com.onanypostcode.oaphome`. Its visible name remains **OAP Home**.
+Do not create or install `com.onanypostcode.oaphome.v2` as a second launcher.
 
-## Owners
-- Founder: securely enter repository secrets and certificate variable.
-- Bagheera (proposed security-review role): protect key handling.
-- Fox (proposed recovery role): preserve continuity and backups.
-- Benji (proposed Android role): validate APK identity and install compatibility.
-- Guardian/HRM: enforce human authorisation and evidence requirements.
-These are planning assignments, not independently executing agents.
+Keep the original Build #19 installed and all existing app/Termux/Home Node data
+intact until a compatible, version-increasing in-place replacement is proven.
+A valid Android update supersedes old app code **without an uninstall**.
 
-## Required GitHub configuration
-Repository secrets: `OAP_HOME_KEYSTORE_B64`, `OAP_HOME_KEYSTORE_PASSWORD`, `OAP_HOME_KEY_ALIAS`, `OAP_HOME_KEY_PASSWORD`.
-Repository variable: `OAP_HOME_CERT_SHA256`.
-Never put the private keystore, its base64 representation, or passwords in Git, this organiser, chat or logs.
+## Required proof (not currently established)
+1. Safely identify the currently installed original OAP Home APK, package ID,
+   Android versionCode, and signer certificate fingerprint. A build number
+   printed in a prior conversation does not certify the on-device versionCode.
+2. Confirm the intended persistent signing keystore matches the installed
+   original APK certificate. The prior V2-only keystore
+   (`~/oap-private/oap-home-v2.jks`, alias `oap-home-v2`) **cannot be assumed**
+   compatible with Build #19.
+3. Configure `OAP_HOME_ORIGINAL_CERT_SHA256` as a GitHub Actions variable
+   only from independently verified original APK evidence. Retain the protected
+   signing secrets `OAP_HOME_KEYSTORE_BASE64`,
+   `OAP_HOME_KEYSTORE_PASSWORD`, `OAP_HOME_KEY_ALIAS`, and
+   `OAP_HOME_KEY_PASSWORD`. Never paste secrets in chat, logs or Git.
+4. Build the exact updated native branch and prove its APK signer equals that
+   original certificate before artifact publication. Independently apply
+   `scripts/oap_home_v2_inplace_apk_gate.py` to verified copies of the old
+   installed APK and candidate APK: matching package, matching signer, strictly
+   increasing versionCode, user-facing label **OAP Home**.
+5. Device test on the Redmi A5 with backup/recovery ability: installed original
+   app data and Android Home choice intact, V2 royal UI, installed app drawer,
+   Phone/Messages, separate OAP Internet app, Store/PTT and settings recovery.
+   No flash, no default-launcher switch without the user's own action.
 
-## Resume criteria
-1. Founder privately configures GitHub Actions and securely backs up the keystore.
-2. Exact-source CI validates the pinned signing certificate and generates an APK for `com.onanypostcode.oaphome.v2`.
-3. Verify APK hash, signature, package and device installation separately; do not claim Green early.
+Any mismatch or missing evidence = **BLOCK**, not an excuse to uninstall the
+old app. A separate `.v2` install would create a second Home candidate and
+contradict the current Founder direction.
 
-## Meanwhile
-Continue OAP Home UI, OAP Internet and Virtual Android engineering. Build #19 remains untouched. No changes to Render services or production deployment are authorised by this entry.
+## Boundaries
+This upgrade does not replace Android's operating system or change the
+independent OAP Home Node supervisor. `OAP OS` remains the future
+independently verified AOSP target.
 
-Evidence: Java compilation passed in GitHub Actions run 39454855872; signing job failed. Overall VPI: N/A.
+No Android APK, Home selection, data migration or build-signature continuity is
+claimed until physical device evidence and Founder Final are supplied.
+Overall VPI: N/A.
