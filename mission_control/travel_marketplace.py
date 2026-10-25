@@ -57,6 +57,19 @@ def public_offers(
         category_value = category_value.casefold()
         if category_value not in travel_supply_core.SUPPLY_CATEGORIES:
             raise ValueError("invalid_supply_category")
+        if category_value == "barber":
+            from . import local_booking_extension
+
+            if not local_booking_extension.schema_status()["schema_ready"]:
+                return {
+                    "component": "OAP Direct",
+                    "revision": DIRECT_MARKETPLACE_REVISION,
+                    "ready": False,
+                    "offers": [],
+                    "count": 0,
+                    "source": "oap_direct",
+                    "error": "barber_extension_not_ready",
+                }
     country_value = _optional_text(country, 120)
     row_limit = _bounded_limit(limit, default=24, maximum=_PUBLIC_LIMIT_MAX)
     clauses = [

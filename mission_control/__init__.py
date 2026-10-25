@@ -1467,6 +1467,26 @@ def init_app(app: Flask) -> None:
             )
         )
 
+    @app.cli.command("oap-barber-supply-status")
+    def _oap_barber_supply_status() -> None:
+        import json
+
+        from . import local_booking_extension
+
+        print(json.dumps(local_booking_extension.schema_status()))
+
+    @app.cli.command("oap-init-barber-supply")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_barber_supply(dry_run: bool, yes: bool) -> None:
+        import json
+
+        from . import local_booking_extension
+
+        print(json.dumps(local_booking_extension.init_schema(
+            dry_run=dry_run, assume_yes=yes,
+        )))
+
     @app.cli.command("oap-verify-audit")
     def _oap_verify_audit() -> None:  # pragma: no cover
         ok, report = auditmod.verify_audit()
