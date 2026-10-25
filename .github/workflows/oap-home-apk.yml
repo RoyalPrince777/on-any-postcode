@@ -93,6 +93,7 @@ jobs:
         working-directory: android/oaphome
         run: gradle --no-daemon compileDebugJavaWithJavac
   build:
+    needs: compile
     runs-on: ubuntu-latest
     steps:
       - name: Checkout OAP Home source
