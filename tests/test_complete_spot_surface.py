@@ -344,8 +344,8 @@ def test_oap_atlas_ui_is_search_first_source_bound_and_noise_stripped(client, mo
     assert "no hidden tracking" in live
 
 
-def test_spot_guest_welcome_prioritises_studio_and_arena_without_forcing_my_card(client):
-    response = client.get("/the-spot")
+def test_spot_guest_welcome_prioritises_studio_and_arena_without_forcing_my_card(anonymous_client):
+    response = anonymous_client.get("/the-spot")
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
@@ -365,6 +365,6 @@ def test_spot_guest_welcome_prioritises_studio_and_arena_without_forcing_my_card
         ("/arena", "OAP"),
         ("/my-card/create", "Create My Card"),
     ):
-        target = client.get(route)
+        target = anonymous_client.get(route)
         assert target.status_code == 200
         assert heading in target.get_data(as_text=True)
