@@ -1,5 +1,4 @@
 """Static contracts for native OAP Home V2; Android compilation is a separate gate."""
-import re
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
