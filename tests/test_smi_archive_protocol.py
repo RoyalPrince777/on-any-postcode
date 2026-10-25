@@ -22,3 +22,17 @@ def test_mission_to_100_protocol_is_not_a_new_authority_or_brain():
     assert status["new_memory_engine_created"] is False
     assert status["new_execution_authority_created"] is False
     assert status["history_is_timeline_inside_archive"] is True
+
+
+def test_smi_archive_uses_official_sovereign_name_without_erasing_history():
+    status = smi_archive.status()
+
+    assert status["current_name"] == "Sovereign Megaverse Intelligence"
+    assert sum(item["position"] == "canonical_current" for item in status["lineage"]) == 1
+    assert {item["name"] for item in status["lineage"]} == {
+        "Sovereign Megaverse Intelligence",
+        "Synthetic Mind Intelligence",
+        "Synthetic Machine Intelligence",
+    }
+    assert status["new_brain_created"] is False
+    assert status["human_authority_final"] is True

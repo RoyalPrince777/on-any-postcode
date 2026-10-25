@@ -14,13 +14,14 @@
     input{flex:1;min-width:0;border:1px solid #245f38;background:#0b1710;color:#fff;border-radius:12px;padding:13px}
     button,.open{border:0;border-radius:12px;padding:12px 16px;background:#27c267;color:#021;font-weight:900;text-decoration:none}
     .grid{display:grid;gap:12px}.card{border:1px solid #244832;background:#09140d;border-radius:16px;padding:16px}
-    .meta{color:#9fb5a8;font-size:.86rem}.quiet{color:#9fb5a8}
+    .meta{color:#9fb5a8;font-size:.86rem}.quiet{color:#9fb5a8}.return-nav{display:flex;flex-wrap:wrap;gap:9px;margin:0 0 18px}.return-nav a{display:inline-flex;align-items:center;min-height:44px;border:1px solid #907239;border-radius:999px;color:#f4dc96;padding:9px 13px;text-decoration:none;font-weight:750}.return-nav a:focus-visible{outline:3px solid #fff;outline-offset:3px}
   </style>
 </head>
 <body>
 <main>
   <p class="eyebrow">🔎 OAP SEARCH · FIRST-PARTY</p>
   <h1>Search OAP</h1>
+  <nav class="return-nav" aria-label="Search navigation"><a href="/home-v2">⌂ Home V2</a><a href="/store">🛍️ OAP Store</a><a href="/arena/connect4">🎮 Connect 4</a></nav>
   <p class="quiet">Searches the current public OAP app catalogue only. Private Link Up messages, private identity data and Founder surfaces are not indexed here.</p>
   <form method="get" action="/search">
     <input type="search" name="q" value="{{ query }}" maxlength="120" placeholder="Search apps, Market, Library, places, music…" aria-label="Search OAP">

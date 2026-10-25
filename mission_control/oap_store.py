@@ -213,6 +213,7 @@ PUBLIC_STORE_APPS = (
     _catalogue_placeholder(app_id="oap.spot", name="The Spot", open_url="/the-spot", description="Public community activity, Pulse, Signal and Empire life.", category="Social"),
     _catalogue_placeholder(app_id="oap.link", name="The Link", open_url="/the-link", description="People, opportunities and the bridge into private Link Up.", category="Communication"),
     _catalogue_placeholder(app_id="oap.arena", name="OAP Arena", open_url="/arena", description="First-party games, challenges and Global Arena progression.", category="Games"),
+    _catalogue_placeholder(app_id="oap.arena.connect4", name="OAP Connect 4", open_url="/arena/connect4", description="Free first-party Connect 4. OAP Store-only distribution approved by Founder Final. Standalone installation, worldwide tournaments and SIKA cash prizes remain gated until independently verified.", category="Games"),
     _catalogue_placeholder(app_id="oap.library", name="OAP Library", open_url="/library", description="One World. One Library. Unlimited Learning.", category="Learning"),
     _catalogue_placeholder(app_id="oap.place", name="On Any Postcode Maps", open_url="/oap-map", description="Maps, place search, routes, weather and movement intelligence.", category="Places"),
     _catalogue_placeholder(app_id="oap.movement", name="Movement", open_url="/movement", description="Travel, movement, route context and delivery awareness.", category="Movement"),
@@ -314,6 +315,32 @@ def native_store_status():
 def oap_world_store_entry():
     response = make_response(jsonify(dict(OAP_WORLD)), 200)
     response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/arena/connect4/manifest.webmanifest")
+def connect4_manifest():
+    """Dedicated first-party install identity; does not unlock installation."""
+    payload = {
+        "name": "OAP Connect 4 · ON ANY POSTCODE",
+        "short_name": "Connect 4",
+        "description": "Free first-party Connect 4 in OAP Arena.",
+        "id": "/arena/connect4",
+        "start_url": "/arena/connect4?source=oap-store",
+        "scope": "/arena/connect4",
+        "display": "standalone",
+        "background_color": "#050403",
+        "theme_color": "#050403",
+        "prefer_related_applications": False,
+        "categories": ["games"],
+        "icons": [
+            {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+            {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+        ],
+    }
+    response = make_response(jsonify(payload), 200)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
     return response
 
 

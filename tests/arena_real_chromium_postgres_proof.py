@@ -287,6 +287,37 @@ def main():
             browser = p.chromium.launch(headless=True)
             mobile = {"width": 393, "height": 852}
             desktop = {"width": 1280, "height": 800}
+            # Real Chromium PWA preflight; this is NOT physical-device install proof.
+            pwa_page = browser.new_page(viewport=mobile)
+            pwa_page.goto(BASE + "/arena/connect4", wait_until="domcontentloaded")
+            assert pwa_page.locator('link[rel="manifest"]').get_attribute("href") == "/arena/connect4/manifest.webmanifest"
+            manifest = pwa_page.evaluate("""async () => {
+                const link = document.querySelector('link[rel="manifest"]');
+                const response = await fetch(link.href);
+                if (!response.ok) throw new Error('Connect 4 manifest unavailable');
+                return await response.json();
+            }""")
+            assert manifest["id"] == "/arena/connect4"
+            assert manifest["start_url"].startswith(manifest["scope"])
+            # Verify the actual icon responses, not just declared manifest fields.
+            for icon in manifest["icons"]:
+                icon_response = pwa_page.request.get(BASE + icon["src"])
+                assert icon_response.ok, f"Missing PWA icon: {icon['src']}"
+                assert icon_response.headers.get("content-type", "").startswith(icon["type"])
+                assert len(icon_response.body()) > 0
+            # Launch URL must render in the same browser and stay within scope.
+            pwa_page.goto(BASE + manifest["start_url"], wait_until="domcontentloaded")
+            assert pwa_page.locator("h1").count() > 0
+            pwa_page.goto(BASE + "/arena/connect4/room", wait_until="domcontentloaded")
+            assert pwa_page.locator('link[rel="manifest"]').get_attribute("href") == "/arena/connect4/manifest.webmanifest"
+            store_page = browser.new_page()
+            store_page.goto(BASE + "/store", wait_until="domcontentloaded")
+            listing = store_page.locator('[data-oap-store-app="oap.arena.connect4"]')
+            assert listing.count() == 1
+            assert listing.get_by_text("Install OAP Connect 4").count() == 0
+            store_page.close()
+            pwa_page.close()
+            print("CONNECT4_CHROMIUM_PWA_PREFLIGHT_PASS")
             play_two_seats(browser, "connect4", mobile, desktop)
             play_two_seats(browser, "dot", desktop, mobile)
             play_added_room(browser, "ludo", mobile, desktop)

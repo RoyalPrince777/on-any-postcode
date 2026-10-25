@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07060b">
+<title>OAP Home V2 · Personal Dashboard</title>
+<style>
+:root{color-scheme:dark;--gold:#f4cb65;--gold-soft:#f7dda0;--bg:#07060b;--panel:#111017;--line:#a47b35;--text:#fff7e8;--muted:#dbcdae}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:radial-gradient(ellipse at 45% 0%,#241927,#080710 56%,var(--bg) 86%);color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+a{color:inherit}
+.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+button,input{font:inherit}
+button{cursor:pointer}
+.skip-link{position:absolute;left:16px;top:-100px;z-index:40;background:var(--gold);color:#161109;padding:12px;border-radius:8px}
+.skip-link:focus{top:12px}
+.page{width:min(1120px,100%);margin:0 auto;position:relative;isolation:isolate}
+.royal-sky{position:absolute;z-index:-1;top:0;left:0;right:0;height:590px;overflow:hidden;pointer-events:none}
+.royal-sky:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#09070ccb 0%,#08071055 38%,#08071000 75%),linear-gradient(180deg,#05060a00 30%,#080710 99%),url("/static/oap/home_v2_royal_earth.svg") 60% 35%/auto 103% no-repeat}
+.royal-sky:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 52% 30%,#e8b34724,transparent 56%);mix-blend-mode:screen}
+main{padding:20px clamp(12px,3.1vw,32px) calc(130px + env(safe-area-inset-bottom))}
+.brand-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:10px 2px 0}
+.brand{max-width:66%;text-decoration:none;display:block}
+.brand .crown{color:#f9d57c;display:block;font-size:clamp(2rem,5vw,3.4rem);line-height:1;text-shadow:0 3px 17px #e4ac4860;margin:0 0 -7px 47px}
+.brand .oap{display:block;color:var(--gold);font:700 clamp(3.1rem,10vw,6.7rem)/.92 Georgia,"Times New Roman",serif;letter-spacing:-.085em;text-shadow:0 2px 0 #724819,0 6px 22px #c78b354d}
+.brand .full{display:block;color:#f9e0a0;font:600 clamp(.58rem,1.9vw,1.08rem)/1.15 Georgia,serif;letter-spacing:.18em;white-space:nowrap}
+.brand .home{display:block;color:#f9e0a0;font:600 clamp(1rem,3.7vw,2rem)/1.25 Georgia,serif;letter-spacing:.2em;text-align:center}
+.brand h1{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.top-actions{display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.tools{display:flex;gap:9px}
+.round-tool{width:48px;height:48px;border:1px solid var(--gold);border-radius:50%;background:#130f13da;color:#f5d37c;display:grid;place-items:center;box-shadow:0 0 18px #d6a64632;font-size:1.4rem;text-decoration:none}
+.tagline{color:#f8d786;text-align:right;font:italic 600 clamp(.75rem,2.4vw,1.25rem)/1.35 Georgia,serif;transform:rotate(-7deg);text-shadow:0 2px 15px #000}
+.top-menu{position:relative}
+.top-menu>summary{list-style:none;cursor:pointer}
+.top-menu>summary::-webkit-details-marker{display:none}
+.top-menu[open] .menu-panel{display:grid}
+.menu-panel{position:absolute;right:0;top:55px;width:202px;z-index:12;display:grid;gap:4px;padding:10px;border:1px solid var(--line);border-radius:15px;background:#100c12f9;box-shadow:0 12px 28px #000c}
+.menu-panel a{padding:10px;border-radius:8px;text-decoration:none;font-size:.9rem}
+.menu-panel a:hover{background:#332515}
+.clock-hero{text-align:center;padding:24px 0 12px}
+.clock-hero .date{font-size:clamp(.73rem,2.5vw,1rem);letter-spacing:.23em;text-transform:uppercase;color:#f2e4ca}
+.clock-hero .time{font:700 clamp(3.5rem,12vw,7.7rem)/1.03 Georgia,serif;color:#f8ce6c;font-variant-numeric:tabular-nums;text-shadow:0 4px 0 #67461e,0 6px 22px #d98c384a}
+.widgets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:4px 0 15px}
+.widget{min-width:0;min-height:150px;border:1px solid #d6ab55;border-radius:22px;background:linear-gradient(145deg,#291d1bdc,#090911ee 74%);box-shadow:inset 0 1px #f6d18d33,0 8px 20px #0009;padding:16px;display:flex;flex-direction:column;justify-content:space-between}
+.widget-title{font-size:.77rem;letter-spacing:.08em;color:#f7d99d;text-transform:uppercase}
+.widget .large{color:var(--gold);font-size:clamp(1.3rem,3.4vw,2.2rem);font-weight:800}
+.widget .muted{color:#d3c0a2;font-size:.86rem}
+.widget.weather{background:linear-gradient(145deg,#413623ae,#17101fe8),radial-gradient(circle at 28% 80%,#a47630aa,transparent 65%);justify-content:center;gap:6px}
+.widget.weather .weather-icon{font-size:2rem}
+.time-list{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.world-time{display:grid;gap:3px}
+.world-time span{font-size:.68rem;color:#ead09a}
+.world-time b{color:#fff5e0;font-size:1rem;font-variant-numeric:tabular-nums}
+.search-panel{margin:16px 0 16px;padding:14px;border:1px solid var(--gold);border-radius:23px;background:linear-gradient(115deg,#080b16f2,#0a0b13f5);box-shadow:inset 0 1px #f7d68b44,0 0 19px #e8b3543b}
+.search-panel h2{margin:0 0 10px;color:#f8d98b;font-size:1rem}
+.home-search{display:flex;align-items:center;gap:8px}
+.home-search input{min-width:0;flex:1;min-height:64px;border:0;background:transparent;color:var(--text);padding:0 8px;font-size:clamp(.92rem,2.5vw,1.1rem)}
+.home-search input::placeholder{color:#bfb9b8}
+.search-symbol{font-size:1.8rem;margin-left:5px;color:#fff}
+.home-search button{min-height:48px;min-width:60px;border:1px solid #927437;border-radius:12px;background:var(--gold);color:#201607;font-weight:850}
+.search-ai{min-height:48px;min-width:44px;display:grid;place-items:center;border-radius:12px;border:1px solid #856931;text-decoration:none;color:var(--gold);font-weight:800}
+.search-caption{font-size:.75rem;color:#d5c39e;margin:8px 4px 0}
+.search-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 0}
+.search-shortcuts a{display:inline-flex;align-items:center;min-height:44px;padding:9px 12px;border:1px solid #786030;border-radius:999px;background:#1a151c;text-decoration:none;font-size:.82rem;color:#f5d59c}
+.grid-heading{color:#f6d17c;font:600 1.12rem/1.3 Georgia,serif;letter-spacing:.14em;text-transform:uppercase;text-align:center;margin:22px 0 13px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tile{position:relative;display:block;min-width:0;min-height:152px;border:1px solid #d6a84c;border-radius:19px;overflow:hidden;text-align:center;text-decoration:none;background:radial-gradient(ellipse at 50% 35%,#403019,#090712 75%);box-shadow:inset 0 1px #fff0bb44,0 5px 15px #0008}
+.tile svg{width:100%;height:104px;display:block;object-fit:cover}
+.tile .tile-text{display:block;padding:3px 5px 11px;background:linear-gradient(180deg,#05040922,#050509 20%);}
+.tile strong{display:block;color:#f5d47a;font:700 clamp(.75rem,2.3vw,1.24rem)/1.24 Georgia,serif;letter-spacing:.05em}
+.tile small{display:block;color:#fbefd5;font-size:clamp(.55rem,1.3vw,.75rem);letter-spacing:.08em;line-height:1.45;margin-top:3px;text-transform:uppercase}
+.tile:hover,.tile:focus-visible{border-color:#fff0b5;box-shadow:0 0 0 1px #ffe09c,0 0 18px #e8ad624e}
+.quick-access{margin-top:19px}
+.quick-access h2{font-size:1rem;color:var(--gold)}
+.quick-nav{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+.quick-nav a{display:inline-flex;align-items:center;min-height:44px;padding:10px 13px;border-radius:12px;background:#1b161b;border:1px solid #8c6e39;text-decoration:none;color:#f4ddad;font-weight:700}
+.all-apps{border-top:1px solid #705629;margin-top:26px;padding-top:13px;scroll-margin-top:20px}
+.all-apps h2{color:var(--gold);letter-spacing:.05em}
+.app-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.app-links a{padding:13px;min-height:56px;display:flex;align-items:center;text-decoration:none;background:#181318;border:1px solid #5f4927;border-radius:12px;font-size:.9rem}
+.identity-note{margin:20px 0 0;padding:14px 16px;border:1px solid var(--line);background:#151318;border-radius:14px;font-size:.84rem;color:#e4d8c5;line-height:1.55}
+.identity-note strong{color:var(--gold)}
+.identity-note p{margin:0}
+.identity-note p+p{margin-top:7px}
+.truth-note{color:#c8b795;font-size:.79rem;margin:14px 0}
+.dock{position:fixed;bottom:0;left:0;right:0;z-index:20;padding:11px 10px calc(9px + env(safe-area-inset-bottom));border-top:1px solid #b78b40;background:linear-gradient(180deg,#131017f9,#07070afa);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;box-shadow:0 -6px 24px #000a}
+.dock a,.dock button{border:0;background:transparent;color:#fff3de;min-width:0;min-height:63px;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:.75rem}
+.dock .dock-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;font-size:1.6rem;background:linear-gradient(145deg,#2d374c,#131620);box-shadow:inset 0 1px #ffdf8a73}
+.dock .phone{background:linear-gradient(145deg,#32d45b,#0c7c2e)}
+.dock .messages{background:linear-gradient(145deg,#47b2fe,#0545d2)}
+.dock .internet{background:linear-gradient(145deg,#469acb,#103c82)}
+.dock .camera{background:linear-gradient(145deg,#ddd,#676b78)}
+.dock .all{background:#22180d;border:2px solid var(--gold)}
+.dock small{display:none}
+dialog{width:min(420px,calc(100% - 28px));border:1px solid var(--gold);border-radius:19px;background:#171119;color:#fff1d7;padding:20px;box-shadow:0 25px 75px #000}
+dialog::backdrop{background:#000b}
+dialog h2{color:var(--gold);margin-top:0}
+dialog p{line-height:1.5}
+dialog button{min-height:44px;border:1px solid var(--gold);border-radius:11px;background:#f2c768;color:#171006;font-weight:800;padding:9px 17px}
+dialog label{display:block;margin:15px 0}
+button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid #fff7d9;outline-offset:3px}
+.reduce-glow *{box-shadow:none!important;text-shadow:none!important}
+@media(min-width:1120px){.dock{max-width:1120px;margin:auto;border-left:1px solid #b78b40;border-right:1px solid #b78b40;border-radius:20px 20px 0 0}}
+@media(max-width:650px){
+ .brand .crown{margin-left:27px}
+ .clock-hero{padding:16px 0 8px}
+ .widgets{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .widget{padding:13px;min-height:126px;border-radius:17px}
+ .widget.weather{grid-column:span 2;min-height:100px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center}
+ .widget.weather .widget-title{grid-column:2}
+ .world-time b{font-size:.9rem}
+ .tiles{gap:8px}
+ .tile{min-height:119px;border-radius:13px}
+ .tile svg{height:78px}
+ .tile .tile-text{padding:1px 4px 8px}
+ .search-panel{margin-top:13px}
+ .app-links{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:365px){
+ .brand .full{font-size:.57rem;letter-spacing:.09em}
+ .tools{gap:5px}
+ .round-tool{width:42px;height:42px}
+ .home-search{gap:4px}
+ .home-search button{min-width:50px;font-size:.8rem}
+ .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .tile svg{height:94px}
+ .tile strong{font-size:1rem}
+ .tile small{font-size:.68rem}
+ .dock a,.dock button{font-size:.65rem}
+ .dock .dock-icon{width:37px;height:37px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#oap-apps">Skip to OAP apps</a>
+<div class="page">
+<div class="royal-sky" aria-hidden="true"></div>
+<main>
+<header class="brand-row">
+ <div class="brand" aria-label="ON ANY POSTCODE Home V2">
+  <span class="crown" aria-hidden="true">♛</span>
+  <span class="oap">OAP</span>
+  <span class="full">ON ANY POSTCODE</span>
+  <span class="home">HOME</span>
+  <h1>♛ OAP HOME V2</h1>
+ </div>
+ <div class="top-actions">
+  <div class="tools">
+   <button class="round-tool" type="button" data-dialog="settings-dialog" aria-label="Home V2 settings">⚙</button>
+   <details class="top-menu"><summary class="round-tool" aria-label="More OAP Home choices">⋮</summary>
+    <nav class="menu-panel" aria-label="Home menu"><a href="#oap-apps">All apps</a><a href="/store">OAP Store</a><a href="/mission/smi">Private SMI</a><a href="#product-boundaries">Product boundaries</a></nav>
+   </details>
+  </div>
+  <span class="tagline">Born Local.<br>Built Global.</span>
+ </div>
+</header>
+<div class="clock-hero" aria-label="Device time">
+ <div class="date" id="home-date">Date unavailable</div>
+ <div class="time" id="home-clock">--:--</div>
+</div>
+<section class="widgets" aria-label="Personal information">
+ <article class="widget weather"><span class="weather-icon" aria-hidden="true">☀</span><strong class="widget-title">Weather</strong><div><div class="large">—</div><div class="muted">Live local weather not connected</div></div></article>
+ <article class="widget"><span class="widget-title">▦ Next event</span><div><div class="large">—</div><div class="muted">Calendar not connected</div></div></article>
+ <article class="widget"><span class="widget-title">🌍 World clock</span><div class="time-list" aria-label="World city times">
+  <span class="world-time"><span>London</span><b data-timezone="Europe/London">--:--</b></span>
+  <span class="world-time"><span>New York</span><b data-timezone="America/New_York">--:--</b></span>
+  <span class="world-time"><span>Dubai</span><b data-timezone="Asia/Dubai">--:--</b></span>
+  <span class="world-time"><span>Accra</span><b data-timezone="Africa/Accra">--:--</b></span>
+ </div></article>
+</section>
+<section class="search-panel" aria-labelledby="home-search-title">
+ <h2 id="home-search-title">🔎 Search OAP</h2>
+ <form class="home-search" role="search" method="get" action="/search">
+  <span class="search-symbol" aria-hidden="true">⌕</span>
+  <label class="visually-hidden" for="home-search-query">Search public OAP apps</label>
+  <input id="home-search-query" type="search" name="q" maxlength="120" autocomplete="off" placeholder="Search apps and OAP…" required>
+  <button type="submit" aria-label="Search public OAP apps">Find</button>
+  <a class="search-ai" href="/mission/smi" aria-label="Open private SMI Command Center">🧠</a>
+ </form>
+ <p class="search-caption">Public OAP catalogue only · Web browsing is a separate OAP Internet app. Private messages and Founder tools are not searched.</p>
+ <nav class="search-shortcuts" aria-label="Explore from search">
+  <a href="/arena/connect4">🎮 Play Connect 4</a>
+  <a href="/search?q=market">🛍 Market</a>
+  <a href="/search?q=library">📚 Library</a>
+  <a href="/search?q=music">🎵 Music</a>
+  <a href="/store">Browse apps</a>
+ </nav>
+</section>
+<h2 class="grid-heading" id="destinations-title">ON ANY POSTCODE</h2>
+<section class="tiles" aria-labelledby="destinations-title" id="oap-apps">
+ <a class="tile" href="/world"><svg viewBox="0 0 320 180" aria-hidden="true"><use href="/static/oap/home_v2_royal_tiles.svg#world"></use></svg><span class="tile-text"><strong>OAP WORLD</strong><small>One ecosystem</small></span></a>
+ <a class="tile" href="/linkup"><svg viewBox="0 0 320 180" aria-hidden="true"><use href="/static/oap/home_v2_royal_tiles.svg#link"></use></svg><span class="tile-text"><strong>LINK UP</strong><small>People &amp; community</small></span></a>
+ <a class="tile" href="/pay/bank"><svg viewBox="0 0 320 180" aria-hidden="true"><use href="/static/oap/home_v2_royal_tiles.svg#sika"></use></svg><span class="tile-text"><strong>SIKA</strong><small>Finance &amp; opportunity</small></span></a>
+ <a class="tile" href="/oap-map"><svg viewBox="0 0 320 180" aria-hidden="true"><use href="/static/oap/home_v2_royal_tiles.svg#maps"></use></svg><span class="tile-text"><strong>OAP MAPS</strong><small>Places &amp; navigation</small></span></a>
+ <a class="tile" href="/mail"><svg viewBox="0 0 320 180" aria-hidden="true"><use href="/static/oap/home_v2_royal_tiles.svg#mail"></use></svg><span class="tile-text"><strong>OAP MAIL</strong><small>Private inbox · sign-in</small></span></a>
+ <a class="tile" href="/market"><svg viewBox="0 0 320 180" aria-hidden="true"><use href="/static/oap/home_v2_royal_tiles.svg#market"></use></svg><span class="tile-text"><strong>OAP MARKET</strong><small>Buy · sell · grow</small></span></a>
+ <a class="tile" href="/tv"><svg viewBox="0 0 320 180" aria-hidden="true"><use href="/static/oap/home_v2_royal_tiles.svg#tv"></use></svg><span class="tile-text"><strong>OAP TV</strong><small>Watch &amp; stream</small></span></a>
+ <a class="tile" href="/arena/connect4"><svg viewBox="0 0 320 180" aria-hidden="true"><use href="/static/oap/home_v2_royal_tiles.svg#arena"></use></svg><span class="tile-text"><strong>OAP ARENA</strong><small>Games &amp; challenges</small></span></a>
+ <a class="tile" href="/library"><svg viewBox="0 0 320 180" aria-hidden="true"><use href="/static/oap/home_v2_royal_tiles.svg#library"></use></svg><span class="tile-text"><strong>OAP LIBRARY</strong><small>Learn &amp; explore</small></span></a>
+</section>
+<section class="quick-access" aria-label="Priority apps"><h2>Quick access</h2>
+ <nav class="quick-nav" aria-label="OAP Home navigation"><a href="/home-v2" aria-current="page">⌂ Home</a><a href="/world">🌍 World</a><a href="/store">▣ Store</a><a href="/ptt">🎙 PTT</a></nav>
+ <nav class="quick-nav" aria-label="More destinations"><a href="/the-spot">📍 The Spot</a><a href="/the-link">🔗 The Link</a><a href="/my-world">👤 My World</a><a href="/travel">🗺 Travel</a></nav>
+</section>
+<section class="all-apps" aria-label="Additional OAP apps">
+ <h2>All apps · Browse OAP apps</h2>
+ <div class="app-links">
+  <a href="/store">🛍️ OAP Store</a><a href="/ptt">🎙️ OAP PTT</a><a href="/arena/connect4">🎮 Connect 4</a>
+  <a href="/the-spot">📍 The Spot</a><a href="/the-link">🔗 The Link</a><a href="/mission/smi">🧠 Private SMI</a>
+ </div>
+ <p class="truth-note">The Spot: Your postcode community inside OAP World. Personal SMI remains permission-gated.</p>
+</section>
+<section class="identity-note" id="product-boundaries" aria-label="Separate OAP product identities">
+ <p><strong>🌐 OAP Internet</strong> is a separate Android browser application for OPEN WEB destinations. It is not the Home V2 dashboard or an OAP-wide web search engine.</p>
+ <p><strong>🧠 OAP Home Node</strong> is the separate local SMI worker runtime. Home V2 does not automatically start, stop or certify it.</p>
+</section>
+<p class="truth-note" role="note">Device phone, camera and system controls require a separately verified Android integration. No live weather or calendar data is claimed.</p>
+</main>
+</div>
+<nav class="dock" aria-label="Personal quick-launch dock">
+ <a href="tel:" aria-label="Open Android phone dialler, when supported"><span class="dock-icon phone" aria-hidden="true">☎</span><span>Phone</span></a>
+ <a href="sms:" aria-label="Open Android messages app, when supported"><span class="dock-icon messages" aria-hidden="true">✉</span><span>Messages</span></a>
+ <button type="button" data-dialog="internet-dialog" aria-label="OAP Internet separate application information"><span class="dock-icon internet" aria-hidden="true">◎</span><span>Internet</span></button>
+ <button type="button" data-dialog="camera-dialog" aria-label="Camera Android integration status"><span class="dock-icon camera" aria-hidden="true">◉</span><span>Camera</span></button>
+ <a href="#oap-apps" aria-label="Jump to OAP applications"><span class="dock-icon all" aria-hidden="true">⌃</span><span>All Apps</span></a>
+</nav>
+<dialog id="internet-dialog" aria-labelledby="internet-title"><h2 id="internet-title">🌐 OAP Internet</h2><p>OAP Internet is a separately named Android browser app. Launch it from your Android app list when installed. Home V2 cannot honestly claim to launch or install that native package from this web page.</p><form method="dialog"><button>Close</button></form></dialog>
+<dialog id="camera-dialog" aria-labelledby="camera-title"><h2 id="camera-title">📷 Camera</h2><p>Native camera launch from Home V2 has not passed Android permission and integration testing. No camera capture or upload starts here.</p><form method="dialog"><button>Close</button></form></dialog>
+<dialog id="settings-dialog" aria-labelledby="settings-title"><h2 id="settings-title">⚙ Home V2 appearance</h2><p>Local display preference; no settings are uploaded or saved.</p><label><input id="glow-setting" type="checkbox"> Reduce decorative glow</label><form method="dialog"><button>Close</button></form></dialog>
+<script>
+(()=>{
+ const clock=document.getElementById("home-clock"), date=document.getElementById("home-date");
+ const formatLocalTime=new Intl.DateTimeFormat(undefined,{hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
+ const formatLocalDate=new Intl.DateTimeFormat(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+ const zones=[...document.querySelectorAll("[data-timezone]")];
+ const formatters=zones.map(el=>{try{return new Intl.DateTimeFormat("en-GB",{timeZone:el.dataset.timezone,hour:"2-digit",minute:"2-digit",hourCycle:"h23"})}catch(_){return null}});
+ function update(){const now=new Date();clock.textContent=formatLocalTime.format(now);date.textContent=formatLocalDate.format(now);zones.forEach((el,i)=>el.textContent=formatters[i]?formatters[i].format(now):"—")}
+ update();setInterval(update,30000);
+ document.querySelectorAll("[data-dialog]").forEach(btn=>btn.addEventListener("click",()=>{
+   const dialog=document.getElementById(btn.dataset.dialog);
+   if(dialog&&typeof dialog.showModal==="function")dialog.showModal();
+ }));
+ const glow=document.getElementById("glow-setting");
+ if(glow)glow.addEventListener("change",()=>document.body.classList.toggle("reduce-glow",glow.checked));
+})();
+</script>
+</body>
+</html>
