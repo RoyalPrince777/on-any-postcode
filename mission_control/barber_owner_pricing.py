@@ -23,7 +23,7 @@ def _identity(value: object, name: str) -> str:
 
 def _price_minor(amount: object) -> int:
     if isinstance(amount, bool):
-        raise ValueError("sika_price_invalid")
+        raise TypeError("sika_price_invalid")
     raw = str(amount if amount is not None else "").strip()
     if not raw or len(raw) > 24:
         raise ValueError("sika_price_invalid")
