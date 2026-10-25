@@ -1200,7 +1200,7 @@ def smi_studio_detect_faces():
                     503,
                 )
             return _no_store(make_response(jsonify(result)))
-        finally:
+    finally:
         # Release the local slot on all exits; DB advisory lock releases when
         # the transaction context closes. No shared lock can be bypassed on Render.
         slot.release()
