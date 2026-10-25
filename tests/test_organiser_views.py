@@ -100,3 +100,25 @@ def test_film_evidence_api_is_founder_only_and_read_only(monkeypatch):
     assert len(research["source_receipts"]) == 3
     assert research["private_communication_ingestion_enabled"] is False
     assert research["execution_enabled"] is False
+
+
+def test_founder_archive_shows_all_three_film_research_identities_under_existing_council(
+    monkeypatch,
+):
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser").status_code == 403
+
+    response = _client(monkeypatch, founder=True).get("/mission/organiser")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert page.count('data-film-reference="m3gan"') == 1
+    assert page.count('data-film-reference="amelia"') == 1
+    assert page.count('data-film-reference="black_box"') == 1
+    assert "M3GAN · AMELIA · BLACK BOX" in page
+    assert "Captain ALL IN" in page
+    assert "Bagheera" in page and "Shere Khan" in page
+    assert "Founder Final remains final" in page
+    assert "no live crawler" in page
+    assert "no verified character runtime" in page
+    assert "Read Founder-only source receipts" in page
+    assert response.headers["Cache-Control"] == "no-store"
