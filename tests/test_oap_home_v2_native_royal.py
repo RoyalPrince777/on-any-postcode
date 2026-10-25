@@ -32,9 +32,12 @@ class NativeRoyalHomeTests(unittest.TestCase):
         ))
         self.assertNotIn("BIND_DEVICE_ADMIN", MANIFEST.read_text(encoding="utf-8"))
         self.assertIn("Settings.ACTION_HOME_SETTINGS", self.source)
+        self.assertEqual(len(self.manifest.find("application").findall("activity")), 1)
 
     def test_package_identity_and_separate_internet_app(self):
-        self.assertIn("applicationId 'com.onanypostcode.oaphome.v2'", GRADLE.read_text())
+        self.assertIn("applicationId 'com.onanypostcode.oaphome'", GRADLE.read_text())
+        self.assertIn("versionCode 21", GRADLE.read_text())
+        self.assertNotIn("applicationId 'com.onanypostcode.oaphome.v2'", GRADLE.read_text())
         queries = self.manifest.find("queries")
         self.assertIsNotNone(queries)
         self.assertTrue(any(p.get(ANDROID + "name") == "com.onanypostcode.oapworld"
