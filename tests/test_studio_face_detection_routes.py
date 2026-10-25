@@ -90,3 +90,46 @@ def test_rate_limit_fails_closed(client, csrf, monkeypatch):
     result = _send(client, csrf["csrf_token"])
     assert result.status_code == 429
     assert result.json["error"]["code"] == "rate_limited"
+
+
+def test_face_detector_has_separate_seven_per_minute_cpu_budget(client, csrf, monkeypatch):
+    """Seven permitted attempts; chat's larger coalescing limiter stays untouched."""
+    monkeypatch.setenv("OAP_SMI_FACE_DETECTION_ENABLED", "true")
+    monkeypatch.setattr(
+        studio_face_detection,
+        "detect_faces",
+        lambda image: {"state": "analysed", "face_count": 0, "faces": [],
+                       "identity_verified": False},
+    )
+    limiter = web_security.VISION_FACE_BURST_LIMITER
+    assert limiter.limit == 7
+    assert limiter.window_seconds == 60
+    assert limiter.fingerprint_request_body is False
+    before = dict(web_security.CHAT_BURST_LIMITER._events)
+    for _ in range(7):
+        assert _send(client, csrf["csrf_token"]).status_code == 200
+    eighth = _send(client, csrf["csrf_token"])
+    assert eighth.status_code == 429
+    assert eighth.json["error"]["code"] == "rate_limited"
+    assert dict(web_security.CHAT_BURST_LIMITER._events) == before
+
+
+def test_face_route_never_exports_even_route_metadata_to_external_telemetry(
+    client, csrf, monkeypatch,
+):
+    """Ordinary local HTTP logging persists, but external telemetry excludes this path."""
+    import app as app_module
+
+    emitted = []
+    monkeypatch.setattr(
+        app_module.telemetry,
+        "record_http_request",
+        lambda **kwargs: emitted.append(kwargs),
+    )
+    monkeypatch.delenv("OAP_SMI_FACE_DETECTION_ENABLED", raising=False)
+    response = _send(client, csrf["csrf_token"])
+    assert response.status_code == 423
+    assert emitted == []
+    client.get("/healthz")
+    assert emitted
+    assert all("/mission/studio/vision/faces" not in str(row) for row in emitted)
