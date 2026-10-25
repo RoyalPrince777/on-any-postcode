@@ -5,7 +5,7 @@ name: OAP Home Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feat/oap-home-v2-smi-mainline-20261025]
     paths:
       - 'android/oaphome/**'
       - '.github/workflows/oap-home-apk.yml'
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: oap-home-apk-master777
+          ref: ${{ github.sha }}
       - name: Verify checked-out V2 source and record revision
         shell: bash
         run: |
