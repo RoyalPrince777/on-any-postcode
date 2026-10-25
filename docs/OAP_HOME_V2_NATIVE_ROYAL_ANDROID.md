@@ -6,7 +6,7 @@ Status: **Native Android source upgrade under review. Not installed, not device-
 
 - **OAP Home V2:** existing native Android Home launcher project at `android/oaphome/`,
   built as an **in-place upgrade to the original OAP Home Android app**
-  `com.onanypostcode.oaphome`, with the visible name **OAP Home V2**.
+  `com.onanypostcode.oaphome`, with the visible name **OAP Home** (V2 is the implementation version, not a second icon).
   Android `CATEGORY_HOME` and `CATEGORY_DEFAULT` preserve its role in the
   same system Home destination. It must not install a competing
   `com.onanypostcode.oaphome.v2` app. The currently installed package must
@@ -59,7 +59,7 @@ Views and `RoyalHomeArt.java` Canvas drawing, rather than rendering
 3. Before any update, run the **read-only** `scripts/oap_home_v2_inplace_apk_gate.py`
    against a verified copy of the installed original APK and the exact
    release candidate APK. The gate checks identical package ID, exact signer,
-   strictly higher versionCode and `OAP Home V2` visible app name. Missing
+   strictly higher versionCode and `OAP Home` visible app name. Missing
    evidence, missing `aapt` or `apksigner`, signer mismatch or downgrade
    **blocks installation**. The existing signing workflow has not established
    same-signer identity with Build #19 and must not be treated as a release.
