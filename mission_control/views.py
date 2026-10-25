@@ -1168,7 +1168,7 @@ def smi_studio_detect_faces():
                         "SELECT pg_try_advisory_xact_lock(%s, %s)",
                         (777, 1305),
                     ).fetchone()
-                except Exception:
+                except Exception:  # noqa: BLE001 - any DB failure must fail closed.
                     return _error(
                         "face_shared_guard_unavailable",
                         "Shared private Vision admission is unavailable.",
