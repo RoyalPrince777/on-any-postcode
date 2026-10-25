@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import json
+from contextlib import ExitStack
 
 from flask import (
     Blueprint,
@@ -1152,27 +1153,56 @@ def smi_studio_detect_faces():
             503,
         )
     try:
-        payload = request.get_json(silent=True)
-        if not isinstance(payload, dict):
-            return _error("invalid_request", "A JSON object is required.", 400)
-        try:
-            result = studio_face_detection.detect_faces(payload.get("image_data"))
-        except (TypeError, ValueError) as exc:
-            oversized = str(exc) in {"face_image_too_large", "face_image_dimensions_exceeded"}
-            return _error(
-                "face_image_too_large" if oversized else "invalid_face_image",
-                "Image exceeds Vision limits." if oversized else "Image cannot be processed.",
-                413 if oversized else 400,
-            )
-        except RuntimeError:
-            return _error(
-                "face_detector_unavailable",
-                "The offline Studio face detector is unavailable.",
-                503,
-            )
-        return _no_store(make_response(jsonify(result)))
-    finally:
-        # Must release on success, bad input, detector failure or JSON error.
+        with ExitStack() as admission:
+            # The process-local slot is a first gate; hosted workers need a
+            # second, PostgreSQL transaction-scoped lock on the same OAP store.
+            # There is no implicit failover or fallback to process-local only.
+            hosted = environ.get("RENDER", "").strip().lower() == "true"
+            shared_required = environ.get(
+                "OAP_SMI_FACE_SHARED_GUARD_REQUIRED", "false"
+            ).strip().lower() == "true"
+            if hosted or shared_required:
+                try:
+                    connection = admission.enter_context(postgres_db.connect())
+                    row = connection.execute(
+                        "SELECT pg_try_advisory_xact_lock(%s, %s)",
+                        (777, 1305),
+                    ).fetchone()
+                except Exception:
+                    return _error(
+                        "face_shared_guard_unavailable",
+                        "Shared private Vision admission is unavailable.",
+                        503,
+                    )
+                if row is None or row[0] is not True:
+                    return _error(
+                        "face_detector_busy",
+                        "Private Vision is processing another still. Retry later.",
+                        503,
+                    )
+            # Hold the advisory transaction lock until local decoding finishes.
+            payload = request.get_json(silent=True)
+            if not isinstance(payload, dict):
+                return _error("invalid_request", "A JSON object is required.", 400)
+            try:
+                result = studio_face_detection.detect_faces(payload.get("image_data"))
+            except (TypeError, ValueError) as exc:
+                oversized = str(exc) in {"face_image_too_large", "face_image_dimensions_exceeded"}
+                return _error(
+                    "face_image_too_large" if oversized else "invalid_face_image",
+                    "Image exceeds Vision limits." if oversized else "Image cannot be processed.",
+                    413 if oversized else 400,
+                )
+            except RuntimeError:
+                return _error(
+                    "face_detector_unavailable",
+                    "The offline Studio face detector is unavailable.",
+                    503,
+                )
+            return _no_store(make_response(jsonify(result)))
+        finally:
+        # Release the local slot on all exits; DB advisory lock releases when
+        # the transaction context closes. No shared lock can be bypassed on Render.
         slot.release()
 
 
