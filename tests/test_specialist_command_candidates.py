@@ -11,8 +11,8 @@ class SpecialistCommandCandidateTests(unittest.TestCase):
     def test_six_sections_with_twenty_one_unique_descriptive_agents(self):
         self.assertEqual(len(spec.EXTENDED_FAMILIES), 6)
         self.assertEqual(len(spec.EXTENDED_AGENTS), 21)
-        self.assertEqual(len(set(a["review_key"] for a in spec.EXTENDED_AGENTS)), 21)
-        self.assertEqual(len(set(a["name"] for a in spec.EXTENDED_AGENTS)), 21)
+        self.assertEqual(len({a["review_key"] for a in spec.EXTENDED_AGENTS}), 21)
+        self.assertEqual(len({a["name"] for a in spec.EXTENDED_AGENTS}), 21)
 
     def test_complete_official_british_army_two_track_reference(self):
         ranks = spec.UK_ARMY_RANK_REFERENCE
