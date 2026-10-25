@@ -13,7 +13,8 @@ SMI Chat and existing Face Up/Vision controls are **capture** surfaces. OAP Stud
 - Disabled by default. Only a deliberately set `OAP_SMI_FACE_DETECTION_ENABLED=true` enables the route in that environment. Do **not** enable it in production without device/security proof and Founder Final.
 - A dedicated **7 requests/minute per Founder identity per worker process** burst limit protects CPU-intensive decoding. It does **not** read/cache the face image body to create a request fingerprint, and does not consume the ordinary Chat quota.
 - An additional **single concurrent image per worker process** admission semaphore rejects overlapping frames immediately with HTTP **503** `face_detector_busy`, before parsing the queued image; the semaphore is released in a `finally` block on success, invalid input and local-detector failure. This does not provide a CPU-time kill switch and does not limit usage across other workers.
-- These controls are defence-in-depth only. Shared cross-worker admission/rate limiting, bounded CPU execution time and actual workload-level measurements still require operational evidence before live service.
+- When hosted on **Render** (or when `OAP_SMI_FACE_SHARED_GUARD_REQUIRED=true`), the enabled route also requires `pg_try_advisory_xact_lock(777, 1305)` through the existing **authoritative OAP PostgreSQL** connection. The lock is held throughout decoding/detection and released with the transaction; a busy lock returns 503 `face_detector_busy`, and an unavailable database returns 503 `face_shared_guard_unavailable`, never silently falling back to the local slot. No new tables, tracking, or database migration are introduced.
+- The guarded lock coordinates workers using **the same PostgreSQL database**. Non-Render hosts must explicitly enforce the shared guard; it is not a global rate limit and cannot preempt a stuck native OpenCV operation. Distributed **7/min identity rate limiting**, bounded CPU execution time, production database connectivity and actual workload-level measurements still require operational proof before live service.
 - Requests without a declared acceptable Content-Length fail closed.
 - Accepts JSON: `{"image_data":"data:image/png;base64,..."}` (also genuine JPEG or WebP). Only an explicitly submitted frame, not a camera stream.
 - At most 3 MiB decoded bytes, 4 million pixels, or 4096 pixels per side. Format spoofing and invalid images are rejected.
@@ -36,6 +37,9 @@ SMI Chat and existing Face Up/Vision controls are **capture** surfaces. OAP Stud
 ```sh
 pip install -r requirements-vision.txt
 python -m pytest -q tests/test_studio_face_detection.py tests/test_studio_face_detection_routes.py
+# CI only: with OAP_REAL_POSTGRES_PROOF=1 and an isolated authorized
+# OAP_PRIMARY_DATABASE_URL, run real two-session lock contention:
+python -m pytest -q tests/test_studio_face_postgres_admission_integration.py
 # Browser certification (requires Playwright + real Chromium):
 python tests/smi_vision_face_browser_proof.py
 ```
@@ -50,5 +54,6 @@ The optional dependencies do not modify the base `requirements.txt`. OpenCV uses
 - Real Founder-device consent/STOP/relaunch/permission-denial evidence and latency/memory checks.
 - Detection quality checks with appropriately consented diverse faces and non-face images, including false positives, misses and lighting/pose limitations.
 - Security review of crafted media decoding, dependency vulnerability scanning, audit/release evidence and Founder Final.
+- Real-host shared-guard deployment proof, multiple worker/replica test, and application/database resource budgets; CI PostgreSQL tests alone do not establish production readiness.
 
 Continuous video, emotion detection, recognition, attendance, biometric login and automatic background recording are **out of scope and not authorised** by this capability.
