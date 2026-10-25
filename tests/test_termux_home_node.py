@@ -1,6 +1,8 @@
 import ast
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = (ROOT / "scripts" / "termux_home_node_run.sh").read_text()
 SETUP = (ROOT / "scripts" / "termux_home_node_setup.sh").read_text()
@@ -80,3 +82,27 @@ def test_home_node_inference_worker_is_required_for_green_documented_status():
     assert "worker_recently_seen=true" in DOC
     assert "first_party_inference_ready=true" in DOC
     assert "scripts/oap_home_node_inference_worker.py" in DOC
+
+
+def test_fox_home_node_bridge_requires_explicit_non_render_https_route():
+    from scripts import oap_home_node_inference_worker as worker
+
+    valid = "https://smi.example.test/mission"
+    assert worker._approved_bridge_url(valid + "/") == valid
+    for invalid in (
+        "",
+        "https://oap-smi.onrender.com/mission",
+        "http://smi.example.test/mission",
+        "https://smi.example.test/",
+        "https://smi.example.test/mission?token=abc",
+        "https://user:pass@smi.example.test/mission",
+        "https://smi.example.test:bad/mission",
+    ):
+        with pytest.raises(RuntimeError):
+            worker._approved_bridge_url(invalid)
+    assert 'OAP_HOME_NODE_BRIDGE_URL", ""' in (ROOT / "scripts" / "oap_home_node_inference_worker.py").read_text()
+    assert "read -r bridge_url" in SETUP
+    assert 'OAP_HOME_NODE_BRIDGE_URL=%q' in SETUP
+    assert "https://oap-smi.onrender.com/mission" not in SETUP
+    assert worker._NoRedirect().redirect_request(None, None, 302, "", {}, "https://untrusted.example/") is None
+    assert worker._OPENER is not None
