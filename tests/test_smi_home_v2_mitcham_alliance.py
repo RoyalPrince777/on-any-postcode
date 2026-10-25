@@ -74,7 +74,7 @@ def test_only_existing_mission_fit_alliances_not_new_passports():
     assert board["can_execute"] is False
 
 
-def test_mitcham_mission_visible_in_private_existing_war_room(client, anonymous_client):
+def test_mitcham_mission_visible_in_private_existing_war_room(client):
     read_only = war_room.get_war_room_dashboard()
     mission = read_only["intelligence_alliance_board"]["home_v2_mitcham_mission"]
     assert mission["scope"] == "founder_private_read_only"
@@ -93,4 +93,10 @@ def test_mitcham_mission_visible_in_private_existing_war_room(client, anonymous_
     ):
         assert expected.casefold() in html.casefold()
     assert page.headers["Cache-Control"] == "no-store"
+
+
+def test_mitcham_private_war_room_denies_anonymous_request(anonymous_client):
+    # Use a separate request context to avoid leaking the authenticated
+    # fixture's cached g-user into the anonymous Flask request.
     assert anonymous_client.get("/mission/war-room").status_code == 302
+    assert anonymous_client.get("/mission/war-room/status").status_code == 401
