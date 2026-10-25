@@ -141,6 +141,7 @@ def _app(monkeypatch, *, logged_in=True):
     )
     app = Flask(__name__, template_folder="../mission_control/templates")
     app.secret_key = "test-only-local-cookie"
+    app.add_url_rule("/the-spot", endpoint="the_spot_front_door", view_func=lambda: "Spot")
     app.register_blueprint(barber_owner_views.bp)
     return app
 
