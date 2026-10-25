@@ -1,5 +1,6 @@
 """Home V2 navigation must not change the existing OAP World front door."""
 from pathlib import Path
+from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parents[1]
 HOME = ROOT / "templates" / "home_v2.html"
@@ -66,3 +67,29 @@ def test_home_v2_search_finds_connect4_and_can_return_to_home(client):
     assert 'href="/home-v2"' in body
     assert 'href="/store"' in body
     assert "public OAP app catalogue only" in body
+
+
+def test_home_v2_keeps_personal_name_distinct_from_internet_and_home_node(client):
+    html = HOME.read_text(encoding="utf-8")
+    assert "<title>OAP Home V2 · Personal Dashboard</title>" in html
+    assert "<h1>♛ OAP HOME V2</h1>" in html
+    assert 'aria-label="Separate OAP product identities"' in html
+    assert "OAP Internet</strong> is a separate Android browser application" in html
+    assert "OAP Home Node</strong> is the separate local SMI worker runtime" in html
+    assert "Home V2 does not automatically start, stop or certify it" in html
+    response = client.get("/home-v2")
+    assert response.status_code == 200
+    assert b"OAP HOME V2" in response.data
+    assert b"OAP Internet" in response.data
+
+
+def test_native_oap_internet_label_keeps_distinct_app_identity():
+    """A label change must not change the existing native app package or Home Node."""
+    manifest = ROOT / "android" / "oapworld" / "src" / "main" / "AndroidManifest.xml"
+    root = ElementTree.parse(manifest).getroot()
+    application = root.find("application")
+    assert application is not None
+    assert application.get("{http://schemas.android.com/apk/res/android}label") == "OAP Internet"
+    build = (ROOT / "android" / "oapworld" / "build.gradle").read_text(encoding="utf-8")
+    assert "applicationId 'com.onanypostcode.oapworld'" in build
+    assert (ROOT / "scripts" / "oap_home_node_supervisor.py").is_file()
