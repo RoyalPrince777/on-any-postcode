@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
     .spot-hero{display:grid;gap:12px}.spot-pulse{display:block;border:1px solid var(--mc-line);border-radius:18px;background:var(--mc-panel-soft);padding:20px;color:var(--mc-text);text-decoration:none}.spot-pulse:hover,.spot-pulse:focus-visible{border-color:var(--mc-green);outline:none}.spot-pulse strong{display:block;font-size:1.25rem;margin-bottom:5px}.spot-core{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px}.spot-core a,.spot-world{display:flex;flex-direction:column;gap:5px;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-core a:hover,.spot-core a:focus-visible,.spot-world:hover,.spot-world:focus-visible{border-color:var(--mc-green);outline:none}.spot-core strong{display:block}.spot-core small{color:var(--mc-muted);line-height:1.35}.spot-more{margin-top:4px}.spot-more summary{cursor:pointer;font-weight:800;padding:10px 0}.spot-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.spot-more-grid a{border:1px solid var(--mc-line);border-radius:12px;padding:11px;color:var(--mc-text);text-decoration:none}.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.spot-bar a{border:1px solid var(--mc-line);border-radius:999px;padding:8px 12px;color:var(--mc-text);text-decoration:none}.spot-intro{max-width:760px}.spot-media,.spot-platform{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}.spot-media a,.spot-platform a{display:flex;flex-direction:column;gap:6px;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-media a:hover,.spot-media a:focus-visible,.spot-platform a:hover,.spot-platform a:focus-visible{border-color:var(--mc-green);outline:none}.spot-platform strong{font-size:1.03rem}.spot-platform small{color:var(--mc-muted);line-height:1.35}.spot-note{margin:0;color:var(--mc-muted)}.spot-truth{margin:10px 0 0;color:var(--mc-muted);font-size:.9rem}.spot-platform-title{margin-bottom:8px}.spot-platform-law{margin:10px 0 0;border-left:3px solid var(--mc-green);padding:8px 11px;color:var(--mc-muted)}
+    .spot-welcome{display:grid;gap:12px;padding:18px;border:1px solid var(--mc-line);border-radius:18px;background:var(--mc-panel-soft)}.spot-welcome h2,.spot-welcome p{margin:0}.spot-welcome-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.spot-welcome-actions a{display:flex;flex-direction:column;gap:7px;border:1px solid var(--mc-line);border-radius:14px;padding:16px;background:var(--mc-panel-soft);color:var(--mc-text);text-decoration:none}.spot-welcome-actions a:hover,.spot-welcome-actions a:focus-visible{border-color:var(--mc-green);outline:2px solid transparent}.spot-welcome-actions small,.spot-welcome-note{color:var(--mc-muted);line-height:1.45}.spot-welcome-note a{color:var(--mc-green);text-underline-offset:3px}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -30,6 +31,23 @@
         <strong id="spot-pulse-title">📡 Pulse</strong>
         <span>See what’s happening around you.</span>
       </a>
+
+      <section class="spot-welcome" aria-labelledby="spot-welcome-title">
+        <p class="mc-eyebrow">🌍 From any postcode · Explore for free</p>
+        <h2 id="spot-welcome-title">New here? Start with something fun.</h2>
+        <p>Arriving from WhatsApp or anywhere in the world? Explore without creating My Card.</p>
+        <div class="spot-welcome-actions" aria-label="Start exploring OAP">
+          <a href="/studio">
+            <strong>✨ Ask OAP Studio Intelligence</strong>
+            <small>Explore public AI chat. Availability depends on its configured provider; voice, files and private creation stay separately protected.</small>
+          </a>
+          <a href="/arena">
+            <strong>🎮 Play OAP Arena</strong>
+            <small>Discover games and challenges. Some actions have their own access and readiness checks.</small>
+          </a>
+        </div>
+        <p class="spot-welcome-note">Want your own space later? <a href="/my-card/create">My Card is free and optional</a>. Private Link Up actions require secure sign-in.</p>
+      </section>
 
       <div class="spot-core" aria-label="The Spot core order">
         <a href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}"><strong>🌍 Earth</strong><small>Continent → Country + National Anthem → County / Region → Borough / District → Postcode.</small></a>
