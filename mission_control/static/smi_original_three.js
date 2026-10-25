@@ -18,6 +18,7 @@
       if (profile === "m3gan") {
         payload = {
           request: values.get("request"),
+          area: values.get("area"),
           consent: values.get("consent") === "on",
         };
       } else if (profile === "amelia") {
