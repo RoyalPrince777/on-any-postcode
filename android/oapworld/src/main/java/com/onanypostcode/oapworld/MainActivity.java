@@ -3,6 +3,7 @@ package com.onanypostcode.oapworld;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -19,8 +20,10 @@ import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.TextView;
 
 import androidx.activity.ComponentActivity;
 
@@ -45,6 +48,7 @@ public final class MainActivity extends ComponentActivity {
     private String engineSourcePath;
     private EditText omnibox;
     private Button backButton;
+    private TextView trustLabel;
     private final List<String> engineHistory = new ArrayList<>();
     private int engineHistoryIndex = -1;
 
@@ -64,6 +68,8 @@ public final class MainActivity extends ComponentActivity {
 
         backButton = navButton("‹");
         Button homeButton = navButton("OAP");
+        homeButton.setContentDescription("Return to OAP World");
+        backButton.setContentDescription("Go back");
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
@@ -146,6 +152,50 @@ public final class MainActivity extends ComponentActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
+        // KORADASO browser identity uses the original cropped royal artwork.
+        // OAP World remains the homepage, not a second launcher.
+        LinearLayout royalHeader = new LinearLayout(this);
+        royalHeader.setOrientation(LinearLayout.HORIZONTAL);
+        royalHeader.setGravity(Gravity.CENTER_VERTICAL);
+        royalHeader.setPadding(dp(12), dp(6), dp(12), dp(6));
+        royalHeader.setBackgroundColor(Color.rgb(8, 6, 12));
+
+        ImageView royalIcon = new ImageView(this);
+        royalIcon.setImageResource(R.drawable.koradaso_royal_icon);
+        royalIcon.setContentDescription("KORADASO crown and K globe emblem");
+        royalIcon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        royalHeader.addView(royalIcon, new LinearLayout.LayoutParams(dp(48), dp(48)));
+
+        LinearLayout brandText = new LinearLayout(this);
+        brandText.setOrientation(LinearLayout.VERTICAL);
+        brandText.setPadding(dp(8), 0, dp(6), 0);
+        TextView brandName = new TextView(this);
+        brandName.setText("KORADASO INTERNET");
+        brandName.setTypeface(null, Typeface.BOLD);
+        brandName.setTextColor(Color.rgb(239, 200, 93));
+        brandName.setTextSize(14);
+        brandName.setSingleLine(true);
+        brandText.addView(brandName);
+        TextView parentBrand = new TextView(this);
+        parentBrand.setText("POWERED BY ON ANY POSTCODE");
+        parentBrand.setTextColor(Color.rgb(195, 169, 216));
+        parentBrand.setTextSize(9);
+        parentBrand.setSingleLine(true);
+        brandText.addView(parentBrand);
+        royalHeader.addView(brandText, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        trustLabel = new TextView(this);
+        trustLabel.setText("OAP WORLD");
+        trustLabel.setTextColor(Color.rgb(239, 200, 93));
+        trustLabel.setTextSize(10);
+        trustLabel.setContentDescription("Trust boundary: OAP WORLD");
+        royalHeader.addView(trustLabel);
+        root.addView(royalHeader, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+
         root.addView(toolbar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -205,6 +255,10 @@ public final class MainActivity extends ComponentActivity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                updateTrustLabel(url);
+            }
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 String scheme = uri.getScheme();
@@ -214,6 +268,7 @@ public final class MainActivity extends ComponentActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 omnibox.setText(url);
+                updateTrustLabel(url);
                 refreshNavigationState();
             }
         });
@@ -247,6 +302,10 @@ public final class MainActivity extends ComponentActivity {
             openFirstPartyPath("/world");
         }
         refreshNavigationState();
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private Button navButton(String label) {
@@ -326,6 +385,7 @@ public final class MainActivity extends ComponentActivity {
     private void loadWebViewUrl(String url) {
         engineClient.cancelPending();
         showWebViewFallback();
+        updateTrustLabel(url);
         webView.loadUrl(url);
     }
 
@@ -357,6 +417,7 @@ public final class MainActivity extends ComponentActivity {
                 }
             }
             omnibox.setText(sourcePath == null ? "OAP Engine" : OAP_ORIGIN + sourcePath);
+            updateTrustLabel(OAP_ORIGIN + (sourcePath == null ? "/world" : sourcePath));
             refreshNavigationState();
         } catch (org.json.JSONException error) {
             loadWebViewUrl(OAP_ORIGIN + (sourcePath == null ? "/" : sourcePath));
@@ -454,6 +515,24 @@ public final class MainActivity extends ComponentActivity {
             webView.setVisibility(View.VISIBLE);
         }
         refreshNavigationState();
+    }
+
+    private void updateTrustLabel(String url) {
+        if (trustLabel == null) {
+            return;
+        }
+        Uri uri = Uri.parse(url == null ? "" : url);
+        Uri owned = Uri.parse(OAP_ORIGIN);
+        boolean firstParty = "https".equalsIgnoreCase(uri.getScheme())
+                && owned.getHost() != null
+                && owned.getHost().equalsIgnoreCase(uri.getHost())
+                && uri.getPort() == -1
+                && uri.getUserInfo() == null;
+        String state = firstParty ? "OAP WORLD" : "OPEN WEB";
+        trustLabel.setText(state);
+        trustLabel.setTextColor(firstParty
+                ? Color.rgb(239, 200, 93) : Color.rgb(255, 185, 117));
+        trustLabel.setContentDescription("Trust boundary: " + state);
     }
 
     private void refreshNavigationState() {
