@@ -122,3 +122,28 @@ def test_founder_archive_shows_all_three_film_research_identities_under_existing
     assert "no verified character runtime" in page
     assert "Read Founder-only source receipts" in page
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_founder_technology_evidence_is_source_linked_and_not_on_public_brain(
+    monkeypatch,
+):
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser").status_code == 403
+    assert blocked.get("/mission/organiser/research/film-evidence").status_code == 403
+
+    page_response = _client(monkeypatch, founder=True).get("/mission/organiser")
+    page = page_response.get_data(as_text=True)
+    assert page_response.status_code == 200
+    assert page.count('data-real-technology="m3gan"') == 3
+    assert page.count('data-real-technology="amelia"') == 2
+    assert page.count('data-real-technology="black_box"') == 2
+    assert "Amelia 7 (SoundHound AI)" in page
+    assert "BLACKBOX AI coding agents" in page
+    assert "no provider connected" in page
+    assert "no physical robot proof" in page
+    api = _client(monkeypatch, founder=True).get(
+        "/mission/organiser/research/film-evidence"
+    )
+    assert api.status_code == 200
+    assert len(api.get_json()["real_world_technology_evidence"]) == 7
+    assert api.headers["Cache-Control"] == "no-store"
