@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>OAP Home V2</title>
+<title>OAP Home V2 · Personal Dashboard</title>
 <style>
 :root{color-scheme:dark;--gold:#f4cb65;--bg:#09090c;--panel:#17151a;--line:#776032}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 50% 0%,#423013 0%,#101016 44%,var(--bg) 78%);color:#fff9eb;font:16px/1.45 system-ui,sans-serif}
@@ -11,11 +11,12 @@ header{text-align:center;padding:20px 0 12px}h1{color:var(--gold);font-size:clam
 .home-time{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:18px 0 8px;color:#e8d8b0}.time{font-size:clamp(1.25rem,5vw,1.65rem);font-variant-numeric:tabular-nums;font-weight:800}.date{color:#dfd0ac;font-size:.9rem}
 .search-panel{border:1px solid #ac873d;border-radius:22px;background:linear-gradient(145deg,#322511,#17141a 78%);box-shadow:0 14px 32px #0008;padding:20px;margin:14px 0 0}.search-panel h2{font-size:clamp(1.4rem,5vw,2rem);color:var(--gold);margin:0 0 4px}.search-panel p{color:#e0d5be;font-size:.88rem;margin:0 0 16px}.home-search{display:flex;gap:10px;align-items:stretch}.home-search input{min-width:0;flex:1;min-height:64px;border:2px solid #ac873d;border-radius:15px;background:#0c0b0f;color:#fff9eb;padding:0 16px;font:inherit;font-size:1.1rem}.home-search input::placeholder{color:#bfb2a0}.home-search button{min-height:64px;min-width:105px;border:0;border-radius:15px;background:var(--gold);color:#181109;font:inherit;font-weight:850;cursor:pointer;padding:0 16px}.search-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.search-shortcuts a{display:inline-flex;align-items:center;min-height:43px;border:1px solid #776032;border-radius:999px;background:#161319;color:#f7e7c9;text-decoration:none;padding:9px 13px;font-size:.86rem;font-weight:650}.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tile{border:1px solid var(--line);background:linear-gradient(135deg,#282018,#111116);border-radius:16px;min-height:104px;padding:17px;text-decoration:none;color:inherit;display:flex;flex-direction:column;justify-content:center;gap:7px}.tile strong{color:var(--gold);font-size:1rem}.tile span{color:#e4d8c5;font-size:.83rem}.tile.featured{border-color:var(--gold)}
+.identity-note{margin:20px 0 0;padding:14px 16px;border:1px solid var(--line);background:#151318;border-radius:14px;font-size:.84rem;color:#e4d8c5;line-height:1.55}.identity-note strong{color:var(--gold)}.identity-note p{margin:0}.identity-note p+p{margin-top:6px}
 h2{font-size:1rem;color:var(--gold);margin:26px 0 12px}.dock{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#101014f5;border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:5}.dock a{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:10px;color:#fff9eb;text-decoration:none;font-weight:700}.dock a[aria-current]{background:var(--gold);color:#14110a}a:focus-visible,input:focus-visible,button:focus-visible{outline:3px solid #fff;outline-offset:3px}@media(max-width:380px){.home-search{flex-direction:column}.home-search button{width:100%}}@media(min-width:700px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.dock{max-width:980px;margin:auto;border:1px solid var(--line);border-radius:16px 16px 0 0}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
 <body><main>
-<header><h1>♛ OAP HOME</h1><p>ON ANY POSTCODE · Born Local. Built Global.</p></header>
+<header><h1>♛ OAP HOME V2</h1><p>Personal dashboard · ON ANY POSTCODE</p></header>
 <section class="search-panel" aria-labelledby="home-search-title">
 <h2 id="home-search-title">🔎 Search OAP</h2>
 <p>Find public OAP apps and destinations. Private messages and Founder tools are not searched.</p>
@@ -47,6 +48,10 @@ h2{font-size:1rem;color:var(--gold);margin:26px 0 12px}.dock{position:fixed;bott
 <a class="tile" href="/arena/chess"><strong>🎮 OAP Arena</strong><span>Games and challenges</span></a>
 <a class="tile" href="/linkup"><strong>💬 Link Up</strong><span>Communication</span></a>
 </div></section>
+<section class="identity-note" aria-label="Separate OAP product identities">
+<p><strong>🌐 OAP Internet</strong> is a separate Android browser application for OPEN WEB destinations. It is not the Home V2 dashboard or an OAP-wide web search engine.</p>
+<p><strong>🧠 OAP Home Node</strong> is the separate local SMI worker runtime. Home V2 does not automatically start, stop or certify it.</p>
+</section>
 <p role="note">Device phone, camera and system controls require a separately verified Android integration. No live weather or calendar data is claimed.</p>
 </main><nav class="dock" aria-label="OAP Home navigation"><a href="/home-v2" aria-current="page">⌂ Home</a><a href="/world">🌍 World</a><a href="/store">▣ Store</a><a href="/ptt">🎙 PTT</a></nav>
 <script>(()=>{const clock=document.getElementById("home-clock"),date=document.getElementById("home-date");function update(){const now=new Date();clock.textContent=new Intl.DateTimeFormat(undefined,{hour:"2-digit",minute:"2-digit"}).format(now);date.textContent=new Intl.DateTimeFormat(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(now)}update();setInterval(update,30000)})();</script>
