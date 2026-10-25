@@ -19,6 +19,8 @@ def test_home_v2_does_not_claim_unverified_device_capabilities():
     html = HOME.read_text(encoding="utf-8")
     assert "separately verified Android integration" in html
     assert "No live weather or calendar data is claimed" in html
+    assert "Browse OAP apps" in html
+    assert "Install OAP apps" not in html
 
 
 def test_world_keeps_store_outside_its_reference_ui():
