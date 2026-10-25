@@ -84,7 +84,20 @@
             <li>{{ speciality }}</li>
             {% endfor %}
           </ul>
-          <p class="org-meta">{{ intelligence.research_boundary }}</p>
+          <strong>Full film-canon ability evidence</strong>
+          <ul class="org-links" aria-label="{{ intelligence.name }} verified film abilities">
+            {% for ability in archive.film_intelligence_research.film_canon_abilities if ability.reference_key == intelligence.reference_key %}
+            <li data-film-ability="{{ ability.reference_key }}:{{ ability.ability_id }}">
+              <strong>{{ ability.name }}</strong> — {{ ability.film_evidence }}
+              <span class="org-meta">Film evidence: {{ ability.evidence_scope.replace('_', ' ') }} ·
+                {% for source in archive.film_intelligence_research.source_receipts if source.source_id == ability.source_id %}
+                <a href="{{ source.url }}" target="_blank" rel="noreferrer noopener">Film source</a>
+                {% endfor %}
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+          <p class="org-meta">{{ intelligence.research_boundary }} · All film abilities are fictional; real OAP implementation requires independent proof.</p>
         </article>
         {% endfor %}
       </div>
