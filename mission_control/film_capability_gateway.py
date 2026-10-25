@@ -253,11 +253,83 @@ def verify_black_box_manifest(
     }
 
 
+# The original SMI Self-Improvement v2 / Evolution Engine owns governed
+# promotion. These three profiles can evaluate evidence and recommend a
+# reversible review, never approve changes, train a model or mutate code.
+_SELF_CHECKS = {
+    "m3gan": ("source_integrity", "consent_verified", "context_bounded"),
+    "amelia": ("policy_integrity", "threat_evidence", "independent_review"),
+    "black_box": ("manifest_integrity", "isolation_evidence", "recovery_evidence"),
+}
+_SELF_REMEDIATION = {
+    "source_integrity": "Verify film-source provenance before further answers.",
+    "consent_verified": "Restore consent gate before film-research access.",
+    "context_bounded": "Enforce three-entry context bound; do not retain history.",
+    "policy_integrity": "Recheck deny-by-default action policy against Guardian.",
+    "threat_evidence": "Add attributable threat evidence; do not infer readiness.",
+    "independent_review": "Require Shere Khan and Bagheera review before Green.",
+    "manifest_integrity": "Obtain an authenticated, exact-manifest integrity receipt.",
+    "isolation_evidence": "Verify OS-level containment on the real target device.",
+    "recovery_evidence": "Demonstrate independent rollback and verified recovery.",
+}
+
+
+def self_assess(profile: object, payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Evaluate supplied, explicit proof for one existing SMI specialist.
+
+    True is only a caller assertion; no caller evidence can certify itself.
+    This is a bounded gap report for the existing governed Evolution Engine,
+    not an actual agent model that learns, modifies weights or self-deploys.
+    """
+
+    if profile not in _SELF_CHECKS:
+        raise ValueError("unknown_original_three_profile")
+    if set(payload) != {"checks"} or not isinstance(payload["checks"], dict):
+        raise ValueError("checks_object_required")
+    checks = payload["checks"]
+    required = _SELF_CHECKS[profile]
+    if set(checks) != set(required) or any(type(v) is not bool for v in checks.values()):
+        raise ValueError("invalid_self_check_contract")
+    unresolved = [key for key in required if checks[key] is not True]
+    candidate = {
+        "profile": profile,
+        "target": "existing_smi_governed_evolution_engine",
+        "change_type": "review_only",
+        "requested_capability": "close_verified_evidence_gaps",
+        "unresolved_checks": unresolved,
+        "recommended_work": [_SELF_REMEDIATION[key] for key in unresolved],
+        "reversible": True,
+        "candidate_applied": False,
+    }
+    digest = hashlib.sha256(_manifest_bytes(candidate)).hexdigest()
+    return {
+        **_envelope(str(profile)),
+        "state": "review_required" if unresolved else "reported_checks_present",
+        "required_checks": list(required),
+        "supplied_checks": dict(checks),
+        "unresolved_checks": unresolved,
+        "recommended_work": candidate["recommended_work"],
+        "candidate_digest": digest,
+        "candidate": candidate,
+        "self_assessment_is_independent_proof": False,
+        "self_improvement_candidate_prepared": bool(unresolved),
+        "model_training_performed": False,
+        "code_change_performed": False,
+        "self_approval": False,
+        "self_promotion": False,
+        "self_deployment": False,
+        "guardian_review_required": True,
+        "human_authority_final": True,
+    }
+
+
 def evaluate(profile: object, payload: object) -> dict[str, Any]:
     """Dispatch three actual bounded application functions; no model instances."""
 
     if not isinstance(payload, dict):
         raise TypeError("json_object_required")
+    if payload.get("mode") == "self_assess":
+        return self_assess(profile, {key: value for key, value in payload.items() if key != "mode"})
     if profile == "m3gan":
         return m3gan_consented_research(payload)
     if profile == "amelia":
@@ -275,6 +347,9 @@ def status() -> dict[str, Any]:
         "amelia_runtime": "typed_defensive_review_no_execution",
         "black_box_runtime": "server_keyed_hmac_manifest_policy_check",
         "other_business_missions_in_scope": False,
+        "self_assessment": "bounded_gap_detection_proposals_no_auto_apply",
+        "self_improvement_evolution_owner": "existing_smi_governed_evolution_engine",
+        "independent_model_training": False,
         "motherboard_key_configured": len(os.environ.get(MOTHERBOARD_KEY_ENV, "").encode()) >= 32,
         "network_isolation_enforced_at_os_level": False,
         "hardware_isolation_proven": False,
