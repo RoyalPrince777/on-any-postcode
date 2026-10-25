@@ -61,6 +61,14 @@ public class MainActivity extends Activity {
         return d;
     }
 
+    private GradientDrawable royalHeader() {
+        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                new int[]{Color.rgb(4, 9, 22), Color.rgb(29, 23, 12), Color.rgb(5, 10, 23)});
+        d.setCornerRadius(dp(18));
+        d.setStroke(dp(1), GOLD);
+        return d;
+    }
+
     private TextView label(String value, int size) {
         TextView v = new TextView(this);
         v.setText(value);
@@ -113,9 +121,12 @@ public class MainActivity extends Activity {
 
     private void home() {
         base("♛ OAP HOME");
-        body.addView(label("ON ANY POSTCODE", 21));
-        body.addView(label("BORN LOCAL · BUILT GLOBAL", 13));
-        earth = label("🌍  OAP WORLD  ·  EARTH IS OUR TURF", 17);
+        TextView royalBrand = label("♛  OAP  ♛\nON ANY POSTCODE", 23);
+        royalBrand.setTypeface(Typeface.SERIF, Typeface.BOLD);
+        royalBrand.setBackground(royalHeader());
+        body.addView(royalBrand, new LinearLayout.LayoutParams(-1, dp(96)));
+        body.addView(label("BORN LOCAL · BUILT GLOBAL · EARTH IS OUR TURF", 12));
+        earth = label("🌍  OAP WORLD", 17);
         earth.setTypeface(Typeface.SERIF, Typeface.BOLD);
         body.addView(earth, new LinearLayout.LayoutParams(-1, dp(64)));
         clock = label("", 26);
