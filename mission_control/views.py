@@ -27,6 +27,7 @@ from . import (
     judgement,
     ollama_chat,
     organism,
+    oap_digital_government,
     postgres_db,
     products,
     public_store,
@@ -354,6 +355,36 @@ def war_room_status():
     """Return the same read-only, redacted War Room evidence projection."""
 
     return _no_store(make_response(jsonify(war_room.get_war_room_dashboard())))
+
+
+@bp.get("/digital-government")
+@web_security.login_required(founder_only=True)
+def digital_government_view():
+    """OAP's Founder-private, non-sovereign digital governance front door."""
+    snapshot = oap_digital_government.status()
+    if not snapshot["checks_passed"]:
+        return _error(
+            "digital_government_integrity_failed",
+            "The governance roster is unavailable pending independent review.",
+            503,
+        )
+    return _no_store(make_response(render_template(
+        "oap_digital_government.html", govt=snapshot,
+    )))
+
+
+@bp.get("/digital-government/status")
+@web_security.login_required(api=True, founder_only=True)
+def digital_government_status():
+    """Read-only machine-readable evidence, without any public powers or writes."""
+    snapshot = oap_digital_government.status()
+    if not snapshot["checks_passed"]:
+        return _error(
+            "digital_government_integrity_failed",
+            "The governance roster is unavailable pending independent review.",
+            503,
+        )
+    return _no_store(make_response(jsonify(snapshot)))
 
 
 @bp.get("/war-room/secure-seats")
