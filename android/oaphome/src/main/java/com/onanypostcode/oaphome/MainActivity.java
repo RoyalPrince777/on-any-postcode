@@ -129,7 +129,7 @@ public class MainActivity extends Activity {
         body.setOrientation(LinearLayout.VERTICAL);
         body.setPadding(0, 0, 0, dp(28));
         scroll.addView(body);
-        if ("♛ OAP HOME".equals(title)) {
+        if ("♛ OAP ROYAL HOME".equals(title)) {
             addPersistentHomeDock(root);
         }
     }
@@ -142,8 +142,8 @@ public class MainActivity extends Activity {
     }
 
     private void home() {
-        base("♛ OAP HOME");
-        TextView royalBrand = label("♛  OAP  ♛\nON ANY POSTCODE", 23);
+        base("♛ OAP ROYAL HOME");
+        TextView royalBrand = label("♛  OAP ROYAL HOME  ♛\nON ANY POSTCODE", 23);
         royalBrand.setTypeface(Typeface.SERIF, Typeface.BOLD);
         royalBrand.setBackground(royalHeader());
         body.addView(royalBrand, new LinearLayout.LayoutParams(-1, dp(96)));
@@ -355,9 +355,9 @@ public class MainActivity extends Activity {
         body.addView(label("VIRTUAL DEVICE CONTROL", 19));
         body.addView(label("Runtime: NOT CONNECTED", 17));
         body.addView(label("No Android VM, remote session or virtual device has been provisioned.", 14));
-        body.addView(label("OAP Home V2: local launcher source; virtual-device integration pending.", 14));
+        body.addView(label("OAP Royal Home: local launcher source; virtual-device integration pending.", 14));
         addButton("OPEN OAP INTERNET", v -> openInternet());
-        addButton("BACK TO OAP HOME", v -> home());
+        addButton("BACK TO ROYAL HOME", v -> home());
     }
 
     private android.webkit.WebView activeWebView;
@@ -458,7 +458,7 @@ public class MainActivity extends Activity {
             if (activeWebView == viewer && viewer.getUrl() != null
                     && safeWebAddress(Uri.parse(viewer.getUrl()))) viewer.reload();
         });
-        addButton("BACK TO OAP HOME", v -> { closeWebView(); home(); });
+        addButton("BACK TO ROYAL HOME", v -> { closeWebView(); home(); });
     }
 
     private void open(Intent intent) {
@@ -505,7 +505,7 @@ public class MainActivity extends Activity {
             p.setMargins(dp(2), dp(3), dp(2), dp(3));
             dock.addView(nav, p);
         }
-        addButton("BACK TO OAP HOME", v -> home());
+        addButton("BACK TO ROYAL HOME", v -> home());
     }
 
     private boolean handlePttTouch(MotionEvent event) {
@@ -556,7 +556,7 @@ public class MainActivity extends Activity {
         body.addView(label(status, 16));
         body.addView(label("Nothing here is presented as live until the corresponding transport and device proof passes.", 12));
         addButton("BACK TO TALK", v -> pttMenu());
-        addButton("BACK TO OAP HOME", v -> home());
+        addButton("BACK TO ROYAL HOME", v -> home());
     }
 
     private void destination(String name) {
@@ -585,7 +585,7 @@ public class MainActivity extends Activity {
             default:
                 base(name);
                 body.addView(label("No verified OAP route for this destination.", 18));
-                addButton("BACK TO OAP HOME", v -> home());
+                addButton("BACK TO ROYAL HOME", v -> home());
                 return;
         }
         openInternetAddress(OAP_API_ORIGIN + path);
@@ -630,7 +630,7 @@ public class MainActivity extends Activity {
         };
         search.addTextChangedListener(new OapAppSearchWatcher(refresh));
         refresh.run();
-        addButton("BACK TO OAP HOME", v -> home());
+        addButton("BACK TO ROYAL HOME", v -> home());
     }
 
     @Override public void onCreate(Bundle state) {
