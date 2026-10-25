@@ -165,12 +165,12 @@
   </div>
 </section>
 
-{% set home_v2_alliance = alliance_board.home_v2_mitcham_mission %}
-<section class="smi-roster-board" id="smi-home-v2-mitcham" aria-labelledby="smi-home-v2-mitcham-title">
+{% set home_v2_alliance = alliance_board.home_v2_android_update_mission %}
+<section class="smi-roster-board" id="smi-home-v2-android-update" aria-labelledby="smi-home-v2-android-update-title">
   <div class="ey">🟣 SMI · Native Android Home V2 · Founder-only mission alliance</div>
-  <h2 id="smi-home-v2-mitcham-title">👑 {{ home_v2_alliance.title }}</h2>
+  <h2 id="smi-home-v2-android-update-title">👑 {{ home_v2_alliance.title }}</h2>
   <p class="smi-roster-note"><strong>Decision:</strong> {{ home_v2_alliance.decision }}</p>
-  <p class="smi-roster-note">{{ home_v2_alliance.location }}. {{ home_v2_alliance.phone }}. This is an advisory assignment, not proof of live local testing, autonomous agents, or a new location feed.</p>
+  <p class="smi-roster-note">{{ home_v2_alliance.target }}. {{ home_v2_alliance.device_acceptance }}. This is an advisory assignment, not proof of Android installation, autonomous agents or runtime acceptance.</p>
   <div class="smi-roster-command" aria-label="Home V2 mission governance">
     <article><strong>🧠 {{ home_v2_alliance.smi_command }}</strong><small>One unified intelligence command; no extra AI brain.</small></article>
     <article><strong>🛡️ Guardian / Bagheera</strong><small>Permissions, consent, signing identity, old-app and stock-launcher protection.</small></article>
@@ -190,7 +190,7 @@
       </div>
     </div>
     <div class="smi-roster-panel">
-      <h3>Best-fit established alliances · Mitcham field checks</h3>
+      <h3>Best-fit established alliances · Native Home V2 update</h3>
       <ul>
         {% for alliance in home_v2_alliance.alliance_refs %}
         <li><strong>{{ alliance.id|replace('_',' ')|title }}</strong> — {{ alliance.mission_fit }}</li>
