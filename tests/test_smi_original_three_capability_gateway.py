@@ -207,3 +207,60 @@ def test_gateway_rejects_non_json_and_unknown_profile():
         gateway.evaluate("m3gan", "unexpected string")
     with pytest.raises(ValueError, match="unknown_original_three_profile"):
         gateway.evaluate("other", {})
+
+
+def test_original_three_self_assess_distinct_checklists_and_real_gaps():
+    expected = {
+        "m3gan": ["source_integrity", "consent_verified", "context_bounded"],
+        "amelia": ["policy_integrity", "threat_evidence", "independent_review"],
+        "black_box": ["manifest_integrity", "isolation_evidence", "recovery_evidence"],
+    }
+    for profile, names in expected.items():
+        checks = dict.fromkeys(names, False)
+        report = gateway.evaluate(
+            profile, {"mode": "self_assess", "checks": checks},
+        )
+        assert report["state"] == "review_required"
+        assert report["unresolved_checks"] == names
+        assert len(report["candidate_digest"]) == 64
+        assert len(report["recommended_work"]) == 3
+        assert report["candidate"]["profile"] == profile
+        assert report["candidate"]["reversible"] is True
+        assert report["candidate"]["candidate_applied"] is False
+        assert report["model_training_performed"] is False
+        assert report["code_change_performed"] is False
+        assert report["self_approval"] is False
+        assert report["self_deployment"] is False
+        assert report["self_assessment_is_independent_proof"] is False
+
+
+def test_self_assessment_complete_checks_do_not_claim_production_green():
+    checks = {
+        "manifest_integrity": True,
+        "isolation_evidence": True,
+        "recovery_evidence": True,
+    }
+    result = gateway.evaluate(
+        "black_box", {"mode": "self_assess", "checks": checks},
+    )
+    assert result["state"] == "reported_checks_present"
+    assert result["unresolved_checks"] == []
+    assert result["self_assessment_is_independent_proof"] is False
+    assert result["self_improvement_candidate_prepared"] is False
+    assert result["self_promotion"] is False
+    assert result["operation_performed"] is False
+
+
+def test_self_assessment_cannot_invent_checks_or_accept_non_bool():
+    for payload in (
+        {"mode": "self_assess", "checks": {"source_integrity": True}},
+        {"mode": "self_assess", "checks": {"source_integrity": True,
+            "consent_verified": True, "context_bounded": True, "admin": True}},
+        {"mode": "self_assess", "checks": {
+            "source_integrity": 1, "consent_verified": True,
+            "context_bounded": True,
+        }},
+        {"mode": "self_assess", "checks": "all green"},
+    ):
+        with pytest.raises(ValueError):
+            gateway.evaluate("m3gan", payload)
