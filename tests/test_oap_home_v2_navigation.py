@@ -93,3 +93,32 @@ def test_native_oap_internet_label_keeps_distinct_app_identity():
     build = (ROOT / "android" / "oapworld" / "build.gradle").read_text(encoding="utf-8")
     assert "applicationId 'com.onanypostcode.oapworld'" in build
     assert (ROOT / "scripts" / "oap_home_node_supervisor.py").is_file()
+
+
+def test_local_personal_home_startup_does_not_take_over_world(client, monkeypatch):
+    """Only the explicit localhost:5050 local-mode entry should open Home V2."""
+    monkeypatch.setenv("OAP_LOCAL_MODE", "true")
+    start = client.get("/", base_url="http://127.0.0.1:5050")
+    assert start.status_code == 302
+    assert start.headers["Location"].endswith("/home-v2")
+    home = client.get("/", base_url="http://127.0.0.1:5050", follow_redirects=True)
+    assert home.status_code == 200
+    assert b"OAP HOME V2" in home.data
+    assert b"ON ANY POSTCODE" in home.data
+
+    # Explicit OAP World remains separate; its canonical public front door works.
+    world = client.get("/world?source=oap-os", base_url="http://127.0.0.1:5050")
+    assert world.status_code == 200
+    assert b"<title>OAP World</title>" in world.data
+
+    # Other hosts and ports preserve OAP World as their default.
+    for url in ("http://localhost:5000", "https://onanypostcode.example", "http://127.0.0.1:7777"):
+        response = client.get("/", base_url=url)
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith("/world")
+
+    # Without explicit local mode, even localhost:5050 keeps public default.
+    monkeypatch.delenv("OAP_LOCAL_MODE", raising=False)
+    default = client.get("/", base_url="http://127.0.0.1:5050")
+    assert default.status_code == 302
+    assert default.headers["Location"].endswith("/world")
