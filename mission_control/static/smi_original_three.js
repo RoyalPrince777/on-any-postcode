@@ -17,8 +17,8 @@
       let payload;
       if (profile === "m3gan") {
         payload = {
-          request: values.get("request"),
-          area: values.get("area"),
+          question: values.get("question"),
+          context: String(values.get("context") || "").split("\n").map((item) => item.trim()).filter(Boolean).slice(0, 3),
           consent: values.get("consent") === "on",
         };
       } else if (profile === "amelia") {
