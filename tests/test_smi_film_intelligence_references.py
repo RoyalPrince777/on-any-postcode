@@ -98,3 +98,55 @@ def test_research_data_is_not_exposed_by_general_brain_status():
     assert "film_intelligence_research" not in public_status["archive"]
     assert "film_intelligence_research" not in smi_archive.status()
     assert len(_references()["source_receipts"]) == 3
+
+
+def test_real_ai_technology_references_are_separate_from_film_identities():
+    research = _references()
+    sources = research["real_world_technology_evidence"]
+    assert len(sources) == 7
+    assert {item["reference_key"] for item in sources} == {
+        "m3gan", "amelia", "black_box",
+    }
+    assert {item["reference_key"]: item["name"] for item in research["entries"]} == {
+        "m3gan": "M3GAN",
+        "amelia": "AMELIA",
+        "black_box": "BLACK BOX",
+    }
+    names = {item["real_name"] for item in sources}
+    assert "Amelia 7 (SoundHound AI)" in names
+    assert "BLACKBOX AI coding agents" in names
+    assert "Gemini Robotics On-Device 2" in names
+    assert all(item["relationship"] != "same_as_film_character" for item in sources)
+
+
+def test_real_technology_source_receipts_are_bound_and_cannot_grant_authority():
+    from urllib.parse import urlsplit
+
+    research = _references()
+    sources = research["real_world_technology_evidence"]
+    permitted_hosts = {
+        "deepmind.google",
+        "www.figure.ai",
+        "bostondynamics.com",
+        "investors.soundhound.com",
+        "atlas.mitre.org",
+        "www.blackbox.ai",
+        "www.nist.gov",
+    }
+    assert all(
+        urlsplit(item["source_url"]).scheme == "https"
+        and urlsplit(item["source_url"]).hostname in permitted_hosts
+        and not urlsplit(item["source_url"]).username
+        and item["evidence"] and item["scope_limit"] and item["oap_research_use"]
+        for item in sources
+    )
+    assert research["real_world_technology_review_date"] == "2026-10-25"
+    assert research["technology_evidence_mode"] == "reviewed_public_publisher_claims_and_standards"
+    assert research["live_fetch_enabled"] is False
+    assert research["external_provider_integrations_enabled"] is False
+    assert research["oap_owned_robot_hardware_proven"] is False
+    assert research["film_characters_operational_in_oap"] is False
+    assert research["agent_passports_created"] == 0
+    assert research["new_brains_created"] == 0
+    assert research["private_communication_ingestion_enabled"] is False
+    assert "film_intelligence_research" not in smi_archive.status()
