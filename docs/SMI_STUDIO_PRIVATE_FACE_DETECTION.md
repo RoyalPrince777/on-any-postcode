@@ -11,11 +11,13 @@ SMI Chat and existing Face Up/Vision controls are **capture** surfaces. OAP Stud
 - `POST /mission/studio/vision/faces` — the existing Mission Control blueprint.
 - Founder authentication required, valid `X-OAP-CSRF` required.
 - Disabled by default. Only a deliberately set `OAP_SMI_FACE_DETECTION_ENABLED=true` enables the route in that environment. Do **not** enable it in production without device/security proof and Founder Final.
-- The existing SMI chat burst limiter applies. Requests without a declared acceptable Content-Length fail closed.
+- A dedicated **7 requests/minute per Founder identity per worker process** burst limit protects CPU-intensive decoding. It does **not** read/cache the face image body to create a request fingerprint, and does not consume the ordinary Chat quota. This is defence-in-depth only: an external/shared distributed limit and workload-level CPU/concurrency measurements are still required before live service.
+- Requests without a declared acceptable Content-Length fail closed.
 - Accepts JSON: `{"image_data":"data:image/png;base64,..."}` (also genuine JPEG or WebP). Only an explicitly submitted frame, not a camera stream.
 - At most 3 MiB decoded bytes, 4 million pixels, or 4096 pixels per side. Format spoofing and invalid images are rejected.
 - Returns `image.width`, `image.height`, `face_count`, and `faces` with `x, y, width, height` in original-image pixels.
 - No image, embedding, face template, personal name or emotional inference is written to HRM, stored, or returned; response is `Cache-Control: no-store`.
+- The ordinary local HTTP request audit retains route/status/timing but does not log the media body. This private face route is **excluded from optional Datadog/external HTTP telemetry**. Host/reverse-proxy access logs and connected infrastructure still require a separate live privacy inspection.
 - Face-count and box coordinates are **detector estimates**; neither accuracy/liveness nor identity is certified.
 - Invalid images return 400 or 413; missing detector returns 503; off-by-default returns 423. No silent fallback to remote inference.
 
