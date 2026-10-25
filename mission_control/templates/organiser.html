@@ -123,6 +123,89 @@
     </section>
     {% endif %}
 
+    <section class="mc-panel" id="three-live-boundary" aria-labelledby="three-live-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Actual bounded application code · Founder-only</p><h2 id="three-live-title">Original Three · Functional Gateway</h2></div><span class="mc-lock-badge">No independent execution</span></div>
+      <p>These controls run three real, limited OAP software operations. They are <strong>not</strong> robotic intelligence, fictional military access or a physical Xenox motherboard. Existing SMI and Founder authority remain unchanged.</p>
+      <div class="org-grid">
+        <article class="org-card">
+          <h3>M3GAN · Consented local discovery</h3>
+          <p>Reads actual Certified OAP Direct barber/event availability where installed. Never reserves a place automatically.</p>
+          <form data-original-profile="m3gan" class="org-form">
+            <label>Booking enquiry<input name="request" maxlength="240" required placeholder="Find a barber in Mitcham"></label>
+            <label class="org-check"><input type="checkbox" name="consent" required> I consent to this first-party availability lookup</label>
+            <button type="submit">Check real availability</button>
+          </form>
+          <pre data-original-result="m3gan" class="org-meta" aria-live="polite"></pre>
+        </article>
+        <article class="org-card">
+          <h3>AMELIA · Defensive action assessment</h3>
+          <p>Checks the allowed action policy and reports HOLD or review-only; cannot take action or override Shere Khan and Bagheera.</p>
+          <form data-original-profile="amelia" class="org-form">
+            <label>Proposed operation
+              <select name="action" required>
+                <option value="inspect_public_evidence">Inspect public evidence</option>
+                <option value="inspect_booking_availability">Inspect booking availability</option>
+                <option value="inspect_runtime_status">Inspect runtime status</option>
+                <option value="review_security_receipt">Review security receipt</option>
+                <option value="secret_export">Attempt secret export — blocked</option>
+                <option value="self_modify">Attempt self-modification — blocked</option>
+              </select>
+            </label>
+            <label class="org-check"><input name="source_verified" type="checkbox"> Source verified by reviewer (self-declared)</label>
+            <button type="submit">Review action policy</button>
+          </form>
+          <pre data-original-result="amelia" class="org-meta" aria-live="polite"></pre>
+        </article>
+        <article class="org-card">
+          <h3>BLACK BOX · Motherboard software trust boundary</h3>
+          <p>Checks a server-keyed HMAC signature and strict read-only manifest. Requires a separately provisioned server key and legitimately signed input; does not create physical hardware, run a sandbox or execute workloads.</p>
+          <form data-original-profile="black_box" class="org-form">
+            <label>Signed manifest JSON<textarea name="manifest" maxlength="2048" required placeholder="Paste an authorised, externally signed JSON manifest"></textarea></label>
+            <label>HMAC-SHA256 signature (lowercase hex)<input name="signature" maxlength="64" required placeholder="64 hexadecimal characters"></label>
+            <button type="submit">Verify signed isolation policy</button>
+          </form>
+          <pre data-original-result="black_box" class="org-meta" aria-live="polite"></pre>
+        </article>
+      </div>
+      <p class="org-boundary"><strong>Truth Mode:</strong> A verified HMAC is a software integrity check, NOT a hardware trust or OS-level isolation proof. No automatic learning, agent passport, uncontrolled network access, physical sensing or production action is enabled.</p>
+    </section>
+    <script>
+      (() => {
+        const endpoint = {{ url_for('smi_organiser.original_three_evaluate')|tojson }};
+        const csrf = {{ oap_csrf_token|tojson }};
+        for (const form of document.querySelectorAll('[data-original-profile]')) {
+          form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const profile = form.dataset.originalProfile;
+            const output = document.querySelector('[data-original-result="' + profile + '"]');
+            const values = new FormData(form);
+            let payload;
+            if (profile === 'm3gan') {
+              payload = {request: values.get('request'), consent: values.get('consent') === 'on'};
+            } else if (profile === 'amelia') {
+              payload = {action: values.get('action'), source_verified: values.get('source_verified') === 'on'};
+            } else {
+              try { payload = {manifest: JSON.parse(values.get('manifest')), signature: values.get('signature')}; }
+              catch { output.textContent = 'Invalid JSON manifest. No operation performed.'; return; }
+            }
+            output.textContent = 'Checking protected first-party policy…';
+            try {
+              const result = await fetch(endpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+                body: JSON.stringify({profile, payload}),
+              });
+              const data = await result.json();
+              output.textContent = JSON.stringify(data, null, 2);
+            } catch {
+              output.textContent = 'The governed service did not respond. No operation confirmed.';
+            }
+          });
+        }
+      })();
+    </script>
+
     <section class="mc-panel" id="schedules">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Timing receipts</p><h2>Mirrored schedules</h2></div><span class="mc-lock-badge">No execution</span></div>
       {% if schedules %}
