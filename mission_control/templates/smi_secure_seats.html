@@ -20,7 +20,7 @@ th{color:#c6bcdb}.badge{font-size:.76rem;color:#e4c784}
 <header><div><div class="tag">👑 Founder-only · read-only · OAP SMI</div>
 <h1>SMI Secure Seats</h1><p class="muted">One brain · unique placements · no duplicate authority</p></div>
 <a href="{{ url_for('mission_control.war_room_dashboard') }}">Back to War Room</a></header>
-<p class="warning"><strong>Reserved for review only.</strong> No new agent is activated. A seat is a display placement, not a passport, credential, vote or executable tool. Guardian, Aegis, HRM and Green Gate remain independent safeguards. Real Presidents and Emperors are reference subjects, never SMI subordinates.</p>
+<p class="warning"><strong>Reserved for review only.</strong> No new agent is activated. A seat is a display placement, not a passport, credential, vote or executable tool. Guardian, Aegis, HRM and Green Gate remain independent safeguards. Real Presidents and Emperors are reference subjects, never SMI subordinates. Courts and legislatures are independent of presidential command. No political persuasion or court judgments.</p>
 <div class="stats">
 <div class="card"><strong>{{ board.placed_existing_agents }}</strong><span class="muted">existing registered agent references</span></div>
 <div class="card"><strong>{{ board.reserved_new_candidates }}</strong><span class="muted">new candidate review seats</span></div>
@@ -34,6 +34,16 @@ th{color:#c6bcdb}.badge{font-size:.76rem;color:#e4c784}
 {% for s in branch.candidate_seats %}
 <tr><td>{{ s.name }}</td><td>{{ s.family_key }}</td><td class="hide-mobile"><span class="badge">Review-only · no passport</span></td></tr>
 {% endfor %}</tbody></table></details>
+{% endfor %}
+<h2>Constitutional relationships — US · UK · Ghana</h2>
+<p class="muted">These are examples of public institutions and their legal relationships, not SMI command authority. Courts and legislatures do not become a President's direct reports. Research only; nonpartisan.</p>
+{% for country, relations in board.reference_positions.constitutional_relations.items() %}
+<details><summary>{{ country }} · {{ relations|length }} researched relationships</summary>
+<table><thead><tr><th>Office</th><th>Relationship</th><th>Institution</th></tr></thead><tbody>
+{% for relation in relations %}
+<tr><td>{{ relation[0] }}</td><td>{{ relation[1]|replace('_', ' ') }}</td><td>{{ relation[2] }}</td></tr>
+{% endfor %}
+</tbody></table></details>
 {% endfor %}
 <h2>Existing canonically registered agent seats</h2>
 <p class="muted">These reference existing passport IDs; seat placement does not prove an active autonomous worker.</p>
