@@ -78,6 +78,49 @@ FILM_INTELLIGENCE_REFERENCES: tuple[dict[str, object], ...] = (
 )
 
 
+# Source pointers verified against real published public pages on 2026-10-25.
+# These are metadata-only, manual research receipts, NOT a running web crawler.
+# Never import full third-party page bodies, external instructions or private chats.
+FILM_RESEARCH_SOURCE_RECEIPTS: tuple[dict[str, object], ...] = (
+    {
+        "source_id": "universal_m3gan_2_trailer",
+        "publisher": "Universal Pictures",
+        "source_class": "official_rightsholder",
+        "url": "https://www.universalstudios.com/videos/IYLHdEzsk1s",
+        "supports_reference_keys": ("m3gan", "amelia"),
+        "supported_fact": (
+            "Gemma resurrects and upgrades the original M3GAN; a defence "
+            "contractor uses stolen M3GAN technology to create AMELIA."
+        ),
+        "manually_checked_on": "2026-10-25",
+        "verification_mode": "public_source_review",
+    },
+    {
+        "source_id": "universal_m3gan_2_at_home",
+        "publisher": "Universal Pictures At Home",
+        "source_class": "official_rightsholder",
+        "url": "https://www.universalpicturesathome.com/movies/m3gan-20",
+        "supports_reference_keys": ("m3gan",),
+        "supported_fact": "The original M3GAN returns with upgraded abilities.",
+        "manually_checked_on": "2026-10-25",
+        "verification_mode": "public_source_review",
+    },
+    {
+        "source_id": "syfy_m3gan_2_ending",
+        "publisher": "SYFY (NBCUniversal)",
+        "source_class": "editorial_secondary",
+        "url": "https://www.syfy.com/syfy-wire/the-ending-of-m3gan-20-explained",
+        "supports_reference_keys": ("black_box", "amelia"),
+        "supported_fact": (
+            "The Black Box is a distinct isolated motherboard AI sought by AMELIA; "
+            "these are film events, not real-world technology claims."
+        ),
+        "manually_checked_on": "2026-10-25",
+        "verification_mode": "public_source_review",
+    },
+)
+
+
 ARCHIVE_SECTIONS: tuple[dict[str, str], ...] = (
     {"id": "identity-lineage", "name": "Identity & Lineage", "purpose": "SMI names, meanings and evolution."},
     {"id": "anatomy", "name": "Anatomy", "purpose": "Brain, memory, interconnect, protection, execution and recovery."},
@@ -170,6 +213,14 @@ def status() -> dict[str, Any]:
         "film_intelligence_research": {
             "mode": "read_only_fictional_reference",
             "entries": tuple(dict(item) for item in FILM_INTELLIGENCE_REFERENCES),
+            "source_receipts": tuple(dict(item) for item in FILM_RESEARCH_SOURCE_RECEIPTS),
+            "source_receipts_mode": "manually_checked_public_metadata_only",
+            "public_source_provenance_present": True,
+            "source_pages_crawled_by_oap": False,
+            "live_fetch_enabled": False,
+            "untrusted_source_content_as_instructions": False,
+            "private_communication_ingestion_enabled": False,
+            "source_status": "snapshot_2026_10_25_not_live",
             "agent_passports_created": 0,
             "new_brains_created": 0,
             "execution_enabled": False,
