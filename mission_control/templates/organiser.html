@@ -68,6 +68,32 @@
       <p class="org-boundary"><strong>🐅 {{ archive.shere_khan.mode }}:</strong> {{ archive.shere_khan.opening_question }} · seven survivability checks · Shere Khan present at the beginning and end of major reviews.</p>
     </section>
 
+    {% if archive.film_intelligence_research is defined %}
+    <section class="mc-panel" id="film-intelligence-research" aria-labelledby="film-research-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Founder-private · Original Intelligence Law</p><h2 id="film-research-title">M3GAN · AMELIA · BLACK BOX</h2></div><span class="mc-lock-badge">Fictional research · no execution</span></div>
+      <p>Three distinct film-intelligence references, not new agents. M3GAN Original → 2.0 is one identity. This research does not grant passports, system access, autonomous authority, or permission to ingest private communication.</p>
+      <div class="org-grid">
+        {% for intelligence in archive.film_intelligence_research.entries %}
+        <article class="org-card" data-film-reference="{{ intelligence.reference_key }}">
+          <div class="org-meta">{{ intelligence.fictional_entity_type.replace('_', ' ') }} · read-only reference</div>
+          <h3>{{ intelligence.name }}</h3>
+          <p>{{ intelligence.identity_rule }}</p>
+          <strong>Original portrayed specialities</strong>
+          <ul class="org-links">
+            {% for speciality in intelligence.portrayed_specialities %}
+            <li>{{ speciality }}</li>
+            {% endfor %}
+          </ul>
+          <p class="org-meta">{{ intelligence.research_boundary }}</p>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="org-boundary"><strong>Existing review hierarchy:</strong> Captain ALL IN coordinates as external mission keeper; Bagheera judges privacy and restraint; Shere Khan has permanent adversarial and false-Green review; Fox checks source evidence; Gorilla handles containment. Founder Final remains final. Film references cannot cast votes or overrule established agents.</p>
+      <p class="org-meta">Source status: {{ archive.film_intelligence_research.source_status.replace('_', ' ') }} · public research metadata only · no live crawler · no verified character runtime.</p>
+      <p><a class="mc-secondary-link" href="{{ url_for('smi_organiser.film_evidence') }}">Read Founder-only source receipts</a></p>
+    </section>
+    {% endif %}
+
     <section class="mc-panel" id="schedules">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Timing receipts</p><h2>Mirrored schedules</h2></div><span class="mc-lock-badge">No execution</span></div>
       {% if schedules %}
