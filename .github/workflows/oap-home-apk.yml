@@ -27,6 +27,7 @@ jobs:
           set -euo pipefail
           SOURCE_REVISION="$(git rev-parse HEAD)"
           test -n "$SOURCE_REVISION"
+          test "$SOURCE_REVISION" = "$GITHUB_SHA" || { echo "::error::Checked-out source differs from triggering revision"; exit 1; }
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
           grep -Fq "storeType 'pkcs12'" android/oaphome/build.gradle
           grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
@@ -117,6 +118,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+      - name: Verify APK job uses triggering V2 revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA" || { echo "::error::APK job checked out the wrong source revision"; exit 1; }
       - name: Require persistent OAP signing identity
         shell: bash
         env:
