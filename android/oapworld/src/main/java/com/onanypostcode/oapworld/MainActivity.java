@@ -45,6 +45,7 @@ public final class MainActivity extends ComponentActivity {
     private String engineSourcePath;
     private EditText omnibox;
     private Button backButton;
+    private android.widget.TextView trustLabel;
     private final List<String> engineHistory = new ArrayList<>();
     private int engineHistoryIndex = -1;
 
@@ -63,7 +64,9 @@ public final class MainActivity extends ComponentActivity {
         toolbar.setPadding(8, 8, 8, 8);
 
         backButton = navButton("‹");
-        Button homeButton = navButton("OAP");
+        Button homeButton = navButton("OAP World");
+        homeButton.setContentDescription("Return to OAP World");
+        backButton.setContentDescription("Go back");
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
@@ -78,12 +81,20 @@ public final class MainActivity extends ComponentActivity {
                         | android.text.InputType.TYPE_TEXT_VARIATION_URI
         );
 
+        trustLabel = new android.widget.TextView(this);
+        trustLabel.setText("OAP WORLD");
+        trustLabel.setTextColor(Color.rgb(204, 181, 106));
+        trustLabel.setTextSize(11);
+        trustLabel.setPadding(10, 4, 10, 4);
+        trustLabel.setContentDescription("Trust boundary: OAP WORLD");
+
         toolbar.addView(backButton);
         toolbar.addView(homeButton);
         toolbar.addView(
                 omnibox,
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         );
+        toolbar.addView(trustLabel);
 
         webView = new WebView(this);
         engineClient = new EngineDocumentClient(OAP_ORIGIN);
@@ -137,6 +148,8 @@ public final class MainActivity extends ComponentActivity {
         );
 
         FrameLayout renderHost = new FrameLayout(this);
+        // Keep the uninitialised WebView out of sight until it has a destination.
+        webView.setVisibility(View.GONE);
         renderHost.addView(webView, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
@@ -146,6 +159,35 @@ public final class MainActivity extends ComponentActivity {
                 ViewGroup.LayoutParams.MATCH_PARENT
         ));
 
+        // Founder-approved world identity: one front door, no extra navigation stage.
+        LinearLayout identity = new LinearLayout(this);
+        identity.setOrientation(LinearLayout.VERTICAL);
+        identity.setPadding(18, 12, 18, 12);
+        identity.setBackgroundColor(Color.rgb(8, 22, 15));
+
+        android.widget.TextView brand = new android.widget.TextView(this);
+        brand.setText("ON ANY POSTCODE");
+        brand.setTextColor(Color.WHITE);
+        brand.setTextSize(17);
+        brand.setTypeface(null, android.graphics.Typeface.BOLD);
+        identity.addView(brand);
+
+        android.widget.TextView worldIdentity = new android.widget.TextView(this);
+        worldIdentity.setText("THE WORLD INSIDE");
+        worldIdentity.setTextColor(Color.rgb(204, 181, 106));
+        worldIdentity.setTextSize(13);
+        identity.addView(worldIdentity);
+
+        android.widget.TextView motto = new android.widget.TextView(this);
+        motto.setText("Born Local. Built Global.  ·  Earth Is Our Turf.");
+        motto.setTextColor(Color.rgb(190, 204, 193));
+        motto.setTextSize(11);
+        identity.addView(motto);
+
+        root.addView(identity, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
         root.addView(toolbar, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -205,6 +247,11 @@ public final class MainActivity extends ComponentActivity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                updateTrustLabel(url);
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 String scheme = uri.getScheme();
@@ -214,6 +261,7 @@ public final class MainActivity extends ComponentActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 omnibox.setText(url);
+                updateTrustLabel(url);
                 refreshNavigationState();
             }
         });
@@ -310,6 +358,10 @@ public final class MainActivity extends ComponentActivity {
         int viewportWidth = engineScrollView != null && engineScrollView.getWidth() > 0
                 ? engineScrollView.getWidth()
                 : getResources().getDisplayMetrics().widthPixels;
+        // Never reveal a stale external WebView while the first-party engine loads.
+        if (!engineActive && webView != null) {
+            webView.setVisibility(View.GONE);
+        }
         engineClient.fetch(path, viewportWidth, new EngineDocumentClient.Callback() {
             @Override
             public void onEngineDocument(String json, String resolvedPath) {
@@ -326,6 +378,8 @@ public final class MainActivity extends ComponentActivity {
     private void loadWebViewUrl(String url) {
         engineClient.cancelPending();
         showWebViewFallback();
+        // Never leave the previous page's trust label visible during navigation.
+        updateTrustLabel(url);
         webView.loadUrl(url);
     }
 
@@ -357,6 +411,7 @@ public final class MainActivity extends ComponentActivity {
                 }
             }
             omnibox.setText(sourcePath == null ? "OAP Engine" : OAP_ORIGIN + sourcePath);
+            updateTrustLabel(OAP_ORIGIN + (sourcePath == null ? "/" : sourcePath));
             refreshNavigationState();
         } catch (org.json.JSONException error) {
             loadWebViewUrl(OAP_ORIGIN + (sourcePath == null ? "/" : sourcePath));
@@ -444,6 +499,7 @@ public final class MainActivity extends ComponentActivity {
     private void showWebViewFallback() {
         engineActive = false;
         engineSourcePath = null;
+        updateTrustLabel(webView == null ? null : webView.getUrl());
         if (engineNativeHost != null) {
             engineNativeHost.setVisibility(View.GONE);
         }
@@ -454,6 +510,24 @@ public final class MainActivity extends ComponentActivity {
             webView.setVisibility(View.VISIBLE);
         }
         refreshNavigationState();
+    }
+
+    private void updateTrustLabel(String address) {
+        if (trustLabel == null) {
+            return;
+        }
+        Uri uri = Uri.parse(address == null ? "" : address);
+        Uri owned = Uri.parse(OAP_ORIGIN);
+        boolean firstParty = "https".equalsIgnoreCase(uri.getScheme())
+                && owned.getHost() != null
+                && owned.getHost().equalsIgnoreCase(uri.getHost())
+                && uri.getPort() == -1
+                && uri.getUserInfo() == null;
+        String label = firstParty ? "OAP WORLD" : "OPEN WEB";
+        trustLabel.setText(label);
+        trustLabel.setContentDescription("Trust boundary: " + label);
+        trustLabel.setTextColor(firstParty
+                ? Color.rgb(204, 181, 106) : Color.rgb(255, 185, 117));
     }
 
     private void refreshNavigationState() {
