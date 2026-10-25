@@ -996,6 +996,14 @@ body.smi-noise-strip .messages{top:142px!important}
   body.smi-noise-strip .messages{top:138px!important}
 }
 
+/* Keep active Face Up camera/mic End controls above the conversation
+   scroller; the scroller can otherwise intercept the real Close tap after
+   Studio result cards are inserted into the message pane. */
+body.smi-noise-strip #faceup-panel:not([hidden]){
+  position:relative!important;
+  z-index:107!important;
+}
+
 /* Unified System Intelligence: one evidence surface, only when SMI System opens. */
 body.smi-noise-strip .smi-unified-intelligence{
   margin:8px 0!important;
