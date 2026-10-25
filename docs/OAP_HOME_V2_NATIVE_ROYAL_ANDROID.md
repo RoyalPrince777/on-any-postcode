@@ -130,7 +130,10 @@ existing `main` workflow's exact source, while moving the stricter
 **V2 candidate-signing gate** to
 `.github/workflows/oap-home-v2-signed-apk.yml`. That additional workflow
 is **manual only**, checks out the invoked exact revision, and fails closed
-unless the *installed V2* signing identity is verified. The existing main
+unless the *installed V2* signing identity is verified. **GitHub cannot
+workflow_dispatch this newly added workflow until the workflow file is
+present on the repository's default branch.** Its existence inside this
+draft PR is therefore not a runnable or signed candidate proof. The existing main
 workflow still pins `oap-home-apk-master777`: its artifacts cannot stand
 in as proof of this review branch's exact source. Do not infer device or
 APK Green from the compile-only workflow. Whole-repository combined-main
