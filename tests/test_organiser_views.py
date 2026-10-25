@@ -187,6 +187,9 @@ def test_original_three_gateway_is_founder_only_and_csrf_guarded(monkeypatch):
     assert 'data-original-profile="m3gan"' in html
     assert 'data-original-profile="amelia"' in html
     assert 'data-original-profile="black_box"' in html
+    assert 'data-original-self="m3gan"' in html
+    assert 'data-original-self="amelia"' in html
+    assert 'data-original-self="black_box"' in html
     assert "smi_original_three.js" in html
     assert "data-original-three-endpoint" in html
     assert "not" in html.lower()
@@ -231,3 +234,35 @@ def test_original_three_api_blocks_bad_json_without_hitting_inference(monkeypatc
     assert founder.post(url, json={"profile": "m3gan"}, headers=headers).status_code == 400
     assert founder.post(url, json={"profile": "other", "payload": {}, "extra": 1}, headers=headers).status_code == 400
     assert founder.post(url, data="x" * 5000, headers=headers).status_code == 413
+
+
+def test_original_three_self_review_api_preserves_founder_and_csrf(monkeypatch):
+    founder = _client(monkeypatch, founder=True)
+    with founder.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "z" * 48
+    data = {
+        "profile": "m3gan",
+        "payload": {
+            "mode": "self_assess",
+            "checks": {
+                "source_integrity": False,
+                "consent_verified": True,
+                "context_bounded": False,
+            },
+        },
+    }
+    url = "/mission/organiser/original-three/evaluate"
+    assert founder.post(url, json=data).status_code == 403
+    result = founder.post(
+        url, json=data, headers={"X-OAP-CSRF": "z" * 48},
+    )
+    assert result.status_code == 200
+    report = result.get_json()
+    assert report["component"] == "m3gan"
+    assert report["state"] == "review_required"
+    assert report["unresolved_checks"] == [
+        "source_integrity", "context_bounded",
+    ]
+    assert report["self_deployment"] is False
+    assert report["model_training_performed"] is False
+    assert result.headers["Cache-Control"] == "no-store"
