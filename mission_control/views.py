@@ -161,6 +161,10 @@ def _chat_rate_allowed(identity_id: str) -> bool:
     return web_security.CHAT_BURST_LIMITER.allow(identity_id)
 
 
+def _vision_face_rate_allowed(identity_id: str) -> bool:
+    return web_security.VISION_FACE_BURST_LIMITER.allow("studio-face:" + identity_id)
+
+
 def _war_room_runtime_result(action_id: str) -> dict[str, object]:
     action = WAR_ROOM_RUNTIME_ACTIONS.get(action_id)
     if action is None:
