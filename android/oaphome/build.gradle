@@ -6,12 +6,15 @@ android {
     namespace 'com.onanypostcode.oaphome'
     compileSdk 35
 
+    // Same package as the installed original OAP Home. This is an in-place
+    // update identity, NOT a second com.onanypostcode.oaphome.v2 application.
+    // Signing must still match the currently installed original APK.
     defaultConfig {
-        applicationId 'com.onanypostcode.oaphome.v2'
+        applicationId 'com.onanypostcode.oaphome'
         minSdk 26
         targetSdk 35
-        versionCode 4
-        versionName '2.0.0-founder'
+        versionCode 21
+        versionName '2.0.0-founder-inplace'
     }
 
     signingConfigs {
