@@ -1,4 +1,4 @@
-from mission_control.agent_hybrid_passport import public_passport, founder_passport
+from mission_control.agent_hybrid_passport import founder_passport, public_passport
 from mission_control.agents import AGENT_REGISTRY
 
 
