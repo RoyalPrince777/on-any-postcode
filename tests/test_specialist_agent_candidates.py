@@ -4,6 +4,7 @@ import unittest
 from mission_control import agents
 from mission_control import specialist_agent_candidates as spec
 
+
 class SpecialistAgentCandidateTests(unittest.TestCase):
     def test_exactly_21_original_candidates_in_12_families(self):
         self.assertEqual(len(spec.PROPOSED_AGENTS), 21)
