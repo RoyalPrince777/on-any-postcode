@@ -52,7 +52,7 @@ def test_mitcham_scope_is_pinned_without_claimed_tracking_or_field_proof():
     assert "Redmi A5" in mission["phone"]
     assert "physical acceptance not verified" in mission["phone"]
     assert "com.onanypostcode.oaphome.v2" in mission["decision"]
-    assert "com.onanypostcode.oaphome;" in mission["decision"]
+    assert "retire com.onanypostcode.oaphome" in mission["decision"]
     assert len(mission["release_gates"]) == 5
     assert not mission["activated"]
     assert not mission["device_acceptance_verified"]
