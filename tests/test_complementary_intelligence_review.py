@@ -1,4 +1,6 @@
-from mission_control.complementary_intelligence_review import complementary_intelligence_review
+from mission_control.complementary_intelligence_review import (
+    complementary_intelligence_review,
+)
 
 
 def test_complementary_review_preserves_registry_and_does_not_invent_ids():
