@@ -474,7 +474,13 @@
     window.addEventListener("pagehide", () => {
       cancelFaceDetection();
       stopFaceUp();
-    }, {once: true});
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        cancelFaceDetection();
+        stopFaceUp();
+      }
+    });
   }
 
   if (document.readyState === "loading") {

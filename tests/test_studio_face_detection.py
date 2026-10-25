@@ -104,6 +104,6 @@ def test_private_route_keeps_auth_csrf_rate_and_default_lock():
     assert 'environ.get("OAP_SMI_FACE_DETECTION_ENABLED", "false")' in segment
     assert "_vision_face_rate_allowed(_chat_identity())" in segment
     assert "request.content_length" in segment
-    assert "studio_face_detection.detect_faces(payload.get(\"image_data\"))" in segment
+    assert "studio_face_detection.detect_faces_bounded(payload.get(\"image_data\"))" in segment
     assert "face_detector_unavailable" in segment
     assert "return _no_store(make_response(jsonify(result)))" in segment

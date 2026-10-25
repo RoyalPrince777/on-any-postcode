@@ -41,6 +41,7 @@ from . import (
     smi_workbench,
     status,
     studio_build_preview,
+    studio_face_admission,
     studio_face_detection,
     studio_intelligence,
     studio_workspace_orchestrator,
@@ -1163,7 +1164,10 @@ def smi_studio_detect_faces():
             ).strip().lower() == "true"
             if hosted or shared_required:
                 try:
+                    if not studio_face_admission.reserve_shared_quota(_chat_identity()):
+                        return _error("rate_limited", "Vision requests are temporarily limited.", 429)
                     connection = admission.enter_context(postgres_db.connect())
+                    connection.execute("SET LOCAL statement_timeout = '1500ms'")
                     row = connection.execute(
                         "SELECT pg_try_advisory_xact_lock(%s, %s)",
                         (777, 1305),
@@ -1185,7 +1189,7 @@ def smi_studio_detect_faces():
             if not isinstance(payload, dict):
                 return _error("invalid_request", "A JSON object is required.", 400)
             try:
-                result = studio_face_detection.detect_faces(payload.get("image_data"))
+                result = studio_face_detection.detect_faces_bounded(payload.get("image_data"))
             except (TypeError, ValueError) as exc:
                 oversized = str(exc) in {"face_image_too_large", "face_image_dimensions_exceeded"}
                 return _error(
@@ -1193,7 +1197,11 @@ def smi_studio_detect_faces():
                     "Image exceeds Vision limits." if oversized else "Image cannot be processed.",
                     413 if oversized else 400,
                 )
-            except RuntimeError:
+            except RuntimeError as exc:
+                if str(exc) == "face_detector_timeout":
+                    return _error(
+                        "face_detector_timeout", "Private Vision exceeded its processing budget.", 503,
+                    )
                 return _error(
                     "face_detector_unavailable",
                     "The offline Studio face detector is unavailable.",

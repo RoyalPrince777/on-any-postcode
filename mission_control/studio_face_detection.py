@@ -7,10 +7,16 @@ from __future__ import annotations
 
 import base64
 import binascii
+import json
 import re
+import subprocess
+import sys
 from io import BytesIO
+from pathlib import Path
 from threading import BoundedSemaphore
 from typing import Any
+
+from mission_control.studio_face_worker import MAX_RESULT_BYTES, MAX_WALL_SECONDS
 
 MAX_IMAGE_BYTES = 3 * 1024 * 1024
 MAX_IMAGE_PIXELS = 4_000_000
@@ -22,6 +28,54 @@ MAX_IMAGE_SIDE = 4096
 SINGLE_FRAME_PROCESS_SLOT = BoundedSemaphore(value=1)
 _DATA_URL = re.compile(r"\Adata:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)\Z", re.IGNORECASE)
 _FORMATS = {"image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WEBP"}
+_WORKER_PATH = Path(__file__).with_name("studio_face_worker.py")
+
+
+def detect_faces_bounded(image_data: object) -> dict[str, Any]:
+    """Decode only in a disposable, memory/CPU-bounded child; reap on timeout.
+
+    No shell, temporary image files, inherited service credentials or Flask
+    context. subprocess.run kills and waits for the child before timeout exits.
+    The caller keeps shared admission until this function has returned/raised.
+    """
+    if not isinstance(image_data, str):
+        raise TypeError("invalid_face_image")
+    if len(image_data) > 4 * MAX_IMAGE_BYTES // 3 + 256:
+        raise ValueError("face_image_too_large")
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-I", str(_WORKER_PATH)],
+            input=json.dumps({"image_data": image_data}).encode("utf-8"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            env={"OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1",
+                 "MKL_NUM_THREADS": "1"},
+            timeout=MAX_WALL_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("face_detector_timeout") from None
+    except OSError:
+        raise RuntimeError("face_detector_unavailable") from None
+    if completed.returncode != 0 or len(completed.stdout) > MAX_RESULT_BYTES:
+        raise RuntimeError("face_detector_unavailable")
+    try:
+        envelope = json.loads(completed.stdout)
+    except (ValueError, UnicodeError):
+        raise RuntimeError("face_detector_unavailable") from None
+    if not isinstance(envelope, dict):
+        # A bad worker response is an unavailable service, not bad user input.
+        # Preserve the route's 503 rather than its 400 type handler.
+        raise RuntimeError("face_detector_unavailable")  # noqa: TRY004
+    error = envelope.get("error")
+    if isinstance(error, str) and error in {
+        "invalid_face_image", "face_image_too_large", "face_image_dimensions_exceeded",
+    }:
+        raise ValueError(error)
+    result = envelope.get("result")
+    if error or not isinstance(result, dict) or result.get("identity_verified") is not False:
+        raise RuntimeError("face_detector_unavailable")
+    return result
 
 
 def detect_faces(image_data: object) -> dict[str, Any]:
@@ -74,6 +128,7 @@ def detect_faces(image_data: object) -> dict[str, Any]:
         raise RuntimeError("face_detector_unavailable") from exc
 
     try:
+        cv2.setNumThreads(1)
         frame = cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
     except cv2.error as exc:
         raise ValueError("invalid_face_image") from exc

@@ -111,7 +111,7 @@ def main():
             "execution_granted": False,
         }
 
-    studio_face_detection.detect_faces = bounded_detector
+    studio_face_detection.detect_faces_bounded = bounded_detector
     cookie_name, cookie_value = _session_cookie()
     server = make_server("127.0.0.1", 8774, app_module.app)
     server_thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -321,6 +321,28 @@ def main():
             )
             page.wait_for_function("() => window.__visionPermissionProof.stopped === 6")
             assert page.locator("#faceup-panel").is_hidden()
+            # Repeat after back-cache restoration: cleanup must not be one-shot.
+            page.evaluate("() => window.dispatchEvent(new Event('pageshow'))")
+            page.locator("#faceup-button").click()
+            page.wait_for_function("() => window.__visionPermissionProof.requests.length === 1")
+            page.evaluate("() => window.dispatchEvent(new Event('pagehide'))")
+            page.evaluate(
+                "() => window.__visionPermissionProof.requests.shift()(window.__visionPermissionProof.makeStream())"
+            )
+            page.wait_for_function("() => window.__visionPermissionProof.stopped === 8")
+            assert page.locator("#faceup-panel").is_hidden()
+            print("SMI_FACEUP_REPEAT_PAGEHIDE_RELEASED=PASS")
+            page.locator("#faceup-button").click()
+            page.wait_for_function("() => window.__visionPermissionProof.requests.length === 1")
+            page.evaluate("""() => {
+                Object.defineProperty(document, 'hidden', {configurable: true, value: true});
+                document.dispatchEvent(new Event('visibilitychange'));
+                delete document.hidden;
+                window.__visionPermissionProof.requests.shift()(window.__visionPermissionProof.makeStream());
+            }""")
+            page.wait_for_function("() => window.__visionPermissionProof.stopped === 10")
+            assert page.locator("#faceup-panel").is_hidden()
+            print("SMI_FACEUP_HIDDEN_PERMISSION_REVOKED=PASS")
             print("SMI_FACEUP_PERMISSION_RACE_CLOSED=PASS")
             print("SMI_FACEUP_CAMERA_MIC_STOP_RELEASED=PASS")
 
