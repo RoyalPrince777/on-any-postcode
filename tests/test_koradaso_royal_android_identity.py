@@ -5,8 +5,8 @@ Android hardware installation, live hosting and external-site acceptance are sep
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "android/oapworld/src/main/AndroidManifest.xml"
