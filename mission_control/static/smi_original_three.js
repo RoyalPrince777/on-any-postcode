@@ -7,6 +7,35 @@
   const endpoint = root.dataset.originalThreeEndpoint;
   const csrf = root.dataset.originalThreeCsrf;
   if (!endpoint || !csrf) return;
+  const evidenceKeys = {
+    m3gan: ["source_integrity", "consent_verified", "context_bounded"],
+    amelia: ["policy_integrity", "threat_evidence", "independent_review"],
+    black_box: ["manifest_integrity", "isolation_evidence", "recovery_evidence"],
+  };
+  for (const form of root.querySelectorAll("[data-original-self]")) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const profile = form.dataset.originalSelf;
+      const fields = evidenceKeys[profile];
+      const output = root.querySelector('[data-self-result="' + profile + '"]');
+      if (!fields || !output) return;
+      const values = new FormData(form);
+      const checks = Object.fromEntries(fields.map((key) => [key, values.get(key) === "on"]));
+      output.textContent = "Reviewing supplied evidence claims, not certifying Green…";
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {"Content-Type": "application/json", "X-OAP-CSRF": csrf},
+          body: JSON.stringify({profile, payload: {mode: "self_assess", checks}}),
+        });
+        const result = await response.json();
+        output.textContent = JSON.stringify(result, null, 2);
+      } catch {
+        output.textContent = "Self-assessment unavailable. No change applied.";
+      }
+    });
+  }
   for (const form of root.querySelectorAll("[data-original-profile]")) {
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
