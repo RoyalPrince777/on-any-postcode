@@ -34,3 +34,35 @@ def test_home_v2_route_serves_existing_template(client):
     assert response.status_code == 200
     assert b"OAP HOME" in response.data
     assert b'OAP Home navigation' in response.data
+
+
+def test_home_v2_search_is_large_accessible_and_uses_existing_public_search():
+    html = HOME.read_text(encoding="utf-8")
+    assert '<form class="home-search" role="search" method="get" action="/search">' in html
+    assert '<label class="visually-hidden" for="home-search-query">' in html
+    assert 'id="home-search-query" type="search" name="q" maxlength="120"' in html
+    assert "min-height:64px" in html
+    assert "Private messages and Founder tools are not searched." in html
+    assert 'aria-label="Explore from search"' in html
+    for destination in (
+        "/arena/connect4",
+        "/search?q=market",
+        "/search?q=library",
+        "/search?q=music",
+        "/store",
+    ):
+        assert f'href="{destination}"' in html
+
+
+def test_home_v2_search_finds_connect4_and_can_return_to_home(client):
+    home = client.get("/home-v2")
+    assert home.status_code == 200
+    assert b'role="search"' in home.data
+    results = client.get("/search?q=connect+4")
+    assert results.status_code == 200
+    body = results.get_data(as_text=True)
+    assert "OAP Connect 4" in body
+    assert 'href="/arena/connect4"' in body
+    assert 'href="/home-v2"' in body
+    assert 'href="/store"' in body
+    assert "public OAP app catalogue only" in body
