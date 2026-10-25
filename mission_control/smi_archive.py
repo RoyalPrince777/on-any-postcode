@@ -17,13 +17,13 @@ SMI_LINEAGE: tuple[dict[str, str], ...] = (
     },
     {
         "name": "Sovereign Megaverse Intelligence",
-        "position": "architectural_expansion",
-        "meaning": "OAP-wide first-party coordination and sovereign control lineage.",
+        "position": "canonical_current",
+        "meaning": "Official name of the single OAP first-party intelligence brain; Founder Final remains human.",
     },
     {
         "name": "Synthetic Machine Intelligence",
-        "position": "canonical_current",
-        "meaning": "Current technical definition of the single OAP machine-intelligence brain.",
+        "position": "technical_lineage",
+        "meaning": "Technical machine-intelligence lineage, not a second brain or alternate official name.",
     },
 )
 
