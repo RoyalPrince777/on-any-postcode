@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - "mission_control/templates/war_room.html"
+      - "mission_control/templates/agents_hq.html"
       - "mission_control/views.py"
       - "mission_control/war_room.py"
       - "mission_control/war_room_simulation_actions.py"
       - "mission_control/smi_proof_gate.py"
       - "tests/war_room_chromium_proof.py"
+      - "tests/agents_hq_chromium_proof.py"
       - ".github/workflows/war-room-chromium-proof.yml"
 
 permissions:
@@ -33,3 +35,5 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Authenticated War Room interaction proof
         run: python tests/war_room_chromium_proof.py
+      - name: Authenticated Agents HQ read-only browser proof (synthetic Founder session)
+        run: python tests/agents_hq_chromium_proof.py
