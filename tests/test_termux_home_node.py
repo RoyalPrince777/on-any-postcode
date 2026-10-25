@@ -104,3 +104,5 @@ def test_fox_home_node_bridge_requires_explicit_non_render_https_route():
     assert "read -r bridge_url" in SETUP
     assert 'OAP_HOME_NODE_BRIDGE_URL=%q' in SETUP
     assert "https://oap-smi.onrender.com/mission" not in SETUP
+    assert worker._NoRedirect().redirect_request(None, None, 302, "", {}, "https://untrusted.example/") is None
+    assert worker._OPENER is not None
