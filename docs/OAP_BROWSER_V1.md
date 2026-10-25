@@ -10,9 +10,19 @@ Its product law is:
 
 **One World → One Front Door → Many Systems Inside → Open Web When Chosen**
 
-OAP World remains home. OAP Browser is the controlled doorway that connects the
-home environment to direct web addresses without turning third-party websites
-into trusted OAP surfaces.
+OAP World remains the public ecosystem front door. **OAP Internet** is the
+separately named Android browser shell (native package
+`com.onanypostcode.oapworld`, visible label `OAP Internet`). OAP Browser
+is the existing technical subsystem within that app, not a second browser.
+The browser connects the home environment to direct web addresses without
+turning third-party websites into trusted OAP surfaces.
+
+**OAP Home V2** is a separate personal dashboard (`/home-v2`).
+**OAP Home Node** remains a separate Termux / first-party SMI worker runtime.
+Neither is renamed, installed or controlled by the Internet browser label.
+The label change requires a newly built and verified Android artifact before it
+appears on a physical phone; it does not prove installation or independent
+web-wide indexing.
 
 ## What v1 actually implements
 
