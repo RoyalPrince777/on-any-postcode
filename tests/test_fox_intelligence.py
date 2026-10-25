@@ -161,3 +161,23 @@ def test_foxy_route_exclusions_share_fox_validation():
     assert result["blocked_routes"] == ["closed"]
     assert result["route_data_verified"] is False
     assert result["founder_final"] is True
+
+
+@pytest.mark.parametrize("missing", [
+    "source", "reference", "observation", "backup_reference",
+    "rollback_procedure", "test_passed", "runtime_observed", "human_approved",
+])
+def test_each_missing_production_proof_blocks_independently(missing):
+    evidence = {"source": "CI", "reference": "run-1", "observation": "passed"}
+    recovery = {"backup_reference": "bundle", "rollback_procedure": "restore bundle"}
+    flags = {"test_passed": True, "runtime_observed": True, "human_approved": True}
+    if missing in evidence:
+        evidence[missing] = " "
+    elif missing in recovery:
+        recovery[missing] = " "
+    else:
+        flags[missing] = False
+    result = assess_mission(evidence=evidence, alternatives=[], dissent=[], recovery=recovery, **flags)
+    assert result["production_gate"] == "blocked"
+    assert result["founder_final"] is True
+    assert result["missing"]
