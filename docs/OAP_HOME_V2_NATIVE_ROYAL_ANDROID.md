@@ -1,77 +1,93 @@
-# OAP Home V2 · Native Android Royal Alignment
+# OAP Home V2 — Native Royal Android Home
 
-Status: **Native Android source upgrade under review. Not installed, not device-certified, not OAP OS.**
+**Founder-final design direction:** Keep the **existing V2 Android app** and
+rename its visible icon to **OAP Home**. Retire the old Home app only after the
+native V2 app is signed, installed, working and selected as Home, with
+independent stock-launcher recovery proven.
 
-## Founder product distinction
+Status: **V2 source and source-level Android compile under review.**
+Nothing was installed, renamed on-device, uninstalled or made the default Home.
 
-- **OAP Home V2:** existing native Android Home launcher project at `android/oaphome/`,
-  built as an **in-place upgrade to the original OAP Home Android app**
-  `com.onanypostcode.oaphome`, with the visible name **OAP Home** (V2 is the implementation version, not a second icon).
-  Android `CATEGORY_HOME` and `CATEGORY_DEFAULT` preserve its role in the
-  same system Home destination. It must not install a competing
-  `com.onanypostcode.oaphome.v2` app. The currently installed package must
-  have a matching signer, an older Android versionCode and a verified rollback
-  plan; **do not uninstall Build #19 or delete its data**. The user chooses
-  the default Home app; no device-owner powers are taken.
-- **OAP Internet:** separate Android browser application
-  `com.onanypostcode.oapworld`, not an in-app browser disguised as a Home
-  screen. The Home dock opens that package only when installed, with an
-  unavailable explanation otherwise.
-- **OAP Home Node:** separate supervised Termux SMI/organism runtime. No
-  supervisor, credentials or processes are touched by the native UI build.
-- **OAP World / services:** distinct public services with their own HTTPS and
-  identity boundaries. Some existing destination cards still route to a
-  bounded web-powered content viewer after native Home navigation; this
-  is not evidence of fully native equivalents for all public apps.
-- **OAP OS:** future independently built and verified AOSP-based OS image with
-  drivers, boot/recovery and security integration. A launcher APK is not an OS.
+## The two Android packages — do not conflate them
 
-## Visual reference and actual source
+| Identity | Android package | Direction |
+|---|---|---|
+| Keep and improve | `com.onanypostcode.oaphome.v2` | Royal V2 UI, Android label **OAP Home**, `HOME` role |
+| Legacy to retire | `com.onanypostcode.oaphome` | Remove only after V2 accepted and protected data/recovery checked |
+| Separate browser | `com.onanypostcode.oapworld` | OAP Internet, does not replace or embed the Home screen |
 
-The Founder-approved 2026-10-25 gold Earth reference remains the master visual
-direction. The existing native `MainActivity.home()` is upgraded with Android
-Views and `RoyalHomeArt.java` Canvas drawing, rather than rendering
-`/home-v2` through Flask or Brave.
+The earlier review mistakenly changed the V2 Gradle `applicationId` to the
+legacy app's package. That has been reversed. **Renaming the app label must
+never change the established V2 package or overwrite the old app.** Android
+treats the packages as distinct applications until the legacy one is removed.
 
-- Royal OAP header with local gold-lit Earth artwork and two-line slogan.
-- Real device date/time and IANA-zone city clocks. No pretend live weather or
-  calendar feeds.
-- Nine illustrated 3-column app cards: World, Link Up, SIKA; Maps, Mail, Market;
-  TV, Arena, Library.
-- Phone / Messages / Internet / Camera / Apps dock.
-- Standalone PTT and OAP Store remain directly accessible.
-- Android Settings and user-controlled Default Home selection allow return to
-  the stock launcher. User chooses changes; no auto-enrolment.
-- Artwork is a source-aligned approximation, not yet pixel-identical to the
-  original image or visually accepted on the device.
+## Native V2 UI
 
-## Safety and proof
+`android/oaphome` retains the original V2 Java namespace, MainActivity,
+Android HOME/DEFAULT intent filters, Store/PTT navigation and user-controlled
+default-Home recovery route.
 
-1. Compile the modified exact `android/oaphome` source with Android SDK 35,
-   Gradle 8.11.1 and Java 17. Static tests independently check HOME intent,
-   canonical package IDs and fail-closed missing Internet handoff.
-2. Keep the original installed `com.onanypostcode.oaphome` package intact
-   until its actual APK identity, signer SHA-256 and versionCode are known.
-   The upgraded V2 is `com.onanypostcode.oaphome` with versionCode 21;
-   this number is a **source candidate**, not proof it is newer than the
-   installed Build #19. Do not publish an APK signed with the newer V2-only
-   keystore if that differs from the old APK's signer.
-3. Before any update, run the **read-only** `scripts/oap_home_v2_inplace_apk_gate.py`
-   against a verified copy of the installed original APK and the exact
-   release candidate APK. The gate checks identical package ID, exact signer,
-   strictly higher versionCode and `OAP Home` visible app name. Missing
-   evidence, missing `aapt` or `apksigner`, signer mismatch or downgrade
-   **blocks installation**. The existing signing workflow has not established
-   same-signer identity with Build #19 and must not be treated as a release.
-   Never uninstall the old Home, clear data, change the stock launcher, or
-   overwrite local Home Node files to make a test succeed.
-4. On a real Redmi A5, install without changing the default Home app first;
-   prove launch, touch, installed apps drawer, dialler, camera, OAP Internet
-   missing/present behaviour, navigation, status/navigation bars and reboot
-   recovery. If the user elects to set OAP Home as the default, confirm stock
-   Home recovery via Android Settings → Default apps → Home app.
-5. Only after exact-artifact device tests, Guardian/Aegis and Founder Final
-   may a release or OAP OS readiness claim be made.
+`RoyalHomeArt.java` provides native Canvas gold Earth art and nine tile
+illustrations rather than rendering the Home screen through Brave or Flask.
+The UI includes native local/world clocks; weather and calendar correctly
+display NOT CONNECTED pending live first-party proof.
 
-The separate `~/oap-v2-review` Flask worktree remains a visual/web
-reference only. It must not be mistaken for the native Home APK or the OS image.
+The Internet dock calls the separate installed OAP Internet package. This
+must fail closed when Internet is missing, not open a third-party browser in
+disguise. The separate Termux SMI Home Node is neither the launcher nor
+controlled by Home V2. A fully independent AOSP **OAP OS** image is not built.
+
+## Same existing V2 — signing and version proof
+
+- Keep V2 `applicationId 'com.onanypostcode.oaphome.v2'`, with candidate
+  `versionCode 21` and `versionName '2.1.0-founder-royal'`.
+  Version 21 is a **candidate**, not proof it exceeds the installed V2 code.
+- The visible `android:label` is **OAP Home**, not **OAP Home V2**.
+- The signed APK workflow requires a pinned `OAP_HOME_V2_CERT_SHA256` from
+  the installed V2 app and an equal persistent-keystore and candidate signer.
+  Any missing proof or certificate mismatch blocks APK artifact publication.
+- Run the **read-only** `scripts/oap_home_v2_inplace_apk_gate.py` against
+  trusted, verifiable copies of the installed V2 and candidate V2 APKs.
+  The gate rejects the legacy package, mismatched signers, outdated versions
+  and any candidate labelled differently from OAP Home.
+- The signing key used for **old Home** is irrelevant to updating V2.
+  The candidate must match the *installed V2* signing identity.
+- No debug-key substitution, forced install, data clear, or uninstall of V2.
+
+## Exact device migration and removal order — no automatic uninstall
+
+1. **Inspect, without mutating:** distinguish old and V2 packages, installed
+   version codes, APK signers, app data implications and which launcher Android
+   currently uses. Verify there is an accessible stock system launcher.
+2. **Verify V2 build:** exact SHA, successful native compilation and tests,
+   compatible signed V2 APK and candidate > installed V2 version code.
+3. **Install/update V2 only** after evidence-based approval; confirm native
+   Royal Home UI, stable application drawer, Phone, Messages, Camera, Store,
+   PTT and OAP Internet handoff. Do not remove the old app yet.
+4. **Switch normal Android Home to V2** through Android Settings >
+   Apps > Default apps > Home app. Verify that Home gesture/button opens
+   the native OAP royal screen, not Brave. Check return to the stock launcher.
+5. **Retire old Home** only once V2 is independently stable, is the selected
+   default and its old data are known to be unnecessary or backed up. Confirm
+   the exact old **`com.onanypostcode.oaphome`** application in Android
+   Settings > Apps before choosing **Uninstall**. Never uninstall
+   **`com.onanypostcode.oaphome.v2`** or the Android stock launcher.
+   A previous default app can leave Android without the intended launcher
+   selection; verify the resulting Home choice and reboot recovery.
+6. **Founder Final and Green** only with physical Redmi A5 proof, package
+   identities, signer/rollback evidence, and no private Home Node damage.
+
+If the old Home is not installed, there is nothing to remove.
+**Green, install completed, legacy removed and final OS readiness: NOT PROVEN.**
+
+## Runtime branches and conflict boundary
+
+The separate Flask review copy at `~/oap-v2-review` remains a visual/web
+reference only. Do not reset or merge into the protected
+`~/on-any-postcode` Home Node checkout.
+
+PR #1316 targets the existing native source branch
+`oap-home-apk-master777`. Its older workflow conflicts with a separate
+APK workflow added on current `main`; resolving that integration
+conflict remains a separate mandatory governance check. The exact native
+compile can pass while whole-repository governance still fails.
