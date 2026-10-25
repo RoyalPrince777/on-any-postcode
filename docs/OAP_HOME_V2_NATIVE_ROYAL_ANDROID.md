@@ -54,6 +54,43 @@ controlled by Home V2. A fully independent AOSP **OAP OS** image is not built.
   The candidate must match the *installed V2* signing identity.
 - No debug-key substitution, forced install, data clear, or uninstall of V2.
 
+## Real V2 device evidence — no uninstall, no bypass
+
+The read-only `scripts/oap_home_v2_device_evidence.py` is a **probe**, not an
+installer or an Android package manager. From an authorised Termux checkout
+which includes the script, run:
+
+```bash
+python3 scripts/oap_home_v2_device_evidence.py
+```
+
+Only after obtaining a candidate APK from the **same exact V2 source revision**
+and a verified signing identity, run:
+
+```bash
+python3 scripts/oap_home_v2_device_evidence.py \
+  --candidate-apk "/path/to/authorised/OAPHome-v2-candidate.apk"
+```
+
+The script uses existing `pm path` and, where readable, `aapt` and
+`apksigner`. It emits compact JSON **without APK paths, private keys,
+keystore data, device IDs, location or passwords**. Because Android 15
+package visibility and /data/app permissions vary, `visibility: "unknown"`
+does **not** prove a package is absent. Missing APK-tool access leaves the
+certificate/version null. Never replace unknown values with guesses.
+
+An `IDENTITY_COMPATIBLE_NOT_INSTALLED` result can only mean: the readable,
+currently installed V2 APK and candidate share the V2 package ID and signer,
+the candidate has a strictly higher versionCode and the label is OAP Home.
+It is **not** an Android installation, rollback, Home selection, application
+data migration or Founder Final receipt. `HOLD_*` means no update claim.
+
+If the script is unavailable on the user's existing phone checkout, use a
+**separate clean working copy** of this branch or a correctly verified export.
+Do **not** reset, switch, clean or rewrite the protected
+`~/on-any-postcode` SMI/Home Node checkout or the independent Home V2
+browser-reference checkout.
+
 ## Exact device migration and removal order — no automatic uninstall
 
 1. **Inspect, without mutating:** distinguish old and V2 packages, installed
