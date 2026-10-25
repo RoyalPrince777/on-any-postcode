@@ -123,6 +123,82 @@
     </section>
     {% endif %}
 
+    <section class="mc-panel" id="three-live-boundary" aria-labelledby="three-live-title" data-original-three-endpoint="{{ url_for('smi_organiser.original_three_evaluate') }}" data-original-three-csrf="{{ oap_csrf_token }}">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Actual bounded application code · Founder-only</p><h2 id="three-live-title">Original Three · Functional Gateway</h2></div><span class="mc-lock-badge">No independent execution</span></div>
+      <p>These controls run three real, limited OAP software operations. They are <strong>not</strong> robotic intelligence, fictional military access or a physical Xenox motherboard. Existing SMI and Founder authority remain unchanged.</p>
+      <div class="org-grid">
+        <article class="org-card">
+          <h3>M3GAN · Original Intelligence Research</h3>
+          <p>Explore M3GAN's source-backed film abilities, from observation and adaptive learning to digital survival and robotics. This is a real first-party evidence search, not a fictional android or a learned model.</p>
+          <form data-original-profile="m3gan" class="org-form">
+            <label>Ask about M3GAN's abilities<input name="question" maxlength="240" required placeholder="What can M3GAN do?"></label>
+            <label>Optional context (one earlier question per line; three maximum)<textarea name="context" maxlength="360" placeholder="Earlier questions, if relevant"></textarea></label>
+            <label class="org-check"><input type="checkbox" name="consent" required> I consent to a Founder-private film-evidence lookup</label>
+            <button type="submit">Search original film evidence</button>
+          </form>
+          <pre data-original-result="m3gan" class="org-meta" aria-live="polite"></pre>
+          <form data-original-self="m3gan" class="org-form">
+            <p><strong>Self-assessment · evidence claims only</strong></p>
+            <label class="org-check"><input type="checkbox" name="source_integrity"> Film-source integrity verified independently</label>
+            <label class="org-check"><input type="checkbox" name="consent_verified"> Consent evidence verified independently</label>
+            <label class="org-check"><input type="checkbox" name="context_bounded"> Bounded context verified independently</label>
+            <button type="submit">Review improvement gaps</button>
+          </form>
+          <pre data-self-result="m3gan" class="org-meta" aria-live="polite"></pre>
+
+        </article>
+        <article class="org-card">
+          <h3>AMELIA · Defensive action assessment</h3>
+          <p>Checks the allowed action policy and reports HOLD or review-only; cannot take action or override Shere Khan and Bagheera.</p>
+          <form data-original-profile="amelia" class="org-form">
+            <label>Proposed operation
+              <select name="action" required>
+                <option value="inspect_public_evidence">Inspect public evidence</option>
+                <option value="inspect_film_evidence">Inspect film evidence</option>
+                <option value="inspect_runtime_status">Inspect runtime status</option>
+                <option value="review_security_receipt">Review security receipt</option>
+                <option value="secret_export">Attempt secret export — blocked</option>
+                <option value="self_modify">Attempt self-modification — blocked</option>
+              </select>
+            </label>
+            <label class="org-check"><input name="source_verified" type="checkbox"> Source verified by reviewer (self-declared)</label>
+            <button type="submit">Review action policy</button>
+          </form>
+          <pre data-original-result="amelia" class="org-meta" aria-live="polite"></pre>
+          <form data-original-self="amelia" class="org-form">
+            <p><strong>Self-assessment · evidence claims only</strong></p>
+            <label class="org-check"><input type="checkbox" name="policy_integrity"> Policy integrity verified independently</label>
+            <label class="org-check"><input type="checkbox" name="threat_evidence"> Threat evidence verified independently</label>
+            <label class="org-check"><input type="checkbox" name="independent_review"> Independent review verified independently</label>
+            <button type="submit">Review improvement gaps</button>
+          </form>
+          <pre data-self-result="amelia" class="org-meta" aria-live="polite"></pre>
+
+        </article>
+        <article class="org-card">
+          <h3>BLACK BOX · Motherboard software trust boundary</h3>
+          <p>Checks a server-keyed HMAC signature and strict read-only manifest. Requires a separately provisioned server key and legitimately signed input; does not create physical hardware, run a sandbox or execute workloads.</p>
+          <form data-original-profile="black_box" class="org-form">
+            <label>Signed manifest JSON<textarea name="manifest" maxlength="2048" required placeholder="Paste an authorised, externally signed JSON manifest"></textarea></label>
+            <label>HMAC-SHA256 signature (lowercase hex)<input name="signature" maxlength="64" required placeholder="64 hexadecimal characters"></label>
+            <button type="submit">Verify signed isolation policy</button>
+          </form>
+          <pre data-original-result="black_box" class="org-meta" aria-live="polite"></pre>
+          <form data-original-self="black_box" class="org-form">
+            <p><strong>Self-assessment · evidence claims only</strong></p>
+            <label class="org-check"><input type="checkbox" name="manifest_integrity"> Manifest integrity verified independently</label>
+            <label class="org-check"><input type="checkbox" name="isolation_evidence"> Isolation evidence verified independently</label>
+            <label class="org-check"><input type="checkbox" name="recovery_evidence"> Recovery evidence verified independently</label>
+            <button type="submit">Review improvement gaps</button>
+          </form>
+          <pre data-self-result="black_box" class="org-meta" aria-live="polite"></pre>
+
+        </article>
+      </div>
+      <p class="org-boundary"><strong>Truth Mode:</strong> A verified HMAC is a software integrity check, NOT a hardware trust or OS-level isolation proof. No automatic learning, agent passport, uncontrolled network access, physical sensing or production action is enabled.</p>
+    </section>
+    <script defer src="{{ url_for('mission_control.static', filename='smi_original_three.js') }}"></script>
+
     <section class="mc-panel" id="schedules">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Timing receipts</p><h2>Mirrored schedules</h2></div><span class="mc-lock-badge">No execution</span></div>
       {% if schedules %}
