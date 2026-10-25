@@ -4,7 +4,7 @@ These are real read-only application functions. The film characters themselves,
 physical androids, hardware motherboard, independent agent brains, self-learning
 models, physical sensing, and unrestricted autonomy are NOT implemented.
 
-M3GAN: consent-scoped public OAP Direct booking discovery.
+M3GAN: consent-scoped, source-linked search of her original film abilities.
 AMELIA: defensive action admission review, without taking action.
 BLACK BOX: HMAC-authenticated software manifest with no external/device execution.
 """
@@ -18,14 +18,14 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from . import silicon_architecture, travel_marketplace, travel_supply_core
+from . import silicon_architecture, smi_archive
 
 MOTHERBOARD_KEY_ENV = "OAP_SMI_MOTHERBOARD_HMAC_KEY"
 MOTHERBOARD_SCHEMA = "oap.smi.motherboard.readonly.v1"
 _ALLOWED_CAPABILITIES = frozenset({"inspect_public_evidence", "inspect_smi_status"})
 _ALLOWED_AMELIA_ACTIONS = frozenset({
     "inspect_public_evidence",
-    "inspect_booking_availability",
+    "inspect_film_evidence",
     "inspect_runtime_status",
     "review_security_receipt",
 })
@@ -70,91 +70,88 @@ def _envelope(component: str) -> dict[str, Any]:
     }
 
 
-def m3gan_consented_booking(payload: Mapping[str, Any]) -> dict[str, Any]:
-    """Interpret a consented user query and read *actual* certified OAP offers."""
+_M3GAN_NOISE = frozenset({
+    "a", "about", "abilities", "ability", "and", "are", "can", "could",
+    "does", "do", "explain", "for", "how", "i", "in", "is", "me",
+    "m3gan", "my", "of", "please", "show", "tell", "the", "to",
+    "what", "which", "with", "you", "your",
+})
+_M3GAN_GENERAL = frozenset({
+    "abilities", "ability", "everything", "overview", "profile", "powers",
+    "skills", "all", "full", "original",
+})
+
+
+def m3gan_consented_research(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Query *only M3GAN's* original source-backed film abilities.
+
+    Searches the already published, immutable film-canon snapshot. Never calls a
+    vendor, booking system, sensor, model or external source. Previous context
+    may be supplied by the caller but is not saved to HRM or application memory.
+    """
 
     if payload.get("consent") is not True:
         return {
             **_envelope("m3gan"),
             "state": "blocked",
             "reason": "explicit_consent_required",
-            "data_read_performed": False,
+            "source_access_performed": False,
         }
-    query = _bounded_text(payload.get("request"), name="request", limit=240).casefold()
-    area_input = payload.get("area")
-    area = (
-        _bounded_text(area_input, name="area", limit=80).casefold()
-        if area_input not in (None, "")
-        else None
+    query = _bounded_text(payload.get("question"), name="question", limit=240)
+    history = payload.get("context", [])
+    if (not isinstance(history, list) or len(history) > 3
+        or any(not isinstance(item, str) for item in history)):
+        raise ValueError("invalid_context")
+    history_text = " ".join(
+        _bounded_text(item, name="context", limit=120) for item in history
     )
-    matches = []
-    if any(word in query for word in ("barber", "barbers", "haircut", "hair cut")):
-        matches.append("barber")
-    if any(word in query for word in ("event", "events", "concert", "ticket", "gig")):
-        matches.append("event")
-    if len(matches) != 1:
-        return {
-            **_envelope("m3gan"),
-            "state": "needs_specific_category",
-            "categories": ["barber", "event"],
-            "data_read_performed": False,
-        }
-    category = matches[0]
-    if category not in travel_supply_core.SUPPLY_CATEGORIES:
-        return {
-            **_envelope("m3gan"),
-            "state": "not_ready",
-            "category": category,
-            "reason": "certified_category_not_installed",
-            "data_read_performed": False,
-        }
-    try:
-        stock = travel_marketplace.public_offers(category=category, limit=5)
-    except (RuntimeError, ValueError):
-        stock = {"ready": False, "offers": [], "error": "supply_unavailable"}
-    if stock.get("ready") is not True:
-        return {
-            **_envelope("m3gan"),
-            "state": "not_ready",
-            "category": category,
-            "reason": str(stock.get("error") or "supply_unavailable")[:100],
-            "source": "oap_direct",
-            "data_read_performed": True,
-        }
-    offers = []
-    for item in list(stock.get("offers") or [])[:5]:
-        if (item.get("category") != category or
-            item.get("certified_supplier") is not True or
-            item.get("observed_not_inferred") is not True or
-            type(item.get("available_quantity")) is not int or
-            item["available_quantity"] <= 0):
+    words = set(re.findall(r"[a-z0-9]+", (query + " " + history_text).casefold()))
+    meaningful = words - _M3GAN_NOISE
+    general = bool(words & _M3GAN_GENERAL) and not meaningful
+    entries = smi_archive.FILM_CANON_ABILITIES
+    sources = {item["source_id"]: item for item in smi_archive.FILM_RESEARCH_SOURCE_RECEIPTS}
+    ranked: list[tuple[int, dict[str, Any]]] = []
+    for entry in entries:
+        if entry["reference_key"] != "m3gan":
             continue
-        if area and not any(
-            area in str(item.get(field) or "").casefold()
-            for field in ("place_label", "postcode", "borough")
-        ):
+        tags = set(re.findall(
+            r"[a-z0-9]+",
+            str(entry["name"]) + " " + str(entry["ability_id"]).replace("_", " ")
+            + " " + str(entry["film_evidence"]),
+        ))
+        score = len(meaningful & tags)
+        if general or not meaningful:
+            score = 1
+        if score < 1:
             continue
-        offers.append({
-            key: item.get(key) for key in (
-                "listing_id", "title", "place_label", "starts_at", "ends_at",
-                "available_quantity", "unit_price_minor", "currency",
-                "supplier_name", "source", "observed_at",
-            )
-        })
+        source = sources.get(entry["source_id"])
+        if source is None:
+            continue
+        ranked.append((score, {
+            "ability_id": entry["ability_id"],
+            "name": entry["name"],
+            "film_evidence": entry["film_evidence"],
+            "evidence_scope": entry["evidence_scope"],
+            "source_id": entry["source_id"],
+            "source_url": source["url"],
+            "publisher": source["publisher"],
+        }))
+    ranked.sort(key=lambda item: (-item[0], item[1]["ability_id"]))
+    matches = [item for _, item in ranked[:6]]
     return {
         **_envelope("m3gan"),
-        "state": "offers_found" if offers else "no_verified_offers",
-        "category": category,
-        "offers": offers,
-        "count": len(offers),
-        "source": "oap_direct",
-        "data_read_performed": True,
-        "booking_confirmed": False,
-        "area_filter_applied": area is not None,
-        "area": area,
-        "no_customer_message_stored": True,
+        "state": "source_backed_matches" if matches else "no_verified_match",
+        "matches": matches,
+        "match_count": len(matches),
+        "source": "oap_founder_private_film_canon_snapshot",
+        "source_access_performed": True,
+        "lookup_type": "deterministic_source_search_not_model_inference",
+        "question_stored": False,
+        "context_stored": False,
+        "external_fetch_performed": False,
+        "autonomous_learning_performed": False,
+        "physical_action_performed": False,
     }
-
 
 def amelia_defensive_review(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Review typed actions; never execute, infiltrate, elevate or self-approve."""
@@ -262,7 +259,7 @@ def evaluate(profile: object, payload: object) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise TypeError("json_object_required")
     if profile == "m3gan":
-        return m3gan_consented_booking(payload)
+        return m3gan_consented_research(payload)
     if profile == "amelia":
         return amelia_defensive_review(payload)
     if profile == "black_box":
@@ -274,9 +271,10 @@ def status() -> dict[str, Any]:
     return {
         "component": "SMI Original Three Bounded Capability Gateway",
         "implemented_profiles": ("m3gan", "amelia", "black_box"),
-        "m3gan_runtime": "consent_scoped_first_party_offer_read",
+        "m3gan_runtime": "consent_scoped_source_backed_film_canon_lookup",
         "amelia_runtime": "typed_defensive_review_no_execution",
         "black_box_runtime": "server_keyed_hmac_manifest_policy_check",
+        "other_business_missions_in_scope": False,
         "motherboard_key_configured": len(os.environ.get(MOTHERBOARD_KEY_ENV, "").encode()) >= 32,
         "network_isolation_enforced_at_os_level": False,
         "hardware_isolation_proven": False,
