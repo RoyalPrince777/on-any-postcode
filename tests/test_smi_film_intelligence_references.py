@@ -97,7 +97,7 @@ def test_research_data_is_not_exposed_by_general_brain_status():
     public_status = brain.get_public_brain_status()
     assert "film_intelligence_research" not in public_status["archive"]
     assert "film_intelligence_research" not in smi_archive.status()
-    assert len(_references()["source_receipts"]) == 3
+    assert len(_references()["source_receipts"]) == 4
 
 
 def test_real_ai_technology_references_are_separate_from_film_identities():
@@ -146,6 +146,52 @@ def test_real_technology_source_receipts_are_bound_and_cannot_grant_authority():
     assert research["external_provider_integrations_enabled"] is False
     assert research["oap_owned_robot_hardware_proven"] is False
     assert research["film_characters_operational_in_oap"] is False
+    assert research["agent_passports_created"] == 0
+    assert research["new_brains_created"] == 0
+    assert research["private_communication_ingestion_enabled"] is False
+    assert "film_intelligence_research" not in smi_archive.status()
+
+
+def test_original_film_ability_receipts_are_complete_and_provenance_bound():
+    from collections import Counter
+
+    research = _references()
+    abilities = research["film_canon_abilities"]
+    counts = Counter(item["reference_key"] for item in abilities)
+    assert dict(counts) == {"m3gan": 6, "amelia": 5, "black_box": 4}
+    assert len(abilities) == 15
+    identifiers = {(item["reference_key"], item["ability_id"]) for item in abilities}
+    assert len(identifiers) == len(abilities)
+    source_ids = {item["source_id"] for item in research["source_receipts"]}
+    assert all(
+        item["source_id"] in source_ids
+        and item["film_evidence"]
+        and item["name"]
+        and item["evidence_scope"] in {
+            "official_film_synopsis", "film_recap",
+            "fictional_connected_state", "fictional_exposition",
+        }
+        for item in abilities
+    )
+    assert research["film_canon_mode"] == "fictional_on_screen_ability_research_only"
+    assert research["film_canon_runtime_proven"] is False
+
+
+def test_full_film_profiles_preserve_original_versions_and_connection_limits():
+    research = _references()
+    identities = {i["reference_key"]: i for i in research["entries"]}
+    abilities = {i["ability_id"]: i for i in research["film_canon_abilities"]}
+    assert identities["m3gan"]["versions"] == ("original", "2.0")
+    assert identities["amelia"]["versions"] == ("original",)
+    assert identities["black_box"]["fictional_entity_type"] == "contained_ai_system"
+    assert abilities["motherboard_amplification"]["evidence_scope"] == (
+        "fictional_connected_state"
+    )
+    assert abilities["conditional_connection_power"]["evidence_scope"] == (
+        "fictional_connected_state"
+    )
+    assert abilities["isolated_motherboard"]["reference_key"] == "black_box"
+    assert research["execution_enabled"] is False
     assert research["agent_passports_created"] == 0
     assert research["new_brains_created"] == 0
     assert research["private_communication_ingestion_enabled"] is False
