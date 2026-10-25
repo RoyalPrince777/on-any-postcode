@@ -34,6 +34,9 @@ public class MainActivity extends Activity {
     private static final int GOLD = Color.rgb(236, 188, 75);
     private static final String OAP_API_ORIGIN = "https://www.onanypostcode.com";
     private static final String PTT_CONTACTS_PATH = "/ptt/contacts";
+    // Native V2 only launches the existing Founder-authenticated SMI surface.
+    // Never store, mirror or inject its credentials into the JS-disabled WebView.
+    private static final String SMI_FOUNDER_PATH = "/mission/smi";
     private static final int PTT_MIC_PERMISSION_REQUEST = 777;
     private boolean pttTransportReady = false;
     private boolean pttPressed = false;
@@ -151,7 +154,15 @@ public class MainActivity extends Activity {
         body.addView(clock, new LinearLayout.LayoutParams(-1, dp(68)));
         clockTick.run();
 
-        Button pttQuick = button("🎙 PTT\nSTANDALONE · MIC OFF", v -> openPttApp());
+        Button smiQuick = button("🧠 SMI · CAPTAIN ALL IN\\nFOUNDER SIGN-IN REQUIRED", v -> openSmi());
+        smiQuick.setTextSize(16);
+        smiQuick.setGravity(Gravity.CENTER_VERTICAL);
+        smiQuick.setContentDescription("Open Founder-only SMI Home in your Android browser. No credentials or media are transferred by OAP Home.");
+        LinearLayout.LayoutParams smiQuickLayout = new LinearLayout.LayoutParams(-1, dp(72));
+        smiQuickLayout.setMargins(0, dp(6), 0, dp(4));
+        body.addView(smiQuick, smiQuickLayout);
+
+        Button pttQuick = button("🎙 PTT\\nSTANDALONE · MIC OFF", v -> openPttApp());
         pttQuick.setTextSize(16);
         pttQuick.setGravity(Gravity.CENTER_VERTICAL);
         pttQuick.setContentDescription("Open standalone PTT. Microphone stays off until you hold the talk control.");
@@ -201,7 +212,11 @@ public class MainActivity extends Activity {
                 String[] destinations = {"OAP WORLD", "OAP STORE", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
                         "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
                 boolean matched = false;
-                if ("PTT".equals(normalized) || "PUSH TO TALK".equals(normalized)
+                if ("SMI".equals(normalized) || "CAPTAIN ALL IN".equals(normalized)
+                        || "SOVEREIGN MEGAVERSE INTELLIGENCE".equals(normalized)) {
+                    openSmi();
+                    matched = true;
+                } else if ("PTT".equals(normalized) || "PUSH TO TALK".equals(normalized)
                         || "PUSH-TO-TALK".equals(normalized)) {
                     openPttApp();
                     matched = true;
@@ -277,6 +292,23 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -1, 1);
             lp.setMargins(dp(2), dp(3), dp(2), dp(3));
             dock.addView(item, lp);
+        }
+    }
+
+    private void openSmi() {
+        // First-party Founder route only. Android's system browser owns login,
+        // cookies, JavaScript and session lifecycle; the native launcher does not.
+        Uri uri = Uri.parse(OAP_API_ORIGIN + SMI_FOUNDER_PATH);
+        if (!safeWebAddress(uri)) {
+            android.widget.Toast.makeText(this, "Secure SMI HTTPS route unavailable", android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        try {
+            Intent smi = new Intent(Intent.ACTION_VIEW, uri);
+            smi.addCategory(Intent.CATEGORY_BROWSABLE);
+            startActivity(smi);
+        } catch (ActivityNotFoundException error) {
+            android.widget.Toast.makeText(this, "A compatible Android browser is required for private SMI", android.widget.Toast.LENGTH_LONG).show();
         }
     }
 
@@ -522,6 +554,10 @@ public class MainActivity extends Activity {
     }
 
     private void destination(String name) {
+        if ("SMI".equals(name)) {
+            openSmi();
+            return;
+        }
         if ("PTT".equals(name)) {
             openPttApp();
             return;
