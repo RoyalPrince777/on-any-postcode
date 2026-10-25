@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 EXPECTED_PACKAGE = "com.onanypostcode.oaphome"
-EXPECTED_LABEL = "OAP Home V2"
+EXPECTED_LABEL = "OAP Home"
 PACKAGE_LINE = re.compile(
     r"^package: name='([^']+)' versionCode='([0-9]+)'(?: versionName='([^']*)')?"
 )
@@ -74,7 +74,7 @@ def verify(original: Path, candidate: Path) -> str:
         raise BlockedUpgrade("Candidate is not an OAP Home V2 version")
     candidate_badging = command("aapt", "dump", "badging", str(candidate))
     if f"application-label:'{EXPECTED_LABEL}'" not in candidate_badging:
-        raise BlockedUpgrade("Candidate Home display name is not OAP Home V2")
+        raise BlockedUpgrade("Candidate Home display name is not OAP Home")
     return ("IDENTITY_GATE_PASSED (offline only): original package, one matching "
             "signer, higher versionCode, V2 label. No installation or data migration "
             "has been performed. Device acceptance and Founder Final remain required.")
