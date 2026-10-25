@@ -39,7 +39,7 @@ BATMAN = ("Batman", "Robin")
 # Founder-bounded OAP Home V2 assignment: use existing specialist names and
 # existing six intelligence alliances. A named role is not a new agent passport,
 # worker, permissions grant, live vote, field observation, or career-star award.
-_HOME_V2_MITCHAM_SPECIALISTS: tuple[tuple[str, str, str], ...] = (
+_HOME_V2_UPDATE_SPECIALISTS: tuple[tuple[str, str, str], ...] = (
     ("SMI", "unified_smi_brain",
      "Unify evidence and recommendations; no independent final authority."),
     ("Captain ALL IN", "mission_coordinator",
@@ -71,7 +71,7 @@ _HOME_V2_MITCHAM_SPECIALISTS: tuple[tuple[str, str, str], ...] = (
     ("AMELIA", "separate_fictional_research_profile",
      "Distinct adversarial decision/boundary research; no device command access."),
     ("Trinity", "existing_specialist",
-     "Real Redmi A5 touch targets, accessibility, navigation and screenshots."),
+     "Physical Android touch targets, accessibility, navigation and screenshots."),
     ("Keymaker", "existing_specialist",
      "HOME intent, default app selection, back navigation and recovery routes."),
     ("Owl", "existing_specialist",
@@ -80,19 +80,19 @@ _HOME_V2_MITCHAM_SPECIALISTS: tuple[tuple[str, str, str], ...] = (
      "Last-line safety: halt release or removal on missing recovery evidence."),
 )
 
-_HOME_V2_MITCHAM_ALLIANCES: tuple[tuple[str, str], ...] = (
+_HOME_V2_UPDATE_ALLIANCES: tuple[tuple[str, str], ...] = (
     ("jungle_book", "Shere Khan and Bagheera: adversarial challenge and protection."),
-    ("mission_impossible", "Benji Dunn: native installation, signing and field checklists."),
+    ("mission_impossible", "Benji Dunn: native installation, signing and update checklists."),
     ("batman", "Batman: incident forensics and traceable Android failure evidence."),
     ("predator", "Device environment and sensor-permission threat-model review."),
 )
 
 
-def home_v2_mitcham_mission() -> dict[str, Any]:
-    """Read-only mission lens over existing roles; does NOT expand any registry.
+def home_v2_android_update_mission() -> dict[str, Any]:
+    """Read-only native OAP Home V2 update mission; no new agent registry.
 
-    Mitcham CR4 is the Founder's intended local device acceptance context,
-    not a GPS observation or evidence that the real phone was tested.
+    This team reviews the app upgrade itself, not any place or geographic
+    field mission. No device test or installation is implied by this board.
     """
     by_name = {
         str(agent["name"]).casefold(): str(agent["agent_id"])
@@ -110,14 +110,14 @@ def home_v2_mitcham_mission() -> dict[str, Any]:
             "verified_execution": False,
             "earned_stars": None,
         }
-        for name, classification, task in _HOME_V2_MITCHAM_SPECIALISTS
+        for name, classification, task in _HOME_V2_UPDATE_SPECIALISTS
     )
     return {
-        "id": "oap_home_v2_mitcham",
-        "title": "OAP Home V2 · Mitcham Android field mission",
+        "id": "oap_home_v2_android_update",
+        "title": "OAP Home V2 · Native Android update",
         "scope": "founder_private_read_only",
-        "location": "Mitcham CR4 — intended local test context, not verified geolocation",
-        "phone": "Redmi A5 — physical acceptance not verified",
+        "target": "Existing OAP Home V2 native Android launcher update",
+        "device_acceptance": "Physical Android HOME acceptance not verified",
         "decision": "Keep com.onanypostcode.oaphome.v2; display OAP Home; "
                     "retire com.onanypostcode.oaphome only after safe acceptance.",
         "smi_command": "Sovereign Megaverse Intelligence",
@@ -125,7 +125,7 @@ def home_v2_mitcham_mission() -> dict[str, Any]:
         "specialists": specialists,
         "alliance_refs": tuple(
             {"id": alliance_id, "mission_fit": why}
-            for alliance_id, why in _HOME_V2_MITCHAM_ALLIANCES
+            for alliance_id, why in _HOME_V2_UPDATE_ALLIANCES
         ),
         "research_identities_separate": ("M3GAN", "AMELIA", "Black Box"),
         "m3gan_identity_rule": "M3GAN Original → 2.0: one continuous identity.",
@@ -253,7 +253,7 @@ def get_founder_alliance_board(
             "entries": _historical_top_21(stars_by_id),
         },
         "oversight": ("Guardian", "HRM Core"),
-        "home_v2_mitcham_mission": home_v2_mitcham_mission(),
+        "home_v2_android_update_mission": home_v2_android_update_mission(),
         "alliances": (
             {
                 "id": "jungle_book", "name": "Jungle Book Intelligence",
