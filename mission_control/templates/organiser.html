@@ -137,6 +137,15 @@
             <button type="submit">Search original film evidence</button>
           </form>
           <pre data-original-result="m3gan" class="org-meta" aria-live="polite"></pre>
+          <form data-original-self="m3gan" class="org-form">
+            <p><strong>Self-assessment · evidence claims only</strong></p>
+            <label class="org-check"><input type="checkbox" name="source_integrity"> Film-source integrity verified independently</label>
+            <label class="org-check"><input type="checkbox" name="consent_verified"> Consent evidence verified independently</label>
+            <label class="org-check"><input type="checkbox" name="context_bounded"> Bounded context verified independently</label>
+            <button type="submit">Review improvement gaps</button>
+          </form>
+          <pre data-self-result="m3gan" class="org-meta" aria-live="polite"></pre>
+
         </article>
         <article class="org-card">
           <h3>AMELIA · Defensive action assessment</h3>
@@ -156,6 +165,15 @@
             <button type="submit">Review action policy</button>
           </form>
           <pre data-original-result="amelia" class="org-meta" aria-live="polite"></pre>
+          <form data-original-self="amelia" class="org-form">
+            <p><strong>Self-assessment · evidence claims only</strong></p>
+            <label class="org-check"><input type="checkbox" name="policy_integrity"> Policy integrity verified independently</label>
+            <label class="org-check"><input type="checkbox" name="threat_evidence"> Threat evidence verified independently</label>
+            <label class="org-check"><input type="checkbox" name="independent_review"> Independent review verified independently</label>
+            <button type="submit">Review improvement gaps</button>
+          </form>
+          <pre data-self-result="amelia" class="org-meta" aria-live="polite"></pre>
+
         </article>
         <article class="org-card">
           <h3>BLACK BOX · Motherboard software trust boundary</h3>
@@ -166,6 +184,15 @@
             <button type="submit">Verify signed isolation policy</button>
           </form>
           <pre data-original-result="black_box" class="org-meta" aria-live="polite"></pre>
+          <form data-original-self="black_box" class="org-form">
+            <p><strong>Self-assessment · evidence claims only</strong></p>
+            <label class="org-check"><input type="checkbox" name="manifest_integrity"> Manifest integrity verified independently</label>
+            <label class="org-check"><input type="checkbox" name="isolation_evidence"> Isolation evidence verified independently</label>
+            <label class="org-check"><input type="checkbox" name="recovery_evidence"> Recovery evidence verified independently</label>
+            <button type="submit">Review improvement gaps</button>
+          </form>
+          <pre data-self-result="black_box" class="org-meta" aria-live="polite"></pre>
+
         </article>
       </div>
       <p class="org-boundary"><strong>Truth Mode:</strong> A verified HMAC is a software integrity check, NOT a hardware trust or OS-level isolation proof. No automatic learning, agent passport, uncontrolled network access, physical sensing or production action is enabled.</p>
