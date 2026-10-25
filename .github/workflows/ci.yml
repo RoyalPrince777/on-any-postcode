@@ -86,12 +86,16 @@ jobs:
           done
       - name: Compile active Python packages
         run: python -m compileall -q app.py mission_control oap
+      - name: Validate OAP Home signing helper shell syntax
+        run: bash -n scripts/oap_home_signing_setup.sh
       - name: Run focused OAP Data security regressions
         run: |
           set -o pipefail
           python -m pytest -q tests/test_oap_data_product.py 2>&1 | tee /tmp/oap-pytest.log
       - name: Lint active application code
         run: ruff check app.py mission_control oap tests
+      - name: Verify OAP Home V2 Founder SMI native handoff contract
+        run: python -m pytest -q tests/test_oap_home_v2_smi_entry.py
       - name: Run OAP RTL proof slice
         run: |
           iverilog -g2012 -Wall -s tb_oap_guardian_nexus_slice \
@@ -149,7 +153,8 @@ jobs:
           OAP_PRIMARY_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
           OAP_REAL_POSTGRES_PROOF: "1"
         run: python -m pytest -q tests/test_distribution_market_postgres_integration.py tests/test_all_in_ai_postgres_executor_integration.py
-      - name: Run bounded external live routing Green Gate probe
+      - name: Observe bounded external live routing Green Gate
+        continue-on-error: true
         run: python scripts/routing_live_green_gate.py
       - name: Observe bounded external live weather proof
         continue-on-error: true
@@ -162,3 +167,31 @@ jobs:
           path: /tmp/oap-pytest.log
           if-no-files-found: error
           retention-days: 1
+
+  oap_home_v2_smi_compile:
+    name: OAP Home V2 exact-branch Java compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout this PR source (not a pinned older APK branch)
+        uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android build tooling
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -maxdepth 3 -type f -name sdkmanager -print -quit)"
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          yes | "$SDKMANAGER" --licenses >/dev/null || test "${PIPESTATUS[1]}" -eq 0
+          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Compile SMI-modified Home V2 without APK publication
+        working-directory: android/oaphome
+        run: gradle --no-daemon compileDebugJavaWithJavac
