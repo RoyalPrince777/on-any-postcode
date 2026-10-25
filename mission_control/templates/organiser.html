@@ -123,7 +123,7 @@
     </section>
     {% endif %}
 
-    <section class="mc-panel" id="three-live-boundary" aria-labelledby="three-live-title">
+    <section class="mc-panel" id="three-live-boundary" aria-labelledby="three-live-title" data-original-three-endpoint="{{ url_for('smi_organiser.original_three_evaluate') }}" data-original-three-csrf="{{ oap_csrf_token }}">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Actual bounded application code · Founder-only</p><h2 id="three-live-title">Original Three · Functional Gateway</h2></div><span class="mc-lock-badge">No independent execution</span></div>
       <p>These controls run three real, limited OAP software operations. They are <strong>not</strong> robotic intelligence, fictional military access or a physical Xenox motherboard. Existing SMI and Founder authority remain unchanged.</p>
       <div class="org-grid">
@@ -169,42 +169,7 @@
       </div>
       <p class="org-boundary"><strong>Truth Mode:</strong> A verified HMAC is a software integrity check, NOT a hardware trust or OS-level isolation proof. No automatic learning, agent passport, uncontrolled network access, physical sensing or production action is enabled.</p>
     </section>
-    <script>
-      (() => {
-        const endpoint = {{ url_for('smi_organiser.original_three_evaluate')|tojson }};
-        const csrf = {{ oap_csrf_token|tojson }};
-        for (const form of document.querySelectorAll('[data-original-profile]')) {
-          form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const profile = form.dataset.originalProfile;
-            const output = document.querySelector('[data-original-result="' + profile + '"]');
-            const values = new FormData(form);
-            let payload;
-            if (profile === 'm3gan') {
-              payload = {request: values.get('request'), consent: values.get('consent') === 'on'};
-            } else if (profile === 'amelia') {
-              payload = {action: values.get('action'), source_verified: values.get('source_verified') === 'on'};
-            } else {
-              try { payload = {manifest: JSON.parse(values.get('manifest')), signature: values.get('signature')}; }
-              catch { output.textContent = 'Invalid JSON manifest. No operation performed.'; return; }
-            }
-            output.textContent = 'Checking protected first-party policy…';
-            try {
-              const result = await fetch(endpoint, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {'Content-Type': 'application/json', 'X-OAP-CSRF': csrf},
-                body: JSON.stringify({profile, payload}),
-              });
-              const data = await result.json();
-              output.textContent = JSON.stringify(data, null, 2);
-            } catch {
-              output.textContent = 'The governed service did not respond. No operation confirmed.';
-            }
-          });
-        }
-      })();
-    </script>
+    <script defer src="{{ url_for('mission_control.static', filename='smi_original_three.js') }}"></script>
 
     <section class="mc-panel" id="schedules">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Timing receipts</p><h2>Mirrored schedules</h2></div><span class="mc-lock-badge">No execution</span></div>
