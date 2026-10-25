@@ -89,3 +89,15 @@ def test_source_snapshot_is_not_misrepresented_as_live_intelligence():
     assert research["public_source_provenance_present"] is True
     assert research["execution_enabled"] is False
     assert research["system_access_granted"] is False
+
+
+def test_evidence_is_wired_to_existing_brain_archive_projection():
+    from mission_control import brain
+
+    status = brain.get_public_brain_status()
+    research = status["archive"]["film_intelligence_research"]
+    assert len(research["source_receipts"]) == 3
+    assert {item["reference_key"] for item in research["entries"]} == {
+        "m3gan", "amelia", "black_box",
+    }
+    assert research["private_communication_ingestion_enabled"] is False
