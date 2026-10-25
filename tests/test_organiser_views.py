@@ -173,3 +173,62 @@ def test_founder_original_film_powers_view_links_real_film_references(monkeypatc
     assert len(research["source_receipts"]) == 4
     assert research["film_canon_runtime_proven"] is False
     assert research_response.headers["Cache-Control"] == "no-store"
+
+
+def test_original_three_gateway_is_founder_only_and_csrf_guarded(monkeypatch):
+    from mission_control import film_capability_gateway
+
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser/original-three/status").status_code == 403
+    assert blocked.post("/mission/organiser/original-three/evaluate",
+                        json={"profile": "amelia", "payload": {"action": "deploy"}}).status_code == 403
+
+    founder = _client(monkeypatch, founder=True)
+    page = founder.get("/mission/organiser")
+    html = page.get_data(as_text=True)
+    assert 'data-original-profile="m3gan"' in html
+    assert 'data-original-profile="amelia"' in html
+    assert 'data-original-profile="black_box"' in html
+    assert "X-OAP-CSRF" in html
+    assert "not" in html.lower()
+
+    status = founder.get("/mission/organiser/original-three/status")
+    assert status.status_code == 200
+    assert status.headers["Cache-Control"] == "no-store"
+    assert status.get_json()["one_smi_brain"] is True
+    assert status.get_json()["physical_motherboard_built"] is False
+
+    fail = founder.post("/mission/organiser/original-three/evaluate",
+                        json={"profile": "amelia", "payload": {"action": "deploy"}})
+    assert fail.status_code == 403
+    assert fail.get_json()["error"] == "csrf_failed"
+
+    with founder.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "a" * 48
+    result = founder.post(
+        "/mission/organiser/original-three/evaluate",
+        json={"profile": "amelia", "payload": {"action": "deploy", "source_verified": True}},
+        headers={"X-OAP-CSRF": "a" * 48},
+    )
+    assert result.status_code == 200
+    assert result.headers["Cache-Control"] == "no-store"
+    assert result.headers["X-Content-Type-Options"] == "nosniff"
+    assert result.get_json()["decision"] == "hold"
+    assert result.get_json()["operation_performed"] is False
+
+
+def test_original_three_api_blocks_bad_json_without_hitting_inference(monkeypatch):
+    from mission_control import film_capability_gateway
+
+    founder = _client(monkeypatch, founder=True)
+    with founder.session_transaction() as session:
+        session[web_security.CSRF_SESSION_KEY] = "b" * 48
+    monkeypatch.setattr(
+        film_capability_gateway, "evaluate",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("must fail before evaluation")),
+    )
+    url = "/mission/organiser/original-three/evaluate"
+    headers = {"X-OAP-CSRF": "b" * 48}
+    assert founder.post(url, json={"profile": "m3gan"}, headers=headers).status_code == 400
+    assert founder.post(url, json={"profile": "other", "payload": {}, "extra": 1}, headers=headers).status_code == 400
+    assert founder.post(url, data="x" * 5000, headers=headers).status_code == 413
