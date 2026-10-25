@@ -7,7 +7,8 @@ The 78-agent canonical registry and its passports remain unchanged.
 from __future__ import annotations
 
 from collections import Counter
-from typing import Any, Iterable, Mapping
+from collections.abc import Iterable, Mapping
+from typing import Any
 
 # Family rows: review key, specialist family name, existing SMI parent world.
 FAMILY_ROWS = [["police","Police Intelligence","civic"],["cid","CID Detective Intelligence","civic"],["undercover","Undercover Safeguards Intelligence","civic"],["fbi","Federal Investigation Research","civic"],["cia","Foreign Intelligence Research","civilisation"],["mi5","Domestic Security Research","civic"],["mi6","Overseas Intelligence Research","civilisation"],["military","Defence Intelligence Research","civilisation"],["special_ops","Special Operations Planning","movement"],["emergency","Emergency Referral Intelligence","life"],["cyber","Cyber Defence Intelligence","matrix"],["executive","Executive Intelligence Briefing","civilisation"]]
