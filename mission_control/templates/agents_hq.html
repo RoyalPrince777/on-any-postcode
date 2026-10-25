@@ -12,15 +12,23 @@ header{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 nav{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
 button{background:#172942;color:white;border:1px solid #526d91;border-radius:10px;padding:12px;cursor:pointer}
 button:focus-visible{outline:3px solid #e2bd69}
-button[aria-pressed="true"]{border-color:#e2bd69}
+button[aria-pressed="true"]{border-color:#e2bd69;background:#273a52}
 section{border:1px solid #365171;border-radius:14px;padding:20px;margin:16px 0}
 small{color:#b9cce1}
+#room-members{padding-left:20px;display:grid;gap:8px}
+#room-members li{overflow-wrap:anywhere}
+#room-members small{display:block}
+#rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+#rooms [data-room-kind]{display:flex;align-items:center;gap:9px;min-width:0}
+#rooms button{text-align:left;overflow-wrap:anywhere}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <main>
 <header><h1>🏛 SMI Agents HQ</h1><a href="/mission/smi">← Command Centre</a></header>
 <p>Founder-only · Canonical read-only room directory · Founder Final</p>
+<p><small>No message history or autonomous agent chat is available. This directory never sends or executes agent instructions.</small></p>
 <nav aria-label="Room types">
 <button type="button" data-kind="all_agents" aria-pressed="true">All Agents</button>
 <button type="button" data-kind="individual" aria-pressed="false">Individual</button>
@@ -30,27 +38,89 @@ small{color:#b9cce1}
 <h2 id="rooms-title">Rooms</h2>
 <div id="rooms">
 {% for room in directory.rooms %}
-<div data-room-kind="{{ room.kind }}"><button type="button" data-room-id="{{ room.id }}">{{ room.name }}</button> <small>{{ room.agent_ids|length }} members</small></div>
+<div data-room-kind="{{ room.kind }}"><button type="button" data-room-id="{{ room.id }}" aria-pressed="false">{{ room.name }}</button> <small>{{ room.agent_ids|length }} members</small></div>
 {% endfor %}
 </div>
 </section>
-<section aria-live="polite"><h2 id="selected-room">Select a room</h2><p id="members">Membership only. No message history or autonomous agent chat is available.</p></section>
+<section aria-labelledby="selected-room">
+<h2 id="selected-room">Select a room</h2>
+<p id="room-status" role="status" aria-live="polite">Select a room to verify its registered members.</p>
+<ul id="room-members" aria-label="Verified registered members"></ul>
+</section>
 <script>
+"use strict";
 const directory = {{ directory|tojson }};
-const rooms = directory.rooms;
-const buttons = document.querySelectorAll('[data-kind]');
-function filterRooms(kind){
-  buttons.forEach(b => b.setAttribute('aria-pressed',String(b.dataset.kind===kind)));
-  document.querySelectorAll('[data-room-kind]').forEach(e=>e.hidden=e.dataset.roomKind!==kind);
+const rooms = Array.isArray(directory.rooms) ? directory.rooms : [];
+const kinds = document.querySelectorAll("[data-kind]");
+const roomButtons = document.querySelectorAll("[data-room-id]");
+const heading = document.getElementById("selected-room");
+const status = document.getElementById("room-status");
+const members = document.getElementById("room-members");
+let selectionVersion = 0;
+
+function clearSelection() {
+  selectionVersion += 1;
+  roomButtons.forEach(button => button.setAttribute("aria-pressed", "false"));
+  heading.textContent = "Select a room";
+  status.textContent = "Select a room to verify its registered members.";
+  members.replaceChildren();
 }
-buttons.forEach(b=>b.addEventListener('click',()=>filterRooms(b.dataset.kind)));
-document.querySelectorAll('[data-room-id]').forEach(b=>b.addEventListener('click',()=>{
- const room=rooms.find(r=>r.id===b.dataset.roomId);
- if(!room)return;
- document.getElementById('selected-room').textContent=room.name;
- document.getElementById('members').textContent=room.agent_ids.length+' registered members · Read-only · No messages or agent execution';
-}));
-filterRooms('all_agents');
+function filterRooms(kind) {
+  clearSelection();
+  kinds.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.kind === kind)));
+  document.querySelectorAll("[data-room-kind]").forEach(node => {
+    node.hidden = node.dataset.roomKind !== kind;
+  });
+}
+async function selectRoom(id) {
+  const room = rooms.find(item => item.id === id);
+  if (!room || !Array.isArray(room.agent_ids)) return;
+  clearSelection();
+  const version = selectionVersion;
+  heading.textContent = room.name;
+  status.textContent = "Verifying registered members…";
+  try {
+    const response = await fetch("/mission/smi/agents-hq/rooms/" + encodeURIComponent(id), {
+      credentials: "same-origin", cache: "no-store",
+      headers: {Accept: "application/json"}
+    });
+    if (!response.ok) throw new Error("Room verification unavailable");
+    const payload = await response.json();
+    if (
+      !payload || !payload.room || payload.room.id !== id ||
+      payload.can_execute !== false || payload.agent_responses_generated !== false ||
+      !Array.isArray(payload.members) ||
+      payload.members.length !== room.agent_ids.length ||
+      !payload.members.every((member, index) =>
+        member && typeof member.name === "string" &&
+        member.agent_id === room.agent_ids[index])
+    ) {
+      throw new Error("Room response mismatch");
+    }
+    if (version !== selectionVersion) return;
+    const fragment = document.createDocumentFragment();
+    payload.members.forEach(member => {
+      const item = document.createElement("li");
+      const name = document.createElement("strong");
+      name.textContent = member.name;
+      const passport = document.createElement("small");
+      passport.textContent = member.agent_id;
+      item.append(name, passport);
+      fragment.appendChild(item);
+    });
+    members.replaceChildren(fragment);
+    roomButtons.forEach(button =>
+      button.setAttribute("aria-pressed", String(button.dataset.roomId === id)));
+    status.textContent = payload.members.length + " registered members verified · Read-only · No messages or agent execution";
+  } catch (_error) {
+    if (version !== selectionVersion) return;
+    members.replaceChildren();
+    status.textContent = "Unable to verify room membership. Nothing has been displayed.";
+  }
+}
+kinds.forEach(button => button.addEventListener("click", () => filterRooms(button.dataset.kind)));
+roomButtons.forEach(button => button.addEventListener("click", () => selectRoom(button.dataset.roomId)));
+filterRooms("all_agents");
 </script>
 </main>
 </body>
