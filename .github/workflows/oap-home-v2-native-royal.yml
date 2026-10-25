@@ -33,7 +33,7 @@ jobs:
         run: |
           python3 tests/test_oap_home_v2_native_royal.py
           python3 -m unittest discover -s tests -p 'test_oap_home_v2_inplace_gate.py' -v
-          python3 -m pytest tests/test_oap_home_v2_device_evidence.py -q
+          python3 -m unittest discover -s tests -p 'test_oap_home_v2_device_evidence.py' -v
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
           grep -Fq 'android:label="OAP Home"' android/oaphome/src/main/AndroidManifest.xml
           if grep -Fxq "        applicationId 'com.onanypostcode.oaphome'" android/oaphome/build.gradle; then
