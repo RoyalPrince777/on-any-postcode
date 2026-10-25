@@ -17,7 +17,7 @@
     <p class="sub">First-party OAP Direct supply from Certified suppliers. Only active future availability with real stored pricing is shown. External marketplace data is research-only and never becomes an OAP partner feed. <a href="/travel">Open OAP Travel</a>.</p>
   </section>
   <form class="filters" method="get" action="/travel/direct">
-    <select name="category" aria-label="Category"><option value="">All experiences</option>{% for value in ['stay','attraction','activity','car_rental','transport','event'] %}<option value="{{ value }}" {% if request.args.get('category') == value %}selected{% endif %}>{{ value.replace('_',' ')|title }}</option>{% endfor %}</select>
+    <select name="category" aria-label="Category"><option value="">All experiences</option>{% for value in ['stay','attraction','activity','car_rental','transport','event','barber'] %}<option value="{{ value }}" {% if request.args.get('category') == value %}selected{% endif %}>{{ value.replace('_',' ')|title }}</option>{% endfor %}</select>
     <input name="country" value="{{ request.args.get('country','') }}" placeholder="Country" maxlength="120"><button type="submit">Discover</button>
   </form>
   {% if marketplace.error %}<div class="empty">{{ marketplace.error }}</div>{% endif %}
