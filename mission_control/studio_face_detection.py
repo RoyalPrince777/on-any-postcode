@@ -9,11 +9,17 @@ import base64
 import binascii
 import re
 from io import BytesIO
+from threading import BoundedSemaphore
 from typing import Any
 
 MAX_IMAGE_BYTES = 3 * 1024 * 1024
 MAX_IMAGE_PIXELS = 4_000_000
 MAX_IMAGE_SIDE = 4096
+
+# One costly decode/detection per process. A fast, non-blocking busy reply
+# is safer than keeping multiple uploaded face images queued in worker memory.
+# This is NOT a distributed/global worker limit or a CPU-time timeout.
+SINGLE_FRAME_PROCESS_SLOT = BoundedSemaphore(value=1)
 _DATA_URL = re.compile(r"\Adata:(image/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)\Z", re.IGNORECASE)
 _FORMATS = {"image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WEBP"}
 
