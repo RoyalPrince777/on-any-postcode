@@ -4,7 +4,11 @@ import hashlib
 
 import pytest
 
-from mission_control import local_booking_extension, travel_marketplace, travel_supply_core
+from mission_control import (
+    local_booking_extension,
+    travel_marketplace,
+    travel_supply_core,
+)
 
 
 def _extension_ready(monkeypatch, ready):
