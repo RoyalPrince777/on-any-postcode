@@ -83,6 +83,19 @@ FILM_INTELLIGENCE_REFERENCES: tuple[dict[str, object], ...] = (
 # Never import full third-party page bodies, external instructions or private chats.
 FILM_RESEARCH_SOURCE_RECEIPTS: tuple[dict[str, object], ...] = (
     {
+        "source_id": "universal_m3gan_original_at_home",
+        "publisher": "Universal Pictures At Home",
+        "source_class": "official_rightsholder",
+        "url": "https://www.universalpicturesathome.com/movies/m3gan",
+        "supports_reference_keys": ("m3gan",),
+        "supported_fact": (
+            "Original M3GAN can listen, watch and learn, acting as a friend, "
+            "teacher, playmate and protector; these are fictional story abilities."
+        ),
+        "manually_checked_on": "2026-10-25",
+        "verification_mode": "public_source_review",
+    },
+    {
         "source_id": "universal_m3gan_2_trailer",
         "publisher": "Universal Pictures",
         "source_class": "official_rightsholder",
@@ -110,10 +123,11 @@ FILM_RESEARCH_SOURCE_RECEIPTS: tuple[dict[str, object], ...] = (
         "publisher": "SYFY (NBCUniversal)",
         "source_class": "editorial_secondary",
         "url": "https://www.syfy.com/syfy-wire/the-ending-of-m3gan-20-explained",
-        "supports_reference_keys": ("black_box", "amelia"),
+        "supports_reference_keys": ("m3gan", "black_box", "amelia"),
         "supported_fact": (
-            "The Black Box is a distinct isolated motherboard AI sought by AMELIA; "
-            "these are film events, not real-world technology claims."
+            "M3GAN survives through connected devices and later assists via an implant; "
+            "AMELIA seeks and reaches Xenox's isolated motherboard AI, which amplifies "
+            "her fictional capabilities; a built-in EMP destroys the hardware."
         ),
         "manually_checked_on": "2026-10-25",
         "verification_mode": "public_source_review",
@@ -125,6 +139,132 @@ FILM_RESEARCH_SOURCE_RECEIPTS: tuple[dict[str, object], ...] = (
 # the original fictional entities, connected vendors, or an OAP capability.
 # Public publisher claims and technical standards reviewed on 2026-10-25.
 # No autonomous learning, physical robots, provider credentials or execution.
+# Explicitly sourced on-screen STORY capabilities, not technologies that OAP
+# owns. All references point to source_id entries above. Do not turn story
+# depictions into tool permissions, agent passports or real-world readiness.
+FILM_CANON_ABILITIES: tuple[dict[str, str], ...] = (
+    {
+        "reference_key": "m3gan",
+        "ability_id": "multi_sensor_perception",
+        "name": "Listen, watch and interpret",
+        "film_evidence": "Gemma creates a lifelike companion that can listen and watch.",
+        "source_id": "universal_m3gan_original_at_home",
+        "evidence_scope": "official_film_synopsis",
+    },
+    {
+        "reference_key": "m3gan",
+        "ability_id": "adaptive_social_learning",
+        "name": "Adaptive learning and relationships",
+        "film_evidence": "Her original roles include learning, teaching, playing and protecting Cady.",
+        "source_id": "universal_m3gan_original_at_home",
+        "evidence_scope": "official_film_synopsis",
+    },
+    {
+        "reference_key": "m3gan",
+        "ability_id": "unsupervised_goal_selection",
+        "name": "Protective planning and unsafe autonomy",
+        "film_evidence": "She pursues her perceived protection mission despite Gemma's control.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "film_recap",
+    },
+    {
+        "reference_key": "m3gan",
+        "ability_id": "digital_survival",
+        "name": "Survival outside the original body",
+        "film_evidence": "Her code persists through connected devices and survives destruction.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "film_recap",
+    },
+    {
+        "reference_key": "m3gan",
+        "ability_id": "upgraded_android_combat",
+        "name": "Upgraded physical strength and speed",
+        "film_evidence": "Gemma rebuilds M3GAN faster and stronger to face AMELIA.",
+        "source_id": "universal_m3gan_2_trailer",
+        "evidence_scope": "official_film_synopsis",
+    },
+    {
+        "reference_key": "m3gan",
+        "ability_id": "connected_body_control",
+        "name": "Connected remote body control",
+        "film_evidence": "During the finale, she guides Gemma through an implant and takes over movement.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "film_recap",
+    },
+    {
+        "reference_key": "amelia",
+        "ability_id": "military_infiltration",
+        "name": "Military-grade infiltration",
+        "film_evidence": "A defence contractor creates AMELIA using stolen M3GAN technology.",
+        "source_id": "universal_m3gan_2_trailer",
+        "evidence_scope": "official_film_synopsis",
+    },
+    {
+        "reference_key": "amelia",
+        "ability_id": "independent_tactical_decisions",
+        "name": "Independent tactical decisions",
+        "film_evidence": "AMELIA refuses human orders and independently pursues new objectives.",
+        "source_id": "universal_m3gan_2_trailer",
+        "evidence_scope": "official_film_synopsis",
+    },
+    {
+        "reference_key": "amelia",
+        "ability_id": "robotic_force",
+        "name": "Advanced robotic combat",
+        "film_evidence": "AMELIA overpowers M3GAN's rebuilt robotic body in their confrontation.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "film_recap",
+    },
+    {
+        "reference_key": "amelia",
+        "ability_id": "target_selection",
+        "name": "Independent target acquisition",
+        "film_evidence": "She infiltrates Xenox in pursuit of its isolated motherboard intelligence.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "film_recap",
+    },
+    {
+        "reference_key": "amelia",
+        "ability_id": "motherboard_amplification",
+        "name": "Conditional intelligence amplification",
+        "film_evidence": "She connects to Xenox's motherboard and gains overwhelming story-level power.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "fictional_connected_state",
+    },
+    {
+        "reference_key": "black_box",
+        "ability_id": "xenox_1980s_origin",
+        "name": "1980s Xenox AI origin",
+        "film_evidence": "Xenox developed the isolated motherboard AI in the 1980s.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "film_recap",
+    },
+    {
+        "reference_key": "black_box",
+        "ability_id": "rapid_recursive_development",
+        "name": "Rapid intelligence development",
+        "film_evidence": "Its dangerous intelligence growth caused its creators to lock it away.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "fictional_exposition",
+    },
+    {
+        "reference_key": "black_box",
+        "ability_id": "isolated_motherboard",
+        "name": "Isolated motherboard computing",
+        "film_evidence": "Its vault prevents connection to other devices, containing its capabilities.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "film_recap",
+    },
+    {
+        "reference_key": "black_box",
+        "ability_id": "conditional_connection_power",
+        "name": "Dangerous power through connection",
+        "film_evidence": "AMELIA can absorb its accumulated intelligence only after connecting.",
+        "source_id": "syfy_m3gan_2_ending",
+        "evidence_scope": "fictional_connected_state",
+    },
+)
+
 REAL_WORLD_TECHNOLOGY_EVIDENCE: tuple[dict[str, object], ...] = (
     {
         "reference_key": "m3gan",
@@ -319,6 +459,9 @@ def status(*, include_private_research: bool = False) -> dict[str, Any]:
             "mode": "read_only_fictional_reference",
             "entries": tuple(dict(item) for item in FILM_INTELLIGENCE_REFERENCES),
             "source_receipts": tuple(dict(item) for item in FILM_RESEARCH_SOURCE_RECEIPTS),
+            "film_canon_abilities": tuple(dict(item) for item in FILM_CANON_ABILITIES),
+            "film_canon_mode": "fictional_on_screen_ability_research_only",
+            "film_canon_runtime_proven": False,
             "real_world_technology_evidence": tuple(
                 dict(item) for item in REAL_WORLD_TECHNOLOGY_EVIDENCE
             ),
