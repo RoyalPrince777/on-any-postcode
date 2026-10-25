@@ -872,3 +872,50 @@ def test_real_postgres_founder_private_pod_install_snapshot_and_fail_closed(monk
             (created["private_order_id"],),
         ).fetchone()
     assert int(receipt_count[0]) == 0
+
+
+def test_real_postgres_barber_category_extension_preserves_events_and_no_fake_slots():
+    """Actual CI PostgreSQL DDL; listing is rolled back, no pilot data imported."""
+    from mission_control import (
+        local_booking_extension,
+        travel_marketplace,
+        travel_supply_core,
+    )
+
+    assert postgres_db.init_postgres(assume_yes=True)["initialized"] is True
+    assert travel_supply_core.init_supply_core_schema(assume_yes=True)["schema_ready"]
+    migrated = local_booking_extension.init_schema(assume_yes=True)
+    assert migrated["schema_ready"] is True
+    assert local_booking_extension.init_schema(assume_yes=True)["schema_ready"]
+
+    owner = str(uuid4())
+    with postgres_db.connect() as connection:
+        connection.execute(
+            """INSERT INTO users(id,email,username,display_name,status)
+               VALUES (%s,%s,%s,%s,'active')""",
+            (owner, f"{owner}@example.invalid", f"barber-{owner[:8]}", "CI Barber"),
+        )
+        supplier = connection.execute(
+            """INSERT INTO oap_supply_suppliers
+               (owner_identity_id,display_name,supplier_type)
+               VALUES (%s,%s,'personal_service') RETURNING supplier_id""",
+            (owner, "CI personal service (not certified)"),
+        ).fetchone()
+        created = connection.execute(
+            """INSERT INTO oap_supply_listings
+               (supplier_id,category,title,place_label,postcode,country,idempotency_key)
+               VALUES (%s,'barber','CI haircut','Mitcham','CR4',
+                       'United Kingdom',%s)
+               RETURNING category,state""",
+            (supplier[0], f"ci-barber-{owner[:8]}"),
+        ).fetchone()
+        assert created == ("barber", "DRAFT")
+        connection.rollback()
+
+    # The real schema now permits barber suppliers/listings, but a test-only,
+    # uncertified record never becomes published supply or a reservation.
+    results = travel_marketplace.public_offers(category="barber")
+    assert results["ready"] is True
+    assert results["count"] == 0
+    assert results["offers"] == []
+    assert "event" in travel_supply_core.SUPPLY_CATEGORIES
