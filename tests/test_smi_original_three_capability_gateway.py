@@ -101,6 +101,30 @@ def test_m3gan_read_only_actual_offer_with_privacy_redaction(monkeypatch):
     assert result["operation_performed"] is False
 
 
+def test_m3gan_explicit_area_prevents_other_area_result(monkeypatch):
+    monkeypatch.setattr(gateway.travel_supply_core, "SUPPLY_CATEGORIES", {"event"})
+    monkeypatch.setattr(
+        gateway.travel_marketplace, "public_offers",
+        lambda **kwargs: {
+            "ready": True,
+            "offers": [{
+                "category": "event", "certified_supplier": True,
+                "observed_not_inferred": True, "available_quantity": 4,
+                "place_label": "Croydon", "postcode": "CR0", "borough": "Croydon",
+                "title": "Real source event", "source": "oap_direct",
+            }],
+        },
+    )
+    result = gateway.evaluate(
+        "m3gan",
+        {"request": "Any events?", "area": "Mitcham", "consent": True},
+    )
+    assert result["state"] == "no_verified_offers"
+    assert result["count"] == 0
+    assert result["area_filter_applied"] is True
+    assert result["area"] == "mitcham"
+
+
 def test_m3gan_missing_barber_category_fails_closed(monkeypatch):
     monkeypatch.setattr(gateway.travel_supply_core, "SUPPLY_CATEGORIES", {"event"})
     monkeypatch.setattr(
