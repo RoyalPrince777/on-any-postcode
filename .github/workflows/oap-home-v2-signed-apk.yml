@@ -1,0 +1,170 @@
+# Explicit Founder-gated build of the exact checked-out V2 revision.
+# This produces a signed candidate, never installs or removes either launcher.
+name: OAP Home V2 signed APK (candidate only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OAP Home source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Verify native V2 identity and safety contracts first
+        run: |
+          python3 tests/test_oap_home_v2_native_royal.py
+          python3 -m unittest discover -s tests -p 'test_oap_home_v2_inplace_gate.py' -v
+      - name: Verify established V2 package and OAP Home display name
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD | tee /tmp/oap-home-source-revision.txt
+          SOURCE="android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java"
+          MANIFEST="android/oaphome/src/main/AndroidManifest.xml"
+          grep -Fq 'private void openInternet()' "$SOURCE"
+          grep -Fq 'else if (index == 2) launchOapInternet();' "$SOURCE"
+          grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
+          grep -Fq 'versionCode 21' android/oaphome/build.gradle
+          grep -Fq 'android:label="OAP Home"' "$MANIFEST"
+          if grep -Fxq "        applicationId 'com.onanypostcode.oaphome'" android/oaphome/build.gradle; then
+            echo "::error::Original Home must stay a separate legacy package"
+            exit 1
+          fi
+          grep -Fq 'OAP WORLD' "$SOURCE"
+          grep -Fq 'OAP LIBRARY' "$SOURCE"
+          grep -Fq 'NOT CONNECTED' "$SOURCE"
+          grep -Fq 'boolean safeWebAddress(Uri uri)' "$SOURCE"
+          grep -Fq 'settings.setJavaScriptEnabled(false)' "$SOURCE"
+          grep -Fq 'settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW)' "$SOURCE"
+          grep -Fq 'handler.cancel();' "$SOURCE"
+          grep -Fq 'BACK IN OAP INTERNET' "$SOURCE"
+          grep -Fq 'FORWARD IN OAP INTERNET' "$SOURCE"
+          grep -Fq 'RELOAD HTTPS PAGE' "$SOURCE"
+          grep -Fq 'android.permission.INTERNET' "$MANIFEST"
+          grep -Fq 'android:usesCleartextTraffic="false"' "$MANIFEST"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Configure Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -maxdepth 3 -type f -name sdkmanager -print -quit)"
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          yes | "$SDKMANAGER" --licenses >/dev/null || test "${PIPESTATUS[1]}" -eq 0
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Restore existing persistent signing key
+        shell: bash
+        env:
+          OAP_HOME_KEYSTORE_BASE64: ${{ secrets.OAP_HOME_KEYSTORE_BASE64 }}
+          OAP_HOME_KEYSTORE_PASSWORD: ${{ secrets.OAP_HOME_KEYSTORE_PASSWORD }}
+          OAP_HOME_KEY_ALIAS: ${{ secrets.OAP_HOME_KEY_ALIAS }}
+          OAP_HOME_KEY_PASSWORD: ${{ secrets.OAP_HOME_KEY_PASSWORD }}
+          OAP_HOME_V2_CERT_SHA256: ${{ vars.OAP_HOME_V2_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$OAP_HOME_KEYSTORE_BASE64" || { echo "Existing keystore secret unavailable; signing blocked"; exit 1; }
+          test -n "$OAP_HOME_KEYSTORE_PASSWORD" || { echo "Existing keystore password unavailable"; exit 1; }
+          test -n "$OAP_HOME_KEY_ALIAS" || { echo "Existing signing alias unavailable"; exit 1; }
+          test -n "$OAP_HOME_KEY_PASSWORD" || { echo "Existing key password unavailable"; exit 1; }
+          KEYSTORE_PATH="$RUNNER_TEMP/oap-home-persistent.p12"
+          printf '%s' "$OAP_HOME_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          test -s "$KEYSTORE_PATH" || { echo "Existing keystore is empty"; exit 1; }
+          keytool -list -keystore "$KEYSTORE_PATH" -storetype PKCS12 -storepass "$OAP_HOME_KEYSTORE_PASSWORD" -alias "$OAP_HOME_KEY_ALIAS" >/dev/null
+          # Preserve the established V2 package and signer. Do NOT use the
+          # older com.onanypostcode.oaphome signature as the V2 update signer.
+          # Require the cert fingerprint extracted from installed V2.
+          EXPECTED_V2="$(printf '%s' "${OAP_HOME_V2_CERT_SHA256:-}" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          if [[ ! "$EXPECTED_V2" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::Installed OAP Home V2 certificate is not pinned. V2 APK build BLOCKED."
+            exit 1
+          fi
+          SIGNER_IN_KEYSTORE="$(keytool -list -v -keystore "$KEYSTORE_PATH" -storetype PKCS12 -storepass "$OAP_HOME_KEYSTORE_PASSWORD" -alias "$OAP_HOME_KEY_ALIAS" | sed -n 's/^[[:space:]]*SHA256: //p' | head -n 1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          if [[ -z "$SIGNER_IN_KEYSTORE" || "$SIGNER_IN_KEYSTORE" != "$EXPECTED_V2" ]]; then
+            echo "::error::Keystore does NOT match installed original OAP Home certificate. Build BLOCKED."
+            exit 1
+          fi
+          echo "OAP_HOME_V2_CERT_SHA256=$EXPECTED_V2" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEYSTORE_PASSWORD=$OAP_HOME_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEY_ALIAS=$OAP_HOME_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEY_PASSWORD=$OAP_HOME_KEY_PASSWORD" >> "$GITHUB_ENV"
+      - name: Build OAP Home
+        working-directory: android/oaphome
+        run: gradle --no-daemon assembleDebug
+      - name: Verify APK package and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$(find android/oaphome/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -type f -print -quit)"
+          test -n "$APK"
+          test -s "$APK"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          BUILD_TOOLS="$SDK_ROOT/build-tools/35.0.0"
+          "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
+          grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='21'" /tmp/oap-apk-badging.txt
+          grep -Fq "application-label:'OAP Home'" /tmp/oap-apk-badging.txt
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$APK"
+          ACTUAL_APK_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1 | tr '[:upper:]' '[:lower:]')"
+          if [[ -z "$ACTUAL_APK_CERT" || "$ACTUAL_APK_CERT" != "$OAP_HOME_V2_CERT_SHA256" ]]; then
+            echo "::error::Candidate APK certificate does NOT match the pinned original signer"
+            exit 1
+          fi
+          "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
+          sha256sum "$APK"
+          stat -c 'APK size: %s bytes' "$APK"
+      - name: Adversarial APK archive tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          apks = list(Path("android/oaphome/build/outputs/apk/debug").glob("*.apk"))
+          assert len(apks) == 1, f"Expected exactly one APK, found {len(apks)}"
+          apk = apks[0]
+          with zipfile.ZipFile(apk) as z:
+              names = z.namelist()
+              assert len(names) == len(set(names)), "Duplicate ZIP entries"
+              assert z.testzip() is None, "Corrupt APK entry"
+              for required in ("AndroidManifest.xml", "classes.dex"):
+                  assert required in names, f"Missing {required}"
+              assert all(not n.startswith("/") and ".." not in Path(n).parts for n in names), "Unsafe archive path"
+              print(f"PASS: {len(names)} unique entries, archive CRC, manifest, dex and safe paths")
+          PY
+      - name: Record adversarial evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$(find android/oaphome/build/outputs/apk/debug -maxdepth 1 -name '*.apk' -type f -print -quit)"
+          test -n "$APK"
+          mkdir -p adversarial-evidence
+          cp /tmp/oap-home-source-revision.txt adversarial-evidence/source-revision.txt
+          sha256sum "$APK" > adversarial-evidence/apk.sha256
+          stat -c 'APK bytes: %s' "$APK" > adversarial-evidence/build.txt
+          printf '%s\n' 'Founder-gated candidate APK only. V2 install/update, default HOME migration, old Home uninstall, and device acceptance NOT VERIFIED.' >> adversarial-evidence/build.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oap-home-adversarial-evidence
+          path: adversarial-evidence/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oap-home-debug-apk
+          path: android/oaphome/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
