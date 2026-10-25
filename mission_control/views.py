@@ -1142,25 +1142,38 @@ def smi_studio_detect_faces():
         return _error("face_image_too_large", "Image request is too large.", 413)
     if not _vision_face_rate_allowed(_chat_identity()):
         return _error("rate_limited", "Vision requests are temporarily limited.", 429)
-    payload = request.get_json(silent=True)
-    if not isinstance(payload, dict):
-        return _error("invalid_request", "A JSON object is required.", 400)
-    try:
-        result = studio_face_detection.detect_faces(payload.get("image_data"))
-    except (TypeError, ValueError) as exc:
-        oversized = str(exc) in {"face_image_too_large", "face_image_dimensions_exceeded"}
+    # Never queue large, sensitive image buffers behind another CPU-heavy
+    # detector invocation. Busy fails closed and consumes no decoded frame.
+    slot = studio_face_detection.SINGLE_FRAME_PROCESS_SLOT
+    if not slot.acquire(blocking=False):
         return _error(
-            "face_image_too_large" if oversized else "invalid_face_image",
-            "Image exceeds Vision limits." if oversized else "Image cannot be processed.",
-            413 if oversized else 400,
-        )
-    except RuntimeError:
-        return _error(
-            "face_detector_unavailable",
-            "The offline Studio face detector is unavailable.",
+            "face_detector_busy",
+            "Private Vision is processing another still. Retry later.",
             503,
         )
-    return _no_store(make_response(jsonify(result)))
+    try:
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return _error("invalid_request", "A JSON object is required.", 400)
+        try:
+            result = studio_face_detection.detect_faces(payload.get("image_data"))
+        except (TypeError, ValueError) as exc:
+            oversized = str(exc) in {"face_image_too_large", "face_image_dimensions_exceeded"}
+            return _error(
+                "face_image_too_large" if oversized else "invalid_face_image",
+                "Image exceeds Vision limits." if oversized else "Image cannot be processed.",
+                413 if oversized else 400,
+            )
+        except RuntimeError:
+            return _error(
+                "face_detector_unavailable",
+                "The offline Studio face detector is unavailable.",
+                503,
+            )
+        return _no_store(make_response(jsonify(result)))
+    finally:
+        # Must release on success, bad input, detector failure or JSON error.
+        slot.release()
 
 
 @bp.post("/studio/generate")
