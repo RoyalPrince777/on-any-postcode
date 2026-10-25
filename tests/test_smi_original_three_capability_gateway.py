@@ -90,7 +90,7 @@ def test_m3gan_read_only_actual_offer_with_privacy_redaction(monkeypatch):
 
     monkeypatch.setattr(gateway.travel_marketplace, "public_offers", offers)
     result = gateway.m3gan_consented_booking(
-        {"request": "Find concert tickets", "consent": True},
+        {"request": "Find concert tickets", "area": "Mitcham", "consent": True},
     )
     assert calls == [{"category": "event", "limit": 5}]
     assert result["state"] == "offers_found"
