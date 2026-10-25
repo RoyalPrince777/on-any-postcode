@@ -85,3 +85,18 @@ def test_connectivity_brief_import_is_audited_draft_not_approval(monkeypatch):
     assert brief.source == "chatgpt_automation"
     assert brief.decision == "watch"
     assert brief.evidence_links == ("https://www.itu.int/imt-2030",)
+
+def test_film_evidence_api_is_founder_only_and_read_only(monkeypatch):
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser/research/film-evidence").status_code == 403
+
+    client = _client(monkeypatch, founder=True)
+    result = client.get("/mission/organiser/research/film-evidence")
+    assert result.status_code == 200
+    assert result.headers["Cache-Control"] == "no-store"
+    assert result.headers["X-Content-Type-Options"] == "nosniff"
+    research = result.get_json()
+    assert len(research["entries"]) == 3
+    assert len(research["source_receipts"]) == 3
+    assert research["private_communication_ingestion_enabled"] is False
+    assert research["execution_enabled"] is False
