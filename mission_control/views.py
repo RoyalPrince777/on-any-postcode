@@ -37,6 +37,7 @@ from . import (
     smi_receipt_backend,
     smi_recursive_improvement,
     smi_reply_voice_local,
+    smi_secure_seats,
     smi_workbench,
     status,
     studio_build_preview,
@@ -353,6 +354,36 @@ def war_room_status():
     """Return the same read-only, redacted War Room evidence projection."""
 
     return _no_store(make_response(jsonify(war_room.get_war_room_dashboard())))
+
+
+@bp.get("/war-room/secure-seats")
+@web_security.login_required(founder_only=True)
+def secure_seat_board():
+    """Founder-only view of locked agent and candidate seat placements."""
+    seat_board = smi_secure_seats.board()
+    if not seat_board["checks_passed"]:
+        return _error(
+            "secure_seat_integrity_failed",
+            "Seat validation failed. No roster can be displayed.",
+            503,
+        )
+    return _no_store(make_response(
+        render_template("smi_secure_seats.html", board=seat_board)
+    ))
+
+
+@bp.get("/war-room/secure-seats/status")
+@web_security.login_required(api=True, founder_only=True)
+def secure_seat_board_status():
+    """Founder-only, read-only seat audit; no writes or permission changes."""
+    seat_board = smi_secure_seats.board()
+    if not seat_board["checks_passed"]:
+        return _error(
+            "secure_seat_integrity_failed",
+            "Seat validation failed. No roster can be displayed.",
+            503,
+        )
+    return _no_store(make_response(jsonify(seat_board)))
 
 
 @bp.get("/war-room/actions")
