@@ -165,7 +165,7 @@ public class MainActivity extends Activity {
         smiQuickLayout.setMargins(0, dp(6), 0, dp(4));
         body.addView(smiQuick, smiQuickLayout);
 
-        Button pttQuick = button("🎙 PTT\\nSTANDALONE · MIC OFF", v -> openPttApp());
+        Button pttQuick = button("🎙 PTT\nSTANDALONE · MIC OFF", v -> openPttApp());
         pttQuick.setTextSize(16);
         pttQuick.setGravity(Gravity.CENTER_VERTICAL);
         pttQuick.setContentDescription("Open standalone PTT. Microphone stays off until you hold the talk control.");
