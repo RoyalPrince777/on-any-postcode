@@ -51,7 +51,7 @@ _MOTHERBOARD_FIELDS = frozenset({
 
 def _bounded_text(value: object, *, name: str, limit: int) -> str:
     if not isinstance(value, str):
-        raise ValueError(f"invalid_{name}")
+        raise TypeError(f"invalid_{name}")
     clean = " ".join(value.split())
     if not clean or len(clean) > limit:
         raise ValueError(f"invalid_{name}")
@@ -247,7 +247,7 @@ def evaluate(profile: object, payload: object) -> dict[str, Any]:
     """Dispatch three actual bounded application functions; no model instances."""
 
     if not isinstance(payload, dict):
-        raise ValueError("json_object_required")
+        raise TypeError("json_object_required")
     if profile == "m3gan":
         return m3gan_consented_booking(payload)
     if profile == "amelia":
