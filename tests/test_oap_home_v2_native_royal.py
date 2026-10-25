@@ -21,7 +21,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
 
     def test_android_launcher_is_selectable_not_forced(self):
         app = self.manifest.find("application")
-        self.assertEqual(app.get(ANDROID + "label"), "OAP Home V2")
+        self.assertEqual(app.get(ANDROID + "label"), "OAP Home")
         activity = app.find("activity")
         self.assertEqual(activity.get(ANDROID + "exported"), "true")
         filters = activity.findall("intent-filter")
