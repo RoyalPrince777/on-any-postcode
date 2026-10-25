@@ -30,10 +30,10 @@ SUPPLY_CORE_TABLES = frozenset(
     }
 )
 SUPPLY_CATEGORIES = frozenset(
-    {"stay", "attraction", "activity", "car_rental", "transport", "event"}
+    {"stay", "attraction", "activity", "car_rental", "transport", "event", "barber"}
 )
 SUPPLIER_TYPES = frozenset(
-    {"accommodation", "experience", "mobility", "venue", "mixed"}
+    {"accommodation", "experience", "mobility", "venue", "mixed", "service"}
 )
 _IDEMPOTENCY = re.compile(r"^[A-Za-z0-9._:-]{8,160}$")
 _CURRENCY = re.compile(r"^[A-Z]{3}$")
