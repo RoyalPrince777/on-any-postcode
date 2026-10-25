@@ -137,6 +137,22 @@
       faceDetectButton.textContent = "👁 Detect faces";
       faceDetectStatus.textContent = "";
     }
+    // The selected image can be replaced outside #image-input by the canonical
+    // camera/screen controller, Studio character-reference action, camera file
+    // picker, or attachment cleanup on send. Invalidate old boxes on every
+    // real preview transition, even when a new frame has identical bytes.
+    const previewChanges = new MutationObserver((records) => {
+      if (records.some(record =>
+        (record.target === previewImg && record.attributeName === "src") ||
+        (record.target === imagePreview && record.attributeName === "class")
+      )) cancelFaceDetection();
+    });
+    if (previewImg) {
+      previewChanges.observe(previewImg, {attributes: true, attributeFilter: ["src"]});
+    }
+    if (imagePreview) {
+      previewChanges.observe(imagePreview, {attributes: true, attributeFilter: ["class"]});
+    }
     faceDetectButton.addEventListener("click", async () => {
       if (faceDetectRequest) {
         cancelFaceDetection();
@@ -213,6 +229,8 @@
       }
     });
     imageInput.addEventListener("change", cancelFaceDetection);
+    document.getElementById("camera-input")?.addEventListener("change", cancelFaceDetection);
+    document.getElementById("new-chat")?.addEventListener("click", cancelFaceDetection);
     document.getElementById("remove-image")?.addEventListener("click", cancelFaceDetection);
     window.addEventListener("oap-smi-human-stop", () => {
       cancelFaceDetection();
