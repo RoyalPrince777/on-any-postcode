@@ -133,3 +133,52 @@ def test_face_route_never_exports_even_route_metadata_to_external_telemetry(
     client.get("/healthz")
     assert emitted
     assert all("/mission/studio/vision/faces" not in str(row) for row in emitted)
+
+
+def test_parallel_face_work_fails_fast_without_running_detector(client, csrf, monkeypatch):
+    """Another expensive frame must get 503, not queue in worker memory."""
+    monkeypatch.setenv("OAP_SMI_FACE_DETECTION_ENABLED", "true")
+    def cannot_decode(image_data):
+        raise AssertionError("The occupied detector must not decode another image")
+    monkeypatch.setattr(studio_face_detection, "detect_faces", cannot_decode)
+    slot = studio_face_detection.SINGLE_FRAME_PROCESS_SLOT
+    assert slot.acquire(blocking=False)
+    try:
+        response = _send(client, csrf["csrf_token"])
+        assert response.status_code == 503
+        assert response.json["error"]["code"] == "face_detector_busy"
+        assert response.headers["Cache-Control"] == "no-store"
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+    finally:
+        slot.release()
+
+
+def test_face_processing_slot_released_after_success_or_bad_frame(
+    client, csrf, monkeypatch,
+):
+    """No persistent lockout after normal completion or malformed image."""
+    monkeypatch.setenv("OAP_SMI_FACE_DETECTION_ENABLED", "true")
+    slot = studio_face_detection.SINGLE_FRAME_PROCESS_SLOT
+    assert _send(client, csrf["csrf_token"]).status_code == 200
+    assert slot.acquire(blocking=False)
+    slot.release()
+    bad = _send(client, csrf["csrf_token"], {"image_data": {"invalid": True}})
+    assert bad.status_code == 400
+    assert slot.acquire(blocking=False)
+    slot.release()
+
+
+def test_face_processing_slot_released_after_unavailable_detector(
+    client, csrf, monkeypatch,
+):
+    """Local detector failure must not deadlock later user attempts."""
+    monkeypatch.setenv("OAP_SMI_FACE_DETECTION_ENABLED", "true")
+    def unavailable(image_data):
+        raise RuntimeError("face_detector_unavailable")
+    monkeypatch.setattr(studio_face_detection, "detect_faces", unavailable)
+    result = _send(client, csrf["csrf_token"])
+    assert result.status_code == 503
+    assert result.json["error"]["code"] == "face_detector_unavailable"
+    slot = studio_face_detection.SINGLE_FRAME_PROCESS_SLOT
+    assert slot.acquire(blocking=False)
+    slot.release()
