@@ -87,7 +87,14 @@ reference only. Do not reset or merge into the protected
 `~/on-any-postcode` Home Node checkout.
 
 PR #1316 targets the existing native source branch
-`oap-home-apk-master777`. Its older workflow conflicts with a separate
-APK workflow added on current `main`; resolving that integration
-conflict remains a separate mandatory governance check. The exact native
-compile can pass while whole-repository governance still fails.
+`oap-home-apk-master777`. The previous add/add collision for
+`.github/workflows/oap-home-apk.yml` was corrected by matching the
+existing `main` workflow's exact source, while moving the stricter
+**V2 candidate-signing gate** to
+`.github/workflows/oap-home-v2-signed-apk.yml`. That additional workflow
+is **manual only**, checks out the invoked exact revision, and fails closed
+unless the *installed V2* signing identity is verified. The existing main
+workflow still pins `oap-home-apk-master777`: its artifacts cannot stand
+in as proof of this review branch's exact source. Do not infer device or
+APK Green from the compile-only workflow. Whole-repository combined-main
+and regression validation remain mandatory.
