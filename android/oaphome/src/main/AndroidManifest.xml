@@ -6,6 +6,8 @@
             <action android:name="android.intent.action.MAIN"/>
             <category android:name="android.intent.category.LAUNCHER"/>
         </intent>
+        <!-- App visibility is limited to the separate first-party Internet package. -->
+        <package android:name="com.onanypostcode.oapworld"/>
     </queries>
     <application android:label="OAP Home" android:allowBackup="false" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true">

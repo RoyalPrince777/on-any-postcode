@@ -6,12 +6,15 @@ android {
     namespace 'com.onanypostcode.oaphome'
     compileSdk 35
 
+    // Preserve the established V2 Android package. This updates V2 in-place,
+    // while the older com.onanypostcode.oaphome app is retired separately
+    // AFTER V2 has been proven on the physical phone. Never rename the app ID.
     defaultConfig {
         applicationId 'com.onanypostcode.oaphome.v2'
         minSdk 26
         targetSdk 35
-        versionCode 4
-        versionName '2.0.0-founder'
+        versionCode 21
+        versionName '2.1.0-founder-royal'
     }
 
     signingConfigs {

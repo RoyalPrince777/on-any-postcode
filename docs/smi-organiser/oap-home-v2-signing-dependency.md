@@ -1,29 +1,48 @@
-# SMI Organiser — OAP Home V2 signing dependency
+# SMI Organiser — Existing V2 Home signing and legacy Home retirement
 
-Status: **Pending Founder secure setup**. This is an organisational record, not a deployed organiser application or proof of automated reminders.
+**Status:** Release blocked pending on-device signer/version and Home recovery evidence.
+This is a planning/evidence record, not an installed app, background worker
+or uninstall authorisation.
 
-## Objective
-Provide a persistent signing identity for `com.onanypostcode.oaphome.v2` without changing the installed Build #19 package or weakening release gates.
+## Founder decision: keep V2, rename V2, retire the OLD Home
 
-## Owners
-- Founder: securely enter repository secrets and certificate variable.
-- Bagheera (proposed security-review role): protect key handling.
-- Fox (proposed recovery role): preserve continuity and backups.
-- Benji (proposed Android role): validate APK identity and install compatibility.
-- Guardian/HRM: enforce human authorisation and evidence requirements.
-These are planning assignments, not independently executing agents.
+The app to **retain** and upgrade is `com.onanypostcode.oaphome.v2`.
+Its **visible name becomes OAP Home**. Preserve its Android HOME role and
+user-selected default Home destination.
 
-## Required GitHub configuration
-Repository secrets: `OAP_HOME_KEYSTORE_B64`, `OAP_HOME_KEYSTORE_PASSWORD`, `OAP_HOME_KEY_ALIAS`, `OAP_HOME_KEY_PASSWORD`.
-Repository variable: `OAP_HOME_CERT_SHA256`.
-Never put the private keystore, its base64 representation, or passwords in Git, this organiser, chat or logs.
+The **legacy** app is `com.onanypostcode.oaphome`. Retire it *only after*
+verified V2 functionality, selection as default Home and safe stock Home
+recovery. Do not swap the package IDs, do not install another competing
+launcher and do not silently uninstall any app.
 
-## Resume criteria
-1. Founder privately configures GitHub Actions and securely backs up the keystore.
-2. Exact-source CI validates the pinned signing certificate and generates an APK for `com.onanypostcode.oaphome.v2`.
-3. Verify APK hash, signature, package and device installation separately; do not claim Green early.
+## Source/build prerequisites
 
-## Meanwhile
-Continue OAP Home UI, OAP Internet and Virtual Android engineering. Build #19 remains untouched. No changes to Render services or production deployment are authorised by this entry.
+1. Identify the installed V2 versionCode and signing SHA-256 and verify a
+   safe copy of the existing APK. Do not assume earlier Build #19 refers
+   to the same package or has a particular Android versionCode.
+2. Require the **installed V2 certificate** fingerprint as the GitHub Actions
+   variable `OAP_HOME_V2_CERT_SHA256`. The separate old-Home certificate
+   must not be used to sign or certify V2. The existing protected signing
+   keystore and alias must match that V2 fingerprint.
+3. Existing signing secrets remain
+   `OAP_HOME_KEYSTORE_BASE64`, `OAP_HOME_KEYSTORE_PASSWORD`,
+   `OAP_HOME_KEY_ALIAS` and `OAP_HOME_KEY_PASSWORD`. Never paste a
+   keystore, base64 secret or passwords into chat, source or logs.
+4. The exact APK must identify `com.onanypostcode.oaphome.v2`, have a
+   higher versionCode, display `OAP Home` and prove the installed V2
+   signer matches. `scripts/oap_home_v2_inplace_apk_gate.py` is the
+   **read-only** offline comparison; no install/uninstall action.
+5. Test V2 native HOME startup, all required dock/navigation controls,
+   no Brave substitution, secure OAP Internet app handoff, data persistence,
+   and Android default-Home/stock-launcher recovery on Redmi A5.
+6. Only then may the Founder choose to retire the exact
+   `com.onanypostcode.oaphome` legacy app in Android Settings. Inspect
+   the app identity and app-data implications first; never uninstall
+   `com.onanypostcode.oaphome.v2`, the Android system launcher, Termux
+   or Home Node.
 
-Evidence: Java compilation passed in GitHub Actions run 39454855872; signing job failed. Overall VPI: N/A.
+## Until verified
+
+The Android APK artifact, removal of the legacy Home, V2 default-launcher
+switch, device acceptance, future first-party OS image and Founder Final
+remain unverified and must not be labelled complete. Overall VPI: N/A.
