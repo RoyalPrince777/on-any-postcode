@@ -47,3 +47,45 @@ def test_film_references_are_not_in_canonical_agent_registry():
     registry = {agent["name"].casefold() for agent in agents.AGENT_REGISTRY}
     names = {entry["name"].casefold() for entry in _references()["entries"]}
     assert not names & registry
+
+
+def test_real_public_source_receipts_cover_each_fictional_reference():
+    research = _references()
+    receipts = research["source_receipts"]
+    keys = {item["reference_key"] for item in research["entries"]}
+    covered = set().union(*(set(item["supports_reference_keys"]) for item in receipts))
+    assert keys == covered
+    assert len({item["source_id"] for item in receipts}) == len(receipts)
+    assert all(item["manually_checked_on"] == "2026-10-25" for item in receipts)
+    assert all(item["verification_mode"] == "public_source_review" for item in receipts)
+
+
+def test_external_evidence_is_read_only_allowlisted_and_not_live_crawled():
+    research = _references()
+    receipts = research["source_receipts"]
+    permitted_hosts = {
+        "www.universalstudios.com",
+        "www.universalpicturesathome.com",
+        "www.syfy.com",
+    }
+    from urllib.parse import urlsplit
+
+    assert all(
+        urlsplit(item["url"]).scheme == "https"
+        and urlsplit(item["url"]).hostname in permitted_hosts
+        and not urlsplit(item["url"]).username
+        for item in receipts
+    )
+    assert research["source_pages_crawled_by_oap"] is False
+    assert research["live_fetch_enabled"] is False
+    assert research["untrusted_source_content_as_instructions"] is False
+    assert research["private_communication_ingestion_enabled"] is False
+
+
+def test_source_snapshot_is_not_misrepresented_as_live_intelligence():
+    research = _references()
+    assert research["source_receipts_mode"] == "manually_checked_public_metadata_only"
+    assert research["source_status"] == "snapshot_2026_10_25_not_live"
+    assert research["public_source_provenance_present"] is True
+    assert research["execution_enabled"] is False
+    assert research["system_access_granted"] is False
