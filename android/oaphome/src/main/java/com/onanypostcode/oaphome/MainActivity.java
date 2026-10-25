@@ -69,6 +69,22 @@ public class MainActivity extends Activity {
         return d;
     }
 
+    private GradientDrawable royalTile(int index) {
+        // Native gradients keep every destination readable without remote image dependencies.
+        final int[][] shades = {
+                {0xFF17324B, 0xFF07101C}, {0xFF322143, 0xFF0C0B1D},
+                {0xFF3A2A12, 0xFF110F0B}, {0xFF163C39, 0xFF08191A},
+                {0xFF23334B, 0xFF0B111E}, {0xFF3B261B, 0xFF160D0B},
+                {0xFF302348, 0xFF0C0A1D}, {0xFF243D27, 0xFF0A160C},
+                {0xFF3A3030, 0xFF141014}
+        };
+        int[] colors = shades[Math.floorMod(index, shades.length)];
+        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TL_BR, colors);
+        d.setCornerRadius(dp(14));
+        d.setStroke(dp(1), GOLD);
+        return d;
+    }
+
     private TextView label(String value, int size) {
         TextView v = new TextView(this);
         v.setText(value);
@@ -221,6 +237,7 @@ public class MainActivity extends Activity {
         for (int i = 0; i < destinations.length; i++) {
             final String name = destinations[i];
             Button tile = button(icons[i] + "\n" + name + "\n" + captions[i], v -> destination(name));
+            tile.setBackground(royalTile(i));
             tile.setTextSize(12);
             tile.setGravity(Gravity.CENTER);
             tile.setPadding(dp(3), dp(3), dp(3), dp(3));
