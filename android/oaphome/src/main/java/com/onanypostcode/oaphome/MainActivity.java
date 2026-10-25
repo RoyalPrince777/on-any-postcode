@@ -232,8 +232,10 @@ public class MainActivity extends Activity {
         GridLayout grid = new GridLayout(this);
         grid.setColumnCount(3);
         body.addView(grid);
-        int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(32);
-        int tileWidth = Math.max(dp(86), (availableWidth - dp(12)) / 3);
+        // The root uses 12dp padding on each side; each tile adds 4dp margins.
+        // Avoid a fixed minimum tile width that would overflow narrow screens.
+        int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(24);
+        int tileWidth = Math.max(dp(1), (availableWidth - dp(12)) / 3);
         for (int i = 0; i < destinations.length; i++) {
             final String name = destinations[i];
             Button tile = button(icons[i] + "\n" + name + "\n" + captions[i], v -> destination(name));
