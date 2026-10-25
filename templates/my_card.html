@@ -18,6 +18,16 @@ button{margin-top:14px;padding:12px 16px;border:0;border-radius:12px;background:
 <header><a href="{{ url_for('home') }}">← OAP World</a><strong>My Card</strong><a href="{{ url_for('linkup_front_door') }}">Link Up →</a></header>
 <main>
 <section class="card hero"><div class="dp">{{ avatar }}</div><div><h1>{{ my_card.display_name }}</h1><p>{{ my_card.card_id }}{% if my_card.username %} · @{{ my_card.username }}{% endif %}</p><p class="muted">{{ "Secure My Card" if auth_user else "Basic My Card · private actions locked until secure sign-in" }}</p><p class="muted">DP photo upload is not enabled yet. This avatar is your current first-party My Card DP.</p></div></section>
+{% if founder_card_branding|default(false) %}
+<section class="card" aria-label="OAP Royal Empire founder identity" style="text-align:center;border-color:#8c7134;background:linear-gradient(145deg,#15171c,#0b1015)">
+<p style="color:#d4af37;font-weight:800;letter-spacing:.1em">♛ OAP ROYAL EMPIRE</p>
+<h2 style="color:#f3d996;margin-bottom:4px">SOVEREIGN FOUNDER<br>&amp; CHIEF EXECUTIVE</h2>
+<p>ON ANY POSTCODE LTD</p>
+<p class="muted">EARTH IS OUR TURF · ONE RACE, HUMAN RACE</p>
+<p style="color:#d4af37;font-weight:800">POWERED BY SMI</p>
+<p class="muted">SOVEREIGN MEGAVERSE INTELLIGENCE</p>
+</section>
+{% endif %}
 <section class="grid">
 <a class="action" href="{{ url_for('home') }}"><strong>🌍 Discover People</strong><br><span class="muted">Find people in OAP World.</span></a>
 <a class="action" href="{{ url_for('the_link_front_door') }}"><strong>🔗 The Link</strong><br><span class="muted">People and opportunities before private chat.</span></a>
