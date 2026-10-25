@@ -50,6 +50,9 @@ _HOME_V2_MITCHAM_SPECIALISTS: tuple[tuple[str, str, str], ...] = (
      "V2 APK package, signing-certificate and install compatibility review."),
     ("Fox", "existing_specialist",
      "Local rollback, old-launcher retirement order and Home Node protection."),
+    ("Foxy", "separate_identity_pending_canonical_link",
+     "Human-facing trust cues and clarity during launcher switching; keep Fox "
+     "recovery distinct and do not invent a Foxy passport."),
     ("Shere Khan", "existing_specialist",
      "Adversarial proof challenge: false Green, wrong package and unsafe uninstall."),
     ("Bagheera", "existing_specialist",
