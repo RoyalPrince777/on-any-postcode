@@ -12,11 +12,35 @@ import os
 import sys
 import time
 from urllib import request as urlrequest
+from urllib.parse import urlsplit
 from urllib.error import HTTPError, URLError
 
 from mission_control.organism_runtime import PostgresRuntimeStore
 
-BASE_URL = os.environ.get("OAP_HOME_NODE_BRIDGE_URL", "https://oap-smi.onrender.com/mission").strip().rstrip("/")
+BASE_URL = os.environ.get("OAP_HOME_NODE_BRIDGE_URL", "").strip().rstrip("/")
+
+
+def _approved_bridge_url(raw: str) -> str:
+    """Fail closed without an explicitly configured independent HTTPS bridge."""
+    candidate = str(raw or "").strip().rstrip("/")
+    try:
+        parsed = urlsplit(candidate)
+        _ = parsed.port
+    except ValueError as exc:
+        raise RuntimeError("home_node_bridge_url_invalid") from exc
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path != "/mission"
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise RuntimeError("home_node_bridge_url_invalid")
+    if parsed.hostname == "onrender.com" or parsed.hostname.endswith(".onrender.com"):
+        raise RuntimeError("home_node_legacy_render_route_blocked")
+    return candidate
 TOKEN = os.environ.get("OAP_HOME_NODE_BRIDGE_SECRET", "").strip()
 OLLAMA_URL = os.environ.get("OAP_HOME_NODE_OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
 POLL_SECONDS = max(0.5, min(float(os.environ.get("OAP_HOME_NODE_POLL_SECONDS", "1.5")), 30.0))
@@ -67,13 +91,14 @@ def _run_local(payload: dict) -> str:
 
 
 def run() -> int:
+    base_url = _approved_bridge_url(BASE_URL)
     _headers()
     runtime_store = PostgresRuntimeStore()
     last_heartbeat = 0.0
     print("OAP Home Node inference worker active", flush=True)
     while True:
         try:
-            job, status = _request(f"{BASE_URL}/home-node/jobs/next", timeout=20.0)
+            job, status = _request(f"{base_url}/home-node/jobs/next", timeout=20.0)
             if status in {200, 204}:
                 now = time.monotonic()
                 if now - last_heartbeat >= HEARTBEAT_SECONDS:
@@ -105,7 +130,7 @@ def run() -> int:
             except Exception as exc:  # worker reports bounded failure; server decides fallback policy
                 completion = {"claim_token": claim_token, "error": type(exc).__name__[:80]}
             _request(
-                f"{BASE_URL}/home-node/jobs/{job_id}/complete",
+                f"{base_url}/home-node/jobs/{job_id}/complete",
                 method="POST",
                 payload=completion,
                 timeout=30.0,
