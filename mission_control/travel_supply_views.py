@@ -6,6 +6,8 @@ from flask import Blueprint, Response, jsonify, make_response, redirect, render_
 from . import (
     area_intelligence,
     atlas_live_sources,
+    barber_sika,
+    barber_supply_extension,
     listing_media,
     local_map_intelligence,
     travel_marketplace,
@@ -300,6 +302,36 @@ def public_listing_photo(photo_id: str):
     response.headers["ETag"] = f'"{digest}"'
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@bp.get("/local/barbers/api/offers")
+def public_barber_offers():
+    """Show only certified, first-party barber slots. No inferred availability."""
+    if not barber_supply_extension.status()["schema_ready"]:
+        return _error("barber_supply_not_ready", "No certified barber supply ready.", 503)
+    try:
+        offers = travel_marketplace.public_offers(
+            category="barber",
+            country=request.args.get("country"),
+            limit=request.args.get("limit", "24"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _error("invalid_barber_filter", str(exc)[:120], 400)
+    except RuntimeError:
+        return _error("barber_supply_unavailable", "Barber supply unavailable.", 503)
+    return _no_store(make_response(jsonify(offers)))
+
+
+@bp.post("/local/barbers/api/sika-quote")
+def public_barber_sika_quote():
+    """Quote one available haircut in SIKA, without creating payment or booking."""
+    try:
+        result = barber_sika.quote_for_slot(_json_payload())
+    except (TypeError, ValueError) as exc:
+        return _error("barber_quote_invalid", str(exc)[:140], 400)
+    except RuntimeError:
+        return _error("barber_supply_unavailable", "Barber supply unavailable.", 503)
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.post("/travel/direct/api/quote")
