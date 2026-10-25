@@ -656,6 +656,13 @@ def public_studio_chat():
 
 @app.get("/")
 def root_front_door():
+    # The opt-in, loopback-only Home V2 launcher owns the personal phone entry.
+    # Keep OAP World as the default for every public or other local host.
+    if (
+        os.environ.get("OAP_LOCAL_MODE", "false").lower() == "true"
+        and request.host in {"127.0.0.1:5050", "localhost:5050"}
+    ):
+        return redirect("/home-v2", code=302)
     return redirect("/world", code=302)
 
 
