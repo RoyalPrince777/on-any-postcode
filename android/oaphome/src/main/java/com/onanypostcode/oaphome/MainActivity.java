@@ -129,7 +129,7 @@ public class MainActivity extends Activity {
         body.setOrientation(LinearLayout.VERTICAL);
         body.setPadding(0, 0, 0, dp(28));
         scroll.addView(body);
-        if ("♛ OAP ROYAL HOME".equals(title)) {
+        if ("♛ OAP EMPIRE".equals(title)) {
             addPersistentHomeDock(root);
         }
     }
@@ -142,8 +142,8 @@ public class MainActivity extends Activity {
     }
 
     private void home() {
-        base("♛ OAP ROYAL HOME");
-        TextView royalBrand = label("♛  OAP ROYAL HOME  ♛\nON ANY POSTCODE", 23);
+        base("♛ OAP EMPIRE");
+        TextView royalBrand = label("♛  OAP EMPIRE  ♛\nON ANY POSTCODE", 23);
         royalBrand.setTypeface(Typeface.SERIF, Typeface.BOLD);
         royalBrand.setBackground(royalHeader());
         body.addView(royalBrand, new LinearLayout.LayoutParams(-1, dp(96)));
@@ -355,7 +355,7 @@ public class MainActivity extends Activity {
         body.addView(label("VIRTUAL DEVICE CONTROL", 19));
         body.addView(label("Runtime: NOT CONNECTED", 17));
         body.addView(label("No Android VM, remote session or virtual device has been provisioned.", 14));
-        body.addView(label("OAP Royal Home: local launcher source; virtual-device integration pending.", 14));
+        body.addView(label("OAP Empire Home: local launcher source; virtual-device integration pending.", 14));
         addButton("OPEN OAP INTERNET", v -> openInternet());
         addButton("BACK TO ROYAL HOME", v -> home());
     }
