@@ -1,6 +1,8 @@
 import ast
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 RUNNER = (ROOT / "scripts" / "termux_home_node_run.sh").read_text()
 SETUP = (ROOT / "scripts" / "termux_home_node_setup.sh").read_text()
@@ -81,9 +83,9 @@ def test_home_node_inference_worker_is_required_for_green_documented_status():
     assert "first_party_inference_ready=true" in DOC
     assert "scripts/oap_home_node_inference_worker.py" in DOC
 
+
 def test_fox_home_node_bridge_requires_explicit_non_render_https_route():
     from scripts import oap_home_node_inference_worker as worker
-    import pytest
 
     valid = "https://smi.example.test/mission"
     assert worker._approved_bridge_url(valid + "/") == valid
