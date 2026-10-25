@@ -7,7 +7,7 @@
             <category android:name="android.intent.category.LAUNCHER"/>
         </intent>
     </queries>
-    <application android:label="OAP Home" android:allowBackup="false" android:usesCleartextTraffic="false">
+    <application android:label="OAP Royal Home" android:allowBackup="false" android:usesCleartextTraffic="false">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
