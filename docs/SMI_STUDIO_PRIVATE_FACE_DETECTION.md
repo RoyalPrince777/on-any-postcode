@@ -11,7 +11,9 @@ SMI Chat and existing Face Up/Vision controls are **capture** surfaces. OAP Stud
 - `POST /mission/studio/vision/faces` — the existing Mission Control blueprint.
 - Founder authentication required, valid `X-OAP-CSRF` required.
 - Disabled by default. Only a deliberately set `OAP_SMI_FACE_DETECTION_ENABLED=true` enables the route in that environment. Do **not** enable it in production without device/security proof and Founder Final.
-- A dedicated **7 requests/minute per Founder identity per worker process** burst limit protects CPU-intensive decoding. It does **not** read/cache the face image body to create a request fingerprint, and does not consume the ordinary Chat quota. This is defence-in-depth only: an external/shared distributed limit and workload-level CPU/concurrency measurements are still required before live service.
+- A dedicated **7 requests/minute per Founder identity per worker process** burst limit protects CPU-intensive decoding. It does **not** read/cache the face image body to create a request fingerprint, and does not consume the ordinary Chat quota.
+- An additional **single concurrent image per worker process** admission semaphore rejects overlapping frames immediately with HTTP **503** `face_detector_busy`, before parsing the queued image; the semaphore is released in a `finally` block on success, invalid input and local-detector failure. This does not provide a CPU-time kill switch and does not limit usage across other workers.
+- These controls are defence-in-depth only. Shared cross-worker admission/rate limiting, bounded CPU execution time and actual workload-level measurements still require operational evidence before live service.
 - Requests without a declared acceptable Content-Length fail closed.
 - Accepts JSON: `{"image_data":"data:image/png;base64,..."}` (also genuine JPEG or WebP). Only an explicitly submitted frame, not a camera stream.
 - At most 3 MiB decoded bytes, 4 million pixels, or 4096 pixels per side. Format spoofing and invalid images are rejected.
