@@ -4,7 +4,7 @@ from mission_control import agents, smi_archive
 
 
 def _references():
-    return smi_archive.status()["film_intelligence_research"]
+    return smi_archive.status(include_private_research=True)["film_intelligence_research"]
 
 
 def test_m3gan_20_is_same_original_research_identity():
@@ -31,7 +31,7 @@ def test_black_box_is_a_distinct_system_not_android_or_second_brain():
 
 
 def test_research_projection_has_no_passport_execution_or_authority():
-    archive = smi_archive.status()
+    archive = smi_archive.status(include_private_research=True)
     research = archive["film_intelligence_research"]
     assert research["mode"] == "read_only_fictional_reference"
     assert research["agent_passports_created"] == 0
@@ -91,13 +91,10 @@ def test_source_snapshot_is_not_misrepresented_as_live_intelligence():
     assert research["system_access_granted"] is False
 
 
-def test_evidence_is_wired_to_existing_brain_archive_projection():
+def test_research_data_is_not_exposed_by_general_brain_status():
     from mission_control import brain
 
-    status = brain.get_public_brain_status()
-    research = status["archive"]["film_intelligence_research"]
-    assert len(research["source_receipts"]) == 3
-    assert {item["reference_key"] for item in research["entries"]} == {
-        "m3gan", "amelia", "black_box",
-    }
-    assert research["private_communication_ingestion_enabled"] is False
+    public_status = brain.get_public_brain_status()
+    assert "film_intelligence_research" not in public_status["archive"]
+    assert "film_intelligence_research" not in smi_archive.status()
+    assert len(_references()["source_receipts"]) == 3
