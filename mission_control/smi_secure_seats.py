@@ -3,7 +3,7 @@
 A *seat* is a deterministic display placement, never a credential, access right,
 governance vote, passport, permanent appointment or running autonomous worker.
 The canonical 78 agents are referenced by their existing passports only.
-The 42 draft specialists have locked REVIEW seats without active identities.
+The 84 draft specialists have locked REVIEW seats without active identities.
 System protection gates, government offices, military ranks and chess pieces
 are reference stations -- never agent seats or authority grants.
 """
@@ -13,10 +13,15 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from . import agents, specialist_agent_candidates, specialist_command_candidates
+from . import (
+    agents,
+    civic_judiciary_candidates,
+    specialist_agent_candidates,
+    specialist_command_candidates,
+)
 
 EXPECTED_CANONICAL = agents.LOCKED_AGENT_COUNT
-EXPECTED_REVIEW = 42
+EXPECTED_REVIEW = 84
 EXPECTED_TOTAL = EXPECTED_CANONICAL + EXPECTED_REVIEW
 SENTINEL = ("Founder Final", "SMI", "Specialist research families")
 PROTECTED_GATES = ("Guardian", "Aegis", "Green Gate", "HRM")
@@ -75,7 +80,8 @@ def board(
     canonical = tuple(agents.AGENT_REGISTRY if canonical_agents is None else canonical_agents)
     new_agents = tuple(
         (*specialist_agent_candidates.PROPOSED_AGENTS,
-         *specialist_command_candidates.EXTENDED_AGENTS)
+         *specialist_command_candidates.EXTENDED_AGENTS,
+         *civic_judiciary_candidates.COURT_AND_GOVERNMENT_AGENTS)
         if proposed_agents is None else proposed_agents
     )
     seats = _seat_rows(canonical, new_agents)
@@ -93,12 +99,16 @@ def board(
         s["name"] for s in seats if s["name"].casefold() in protected
     )
 
-    family_tree = specialist_command_candidates.COMMAND_FAMILY_BRANCHES
+    family_tree = (
+        *specialist_command_candidates.COMMAND_FAMILY_BRANCHES,
+        *civic_judiciary_candidates.GOVERNMENT_FAMILY_BRANCHES,
+    )
     memberships = [family for area in family_tree for family in area["families"]]
     proposed_families = {
         str(f["key"]) for f in
         (*specialist_agent_candidates.SPECIALIST_FAMILIES,
-         *specialist_command_candidates.EXTENDED_FAMILIES)
+         *specialist_command_candidates.EXTENDED_FAMILIES,
+         *civic_judiciary_candidates.COURT_AND_GOVERNMENT_FAMILIES)
     }
     expected_families = set(memberships)
     canonical_family_ids = set(agents.LOCKED_FAMILY_IDS)
@@ -137,7 +147,10 @@ def board(
             or a.get("real_world_authority") is not False
             or a.get("founder_final_required") is not True
             or bool(a.get("permissions")) or bool(a.get("provider_ids"))
-            or a.get("career_stars") is not None)
+            or a.get("career_stars") is not None
+            or a.get("election_persuasion_enabled", False)
+            or a.get("court_order_enabled", False)
+            or a.get("personal_surveillance_enabled", False))
     )
     invalid_canonical_ids = sorted(
         str(a.get("name", "")) for a in canonical if not a.get("agent_id")
@@ -159,6 +172,7 @@ def board(
         )
         and specialist_agent_candidates.review_status()["candidate_checks_passed"]
         and specialist_command_candidates.review_status()["candidate_checks_passed"]
+        and civic_judiciary_candidates.review_status()["candidate_checks_passed"]
         and specialist_command_candidates.OAP_COMMAND_ROOT == SENTINEL
         and not specialist_command_candidates.REAL_WORLD_OFFICES_ARE_SUBORDINATES
     )
@@ -177,6 +191,7 @@ def board(
         ("upstream_candidate_review_failed", not (
             specialist_agent_candidates.review_status()["candidate_checks_passed"]
             and specialist_command_candidates.review_status()["candidate_checks_passed"]
+            and civic_judiciary_candidates.review_status()["candidate_checks_passed"]
         )),
     ) if v)
 
@@ -205,6 +220,10 @@ def board(
         "government_offices": (
             "President (comparative office)", "Emperor (comparative office)"
         ),
+        "constitutional_relations": civic_judiciary_candidates.COUNTRY_REFERENCE_RELATIONS,
+        "civic_independent_powers": civic_judiciary_candidates.INDEPENDENT_BRACKET,
+        "court_agents_are_not_real_judges": True,
+        "political_agents_are_nonpartisan_research_only": True,
         "military_ranks": specialist_command_candidates.UK_ARMY_RANK_REFERENCE,
         "protected_governance_stations": PROTECTED_GATES,
     }
@@ -226,6 +245,8 @@ def board(
         "reference_positions": reference_positions,
         "safeguards": GOVERNANCE_POLICY,
         "new_agents_activated": 0,
+        "new_court_research_seats": 21 if passed else 0,
+        "new_civic_research_seats": 21 if passed else 0,
         "new_agent_passports_issued": 0,
         "independent_votes_recorded": False,
         "career_stars_awarded": False,
@@ -234,6 +255,7 @@ def board(
         "truth_boundary": (
             "A secure seat is a Founder-private review placement only, not an"
             " issued credential, functioning AI agent, armed service, government"
-            " position, independent vote, operating protection service, or release."
+            " position, legal judgment, electoral campaigning, independent vote,"
+            " operating protection service, or release."
         ),
     }
