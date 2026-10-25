@@ -12,7 +12,7 @@ class HomeInPlaceGateTests(unittest.TestCase):
             (gate.EXPECTED_PACKAGE, 3, "0.1-founder", ("a" * 64,)),
             (gate.EXPECTED_PACKAGE, 21, "2.0.0-founder-inplace", ("a" * 64,)),
         ]), mock.patch.object(gate, "command",
-                            return_value="application-label:'OAP Home V2'\n"):
+                            return_value="application-label:'OAP Home'\n"):
             result = gate.verify(Path("old.apk"), Path("candidate.apk"))
         self.assertIn("IDENTITY_GATE_PASSED (offline only)", result)
         self.assertIn("No installation", result)
@@ -46,7 +46,7 @@ class HomeInPlaceGateTests(unittest.TestCase):
         with mock.patch.object(gate, "inspect_apk", side_effect=[
             (gate.EXPECTED_PACKAGE, 3, "0.1-founder", ("a" * 64,)),
             (gate.EXPECTED_PACKAGE, 21, "2.0.0-founder-inplace", ("a" * 64,)),
-        ]), mock.patch.object(gate, "command", return_value="application-label:'OAP Home'\n"):
+        ]), mock.patch.object(gate, "command", return_value="application-label:'OAP Home OLD'\n"):
             with self.assertRaisesRegex(gate.BlockedUpgrade, "display name"):
                 gate.verify(Path("old.apk"), Path("candidate.apk"))
 
