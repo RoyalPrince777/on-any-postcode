@@ -122,9 +122,12 @@ public class MainActivity extends Activity {
         heading.setTypeface(Typeface.SERIF, Typeface.BOLD);
         root.addView(heading, new LinearLayout.LayoutParams(-1, dp(54)));
         ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setClipToPadding(false);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         body = new LinearLayout(this);
         body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(0, 0, 0, dp(28));
         scroll.addView(body);
         if ("♛ OAP HOME".equals(title)) {
             addPersistentHomeDock(root);
@@ -285,7 +288,10 @@ public class MainActivity extends Activity {
                 else if (index == 3) open(new Intent("android.media.action.IMAGE_CAPTURE"));
                 else allApps();
             });
-            item.setTextSize(11);
+            item.setTextSize(10);
+            item.setAllCaps(false);
+            item.setSingleLine(false);
+            item.setMaxLines(2);
             item.setContentDescription(dockLabels[i].replace("\n", " "));
             item.setMinWidth(dp(48));
             item.setMinHeight(dp(48));
