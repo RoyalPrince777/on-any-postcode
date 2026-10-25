@@ -189,7 +189,8 @@ def test_original_three_gateway_is_founder_only_and_csrf_guarded(monkeypatch):
     assert 'data-original-profile="m3gan"' in html
     assert 'data-original-profile="amelia"' in html
     assert 'data-original-profile="black_box"' in html
-    assert "X-OAP-CSRF" in html
+    assert "smi_original_three.js" in html
+    assert "data-original-three-endpoint" in html
     assert "not" in html.lower()
 
     status = founder.get("/mission/organiser/original-three/status")
