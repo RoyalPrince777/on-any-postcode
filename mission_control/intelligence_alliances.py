@@ -51,21 +51,21 @@ _HOME_V2_MITCHAM_SPECIALISTS: tuple[tuple[str, str, str], ...] = (
     ("Fox", "existing_specialist",
      "Local rollback, old-launcher retirement order and Home Node protection."),
     ("Foxy", "separate_identity_pending_canonical_link",
-     "Human-facing trust cues and clarity during launcher switching; keep Fox "
-     "recovery distinct and do not invent a Foxy passport."),
+     ("Human-facing trust cues and clarity during launcher switching; keep Fox "
+      "recovery distinct and do not invent a Foxy passport.")),
     ("Shere Khan", "existing_specialist",
      "Adversarial proof challenge: false Green, wrong package and unsafe uninstall."),
     ("Bagheera", "existing_specialist",
      "Guardian-aligned privacy, microphone/camera permissions and consent boundaries."),
     ("Black Box", "contained_ai_research_system",
-     "Contained Xenox motherboard AI research: isolation, recovery and unsafe "
-     "connectivity failure patterns; not a new agent or service."),
+     ("Contained Xenox motherboard AI research: isolation, recovery and unsafe "
+      "connectivity failure patterns; not a new agent or service.")),
     ("Batman", "batman_alliance_advisory",
-     "Forensic bug/incident evidence review inspired by detective methods; "
-     "no real police or CID authority."),
+     ("Forensic bug/incident evidence review inspired by detective methods; "
+      "no real police or CID authority.")),
     ("Predator Intelligence", "predator_alliance_advisory",
-     "On-device environment and sensor-permission failure cases only; "
-     "no covert observation or tracking."),
+     ("On-device environment and sensor-permission failure cases only; "
+      "no covert observation or tracking.")),
     ("M3GAN", "separate_fictional_research_profile",
      "Adaptive interaction and consent failures; Original and 2.0 are one identity."),
     ("AMELIA", "separate_fictional_research_profile",
