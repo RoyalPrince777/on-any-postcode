@@ -14,10 +14,12 @@ from . import (
     travel_supply_policy,
     web_security,
 )
+from .barber_owner_views import bp as barber_owner_bp
 from .safe_signals_views import bp as safe_signals_bp
 
 bp = Blueprint("travel_supply", __name__)
 bp.register_blueprint(safe_signals_bp)
+bp.register_blueprint(barber_owner_bp)
 
 
 def _no_store(response):
