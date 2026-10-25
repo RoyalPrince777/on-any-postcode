@@ -1140,7 +1140,7 @@ def smi_studio_detect_faces():
     max_body_size = 4 * studio_face_detection.MAX_IMAGE_BYTES // 3 + 1024
     if request.content_length is None or request.content_length > max_body_size:
         return _error("face_image_too_large", "Image request is too large.", 413)
-    if not _chat_rate_allowed(_chat_identity()):
+    if not _vision_face_rate_allowed(_chat_identity()):
         return _error("rate_limited", "Vision requests are temporarily limited.", 429)
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
