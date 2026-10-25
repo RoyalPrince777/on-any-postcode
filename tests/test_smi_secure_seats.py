@@ -100,7 +100,7 @@ def test_fail_closed_if_existing_agent_count_is_changed():
     assert p["existing_families"] == ()
 
 
-def test_private_founder_only_routes_and_no_write(client, anonymous_client):
+def test_private_founder_only_routes_and_no_write(client):
     page = client.get("/mission/war-room/secure-seats")
     data = client.get("/mission/war-room/secure-seats/status")
     assert page.status_code == 200
@@ -112,9 +112,26 @@ def test_private_founder_only_routes_and_no_write(client, anonymous_client):
     assert "42" in page.get_data(as_text=True)
     assert data.get_json()["checks_passed"] is True
     assert data.get_json()["new_agents_activated"] == 0
-    assert anonymous_client.get("/mission/war-room/secure-seats/status").status_code == 401
-    assert anonymous_client.get("/mission/war-room/secure-seats").status_code == 302
     assert client.post("/mission/war-room/secure-seats").status_code == 405
+
+
+def test_anonymous_secure_seat_routes_fail_closed(anonymous_client):
+    response = anonymous_client.get("/mission/war-room/secure-seats/status")
+    assert response.status_code == 401
+    assert "no-store" in response.headers["Cache-Control"]
+    assert "reserved_new_candidates" not in response.get_data(as_text=True)
+    assert anonymous_client.get("/mission/war-room/secure-seats").status_code == 302
+
+
+def test_nonfounder_secure_seat_routes_rejected(client, monkeypatch):
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda _user: False)
+    response = client.get("/mission/war-room/secure-seats/status")
+    assert response.status_code == 403
+    assert "human_authority_required" in response.get_data(as_text=True)
+    assert "reserved_new_candidates" not in response.get_data(as_text=True)
+    assert client.get("/mission/war-room/secure-seats").status_code == 403
 
 
 def test_route_metadata_marks_founder_only_and_api(client):
