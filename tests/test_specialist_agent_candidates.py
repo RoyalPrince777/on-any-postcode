@@ -30,11 +30,30 @@ class SpecialistAgentCandidateTests(unittest.TestCase):
 
     def test_fail_closed_if_candidate_collides_with_registry(self):
         report = spec.review_status(
-            registered_agents=({"name": "Nyx"},),
+            registered_agents=({"name": "Undercover Confidentiality Specialist"},),
             non_agent_system_names=("Guardian",),
         )
         self.assertFalse(report["candidate_checks_passed"])
-        self.assertIn("Nyx", report["collisions"])
+        self.assertIn("Undercover Confidentiality Specialist", report["collisions"])
+
+    def test_functional_names_not_character_codenames(self):
+        old_codenames = ["Rowan","Vale","Hart","Quinn","Mercer","Cross","Nyx","Slate","Meridian","Ledger","Horizon","Atlas","Bastion","Threshold","Farpoint","Crosswind","Vector","Waypoint","Beacon","Cipher","Northstar"]
+        names = [item["name"] for item in spec.PROPOSED_AGENTS]
+        self.assertEqual(len(names), len(set(names)))
+        self.assertTrue(set(names).isdisjoint(old_codenames))
+        self.assertEqual(names[:3], [
+            "Police Constable", "Police Sergeant", "Police Inspector",
+        ])
+        self.assertEqual(names[3:6], [
+            "CID Detective Constable",
+            "CID Detective Inspector",
+            "CID Detective Chief Inspector",
+        ])
+        self.assertTrue(all(" " in name for name in names))
+        self.assertTrue(all(
+            item["review_key"].startswith("draft:")
+            for item in spec.PROPOSED_AGENTS
+        ))
 
     def test_live_readiness_never_inferred_from_brief_completeness(self):
         report = spec.review_status(
