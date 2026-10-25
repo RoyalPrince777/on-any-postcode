@@ -98,7 +98,7 @@ jobs:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: oap-home-apk-master777
+          ref: ${{ github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
