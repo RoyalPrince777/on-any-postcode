@@ -88,6 +88,22 @@
         </article>
         {% endfor %}
       </div>
+      <h3>Verified real-world AI and robotics research</h3>
+      <p>These are separate real products, company demonstrations and public technical standards. Names such as Amelia 7 and BLACKBOX AI do not mean those products are the film characters or connected to OAP.</p>
+      <div class="org-grid">
+        {% for source in archive.film_intelligence_research.real_world_technology_evidence %}
+        <article class="org-card" data-real-technology="{{ source.reference_key }}">
+          <div class="org-meta">{{ source.publisher }} · {{ source.real_entity_type.replace('_', ' ') }}</div>
+          <h3>{{ source.real_name }}</h3>
+          <p>{{ source.evidence }}</p>
+          <p class="org-meta">{{ source.scope_limit }}</p>
+          <strong>OAP research direction</strong>
+          <p>{{ source.oap_research_use }}</p>
+          <a href="{{ source.source_url }}" target="_blank" rel="noreferrer noopener">Read actual source</a>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="org-meta">Research checked {{ archive.film_intelligence_research.real_world_technology_review_date }} · {{ archive.film_intelligence_research.technology_evidence_mode.replace('_', ' ') }} · no provider connected · no physical robot proof · source snapshots only.</p>
       <p class="org-boundary"><strong>Existing review hierarchy:</strong> Captain ALL IN coordinates as external mission keeper; Bagheera judges privacy and restraint; Shere Khan has permanent adversarial and false-Green review; Fox checks source evidence; Gorilla handles containment. Founder Final remains final. Film references cannot cast votes or overrule established agents.</p>
       <p class="org-meta">Source status: {{ archive.film_intelligence_research.source_status.replace('_', ' ') }} · public research metadata only · no live crawler · no verified character runtime.</p>
       <p><a class="mc-secondary-link" href="{{ url_for('smi_organiser.film_evidence') }}">Read Founder-only source receipts</a></p>
