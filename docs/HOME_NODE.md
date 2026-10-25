@@ -2,6 +2,24 @@
 
 Home Node is a first-party runtime role, not a single device type.
 
+## Distinct names and boundaries
+
+- **OAP Home V2** is the personal dashboard at `/home-v2`. Its local loopback
+  web launcher is `scripts/oap_home_v2_local.py`. Opening V2 does not start,
+  certify, rename or manage the Home Node's worker supervisor.
+- **OAP Home Node** retains its existing name, service contracts, worker state,
+  secrets and Termux process. It provides bounded local SMI compute; it is not
+  a browser or the V2 dashboard.
+- **OAP Internet** is the separate Android browser shell. External OPEN WEB
+  pages do not inherit OAP identity, authority, secrets or trust. The native
+  browser package remains `com.onanypostcode.oapworld`; its visible Android
+  label is OAP Internet.
+- **OAP World** remains the public ecosystem front door.
+
+This is a product-identity separation, not evidence that a signed Android update
+was built or installed. No supervisor, credentials, ports or service permissions
+change because of a display-name update.
+
 The same bounded runtime may run on:
 - Android phone or tablet through Termux.
 - Linux desktop or laptop.
