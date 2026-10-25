@@ -182,3 +182,100 @@ def test_face_processing_slot_released_after_unavailable_detector(
     slot = studio_face_detection.SINGLE_FRAME_PROCESS_SLOT
     assert slot.acquire(blocking=False)
     slot.release()
+
+
+class _SharedAdmissionResult:
+    def __init__(self, admitted):
+        self.admitted = admitted
+
+    def fetchone(self):
+        return (self.admitted,)
+
+
+class _SharedAdmissionConnection:
+    def __init__(self, admitted):
+        self.admitted = admitted
+        self.closed = False
+        self.queries = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        self.closed = True
+
+    def execute(self, statement, parameters):
+        self.queries.append((statement, parameters))
+        return _SharedAdmissionResult(self.admitted)
+
+
+def test_shared_admission_rejects_other_workers_before_image_parsing(
+    client, csrf, monkeypatch,
+):
+    """An occupied OAP-owned database advisory slot must fail closed."""
+    monkeypatch.setenv("OAP_SMI_FACE_DETECTION_ENABLED", "true")
+    monkeypatch.setenv("OAP_SMI_FACE_SHARED_GUARD_REQUIRED", "true")
+    connection = _SharedAdmissionConnection(admitted=False)
+    monkeypatch.setattr(views.postgres_db, "connect", lambda: connection)
+
+    def must_not_decode(_image_data):
+        raise AssertionError("Busy shared admission must never decode")
+
+    monkeypatch.setattr(studio_face_detection, "detect_faces", must_not_decode)
+    response = _send(client, csrf["csrf_token"])
+    assert response.status_code == 503
+    assert response.json["error"]["code"] == "face_detector_busy"
+    assert connection.queries == [
+        ("SELECT pg_try_advisory_xact_lock(%s, %s)", (777, 1305))
+    ]
+    assert connection.closed is True
+    assert response.headers["Cache-Control"] == "no-store"
+    slot = studio_face_detection.SINGLE_FRAME_PROCESS_SLOT
+    assert slot.acquire(blocking=False)
+    slot.release()
+
+
+def test_shared_admission_connection_failure_blocks_vision(
+    client, csrf, monkeypatch,
+):
+    """Database outage must never fall back to process-local-only approval."""
+    monkeypatch.setenv("OAP_SMI_FACE_DETECTION_ENABLED", "true")
+    monkeypatch.setenv("OAP_SMI_FACE_SHARED_GUARD_REQUIRED", "true")
+
+    def unavailable():
+        raise RuntimeError("private-database-unavailable")
+
+    monkeypatch.setattr(views.postgres_db, "connect", unavailable)
+    response = _send(client, csrf["csrf_token"])
+    assert response.status_code == 503
+    assert response.json["error"]["code"] == "face_shared_guard_unavailable"
+    assert "private-database" not in response.get_data(as_text=True)
+    slot = studio_face_detection.SINGLE_FRAME_PROCESS_SLOT
+    assert slot.acquire(blocking=False)
+    slot.release()
+
+
+def test_shared_admission_held_through_decode_then_released(
+    client, csrf, monkeypatch,
+):
+    """Owned database transaction must surround the complete detector operation."""
+    monkeypatch.setenv("OAP_SMI_FACE_DETECTION_ENABLED", "true")
+    monkeypatch.setenv("OAP_SMI_FACE_SHARED_GUARD_REQUIRED", "true")
+    connection = _SharedAdmissionConnection(admitted=True)
+    monkeypatch.setattr(views.postgres_db, "connect", lambda: connection)
+
+    def checked_detector(_image_data):
+        assert connection.closed is False
+        assert connection.queries == [
+            ("SELECT pg_try_advisory_xact_lock(%s, %s)", (777, 1305))
+        ]
+        return {"state": "analysed", "face_count": 0, "faces": [],
+                "identity_verified": False}
+
+    monkeypatch.setattr(studio_face_detection, "detect_faces", checked_detector)
+    response = _send(client, csrf["csrf_token"])
+    assert response.status_code == 200
+    assert connection.closed is True
+    slot = studio_face_detection.SINGLE_FRAME_PROCESS_SLOT
+    assert slot.acquire(blocking=False)
+    slot.release()
