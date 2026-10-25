@@ -3,7 +3,15 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from flask import Blueprint, make_response, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from . import (
     connectivity_briefs,
@@ -54,7 +62,7 @@ def _page(*, error: str = "", form: dict[str, object] | None = None, status: int
             "organiser.html",
             schedules=schedules,
             briefs=briefs,
-            archive=smi_archive.status(),
+            archive=smi_archive.status(include_private_research=True),
             error=error or store_error,
             form=form or {},
             imported=request.args.get("imported", ""),
@@ -69,6 +77,15 @@ def _page(*, error: str = "", form: dict[str, object] | None = None, status: int
 @web_security.login_required(founder_only=True)
 def dashboard():
     return _page()
+
+
+@bp.get("/organiser/research/film-evidence")
+@web_security.login_required(api=True, founder_only=True)
+def film_evidence():
+    """Private, read-only public-source research receipts; never fetch private messages."""
+
+    archive = smi_archive.status(include_private_research=True)
+    return _no_store(make_response(jsonify(archive["film_intelligence_research"])))
 
 
 @bp.post("/organiser/connectivity-briefs")
