@@ -121,6 +121,93 @@ FILM_RESEARCH_SOURCE_RECEIPTS: tuple[dict[str, object], ...] = (
 )
 
 
+# Independently named real products and observed technology *analogues*, not
+# the original fictional entities, connected vendors, or an OAP capability.
+# Public publisher claims and technical standards reviewed on 2026-10-25.
+# No autonomous learning, physical robots, provider credentials or execution.
+REAL_WORLD_TECHNOLOGY_EVIDENCE: tuple[dict[str, object], ...] = (
+    {
+        "reference_key": "m3gan",
+        "real_name": "Gemini Robotics On-Device 2",
+        "real_entity_type": "robotics_model_research",
+        "relationship": "technology_analogue_not_the_film_character",
+        "publisher": "Google DeepMind",
+        "source_url": "https://deepmind.google/models/model-cards/gemini-robotics-on-device-2/",
+        "evidence": "Vision, text and robot sensor inputs can produce physical robot actions in tested configurations.",
+        "scope_limit": "Select trusted testers; not M3GAN; physical robot and hardware verification required.",
+        "oap_research_use": "Consent-gated local perception and future robotics feasibility only.",
+    },
+    {
+        "reference_key": "m3gan",
+        "real_name": "Figure Helix 02",
+        "real_entity_type": "humanoid_robot_demonstration",
+        "relationship": "technology_analogue_not_the_film_character",
+        "publisher": "Figure AI",
+        "source_url": "https://www.figure.ai/news/helix-02",
+        "evidence": "Company demonstrated vision-driven full-body robot movement and multi-step manipulation.",
+        "scope_limit": "Company demonstration, not proof of universal safe autonomy or OAP hardware.",
+        "oap_research_use": "Evaluate sensing, control, testing and physical safety boundaries.",
+    },
+    {
+        "reference_key": "m3gan",
+        "real_name": "Boston Dynamics Atlas (2026)",
+        "real_entity_type": "industrial_humanoid_robot",
+        "relationship": "technology_analogue_not_the_film_character",
+        "publisher": "Boston Dynamics",
+        "source_url": "https://bostondynamics.com/blog/boston-dynamics-unveils-new-atlas-robot-to-revolutionize-industry/",
+        "evidence": "Company announced production of an electric industrial humanoid with 2026 deployments scheduled.",
+        "scope_limit": "Industrial hardware programme; not a self-aware companion or deployed OAP robot.",
+        "oap_research_use": "Assess physical robotics viability separately from SMI voice and software.",
+    },
+    {
+        "reference_key": "amelia",
+        "real_name": "Amelia 7 (SoundHound AI)",
+        "real_entity_type": "enterprise_voice_agent_platform",
+        "relationship": "same_name_unrelated_commercial_product",
+        "publisher": "SoundHound AI",
+        "source_url": "https://investors.soundhound.com/news-releases/news-release-details/ces-2026-soundhound-ai-unveils-agentic-voice-commerce-vehicles",
+        "evidence": "Company announced voice-based food ordering, reservations and ticket-booking workflows through Amelia 7.",
+        "scope_limit": "Not film AMELIA; provider workflows and available integrations are not OAP implementations.",
+        "oap_research_use": "Design first-party voice booking for approved barbers and event suppliers.",
+    },
+    {
+        "reference_key": "amelia",
+        "real_name": "MITRE ATLAS",
+        "real_entity_type": "public_ai_threat_knowledge_base",
+        "relationship": "defensive_threat_research_analogue",
+        "publisher": "MITRE",
+        "source_url": "https://atlas.mitre.org/",
+        "evidence": "Documents adversarial AI tactics, mitigations and case studies of AI-related attacks.",
+        "scope_limit": "Threat reference only; not a new SMI attack agent or operational authority.",
+        "oap_research_use": "Shere Khan adversarial reviews; Gorilla defensive containment.",
+    },
+    {
+        "reference_key": "black_box",
+        "real_name": "BLACKBOX AI coding agents",
+        "real_entity_type": "software_engineering_agent_platform",
+        "relationship": "similar_name_unrelated_commercial_product",
+        "publisher": "BLACKBOX AI",
+        "source_url": "https://www.blackbox.ai/agents",
+        "evidence": "Developer platform offers repository-aware coding agents, sandbox work and pull-request review workflows.",
+        "scope_limit": "Not the film's Xenox motherboard; cloud vendor is not connected or granted OAP code access.",
+        "oap_research_use": "Study first-party bounded source analysis, automated tests and PR evidence.",
+    },
+    {
+        "reference_key": "black_box",
+        "real_name": "NIST SP 800-193",
+        "real_entity_type": "firmware_security_standard",
+        "relationship": "defensive_containment_research_analogue",
+        "publisher": "NIST",
+        "source_url": "https://www.nist.gov/publications/platform-firmware-resiliency-guidelines",
+        "evidence": "Firmware resilience guidance covers protection, corruption detection and authorised recovery.",
+        "scope_limit": "Security engineering, not a self-evolving isolated superintelligence.",
+        "oap_research_use": "Guardian firmware-boundary and recovery proof, not a second brain.",
+    },
+)
+
+REAL_TECHNOLOGY_EVIDENCE_REVIEW_DATE = "2026-10-25"
+
+
 ARCHIVE_SECTIONS: tuple[dict[str, str], ...] = (
     {"id": "identity-lineage", "name": "Identity & Lineage", "purpose": "SMI names, meanings and evolution."},
     {"id": "anatomy", "name": "Anatomy", "purpose": "Brain, memory, interconnect, protection, execution and recovery."},
@@ -232,6 +319,14 @@ def status(*, include_private_research: bool = False) -> dict[str, Any]:
             "mode": "read_only_fictional_reference",
             "entries": tuple(dict(item) for item in FILM_INTELLIGENCE_REFERENCES),
             "source_receipts": tuple(dict(item) for item in FILM_RESEARCH_SOURCE_RECEIPTS),
+            "real_world_technology_evidence": tuple(
+                dict(item) for item in REAL_WORLD_TECHNOLOGY_EVIDENCE
+            ),
+            "real_world_technology_review_date": REAL_TECHNOLOGY_EVIDENCE_REVIEW_DATE,
+            "technology_evidence_mode": "reviewed_public_publisher_claims_and_standards",
+            "external_provider_integrations_enabled": False,
+            "oap_owned_robot_hardware_proven": False,
+            "film_characters_operational_in_oap": False,
             "source_receipts_mode": "manually_checked_public_metadata_only",
             "public_source_provenance_present": True,
             "source_pages_crawled_by_oap": False,
