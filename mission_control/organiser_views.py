@@ -15,6 +15,7 @@ from flask import (
 
 from . import (
     connectivity_briefs,
+    film_capability_gateway,
     organiser_schedules,
     public_store,
     smi_archive,
@@ -86,6 +87,33 @@ def film_evidence():
 
     archive = smi_archive.status(include_private_research=True)
     return _no_store(make_response(jsonify(archive["film_intelligence_research"])))
+
+
+@bp.get("/organiser/original-three/status")
+@web_security.login_required(api=True, founder_only=True)
+def original_three_status():
+    """Founder-only status of *real software functions*, not film capabilities."""
+
+    return _no_store(make_response(jsonify(film_capability_gateway.status())))
+
+
+@bp.post("/organiser/original-three/evaluate")
+@web_security.login_required(api=True, founder_only=True)
+def original_three_evaluate():
+    """Only bounded input evaluation; no execution, implicit consent or writes."""
+
+    if request.content_length is None or request.content_length > 4096:
+        return _no_store(make_response(jsonify(error="bounded_json_required"), 413))
+    if not web_security.csrf_valid(request):
+        return _no_store(make_response(jsonify(error="csrf_failed"), 403))
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {"profile", "payload"}:
+        return _no_store(make_response(jsonify(error="invalid_request_contract"), 400))
+    try:
+        outcome = film_capability_gateway.evaluate(data["profile"], data["payload"])
+    except (TypeError, ValueError) as exc:
+        return _no_store(make_response(jsonify(error=str(exc)[:90]), 400))
+    return _no_store(make_response(jsonify(outcome)))
 
 
 @bp.post("/organiser/connectivity-briefs")
