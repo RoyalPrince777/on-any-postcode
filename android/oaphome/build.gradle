@@ -1,0 +1,43 @@
+plugins {
+    id 'com.android.application' version '8.7.3'
+}
+
+android {
+    namespace 'com.onanypostcode.oaphome'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.onanypostcode.oaphome.v2'
+        minSdk 26
+        targetSdk 35
+        versionCode 4
+        versionName '2.0.0-founder'
+    }
+
+    signingConfigs {
+        oapPersistent {
+            def keyPath = System.getenv('OAP_HOME_KEYSTORE_PATH')
+            if (keyPath) {
+                storeFile file(keyPath)
+                storeType 'pkcs12'
+                storePassword System.getenv('OAP_HOME_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('OAP_HOME_KEY_ALIAS')
+                keyPassword System.getenv('OAP_HOME_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.oapPersistent
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

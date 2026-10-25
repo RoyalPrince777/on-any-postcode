@@ -1,0 +1,32 @@
+name: SMI passport focused verification
+
+on:
+  push:
+    branches:
+      - feat/oap-home-v2-smi-mainline-20261025
+    paths:
+      - 'mission_control/agent_passport_audit.py'
+      - 'mission_control/agent_passport_gap_report.py'
+      - 'mission_control/agents.py'
+      - 'mission_control/agents_legacy.py'
+      - 'tests/test_agent_passport_gap_report.py'
+      - 'tests/test_agent_passport_reconciliation.py'
+      - '.github/workflows/smi-passport-verification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  passport-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Execute both passport regression files
+        run: python -m pytest -q tests/test_agent_passport_gap_report.py tests/test_agent_passport_reconciliation.py

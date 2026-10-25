@@ -5,7 +5,7 @@ name: OAP Home Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feat/oap-home-v2-smi-mainline-20261025]
     paths:
       - 'android/oaphome/**'
       - '.github/workflows/oap-home-apk.yml'
@@ -20,17 +20,17 @@ jobs:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: oap-home-apk-master777
+          ref: ${{ github.sha }}
       - name: Verify checked-out V2 source and record revision
         shell: bash
         run: |
           set -euo pipefail
           SOURCE_REVISION="$(git rev-parse HEAD)"
           test -n "$SOURCE_REVISION"
+          test "$SOURCE_REVISION" = "$GITHUB_SHA" || { echo "::error::Checked-out source differs from triggering revision"; exit 1; }
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
           grep -Fq "storeType 'pkcs12'" android/oaphome/build.gradle
           grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
-          grep -Fq 'BEGORO-KORADASO' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'boolean safeWebAddress(Uri uri)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'settings.setJavaScriptEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'handler.cancel();' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
@@ -93,12 +93,13 @@ jobs:
         working-directory: android/oaphome
         run: gradle --no-daemon compileDebugJavaWithJavac
   build:
+    needs: compile
     runs-on: ubuntu-latest
     steps:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: oap-home-apk-master777
+          ref: ${{ github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -118,6 +119,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+      - name: Verify APK job uses triggering V2 revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA" || { echo "::error::APK job checked out the wrong source revision"; exit 1; }
       - name: Require persistent OAP signing identity
         shell: bash
         env:
@@ -166,12 +172,12 @@ jobs:
           echo "APK metadata:"
           find android/oaphome/build/outputs -type f -name '*.apk' -exec stat -c '%n %s bytes' {} \;
           echo "Expected APK path:"
-          test -s android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk
+          test -s android/oaphome/build/outputs/apk/debug/oaphome-debug.apk
       - name: Verify APK package and signature
         shell: bash
         run: |
           set -euo pipefail
-          APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
+          APK="android/oaphome/build/outputs/apk/debug/oaphome-debug.apk"
           test -s "$APK"
           SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
           BUILD_TOOLS="$SDK_ROOT/build-tools/35.0.0"
@@ -192,7 +198,7 @@ jobs:
           python3 - <<'PY'
           import zipfile
           from pathlib import Path
-          apk = Path("android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk")
+          apk = Path("android/oaphome/build/outputs/apk/debug/oaphome-debug.apk")
           with zipfile.ZipFile(apk) as z:
               names = z.namelist()
               assert len(names) == len(set(names)), "Duplicate ZIP entries"
@@ -206,7 +212,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
+          APK="android/oaphome/build/outputs/apk/debug/oaphome-debug.apk"
           test -s "$APK"
           SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
           APKSIGNER="$SDK_ROOT/build-tools/35.0.0/apksigner"

@@ -319,3 +319,36 @@ def war_room_recommendation() -> dict[str, Any]:
         ),
         "audit": audit,
     }
+
+
+# Founder-approved decisions recorded after the legacy candidate audit. These
+# override obsolete candidate labels for review presentation only. They do not
+# register agents, grant execution permissions, or manufacture passports.
+PASSPORT_RECONCILIATION_OVERRIDES: dict[str, dict[str, str]] = {
+    "Mouse": {"decision": "restored", "family": "matrix", "reason": "Later Founder decision restores Mouse; legacy removal is historical"},
+    "Gorilla": {"decision": "approved_role", "family": "animal", "reason": "Last-line defence role approved; registry/passport proof still required"},
+    "Baloo": {"decision": "approved_role", "family": "jungle", "reason": "Jungle mentor role retained; registry/passport proof still required"},
+    "Lioness": {"decision": "approved_role", "family": "animal", "reason": "Pride protection role retained; registry/passport proof still required"},
+    "Tigress": {"decision": "canonical_name", "family": "animal", "reason": "Tigress is canonical; Tygress is a legacy spelling"},
+}
+
+
+def passport_reconciliation() -> dict[str, Any]:
+    """Read-only reconciliation; never infer registration from Founder approval."""
+    registered = {str(item["name"]) for item in agents.AGENT_REGISTRY}
+    entries = []
+    for name, decision in PASSPORT_RECONCILIATION_OVERRIDES.items():
+        entries.append({
+            "name": name,
+            **decision,
+            "registered_in_canonical_registry": name in registered,
+            "passport_verified": False,
+            "execution_authorised": False,
+        })
+    return {
+        "mode": "read_only",
+        "entries": entries,
+        "legacy_audit_requires_reconciliation": True,
+        "founder_final_required": True,
+        "production_green": False,
+    }
