@@ -66,9 +66,9 @@ def _session_cookie():
         return cookie_name, cookie.value
 
 
-def _png_bytes():
+def _png_bytes(color=(92, 122, 145)):
     stream = BytesIO()
-    Image.new("RGB", (120, 100), (92, 122, 145)).save(stream, format="PNG")
+    Image.new("RGB", (120, 100), color).save(stream, format="PNG")
     return stream.getvalue()
 
 
@@ -178,6 +178,81 @@ def main():
             page.wait_for_timeout(850)
             assert "cancelled in this browser" in locked.inner_text()
             assert len(posts) <= 3
+
+            # A new image from the legacy camera picker (not #image-input)
+            # invalidates previously completed face coordinates.
+            delay_detection[0] = False
+            button.click()
+            page.wait_for_function(
+                "() => document.querySelector('#smi-face-detect-status')?.textContent.includes('1 face(s) detected')"
+            )
+            camera_posts = len(posts)
+            page.locator("#camera-input").set_input_files({
+                "name": "second-camera.png", "mimeType": "image/png",
+                "buffer": _png_bytes((44, 73, 112)),
+            })
+            page.wait_for_function(
+                "() => document.querySelector('#preview-name')?.textContent === 'second-camera.png'"
+            )
+            page.wait_for_function(
+                "() => document.querySelector('#smi-face-detect-status')?.textContent === ''"
+            )
+            assert len(posts) == camera_posts, "Camera file selection cannot upload to detector"
+
+            # Studio's character-reference control writes previewImg.src
+            # directly and does not fire a file input change. The actual
+            # media controls must still clear results and not auto-post.
+            button.click()
+            page.wait_for_function(
+                "() => document.querySelector('#smi-face-detect-status')?.textContent.includes('1 face(s) detected')"
+            )
+            reference_bytes = _png_bytes((116, 80, 65))
+            reference_url = "data:image/png;base64," + base64.b64encode(
+                reference_bytes
+            ).decode("ascii")
+            page.evaluate(
+                """(source) => {
+                    const card = document.createElement('article');
+                    card.className = 'smi-studio-artifact';
+                    const image = document.createElement('img');
+                    image.className = 'smi-studio-image';
+                    image.src = source;
+                    card.append(image);
+                    document.getElementById('messages').append(card);
+                }""",
+                reference_url,
+            )
+            reference = page.locator(".smi-use-character-reference").last
+            reference.wait_for(state="attached")
+            before_reference = len(posts)
+            reference.click()
+            page.wait_for_function(
+                "() => document.querySelector('#preview-name')?.textContent === 'Studio character reference'"
+            )
+            page.wait_for_function(
+                "() => document.querySelector('#smi-face-detect-status')?.textContent === ''"
+            )
+            assert len(posts) == before_reference, "Studio reference must never silently upload"
+
+            # Replacing a frame while its remote request is pending must
+            # invalidate the late result even if the server already started.
+            delay_detection[0] = True
+            button.click()
+            page.wait_for_function(
+                "() => document.querySelector('#smi-face-detect-button')?.textContent.includes('Cancel detection')"
+            )
+            page.locator("#camera-input").set_input_files({
+                "name": "third-camera.png", "mimeType": "image/png",
+                "buffer": _png_bytes((17, 126, 91)),
+            })
+            page.wait_for_function(
+                "() => document.querySelector('#preview-name')?.textContent === 'third-camera.png'"
+            )
+            page.wait_for_timeout(850)
+            assert locked.inner_text() == "", "A superseded request exposed a stale result"
+            assert "Cancel detection" not in button.inner_text()
+            print("SMI_VISION_CAMERA_REFERENCE_STALE_CLEAR=PASS")
+            print("SMI_VISION_LATE_RESULT_SUPPRESSED=PASS")
 
             page.locator("#remove-image").click()
             assert locked.inner_text() == ""
