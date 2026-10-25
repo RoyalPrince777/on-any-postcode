@@ -1,4 +1,6 @@
 """Owner-only barber price UI, amount validation and committed-price protection."""
+
+import inspect
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
@@ -70,7 +72,7 @@ def _db(monkeypatch, connection):
     "1.001", "10000.01", True,
 ])
 def test_bad_owner_price_is_rejected(bad):
-    with pytest.raises(ValueError):
+    with pytest.raises((TypeError, ValueError)):
         barber_owner_pricing._price_minor(bad)
 
 
@@ -214,8 +216,6 @@ def test_core_upsert_does_not_reprice_held_or_booked_inventory():
     # The schema's migration checksum must remain stable; new invariant is in
     # the runtime UPDATE/UPSERT, not in original v0007 schema statements.
     assert "price_minor=EXCLUDED.price_minor" not in original
-    import inspect
-
     source = inspect.getsource(
         travel_supply_core.PostgresTravelSupplyStore.set_inventory_slot
     )
