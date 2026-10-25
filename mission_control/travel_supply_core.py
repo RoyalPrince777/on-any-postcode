@@ -30,10 +30,10 @@ SUPPLY_CORE_TABLES = frozenset(
     }
 )
 SUPPLY_CATEGORIES = frozenset(
-    {"stay", "attraction", "activity", "car_rental", "transport", "event"}
+    {"stay", "attraction", "activity", "car_rental", "transport", "event", "barber"}
 )
 SUPPLIER_TYPES = frozenset(
-    {"accommodation", "experience", "mobility", "venue", "mixed"}
+    {"accommodation", "experience", "mobility", "venue", "mixed", "personal_service"}
 )
 _IDEMPOTENCY = re.compile(r"^[A-Za-z0-9._:-]{8,160}$")
 _CURRENCY = re.compile(r"^[A-Z]{3}$")
@@ -357,6 +357,11 @@ class PostgresTravelSupplyStore:
         kind = str(supplier_type or "").strip().casefold()
         if kind not in SUPPLIER_TYPES:
             raise ValueError("invalid_supplier_type")
+        if kind == "personal_service":
+            from . import local_booking_extension
+
+            if not local_booking_extension.schema_status()["schema_ready"]:
+                raise RuntimeError("barber_extension_not_ready")
         with postgres_db.connect() as connection:
             identity = connection.execute(
                 "SELECT 1 FROM users WHERE id=%s AND status='active' LIMIT 1",
@@ -473,6 +478,11 @@ class PostgresTravelSupplyStore:
         category_value = str(category or "").strip().casefold()
         if category_value not in SUPPLY_CATEGORIES:
             raise ValueError("invalid_supply_category")
+        if category_value == "barber":
+            from . import local_booking_extension
+
+            if not local_booking_extension.schema_status()["schema_ready"]:
+                raise RuntimeError("barber_extension_not_ready")
         title_value = _text(title, name="listing_title", maximum=180)
         description_value = _text(
             description, name="listing_description", maximum=4000, required=False
