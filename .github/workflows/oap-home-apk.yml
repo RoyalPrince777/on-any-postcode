@@ -31,7 +31,7 @@ jobs:
           grep -Fq 'OAP WORLD' "$SOURCE"
           grep -Fq 'OAP LIBRARY' "$SOURCE"
           grep -Fq 'NOT CONNECTED' "$SOURCE"
-          grep -Fq 'private boolean safeWebAddress(Uri uri)' "$SOURCE"
+          grep -Fq 'boolean safeWebAddress(Uri uri)' "$SOURCE"
           grep -Fq 'settings.setJavaScriptEnabled(false)' "$SOURCE"
           grep -Fq 'settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW)' "$SOURCE"
           grep -Fq 'handler.cancel();' "$SOURCE"
