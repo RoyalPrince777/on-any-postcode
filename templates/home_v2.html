@@ -8,13 +8,31 @@
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 50% 0%,#423013 0%,#101016 44%,var(--bg) 78%);color:#fff9eb;font:16px/1.45 system-ui,sans-serif}
 main{max-width:980px;margin:auto;padding:24px 16px calc(110px + env(safe-area-inset-bottom))}
 header{text-align:center;padding:20px 0 12px}h1{color:var(--gold);font-size:clamp(2rem,8vw,4rem);margin:0;letter-spacing:.06em}header p{margin:4px 0 16px;color:#e8d8b0}
-.time{font-size:clamp(2.2rem,10vw,4rem);font-variant-numeric:tabular-nums;font-weight:800}.date{color:#dfd0ac}
+.home-time{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:18px 0 8px;color:#e8d8b0}.time{font-size:clamp(1.25rem,5vw,1.65rem);font-variant-numeric:tabular-nums;font-weight:800}.date{color:#dfd0ac;font-size:.9rem}
+.search-panel{border:1px solid #ac873d;border-radius:22px;background:linear-gradient(145deg,#322511,#17141a 78%);box-shadow:0 14px 32px #0008;padding:20px;margin:14px 0 0}.search-panel h2{font-size:clamp(1.4rem,5vw,2rem);color:var(--gold);margin:0 0 4px}.search-panel p{color:#e0d5be;font-size:.88rem;margin:0 0 16px}.home-search{display:flex;gap:10px;align-items:stretch}.home-search input{min-width:0;flex:1;min-height:64px;border:2px solid #ac873d;border-radius:15px;background:#0c0b0f;color:#fff9eb;padding:0 16px;font:inherit;font-size:1.1rem}.home-search input::placeholder{color:#bfb2a0}.home-search button{min-height:64px;min-width:105px;border:0;border-radius:15px;background:var(--gold);color:#181109;font:inherit;font-weight:850;cursor:pointer;padding:0 16px}.search-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.search-shortcuts a{display:inline-flex;align-items:center;min-height:43px;border:1px solid #776032;border-radius:999px;background:#161319;color:#f7e7c9;text-decoration:none;padding:9px 13px;font-size:.86rem;font-weight:650}.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tile{border:1px solid var(--line);background:linear-gradient(135deg,#282018,#111116);border-radius:16px;min-height:104px;padding:17px;text-decoration:none;color:inherit;display:flex;flex-direction:column;justify-content:center;gap:7px}.tile strong{color:var(--gold);font-size:1rem}.tile span{color:#e4d8c5;font-size:.83rem}.tile.featured{border-color:var(--gold)}
-h2{font-size:1rem;color:var(--gold);margin:26px 0 12px}.dock{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#101014f5;border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:5}.dock a{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:10px;color:#fff9eb;text-decoration:none;font-weight:700}.dock a[aria-current]{background:var(--gold);color:#14110a}a:focus-visible{outline:3px solid #fff;outline-offset:3px}@media(min-width:700px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.dock{max-width:980px;margin:auto;border:1px solid var(--line);border-radius:16px 16px 0 0}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+h2{font-size:1rem;color:var(--gold);margin:26px 0 12px}.dock{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:#101014f5;border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:5}.dock a{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:10px;color:#fff9eb;text-decoration:none;font-weight:700}.dock a[aria-current]{background:var(--gold);color:#14110a}a:focus-visible,input:focus-visible,button:focus-visible{outline:3px solid #fff;outline-offset:3px}@media(max-width:380px){.home-search{flex-direction:column}.home-search button{width:100%}}@media(min-width:700px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}.dock{max-width:980px;margin:auto;border:1px solid var(--line);border-radius:16px 16px 0 0}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
 <body><main>
-<header><h1>♛ OAP HOME</h1><p>ON ANY POSTCODE · Born Local. Built Global.</p><div class="time" id="home-clock" aria-label="Local time">--:--</div><div class="date" id="home-date">Time unavailable</div></header>
+<header><h1>♛ OAP HOME</h1><p>ON ANY POSTCODE · Born Local. Built Global.</p></header>
+<section class="search-panel" aria-labelledby="home-search-title">
+<h2 id="home-search-title">🔎 Search OAP</h2>
+<p>Find public OAP apps and destinations. Private messages and Founder tools are not searched.</p>
+<form class="home-search" role="search" method="get" action="/search">
+<label class="visually-hidden" for="home-search-query">Search public OAP apps</label>
+<input id="home-search-query" type="search" name="q" maxlength="120" autocomplete="off" placeholder="Connect 4, Market, Library…" required>
+<button type="submit">Search</button>
+</form>
+<nav class="search-shortcuts" aria-label="Explore from search">
+<a href="/arena/connect4">🎮 Play Connect 4</a>
+<a href="/search?q=market">🛍 Market</a>
+<a href="/search?q=library">📚 Library</a>
+<a href="/search?q=music">🎵 Music</a>
+<a href="/store">Browse apps</a>
+</nav>
+</section>
+<div class="home-time" aria-label="Local date and time"><div class="time" id="home-clock" aria-label="Local time">--:--</div><div class="date" id="home-date">Time unavailable</div></div>
 <section aria-label="Priority apps"><h2>Quick access</h2><div class="tiles">
 <a class="tile featured" href="/store"><strong>🛍️ OAP Store</strong><span>Browse OAP apps</span></a>
 <a class="tile featured" href="/ptt"><strong>🎙️ OAP PTT</strong><span>Push to talk</span></a>
