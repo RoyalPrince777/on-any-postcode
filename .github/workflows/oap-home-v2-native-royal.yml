@@ -6,6 +6,8 @@ on:
     paths:
       - android/oaphome/**
       - tests/test_oap_home_v2_native_royal.py
+      - tests/test_oap_home_v2_inplace_gate.py
+      - scripts/oap_home_v2_inplace_apk_gate.py
       - .github/workflows/oap-home-v2-native-royal.yml
   pull_request:
     branches:
@@ -13,6 +15,8 @@ on:
     paths:
       - android/oaphome/**
       - tests/test_oap_home_v2_native_royal.py
+      - tests/test_oap_home_v2_inplace_gate.py
+      - scripts/oap_home_v2_inplace_apk_gate.py
       - .github/workflows/oap-home-v2-native-royal.yml
 permissions:
   contents: read
@@ -21,8 +25,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Prove native launcher safety, not OS or APK installation
-        run: python3 tests/test_oap_home_v2_native_royal.py
+      - name: Prove native launcher safety and single original Home app identity
+        run: |
+          python3 tests/test_oap_home_v2_native_royal.py
+          python3 -m unittest discover -s tests -p 'test_oap_home_v2_inplace_gate.py' -v
+          grep -Fq "applicationId 'com.onanypostcode.oaphome'" android/oaphome/build.gradle
+          if grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle; then
+            echo "::error::Duplicate V2 application ID forbidden for in-place update"
+            exit 1
+          fi
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
