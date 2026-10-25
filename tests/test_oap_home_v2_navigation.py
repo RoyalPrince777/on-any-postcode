@@ -8,7 +8,7 @@ WORLD = ROOT / "templates" / "world.html"
 
 def test_home_v2_keeps_one_tap_destinations():
     html = HOME.read_text(encoding="utf-8")
-    for route in ("/store", "/ptt", "/world", "/the-link"):
+    for route in ("/store", "/ptt", "/world", "/the-spot", "/the-link"):
         assert f'href="{route}"' in html
     assert 'aria-label="OAP Home navigation"' in html
     assert "env(safe-area-inset-bottom)" in html
@@ -19,6 +19,7 @@ def test_home_v2_does_not_claim_unverified_device_capabilities():
     html = HOME.read_text(encoding="utf-8")
     assert "separately verified Android integration" in html
     assert "No live weather or calendar data is claimed" in html
+    assert "Your postcode community inside OAP World" in html
     assert "Browse OAP apps" in html
     assert "Install OAP apps" not in html
 
