@@ -214,7 +214,7 @@ def test_black_box_requires_real_configured_server_key(monkeypatch):
 
 
 def test_gateway_rejects_non_json_and_unknown_profile():
-    with pytest.raises(ValueError, match="json_object_required"):
+    with pytest.raises(TypeError, match="json_object_required"):
         gateway.evaluate("m3gan", "unexpected string")
     with pytest.raises(ValueError, match="unknown_original_three_profile"):
         gateway.evaluate("other", {})
