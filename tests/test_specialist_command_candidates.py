@@ -52,15 +52,48 @@ class SpecialistCommandCandidateTests(unittest.TestCase):
     def test_all_six_functions_present_without_hijacking_core_systems(self):
         families = {a["family_key"] for a in spec.EXTENDED_AGENTS}
         self.assertEqual(families, {
-            "military", "presidential", "matrix_review", "chess",
+            "military", "presidential", "command_tree", "chess",
             "guardian_review", "imperial",
         })
         self.assertNotIn("Guardian", {a["name"] for a in spec.EXTENDED_AGENTS})
         self.assertNotIn("Neo", {a["name"] for a in spec.EXTENDED_AGENTS})
         self.assertNotIn("Emperor", {a["name"] for a in spec.EXTENDED_AGENTS})
 
+    def test_command_matrix_means_family_tree_not_film_or_chess_engine(self):
+        report = spec.review_status()
+        tree = report["command_family_tree"]
+        self.assertTrue(tree["valid"], tree)
+        self.assertEqual(tree["root"], (
+            "Founder Final", "SMI", "Specialist research families",
+        ))
+        self.assertFalse(tree["film_matrix_agents_in_this_tree"])
+        self.assertFalse(tree["real_government_authority_claimed"])
+        self.assertEqual(tree["missing_family_keys"], ())
+        self.assertEqual(tree["unknown_family_keys"], ())
+        self.assertEqual(tree["duplicate_family_keys"], ())
+        self.assertEqual(len(tree["branches"]), 8)
+        self.assertIn("Guardian", tree["cross_cutting_non_agent_gates"])
+        self.assertEqual(spec.CHESS_POSITION_ROLES, (
+            "King", "Queen", "Rook", "Bishop", "Knight", "Pawn",
+        ))
+        self.assertEqual(spec.REAL_WORLD_OFFICES_ARE_SUBORDINATES, False)
+        self.assertEqual(spec.COMPARATIVE_OFFICES["presidential"][0], "President")
+        self.assertEqual(spec.COMPARATIVE_OFFICES["imperial"][0], "Emperor")
+        self.assertEqual(
+            next(f for f in spec.EXTENDED_FAMILIES
+                 if f["key"] == "command_tree")["parent_world_id"],
+            "civilisation",
+        )
+        self.assertEqual(
+            next(f for f in spec.EXTENDED_FAMILIES
+                 if f["key"] == "chess")["parent_world_id"],
+            "civilisation",
+        )
+        self.assertTrue(report["matrix_core_unchanged"])
+        self.assertTrue(report["guardian_is_non_agent_system"])
+
     def test_reject_name_collision_with_existing_draft_and_system(self):
-        collision = {"name": "Chess Opening Research Agent"}
+        collision = {"name": "Chess King and Queen Role Analyst"}
         self.assertFalse(spec.review_status(other_candidates=(collision,))["candidate_checks_passed"])
         self.assertFalse(spec.review_status(
             system_names=("Military Chain-of-Command Analyst",)
