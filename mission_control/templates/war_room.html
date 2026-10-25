@@ -165,6 +165,49 @@
   </div>
 </section>
 
+{% set home_v2_alliance = alliance_board.home_v2_mitcham_mission %}
+<section class="smi-roster-board" id="smi-home-v2-mitcham" aria-labelledby="smi-home-v2-mitcham-title">
+  <div class="ey">🟣 SMI · Native Android Home V2 · Founder-only mission alliance</div>
+  <h2 id="smi-home-v2-mitcham-title">👑 {{ home_v2_alliance.title }}</h2>
+  <p class="smi-roster-note"><strong>Decision:</strong> {{ home_v2_alliance.decision }}</p>
+  <p class="smi-roster-note">{{ home_v2_alliance.location }}. {{ home_v2_alliance.phone }}. This is an advisory assignment, not proof of live local testing, autonomous agents, or a new location feed.</p>
+  <div class="smi-roster-command" aria-label="Home V2 mission governance">
+    <article><strong>🧠 {{ home_v2_alliance.smi_command }}</strong><small>One unified intelligence command; no extra AI brain.</small></article>
+    <article><strong>🛡️ Guardian / Bagheera</strong><small>Permissions, consent, signing identity, old-app and stock-launcher protection.</small></article>
+    <article><strong>👑 Founder Final</strong><small>No install, default HOME change, legacy uninstall, stars or approval from this board.</small></article>
+  </div>
+  <div class="smi-roster-layout">
+    <div class="smi-roster-panel">
+      <h3>Assigned SMI mission lenses · advisory only</h3>
+      <div class="smi-alliance-list">
+        {% for specialist in home_v2_alliance.specialists %}
+        <details>
+          <summary>{{ specialist.name }}{% if specialist.agent_id %} · existing passport{% elif specialist.classification == "contained_ai_research_system" %} · contained research system{% else %} · reference only{% endif %}</summary>
+          <p class="smi-roster-note">{{ specialist.task }}</p>
+          <p class="smi-roster-note">{{ specialist.status|replace('_', ' ')|capitalize }} · No independently verified agent execution or career-star award.</p>
+        </details>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="smi-roster-panel">
+      <h3>Best-fit established alliances · Mitcham field checks</h3>
+      <ul>
+        {% for alliance in home_v2_alliance.alliance_refs %}
+        <li><strong>{{ alliance.id|replace('_',' ')|title }}</strong> — {{ alliance.mission_fit }}</li>
+        {% endfor %}
+      </ul>
+      <p class="smi-roster-note"><strong>Separate research identities:</strong> {{ home_v2_alliance.research_identities_separate|join(' · ') }}. {{ home_v2_alliance.m3gan_identity_rule }} {{ home_v2_alliance.black_box_identity_rule }}</p>
+      <h3>Actual release blockers</h3>
+      <ul>
+        {% for gate in home_v2_alliance.release_gates %}
+        <li>{{ gate }} — pending evidence</li>
+        {% endfor %}
+      </ul>
+      <p class="smi-roster-note">Existing passports unchanged · {{ home_v2_alliance.agent_passports_created }} new passports · {{ home_v2_alliance.official_stars_awarded }} official stars awarded here · {{ home_v2_alliance.recorded_independent_votes }} independent votes recorded. No field deployment or old-app removal claimed.</p>
+    </div>
+  </div>
+</section>
+
 <section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
 <button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><button class="btn js-depth" type="button" data-depth="3">MANUAL 3</button><button class="btn js-depth" type="button" data-depth="7">MANUAL 7</button><button class="btn js-depth" type="button" data-depth="21">MANUAL 21</button><button class="btn primary js-war-mode" type="button">⚔️ WAR ROOM</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a>
