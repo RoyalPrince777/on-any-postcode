@@ -129,8 +129,10 @@ public class MainActivity extends Activity {
         earth = label("🌍  OAP WORLD", 17);
         earth.setTypeface(Typeface.SERIF, Typeface.BOLD);
         body.addView(earth, new LinearLayout.LayoutParams(-1, dp(64)));
-        clock = label("", 26);
-        body.addView(clock, new LinearLayout.LayoutParams(-1, dp(64)));
+        clock = label("", 30);
+        clock.setTypeface(Typeface.SERIF, Typeface.BOLD);
+        clock.setBackground(royalHeader());
+        body.addView(clock, new LinearLayout.LayoutParams(-1, dp(68)));
         clockTick.run();
 
         Button pttQuick = button("🎙 PTT\nSTANDALONE · MIC OFF", v -> openPttApp());
@@ -207,6 +209,10 @@ public class MainActivity extends Activity {
         String[] captions = {"ONE ECOSYSTEM", "PEOPLE & COMMUNITY", "FINANCE & OPPORTUNITY",
                 "PLACES & NAVIGATION", "YOUR INBOX", "BUY · SELL · GROW",
                 "WATCH & STREAM", "GAMES & CHALLENGES", "LEARN & EXPLORE"};
+        TextView destinationHeading = label("✦  EXPLORE YOUR WORLD  ✦", 15);
+        destinationHeading.setTypeface(Typeface.SERIF, Typeface.BOLD);
+        destinationHeading.setPadding(0, dp(12), 0, dp(5));
+        body.addView(destinationHeading);
         GridLayout grid = new GridLayout(this);
         grid.setColumnCount(3);
         body.addView(grid);
