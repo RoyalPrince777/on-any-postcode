@@ -97,7 +97,7 @@ def test_film_evidence_api_is_founder_only_and_read_only(monkeypatch):
     assert result.headers["X-Content-Type-Options"] == "nosniff"
     research = result.get_json()
     assert len(research["entries"]) == 3
-    assert len(research["source_receipts"]) == 3
+    assert len(research["source_receipts"]) == 4
     assert research["private_communication_ingestion_enabled"] is False
     assert research["execution_enabled"] is False
 
@@ -147,3 +147,29 @@ def test_founder_technology_evidence_is_source_linked_and_not_on_public_brain(
     assert api.status_code == 200
     assert len(api.get_json()["real_world_technology_evidence"]) == 7
     assert api.headers["Cache-Control"] == "no-store"
+
+
+def test_founder_original_film_powers_view_links_real_film_references(monkeypatch):
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser").status_code == 403
+
+    founder = _client(monkeypatch, founder=True)
+    response = founder.get("/mission/organiser")
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    page = response.get_data(as_text=True)
+    assert page.count('data-film-ability="m3gan:') == 6
+    assert page.count('data-film-ability="amelia:') == 5
+    assert page.count('data-film-ability="black_box:') == 4
+    assert "Full film-canon ability evidence" in page
+    assert "Film source</a>" in page
+    assert "fictional; real OAP implementation requires independent proof" in page
+    assert "Founder Final remains final" in page
+
+    research_response = founder.get("/mission/organiser/research/film-evidence")
+    assert research_response.status_code == 200
+    research = research_response.get_json()
+    assert len(research["film_canon_abilities"]) == 15
+    assert len(research["source_receipts"]) == 4
+    assert research["film_canon_runtime_proven"] is False
+    assert research_response.headers["Cache-Control"] == "no-store"
