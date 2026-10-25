@@ -12,14 +12,14 @@ from . import postgres_db, travel_supply_core
 
 BARBER_EXTENSION_MIGRATION_VERSION = "20261025_oap_direct_barber_v1"
 BARBER_EXTENSION_STATEMENTS = (
-    "ALTER TABLE oap_supply_listings "
-    "DROP CONSTRAINT oap_supply_listings_category_check",
+    ("ALTER TABLE oap_supply_listings "
+     "DROP CONSTRAINT oap_supply_listings_category_check"),
     """ALTER TABLE oap_supply_listings
        ADD CONSTRAINT oap_supply_listings_category_check
        CHECK (category IN ('stay','attraction','activity','car_rental',
                           'transport','event','barber'))""",
-    "ALTER TABLE oap_supply_suppliers "
-    "DROP CONSTRAINT oap_supply_suppliers_supplier_type_check",
+    ("ALTER TABLE oap_supply_suppliers "
+     "DROP CONSTRAINT oap_supply_suppliers_supplier_type_check"),
     """ALTER TABLE oap_supply_suppliers
        ADD CONSTRAINT oap_supply_suppliers_supplier_type_check
        CHECK (supplier_type IN ('accommodation','experience','mobility',
