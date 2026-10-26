@@ -53,3 +53,43 @@ def admit_council_turn(
         "vote_recorded": False, "career_star_awarded": False,
         "founder_final": True,
     }
+
+
+def founder_council_chat(
+    *,
+    message: str,
+    identity_id: str,
+    display_name: str,
+    founder_authenticated: bool = False,
+    conversation_id: object = None,
+) -> dict[str, Any]:
+    """Send a verified Founder turn through the existing governed SMI chat.
+
+    The resulting speaker is SMI, NEVER a fabricated individually authenticated
+    agent. The route must independently authenticate the Founder and supply the
+    bound identity_id; this helper is not an HTTP authentication mechanism.
+    """
+    admitted = admit_council_turn(
+        speaker="Founder",
+        message=message,
+        founder_authenticated=founder_authenticated,
+    )
+    if not isinstance(identity_id, str) or not identity_id.strip():
+        raise ValueError("bound_founder_identity_required")
+    from mission_control.smi_chat_runtime import chat
+
+    result = chat(
+        admitted["message"],
+        identity_id=identity_id,
+        display_name=display_name,
+        conversation_id=conversation_id,
+    )
+    return {
+        "founder_turn": admitted,
+        "smi_reply": result,
+        "reply_source": "existing_governed_smi_runtime",
+        "individual_agent_reply_verified": False,
+        "agent_to_agent_conversation_proven": False,
+        "execution_authority_expanded": False,
+        "founder_final": True,
+    }
