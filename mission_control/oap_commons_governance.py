@@ -182,3 +182,33 @@ def erase_expired(founder_id: object, *, limit: int = 100) -> dict[str, object]:
         "redacted_count": len(rows), "retention_days": oap_commons.RETENTION_DAYS,
         "automated_scheduler": False, "audit_linkage_retained": True,
     }
+
+
+def retention_backlog() -> dict[str, object]:
+    """Founder-only caller can inspect overdue content without exposing member text."""
+    try:
+        with postgres_db.connect(readonly=True) as db:
+            count = db.execute(
+                """SELECT COUNT(*) FROM oap_workspace_records
+                   WHERE workspace_id='governance' AND title LIKE %s
+                     AND status='draft'
+                     AND created_at < CURRENT_TIMESTAMP - INTERVAL '90 days'""",
+                (oap_commons.PREFIX + "%",),
+            ).fetchone()
+            if count is None:
+                raise oap_commons.CommonsUnavailable("retention_read_not_confirmed")
+            pending = int(count[0])
+            if pending < 0:
+                raise oap_commons.CommonsUnavailable("retention_count_invalid")
+    except oap_commons.CommonsUnavailable:
+        raise
+    except Exception as exc:
+        raise oap_commons.CommonsUnavailable("retention_backlog_unavailable") from exc
+    return {
+        "expired_unredacted_count": pending,
+        "retention_days": oap_commons.RETENTION_DAYS,
+        "manual_sweep_required": pending > 0,
+        "live_worker_enabled": False,
+        "contains_personal_content": False,
+        "production_green": False,
+    }
