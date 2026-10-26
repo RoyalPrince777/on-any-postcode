@@ -63,3 +63,29 @@ class CivicAccountabilityReviewTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_status_route_is_founder_only_and_no_store(monkeypatch):
+    import app as app_module
+
+    from mission_control import web_security
+
+    monkeypatch.setattr(
+        web_security,
+        "current_authenticated_user",
+        lambda: {"id": "founder-test", "name": "Founder", "email": "founder@example.test"},
+    )
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: False)
+    client = app_module.app.test_client()
+    route = "/mission/smi/civic-accountability/status"
+    assert client.get(route).status_code == 403
+
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: True)
+    response = client.get(route)
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    payload = response.get_json()
+    assert payload["activation"] == "disabled"
+    assert payload["green_gate"] == "HOLD"
+    assert all(item["agent_id"] is None for item in payload["specialist_review_branches"])
