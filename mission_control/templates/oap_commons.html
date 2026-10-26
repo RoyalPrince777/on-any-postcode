@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OAP Commons | ON ANY POSTCODE</title>
+<style>
+:root{color-scheme:dark;background:#080d13;color:#f1fff2;font-family:system-ui,Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#241a39,transparent 38%),#080d13}
+main{max-width:840px;margin:auto;padding:24px 16px 70px}h1{font-size:clamp(2.1rem,8vw,3.3rem)}
+a{color:#a5f2c6}header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.mark{font-weight:900;letter-spacing:-.03em;color:#6ceda6}
+section,.note{padding:20px;margin:18px 0;border:1px solid #30443c;border-radius:15px;background:#111821}
+label{display:block;font-weight:750;margin:12px 0 5px}.desc{color:#b3c4bc}
+input[type=text],textarea{width:100%;background:#080d13;border:1px solid #688071;border-radius:10px;padding:12px;font:inherit;color:#fff}
+textarea{min-height:150px;resize:vertical}input:focus,textarea:focus{outline:2px solid #c4a5ff;outline-offset:1px}
+.check{display:flex;gap:9px;align-items:start;margin:14px 0}.check label{margin:0;font-weight:500}
+button{border:none;border-radius:12px;padding:12px 18px;background:#b99bee;font:inherit;font-weight:800;color:#181125;cursor:pointer}
+button:disabled{opacity:.5}.good{border-left:4px solid #65ed9f;padding:11px;background:#173421}
+.warning{border-left:4px solid #f2c775;padding:11px;background:#302718}
+article{border-top:1px solid #314339;padding:14px 0;overflow-wrap:anywhere}
+article h3{margin:3px 0}small{color:#aebdb5}
+</style></head>
+<body><main>
+<header><div class="mark">OAP · ON ANY POSTCODE 🌍</div><a href="/mission/digital-government">Founder Government</a></header>
+<p class="mark">COMMUNITY · YOUR VOICE</p><h1>OAP Commons</h1>
+<p class="desc">Bring an idea from your postcode to the world. Submit a voluntary, private proposal for human review. No public vote or publication is triggered.</p>
+{% if submitted %}<p class="good" role="status">Proposal received for private review. No public decision or vote has been made.</p>{% endif %}
+{% if not store_available %}
+  <p class="warning" role="alert">The private proposal store is unavailable. Nothing can be submitted or read at this time.</p>
+{% else %}
+<section>
+<h2>Submit an OAP proposal</h2>
+<form action="{{ url_for('oap_commons.commons_submit') }}" method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+<label for="title">Proposal title</label>
+<input id="title" name="title" type="text" minlength="5" maxlength="100" required autocomplete="off">
+<label for="body">Your idea</label>
+<textarea id="body" name="body" minlength="20" maxlength="1200" required></textarea>
+<div class="check"><input type="checkbox" id="consent" name="consent" value="yes" required><label for="consent">I consent to OAP storing this proposal privately for Founder review. It will not be made public or counted as a vote.</label></div>
+<button type="submit">Submit privately</button>
+</form>
+</section>
+<section><h2>My private proposals</h2>
+{% if proposals %}
+  {% for item in proposals %}
+  <article><h3>{{ item.title }}</h3><p>{{ item.body }}</p><small>Pending Founder review · {{ item.created_at }}</small></article>
+  {% endfor %}
+{% else %}<p class="desc">No submitted proposals are recorded for this account.</p>{% endif %}
+</section>
+{% endif %}
+<p class="warning">OAP Commons is an internal voluntary proposal inbox. It does not provide public elections, elected representation, automatic decisions or governmental powers. Records stay private pending a separately approved review/publication procedure.</p>
+</main></body></html>
