@@ -1,13 +1,68 @@
-#!/usr/bin/env python3
 from __future__ import annotations
 
 import concurrent.futures
 import json
+import math
+import os
 import statistics
 import time
 from urllib import error, parse, request
 
-BASE = "https://oap-routing.onrender.com"
+
+# The operational proof requires an explicit OAP-controlled HTTPS origin.
+# URL validation does not independently attest infrastructure ownership.
+def _https_origin(value: str) -> str:
+    """Reject non-origin and ambiguous URL forms before issuing network requests."""
+    message = "OAP_ROUTING_BASE_URL must be a valid HTTPS origin without credentials, path, query or fragment"
+    if not value or value != value.strip() or any(ord(ch) <= 32 or ord(ch) == 127 for ch in value):
+        raise ValueError(message)
+    # Disallow ambiguous authorities, encoded delimiters and backslash normalization.
+    if "\\" in value or "%" in value:
+        raise ValueError(message)
+    try:
+        parsed = parse.urlsplit(value)
+        port = parsed.port  # Validate numeric/range of an optional port.
+    except ValueError as exc:
+        raise ValueError(message) from exc
+    if (
+        parsed.scheme != "https"
+        or not parsed.netloc
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path not in ("", "/")
+        or parsed.query
+        or parsed.fragment
+        or "?" in value
+        or "#" in value
+        or "@" in parsed.netloc
+        or port not in (None, 443)
+        or (parsed.netloc.endswith(":") and port is None)
+    ):
+        raise ValueError(message)
+    hostname = parsed.hostname.lower().rstrip(".")
+    if hostname == "onrender.com" or hostname.endswith(".onrender.com"):
+        raise ValueError("Render routing endpoints are not accepted for the OAP-hosted Green Gate")
+    return value.rstrip("/")
+
+
+def routing_base() -> str:
+    value = os.environ.get("OAP_ROUTING_BASE_URL", "")
+    if not value:
+        raise ValueError("OAP_ROUTING_BASE_URL is required for the live routing gate")
+    return _https_origin(value)
+
+
+# Never let a live proof silently follow a redirect to another provider,
+# an HTTP destination, or an unrelated host. Verify the configured origin itself.
+class _RejectRedirects(request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise error.HTTPError(req.full_url, code, "routing probe rejects redirects", headers, fp)
+
+
+_OPENER = request.build_opener(_RejectRedirects)
+
+
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
@@ -32,7 +87,34 @@ def _route_url(index: int) -> str:
             "geometries": "geojson",
         }
     )
-    return f"{BASE}/route/v1/driving/{coords}?{query}"
+    return f"{routing_base()}/route/v1/driving/{coords}?{query}"
+
+
+def _route_metrics(payload: object, status: int) -> tuple[float, float] | None:
+    """Validate finite route metrics and actual GeoJSON coordinate pairs."""
+    try:
+        if status != 200 or not isinstance(payload, dict) or payload.get("code") != "Ok":
+            return None
+        first = payload["routes"][0]
+        values = (first["distance"], first["duration"])
+        if any(type(value) not in (int, float) or not math.isfinite(value) or value <= 0 for value in values):
+            return None
+        geometry = first["geometry"]
+        coordinates = geometry["coordinates"]
+        if geometry.get("type") != "LineString" or not isinstance(coordinates, list) or len(coordinates) < 2:
+            return None
+        for point in coordinates:
+            if not isinstance(point, list) or len(point) != 2:
+                return None
+            if any(type(value) not in (int, float) or not math.isfinite(value) for value in point):
+                return None
+            if not (-180 <= point[0] <= 180 and -90 <= point[1] <= 90):
+                return None
+        if all(point == coordinates[0] for point in coordinates):
+            return None
+        return float(values[0]), float(values[1])
+    except (KeyError, IndexError, TypeError, ValueError, OverflowError):
+        return None
 
 
 def wait_until_ready() -> dict[str, object]:
@@ -44,21 +126,9 @@ def wait_until_ready() -> dict[str, object]:
             headers={"Accept": "application/json", "User-Agent": "OAP-Green-Gate-Warmup/1.0"},
         )
         try:
-            with request.urlopen(req, timeout=WARMUP_TIMEOUT_SECONDS) as response:
+            with _OPENER.open(req, timeout=WARMUP_TIMEOUT_SECONDS) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-                routes = payload.get("routes") if isinstance(payload, dict) else None
-                first = routes[0] if isinstance(routes, list) and routes else {}
-                geometry = first.get("geometry") if isinstance(first, dict) else {}
-                coordinates = geometry.get("coordinates") if isinstance(geometry, dict) else None
-                if (
-                    int(response.status) == 200
-                    and payload.get("code") == "Ok"
-                    and float(first.get("distance") or 0) > 0
-                    and float(first.get("duration") or 0) > 0
-                    and geometry.get("type") == "LineString"
-                    and isinstance(coordinates, list)
-                    and len(coordinates) >= 2
-                ):
+                if _route_metrics(payload, int(response.status)) is not None:
                     return {
                         "ready": True,
                         "attempts": attempt,
@@ -86,12 +156,12 @@ def run_one(index: int) -> dict[str, object]:
     )
     started = time.perf_counter()
     try:
-        with request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
+        with _OPENER.open(req, timeout=TIMEOUT_SECONDS) as response:
             status = int(response.status)
             payload = json.loads(response.read().decode("utf-8"))
             if not isinstance(payload, dict):
-                raise ValueError("routing response must be a JSON object")
-    except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
+                raise TypeError("routing response must be a JSON object")
+    except (TimeoutError, error.URLError, OSError, ValueError, TypeError, UnicodeError) as exc:
         elapsed = time.perf_counter() - started
         return {
             "route_id": route_id,
@@ -102,29 +172,27 @@ def run_one(index: int) -> dict[str, object]:
             "duration_s": 0.0,
         }
     elapsed = time.perf_counter() - started
-    routes = payload.get("routes")
-    first = routes[0] if isinstance(routes, list) and routes else {}
-    geometry = first.get("geometry") if isinstance(first, dict) else {}
-    coordinates = geometry.get("coordinates") if isinstance(geometry, dict) else None
-    ok = (
-        status == 200
-        and payload.get("code") == "Ok"
-        and float(first.get("distance") or 0) > 0
-        and float(first.get("duration") or 0) > 0
-        and geometry.get("type") == "LineString"
-        and isinstance(coordinates, list)
-        and len(coordinates) >= 2
-    )
+    metrics = _route_metrics(payload, status)
     return {
         "route_id": route_id,
-        "ok": ok,
+        "ok": metrics is not None,
         "elapsed_s": elapsed,
-        "distance_m": round(float(first.get("distance") or 0), 1),
-        "duration_s": round(float(first.get("duration") or 0), 1),
+        "distance_m": round(metrics[0], 1) if metrics is not None else 0.0,
+        "duration_s": round(metrics[1], 1) if metrics is not None else 0.0,
     }
 
 
 def main() -> None:
+    try:
+        routing_base()
+    except ValueError as exc:
+        print(json.dumps({
+            "event": "oap_routing_configuration", "ready": False,
+            "failure_type": "invalid_or_missing_origin",
+            "dispatch_performed": False, "payment_performed": False,
+            "tracking_performed": False,
+        }, sort_keys=True))
+        raise SystemExit(str(exc)) from None
     warmup = wait_until_ready()
     print(
         json.dumps(

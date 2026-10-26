@@ -156,7 +156,7 @@ jobs:
           repo=os.environ["REPOSITORY"]
           sha=os.environ["RELEASE_SHA"]
           token=os.environ["GH_TOKEN"]
-          url=f"https://api.github.com/repos/{repo}/commits/{sha}/check-runs"
+          url=f"https://api.github.com/repos/{repo}/commits/{sha}/check-runs?per_page=100"
           headers={
               "Accept":"application/vnd.github+json",
               "Authorization":"Bearer "+token,
@@ -168,11 +168,19 @@ jobs:
               with urllib.request.urlopen(req,timeout=30) as r:
                   data=json.load(r)
               checks=data.get("check_runs") or []
-              governed=[x for x in checks if x.get("name")=="test"]
-              if any(x.get("status")=="completed" and x.get("conclusion")=="success" for x in governed):
+              required={"test","routing-live-ready"}
+              latest={}
+              for check in checks:
+                  name=check.get("name")
+                  if name not in required or check.get("head_sha")!=sha or check.get("app",{}).get("slug")!="github-actions":
+                      continue
+                  if name not in latest or int(check.get("id",0))>int(latest[name].get("id",0)):
+                      latest[name]=check
+              governed=list(latest.values())
+              if set(latest)==required and all(x.get("status")=="completed" and x.get("conclusion")=="success" for x in governed):
                   print(json.dumps({"event":"governed_release_gate","sha":sha,"success":True},sort_keys=True))
                   break
-              if any(x.get("status")=="completed" and x.get("conclusion") not in (None,"success","neutral","skipped") for x in governed):
+              if any(x.get("status")=="completed" and x.get("conclusion")!="success" for x in governed):
                   raise SystemExit("governed_checks_failed_for_exact_sha")
               time.sleep(10)
           else:
