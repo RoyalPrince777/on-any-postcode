@@ -1,7 +1,15 @@
 """OAP Commons: authenticated voluntary member intake, not public elections."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, make_response, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from . import oap_commons, public_store, web_security
 
