@@ -74,6 +74,36 @@ P95_LIMIT_SECONDS = 6.0
 WARMUP_ATTEMPTS = 6
 WARMUP_TIMEOUT_SECONDS = 10
 WARMUP_SLEEP_SECONDS = 2.0
+MAX_RESPONSE_BYTES = 512 * 1024
+
+
+class _RejectRedirects(request.HTTPRedirectHandler):
+    """No redirected routing responses; the destination must be approved."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise RoutingOriginRejected("routing_redirect_rejected")
+
+
+_OPENER = request.build_opener(_RejectRedirects)
+
+
+def _open_owned_json(req: request.Request, timeout: int) -> tuple[int, dict[str, object]]:
+    """Require same approved HTTPS origin and bounded JSON, without redirects."""
+    approved = _configured_base()
+    if not req.full_url.startswith(f"{approved}/route/v1/driving/"):
+        raise RoutingOriginRejected("routing_origin_rejected")
+    with _OPENER.open(req, timeout=timeout) as response:
+        actual = parse.urlsplit(response.geturl())
+        if actual.scheme != "https" or actual.netloc.casefold() != parse.urlsplit(approved).netloc:
+            raise RoutingOriginRejected("routing_redirect_rejected")
+        raw = response.read(MAX_RESPONSE_BYTES + 1)
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise ValueError("routing_response_too_large")
+        payload = json.loads(raw.decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("routing_response_not_object")
+        return int(response.status), payload
+
 
 
 def _failure_reason(exc: BaseException) -> str:
@@ -94,6 +124,8 @@ def _failure_reason(exc: BaseException) -> str:
         if isinstance(reason, ConnectionResetError):
             return "connection_reset"
         return "transport_error"
+    if isinstance(exc, RoutingOriginRejected):
+        return "routing_origin_rejected"
     if isinstance(exc, (TimeoutError, socket.timeout)):
         return "timeout"
     if isinstance(exc, UnicodeError):
@@ -129,29 +161,28 @@ def wait_until_ready() -> dict[str, object]:
             headers={"Accept": "application/json", "User-Agent": "OAP-Green-Gate-Warmup/1.0"},
         )
         try:
-            with request.urlopen(req, timeout=WARMUP_TIMEOUT_SECONDS) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-                routes = payload.get("routes") if isinstance(payload, dict) else None
-                first = routes[0] if isinstance(routes, list) and routes else {}
-                geometry = first.get("geometry") if isinstance(first, dict) else {}
-                coordinates = geometry.get("coordinates") if isinstance(geometry, dict) else None
-                if (
-                    int(response.status) == 200
-                    and payload.get("code") == "Ok"
-                    and float(first.get("distance") or 0) > 0
-                    and float(first.get("duration") or 0) > 0
-                    and geometry.get("type") == "LineString"
-                    and isinstance(coordinates, list)
-                    and len(coordinates) >= 2
-                ):
-                    return {
-                        "ready": True,
-                        "attempts": attempt,
-                        "elapsed_s": time.perf_counter() - started,
-                    }
-                last_failure = "invalid_response"
-                last_reason = "route_payload_invalid"
-        except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
+            status, payload = _open_owned_json(req, WARMUP_TIMEOUT_SECONDS)
+            routes = payload.get("routes")
+            first = routes[0] if isinstance(routes, list) and routes else {}
+            geometry = first.get("geometry") if isinstance(first, dict) else {}
+            coordinates = geometry.get("coordinates") if isinstance(geometry, dict) else None
+            if (
+                status == 200
+                and payload.get("code") == "Ok"
+                and float(first.get("distance") or 0) > 0
+                and float(first.get("duration") or 0) > 0
+                and geometry.get("type") == "LineString"
+                and isinstance(coordinates, list)
+                and len(coordinates) >= 2
+            ):
+                return {
+                    "ready": True,
+                    "attempts": attempt,
+                    "elapsed_s": time.perf_counter() - started,
+                }
+            last_failure = "invalid_response"
+            last_reason = "route_payload_invalid"
+        except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError, RoutingOriginRejected) as exc:
             last_reason = _failure_reason(exc)
             last_failure = "timeout" if last_reason == "timeout" else "request_or_response_error"
         if attempt < WARMUP_ATTEMPTS:
@@ -174,12 +205,8 @@ def run_one(index: int) -> dict[str, object]:
     )
     started = time.perf_counter()
     try:
-        with request.urlopen(req, timeout=TIMEOUT_SECONDS) as response:
-            status = int(response.status)
-            payload = json.loads(response.read().decode("utf-8"))
-            if not isinstance(payload, dict):
-                raise ValueError("routing response must be a JSON object")
-    except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
+        status, payload = _open_owned_json(req, TIMEOUT_SECONDS)
+    except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError, RoutingOriginRejected) as exc:
         elapsed = time.perf_counter() - started
         return {
             "route_id": route_id,
