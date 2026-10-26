@@ -60,7 +60,7 @@ def validate_review_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
     ):
         raise ValueError("Evidence must have HTTPS source links")
     if not isinstance(entry["dissent"], str):
-        raise ValueError("Dissent must remain recorded, even if none is submitted")
+        raise TypeError("Dissent must remain recorded, even if none is submitted")
     if entry["status"] not in ALLOWED_REVIEW_STATES:
         raise ValueError("Unapproved review status or activation attempt")
     if "agent_id" in entry or "permissions" in entry:
