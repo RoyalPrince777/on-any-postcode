@@ -11,7 +11,7 @@ from flask import (
     url_for,
 )
 
-from . import oap_commons, public_store, web_security
+from . import oap_commons, oap_commons_governance, public_store, web_security
 
 bp = Blueprint("oap_commons", __name__, template_folder="templates")
 
@@ -81,6 +81,24 @@ def commons_submit():
     if request.is_json:
         return _safe(make_response(jsonify(result), 201))
     return _safe(make_response(redirect(url_for("oap_commons.commons_home", submitted=1), 303)))
+
+
+@bp.post("/commons/proposals/<proposal_id>/withdraw")
+@web_security.login_required(api=True)
+def commons_withdraw(proposal_id: str):
+    """Authenticated member can redact their own private proposal."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", 403)
+    member = web_security.current_authenticated_user()
+    try:
+        result = oap_commons_governance.withdraw(str(member["id"]), proposal_id)
+    except ValueError:
+        return _error("commons_proposal_not_found", 404)
+    except oap_commons.CommonsUnavailable:
+        return _error("commons_withdrawal_unavailable", 503)
+    if request.is_json:
+        return _safe(make_response(jsonify(result)))
+    return _safe(make_response(redirect(url_for("oap_commons.commons_home"), 303)))
 
 
 @bp.get("/commons/status")
