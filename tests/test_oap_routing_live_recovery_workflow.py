@@ -35,5 +35,11 @@ def test_real_gate_is_mandatory_and_failure_receipts_preserved():
     assert "TOTAL_REQUESTS = 20" in source
     assert "WORKERS = 4" in source
     assert "P95_LIMIT_SECONDS = 6.0" in source
-    assert 'BASE = "https://oap-routing.onrender.com"' in source
+    assert 'OAP_OSRM_BASE_URL: ${{ vars.OAP_OSRM_BASE_URL }}' in workflow
+    assert 'OAP_OSRM_ALLOWED_HOSTS: ${{ vars.OAP_OSRM_ALLOWED_HOSTS }}' in workflow
+    assert 'OAP_ROUTING_OWNED_HOSTS: ${{ vars.OAP_ROUTING_OWNED_HOSTS }}' in workflow
+    assert '_ROUTING_BASE_VAR = "OAP_OSRM_BASE_URL"' in source
+    assert 'def _configured_base()' in source
+    assert 'if host not in allowed or host not in owned:' in source
+    assert 'BASE = "https://' not in source
     assert 'if not warmup.get("ready")' in source
