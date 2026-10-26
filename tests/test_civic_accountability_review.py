@@ -3,7 +3,9 @@ import unittest
 
 from mission_control import agents
 from mission_control.civic_accountability_review import (
-    BRANCHES, civic_accountability_snapshot, validate_review_entry,
+    BRANCHES,
+    civic_accountability_snapshot,
+    validate_review_entry,
 )
 
 
