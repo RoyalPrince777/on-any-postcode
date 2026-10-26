@@ -8,6 +8,7 @@ from contextlib import nullcontext
 import pytest
 
 from mission_control import oap_commons as commons
+from mission_control import oap_commons_governance as governance
 
 
 def test_explicit_consent_is_required_and_fields_are_bounded():
@@ -177,6 +178,63 @@ def test_canonical_postgres_real_transactional_proposal_and_audit(monkeypatch):
             assert audit == (1,)
             assert created["published"] is False
             assert created["voting_enabled"] is False
+            human = governance.review(
+                identity, proposal_id, outcome="NOTED",
+                reason="Thank you, this has been considered privately.",
+            )
+            assert human["binding"] is False and human["published"] is False
+            reviewed = commons.mine(identity)
+            assert any(item["state"] == "REVIEWED"
+                       and item["review_outcome"] == "NOTED"
+                       for item in reviewed)
+            assert not any(item["proposal_id"] == proposal_id
+                           for item in commons.founder_queue())
+            withdrawn = governance.withdraw(identity, proposal_id)
+            assert withdrawn["content_redacted"] is True
+            assert not any(item["proposal_id"] == proposal_id
+                           for item in commons.mine(identity))
+            assert not any(item["proposal_id"] == proposal_id
+                           for item in commons.founder_queue())
+            redacted = connection.execute(
+                """SELECT body,status FROM oap_workspace_records
+                   WHERE title=%s""", (commons.PREFIX + proposal_id,),
+            ).fetchone()
+            assert redacted[1] == "archived"
+            assert "Improve local crossings" not in redacted[0]
+            receipt = connection.execute(
+                """SELECT COUNT(*) FROM audit_events WHERE action IN
+                   ('OAP_COMMONS_HUMAN_REVIEW','OAP_COMMONS_CONSENT_WITHDRAWN')
+                   AND target=%s""",
+                (f"oap_commons:{proposal_id}",),
+            ).fetchone()
+            assert int(receipt[0]) == 2
+
+            aged = commons.submit(
+                identity, title="Old local crossing proposal",
+                body="This idea is an expired and private proposal.",
+                consent=True,
+            )
+            connection.execute(
+                """UPDATE oap_workspace_records
+                   SET created_at=CURRENT_TIMESTAMP - INTERVAL '91 days'
+                   WHERE title=%s""", (commons.PREFIX + aged["proposal_id"],),
+            )
+            assert not any(item["proposal_id"] == aged["proposal_id"]
+                           for item in commons.mine(identity))
+            swept = governance.erase_expired(identity)
+            assert swept["redacted_count"] == 1
+            older = connection.execute(
+                """SELECT body,status FROM oap_workspace_records
+                   WHERE title=%s""", (commons.PREFIX + aged["proposal_id"],),
+            ).fetchone()
+            assert older[1] == "archived"
+            assert "Old local crossing proposal" not in older[0]
+            purge_audit = connection.execute(
+                """SELECT COUNT(*) FROM audit_events
+                   WHERE action='OAP_COMMONS_RETENTION_REDACTED' AND target=%s""",
+                (f"oap_commons:{aged['proposal_id']}",),
+            ).fetchone()
+            assert int(purge_audit[0]) == 1
         finally:
             connection.rollback()
 
@@ -189,3 +247,110 @@ def test_commons_status_has_no_fake_public_votes(monkeypatch):
     assert status["public_voting_enabled"] is False
     assert status["automatic_decisions"] is False
     assert status["production_vpi_percent"] is None
+
+
+def test_member_withdrawal_requires_csrf_and_owner_auth(client, csrf, monkeypatch):
+    seen = []
+    monkeypatch.setattr(governance, "withdraw", lambda member, pid:
+                        seen.append((member, pid)) or {
+                            "proposal_id": pid, "state": "WITHDRAWN",
+                            "content_redacted": True,
+                        })
+    pid = str(uuid.uuid4())
+    url = f"/commons/proposals/{pid}/withdraw"
+    denied = client.post(url, json={})
+    assert denied.status_code == 403
+    assert seen == []
+    permitted = client.post(url, json={}, headers={
+        "X-OAP-CSRF": csrf["csrf_token"],
+    })
+    assert permitted.status_code == 200
+    assert permitted.get_json()["state"] == "WITHDRAWN"
+    assert seen[0][0] == "11111111-1111-4111-8111-111111111111"
+
+
+def test_member_withdrawn_or_foreign_proposal_returns_404(client, csrf, monkeypatch):
+    def missing(*args):
+        raise ValueError("commons_proposal_not_found")
+    monkeypatch.setattr(governance, "withdraw", missing)
+    response = client.post(
+        f"/commons/proposals/{uuid.uuid4()}/withdraw", json={},
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert response.status_code == 404
+
+
+def test_anonymous_cannot_withdraw_or_review(anonymous_client):
+    assert anonymous_client.post(
+        f"/commons/proposals/{uuid.uuid4()}/withdraw",
+    ).status_code == 401
+    assert anonymous_client.post(
+        "/mission/digital-government/commons/review",
+    ).status_code == 401
+
+
+def test_founder_review_requires_csrf_and_human_note(client, csrf, monkeypatch):
+    recorded = []
+    monkeypatch.setattr(governance, "review", lambda actor, pid, **kw:
+                        recorded.append((actor, pid, kw)) or {
+                            "proposal_id": pid, "state": "REVIEWED",
+                            "binding": False, "published": False,
+                        })
+    request = {
+        "proposal_id": str(uuid.uuid4()), "outcome": "NOTED",
+        "reason": "We will consider the submitted idea.",
+    }
+    assert client.post(
+        "/mission/digital-government/commons/review", json=request,
+    ).status_code == 403
+    assert recorded == []
+    good = client.post(
+        "/mission/digital-government/commons/review", json=request,
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert good.status_code == 200
+    assert good.get_json()["binding"] is False
+    assert recorded[0][0] == "11111111-1111-4111-8111-111111111111"
+
+
+def test_no_fake_judgment_and_nonfounder_gate(client, csrf, monkeypatch):
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "private_authority_allowed",
+                        lambda _user: False)
+    assert client.post(
+        "/mission/digital-government/commons/review",
+        json={"proposal_id": str(uuid.uuid4()), "outcome": "NOTED",
+              "reason": "Private review only"},
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    ).status_code == 403
+    assert client.post(
+        "/mission/digital-government/commons/retention",
+        json={}, headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    ).status_code == 403
+
+
+def test_invalid_human_outcomes_fail_without_writes():
+    with pytest.raises(ValueError, match="invalid_commons_outcome"):
+        governance.review(
+            str(uuid.uuid4()), str(uuid.uuid4()),
+            outcome="PUBLISH", reason="Not legally permitted",
+        )
+    with pytest.raises(ValueError, match="invalid_retention_limit"):
+        governance.erase_expired(str(uuid.uuid4()), limit=1000)
+
+
+def test_manual_retention_requires_csrf_and_reports_no_scheduler(client, csrf, monkeypatch):
+    monkeypatch.setattr(governance, "erase_expired",
+                        lambda founder: {"redacted_count": 2,
+                                         "automated_scheduler": False})
+    assert client.post(
+        "/mission/digital-government/commons/retention",
+    ).status_code == 403
+    res = client.post(
+        "/mission/digital-government/commons/retention", json={},
+        headers={"X-OAP-CSRF": csrf["csrf_token"]},
+    )
+    assert res.status_code == 200
+    assert res.get_json()["redacted_count"] == 2
+    assert res.get_json()["automated_scheduler"] is False
