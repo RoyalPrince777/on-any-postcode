@@ -67,7 +67,6 @@ if __name__ == "__main__":
 
 def test_status_route_is_founder_only_and_no_store(monkeypatch):
     import app as app_module
-
     from mission_control import web_security
 
     monkeypatch.setattr(
