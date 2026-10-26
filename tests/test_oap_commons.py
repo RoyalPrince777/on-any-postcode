@@ -106,6 +106,9 @@ def test_member_own_page_is_owner_scoped(client, monkeypatch):
 
 def test_founder_queue_is_privately_gated(client, monkeypatch):
     monkeypatch.setattr(commons, "founder_queue", lambda: ())
+    monkeypatch.setattr(governance, "retention_backlog", lambda: {
+        "expired_unredacted_count": 0, "manual_sweep_required": False,
+    })
     r = client.get("/mission/digital-government/commons/queue")
     assert r.status_code == 200
     assert "no-store" in r.headers["Cache-Control"]
@@ -125,6 +128,16 @@ def test_nonfounder_queue_denied(client, monkeypatch):
                         lambda _user: False)
     response = client.get("/mission/digital-government/commons/queue")
     assert response.status_code == 403
+    assert "Commons Review Inbox" not in response.get_data(as_text=True)
+
+
+def test_unavailable_retention_proof_hides_founder_queue(client, monkeypatch):
+    monkeypatch.setattr(commons, "founder_queue", lambda: ())
+    def fail_backlog():
+        raise commons.CommonsUnavailable("retention_backlog_unavailable")
+    monkeypatch.setattr(governance, "retention_backlog", fail_backlog)
+    response = client.get("/mission/digital-government/commons/queue")
+    assert response.status_code == 503
     assert "Commons Review Inbox" not in response.get_data(as_text=True)
 
 
@@ -354,3 +367,27 @@ def test_manual_retention_requires_csrf_and_reports_no_scheduler(client, csrf, m
     assert res.status_code == 200
     assert res.get_json()["redacted_count"] == 2
     assert res.get_json()["automated_scheduler"] is False
+
+def test_retention_backlog_is_truthful_and_contains_no_member_text(monkeypatch):
+    class Cursor:
+        def fetchone(self):
+            return (3,)
+    class Database:
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+        def execute(self, sql, params):
+            assert "COUNT(*)" in sql
+            assert "INTERVAL '90 days'" in sql
+            assert params == (commons.PREFIX + "%",)
+            return Cursor()
+    monkeypatch.setattr(governance.postgres_db, "connect",
+                        lambda **kwargs: Database())
+    summary = governance.retention_backlog()
+    assert summary["expired_unredacted_count"] == 3
+    assert summary["manual_sweep_required"] is True
+    assert summary["contains_personal_content"] is False
+    assert summary["live_worker_enabled"] is False
+    assert summary["production_green"] is False
+
