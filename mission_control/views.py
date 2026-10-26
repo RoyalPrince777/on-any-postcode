@@ -26,6 +26,7 @@ from . import (
     infrastructure,
     judgement,
     oap_commons,
+    oap_commons_governance,
     oap_digital_government,
     ollama_chat,
     organism,
@@ -388,6 +389,51 @@ def commons_founder_queue():
         )
     return _no_store(make_response(render_template(
         "oap_commons_founder_queue.html", proposals=proposals,
+        csrf=web_security.csrf_token(),
+    )))
+
+
+@bp.post("/digital-government/commons/review")
+@web_security.login_required(api=True, founder_only=True)
+def commons_founder_review():
+    """Recorded human review only; no publication, voting or binding outcomes."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "CSRF verification required.", 403)
+    data = request.get_json(silent=True) if request.is_json else request.form
+    if data is None or not hasattr(data, "get"):
+        return _error("invalid_commons_review", "Invalid review request.", 400)
+    reviewer = web_security.current_authenticated_user()
+    try:
+        result = oap_commons_governance.review(
+            str(reviewer["id"]), data.get("proposal_id"),
+            outcome=data.get("outcome"), reason=data.get("reason"),
+        )
+    except ValueError:
+        return _error("invalid_commons_review", "Invalid or unavailable review.", 400)
+    except oap_commons.CommonsUnavailable:
+        return _error("commons_review_unavailable", "Review could not be saved.", 503)
+    if request.is_json:
+        return _no_store(make_response(jsonify(result)))
+    return _no_store(make_response(redirect(
+        url_for("mission_control.commons_founder_queue"), 303,
+    )))
+
+
+@bp.post("/digital-government/commons/retention")
+@web_security.login_required(api=True, founder_only=True)
+def commons_founder_retention():
+    """Founder manual privacy sweep, no background scheduler implied."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "CSRF verification required.", 403)
+    founder = web_security.current_authenticated_user()
+    try:
+        result = oap_commons_governance.erase_expired(str(founder["id"]))
+    except oap_commons.CommonsUnavailable:
+        return _error("commons_retention_unavailable", "Retention sweep failed.", 503)
+    if request.is_json:
+        return _no_store(make_response(jsonify(result)))
+    return _no_store(make_response(redirect(
+        url_for("mission_control.commons_founder_queue"), 303,
     )))
 
 
