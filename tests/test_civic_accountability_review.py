@@ -88,3 +88,28 @@ def test_status_route_is_founder_only_and_no_store(monkeypatch):
     assert payload["activation"] == "disabled"
     assert payload["green_gate"] == "HOLD"
     assert all(item["agent_id"] is None for item in payload["specialist_review_branches"])
+
+
+def test_status_route_denies_unauthenticated_users(monkeypatch):
+    import app as app_module
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: None)
+    response = app_module.app.test_client().get("/mission/smi/civic-accountability/status")
+    assert response.status_code == 401
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_status_route_fails_closed_if_identity_unavailable(monkeypatch):
+    import app as app_module
+    from mission_control import neon_auth, web_security
+
+    def identity_unavailable():
+        raise neon_auth.AuthUnavailable("identity provider unavailable")
+
+    monkeypatch.setattr(web_security, "current_authenticated_user", identity_unavailable)
+    response = app_module.app.test_client().get("/mission/smi/civic-accountability/status")
+    assert response.status_code == 503
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.get_json()["error"]["code"] == "authentication_unavailable"
