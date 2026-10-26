@@ -49,12 +49,18 @@ def host_attestation() -> dict[str, Any]:
         "host_deploy_rollback_proven": _enabled("OAP_HOST_DEPLOY_ROLLBACK_PROVEN"),
     }
     failed = tuple(name for name, passed in runtime_checks.items() if not passed)
+    # Environment flags describe operator declarations, not independently observed
+    # host ownership, data custody, HTTPS ingress or tested recovery.
+    # Keep production readiness locked until a real evidence verifier exists.
+    verified_runtime_evidence = False
     return {
         "architecture_ready": True,
-        "runtime_ready": not failed,
+        "runtime_ready": not failed and verified_runtime_evidence,
+        "configuration_declared_ready": not failed,
+        "independent_runtime_evidence_verified": verified_runtime_evidence,
         "runtime_checks": runtime_checks,
-        "runtime_gaps": failed,
-        "runtime_gap_count": len(failed),
+        "runtime_gaps": failed + (() if verified_runtime_evidence else ("independent_runtime_evidence_unverified",)),
+        "runtime_gap_count": len(failed) + (0 if verified_runtime_evidence else 1),
         "sovereign_halt_active": bool(sovereign["emergency_halt_active"]),
         "human_authority_final": True,
         "external_hosting_can_count_as_self_hosted": False,
