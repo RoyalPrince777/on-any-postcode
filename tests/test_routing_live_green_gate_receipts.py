@@ -10,6 +10,67 @@ import pytest
 from scripts import routing_live_green_gate as gate
 
 
+@pytest.fixture(autouse=True)
+def mock_only_valid_oap_owned_origin(monkeypatch):
+    """A fictitious test URL, never an assertion of a deployed OAP server."""
+    monkeypatch.setenv("OAP_OSRM_BASE_URL", "https://routes.onanypostcode.com")
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "routes.onanypostcode.com")
+    monkeypatch.setenv("OAP_ROUTING_OWNED_HOSTS", "routes.onanypostcode.com")
+
+
+@pytest.mark.parametrize(
+    ("origin", "allowed", "owned", "reason"),
+    [
+        ("", "routes.onanypostcode.com", "routes.onanypostcode.com", "routing_origin_not_configured"),
+        ("http://routes.onanypostcode.com", "routes.onanypostcode.com", "routes.onanypostcode.com", "routing_origin_rejected"),
+        ("https://route-demo.example.org", "route-demo.example.org", "", "routing_origin_not_allowlisted_and_owned"),
+        ("https://route-demo.example.org", "", "route-demo.example.org", "routing_origin_not_allowlisted_and_owned"),
+        ("https://oap-routing.onrender.com", "oap-routing.onrender.com", "oap-routing.onrender.com", "routing_origin_rejected"),
+        ("https://127.0.0.1", "127.0.0.1", "127.0.0.1", "routing_origin_rejected"),
+        ("https://localhost", "localhost", "localhost", "routing_origin_rejected"),
+        ("https://user:password@routes.onanypostcode.com", "routes.onanypostcode.com", "routes.onanypostcode.com", "routing_origin_rejected"),
+        ("https://routes.onanypostcode.com:8443", "routes.onanypostcode.com", "routes.onanypostcode.com", "routing_origin_rejected"),
+        ("https://routes.onanypostcode.com/route/v1", "routes.onanypostcode.com", "routes.onanypostcode.com", "routing_origin_rejected"),
+        ("https://routes.onanypostcode.com?q=1", "routes.onanypostcode.com", "routes.onanypostcode.com", "routing_origin_rejected"),
+    ],
+)
+def test_only_explicit_oap_owned_https_origin_accepted(
+    monkeypatch, origin, allowed, owned, reason,
+):
+    monkeypatch.setenv("OAP_OSRM_BASE_URL", origin)
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", allowed)
+    monkeypatch.setenv("OAP_ROUTING_OWNED_HOSTS", owned)
+    with pytest.raises(gate.RoutingOriginRejected, match=reason):
+        gate._configured_base()
+
+
+def test_tested_host_uses_same_owned_endpoint_config_as_movement():
+    assert gate._configured_base() == "https://routes.onanypostcode.com"
+    assert gate._route_url(0).startswith(
+        "https://routes.onanypostcode.com/route/v1/driving/"
+    )
+
+
+def test_missing_owned_route_host_fails_before_any_network_request(monkeypatch, capsys):
+    monkeypatch.delenv("OAP_OSRM_BASE_URL")
+    monkeypatch.setattr(
+        gate.request, "urlopen",
+        lambda *_a, **_k: (_ for _ in ()).throw(
+            AssertionError("missing host must cause zero requests")
+        ),
+    )
+    with pytest.raises(SystemExit, match="not configured or approved"):
+        gate.main()
+    receipts = [
+        json.loads(item) for item in capsys.readouterr().out.splitlines() if item
+    ]
+    assert len(receipts) == 1
+    assert receipts[0]["attempts"] == 0
+    assert receipts[0]["failure_reason"] == "routing_origin_not_configured"
+    assert receipts[0]["dispatch_performed"] is False
+    assert receipts[0]["ready"] is False
+
+
 @pytest.mark.parametrize(
     ("failure", "expected_type"),
     [
