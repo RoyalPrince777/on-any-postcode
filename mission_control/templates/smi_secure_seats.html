@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OAP SMI Secure Seats</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,Arial,sans-serif;background:#080b13;color:#f2effb}*{box-sizing:border-box}
+body{margin:0}.wrap{max-width:1100px;margin:auto;padding:16px 15px 50px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:clamp(1.6rem,4vw,2.4rem);margin:.25rem 0}
+a{color:#cfbaff}.tag{display:inline-block;border-radius:999px;border:1px solid #6d5a90;padding:5px 9px;font-size:.8rem}
+.muted{color:#b4abc5}.warning{border-left:3px solid #e3c678;padding:11px 14px;background:#292315}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:18px 0}
+.card,details{border:1px solid #51465f;border-radius:13px;background:#141423;padding:13px}
+.card strong{display:block;font-size:1.5rem}details{margin:13px 0}summary{font-weight:700;cursor:pointer}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin-top:10px}
+td,th{padding:8px;text-align:left;border-bottom:1px solid #3b3448;word-break:break-word}
+th{color:#c6bcdb}.badge{font-size:.76rem;color:#e4c784}
+@media(max-width:600px){.hide-mobile{display:none}}
+</style></head>
+<body><main class="wrap">
+<header><div><div class="tag">👑 Founder-only · read-only · OAP SMI</div>
+<h1>SMI Secure Seats</h1><p class="muted">One brain · unique placements · no duplicate authority</p></div>
+<nav aria-label="Founder navigation"><a href="{{ url_for('mission_control.digital_government_view') }}">🌍 OAP Digital Government</a> · <a href="{{ url_for('mission_control.war_room_dashboard') }}">Back to War Room</a></nav></header>
+<p class="warning"><strong>Reserved for review only.</strong> No new agent is activated. A seat is a display placement, not a passport, credential, vote or executable tool. Guardian, Aegis, HRM and Green Gate remain independent safeguards. Real Presidents and Emperors are reference subjects, never SMI subordinates. Courts and legislatures are independent of presidential command. No political persuasion or court judgments.</p>
+<div class="stats">
+<div class="card"><strong>{{ board.placed_existing_agents }}</strong><span class="muted">existing registered agent references</span></div>
+<div class="card"><strong>{{ board.reserved_new_candidates }}</strong><span class="muted">new candidate review seats</span></div>
+<div class="card"><strong>{{ board.total_expected }}</strong><span class="muted">total mapped agent placements</span></div>
+<div class="card"><strong>N/A</strong><span class="muted">production readiness / VPI</span></div>
+</div>
+<h2>New specialist family-tree seats</h2>
+{% for branch in board.branches %}
+<details><summary>{{ branch.title }} · {{ branch.candidate_seats|length }} reserved</summary>
+<table><thead><tr><th>Functional specialist seat</th><th>Family</th><th class="hide-mobile">Status</th></tr></thead><tbody>
+{% for s in branch.candidate_seats %}
+<tr><td>{{ s.name }}</td><td>{{ s.family_key }}</td><td class="hide-mobile"><span class="badge">Review-only · no passport</span></td></tr>
+{% endfor %}</tbody></table></details>
+{% endfor %}
+<h2>Constitutional relationships — US · UK · Ghana</h2>
+<p class="muted">These are examples of public institutions and their legal relationships, not SMI command authority. Courts and legislatures do not become a President's direct reports. Research only; nonpartisan.</p>
+{% for country, relations in board.reference_positions.constitutional_relations.items() %}
+<details><summary>{{ country }} · {{ relations|length }} researched relationships</summary>
+<table><thead><tr><th>Office</th><th>Relationship</th><th>Institution</th></tr></thead><tbody>
+{% for relation in relations %}
+<tr><td>{{ relation[0] }}</td><td>{{ relation[1]|replace('_', ' ') }}</td><td>{{ relation[2] }}</td></tr>
+{% endfor %}
+</tbody></table></details>
+{% endfor %}
+<h2>Existing canonically registered agent seats</h2>
+<p class="muted">These reference existing passport IDs; seat placement does not prove an active autonomous worker.</p>
+{% for family in board.existing_families %}
+<details><summary>{{ family.name }} · {{ family.seats|length }} existing</summary>
+<table><thead><tr><th>Agent</th><th class="hide-mobile">Canonical registry ID</th><th>Placement</th></tr></thead><tbody>
+{% for s in family.seats %}<tr><td>{{ s.name }}</td><td class="hide-mobile">{{ s.identity_ref }}</td><td>Existing reference</td></tr>{% endfor %}
+</tbody></table></details>
+{% endfor %}
+<h2>Reference stations — not agent seats</h2>
+<div class="card"><p><strong>Chess pieces:</strong> {{ board.reference_positions.chess_pieces|join(', ') }}</p>
+<p><strong>Government-office research:</strong> {{ board.reference_positions.government_offices|join('; ') }}</p>
+<p><strong>Military:</strong> soldier and officer ranks remain separate research reference tracks.</p>
+<p><strong>System gates:</strong> {{ board.reference_positions.protected_governance_stations|join(' · ') }}</p>
+</div>
+<p class="warning">Security status: static structural validation only. No production enablement, formal vote, independent audit receipt, live dispatch or Founder release is claimed.</p>
+</main></body></html>

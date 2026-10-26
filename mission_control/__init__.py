@@ -102,6 +102,7 @@ def init_app(app: Flask) -> None:
     from .membership_revenue import bp as membership_revenue_bp
     from .movement_routes import bp as movement_bp
     from .music_public_views import bp as music_public_bp
+    from .oap_commons_routes import bp as oap_commons_bp
     from .oap_data_views import bp as oap_data_bp
     from .oap_library_views import bp as oap_library_bp
     from .oap_ebook_catalogue_store import resolve_trusted_ebook
@@ -1507,6 +1508,7 @@ def init_app(app: Flask) -> None:
 
     surface_security.register(app)
     app.register_blueprint(oap_library_bp)
+    app.register_blueprint(oap_commons_bp)
     app.register_blueprint(create_ebook_blueprint(resolve_trusted_ebook))
     app.register_blueprint(oap_pay_bp)
     app.register_blueprint(sika_founder_bp)

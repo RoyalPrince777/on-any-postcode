@@ -25,6 +25,9 @@ from . import (
     civilization,
     infrastructure,
     judgement,
+    oap_commons,
+    oap_commons_governance,
+    oap_digital_government,
     ollama_chat,
     organism,
     postgres_db,
@@ -37,6 +40,7 @@ from . import (
     smi_receipt_backend,
     smi_recursive_improvement,
     smi_reply_voice_local,
+    smi_secure_seats,
     smi_workbench,
     status,
     studio_build_preview,
@@ -353,6 +357,129 @@ def war_room_status():
     """Return the same read-only, redacted War Room evidence projection."""
 
     return _no_store(make_response(jsonify(war_room.get_war_room_dashboard())))
+
+
+@bp.get("/digital-government")
+@web_security.login_required(founder_only=True)
+def digital_government_view():
+    """OAP's Founder-private, non-sovereign digital governance front door."""
+    snapshot = oap_digital_government.status()
+    if not snapshot["checks_passed"]:
+        return _error(
+            "digital_government_integrity_failed",
+            "The governance roster is unavailable pending independent review.",
+            503,
+        )
+    return _no_store(make_response(render_template(
+        "oap_digital_government.html", govt=snapshot,
+    )))
+
+
+@bp.get("/digital-government/commons/queue")
+@web_security.login_required(founder_only=True)
+def commons_founder_queue():
+    """Read private OAP Commons proposals for human Founder review only."""
+    try:
+        proposals = oap_commons.founder_queue()
+        retention = oap_commons_governance.retention_backlog()
+    except oap_commons.CommonsUnavailable:
+        return _error(
+            "commons_founder_queue_unavailable",
+            "Private proposals are unavailable pending storage verification.",
+            503,
+        )
+    return _no_store(make_response(render_template(
+        "oap_commons_founder_queue.html", proposals=proposals,
+        retention=retention, csrf=web_security.csrf_token(),
+    )))
+
+
+@bp.post("/digital-government/commons/review")
+@web_security.login_required(api=True, founder_only=True)
+def commons_founder_review():
+    """Recorded human review only; no publication, voting or binding outcomes."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "CSRF verification required.", 403)
+    data = request.get_json(silent=True) if request.is_json else request.form
+    if data is None or not hasattr(data, "get"):
+        return _error("invalid_commons_review", "Invalid review request.", 400)
+    reviewer = web_security.current_authenticated_user()
+    try:
+        result = oap_commons_governance.review(
+            str(reviewer["id"]), data.get("proposal_id"),
+            outcome=data.get("outcome"), reason=data.get("reason"),
+        )
+    except ValueError:
+        return _error("invalid_commons_review", "Invalid or unavailable review.", 400)
+    except oap_commons.CommonsUnavailable:
+        return _error("commons_review_unavailable", "Review could not be saved.", 503)
+    if request.is_json:
+        return _no_store(make_response(jsonify(result)))
+    return _no_store(make_response(redirect(
+        url_for("mission_control.commons_founder_queue"), 303,
+    )))
+
+
+@bp.post("/digital-government/commons/retention")
+@web_security.login_required(api=True, founder_only=True)
+def commons_founder_retention():
+    """Founder manual privacy sweep, no background scheduler implied."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "CSRF verification required.", 403)
+    founder = web_security.current_authenticated_user()
+    try:
+        result = oap_commons_governance.erase_expired(str(founder["id"]))
+    except oap_commons.CommonsUnavailable:
+        return _error("commons_retention_unavailable", "Retention sweep failed.", 503)
+    if request.is_json:
+        return _no_store(make_response(jsonify(result)))
+    return _no_store(make_response(redirect(
+        url_for("mission_control.commons_founder_queue"), 303,
+    )))
+
+
+@bp.get("/digital-government/status")
+@web_security.login_required(api=True, founder_only=True)
+def digital_government_status():
+    """Read-only machine-readable evidence, without any public powers or writes."""
+    snapshot = oap_digital_government.status()
+    if not snapshot["checks_passed"]:
+        return _error(
+            "digital_government_integrity_failed",
+            "The governance roster is unavailable pending independent review.",
+            503,
+        )
+    return _no_store(make_response(jsonify(snapshot)))
+
+
+@bp.get("/war-room/secure-seats")
+@web_security.login_required(founder_only=True)
+def secure_seat_board():
+    """Founder-only view of locked agent and candidate seat placements."""
+    seat_board = smi_secure_seats.board()
+    if not seat_board["checks_passed"]:
+        return _error(
+            "secure_seat_integrity_failed",
+            "Seat validation failed. No roster can be displayed.",
+            503,
+        )
+    return _no_store(make_response(
+        render_template("smi_secure_seats.html", board=seat_board)
+    ))
+
+
+@bp.get("/war-room/secure-seats/status")
+@web_security.login_required(api=True, founder_only=True)
+def secure_seat_board_status():
+    """Founder-only, read-only seat audit; no writes or permission changes."""
+    seat_board = smi_secure_seats.board()
+    if not seat_board["checks_passed"]:
+        return _error(
+            "secure_seat_integrity_failed",
+            "Seat validation failed. No roster can be displayed.",
+            503,
+        )
+    return _no_store(make_response(jsonify(seat_board)))
 
 
 @bp.get("/war-room/actions")

@@ -150,7 +150,11 @@ jobs:
         env:
           OAP_PRIMARY_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/oap_ci
           OAP_REAL_POSTGRES_PROOF: "1"
-        run: python -m pytest -q tests/test_distribution_market_postgres_integration.py tests/test_all_in_ai_postgres_executor_integration.py
+        run: |
+          python -m pytest -q \
+            tests/test_distribution_market_postgres_integration.py \
+            tests/test_all_in_ai_postgres_executor_integration.py \
+            tests/test_oap_commons.py::test_canonical_postgres_real_transactional_proposal_and_audit
       - name: Observe bounded external live routing Green Gate
         continue-on-error: true
         run: python scripts/routing_live_green_gate.py
