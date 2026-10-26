@@ -144,6 +144,26 @@ def test_cross_host_response_cannot_pass(monkeypatch):
         gate._open_owned_json(gate.request.Request(gate._route_url(0)), 3)
 
 
+@pytest.mark.parametrize(
+    "redirected_url",
+    [
+        "http://routes.onanypostcode.com/route/v1/driving/anything",
+        "https://unowned.example.org/route/v1/driving/anything",
+    ],
+)
+def test_redirect_response_rejected_even_if_payload_seems_valid(monkeypatch, redirected_url):
+    """Fail closed on scheme downgrade or host change."""
+    monkeypatch.setattr(
+        gate._OPENER, "open",
+        lambda req, timeout: FakeRouteResponse(
+            redirected_url,
+            b'{"code":"Ok","routes":[{"distance":100,"duration":20}]}',
+        ),
+    )
+    with pytest.raises(gate.RoutingOriginRejected, match="routing_redirect_rejected"):
+        gate._open_owned_json(gate.request.Request(gate._route_url(0)), 3)
+
+
 def test_oversized_json_cannot_pass(monkeypatch):
     monkeypatch.setattr(
         gate._OPENER,
