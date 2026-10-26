@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OAP Commons · Founder Inbox</title>
+<style>
+:root{color-scheme:dark;background:#080b14;color:#f5fff6;font-family:system-ui,Arial}
+body{margin:0;background:#080b14}main{max-width:920px;margin:0 auto;padding:24px 16px 60px}
+h1{font-size:clamp(2rem,6vw,3rem)}a{color:#a4eabb}.brand{font-weight:900;color:#7bedaa}
+.card{border:1px solid #34463c;border-radius:13px;padding:17px;margin:13px 0;background:#121a21}
+.note{border-left:3px solid #e1c47b;padding:13px;background:#242016}
+small{color:#b9cbbb}
+</style></head>
+<body><main>
+<div class="brand">OAP DIGITAL GOVERNMENT · PRIVATE FOUNDER CHAMBER</div>
+<h1>🗳️ Commons Review Inbox</h1>
+<p><a href="{{ url_for('mission_control.digital_government_view') }}">Return to Government</a> · <a href="{{ url_for('mission_control.secure_seat_board') }}">Secure Agent Seats</a></p>
+<p class="note">Read-only queue of voluntary private member submissions. No decisions, votes, publication, legal powers or automatic approvals are performed here.</p>
+{% if proposals %}
+<p>{{ proposals|length }} most recent pending proposals (maximum 50). Not a lifetime or global count.</p>
+{% for item in proposals %}
+<article class="card"><h2>{{ item.title }}</h2>
+<p>{{ item.body }}</p>
+<small>Private review · received {{ item.created_at }} · no ruling · {{ item.proposal_id }}</small></article>
+{% endfor %}
+{% else %}
+<p>No pending private proposals were found in this query.</p>
+{% endif %}
+</main></body></html>
