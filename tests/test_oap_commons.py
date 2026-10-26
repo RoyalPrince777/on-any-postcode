@@ -189,6 +189,15 @@ def test_canonical_postgres_real_transactional_proposal_and_audit(monkeypatch):
                 ("OAP_COMMONS_PROPOSAL_RECEIVED", f"oap_commons:{proposal_id}", identity),
             ).fetchone()
             assert audit == (1,)
+            first_receipt = connection.execute(
+                """SELECT metadata FROM audit_events
+                   WHERE action='OAP_COMMONS_PROPOSAL_RECEIVED' AND target=%s""",
+                (f"oap_commons:{proposal_id}",),
+            ).fetchone()
+            assert first_receipt is not None
+            assert "content_hash" not in first_receipt[0]
+            assert "title" not in first_receipt[0]
+            assert "body" not in first_receipt[0]
             assert created["published"] is False
             assert created["voting_enabled"] is False
             human = governance.review(
@@ -248,6 +257,34 @@ def test_canonical_postgres_real_transactional_proposal_and_audit(monkeypatch):
                 (f"oap_commons:{aged['proposal_id']}",),
             ).fetchone()
             assert int(purge_audit[0]) == 1
+
+            aged_system = commons.submit(
+                identity, title="Aged system maintenance proposal",
+                body="This expired proposal should be redacted by the system operator.",
+                consent=True,
+            )
+            connection.execute(
+                """UPDATE oap_workspace_records
+                   SET created_at=CURRENT_TIMESTAMP - INTERVAL '92 days'
+                   WHERE title=%s""",
+                (commons.PREFIX + aged_system["proposal_id"],),
+            )
+            assert governance.expired_count() == 1
+            system_result = governance.erase_expired_system(limit=100)
+            assert system_result["redacted_count"] == 1
+            assert system_result["audit_actor_type"] == "SYSTEM"
+            assert governance.expired_count() == 0
+            recorded = connection.execute(
+                """SELECT actor_id,actor_type,authority_level,metadata
+                   FROM audit_events
+                   WHERE target=%s AND action='OAP_COMMONS_RETENTION_REDACTED'
+                   ORDER BY event_seq DESC LIMIT 1""",
+                (f"oap_commons:{aged_system['proposal_id']}",),
+            ).fetchone()
+            assert recorded[0] == "OAP_COMMONS_RETENTION_SERVICE"
+            assert recorded[1] == "SYSTEM"
+            assert recorded[2] == 0
+            assert "body" not in recorded[3]
         finally:
             connection.rollback()
 
