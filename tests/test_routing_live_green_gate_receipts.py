@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import socket
 from pathlib import Path
 from urllib import error
 
@@ -95,6 +96,78 @@ def test_probe_preserves_p95_limit(monkeypatch, capsys):
     assert receipt["successes"] == 2
     assert receipt["failures"] == 0
     assert receipt["bounded_capacity_proven"] is False
+
+
+@pytest.mark.parametrize(
+    ("exception", "reason"),
+    [
+        (error.HTTPError("https://example.invalid/route", 503, "unavailable", None, None), "http_503"),
+        (error.URLError(socket.gaierror(-3, "lookup failed")), "dns_resolution_failed"),
+        (error.URLError(ConnectionRefusedError("refused")), "connection_refused"),
+        (error.URLError(TimeoutError("network timed out")), "timeout"),
+    ],
+)
+def test_live_warmup_carries_sanitized_failure_reason(monkeypatch, exception, reason):
+    monkeypatch.setattr(gate, "WARMUP_ATTEMPTS", 1)
+
+    def reject(*_args, **_kwargs):
+        raise exception
+
+    monkeypatch.setattr(gate.request, "urlopen", reject)
+    receipt = gate.wait_until_ready()
+    assert receipt["ready"] is False
+    assert receipt["attempts"] == 1
+    assert receipt["failure_reason"] == reason
+    assert receipt["failure_type"] == (
+        "timeout" if reason == "timeout" else "request_or_response_error"
+    )
+    assert "https://" not in json.dumps(receipt)
+    assert "lookup failed" not in json.dumps(receipt)
+
+
+def test_unready_live_routing_emits_reason_and_never_runs_capacity_probe(monkeypatch, capsys):
+    monkeypatch.setattr(
+        gate, "wait_until_ready",
+        lambda: {
+            "ready": False,
+            "attempts": 6,
+            "elapsed_s": 10.0,
+            "failure_type": "request_or_response_error",
+            "failure_reason": "http_503",
+        },
+    )
+
+    def must_not_run(_index):
+        raise AssertionError("Not allowed: pretend live routing when warmup failed")
+
+    monkeypatch.setattr(gate, "run_one", must_not_run)
+    with pytest.raises(SystemExit, match="live routing warmup did not become ready"):
+        gate.main()
+    receipts = [
+        json.loads(line) for line in capsys.readouterr().out.splitlines() if line.strip()
+    ]
+    assert len(receipts) == 1
+    assert receipts[0]["event"] == "oap_routing_bounded_external_warmup"
+    assert receipts[0]["failure_reason"] == "http_503"
+    assert receipts[0]["ready"] is False
+    assert receipts[0]["dispatch_performed"] is False
+
+
+def test_capacity_failure_includes_no_secret_url_in_reason(monkeypatch):
+    error_response = error.HTTPError(
+        "https://oap-routing.onrender.com/route/v1/driving/coordinates",
+        502, "Gateway unavailable", None, None,
+    )
+    monkeypatch.setattr(
+        gate.request, "urlopen",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(error_response),
+    )
+    result = gate.run_one(0)
+    assert result["ok"] is False
+    assert result["failure_reason"] == "http_502"
+    assert result["failure_type"] == "request_or_response_error"
+    assert "onrender.com" not in json.dumps(result)
+
 
 
 def test_live_green_gate_warms_before_capacity_probe():
