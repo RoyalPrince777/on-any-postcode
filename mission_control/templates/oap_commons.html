@@ -35,17 +35,28 @@ article h3{margin:3px 0}small{color:#aebdb5}
 <input id="title" name="title" type="text" minlength="5" maxlength="100" required autocomplete="off">
 <label for="body">Your idea</label>
 <textarea id="body" name="body" minlength="20" maxlength="1200" required></textarea>
-<div class="check"><input type="checkbox" id="consent" name="consent" value="yes" required><label for="consent">I consent to OAP storing this proposal privately for Founder review. It will not be made public or counted as a vote.</label></div>
+<div class="check"><input type="checkbox" id="consent" name="consent" value="yes" required><label for="consent">I consent to OAP storing this proposal privately for Founder review. It will not be made public or counted as a vote. You can withdraw your consent and erase your proposal text. This does not erase minimal linked audit records.</label></div>
 <button type="submit">Submit privately</button>
 </form>
 </section>
 <section><h2>My private proposals</h2>
 {% if proposals %}
   {% for item in proposals %}
-  <article><h3>{{ item.title }}</h3><p>{{ item.body }}</p><small>Pending Founder review · {{ item.created_at }}</small></article>
+  <article>
+<h3>{{ item.title }}</h3><p>{{ item.body }}</p>
+{% if item.state == "REVIEWED" %}
+  <p><strong>Human review: {{ item.review_outcome|replace('_', ' ') }}</strong></p>
+  <p>{{ item.review_note }}</p>
+{% else %}<p><small>Pending Founder review</small></p>{% endif %}
+<small>Created {{ item.created_at }} · Private</small>
+<form method="post" action="{{ url_for('oap_commons.commons_withdraw', proposal_id=item.proposal_id) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+<button type="submit">Withdraw consent &amp; erase this proposal text</button>
+</form>
+</article>
   {% endfor %}
 {% else %}<p class="desc">No submitted proposals are recorded for this account.</p>{% endif %}
 </section>
 {% endif %}
-<p class="warning">OAP Commons is an internal voluntary proposal inbox. It does not provide public elections, elected representation, automatic decisions or governmental powers. Records stay private pending a separately approved review/publication procedure.</p>
+<p class="warning">OAP Commons is an internal voluntary proposal inbox. It does not provide public elections, elected representation, automatic decisions or governmental powers. Content is shown for up to 90 days and can be withdrawn sooner. Expired content is removed by a manual Founder retention sweep; it is not automatically erased on day 90. Minimal audit linkage remains after content redaction. Records stay private.</p>
 </main></body></html>
