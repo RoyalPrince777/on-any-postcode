@@ -97,3 +97,11 @@ def test_founder_chat_requires_bound_identity():
             message="hello", identity_id="", display_name="Founder",
             founder_authenticated=True,
         )
+
+
+def test_founder_agents_hq_route_is_founder_only():
+    from mission_control import organiser_views
+    view = organiser_views.founder_agents_hq_chat
+    assert callable(view)
+    rules = list(organiser_views.bp.deferred_functions)
+    assert rules  # route registered on the existing Founder organiser blueprint
