@@ -5,7 +5,6 @@ inference engine, agent worker, or authorisation to execute tools.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 from mission_control import agents
@@ -25,7 +24,7 @@ def admit_council_turn(
     its sender. No stored conversation, impersonation, votes or tool execution.
     """
     if not isinstance(speaker, str) or not isinstance(message, str):
-        raise ValueError("speaker_and_message_must_be_text")
+        raise TypeError("speaker_and_message_must_be_text")
     name = speaker.strip()
     body = message.strip()
     if not name or not body or len(body) > MAX_MESSAGE_CHARS:
