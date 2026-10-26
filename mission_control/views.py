@@ -381,6 +381,7 @@ def commons_founder_queue():
     """Read private OAP Commons proposals for human Founder review only."""
     try:
         proposals = oap_commons.founder_queue()
+        retention = oap_commons_governance.retention_backlog()
     except oap_commons.CommonsUnavailable:
         return _error(
             "commons_founder_queue_unavailable",
@@ -389,7 +390,7 @@ def commons_founder_queue():
         )
     return _no_store(make_response(render_template(
         "oap_commons_founder_queue.html", proposals=proposals,
-        csrf=web_security.csrf_token(),
+        retention=retention, csrf=web_security.csrf_token(),
     )))
 
 
