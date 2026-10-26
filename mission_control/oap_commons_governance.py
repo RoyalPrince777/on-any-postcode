@@ -27,7 +27,7 @@ def _uuid(raw: object) -> str:
 
 
 def _receipt(db, *, actor: str, action: str, proposal_id: str,
-             metadata: dict[str, object]) -> None:
+             metadata: dict[str, object], actor_type: str = "USER") -> None:
     # All callers hold the same global audit-chain transaction lock used by
     # the existing OAP workspace/audit writes. No network call or mock ledger.
     previous = db.execute(
@@ -40,8 +40,10 @@ def _receipt(db, *, actor: str, action: str, proposal_id: str,
         """INSERT INTO audit_events(
            prev_hash,curr_hash,actor_id,actor_type,authority_level,
            action,target,reason,correlation_id,metadata
-           ) VALUES (%s,%s,%s,'USER',5,%s,%s,%s,%s,%s::jsonb)""",
-        (previous_hash, digest, actor, action, f"oap_commons:{proposal_id}",
+           ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb)""",
+        (previous_hash, digest, actor, actor_type,
+         0 if actor_type == "SYSTEM" else 5,
+         action, f"oap_commons:{proposal_id}",
          "oap_commons_member_rights_and_review", proposal_id, canonical),
     )
 
@@ -143,9 +145,9 @@ def review(founder_id: object, proposal_id: object, *,
     }
 
 
-def erase_expired(founder_id: object, *, limit: int = 100) -> dict[str, object]:
-    """Manually enforced 90-day erasure, with a minimal receipt per record."""
-    actor = _uuid(founder_id)
+def _erase_expired(actor: str, *, limit: int = 100,
+                   actor_type: str = "USER") -> dict[str, object]:
+    """Bounded age-only erasure with a minimal, hash-linked receipt."""
     if type(limit) is not int or not 1 <= limit <= 100:
         raise ValueError("invalid_retention_limit")
     try:
@@ -168,7 +170,8 @@ def erase_expired(founder_id: object, *, limit: int = 100) -> dict[str, object]:
                     (REDACTED_CONTENT, str(record_id)),
                 )
                 _receipt(
-                    db, actor=actor, action="OAP_COMMONS_RETENTION_REDACTED",
+                    db, actor=actor, actor_type=actor_type,
+                    action="OAP_COMMONS_RETENTION_REDACTED",
                     proposal_id=pid,
                     metadata={"proposal_id": pid, "content_redacted": True,
                               "retention_days": oap_commons.RETENTION_DAYS},
@@ -181,7 +184,36 @@ def erase_expired(founder_id: object, *, limit: int = 100) -> dict[str, object]:
     return {
         "redacted_count": len(rows), "retention_days": oap_commons.RETENTION_DAYS,
         "automated_scheduler": False, "audit_linkage_retained": True,
+        "audit_actor_type": actor_type,
     }
+
+
+def erase_expired(founder_id: object, *, limit: int = 100) -> dict[str, object]:
+    """Existing manual Founder-triggered, age-only redaction."""
+    return _erase_expired(_uuid(founder_id), limit=limit, actor_type="USER")
+
+
+def erase_expired_system(*, limit: int = 100) -> dict[str, object]:
+    """Technical retention only; no fake human, votes or agent authority."""
+    return _erase_expired(
+        "OAP_COMMONS_RETENTION_SERVICE", limit=limit, actor_type="SYSTEM",
+    )
+
+
+def expired_count() -> int:
+    """Minimal read-only count, never returns member IDs or proposal content."""
+    try:
+        with postgres_db.connect(readonly=True) as db:
+            result = db.execute(
+                """SELECT COUNT(*) FROM oap_workspace_records
+                   WHERE workspace_id='governance' AND title LIKE %s
+                     AND status='draft'
+                     AND created_at < CURRENT_TIMESTAMP - INTERVAL '90 days'""",
+                (oap_commons.PREFIX + "%",),
+            ).fetchone()
+            return int(result[0]) if result else 0
+    except Exception as exc:
+        raise oap_commons.CommonsUnavailable("commons_retention_count_unavailable") from exc
 
 
 def retention_backlog() -> dict[str, object]:
