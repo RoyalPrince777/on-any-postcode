@@ -21,11 +21,11 @@ def test_all_oap_houses_link_to_existing_routes_or_honestly_label_absence():
     status = govt.status()
     live = [h for h in status["houses"] if h["route"] is not None]
     not_live = [h for h in status["houses"] if h["route"] is None]
-    assert len(live) == 4
-    assert len(not_live) == 3
+    assert len(live) == 5
+    assert len(not_live) == 2
     assert all(h["state"].startswith("linked_") for h in live)
     assert all("not_implemented" in h["state"] for h in not_live)
-    assert all(h["key"] != "court" for h in status["houses"])
+    assert any(h["key"] == "commons" and h["route"] == "oap_commons.commons_home" for h in live)
 
 
 def test_no_new_powers_elections_passports_or_automatic_rulings():
