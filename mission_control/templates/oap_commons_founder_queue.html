@@ -14,6 +14,7 @@ label{display:block;margin:8px 0}textarea,select{max-width:100%;width:100%;paddi
 <h1>🗳️ Commons Review Inbox</h1>
 <p><a href="{{ url_for('mission_control.digital_government_view') }}">Return to Government</a> · <a href="{{ url_for('mission_control.secure_seat_board') }}">Secure Agent Seats</a></p>
 <p class="note">Read-only queue of voluntary private member submissions. No decisions, votes, publication, legal powers or automatic approvals are performed here.</p>
+<p class="note" role="status">90-day retention: {{ retention.expired_unredacted_count }} expired private record(s) pending content redaction. {% if retention.manual_sweep_required %}Manual Founder sweep required; not production Green.{% else %}No expired unredacted records detected by this database check.{% endif %} No automatic scheduler is running.</p>
 <form method="post" action="{{ url_for('mission_control.commons_founder_retention') }}">
   <input type="hidden" name="csrf_token" value="{{ csrf }}">
   <button type="submit">Run 90-day private-content retention sweep (up to 100 records)</button>
