@@ -16,6 +16,7 @@ MAX_TITLE = 100
 MAX_BODY = 1200
 MAX_PER_MINUTE = 3
 MAX_LIST = 50
+RETENTION_DAYS = 90
 
 
 class CommonsUnavailable(RuntimeError):
@@ -138,7 +139,7 @@ def _safe_record(row: object) -> dict[str, object] | None:
         obj = json.loads(str(data))
         if (not isinstance(obj, dict) or obj.get("consent_to_private_review") is not True
             or obj.get("published") is not False
-            or obj.get("state") != "PENDING_FOUNDER_REVIEW"):
+            or obj.get("state") not in ("PENDING_FOUNDER_REVIEW", "REVIEWED")):
             return None
         title = _clean_text(obj.get("title"), min_length=5, max_length=MAX_TITLE)
         body = _clean_text(obj.get("body"), min_length=20, max_length=MAX_BODY)
@@ -147,7 +148,9 @@ def _safe_record(row: object) -> dict[str, object] | None:
             "proposal_id": proposal_id,
             "title": title,
             "body": body,
-            "state": "PENDING_FOUNDER_REVIEW",
+            "state": str(obj["state"]),
+            "review_outcome": obj.get("review_outcome"),
+            "review_note": obj.get("review_note", ""),
             "published": False,
             "created_at": created_at.isoformat(),
         }
@@ -164,6 +167,7 @@ def mine(identity_id: object, *, limit: int = MAX_LIST) -> tuple[dict[str, objec
                    FROM oap_workspace_records
                    WHERE identity_id=%s AND workspace_id='governance'
                      AND title LIKE %s AND status='draft'
+                     AND created_at >= CURRENT_TIMESTAMP - INTERVAL '90 days'
                    ORDER BY created_at DESC LIMIT %s""",
                 (identity, PREFIX + "%", max(1, min(limit, MAX_LIST))),
             ).fetchall()
@@ -181,6 +185,7 @@ def founder_queue(*, limit: int = MAX_LIST) -> tuple[dict[str, object], ...]:
                    FROM oap_workspace_records
                    WHERE workspace_id='governance' AND title LIKE %s
                      AND status='draft'
+                     AND created_at >= CURRENT_TIMESTAMP - INTERVAL '90 days'
                    ORDER BY created_at DESC LIMIT %s""",
                 (PREFIX + "%", max(1, min(limit, MAX_LIST))),
             ).fetchall()
@@ -210,6 +215,10 @@ def status() -> dict[str, object]:
         "schema_ready": schema_ready,
         "first_party_persistence": True,
         "consent_required": True,
+        "retention_days": RETENTION_DAYS,
+        "retention_enforcement": "read_filters_and_manual_founder_sweep",
+        "automated_retention_worker": False,
+        "real_submission_proof": False,
         "private_until_review": True,
         "public_proposals_enabled": False,
         "public_voting_enabled": False,
