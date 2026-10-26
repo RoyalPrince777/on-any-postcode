@@ -2,14 +2,67 @@
 from __future__ import annotations
 
 import concurrent.futures
+import ipaddress
 import json
+import os
+import re
 import socket
 import ssl
 import statistics
 import time
 from urllib import error, parse, request
 
-BASE = "https://oap-routing.onrender.com"
+# Reuse the existing Movement/Map owned-endpoint configuration contract.
+# Never select a hosting vendor, public/demo route engine, or silent fallback.
+_ROUTING_BASE_VAR = "OAP_OSRM_BASE_URL"
+_HOST_PATTERN = re.compile(r"^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
+
+
+class RoutingOriginRejected(ValueError):
+    """Missing or non-approved OAP-controlled routing endpoint."""
+
+
+def _configured_base() -> str:
+    """Require explicit HTTPS OAP-owned and allowlisted host; no runtime claim."""
+    raw = os.environ.get(_ROUTING_BASE_VAR, "").strip()
+    if not raw:
+        raise RoutingOriginRejected("routing_origin_not_configured")
+    try:
+        parsed = parse.urlsplit(raw)
+        host = str(parsed.hostname or "").casefold()
+        port = parsed.port
+    except ValueError as exc:
+        raise RoutingOriginRejected("routing_origin_rejected") from exc
+    if (parsed.scheme != "https" or not host or port is not None
+            or parsed.username is not None or parsed.password is not None
+            or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
+        raise RoutingOriginRejected("routing_origin_rejected")
+    if (len(host) > 253 or ".." in host or not _HOST_PATTERN.fullmatch(host)
+            or any(len(label) > 63 for label in host.split("."))):
+        raise RoutingOriginRejected("routing_origin_rejected")
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        raise RoutingOriginRejected("routing_origin_rejected")
+    if (host in {"localhost", "onrender.com"}
+            or host.endswith(".onrender.com") or "." not in host):
+        raise RoutingOriginRejected("routing_origin_rejected")
+
+    allowed = {
+        name.strip().casefold()
+        for name in os.environ.get("OAP_OSRM_ALLOWED_HOSTS", "").split(",")
+        if name.strip()
+    }
+    owned = {
+        name.strip().casefold()
+        for name in os.environ.get("OAP_ROUTING_OWNED_HOSTS", "").split(",")
+        if name.strip()
+    }
+    if host not in allowed or host not in owned:
+        raise RoutingOriginRejected("routing_origin_not_allowlisted_and_owned")
+    return f"https://{host}"
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
@@ -63,7 +116,7 @@ def _route_url(index: int) -> str:
             "geometries": "geojson",
         }
     )
-    return f"{BASE}/route/v1/driving/{coords}?{query}"
+    return f"{_configured_base()}/route/v1/driving/{coords}?{query}"
 
 
 def wait_until_ready() -> dict[str, object]:
@@ -163,6 +216,20 @@ def run_one(index: int) -> dict[str, object]:
 
 
 def main() -> None:
+    try:
+        _configured_base()
+    except RoutingOriginRejected as exc:
+        print(json.dumps({
+            "event": "oap_routing_bounded_external_warmup",
+            "ready": False,
+            "attempts": 0,
+            "failure_type": "configuration_blocked",
+            "failure_reason": str(exc),
+            "dispatch_performed": False,
+            "payment_performed": False,
+            "tracking_performed": False,
+        }, sort_keys=True), flush=True)
+        raise SystemExit("OAP-controlled HTTPS routing host not configured or approved") from exc
     warmup = wait_until_ready()
     print(
         json.dumps(
