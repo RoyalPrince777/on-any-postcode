@@ -54,7 +54,7 @@ def test_tested_host_uses_same_owned_endpoint_config_as_movement():
 def test_missing_owned_route_host_fails_before_any_network_request(monkeypatch, capsys):
     monkeypatch.delenv("OAP_OSRM_BASE_URL")
     monkeypatch.setattr(
-        gate.request, "urlopen",
+        gate, "_open_owned_json",
         lambda *_a, **_k: (_ for _ in ()).throw(
             AssertionError("missing host must cause zero requests")
         ),
@@ -82,7 +82,7 @@ def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, ex
     def fail_request(*args, **kwargs):
         raise failure
 
-    monkeypatch.setattr(gate.request, "urlopen", fail_request)
+    monkeypatch.setattr(gate, "_open_owned_json", fail_request)
     result = gate.run_one(0)
     assert result["ok"] is False
     assert result["failure_type"] == expected_type
@@ -92,24 +92,84 @@ def test_failed_routing_request_returns_bounded_failure(monkeypatch, failure, ex
 
 
 def test_non_object_json_is_bounded_failure(monkeypatch):
-    class FakeResponse:
-        status = 200
+    def invalid_payload(*_args, **_kwargs):
+        raise ValueError("routing_response_not_object")
 
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            return False
-
-        def read(self):
-            return b"[]"
-
-    monkeypatch.setattr(gate.request, "urlopen", lambda *args, **kwargs: FakeResponse())
+    monkeypatch.setattr(gate, "_open_owned_json", invalid_payload)
     result = gate.run_one(0)
     assert result["ok"] is False
     assert result["failure_type"] == "request_or_response_error"
     assert result["distance_m"] == 0.0
     assert result["duration_s"] == 0.0
+
+
+class FakeRouteResponse:
+    status = 200
+
+    def __init__(self, url, data):
+        self.url = url
+        self.data = data
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def geturl(self):
+        return self.url
+
+    def read(self, size):
+        return self.data[:size]
+
+
+def test_redirect_is_blocked_before_following(monkeypatch):
+    req = gate.request.Request(gate._route_url(0))
+    with pytest.raises(gate.RoutingOriginRejected, match="routing_redirect_rejected"):
+        gate._RejectRedirects().redirect_request(
+            req, None, 302, "Redirect", {}, "https://example.org/route"
+        )
+
+
+def test_cross_host_response_cannot_pass(monkeypatch):
+    monkeypatch.setattr(
+        gate._OPENER,
+        "open",
+        lambda req, timeout: FakeRouteResponse(
+            "https://unowned.example.org/route/v1/driving/anything",
+            b'{"code":"Ok","routes":[]}',
+        ),
+    )
+    with pytest.raises(gate.RoutingOriginRejected, match="routing_redirect_rejected"):
+        gate._open_owned_json(gate.request.Request(gate._route_url(0)), 3)
+
+
+def test_oversized_json_cannot_pass(monkeypatch):
+    monkeypatch.setattr(
+        gate._OPENER,
+        "open",
+        lambda req, timeout: FakeRouteResponse(
+            gate._route_url(0), b"x" * (gate.MAX_RESPONSE_BYTES + 1)
+        ),
+    )
+    with pytest.raises(ValueError, match="routing_response_too_large"):
+        gate._open_owned_json(gate.request.Request(gate._route_url(0)), 3)
+
+
+def test_valid_same_host_json_response_is_bounded(monkeypatch):
+    monkeypatch.setattr(
+        gate._OPENER,
+        "open",
+        lambda req, timeout: FakeRouteResponse(
+            gate._route_url(0),
+            b'{"code":"Ok","routes":[]}',
+        ),
+    )
+    status, payload = gate._open_owned_json(
+        gate.request.Request(gate._route_url(0)), 3
+    )
+    assert status == 200
+    assert payload["code"] == "Ok"
 
 
 def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
@@ -174,7 +234,7 @@ def test_live_warmup_carries_sanitized_failure_reason(monkeypatch, exception, re
     def reject(*_args, **_kwargs):
         raise exception
 
-    monkeypatch.setattr(gate.request, "urlopen", reject)
+    monkeypatch.setattr(gate, "_open_owned_json", reject)
     receipt = gate.wait_until_ready()
     assert receipt["ready"] is False
     assert receipt["attempts"] == 1
@@ -220,7 +280,7 @@ def test_capacity_failure_includes_no_secret_url_in_reason(monkeypatch):
         502, "Gateway unavailable", None, None,
     )
     monkeypatch.setattr(
-        gate.request, "urlopen",
+        gate, "_open_owned_json",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(error_response),
     )
     result = gate.run_one(0)
