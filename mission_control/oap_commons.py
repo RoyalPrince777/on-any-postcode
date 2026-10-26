@@ -191,7 +191,11 @@ def founder_queue(*, limit: int = MAX_LIST) -> tuple[dict[str, object], ...]:
             ).fetchall()
     except Exception as exc:
         raise CommonsUnavailable("commons_founder_queue_unavailable") from exc
-    return tuple(item for row in rows if (item := _safe_record(row)) is not None)
+    return tuple(
+        item for row in rows
+        if (item := _safe_record(row)) is not None
+        and item["state"] == "PENDING_FOUNDER_REVIEW"
+    )
 
 
 def status() -> dict[str, object]:
