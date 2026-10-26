@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from flask import Blueprint, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, jsonify, make_response, redirect, render_template, request, url_for
 
 from . import (
     connectivity_briefs,
@@ -113,3 +113,32 @@ def import_connectivity_brief():
     ) as exc:
         return _page(error=str(exc), form=form, status=400)
     return redirect(url_for("smi_organiser.dashboard", imported=brief.brief_id))
+
+
+@bp.post("/organiser/agents-hq/chat")
+@web_security.login_required(api=True, founder_only=True)
+def founder_agents_hq_chat():
+    """Authenticated Founder -> governed SMI exchange, not agent impersonation."""
+    from .smi_agents_hq_turns import founder_council_chat
+
+    if not web_security.csrf_valid(request):
+        return _no_store(make_response(jsonify({"error": "csrf_failed"}), 403))
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _no_store(make_response(jsonify({"error": "invalid_request"}), 400))
+    owner_id, user = _owner()
+    try:
+        result = founder_council_chat(
+            message=payload.get("message"),
+            identity_id=owner_id,
+            display_name=str(user.get("name") or "Founder"),
+            founder_authenticated=True,
+            conversation_id=payload.get("conversation_id"),
+        )
+    except (TypeError, ValueError):
+        return _no_store(make_response(jsonify({"error": "invalid_request"}), 400))
+    except PermissionError:
+        return _no_store(make_response(jsonify({"error": "permission_denied"}), 403))
+    except RuntimeError:
+        return _no_store(make_response(jsonify({"error": "provider_unavailable"}), 503))
+    return _no_store(make_response(jsonify(result)))
