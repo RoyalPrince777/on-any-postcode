@@ -25,6 +25,7 @@ from . import (
     civilization,
     infrastructure,
     judgement,
+    oap_commons,
     oap_digital_government,
     ollama_chat,
     organism,
@@ -370,6 +371,23 @@ def digital_government_view():
         )
     return _no_store(make_response(render_template(
         "oap_digital_government.html", govt=snapshot,
+    )))
+
+
+@bp.get("/digital-government/commons/queue")
+@web_security.login_required(founder_only=True)
+def commons_founder_queue():
+    """Read private OAP Commons proposals for human Founder review only."""
+    try:
+        proposals = oap_commons.founder_queue()
+    except oap_commons.CommonsUnavailable:
+        return _error(
+            "commons_founder_queue_unavailable",
+            "Private proposals are unavailable pending storage verification.",
+            503,
+        )
+    return _no_store(make_response(render_template(
+        "oap_commons_founder_queue.html", proposals=proposals,
     )))
 
 
