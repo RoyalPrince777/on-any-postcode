@@ -31,7 +31,7 @@ def _identity(raw: object) -> str:
 
 def _clean_text(value: object, *, max_length: int, min_length: int) -> str:
     if not isinstance(value, str):
-        raise ValueError("invalid_proposal_text")
+        raise ValueError("invalid_proposal_text")  # noqa: TRY004 - uniform public error
     cleaned = " ".join(value.split())
     if not min_length <= len(cleaned) <= max_length:
         raise ValueError("invalid_proposal_text")
@@ -203,7 +203,7 @@ def status() -> dict[str, object]:
                 "oap_workspace_records", "audit_events", "users"
             }
     except Exception:  # noqa: BLE001 - no optimistic live claim
-        pass
+        schema_ready = False
     return {
         "module": "OAP Commons",
         "status": "private_proposal_intake" if schema_ready else "store_unavailable",
