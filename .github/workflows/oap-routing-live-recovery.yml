@@ -1,0 +1,47 @@
+# Founder-triggered real first-party route acceptance after infrastructure recovery.
+# This workflow cannot resume Render, authorize charges or bypass live Green.
+name: OAP Routing - real live recovery proof (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Multiple parallel probes would add Free instance-hour load unnecessarily.
+concurrency:
+  group: oap-routing-live-recovery
+  cancel-in-progress: false
+
+jobs:
+  live-proof:
+    name: Real OSRM routing acceptance (no demo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact requested revision
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - name: Prepare bounded proof receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/oap-routing-live-receipt"
+          git rev-parse HEAD > "$RUNNER_TEMP/oap-routing-live-receipt/source.sha"
+      - name: Require real 20-route OSRM geometry and p95 acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Uses only the unchanged first-party HTTPS origin and strict gate.
+          # No demo provider, fake responses, relaxed latency or install.
+          python3 -u scripts/routing_live_green_gate.py \
+            | tee "$RUNNER_TEMP/oap-routing-live-receipt/receipt.jsonl"
+      - name: Preserve actual evidence even when live proof fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oap-routing-live-recovery-receipt
+          path: ${{ runner.temp }}/oap-routing-live-receipt/
+          if-no-files-found: warn
+          retention-days: 14
