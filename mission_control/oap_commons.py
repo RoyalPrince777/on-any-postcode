@@ -218,7 +218,6 @@ def status() -> dict[str, object]:
         "retention_days": RETENTION_DAYS,
         "retention_enforcement": "read_filters_and_manual_founder_sweep",
         "automated_retention_worker": False,
-        "real_submission_proof": False,
         "private_until_review": True,
         "public_proposals_enabled": False,
         "public_voting_enabled": False,
