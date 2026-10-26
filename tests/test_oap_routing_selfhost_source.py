@@ -46,6 +46,7 @@ def test_route_computation_port_is_not_published_to_internet():
 def test_self_host_configuration_and_founder_proof_remain_optional():
     compose = COMPOSE.read_text(encoding="utf-8")
     docs = DOCS.read_text(encoding="utf-8")
+    caddy = CADDY.read_text(encoding="utf-8")
     assert "OAP_ROUTING_DOMAIN: ${OAP_ROUTING_DOMAIN:?" in compose
     assert "OAP_OSRM_BASE_URL" in docs
     assert "OAP_OSRM_ALLOWED_HOSTS" in docs
