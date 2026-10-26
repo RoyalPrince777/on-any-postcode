@@ -3,7 +3,15 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from flask import Blueprint, jsonify, make_response, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 
 from . import (
     connectivity_briefs,
