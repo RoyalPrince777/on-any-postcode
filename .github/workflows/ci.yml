@@ -88,6 +88,19 @@ jobs:
         run: python -m compileall -q app.py mission_control oap
       - name: Validate OAP Home signing helper shell syntax
         run: bash -n scripts/oap_home_signing_setup.sh
+      - name: Validate OAP Host routing Compose source (no deployment)
+        env:
+          OAP_ROUTING_DOMAIN: routes.example.invalid
+        run: |
+          set -euo pipefail
+          docker compose -f deploy/oap-routing-selfhost/compose.yaml config --quiet
+      - name: Validate OAP Host Caddyfile without serving or network
+        run: |
+          set -euo pipefail
+          docker run --rm --network none \
+            -e OAP_ROUTING_DOMAIN=routes.example.invalid \
+            -v "$PWD/deploy/oap-routing-selfhost/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10.2 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Run focused OAP Data security regressions
         run: |
           set -o pipefail
