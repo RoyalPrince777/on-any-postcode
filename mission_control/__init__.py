@@ -78,6 +78,7 @@ def init_app(app: Flask) -> None:
     from .all_in_ai_views import bp as all_in_ai_bp
     from .bank_store_catalog_routes import bp as bank_store_catalog_bp
     from .certification_views import bp as certification_bp
+    from .civic_accountability_views import bp as civic_accountability_bp
     from .checkpoint_views import bp as checkpoint_bp
     from .company_intelligence_views import bp as company_intelligence_bp
     from .founder_tool_views import bp as founder_tool_bp
@@ -1543,6 +1544,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(oap_data_bp, url_prefix="/mission")
     app.register_blueprint(smi_organiser_bp, url_prefix="/mission")
     app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
+    app.register_blueprint(civic_accountability_bp, url_prefix="/mission/smi/civic-accountability")
     app.register_blueprint(humanitarian_tracker_bp, url_prefix="/mission/humanitarian")
     app.register_blueprint(matrix_founder_decisions_bp)
     app.register_blueprint(checkpoint_bp, url_prefix="/mission")
