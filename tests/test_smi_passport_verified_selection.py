@@ -39,3 +39,37 @@ def test_selection_varies_by_mission_and_does_not_duplicate():
     assert coding.capabilities != memory.capabilities
     assert len(coding.specialists) == len(set(coding.specialists))
     assert len(memory.specialists) == len(set(memory.specialists))
+
+
+def test_missing_passport_is_excluded(monkeypatch):
+    from mission_control import agents
+    original = agents.AGENT_REGISTRY
+    monkeypatch.setattr(agents, "AGENT_REGISTRY", tuple(
+        agent for agent in original if agent["name"] != "Neo"
+    ))
+    selection = select_passport_verified_alliance("TECHNICAL", "github code review")
+    assert "Neo" not in selection.specialists
+    assert "Neo" in selection.excluded_unregistered
+
+
+def test_proposed_passport_is_not_eligible(monkeypatch):
+    from mission_control import agents
+    original = agents.AGENT_REGISTRY
+    monkeypatch.setattr(agents, "AGENT_REGISTRY", tuple(
+        {**agent, "registry_status": "PROPOSED"}
+        if agent["name"] == "Neo" else agent
+        for agent in original
+    ))
+    selection = select_passport_verified_alliance("TECHNICAL", "github code review")
+    assert "Neo" not in selection.specialists
+    assert "Neo" in selection.excluded_inactive
+
+
+def test_ambiguous_duplicate_passports_fail_closed(monkeypatch):
+    from mission_control import agents
+    original = agents.AGENT_REGISTRY
+    neo = next(agent for agent in original if agent["name"] == "Neo")
+    monkeypatch.setattr(agents, "AGENT_REGISTRY", original + ({**neo},))
+    selection = select_passport_verified_alliance("TECHNICAL", "github code review")
+    assert "Neo" not in selection.specialists
+    assert "Neo" in selection.excluded_unregistered
