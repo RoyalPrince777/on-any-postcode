@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import socket
+import ssl
 import statistics
 import time
 from urllib import error, parse, request
@@ -19,6 +21,35 @@ P95_LIMIT_SECONDS = 6.0
 WARMUP_ATTEMPTS = 6
 WARMUP_TIMEOUT_SECONDS = 10
 WARMUP_SLEEP_SECONDS = 2.0
+
+
+def _failure_reason(exc: BaseException) -> str:
+    """Stable failure codes, never print headers, response bodies or URLs."""
+    if isinstance(exc, error.HTTPError):
+        code = int(exc.code)
+        return f"http_{code}" if 100 <= code <= 599 else "http_error"
+    if isinstance(exc, error.URLError):
+        reason = exc.reason
+        if isinstance(reason, socket.gaierror):
+            return "dns_resolution_failed"
+        if isinstance(reason, ssl.SSLError):
+            return "tls_failure"
+        if isinstance(reason, (TimeoutError, socket.timeout)):
+            return "timeout"
+        if isinstance(reason, ConnectionRefusedError):
+            return "connection_refused"
+        if isinstance(reason, ConnectionResetError):
+            return "connection_reset"
+        return "transport_error"
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return "timeout"
+    if isinstance(exc, UnicodeError):
+        return "invalid_encoding"
+    if isinstance(exc, ValueError):
+        return "invalid_json_or_payload"
+    if isinstance(exc, OSError):
+        return "transport_error"
+    return "unknown"
 
 
 def _route_url(index: int) -> str:
@@ -38,6 +69,7 @@ def _route_url(index: int) -> str:
 def wait_until_ready() -> dict[str, object]:
     started = time.perf_counter()
     last_failure = "not_started"
+    last_reason = "not_started"
     for attempt in range(1, WARMUP_ATTEMPTS + 1):
         req = request.Request(
             _route_url(0),
@@ -65,8 +97,10 @@ def wait_until_ready() -> dict[str, object]:
                         "elapsed_s": time.perf_counter() - started,
                     }
                 last_failure = "invalid_response"
+                last_reason = "route_payload_invalid"
         except (TimeoutError, error.URLError, OSError, ValueError, UnicodeError) as exc:
-            last_failure = "timeout" if isinstance(exc, TimeoutError) else "request_or_response_error"
+            last_reason = _failure_reason(exc)
+            last_failure = "timeout" if last_reason == "timeout" else "request_or_response_error"
         if attempt < WARMUP_ATTEMPTS:
             time.sleep(WARMUP_SLEEP_SECONDS)
     return {
@@ -74,6 +108,7 @@ def wait_until_ready() -> dict[str, object]:
         "attempts": WARMUP_ATTEMPTS,
         "elapsed_s": time.perf_counter() - started,
         "failure_type": last_failure,
+        "failure_reason": last_reason,
     }
 
 
@@ -97,7 +132,10 @@ def run_one(index: int) -> dict[str, object]:
             "route_id": route_id,
             "ok": False,
             "elapsed_s": elapsed,
-            "failure_type": "timeout" if isinstance(exc, TimeoutError) else "request_or_response_error",
+            "failure_type": (
+                "timeout" if _failure_reason(exc) == "timeout" else "request_or_response_error"
+            ),
+            "failure_reason": _failure_reason(exc),
             "distance_m": 0.0,
             "duration_s": 0.0,
         }
@@ -134,6 +172,7 @@ def main() -> None:
                 "attempts": int(warmup.get("attempts") or 0),
                 "elapsed_ms": round(float(warmup.get("elapsed_s") or 0) * 1000, 1),
                 "failure_type": warmup.get("failure_type"),
+                "failure_reason": warmup.get("failure_reason"),
                 "dispatch_performed": False,
                 "payment_performed": False,
                 "tracking_performed": False,
@@ -152,6 +191,10 @@ def main() -> None:
     p95 = latencies[p95_index]
     successes = sum(1 for item in results if item["ok"])
     timed_out = sum(1 for item in results if item.get("failure_type") == "timeout")
+    failure_reasons = sorted({
+        str(item.get("failure_reason"))
+        for item in results if item.get("failure_reason")
+    })
     receipt = {
         "event": "oap_routing_bounded_external_probe",
         "requests": TOTAL_REQUESTS,
@@ -159,6 +202,7 @@ def main() -> None:
         "successes": successes,
         "failures": TOTAL_REQUESTS - successes,
         "timeouts": timed_out,
+        "failure_reasons": failure_reasons,
         "success_rate": round(successes / TOTAL_REQUESTS, 3),
         "p50_ms": round(statistics.median(latencies) * 1000, 1),
         "p95_ms": round(p95 * 1000, 1),
