@@ -1,0 +1,57 @@
+# Validates the OAP-owned OSRM/HTTPS deployment *definition*, never deploys.
+name: OAP Host routing selfhost source acceptance
+
+on:
+  pull_request:
+    paths:
+      - deploy/oap-routing-selfhost/**
+      - scripts/routing_live_green_gate.py
+      - tests/test_oap_routing_selfhost_source.py
+      - tests/test_routing_live_green_gate_receipts.py
+      - .github/workflows/oap-routing-selfhost-source-acceptance.yml
+  push:
+    branches:
+      - main
+    paths:
+      - deploy/oap-routing-selfhost/**
+      - scripts/routing_live_green_gate.py
+      - tests/test_oap_routing_selfhost_source.py
+      - tests/test_routing_live_green_gate_receipts.py
+      - .github/workflows/oap-routing-selfhost-source-acceptance.yml
+
+permissions:
+  contents: read
+
+jobs:
+  source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Compose resolves without mutating Docker
+        shell: bash
+        env:
+          OAP_ROUTING_DOMAIN: routes.example.invalid
+        run: |
+          set -euo pipefail
+          docker compose -f deploy/oap-routing-selfhost/compose.yaml config --quiet
+          echo "Compose source parsed; no containers created."
+      - name: Validate HTTPS ingress Caddyfile, offline, without serving
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network none \
+            -e OAP_ROUTING_DOMAIN=routes.example.invalid \
+            -v "$PWD/deploy/oap-routing-selfhost/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            caddy:2.10.2 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          echo "Caddy source accepted; no TLS or DNS claim."
+      - name: Run source contracts without contact to any routing service
+        run: |
+          python3 -m pip install --disable-pip-version-check --quiet pytest
+          python3 -m pytest -q \
+            tests/test_oap_routing_selfhost_source.py \
+            tests/test_oap_routing_live_recovery_workflow.py \
+            tests/test_routing_live_green_gate_receipts.py
+      - name: Record evidence boundary
+        run: |
+          echo "SOURCE_ONLY: configuration parsed. No OSRM image built, no PBF downloaded, no TLS certificate issued, no hosted service enabled and no live routing proven."
