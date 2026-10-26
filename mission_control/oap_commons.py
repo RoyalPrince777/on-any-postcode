@@ -55,9 +55,6 @@ def submit(identity_id: object, *, title: object, body: object, consent: object)
     identity = _identity(identity_id)
     proposal = validate_proposal(title, body, consent)
     proposal_id = str(uuid.uuid4())
-    content_hash = hashlib.sha256(json.dumps(
-        proposal, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-    ).encode("utf-8")).hexdigest()
     stored = json.dumps({
         **proposal,
         "consent_to_private_review": True,
@@ -67,7 +64,6 @@ def submit(identity_id: object, *, title: object, body: object, consent: object)
     }, ensure_ascii=False, separators=(",", ":"))
     metadata = {
         "proposal_id": proposal_id,
-        "content_hash": content_hash,
         "purpose": "voluntary_private_founder_review",
         "published": False,
         "decision": None,
