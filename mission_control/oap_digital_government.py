@@ -44,9 +44,9 @@ HOUSES = (
     },
     {
         "key": "commons", "name": "OAP Commons", "emoji": "🗳️",
-        "purpose": "Voluntary participant proposals, consultation and transparent outcomes.",
-        "anchor": "commons", "route": None,
-        "state": "public_consultation_not_implemented",
+        "purpose": "Consented private member proposals; public consultation and voting are not implemented.",
+        "anchor": "commons", "route": "oap_commons.commons_home",
+        "state": "linked_private_proposal_intake",
     },
     {
         "key": "boroughs", "name": "OAP Borough Councils", "emoji": "🌍",
