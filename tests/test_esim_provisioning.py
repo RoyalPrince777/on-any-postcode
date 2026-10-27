@@ -70,7 +70,7 @@ def test_approval_required_before_provisioning():
 
 
 def test_full_lifecycle_requires_provider_confirmation():
-    core = EsimProvisioningCore(FakeProvider())
+    core = EsimProvisioningCore(FakeProvider(), network_evidence_verifier=lambda request_id, profile_id, evidence_id: bool(profile_id) and evidence_id in {"network-proof-1", "network-proof-2"})
     item = core.request(subject_id="founder", purpose="connectivity")
     request_id = item["request_id"]
 
@@ -162,3 +162,31 @@ def test_network_registration_requires_independent_evidence():
         assert str(exc) == "network_registration_not_confirmed"
     else:
         raise AssertionError("ACTIVE must require independent network evidence")
+
+
+def test_claimed_network_session_without_trusted_verifier_fails_closed():
+    core = EsimProvisioningCore(FakeProvider())
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    try:
+        core.confirm_network_registration(item["request_id"], evidence_id="untrusted-claim", session_established=True)
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_verifier_not_configured"
+    else:
+        raise AssertionError("untrusted claims must never activate an eSIM")
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_network_verifier_rejection_fails_closed():
+    core = EsimProvisioningCore(FakeProvider(), network_evidence_verifier=lambda request_id, profile_id, evidence_id: False)
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    try:
+        core.confirm_network_registration(item["request_id"], evidence_id="forged-proof", session_established=True)
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_verification_failed"
+    else:
+        raise AssertionError("rejected evidence must not activate")
+    assert core.get(item["request_id"])["state"] == "available"
