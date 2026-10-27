@@ -32,7 +32,7 @@ def test_offline_apk_verifier_requires_installed_signer_package_version_and_hash
     source = Path("android/oaphome/src/main/java/com/onanypostcode/oaphome/OapUpdateApkVerifier.java").read_text(encoding="utf-8")
     for marker in (
         "getPackageInfo(candidate.packageName",
-        "getPackageArchiveInfo(apk.getAbsolutePath()",
+        "getPackageArchiveInfo(canonicalApk.getAbsolutePath()",
         "candidate.packageName.equals(archive.packageName)",
         "versionCode(archive) != candidate.versionCode",
         "versionCode(archive) <= versionCode(installed)",
