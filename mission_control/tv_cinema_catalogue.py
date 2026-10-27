@@ -74,3 +74,27 @@ def private_catalogue(rows: object) -> dict[str, object]:
         "playback_enabled": False,
         "asset_import_performed": False,
     }
+
+
+def series_episodes(rows: object, series_id: str) -> dict[str, object]:
+    """Derive a private, ordered episode listing without claiming availability."""
+    try:
+        canonical_id = f"oap:tv:{UUID(series_id)}"
+    except (ValueError, TypeError, AttributeError):
+        return {
+            "series_id": None, "episodes": [], "episode_count": 0,
+            "playback_enabled": False, "public_catalogue_enabled": False,
+        }
+    drafts = private_catalogue(rows)["items"]
+    episodes = [
+        item for item in drafts
+        if item["kind"] == "episode" and item.get("series_id") == canonical_id
+    ]
+    episodes.sort(key=lambda item: (item["season"], item["episode"], item["item_id"]))
+    return {
+        "series_id": canonical_id,
+        "episodes": episodes,
+        "episode_count": len(episodes),
+        "playback_enabled": False,
+        "public_catalogue_enabled": False,
+    }
