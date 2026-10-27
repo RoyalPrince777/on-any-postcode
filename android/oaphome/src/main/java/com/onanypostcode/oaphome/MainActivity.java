@@ -282,17 +282,19 @@ public class MainActivity extends Activity {
         destinationHeading.setPadding(0, dp(12), 0, dp(5));
         body.addView(destinationHeading);
         GridLayout grid = new GridLayout(this);
-        grid.setColumnCount(3);
-        body.addView(grid);
-        // The root uses 12dp padding on each side; each tile adds 4dp margins.
-        // Avoid a fixed minimum tile width that would overflow narrow screens.
+        // Keep all destinations readable on narrow Redmi A5 layouts and at
+        // larger Android display sizes. The same actions remain attached.
         int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(24);
-        int tileWidth = Math.max(dp(1), (availableWidth - dp(12)) / 3);
+        int columns = availableWidth < dp(336) ? 2 : 3;
+        grid.setColumnCount(columns);
+        body.addView(grid);
+        int tileWidth = Math.max(dp(1), (availableWidth - dp(4 * columns)) / columns);
         for (int i = 0; i < destinations.length; i++) {
             final String name = destinations[i];
             Button tile = button(name + "\n" + captions[i], v -> destination(name));
             tile.setBackground(new RoyalHomeArt.TileDrawable(i));
             tile.setTextSize(11);
+            tile.setAllCaps(false);
             tile.setTypeface(Typeface.SERIF, Typeface.BOLD);
             tile.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
             tile.setPadding(dp(3), dp(82), dp(3), dp(10));
