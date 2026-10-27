@@ -338,3 +338,20 @@ def test_twenty_distinct_real_route_candidates_not_repeated_two_pairs():
         assert gate._route_url(i).count(";") == 1
         assert route[4] not in [other[4] for other in gate.ROUTES[i + 1:]]
 
+
+def test_duplicate_journey_ids_cannot_receive_live_green(monkeypatch, capsys):
+    monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
+    monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
+    monkeypatch.setattr(gate, "WORKERS", 1)
+    monkeypatch.setattr(
+        gate, "run_one",
+        lambda index: {"route_id": "same_route", "ok": True, "elapsed_s": 0.1,
+                       "distance_m": 500.0, "duration_s": 100.0},
+    )
+    with pytest.raises(SystemExit, match="repeated route identifiers"):
+        gate.main()
+    receipt = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert receipt["successes"] == 2
+    assert receipt["distinct_route_ids_proven"] is False
+    assert receipt["bounded_capacity_proven"] is False
+
