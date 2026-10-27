@@ -125,7 +125,7 @@ def private_shelves(rows: object) -> dict[str, object]:
             shelves["live"].append(item)
     return {
         "shelves": shelves,
-        "item_count": len(drafts),
+        "item_count": sum(len(items) for items in shelves.values()),
         "mode": "private_draft_only",
         "public_catalogue_enabled": False,
         "playback_enabled": False,
