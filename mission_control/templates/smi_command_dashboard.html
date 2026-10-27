@@ -306,7 +306,7 @@
   window.setInterval(check, 15000);
 })();
 </script>
-<script src="/static/smi_source_pixel_motion.js"></script>
+<script src="{{ url_for('mission_control.static', filename='smi_source_pixel_motion.js') }}"></script>
 <script>
 (() => {
   const host=document.querySelector('[data-smi-home-motion]');
