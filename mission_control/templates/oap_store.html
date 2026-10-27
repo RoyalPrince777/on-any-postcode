@@ -15,6 +15,14 @@
     .badge{display:inline-block;padding:5px 9px;border:1px solid #35e77c;border-radius:999px;color:#35e77c;font-size:.82rem}.badge.open{border-color:#d5a33f;color:#d5a33f}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{margin-top:0}.category{color:#b8aa89;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.open-link{display:inline-block;border:1px solid #6b4c18;color:#fff8e8;border-radius:12px;padding:11px 16px;font-weight:800;text-decoration:none}
     button,.install-link{display:inline-block;background:#d5a33f;color:#111;border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer;text-decoration:none}
     .muted{color:#b8aa89}.truth{margin-top:12px;font-size:.9rem;color:#cfc3a6}
+    .store-tools{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0;align-items:end}
+    .store-tools label{display:grid;gap:6px;font-weight:700;flex:1 1 210px}
+    .store-tools input,.store-tools select{width:100%;box-sizing:border-box;min-height:48px;padding:12px;border:1px solid #ae915e;border-radius:12px;background:#17130c;color:#fff8e8;font:inherit}
+    :is(a,input,select):focus-visible{outline:3px solid #ffe0a1;outline-offset:3px}
+    .card h2{margin-bottom:8px}.card[hidden]{display:none}
+    .status-note{font-size:.95rem;color:#e2d5b9}
+    #store-empty[hidden]{display:none}
+    @media(max-width:500px){main{padding:20px 14px 70px}.card{padding:18px}.actions a{min-height:44px;box-sizing:border-box}}
   </style>
 </head>
 <body>
@@ -23,9 +31,24 @@
   <nav aria-label="OAP Store navigation"><a class="open-link" href="/the-spot">← The Spot</a> <a class="open-link" href="/world">🌍 OAP World</a></nav>
   <h1>Install OAP</h1>
   <p class="muted">First-party apps only. Install becomes available only where the release evidence supports it.</p>
-  <div class="grid">
+  <div class="store-tools" role="search" aria-label="Find OAP apps">
+    <label for="store-search">Search OAP apps
+      <input id="store-search" type="search" placeholder="App or category" autocomplete="off">
+    </label>
+    <label for="store-filter">Availability
+      <select id="store-filter">
+        <option value="all">All apps</option>
+        <option value="install">Install ready</option>
+        <option value="open">Open in OAP</option>
+        <option value="planned">Planned</option>
+      </select>
+    </label>
+  </div>
+  <p class="status-note" id="store-count" role="status" aria-live="polite"></p>
+  <p id="store-empty" hidden>No OAP apps match your search.</p>
+  <div class="grid" id="store-grid">
   {% for app in apps %}
-  <section class="card" data-oap-store-app="{{ app.app_id }}">
+  <section class="card" data-oap-store-app="{{ app.app_id }}" data-release="{{ "install" if app.install_enabled else ("open" if app.open_url else "planned") }}" data-search="{{ (app.name ~ " " ~ app.category ~ " " ~ app.description)|lower }}">
     <span class="category">{{ app.category }}</span><br>
     {% if app.install_enabled %}
       <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
@@ -63,5 +86,30 @@
   {% endfor %}
   </div>
 </main>
+<script>
+(function () {
+  const search = document.getElementById('store-search');
+  const filter = document.getElementById('store-filter');
+  const cards = Array.from(document.querySelectorAll('[data-oap-store-app]'));
+  const count = document.getElementById('store-count');
+  const empty = document.getElementById('store-empty');
+  function update() {
+    const query = search.value.trim().toLocaleLowerCase();
+    const mode = filter.value;
+    let visible = 0;
+    for (const card of cards) {
+      const matches = (!query || card.dataset.search.includes(query)) &&
+        (mode === 'all' || card.dataset.release === mode);
+      card.hidden = !matches;
+      if (matches) visible++;
+    }
+    count.textContent = visible + ' of ' + cards.length + ' OAP apps shown';
+    empty.hidden = visible !== 0;
+  }
+  search.addEventListener('input', update);
+  filter.addEventListener('change', update);
+  update();
+})();
+</script>
 </body>
 </html>
