@@ -110,8 +110,11 @@ def private_shelves(rows: object) -> dict[str, object]:
     shelves: dict[str, list[dict[str, object]]] = {
         "cinema": [], "series": [], "channels": [], "live": [],
     }
+    known_series = {item["item_id"] for item in drafts if item["kind"] == "series"}
     for item in drafts:
         kind = item["kind"]
+        if kind == "episode" and item.get("series_id") not in known_series:
+            continue  # Orphan episodes cannot appear as a browseable series.
         if kind in {"film", "documentary"}:
             shelves["cinema"].append(item)
         elif kind in {"series", "episode"}:
