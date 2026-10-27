@@ -320,3 +320,17 @@ def test_live_green_gate_warms_before_capacity_probe():
     assert "TOTAL_REQUESTS = 20" in source
     assert "WORKERS = 4" in source
     assert "P95_LIMIT_SECONDS = 6.0" in source
+
+def test_twenty_distinct_real_route_candidates_not_repeated_two_pairs():
+    assert gate.TOTAL_REQUESTS == 20
+    assert len(gate.ROUTES) == 20
+    assert len({(r[0], r[1], r[2], r[3]) for r in gate.ROUTES}) == 20
+    assert len({r[4] for r in gate.ROUTES}) == 20
+    assert all(-0.6 < r[0] < 0.4 and 51.2 < r[1] < 51.8
+               and -0.6 < r[2] < 0.4 and 51.2 < r[3] < 51.8
+               for r in gate.ROUTES)
+    for i, route in enumerate(gate.ROUTES):
+        assert gate._route_url(i).startswith(gate._configured_base() + "/route/v1/driving/")
+        assert gate._route_url(i).count(";") == 1
+        assert route[4] not in [other[4] for other in gate.ROUTES[i + 1:]]
+
