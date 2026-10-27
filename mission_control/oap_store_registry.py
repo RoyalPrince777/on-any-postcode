@@ -110,6 +110,40 @@ def verify_trusted_package(
     )
 
 
+
+def assess_release_admission(
+    manifest: ReleaseManifest,
+    artifact: bytes,
+    *,
+    trusted_publisher_keys: dict[str, str],
+    approved_app_ids: frozenset[str],
+    founder_release_approved: bool,
+    physical_device_certified: bool,
+) -> dict[str, object]:
+    """Fail closed unless every release admission prerequisite is proven.
+
+    This is a pure assessment, not package registration or download activation.
+    Trust roots and release approvals must be supplied by independently
+    controlled server-side evidence, never submitted by a public client.
+    """
+    verified = verify_trusted_package(
+        manifest, artifact, trusted_publisher_keys=trusted_publisher_keys
+    )
+    if manifest.app_id not in approved_app_ids:
+        raise PackageVerificationError("release_app_not_approved")
+    if founder_release_approved is not True:
+        raise PackageVerificationError("founder_release_approval_missing")
+    if physical_device_certified is not True:
+        raise PackageVerificationError("physical_device_proof_missing")
+    return {
+        **verified,
+        "physical_device_certified": True,
+        "release_admission_passed": True,
+        "native_install_enabled": False,
+        "reason": "Admission assessment only; no artifact registered or download activated.",
+    }
+
+
 def native_install_status() -> dict[str, object]:
     """Truthful status before a signed native package is registered."""
 
