@@ -9,7 +9,7 @@ be mislabeled as an OAP-owned observation.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 EVIDENCE_CLASSES: tuple[str, ...] = (
@@ -59,8 +59,8 @@ def _parse_utc(value: object) -> datetime | None:
     except ValueError as exc:
         raise ValueError("observed_at must be ISO-8601") from exc
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _bounded_seconds(value: object, name: str, *, default: int) -> int:
@@ -119,7 +119,7 @@ def normalise(
 
     observed_at = _parse_utc(observation.get("observed_at"))
     received_at = _parse_utc(observation.get("received_at"))
-    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    current = (now or datetime.now(UTC)).astimezone(UTC)
     if (
         observed_at is not None
         and (observed_at - current).total_seconds() > MAX_FUTURE_SKEW_SECONDS
