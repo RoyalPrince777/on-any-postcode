@@ -58,5 +58,5 @@ assert.ok(source.includes("userReducedMotionPreference:userReducedMotion"),
 const homeHtml=fs.readFileSync('mission_control/templates/smi_command_dashboard.html','utf8');
 assert.ok(homeHtml.includes('data-smi-home-motion'));
 assert.ok(homeHtml.includes('engine.attach(window,document,{home:true})'));
-assert.ok(homeHtml.includes('event?.detail?.phase'));
+assert.ok(homeHtml.includes('event?.detail?.state'));
 assert.ok(homeHtml.includes('MOTION UNAVAILABLE'));
