@@ -212,6 +212,11 @@ PLANNED_STORE_APPS = (
 # deliberately remains open_ready until separate install and device proof exists.
 FINANCE_STORE_APPS = (
     _catalogue_placeholder(
+        app_id="oap.sika", name="SIKA Finance", open_url="/sika",
+        description="SIKA value, account information and financial intelligence. Real-money functions remain governed and locked.",
+        category="Finance",
+    ),
+    _catalogue_placeholder(
         app_id="oap.pay", name="OAP Pay", open_url="/pay",
         description="First-party payment request, account information and governed SIKA access; money execution remains evidence-gated.",
         category="Finance",
