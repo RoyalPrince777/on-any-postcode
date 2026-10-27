@@ -116,3 +116,20 @@ def test_atomic_payment_status_keeps_external_execution_closed():
     assert status["partial_commit_allowed"] is False
     assert status["provider_calling"] is False
     assert status["money_movement"] is False
+
+
+@pytest.mark.parametrize("amount", ["0.001", "0.009", "1.001", "1.005", "1.999", "0.0001", "1e100", "-1", "0", "NaN", "Infinity"])
+def test_atomic_payment_rejects_invalid_precision_without_database_access(monkeypatch, amount):
+    connection = _Connection()
+    with pytest.raises(sika_atomic_payment.AtomicPaymentError, match="payment_amount_invalid"):
+        _create(monkeypatch, connection, amount=amount)
+    assert connection.sql == []
+    assert connection.committed is False
+
+
+@pytest.mark.parametrize("amount,expected", [("0.01", "0.01"), ("1.20", "1.20"), ("1.000", "1.00")])
+def test_atomic_payment_accepts_exact_cent_values(monkeypatch, amount, expected):
+    connection = _Connection()
+    result = _create(monkeypatch, connection, amount=amount)
+    assert result["amount"] == expected
+    assert connection.committed is True
