@@ -95,3 +95,20 @@ def test_private_shelves_empty_without_approved_drafts():
     result = private_shelves([{"kind": "film", "title": "invented"}])
     assert result["item_count"] == 0
     assert all(not contents for contents in result["shelves"].values())
+
+
+def test_private_shelves_hide_orphan_episodes():
+    from mission_control.tv_cinema_catalogue import private_shelves
+
+    parent = str(uuid4())
+    other = str(uuid4())
+    rows = [
+        {**valid("series"), "item_id": parent},
+        valid("episode", series_id=parent, season=1, episode=1),
+        valid("episode", series_id=other, season=1, episode=2),
+    ]
+    result = private_shelves(rows)
+    assert [item["kind"] for item in result["shelves"]["series"]] == [
+        "series", "episode",
+    ]
+    assert result["playback_enabled"] is False
