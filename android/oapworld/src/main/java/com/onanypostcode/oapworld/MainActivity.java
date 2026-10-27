@@ -74,6 +74,7 @@ public final class MainActivity extends ComponentActivity {
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
         omnibox.setHint("Search OAP or enter web address");
+        omnibox.setContentDescription("Koradaso Internet address and search field");
         omnibox.setTextColor(Color.WHITE);
         omnibox.setHintTextColor(Color.rgb(150, 170, 158));
         omnibox.setBackgroundColor(Color.rgb(11, 23, 16));
@@ -91,11 +92,6 @@ public final class MainActivity extends ComponentActivity {
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         );
 
-        // Explicit touch target for navigation; keyboard action remains supported.
-        Button goButton = navButton("Go");
-        goButton.setContentDescription("Open the address entered in Koradaso Internet");
-        goButton.setOnClickListener(v -> navigate(omnibox.getText().toString()));
-        toolbar.addView(goButton);
 
         webView = new WebView(this);
         engineClient = new EngineDocumentClient(OAP_ORIGIN);
