@@ -43,3 +43,31 @@ def test_catalogue_deduplicates_and_never_claims_publication():
     assert result["public_catalogue_enabled"] is False
     assert result["playback_enabled"] is False
     assert result["asset_import_performed"] is False
+
+
+def test_series_episodes_orders_seasons_without_publishing():
+    from mission_control.tv_cinema_catalogue import series_episodes
+
+    series_id = str(uuid4())
+    other_id = str(uuid4())
+    rows = [
+        valid("episode", series_id=series_id, season=2, episode=3),
+        valid("episode", series_id=other_id, season=1, episode=1),
+        valid("episode", series_id=series_id, season=1, episode=9),
+        valid("episode", series_id=series_id, season=1, episode=2),
+    ]
+    result = series_episodes(rows, series_id)
+    assert [(x["season"], x["episode"]) for x in result["episodes"]] == [
+        (1, 2), (1, 9), (2, 3)
+    ]
+    assert result["episode_count"] == 3
+    assert result["playback_enabled"] is False
+    assert result["public_catalogue_enabled"] is False
+
+
+def test_series_episodes_rejects_invalid_series_id():
+    from mission_control.tv_cinema_catalogue import series_episodes
+
+    result = series_episodes([], "../invalid")
+    assert result["episode_count"] == 0
+    assert result["playback_enabled"] is False
