@@ -262,3 +262,47 @@ def test_missing_provider_profile_cannot_reach_evidence_verifier():
         raise AssertionError("a missing profile must not activate")
     assert not called
     assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_network_registration_refuses_detached_provider():
+    core = EsimProvisioningCore(
+        FakeProvider(), network_evidence_verifier=lambda *args: True
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    core.provider = None
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="network-proof",
+            session_established=True,
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "esim_provider_mismatch"
+    else:
+        raise AssertionError("detached carrier must not activate")
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_network_registration_refuses_provider_swap():
+    core = EsimProvisioningCore(
+        FakeProvider(), network_evidence_verifier=lambda *args: True
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+
+    class WrongProvider(FakeProvider):
+        name = "different-provider"
+
+    core.provider = WrongProvider()
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="network-proof",
+            session_established=True,
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "esim_provider_mismatch"
+    else:
+        raise AssertionError("mismatched carrier must not activate")
+    assert core.get(item["request_id"])["state"] == "available"
