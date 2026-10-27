@@ -77,10 +77,8 @@ def test_oap_world_and_home_v2_not_rebranded_into_koradaso():
     assert '"short_name": "OAP OS"' in webmanifest
     assert "android/oaphome/" not in str(ACTIVITY)
 
-def test_koradaso_address_bar_has_accessible_touch_submission():
+def test_koradaso_address_bar_is_accessible_without_extra_navigation():
     source = ACTIVITY.read_text(encoding="utf-8")
-    assert 'Button goButton = navButton("Go")' in source
-    assert 'goButton.setContentDescription("Open the address entered in Koradaso Internet")' in source
-    assert 'goButton.setOnClickListener(v -> navigate(omnibox.getText().toString()))' in source
-    assert "toolbar.addView(goButton)" in source
+    assert 'omnibox.setContentDescription("Koradaso Internet address and search field")' in source
     assert "if (actionId == EditorInfo.IME_ACTION_GO)" in source
+    assert 'navButton("Go")' not in source
