@@ -308,6 +308,7 @@ public class MainActivity extends Activity {
         TextView divider = label("────  ON ANY POSTCODE  ────", 13);
         divider.setPadding(0, dp(10), 0, dp(10));
         body.addView(divider);
+        addButton("♻ OAP AUTOUPDATE PREFERENCES", v -> autoUpdatePreferences());
         addButton("⚙ SETTINGS", v -> open(new Intent(Settings.ACTION_SETTINGS)));
         addButton("↩ CHANGE DEFAULT HOME · ANDROID SETTINGS",
                 v -> open(new Intent(Settings.ACTION_HOME_SETTINGS)));
@@ -627,6 +628,50 @@ public class MainActivity extends Activity {
                 return;
         }
         openInternetAddress(OAP_API_ORIGIN + path);
+    }
+
+
+    // Founder-approved local preferences only. No network, APK download,
+    // installer invocation or unattended update is performed by this screen.
+    private void autoUpdatePreferences() {
+        base("OAP AUTOUPDATE");
+        final android.content.SharedPreferences prefs =
+                getSharedPreferences("oap_autoupdate_preferences_v1", MODE_PRIVATE);
+        body.addView(label("SETTINGS ONLY — UPDATE ENGINE NOT CONNECTED", 16));
+        body.addView(label("Android controls when an installation needs approval. "
+                + "Package signatures and installed app data must remain protected.", 13));
+
+        android.widget.CheckBox automatic = new android.widget.CheckBox(this);
+        automatic.setText("Automatic secure updates where Android permits");
+        automatic.setTextColor(Color.WHITE);
+        automatic.setChecked(prefs.getBoolean("automatic", true));
+        body.addView(automatic);
+        android.widget.CheckBox wifi = new android.widget.CheckBox(this);
+        wifi.setText("Wi-Fi only for large downloads");
+        wifi.setTextColor(Color.WHITE);
+        wifi.setChecked(prefs.getBoolean("wifi_large", true));
+        body.addView(wifi);
+        android.widget.CheckBox idle = new android.widget.CheckBox(this);
+        idle.setText("Prefer idle-time updates");
+        idle.setTextColor(Color.WHITE);
+        idle.setChecked(prefs.getBoolean("prefer_idle", true));
+        body.addView(idle);
+        android.widget.CheckBox notify = new android.widget.CheckBox(this);
+        notify.setText("Notify on completion or failure");
+        notify.setTextColor(Color.WHITE);
+        notify.setChecked(prefs.getBoolean("notify", true));
+        body.addView(notify);
+        addButton("SAVE UPDATE PREFERENCES", v -> {
+            prefs.edit()
+                    .putBoolean("automatic", automatic.isChecked())
+                    .putBoolean("wifi_large", wifi.isChecked())
+                    .putBoolean("prefer_idle", idle.isChecked())
+                    .putBoolean("notify", notify.isChecked())
+                    .apply();
+            android.widget.Toast.makeText(this, "Preferences saved locally; updates not enabled",
+                    android.widget.Toast.LENGTH_LONG).show();
+        });
+        addButton("BACK TO OAP HOME", v -> home());
     }
 
     private void allApps() {
