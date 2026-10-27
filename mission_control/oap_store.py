@@ -208,6 +208,22 @@ PLANNED_STORE_APPS = (
 )
 
 
+# Finance apps use existing OAP Pay/Bank first-party routes. Their release state
+# deliberately remains open_ready until separate install and device proof exists.
+FINANCE_STORE_APPS = (
+    _catalogue_placeholder(
+        app_id="oap.pay", name="OAP Pay", open_url="/pay",
+        description="First-party payment request, account information and governed SIKA access; money execution remains evidence-gated.",
+        category="Finance",
+    ),
+    _catalogue_placeholder(
+        app_id="oap.bank", name="OAP Bank", open_url="/pay/bank",
+        description="First-party banking information and intelligence; no licensed deposit-taking or live banking claimed.",
+        category="Finance",
+    ),
+)
+
+
 PUBLIC_STORE_APPS = (
     _catalogue_placeholder(app_id="oap.search", name="OAP Search", open_url="/search", description="First-party search across OAP public apps, places, Market, Library and media catalogue entries.", category="Discovery"),
     _catalogue_placeholder(app_id="oap.spot", name="The Spot", open_url="/the-spot", description="Public community activity, Pulse, Signal and Empire life.", category="Social"),
@@ -275,6 +291,7 @@ def catalogue() -> tuple[dict[str, object], ...]:
         dict(OAP_PTT),
         dict(OAP_MUSIC),
         dict(OAP_TRANSPORT),
+        *FINANCE_STORE_APPS,
         *PUBLIC_STORE_APPS,
         *PLANNED_STORE_APPS,
         *_spot_store_apps(),
