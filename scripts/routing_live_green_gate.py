@@ -63,11 +63,32 @@ def _configured_base() -> str:
     if host not in allowed or host not in owned:
         raise RoutingOriginRejected("routing_origin_not_allowlisted_and_owned")
     return f"https://{host}"
+# Twenty distinct *candidate* Greater London driving OD pairs. A live OSRM
+# response, not this coordinate list, must establish road-network routability.
+# Preserve the original two pairs and fail closed if the full set is changed.
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
+    (-0.1687, 51.4036, -0.1419, 51.5014, "mitcham_victoria"),
+    (-0.1687, 51.4036, -0.0754, 51.5055, "mitcham_tower_bridge"),
+    (-0.1687, 51.4036, -0.1752, 51.5154, "mitcham_paddington"),
+    (-0.1687, 51.4036, -0.0601, 51.5200, "mitcham_whitechapel"),
+    (-0.1687, 51.4036, -0.0762, 51.4529, "mitcham_peckham"),
+    (-0.1687, 51.4036, -0.0195, 51.4826, "mitcham_greenwich"),
+    (-0.1687, 51.4036, -0.0053, 51.5416, "mitcham_stratford"),
+    (-0.1687, 51.4036, -0.2882, 51.4901, "mitcham_kew"),
+    (-0.0877, 51.5079, -0.1238, 51.5308, "london_bridge_kings_cross"),
+    (-0.0877, 51.5079, -0.1419, 51.5014, "london_bridge_victoria"),
+    (-0.0877, 51.5079, -0.1752, 51.5154, "london_bridge_paddington"),
+    (-0.1238, 51.5308, -0.0195, 51.4826, "kings_cross_greenwich"),
+    (-0.1238, 51.5308, -0.2882, 51.4901, "kings_cross_kew"),
+    (-0.1419, 51.5014, -0.0053, 51.5416, "victoria_stratford"),
+    (-0.1419, 51.5014, -0.0762, 51.4529, "victoria_peckham"),
+    (-0.0754, 51.5055, -0.1752, 51.5154, "tower_bridge_paddington"),
+    (-0.0601, 51.5200, -0.2882, 51.4901, "whitechapel_kew"),
+    (-0.0195, 51.4826, -0.0053, 51.5416, "greenwich_stratford"),
 )
-TOTAL_REQUESTS = 20
+TOTAL_REQUESTS = len(ROUTES)
 WORKERS = 4
 TIMEOUT_SECONDS = 10
 P95_LIMIT_SECONDS = 6.0
@@ -138,7 +159,7 @@ def _failure_reason(exc: BaseException) -> str:
 
 
 def _route_url(index: int) -> str:
-    from_lon, from_lat, to_lon, to_lat, _route_id = ROUTES[index % len(ROUTES)]
+    from_lon, from_lat, to_lon, to_lat, _route_id = ROUTES[index]
     coords = f"{from_lon},{from_lat};{to_lon},{to_lat}"
     query = parse.urlencode(
         {
