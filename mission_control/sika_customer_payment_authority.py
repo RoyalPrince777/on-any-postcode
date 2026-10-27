@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 MIGRATION_VERSION = "sika_customer_payment_authority_v1"
@@ -50,7 +50,7 @@ def _iso(value: object, field: str) -> str:
         raise CustomerAuthorityError(f"{field}_invalid") from exc
     if parsed.tzinfo is None:
         raise CustomerAuthorityError(f"{field}_timezone_required")
-    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    return parsed.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 def build_receipt(
@@ -112,7 +112,7 @@ def verify_receipt(
         return {"verified": False, "reason": "receipt_hash_mismatch"}
     if receipt.get("revoked") is True:
         return {"verified": False, "reason": "receipt_revoked"}
-    current = now or datetime.now(timezone.utc)
+    current = now or datetime.now(UTC)
     expires = datetime.fromisoformat(str(receipt["expires_at"]).replace("Z", "+00:00"))
     if current >= expires:
         return {"verified": False, "reason": "receipt_expired"}
