@@ -98,3 +98,32 @@ def series_episodes(rows: object, series_id: str) -> dict[str, object]:
         "playback_enabled": False,
         "public_catalogue_enabled": False,
     }
+
+
+def private_shelves(rows: object) -> dict[str, object]:
+    """Group genuine owner-supplied drafts for Cinema, Series, Channels and Live.
+
+    This remains a private, in-memory projection. It cannot create a public
+    catalogue, fetch third-party videos or grant playback rights.
+    """
+    drafts = private_catalogue(rows)["items"]
+    shelves: dict[str, list[dict[str, object]]] = {
+        "cinema": [], "series": [], "channels": [], "live": [],
+    }
+    for item in drafts:
+        kind = item["kind"]
+        if kind in {"film", "documentary"}:
+            shelves["cinema"].append(item)
+        elif kind in {"series", "episode"}:
+            shelves["series"].append(item)
+        elif kind == "creator_video":
+            shelves["channels"].append(item)
+        elif kind == "live":
+            shelves["live"].append(item)
+    return {
+        "shelves": shelves,
+        "item_count": len(drafts),
+        "mode": "private_draft_only",
+        "public_catalogue_enabled": False,
+        "playback_enabled": False,
+    }
