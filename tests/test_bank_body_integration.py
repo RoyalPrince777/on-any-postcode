@@ -19,6 +19,7 @@ def test_post_office_is_separate_from_post_core_and_cash_access() -> None:
     result = body.status()["post_office"]
     assert result["contract"] == "docs/SIKA_POST_OFFICE_CASH_ACCESS_GAPS.md"
     assert result["post_core_preserved"]
+    assert result["cash_intent_validation_available"] is True
     assert result["bank_specific_permission_required"]
     for name in (
         "cash_in_enabled", "cash_out_enabled", "physical_location_verified",
