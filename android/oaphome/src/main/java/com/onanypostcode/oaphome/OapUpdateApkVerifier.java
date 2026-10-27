@@ -42,8 +42,8 @@ public final class OapUpdateApkVerifier {
             PackageInfo archive = manager.getPackageArchiveInfo(apk.getAbsolutePath(),
                     PackageManager.GET_SIGNATURES);
             if (archive == null || !candidate.packageName.equals(archive.packageName)
-                    || archive.getLongVersionCode() != candidate.versionCode
-                    || archive.getLongVersionCode() <= installed.getLongVersionCode()) {
+                    || versionCode(archive) != candidate.versionCode
+                    || versionCode(archive) <= versionCode(installed)) {
                 throw new IOException("apk_package_or_version_mismatch");
             }
             String originalSigner = uniqueSignerSha256(installed.signatures);
@@ -60,6 +60,11 @@ public final class OapUpdateApkVerifier {
         } catch (PackageManager.NameNotFoundException ex) {
             throw new IOException("installed_package_not_visible_or_missing", ex);
         }
+    }
+
+    private static long versionCode(PackageInfo info) {
+        return android.os.Build.VERSION.SDK_INT >= 28
+                ? info.getLongVersionCode() : info.versionCode;
     }
 
     private static String uniqueSignerSha256(Signature[] signatures) throws IOException {
