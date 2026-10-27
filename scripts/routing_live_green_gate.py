@@ -321,6 +321,19 @@ def main() -> None:
         "failures": TOTAL_REQUESTS - successes,
         "timeouts": timed_out,
         "failure_reasons": failure_reasons,
+        # Stable non-coordinate IDs make every distinct OD result auditable.
+        # No route geometry, URL, or traveler location is recorded here.
+        "route_results": [
+            {
+                "route_id": item["route_id"],
+                "ok": bool(item["ok"]),
+                "elapsed_ms": round(float(item["elapsed_s"]) * 1000, 1),
+                "distance_m": item.get("distance_m", 0.0),
+                "duration_s": item.get("duration_s", 0.0),
+                "failure_reason": item.get("failure_reason"),
+            }
+            for item in results
+        ],
         "success_rate": round(successes / TOTAL_REQUESTS, 3),
         "p50_ms": round(statistics.median(latencies) * 1000, 1),
         "p95_ms": round(p95 * 1000, 1),
