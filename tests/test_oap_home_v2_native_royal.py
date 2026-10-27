@@ -77,6 +77,16 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("NOT CONNECTED", self.source)
         self.assertNotIn("Mostly Sunny", self.source)
 
+    def test_royal_tiles_adapt_without_changing_routes(self):
+        home = self.source.split("    private void home() {", 1)[1].split(
+            "    private void addPersistentHomeDock", 1)[0]
+        self.assertIn("int columns = availableWidth < dp(336) ? 2 : 3;", home)
+        self.assertIn("grid.setColumnCount(columns)", home)
+        self.assertIn("(availableWidth - dp(4 * columns)) / columns", home)
+        self.assertIn("tile.setAllCaps(false)", home)
+        self.assertIn("v -> destination(name)", home)
+        self.assertIn("new RoyalHomeArt.TileDrawable(i)", home)
+
     def test_no_silent_install_or_os_replace(self):
         manifest = MANIFEST.read_text(encoding="utf-8")
         self.assertNotIn("DEVICE_OWNER", manifest)
