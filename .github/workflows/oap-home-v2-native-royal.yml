@@ -7,6 +7,7 @@ on:
     paths:
       - android/oaphome/**
       - tests/test_oap_home_v2_native_royal.py
+      - tests/test_oap_autoupdate_manifest_policy.py
       - tests/test_oap_home_v2_inplace_gate.py
       - tests/test_oap_home_v2_device_evidence.py
       - scripts/oap_home_v2_device_evidence.py
@@ -34,6 +35,7 @@ jobs:
       - name: Prove existing V2 identity and old Home separation
         run: |
           python3 tests/test_oap_home_v2_native_royal.py
+          python3 -c 'import runpy; runpy.run_path("tests/test_oap_autoupdate_manifest_policy.py")["test_local_candidate_policy_not_an_updater"]()'
           python3 -m unittest discover -s tests -p 'test_oap_home_v2_inplace_gate.py' -v
           python3 -m unittest discover -s tests -p 'test_oap_home_v2_device_evidence.py' -v
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
