@@ -118,7 +118,7 @@ def test_atomic_payment_status_keeps_external_execution_closed():
     assert status["money_movement"] is False
 
 
-@pytest.mark.parametrize("amount", ["0.001", "0.009", "1.001", "1.999", "-1", "0", "NaN", "Infinity"])
+@pytest.mark.parametrize("amount", ["0.001", "0.009", "1.001", "1.005", "1.999", "0.0001", "1e100", "-1", "0", "NaN", "Infinity"])
 def test_atomic_payment_rejects_invalid_precision_without_database_access(monkeypatch, amount):
     connection = _Connection()
     with pytest.raises(sika_atomic_payment.AtomicPaymentError, match="payment_amount_invalid"):
