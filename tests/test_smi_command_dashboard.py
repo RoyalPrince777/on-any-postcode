@@ -219,7 +219,7 @@ def test_smi_command_dashboard_front_surface_has_backend_controls(client):
     assert "SMI Inference" in page
     assert "Check backend" in page
     assert "Talk to SMI" in page
-    assert "Start the OAP Home Node worker" in page
+    assert "Start the OAP Core worker" in page
 
 
 
