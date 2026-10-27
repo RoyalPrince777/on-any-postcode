@@ -181,6 +181,14 @@ class EsimProvisioningCore:
             raise RuntimeError("provider_profile_missing")
         if self.provider is None or self.provider.name != item.provider_name:
             raise RuntimeError("esim_provider_mismatch")
+        # Reject prior receipts for this request after suspend/resume.
+        # Cross-worker single-use enforcement belongs to a durable trusted verifier.
+        if any(
+            event.get("event") == "registered"
+            and event.get("evidence_id") == evidence_id
+            for event in self.events(request_id)
+        ):
+            raise RuntimeError("network_evidence_already_used")
         if self.network_evidence_verifier is None:
             raise RuntimeError("network_evidence_verifier_not_configured")
         try:
