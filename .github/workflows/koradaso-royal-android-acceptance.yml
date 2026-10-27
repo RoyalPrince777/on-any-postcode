@@ -1,0 +1,50 @@
+name: KORADASO Internet royal Android source acceptance
+on:
+  push:
+    branches:
+      - feature/koradaso-royal-android-source-acceptance-20261027
+    paths:
+      - android/oapworld/**
+      - tests/test_koradaso_royal_android_identity.py
+      - tests/test_oap_browser_android_contract.py
+      - .github/workflows/koradaso-royal-android-acceptance.yml
+  pull_request:
+    paths:
+      - android/oapworld/**
+      - tests/test_koradaso_royal_android_identity.py
+      - tests/test_oap_browser_android_contract.py
+      - .github/workflows/koradaso-royal-android-acceptance.yml
+permissions:
+  contents: read
+jobs:
+  native-source-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate existing browser contract and Royal identity
+        run: |
+          python3 -m pip install --disable-pip-version-check pytest
+          python3 -m pytest -q tests/test_koradaso_royal_android_identity.py tests/test_oap_browser_android_contract.py
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          test -x "$SDKMANAGER"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          yes | "$SDKMANAGER" --licenses >/dev/null || test "${PIPESTATUS[1]}" -eq 0
+          "$SDKMANAGER" 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Compile exact native browser source without publishing APK
+        working-directory: android/oapworld
+        run: gradle --no-daemon --stacktrace compileDebugJavaWithJavac
+      - name: Record scope
+        run: echo "SOURCE_ONLY; no signed APK, no host migration, no installed browser acceptance."
