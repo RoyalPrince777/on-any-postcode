@@ -10,7 +10,7 @@ import uuid
 
 import pytest
 
-from mission_control.esim_persistence import EsimRepository, SCHEMA_STATEMENTS
+from mission_control.esim_persistence import SCHEMA_STATEMENTS, EsimRepository
 
 
 @pytest.mark.skipif(
@@ -38,13 +38,13 @@ def test_two_independent_postgres_workers_cannot_claim_one_receipt():
             conn.commit()
 
         def item(request_id):
-            return dict(
-                request_id=request_id, subject_id="acceptance-only",
-                purpose="replay-integrity", state="available",
-                approved_by="test-authority", provider_name="test-provider",
-                provider_profile_id=request_id, last_error=None,
-                created_at=now, updated_at=now,
-            )
+            return {
+                "request_id": request_id, "subject_id": "acceptance-only",
+                "purpose": "replay-integrity", "state": "available",
+                "approved_by": "test-authority", "provider_name": "test-provider",
+                "provider_profile_id": request_id, "last_error": None,
+                "created_at": now, "updated_at": now,
+            }
 
         request_ids = ["esim_accept_" + uuid.uuid4().hex for _ in range(2)]
         for request_id in request_ids:
@@ -53,10 +53,10 @@ def test_two_independent_postgres_workers_cannot_claim_one_receipt():
         def compete(request_id):
             record = item(request_id)
             record["state"] = "registered"
-            event = dict(
-                request_id=request_id, event="registered", state="registered",
-                recorded_at=now, evidence_id="one-shared-receipt",
-            )
+            event = {
+                "request_id": request_id, "event": "registered", "state": "registered",
+                "recorded_at": now, "evidence_id": "one-shared-receipt",
+            }
             try:
                 EsimRepository(connect).save_with_event(record, event)
                 return "claimed"
