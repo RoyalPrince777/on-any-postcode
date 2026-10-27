@@ -179,6 +179,8 @@ class EsimProvisioningCore:
             raise RuntimeError("network_registration_not_confirmed")
         if not item.provider_profile_id:
             raise RuntimeError("provider_profile_missing")
+        if self.provider is None or self.provider.name != item.provider_name:
+            raise RuntimeError("esim_provider_mismatch")
         if self.network_evidence_verifier is None:
             raise RuntimeError("network_evidence_verifier_not_configured")
         try:
