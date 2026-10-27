@@ -150,3 +150,39 @@ def founder_agents_hq_chat():
     except RuntimeError:
         return _no_store(make_response(jsonify({"error": "provider_unavailable"}), 503))
     return _no_store(make_response(jsonify(result)))
+
+
+@bp.post("/organiser/agents-hq/select")
+@web_security.login_required(api=True, founder_only=True)
+def founder_agents_hq_select():
+    """Advise on eligible mission specialists; do not create workers or grant access."""
+    from oap.smi.alliance_selection import select_passport_verified_alliance
+
+    if not web_security.csrf_valid(request):
+        return _no_store(make_response(jsonify({"error": "csrf_failed"}), 403))
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _no_store(make_response(jsonify({"error": "invalid_request"}), 400))
+    mission = payload.get("mission")
+    task_type = payload.get("task_type", "GENERAL")
+    if (
+        not isinstance(mission, str)
+        or not mission.strip()
+        or len(mission) > 2000
+        or not isinstance(task_type, str)
+        or task_type.upper() not in {"GENERAL", "TECHNICAL", "STRATEGY", "MONITORING", "COMMUNITY", "CULTURE"}
+    ):
+        return _no_store(make_response(jsonify({"error": "invalid_mission"}), 400))
+    result = select_passport_verified_alliance(
+        task_type.upper(), mission, high_impact=payload.get("high_impact") is True,
+        distributed_work=payload.get("distributed_work") is True,
+    )
+    return _no_store(make_response(jsonify({
+        "capabilities": result.capabilities,
+        "recommended_specialists": result.specialists,
+        "unassigned_capabilities": result.unassigned_capabilities,
+        "excluded_unregistered": result.excluded_unregistered,
+        "excluded_inactive": result.excluded_inactive,
+        "advisory_only": True, "agent_messages_generated": False,
+        "execution_authorised": False, "founder_final": True,
+    })))
