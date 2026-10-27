@@ -177,6 +177,8 @@ class EsimProvisioningCore:
             raise ValueError("available_profile_required")
         if not evidence_id or session_established is not True:
             raise RuntimeError("network_registration_not_confirmed")
+        if not item.provider_profile_id:
+            raise RuntimeError("provider_profile_missing")
         if self.network_evidence_verifier is None:
             raise RuntimeError("network_evidence_verifier_not_configured")
         try:
