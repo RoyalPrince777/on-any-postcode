@@ -4,7 +4,7 @@ from mission_control import oap_store
 
 def test_finance_apps_are_in_single_catalogue_without_false_install_claims():
     apps = {app["app_id"]: app for app in oap_store.catalogue()}
-    for app_id, url in (("oap.pay", "/pay"), ("oap.bank", "/pay/bank")):
+    for app_id, url in (("oap.sika", "/sika"), ("oap.pay", "/pay"), ("oap.bank", "/pay/bank")):
         item = apps[app_id]
         assert item["distribution"] == "OAP Store"
         assert item["publisher"] == "ON ANY POSTCODE LTD"
