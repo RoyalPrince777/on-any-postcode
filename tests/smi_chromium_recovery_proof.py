@@ -302,6 +302,8 @@ def main():
             print("STOP_FREEZES_MOTION=PASS")
 
             page.goto(base_url + '/mission/smi', wait_until='domcontentloaded')
+            print('SMI_HOME_URL=' + page.url, flush=True)
+            print('SMI_HOME_DIAGNOSTICS=' + str(page.evaluate("() => ({title:document.title,host:!!document.querySelector('[data-smi-home-motion]'),label:document.querySelector('.state-orb')?.textContent,engine:!!window.OAP_SMI_SOURCE_PIXEL_MOTION,canvas:!!document.querySelector('[data-smi-home-motion] canvas')})")), flush=True)
             page.locator('[data-smi-home-motion] canvas').wait_for(state='visible', timeout=15000)
             assert page.locator('[data-smi-home-motion] img').evaluate("el => getComputedStyle(el).visibility === 'hidden'")
             page.evaluate("() => window.dispatchEvent(new CustomEvent('oap-smi-character-state', {detail:{state:'listening',live:true,stopped:false}}))")
