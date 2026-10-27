@@ -35,7 +35,14 @@ public final class OapUpdateApkVerifier {
                 || apk.length() > 250L * 1024 * 1024) {
             throw new IOException("apk_missing_or_invalid");
         }
-        // Limit input to the application private files directory; never trust a public path.\n        File privateRoot = context.getFilesDir().getCanonicalFile();\n        File canonicalApk = apk.getCanonicalFile();\n        if (!canonicalApk.toPath().startsWith(privateRoot.toPath())\n                || !canonicalApk.getName().endsWith(".apk")) {\n            throw new IOException("apk_not_in_private_storage");\n        }\n        PackageManager manager = context.getPackageManager();
+        // Limit input to the application private files directory; never trust a public path.
+        File privateRoot = context.getFilesDir().getCanonicalFile();
+        File canonicalApk = apk.getCanonicalFile();
+        if (!canonicalApk.toPath().startsWith(privateRoot.toPath())
+                || !canonicalApk.getName().endsWith(".apk")) {
+            throw new IOException("apk_not_in_private_storage");
+        }
+        PackageManager manager = context.getPackageManager();
         try {
             PackageInfo installed = manager.getPackageInfo(candidate.packageName,
                     PackageManager.GET_SIGNATURES);
