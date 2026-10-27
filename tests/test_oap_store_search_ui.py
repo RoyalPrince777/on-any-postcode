@@ -17,7 +17,7 @@ def test_store_has_accessible_search_and_release_filter(client):
 
 def test_finance_ui_cannot_offer_unproven_downloads(client):
     html = client.get("/store").get_data(as_text=True)
-    for app_id, name in (("oap.pay", "OAP Pay"), ("oap.bank", "OAP Bank")):
+    for app_id, name in (("oap.sika", "SIKA Finance"), ("oap.pay", "OAP Pay"), ("oap.bank", "OAP Bank")):
         section = html.split(f'data-oap-store-app="{app_id}"', 1)[1].split("</section>", 1)[0]
         assert 'data-release="open"' in section
         assert "INSTALL NOT YET PROVEN" in section
