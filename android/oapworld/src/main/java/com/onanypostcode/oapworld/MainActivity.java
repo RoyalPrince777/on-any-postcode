@@ -74,6 +74,7 @@ public final class MainActivity extends ComponentActivity {
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
         omnibox.setHint("Search OAP or enter web address");
+        omnibox.setContentDescription("Koradaso Internet address and search field");
         omnibox.setTextColor(Color.WHITE);
         omnibox.setHintTextColor(Color.rgb(150, 170, 158));
         omnibox.setBackgroundColor(Color.rgb(11, 23, 16));
@@ -90,6 +91,7 @@ public final class MainActivity extends ComponentActivity {
                 omnibox,
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         );
+
 
         webView = new WebView(this);
         engineClient = new EngineDocumentClient(OAP_ORIGIN);
