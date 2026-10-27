@@ -89,6 +89,27 @@ def verify_package(
     }
 
 
+
+def verify_trusted_package(
+    manifest: ReleaseManifest,
+    artifact: bytes,
+    *,
+    trusted_publisher_keys: dict[str, str],
+) -> dict[str, object]:
+    """Verify only against independently configured app-specific OAP trust roots.
+
+    The trusted mapping must come from the operator's protected release config,
+    never from a submitted manifest or client request. No keys are provisioned
+    by this module; an empty or missing trust root is a hard denial.
+    """
+    key = trusted_publisher_keys.get(manifest.app_id)
+    if not isinstance(key, str) or not key:
+        raise PackageVerificationError("trusted_publisher_key_missing")
+    return verify_package(
+        manifest, artifact, publisher_public_key_b64=key
+    )
+
+
 def native_install_status() -> dict[str, object]:
     """Truthful status before a signed native package is registered."""
 
