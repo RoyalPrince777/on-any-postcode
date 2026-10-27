@@ -4,6 +4,12 @@ name: OAP Home Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      use_reviewed_royal_v2:
+        description: 'Build reviewed Royal Home V2 candidate at pinned SHA; not a phone install'
+        required: true
+        default: false
+        type: boolean
   push:
     branches: [main]
     paths:
@@ -20,7 +26,7 @@ jobs:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: oap-home-apk-master777
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && '2c9892c501c07cd04a6c46f636a2bac2f97fbe99' || 'oap-home-apk-master777' }}
       - name: Verify checked-out V2 source and record revision
         shell: bash
         run: |
@@ -98,7 +104,7 @@ jobs:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: oap-home-apk-master777
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && '2c9892c501c07cd04a6c46f636a2bac2f97fbe99' || 'oap-home-apk-master777' }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
