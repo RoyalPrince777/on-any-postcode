@@ -190,3 +190,52 @@ def test_network_verifier_rejection_fails_closed():
     else:
         raise AssertionError("rejected evidence must not activate")
     assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_verifier_exception_stays_fail_closed():
+    def broken_verifier(request_id, profile_id, evidence_id):
+        raise ConnectionError("provider unavailable")
+
+    core = EsimProvisioningCore(
+        FakeProvider(), network_evidence_verifier=broken_verifier
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="unverified", session_established=True
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_verification_failed"
+    else:
+        raise AssertionError("verifier failure must not activate")
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_verifier_receives_exact_request_and_profile_binding():
+    observed = []
+    def bound_verifier(request_id, profile_id, evidence_id):
+        observed.append((request_id, profile_id, evidence_id))
+        return False
+
+    core = EsimProvisioningCore(
+        FakeProvider(), network_evidence_verifier=bound_verifier
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    provisioned = core.provision(item["request_id"])
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="proof-for-other-profile",
+            session_established=True
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_verification_failed"
+    else:
+        raise AssertionError("untrusted proof must not activate")
+    assert observed == [(
+        item["request_id"], provisioned["provider_profile_id"],
+        "proof-for-other-profile"
+    )]
+    assert core.get(item["request_id"])["state"] == "available"
