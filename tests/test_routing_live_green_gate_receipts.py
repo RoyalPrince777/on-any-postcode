@@ -211,6 +211,10 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
     assert receipt["requests"] == 2
     assert receipt["successes"] == 1
     assert receipt["failures"] == 1
+    assert [r["route_id"] for r in receipt["route_results"]] == ["a", "b"]
+    assert [r["ok"] for r in receipt["route_results"]] == [True, False]
+    assert receipt["route_results"][1]["elapsed_ms"] == 10000.0
+    assert all("geometry" not in r and "url" not in r for r in receipt["route_results"])
     assert receipt["timeouts"] == 1
     assert receipt["geometry_proven"] is False
     assert receipt["bounded_capacity_proven"] is False
