@@ -11,6 +11,7 @@ def test_finance_discovery_in_oap_store_without_install_buttons(client):
     assert response.headers["Cache-Control"] == "no-store"
     text = response.get_data(as_text=True)
     for app_id, name, path in (
+        ("oap.sika", "SIKA Finance", "/sika"),
         ("oap.pay", "OAP Pay", "/pay"),
         ("oap.bank", "OAP Bank", "/pay/bank"),
     ):
@@ -27,7 +28,7 @@ def test_finance_catalogue_http_fails_closed_for_downloads(client):
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
     apps = {a["app_id"]: a for a in response.get_json()["apps"]}
-    for app_id in ("oap.pay", "oap.bank"):
+    for app_id in ("oap.sika", "oap.pay", "oap.bank"):
         app = apps[app_id]
         assert app["install_enabled"] is False
         assert app["install_url"] is None
