@@ -8,8 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from . import bank_distribution_intelligence as distribution
-from . import oap_bank
-from . import sika_cash_service_point
+from . import oap_bank, sika_cash_service_point
 from . import prince_sovereign_bank as bank
 
 POST_OFFICE_CONTRACT = "docs/SIKA_POST_OFFICE_CASH_ACCESS_GAPS.md"
