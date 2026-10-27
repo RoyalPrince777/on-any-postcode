@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
+import os
 from dataclasses import dataclass
 
 from cryptography.exceptions import InvalidSignature
@@ -109,6 +111,36 @@ def verify_trusted_package(
         manifest, artifact, publisher_public_key_b64=key
     )
 
+
+
+
+def load_operator_trust_roots() -> dict[str, str]:
+    """Load app-specific public roots from server-only configuration.
+
+    No manifest or browser-supplied key can establish publisher identity.
+    Absent, malformed or empty configuration denies all releases.
+    Private signing keys must never appear here.
+    """
+    raw = os.environ.get("OAP_STORE_TRUSTED_PUBLISHERS_JSON", "")
+    if not raw.strip():
+        raise PackageVerificationError("operator_trust_roots_missing")
+    try:
+        roots = json.loads(raw)
+    except (ValueError, TypeError) as exc:
+        raise PackageVerificationError("operator_trust_roots_invalid") from exc
+    if (
+        not isinstance(roots, dict)
+        or not roots
+        or any(
+            not isinstance(app_id, str)
+            or not app_id.startswith("oap.")
+            or not isinstance(public_key, str)
+            or not public_key.strip()
+            for app_id, public_key in roots.items()
+        )
+    ):
+        raise PackageVerificationError("operator_trust_roots_invalid")
+    return roots
 
 
 def assess_release_admission(
