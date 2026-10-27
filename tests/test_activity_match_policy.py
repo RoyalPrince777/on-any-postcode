@@ -7,9 +7,9 @@ from mission_control.activity_match_policy import eligible
 
 
 def person(identity):
-    return dict(identity_id=identity, adult_verified=True, matching_consent=True,
-                discovery_enabled=True, interests=['Chess', 'Oware'],
-                format='both', scope='worldwide', country='GB', area_id='mitcham')
+    return {'identity_id': identity, 'adult_verified': True, 'matching_consent': True,
+            'discovery_enabled': True, 'interests': ['Chess', 'Oware'],
+            'format': 'both', 'scope': 'worldwide', 'country': 'GB', 'area_id': 'mitcham'}
 
 
 def test_worldwide_compatible():
