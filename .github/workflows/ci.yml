@@ -94,6 +94,7 @@ jobs:
           python -m pytest -q \
             tests/test_tv_byte_ranges.py \
             tests/test_tv_private_asset.py \
+            tests/test_tv_private_response_plan.py \
             tests/test_tv_founder_session.py \
             tests/test_tv_private_playback_gate.py \
             tests/test_tv_private_playback_signed_session_integration.py \
