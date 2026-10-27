@@ -60,3 +60,6 @@ assert.ok(homeHtml.includes('data-smi-home-motion'));
 assert.ok(homeHtml.includes('engine.attach(window,document,{home:true})'));
 assert.ok(homeHtml.includes('event?.detail?.state'));
 assert.ok(homeHtml.includes('MOTION UNAVAILABLE'));
+
+assert.ok(homeHtml.includes("canvas.style.zIndex='1'"));
+assert.ok(homeHtml.includes("fallback.style.visibility='hidden'"));
