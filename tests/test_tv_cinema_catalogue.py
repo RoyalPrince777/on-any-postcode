@@ -1,0 +1,45 @@
+"""OAP TV catalogue tests: draft metadata is never a media licence."""
+from uuid import uuid4
+
+from mission_control.tv_cinema_catalogue import catalogue_item, private_catalogue
+
+
+def valid(kind="film", **extras):
+    return {"item_id": str(uuid4()), "kind": kind, "title": " OAP Original ",
+            **extras}
+
+
+def test_films_and_creator_videos_are_unpublished_drafts():
+    for kind in ("film", "documentary", "creator_video", "live", "series"):
+        record = catalogue_item({**valid(kind), "published": True,
+                                 "rights_verified": True, "playback_url": "https://bad.invalid/"})
+        assert record["title"] == "OAP Original"
+        assert record["published"] is False
+        assert record["rights_verified"] is False
+        assert record["playback_enabled"] is False
+        assert record["playback_url"] is None
+
+
+def test_episode_requires_bounded_series_season_and_number():
+    good = valid("episode", series_id=str(uuid4()), season=2, episode=4)
+    record = catalogue_item(good)
+    assert record["season"] == 2
+    assert record["episode"] == 4
+    for change in ({"series_id": "../outside"}, {"season": True},
+                   {"episode": 0}, {"season": 1000}, {"episode": "4"}):
+        assert catalogue_item({**good, **change}) is None
+
+
+def test_rejects_untrusted_kind_and_identifier():
+    assert catalogue_item(valid("external_stream")) is None
+    assert catalogue_item({**valid(), "item_id": "../../secret"}) is None
+    assert catalogue_item({**valid(), "title": " "}) is None
+
+
+def test_catalogue_deduplicates_and_never_claims_publication():
+    row = valid()
+    result = private_catalogue([row, row, {"invalid": True}])
+    assert result["item_count"] == 1
+    assert result["public_catalogue_enabled"] is False
+    assert result["playback_enabled"] is False
+    assert result["asset_import_performed"] is False
