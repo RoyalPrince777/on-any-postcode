@@ -303,6 +303,7 @@ def main():
 
             page.goto(base_url + '/mission/smi', wait_until='domcontentloaded')
             print('SMI_HOME_URL=' + page.url, flush=True)
+            print('SMI_HOME_SCRIPT_DIAGNOSTICS=' + str(page.evaluate("() => ({scripts:[...document.scripts].map(s=>s.src).filter(Boolean),resources:performance.getEntriesByType('resource').filter(x=>x.name.includes('smi_source_pixel_motion')).map(x=>({name:x.name,status:x.responseStatus,bytes:x.transferSize})),security:document.querySelector('meta[http-equiv=Content-Security-Policy]')?.content})")), flush=True)
             print('SMI_HOME_DIAGNOSTICS=' + str(page.evaluate("() => ({title:document.title,host:!!document.querySelector('[data-smi-home-motion]'),label:document.querySelector('.state-orb')?.textContent,engine:!!window.OAP_SMI_SOURCE_PIXEL_MOTION,canvas:!!document.querySelector('[data-smi-home-motion] canvas')})")), flush=True)
             page.locator('[data-smi-home-motion] canvas').wait_for(state='visible', timeout=15000)
             assert page.locator('[data-smi-home-motion] img').evaluate("el => getComputedStyle(el).visibility === 'hidden'")
