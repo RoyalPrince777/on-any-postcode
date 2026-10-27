@@ -95,6 +95,7 @@ jobs:
             tests/test_tv_byte_ranges.py \
             tests/test_tv_private_asset.py \
             tests/test_tv_cinema_catalogue.py \
+            tests/test_tv_catalogue_store.py \
             tests/test_tv_private_response_plan.py \
             tests/test_tv_founder_session.py \
             tests/test_tv_private_playback_gate.py \
