@@ -316,6 +316,12 @@
   // Do not claim motion or runtime readiness before verified artwork attachment.
   engine.attach(window,document,{home:true}).then(rig=>{
     if(!rig){label.textContent='● CHARACTER DISPLAY · MOTION UNAVAILABLE';return;}
+    // Keep the original Home image as fallback until verified canvas attachment succeeds.
+    const canvas=host.querySelector('canvas#smi-source-pixel-motion');
+    if(!canvas){label.textContent='● CHARACTER DISPLAY · MOTION UNAVAILABLE';return;}
+    canvas.style.zIndex='1';
+    const fallback=host.querySelector('img');
+    if(fallback)fallback.style.visibility='hidden';
     label.textContent='● ORIGINAL ART VERIFIED · MOTION ATTACHED';
     const update=event=>{
       const state=String(event?.detail?.state||'ready');
