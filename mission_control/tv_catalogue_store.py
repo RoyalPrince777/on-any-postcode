@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 from .tv_cinema_catalogue import catalogue_item, private_catalogue
@@ -29,6 +30,7 @@ class PrivateTvCatalogueStore:
             raise PrivateCatalogueError("invalid_db_path")
         self.db_path = db_path
 
+    @contextmanager
     def _connect(self):
         connection = sqlite3.connect(self.db_path, timeout=5)
         connection.execute("""
@@ -39,7 +41,11 @@ class PrivateTvCatalogueStore:
                 PRIMARY KEY (owner_id, item_id)
             )
         """)
-        return connection
+        try:
+            yield connection
+            connection.commit()
+        finally:
+            connection.close()
 
     def save_draft(self, owner_id: str, row: object) -> dict[str, object]:
         owner = _owner(owner_id)
