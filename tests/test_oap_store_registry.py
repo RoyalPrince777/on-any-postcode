@@ -88,3 +88,38 @@ def test_trusted_install_accepts_matching_configured_publisher():
     )
     assert result["signature_verified"] is True
     assert result["physical_device_certified"] is False
+
+
+def test_release_admission_requires_independent_authority_and_device_proof():
+    artifact = b"oap-approved-artifact"
+    manifest, key = _signed_manifest(artifact)
+    arguments = dict(
+        trusted_publisher_keys={"oap.world": key},
+        approved_app_ids=frozenset({"oap.world"}),
+        founder_release_approved=True,
+        physical_device_certified=True,
+    )
+    for update, expected in (
+        ({"approved_app_ids": frozenset()}, "release_app_not_approved"),
+        ({"founder_release_approved": False}, "founder_release_approval_missing"),
+        ({"physical_device_certified": False}, "physical_device_proof_missing"),
+        ({"trusted_publisher_keys": {}}, "trusted_publisher_key_missing"),
+    ):
+        with pytest.raises(registry.PackageVerificationError, match=expected):
+            registry.assess_release_admission(manifest, artifact, **{**arguments, **update})
+    status = registry.assess_release_admission(manifest, artifact, **arguments)
+    assert status["release_admission_passed"] is True
+    assert status["native_install_enabled"] is False
+
+
+def test_release_admission_rejects_tampered_artifact():
+    artifact = b"oap-approved-artifact"
+    manifest, key = _signed_manifest(artifact)
+    with pytest.raises(registry.PackageVerificationError, match="artifact_size_mismatch"):
+        registry.assess_release_admission(
+            manifest, artifact + b"x",
+            trusted_publisher_keys={"oap.world": key},
+            approved_app_ids=frozenset({"oap.world"}),
+            founder_release_approved=True,
+            physical_device_certified=True,
+        )
