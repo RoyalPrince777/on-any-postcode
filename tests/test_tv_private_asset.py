@@ -52,3 +52,20 @@ def test_empty_file_and_directory_are_not_media(tmp_path):
     (tmp_path / asset_id).mkdir()
     with pytest.raises(UntrustedMediaAsset):
         inspect_private_asset(tmp_path, asset_id, "b" * 64)
+
+
+def test_oversized_sparse_file_fails_without_reading_contents(tmp_path):
+    asset_id = "a" * 64
+    with (tmp_path / asset_id).open("wb") as media:
+        media.truncate(64 * 1024 * 1024 + 1)
+    with pytest.raises(UntrustedMediaAsset, match="invalid_media_object"):
+        inspect_private_asset(tmp_path, asset_id, "b" * 64)
+
+
+def test_symlink_storage_root_fails_closed(tmp_path):
+    genuine = tmp_path / "genuine"
+    genuine.mkdir()
+    alias = tmp_path / "alias"
+    alias.symlink_to(genuine, target_is_directory=True)
+    with pytest.raises(UntrustedMediaAsset, match="invalid_storage_root"):
+        inspect_private_asset(alias, "a" * 64, "b" * 64)
