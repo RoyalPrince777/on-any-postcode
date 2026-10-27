@@ -41,6 +41,9 @@ def test_offline_apk_verifier_requires_installed_signer_package_version_and_hash
         "actualDigest.equals(candidate.sha256)",
         "apk.length() > 250L * 1024 * 1024",
         "signatures.length != 1",
+        "context.getFilesDir().getCanonicalFile()",
+        "apk.getCanonicalFile()",
+        "canonicalApk.toPath().startsWith(privateRoot.toPath())",
         "MessageDigest.getInstance(\"SHA-256\")",
     ):
         assert marker in source
