@@ -326,6 +326,8 @@ public class MainActivity extends Activity {
                 else allApps();
             });
             item.setTextSize(11);
+            // Preserve mixed-case native dock labels for accessibility and legibility.
+            item.setAllCaps(false);
             item.setContentDescription(dockLabels[i].replace("\n", " "));
             item.setMinWidth(dp(48));
             item.setMinHeight(dp(48));
