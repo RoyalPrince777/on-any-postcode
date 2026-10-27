@@ -301,6 +301,16 @@ def main():
             print("SOURCE_PIXEL_MOTION=PASS")
             print("STOP_FREEZES_MOTION=PASS")
 
+            page.goto(base_url + '/mission/smi', wait_until='domcontentloaded')
+            print('SMI_HOME_URL=' + page.url, flush=True)
+            print('SMI_HOME_SCRIPT_DIAGNOSTICS=' + str(page.evaluate("() => ({scripts:[...document.scripts].map(s=>s.src).filter(Boolean),resources:performance.getEntriesByType('resource').filter(x=>x.name.includes('smi_source_pixel_motion')).map(x=>({name:x.name,status:x.responseStatus,bytes:x.transferSize})),security:document.querySelector('meta[http-equiv=Content-Security-Policy]')?.content})")), flush=True)
+            print('SMI_HOME_DIAGNOSTICS=' + str(page.evaluate("() => ({title:document.title,host:!!document.querySelector('[data-smi-home-motion]'),label:document.querySelector('.state-orb')?.textContent,engine:!!window.OAP_SMI_SOURCE_PIXEL_MOTION,canvas:!!document.querySelector('[data-smi-home-motion] canvas')})")), flush=True)
+            page.locator('[data-smi-home-motion] canvas').wait_for(state='visible', timeout=15000)
+            assert page.locator('[data-smi-home-motion] img').evaluate("el => getComputedStyle(el).visibility === 'hidden'")
+            page.evaluate("() => window.dispatchEvent(new CustomEvent('oap-smi-character-state', {detail:{state:'listening',live:true,stopped:false}}))")
+            page.wait_for_function("() => document.querySelector('.state-orb')?.textContent.includes('LISTENING')")
+            print('SMI_HOME_MOTION_ACCEPTANCE=PASS')
+
             context.close()
             browser.close()
     finally:
