@@ -1,0 +1,51 @@
+# Founder-triggered route acceptance against an explicitly configured OAP-owned host.
+# No hosting-provider default, billing mutation, demo routing or false Green.
+name: OAP Host Routing - real live proof (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never issue overlapping probes to a newly provisioned OAP-owned host.
+concurrency:
+  group: oap-routing-live-recovery
+  cancel-in-progress: false
+
+jobs:
+  live-proof:
+    name: Real OSRM routing acceptance (no demo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact requested revision
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - name: Prepare bounded proof receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/oap-routing-live-receipt"
+          git rev-parse HEAD > "$RUNNER_TEMP/oap-routing-live-receipt/source.sha"
+      - name: Require real 20-route OSRM geometry and p95 acceptance
+        shell: bash
+        env:
+          OAP_OSRM_BASE_URL: ${{ vars.OAP_OSRM_BASE_URL }}
+          OAP_OSRM_ALLOWED_HOSTS: ${{ vars.OAP_OSRM_ALLOWED_HOSTS }}
+          OAP_ROUTING_OWNED_HOSTS: ${{ vars.OAP_ROUTING_OWNED_HOSTS }}
+        run: |
+          set -euo pipefail
+          # Same explicit HTTPS + two host allowlists as OAP Movement.
+          # Missing OAP Host configuration = zero requests and failed proof.
+          python3 -u scripts/routing_live_green_gate.py \
+            | tee "$RUNNER_TEMP/oap-routing-live-receipt/receipt.jsonl"
+      - name: Preserve actual evidence even when live proof fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oap-routing-live-recovery-receipt
+          path: ${{ runner.temp }}/oap-routing-live-receipt/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,43 @@
+# OAP-owned host deployment source only. Nothing is provisioned by this file.
+# Requires an actual separately administered machine, domain, TLS and Founder Final.
+services:
+  osrm:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        OAP_ROUTING_PBF_URL: ${OAP_ROUTING_PBF_URL:-https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf}
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    expose:
+      - "10000"
+    networks:
+      - oap_routing_net
+
+  https:
+    image: caddy:2.10.2
+    restart: unless-stopped
+    depends_on:
+      - osrm
+    environment:
+      OAP_ROUTING_DOMAIN: ${OAP_ROUTING_DOMAIN:?Set an OAP-controlled public DNS host}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - oap_caddy_data:/data
+      - oap_caddy_config:/config
+    networks:
+      - oap_routing_net
+
+networks:
+  oap_routing_net:
+
+volumes:
+  oap_caddy_data:
+  oap_caddy_config:

@@ -1,0 +1,18 @@
+# The hostname must resolve to the actual OAP-owned machine; Caddy will
+# obtain publicly trusted TLS only if DNS and TCP ports 80/443 are reachable.
+# Route engine port 10000 stays private to the Docker Compose network.
+{$OAP_ROUTING_DOMAIN} {
+    header X-Content-Type-Options "nosniff"
+    header Referrer-Policy "no-referrer"
+
+    @real_route {
+        method GET
+        path /route/v1/driving/*
+    }
+    handle @real_route {
+        reverse_proxy osrm:10000
+    }
+    handle {
+        respond "No approved OAP route" 404
+    }
+}
