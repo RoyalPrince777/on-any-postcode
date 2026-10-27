@@ -239,3 +239,26 @@ def test_verifier_receives_exact_request_and_profile_binding():
         "proof-for-other-profile"
     )]
     assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_missing_provider_profile_cannot_reach_evidence_verifier():
+    called = []
+    core = EsimProvisioningCore(
+        FakeProvider(),
+        network_evidence_verifier=lambda *args: called.append(args) or True,
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    core._requests[item["request_id"]].provider_profile_id = None
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="claimed-proof",
+            session_established=True,
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "provider_profile_missing"
+    else:
+        raise AssertionError("a missing profile must not activate")
+    assert not called
+    assert core.get(item["request_id"])["state"] == "available"
