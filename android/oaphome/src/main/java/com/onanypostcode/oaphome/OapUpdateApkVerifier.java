@@ -35,11 +35,11 @@ public final class OapUpdateApkVerifier {
                 || apk.length() > 250L * 1024 * 1024) {
             throw new IOException("apk_missing_or_invalid");
         }
-        PackageManager manager = context.getPackageManager();
+        // Limit input to the application private files directory; never trust a public path.\n        File privateRoot = context.getFilesDir().getCanonicalFile();\n        File canonicalApk = apk.getCanonicalFile();\n        if (!canonicalApk.toPath().startsWith(privateRoot.toPath())\n                || !canonicalApk.getName().endsWith(".apk")) {\n            throw new IOException("apk_not_in_private_storage");\n        }\n        PackageManager manager = context.getPackageManager();
         try {
             PackageInfo installed = manager.getPackageInfo(candidate.packageName,
                     PackageManager.GET_SIGNATURES);
-            PackageInfo archive = manager.getPackageArchiveInfo(apk.getAbsolutePath(),
+            PackageInfo archive = manager.getPackageArchiveInfo(canonicalApk.getAbsolutePath(),
                     PackageManager.GET_SIGNATURES);
             if (archive == null || !candidate.packageName.equals(archive.packageName)
                     || versionCode(archive) != candidate.versionCode
@@ -52,11 +52,11 @@ public final class OapUpdateApkVerifier {
                     || !originalSigner.equals(candidate.signerSha256)) {
                 throw new IOException("apk_signer_mismatch");
             }
-            String actualDigest = fileSha256(apk);
+            String actualDigest = fileSha256(canonicalApk);
             if (!actualDigest.equals(candidate.sha256)) {
                 throw new IOException("apk_digest_mismatch");
             }
-            return new VerifiedCandidate(apk, actualDigest);
+            return new VerifiedCandidate(canonicalApk, actualDigest);
         } catch (PackageManager.NameNotFoundException ex) {
             throw new IOException("installed_package_not_visible_or_missing", ex);
         }
