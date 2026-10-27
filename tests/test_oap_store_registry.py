@@ -93,12 +93,12 @@ def test_trusted_install_accepts_matching_configured_publisher():
 def test_release_admission_requires_independent_authority_and_device_proof():
     artifact = b"oap-approved-artifact"
     manifest, key = _signed_manifest(artifact)
-    arguments = dict(
-        trusted_publisher_keys={"oap.world": key},
-        approved_app_ids=frozenset({"oap.world"}),
-        founder_release_approved=True,
-        physical_device_certified=True,
-    )
+    arguments = {
+        "trusted_publisher_keys": {"oap.world": key},
+        "approved_app_ids": frozenset({"oap.world"}),
+        "founder_release_approved": True,
+        "physical_device_certified": True,
+    }
     for update, expected in (
         ({"approved_app_ids": frozenset()}, "release_app_not_approved"),
         ({"founder_release_approved": False}, "founder_release_approval_missing"),
