@@ -5,8 +5,6 @@ Actual HTTP endpoint integration and independent evidence issuers are NOT presen
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
-
 from .tv_byte_ranges import UnsatisfiableRange, parse_single_range
 from .tv_private_playback_gate import authorize_private_playback
 
