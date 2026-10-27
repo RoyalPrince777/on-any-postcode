@@ -87,6 +87,22 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("v -> destination(name)", home)
         self.assertIn("new RoyalHomeArt.TileDrawable(i)", home)
 
+    def test_autoupdate_preferences_are_local_and_do_not_install(self):
+        source = self.source
+        self.assertIn('getSharedPreferences("oap_autoupdate_preferences_v1", MODE_PRIVATE)', source)
+        self.assertIn('addButton("♻ OAP AUTOUPDATE PREFERENCES", v -> autoUpdatePreferences())', source)
+        self.assertIn('"automatic", true', source)
+        self.assertIn('"wifi_large", true', source)
+        self.assertIn('"prefer_idle", true', source)
+        self.assertIn('"notify", true', source)
+        self.assertIn("UPDATE ENGINE NOT CONNECTED", source)
+        block = source.split("private void autoUpdatePreferences() {", 1)[1].split(
+            "    private void allApps()", 1
+        )[0]
+        for disallowed in ("PackageInstaller", "ACTION_INSTALL_PACKAGE", "DownloadManager",
+                           "HttpURLConnection", "startActivityForResult"):
+            self.assertNotIn(disallowed, block)
+
     def test_no_silent_install_or_os_replace(self):
         manifest = MANIFEST.read_text(encoding="utf-8")
         self.assertNotIn("DEVICE_OWNER", manifest)
