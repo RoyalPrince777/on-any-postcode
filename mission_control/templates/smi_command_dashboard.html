@@ -318,7 +318,7 @@
     if(!rig){label.textContent='● CHARACTER DISPLAY · MOTION UNAVAILABLE';return;}
     label.textContent='● ORIGINAL ART VERIFIED · MOTION ATTACHED';
     const update=event=>{
-      const state=String(event?.detail?.phase||'stopped');
+      const state=String(event?.detail?.state||'ready');
       label.textContent='● ORIGINAL ART VERIFIED · EVENT '+(state==='stopped'?'STOPPED':state.toUpperCase());
     };
     window.addEventListener('oap-smi-character-state',update);
