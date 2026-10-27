@@ -308,6 +308,8 @@ def main() -> None:
     p95_index = max(0, min(len(latencies) - 1, int(0.95 * len(latencies)) - 1))
     p95 = latencies[p95_index]
     successes = sum(1 for item in results if item["ok"])
+    route_ids = [str(item["route_id"]) for item in results]
+    distinct_route_ids_proven = len(set(route_ids)) == TOTAL_REQUESTS
     timed_out = sum(1 for item in results if item.get("failure_type") == "timeout")
     failure_reasons = sorted({
         str(item.get("failure_reason"))
@@ -339,7 +341,8 @@ def main() -> None:
         "p95_ms": round(p95 * 1000, 1),
         "max_ms": round(max(latencies) * 1000, 1),
         "geometry_proven": all(bool(item["ok"]) for item in results),
-        "bounded_capacity_proven": successes == TOTAL_REQUESTS and p95 <= P95_LIMIT_SECONDS,
+        "distinct_route_ids_proven": distinct_route_ids_proven,
+        "bounded_capacity_proven": successes == TOTAL_REQUESTS and distinct_route_ids_proven and p95 <= P95_LIMIT_SECONDS,
         "dispatch_performed": False,
         "payment_performed": False,
         "tracking_performed": False,
@@ -347,6 +350,8 @@ def main() -> None:
     print(json.dumps(receipt, sort_keys=True))
     if successes != TOTAL_REQUESTS:
         raise SystemExit("live routing probe had failed requests")
+    if not distinct_route_ids_proven:
+        raise SystemExit("live routing probe repeated route identifiers")
     if p95 > P95_LIMIT_SECONDS:
         raise SystemExit(f"live routing probe p95 exceeded {P95_LIMIT_SECONDS}s")
 
