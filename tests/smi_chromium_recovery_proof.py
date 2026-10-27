@@ -301,6 +301,13 @@ def main():
             print("SOURCE_PIXEL_MOTION=PASS")
             print("STOP_FREEZES_MOTION=PASS")
 
+            page.goto(base_url + '/mission/smi', wait_until='domcontentloaded')
+            page.locator('[data-smi-home-motion] canvas').wait_for(state='visible', timeout=15000)
+            assert page.locator('[data-smi-home-motion] img').evaluate("el => getComputedStyle(el).visibility === 'hidden'")
+            page.evaluate("() => window.dispatchEvent(new CustomEvent('oap-smi-character-state', {detail:{state:'listening',live:true,stopped:false}}))")
+            page.wait_for_function("() => document.querySelector('.state-orb')?.textContent.includes('LISTENING')")
+            print('SMI_HOME_MOTION_ACCEPTANCE=PASS')
+
             context.close()
             browser.close()
     finally:
