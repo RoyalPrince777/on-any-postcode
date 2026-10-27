@@ -91,6 +91,12 @@ public final class MainActivity extends ComponentActivity {
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         );
 
+        // Explicit touch target for navigation; keyboard action remains supported.
+        Button goButton = navButton("Go");
+        goButton.setContentDescription("Open the address entered in Koradaso Internet");
+        goButton.setOnClickListener(v -> navigate(omnibox.getText().toString()));
+        toolbar.addView(goButton);
+
         webView = new WebView(this);
         engineClient = new EngineDocumentClient(OAP_ORIGIN);
         engineView = new OapEngineView(this);
