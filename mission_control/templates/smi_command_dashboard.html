@@ -316,10 +316,10 @@
   // Do not claim motion or runtime readiness before verified artwork attachment.
   engine.attach(window,document,{home:true}).then(rig=>{
     if(!rig){label.textContent='● CHARACTER DISPLAY · MOTION UNAVAILABLE';return;}
-    label.textContent='● ORIGINAL ART VERIFIED · MOTION IDLE';
+    label.textContent='● ORIGINAL ART VERIFIED · MOTION ATTACHED';
     const update=event=>{
-      const state=String(event?.detail?.state||'stopped');
-      label.textContent='● ORIGINAL ART VERIFIED · '+(state==='stopped'?'STOPPED':state.toUpperCase());
+      const state=String(event?.detail?.phase||'stopped');
+      label.textContent='● ORIGINAL ART VERIFIED · EVENT '+(state==='stopped'?'STOPPED':state.toUpperCase());
     };
     window.addEventListener('oap-smi-character-state',update);
     window.addEventListener('pagehide',()=>window.removeEventListener('oap-smi-character-state',update),{once:true});
