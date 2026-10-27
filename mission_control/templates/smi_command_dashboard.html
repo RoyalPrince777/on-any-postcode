@@ -225,7 +225,7 @@
         <div class="inference-state" id="inference-state"><span class="dot">●</span><strong>Checking</strong></div>
         <div class="inference-copy">
           <strong id="inference-title-text">First-party inference</strong>
-          <span id="inference-detail">Checking local OAP inference and Home Node worker.</span>
+          <span id="inference-detail">Checking local OAP inference and OAP Core worker.</span>
         </div>
         <div class="inference-actions">
           <button class="btn" id="inference-refresh" type="button">↻ Check backend</button>
@@ -286,10 +286,10 @@
       state.classList.toggle('ready', ready);
       state.innerHTML = '<span class="dot">●</span><strong>' + label(ready) + '</strong>';
       detail.textContent = ready
-        ? 'OAP-owned inference is available through local runtime or the Home Node worker.'
+        ? 'OAP-owned inference is available through local runtime or the OAP Core worker.'
         : (inf.worker_recently_seen || inf.durable_worker_fresh)
-          ? 'Home Node is configured; inference readiness is still being established.'
-          : 'Home Node worker is not currently connected. Start the OAP Home Node worker to restore SMI inference.';
+          ? 'OAP Core is configured; inference readiness is still being established.'
+          : 'OAP Core worker is not currently connected. Start the OAP OAP Core worker to restore SMI inference.';
       checked.textContent = 'Checked ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     } catch (error) {
       state.classList.remove('ready');
