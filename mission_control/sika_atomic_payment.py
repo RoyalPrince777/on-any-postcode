@@ -41,7 +41,10 @@ def _amount(value: object) -> Decimal:
         raise AtomicPaymentError("payment_amount_invalid") from exc
     if not parsed.is_finite() or parsed <= 0:
         raise AtomicPaymentError("payment_amount_invalid")
-    cents = parsed.quantize(Decimal("0.01"))
+    try:
+        cents = parsed.quantize(Decimal("0.01"))
+    except InvalidOperation as exc:
+        raise AtomicPaymentError("payment_amount_invalid") from exc
     if cents <= 0 or cents != parsed:
         raise AtomicPaymentError("payment_amount_invalid")
     return cents
