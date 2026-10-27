@@ -40,6 +40,4 @@ def eligible(viewer: Mapping[str, object], candidate: Mapping[str, object], *, b
         return False
     if viewer['scope'] == 'country' and (not viewer.get('country') or viewer.get('country') != candidate.get('country')):
         return False
-    if viewer['scope'] == 'area' and (not viewer.get('area_id') or viewer.get('area_id') != candidate.get('area_id')):
-        return False
-    return True
+    return not (viewer['scope'] == 'area' and (not viewer.get('area_id') or viewer.get('area_id') != candidate.get('area_id')))
