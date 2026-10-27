@@ -21,7 +21,7 @@ class _Connection:
 
     def execute(self, statement, params):
         assert "to_regclass" in statement
-        assert params == ("oap_esim_requests", "oap_esim_events")
+        assert params == ("oap_esim_requests", "oap_esim_events", "oap_esim_evidence_claims")
         return _Result(self._row)
 
 
@@ -47,7 +47,7 @@ def test_runtime_requires_existing_esim_schema(monkeypatch):
     monkeypatch.setattr(
         esim_runtime.postgres_db,
         "connect",
-        lambda: _Connection(("oap_esim_requests", None)),
+        lambda: _Connection(("oap_esim_requests", None, None)),
     )
 
     status = esim_runtime.configure()
@@ -62,7 +62,7 @@ def test_runtime_attaches_repository_only_after_schema_exists(monkeypatch):
     monkeypatch.setattr(
         esim_runtime.postgres_db,
         "connect",
-        lambda: _Connection(("oap_esim_requests", "oap_esim_events")),
+        lambda: _Connection(("oap_esim_requests", "oap_esim_events", "oap_esim_evidence_claims")),
     )
 
     status = esim_runtime.configure()
@@ -71,3 +71,17 @@ def test_runtime_attaches_repository_only_after_schema_exists(monkeypatch):
     assert status["schema_ready"] is True
     assert status["reason"] == "ready"
     assert esim_provisioning.CORE.repository is not None
+
+
+def test_runtime_denies_attachment_without_evidence_claims(monkeypatch):
+    monkeypatch.setattr(esim_runtime.postgres_db, "configured", lambda: True)
+    monkeypatch.setattr(
+        esim_runtime.postgres_db,
+        "connect",
+        lambda: _Connection(("oap_esim_requests", "oap_esim_events", None)),
+    )
+    status = esim_runtime.configure()
+    assert status["persistence_attached"] is False
+    assert status["schema_ready"] is False
+    assert status["reason"] == "esim_schema_not_initialized"
+    assert esim_provisioning.CORE.repository is None

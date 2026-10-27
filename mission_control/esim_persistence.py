@@ -5,11 +5,12 @@ through an approved database workflow before attaching this repository to the ru
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable
 from typing import Any
 
-SCHEMA_VERSION = "0002_esim_network_truth"
+SCHEMA_VERSION = "0003_esim_single_use_evidence"
 SCHEMA_STATEMENTS = (
     """CREATE TABLE IF NOT EXISTS oap_esim_requests (
         request_id TEXT PRIMARY KEY,
@@ -34,6 +35,11 @@ SCHEMA_STATEMENTS = (
         provider TEXT,
         recorded_at TIMESTAMPTZ NOT NULL,
         metadata JSONB NOT NULL DEFAULT '{}'::jsonb
+    )""",
+    """CREATE TABLE IF NOT EXISTS oap_esim_evidence_claims (
+        evidence_hash TEXT PRIMARY KEY,
+        request_id TEXT NOT NULL REFERENCES oap_esim_requests(request_id) ON DELETE CASCADE,
+        claimed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     )""",
     """CREATE INDEX IF NOT EXISTS ix_oap_esim_events_request
         ON oap_esim_events(request_id, event_seq)""",
@@ -130,6 +136,20 @@ class EsimRepository:
         with self._connect() as connection, connection.cursor() as cursor:
             try:
                 self._write_request(cursor, item)
+                if event.get("event") == "registered":
+                    evidence_id = str(event.get("evidence_id") or "").strip()
+                    if not evidence_id:
+                        raise RuntimeError("network_evidence_missing")
+                    evidence_hash = hashlib.sha256(evidence_id.encode("utf-8")).hexdigest()
+                    cursor.execute(
+                        """INSERT INTO oap_esim_evidence_claims
+                           (evidence_hash, request_id) VALUES (%s, %s)
+                           ON CONFLICT (evidence_hash) DO NOTHING
+                           RETURNING evidence_hash""",
+                        (evidence_hash, item["request_id"]),
+                    )
+                    if cursor.fetchone() is None:
+                        raise RuntimeError("network_evidence_already_used")
                 self._write_event(cursor, event)
                 connection.commit()
             except Exception:
@@ -185,13 +205,13 @@ class EsimRepository:
 
 def schema_status(connect: Callable[[], Any]) -> dict[str, Any]:
     """Return redacted eSIM schema readiness without mutating the database."""
-    required = {"oap_esim_requests", "oap_esim_events"}
+    required = {"oap_esim_requests", "oap_esim_events", "oap_esim_evidence_claims"}
     try:
         with connect(readonly=True) as connection:
             rows = connection.execute(
                 """SELECT table_name FROM information_schema.tables
                    WHERE table_schema = 'public'
-                     AND table_name IN ('oap_esim_requests','oap_esim_events')"""
+                     AND table_name IN ('oap_esim_requests','oap_esim_events','oap_esim_evidence_claims')"""
             ).fetchall()
         tables = {str(row[0]) for row in rows}
         return {

@@ -70,7 +70,7 @@ def test_approval_required_before_provisioning():
 
 
 def test_full_lifecycle_requires_provider_confirmation():
-    core = EsimProvisioningCore(FakeProvider())
+    core = EsimProvisioningCore(FakeProvider(), network_evidence_verifier=lambda request_id, profile_id, evidence_id: bool(profile_id) and evidence_id in {"network-proof-1", "network-proof-2"})
     item = core.request(subject_id="founder", purpose="connectivity")
     request_id = item["request_id"]
 
@@ -162,3 +162,204 @@ def test_network_registration_requires_independent_evidence():
         assert str(exc) == "network_registration_not_confirmed"
     else:
         raise AssertionError("ACTIVE must require independent network evidence")
+
+
+def test_claimed_network_session_without_trusted_verifier_fails_closed():
+    core = EsimProvisioningCore(FakeProvider())
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    try:
+        core.confirm_network_registration(item["request_id"], evidence_id="untrusted-claim", session_established=True)
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_verifier_not_configured"
+    else:
+        raise AssertionError("untrusted claims must never activate an eSIM")
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_network_verifier_rejection_fails_closed():
+    core = EsimProvisioningCore(FakeProvider(), network_evidence_verifier=lambda request_id, profile_id, evidence_id: False)
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    try:
+        core.confirm_network_registration(item["request_id"], evidence_id="forged-proof", session_established=True)
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_verification_failed"
+    else:
+        raise AssertionError("rejected evidence must not activate")
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_verifier_exception_stays_fail_closed():
+    def broken_verifier(request_id, profile_id, evidence_id):
+        raise ConnectionError("provider unavailable")
+
+    core = EsimProvisioningCore(
+        FakeProvider(), network_evidence_verifier=broken_verifier
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="unverified", session_established=True
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_verification_failed"
+    else:
+        raise AssertionError("verifier failure must not activate")
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_verifier_receives_exact_request_and_profile_binding():
+    observed = []
+    def bound_verifier(request_id, profile_id, evidence_id):
+        observed.append((request_id, profile_id, evidence_id))
+        return False
+
+    core = EsimProvisioningCore(
+        FakeProvider(), network_evidence_verifier=bound_verifier
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    provisioned = core.provision(item["request_id"])
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="proof-for-other-profile",
+            session_established=True
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_verification_failed"
+    else:
+        raise AssertionError("untrusted proof must not activate")
+    assert observed == [(
+        item["request_id"], provisioned["provider_profile_id"],
+        "proof-for-other-profile"
+    )]
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_missing_provider_profile_cannot_reach_evidence_verifier():
+    called = []
+    core = EsimProvisioningCore(
+        FakeProvider(),
+        network_evidence_verifier=lambda *args: called.append(args) or True,
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    core._requests[item["request_id"]].provider_profile_id = None
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="claimed-proof",
+            session_established=True,
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "provider_profile_missing"
+    else:
+        raise AssertionError("a missing profile must not activate")
+    assert not called
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_network_registration_refuses_detached_provider():
+    core = EsimProvisioningCore(
+        FakeProvider(), network_evidence_verifier=lambda *args: True
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+    core.provider = None
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="network-proof",
+            session_established=True,
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "esim_provider_mismatch"
+    else:
+        raise AssertionError("detached carrier must not activate")
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_network_registration_refuses_provider_swap():
+    core = EsimProvisioningCore(
+        FakeProvider(), network_evidence_verifier=lambda *args: True
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    core.approve(item["request_id"], founder_identity="founder")
+    core.provision(item["request_id"])
+
+    class WrongProvider(FakeProvider):
+        name = "different-provider"
+
+    core.provider = WrongProvider()
+    try:
+        core.confirm_network_registration(
+            item["request_id"], evidence_id="network-proof",
+            session_established=True,
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "esim_provider_mismatch"
+    else:
+        raise AssertionError("mismatched carrier must not activate")
+    assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_registration_receipt_cannot_be_reused_after_resume():
+    core = EsimProvisioningCore(
+        FakeProvider(),
+        network_evidence_verifier=lambda request_id, profile_id, evidence_id: True,
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    request_id = item["request_id"]
+    core.approve(request_id, founder_identity="founder")
+    core.provision(request_id)
+    core.confirm_network_registration(
+        request_id, evidence_id="proof-one", session_established=True
+    )
+    core.suspend(request_id)
+    core.resume(request_id)
+    try:
+        core.confirm_network_registration(
+            request_id, evidence_id="proof-one", session_established=True
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_already_used"
+    else:
+        raise AssertionError("previous session proof must not reactivate")
+    assert core.get(request_id)["state"] == "available"
+    assert core.confirm_network_registration(
+        request_id, evidence_id="proof-two", session_established=True
+    )["state"] == "active"
+
+
+def test_network_receipt_replay_rejected_after_repository_restart():
+    repository = FakeRepository()
+    verifier = lambda request_id, profile_id, evidence_id: True
+    first = EsimProvisioningCore(
+        FakeProvider(), repository=repository, network_evidence_verifier=verifier
+    )
+    item = first.request(subject_id="founder", purpose="connectivity")
+    request_id = item["request_id"]
+    first.approve(request_id, founder_identity="founder")
+    first.provision(request_id)
+    first.confirm_network_registration(
+        request_id, evidence_id="receipt-used", session_established=True
+    )
+    first.suspend(request_id)
+    first.resume(request_id)
+    recovered = EsimProvisioningCore(
+        FakeProvider(), repository=repository, network_evidence_verifier=verifier
+    )
+    try:
+        recovered.confirm_network_registration(
+            request_id, evidence_id="receipt-used", session_established=True
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_already_used"
+    else:
+        raise AssertionError("restarted core must reject prior registration receipt")
+    assert recovered.get(request_id)["state"] == "available"
