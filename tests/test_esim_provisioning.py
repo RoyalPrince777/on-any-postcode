@@ -306,3 +306,31 @@ def test_network_registration_refuses_provider_swap():
     else:
         raise AssertionError("mismatched carrier must not activate")
     assert core.get(item["request_id"])["state"] == "available"
+
+
+def test_registration_receipt_cannot_be_reused_after_resume():
+    core = EsimProvisioningCore(
+        FakeProvider(),
+        network_evidence_verifier=lambda request_id, profile_id, evidence_id: True,
+    )
+    item = core.request(subject_id="founder", purpose="connectivity")
+    request_id = item["request_id"]
+    core.approve(request_id, founder_identity="founder")
+    core.provision(request_id)
+    core.confirm_network_registration(
+        request_id, evidence_id="proof-one", session_established=True
+    )
+    core.suspend(request_id)
+    core.resume(request_id)
+    try:
+        core.confirm_network_registration(
+            request_id, evidence_id="proof-one", session_established=True
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_already_used"
+    else:
+        raise AssertionError("previous session proof must not reactivate")
+    assert core.get(request_id)["state"] == "available"
+    assert core.confirm_network_registration(
+        request_id, evidence_id="proof-two", session_established=True
+    )["state"] == "active"
