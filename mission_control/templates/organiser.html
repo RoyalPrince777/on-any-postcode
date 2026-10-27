@@ -90,6 +90,17 @@
       {% endif %}
     </section>
 
+
+    <section class="mc-panel" id="agents-hq">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Founder private · Genuine SMI replies only</p><h2>SMI Agents HQ</h2></div><span class="mc-lock-badge">Founder only</span></div>
+      <p class="org-boundary">Speak directly as Founder through the governed SMI runtime. Replies below are SMI responses, not independently authenticated specialist agents or council votes.</p>
+      <form class="org-form" id="oap-agents-hq-form" data-endpoint="{{ url_for('smi_organiser.founder_agents_hq_chat') }}" data-csrf="{{ oap_csrf_token }}">
+        <label>Your message<textarea id="oap-agents-hq-message" required maxlength="2000" placeholder="Speak to SMI…"></textarea></label>
+        <button type="submit" id="oap-agents-hq-send">Send to SMI</button>
+      </form>
+      <p class="org-meta" id="oap-agents-hq-status" role="status" aria-live="polite">No conversation submitted.</p>
+      <div class="org-grid" id="oap-agents-hq-transcript" aria-live="polite"></div>
+    </section>
     <section class="mc-panel" id="connectivity-briefs">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">6G · ISAC · RAN · EDGE</p><h2>Connectivity Briefs</h2></div><span class="mc-lock-badge mc-lock-badge--amber">Review only</span></div>
       {% if briefs %}
@@ -138,5 +149,6 @@
       </form>
     </section>
   </main>
+  <script defer src="{{ url_for('mission_control.static', filename='smi_agents_hq.js') }}"></script>
 </body>
 </html>
