@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/oap-home-v2-native-royal-20261025
+      - feature/royal-home-v2-dock-ux-20261027
     paths:
       - android/oaphome/**
       - tests/test_oap_home_v2_native_royal.py
@@ -14,6 +15,7 @@ on:
   pull_request:
     branches:
       - oap-home-apk-master777
+      - feature/oap-home-v2-native-royal-20261025
     paths:
       - android/oaphome/**
       - tests/test_oap_home_v2_native_royal.py
