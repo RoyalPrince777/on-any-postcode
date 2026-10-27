@@ -123,3 +123,26 @@ def test_release_admission_rejects_tampered_artifact():
             founder_release_approved=True,
             physical_device_certified=True,
         )
+
+
+def test_operator_trust_roots_fail_closed(monkeypatch):
+    monkeypatch.delenv("OAP_STORE_TRUSTED_PUBLISHERS_JSON", raising=False)
+    with pytest.raises(registry.PackageVerificationError, match="operator_trust_roots_missing"):
+        registry.load_operator_trust_roots()
+    for invalid in ("{", "[]", "{}", '{"random": "key"}', '{"oap.world": ""}'):
+        monkeypatch.setenv("OAP_STORE_TRUSTED_PUBLISHERS_JSON", invalid)
+        with pytest.raises(registry.PackageVerificationError, match="operator_trust_roots_invalid"):
+            registry.load_operator_trust_roots()
+
+
+def test_operator_trust_roots_allow_only_configured_public_key(monkeypatch):
+    artifact = b"private-oap-release"
+    manifest, public_key = _signed_manifest(artifact)
+    monkeypatch.setenv(
+        "OAP_STORE_TRUSTED_PUBLISHERS_JSON",
+        '{"oap.world": "' + public_key + '"}',
+    )
+    trust_roots = registry.load_operator_trust_roots()
+    assert registry.verify_trusted_package(
+        manifest, artifact, trusted_publisher_keys=trust_roots
+    )["signature_verified"] is True
