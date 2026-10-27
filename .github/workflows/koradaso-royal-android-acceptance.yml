@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate existing browser contract and Royal identity
         run: |
-          python3 -m pip install --disable-pip-version-check pytest
+          python3 -m pip install --disable-pip-version-check -r requirements.txt pytest
           python3 -m pytest -q tests/test_koradaso_royal_android_identity.py tests/test_oap_browser_android_contract.py
       - uses: actions/setup-java@v4
         with:
