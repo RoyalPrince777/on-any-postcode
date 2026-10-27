@@ -88,7 +88,10 @@ ROUTES = (
     (-0.0601, 51.5200, -0.2882, 51.4901, "whitechapel_kew"),
     (-0.0195, 51.4826, -0.0053, 51.5416, "greenwich_stratford"),
 )
-TOTAL_REQUESTS = len(ROUTES)
+TOTAL_REQUESTS = 20
+# Enforce the 20-distinct-journey contract independently of its fixed count.
+if len(ROUTES) != TOTAL_REQUESTS or len({r[:4] for r in ROUTES}) != TOTAL_REQUESTS:
+    raise RuntimeError("routing_20_distinct_pairs_required")
 WORKERS = 4
 TIMEOUT_SECONDS = 10
 P95_LIMIT_SECONDS = 6.0
