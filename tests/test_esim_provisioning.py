@@ -334,3 +334,32 @@ def test_registration_receipt_cannot_be_reused_after_resume():
     assert core.confirm_network_registration(
         request_id, evidence_id="proof-two", session_established=True
     )["state"] == "active"
+
+
+def test_network_receipt_replay_rejected_after_repository_restart():
+    repository = FakeRepository()
+    verifier = lambda request_id, profile_id, evidence_id: True
+    first = EsimProvisioningCore(
+        FakeProvider(), repository=repository, network_evidence_verifier=verifier
+    )
+    item = first.request(subject_id="founder", purpose="connectivity")
+    request_id = item["request_id"]
+    first.approve(request_id, founder_identity="founder")
+    first.provision(request_id)
+    first.confirm_network_registration(
+        request_id, evidence_id="receipt-used", session_established=True
+    )
+    first.suspend(request_id)
+    first.resume(request_id)
+    recovered = EsimProvisioningCore(
+        FakeProvider(), repository=repository, network_evidence_verifier=verifier
+    )
+    try:
+        recovered.confirm_network_registration(
+            request_id, evidence_id="receipt-used", session_established=True
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "network_evidence_already_used"
+    else:
+        raise AssertionError("restarted core must reject prior registration receipt")
+    assert recovered.get(request_id)["state"] == "available"
