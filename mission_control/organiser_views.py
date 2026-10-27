@@ -186,3 +186,25 @@ def founder_agents_hq_select():
         "advisory_only": True, "agent_messages_generated": False,
         "execution_authorised": False, "founder_final": True,
     })))
+
+
+@bp.get("/organiser/agents-hq/conversation/<conversation_id>")
+@web_security.login_required(api=True, founder_only=True)
+def founder_agents_hq_conversation(conversation_id: str):
+    """Read back persisted messages through the existing owner-scoped SMI store."""
+    from .smi_chat_runtime import get_conversation
+
+    owner_id, _user = _owner()
+    try:
+        result = get_conversation(owner_id, conversation_id)
+    except ValueError:
+        return _no_store(make_response(jsonify({"error": "conversation_not_found"}), 404))
+    except RuntimeError:
+        return _no_store(make_response(jsonify({"error": "conversation_store_unavailable"}), 503))
+    return _no_store(make_response(jsonify({
+        "conversation": result,
+        "source": "existing_owner_scoped_smi_store",
+        "individual_agent_sender_verified": False,
+        "agent_to_agent_delivery_proven": False,
+        "founder_final": True,
+    })))
