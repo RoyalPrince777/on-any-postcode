@@ -71,3 +71,27 @@ def test_series_episodes_rejects_invalid_series_id():
     result = series_episodes([], "../invalid")
     assert result["episode_count"] == 0
     assert result["playback_enabled"] is False
+
+
+def test_private_shelves_group_only_real_draft_records():
+    from mission_control.tv_cinema_catalogue import private_shelves
+
+    rows = [valid("film"), valid("documentary"), valid("series"),
+            valid("creator_video"), valid("live"), {"title": "invalid"}]
+    result = private_shelves(rows)
+    assert {key: len(value) for key, value in result["shelves"].items()} == {
+        "cinema": 2, "series": 1, "channels": 1, "live": 1,
+    }
+    assert result["item_count"] == 5
+    assert result["playback_enabled"] is False
+    assert result["public_catalogue_enabled"] is False
+    assert all(not item["published"] and not item["playback_enabled"]
+               for shelf in result["shelves"].values() for item in shelf)
+
+
+def test_private_shelves_empty_without_approved_drafts():
+    from mission_control.tv_cinema_catalogue import private_shelves
+
+    result = private_shelves([{"kind": "film", "title": "invented"}])
+    assert result["item_count"] == 0
+    assert all(not contents for contents in result["shelves"].values())
