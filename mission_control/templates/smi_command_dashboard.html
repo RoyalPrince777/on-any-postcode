@@ -289,7 +289,7 @@
         ? 'OAP-owned inference is available through local runtime or the OAP Core worker.'
         : (inf.worker_recently_seen || inf.durable_worker_fresh)
           ? 'OAP Core is configured; inference readiness is still being established.'
-          : 'OAP Core worker is not currently connected. Start the OAP OAP Core worker to restore SMI inference.';
+          : 'OAP Core worker is not currently connected. Start the OAP Core worker to restore SMI inference.';
       checked.textContent = 'Checked ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     } catch (error) {
       state.classList.remove('ready');
