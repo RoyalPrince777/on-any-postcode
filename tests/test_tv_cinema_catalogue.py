@@ -111,4 +111,5 @@ def test_private_shelves_hide_orphan_episodes():
     assert [item["kind"] for item in result["shelves"]["series"]] == [
         "series", "episode",
     ]
+    assert result["item_count"] == 2  # Orphan episodes are not counted as visible.
     assert result["playback_enabled"] is False
