@@ -94,5 +94,7 @@ jobs:
         run: |
           python -m pip install -r requirements.txt 'playwright>=1.50,<2'
           python -m playwright install --with-deps chromium
+      - name: Verify factual gameplay percentage calculations
+        run: node --test tests/arena_gameplay_progress.test.cjs
       - name: Real Arena game room and gameplay percentage Chromium proof
         run: python tests/arena_real_chromium_postgres_proof.py
