@@ -12,6 +12,7 @@ services:
       - caddy_config:/config
     environment:
       OAP_DOMAIN: ${OAP_DOMAIN:?Set OAP_DOMAIN to your verified domain}
+      OAP_TLS_EMAIL: ${OAP_TLS_EMAIL:?Set valid TLS contact email}
     depends_on:
       - world
   world:
