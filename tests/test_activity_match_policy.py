@@ -13,7 +13,7 @@ def person(identity):
 
 
 def test_worldwide_compatible():
-    assert eligible(person('one'), dict(person('two'), country='GH'))
+    assert eligible(person('one'), dict(person('two'), country='GH'), blocked=False)
 
 
 @pytest.mark.parametrize('field,value', [
@@ -25,23 +25,30 @@ def test_fail_closed_for_either_member(field, value):
     for target in (0, 1):
         pair = [person('one'), person('two')]
         pair[target][field] = value
-        assert not eligible(*pair)
+        assert not eligible(*pair, blocked=False)
 
 
 def test_blocks_self_and_formats():
     assert not eligible(person('one'), person('two'), blocked=True)
-    assert not eligible(person('one'), person('one'))
-    assert not eligible(dict(person('one'), format='online'), dict(person('two'), format='in_person'))
+    assert not eligible(person('one'), person('one'), blocked=False)
+    assert not eligible(dict(person('one'), format='online'), dict(person('two'), format='in_person'), blocked=False)
 
 
 def test_geographic_boundaries():
-    assert not eligible(dict(person('one'), scope='country'), dict(person('two'), country='GH'))
-    assert not eligible(dict(person('one'), scope='area'), dict(person('two'), area_id='begoro'))
-    assert eligible(dict(person('one'), scope='country'), person('two'))
+    assert not eligible(dict(person('one'), scope='country'), dict(person('two'), country='GH'), blocked=False)
+    assert not eligible(dict(person('one'), scope='area'), dict(person('two'), area_id='begoro'), blocked=False)
+    assert eligible(dict(person('one'), scope='country'), person('two'), blocked=False)
 
 
 def test_does_not_mutate_personal_records():
     a, b = person('one'), person('two')
     before = deepcopy((a, b))
-    eligible(a, b)
+    eligible(a, b, blocked=False)
     assert (a, b) == before
+
+
+def test_missing_block_check_fails_closed():
+    assert not eligible(person('one'), person('two'))
+    assert not eligible(person('one'), person('two'), blocked=None)
+    assert not eligible(person('one'), person('two'), blocked=True)
+    assert eligible(person('one'), person('two'), blocked=False)
