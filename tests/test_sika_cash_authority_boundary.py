@@ -53,3 +53,38 @@ def test_missing_independent_approval_is_denied(field, error):
         return evidence
     with pytest.raises(cash.CashServicePointError, match=error):
         _review(resolver)
+
+
+def test_canonical_database_path_without_caller_approval_flags(monkeypatch):
+    from mission_control import sika_cash_authority_store as store
+
+    def trusted_record(site, operator):
+        assert (site, operator) == ("point-001", "staff-001")
+        return _records(site, operator)
+
+    monkeypatch.setattr(store, "resolve_authority", trusted_record)
+    result = boundary.assess_with_oap_store(
+        intent_id="cash-001", service_point_id="point-001",
+        authenticated_operator_id="staff-001", customer_reference="customer-001",
+        amount="10.00", currency="GBP", direction="CASH_OUT",
+    )
+    assert result["intent_validated"] is True
+    assert result["cash_execution_enabled"] is False
+    assert result["funds_moved"] is False
+
+
+def test_canonical_database_path_fails_when_site_not_authorised(monkeypatch):
+    from mission_control import sika_cash_authority_store as store
+
+    def denied(site, operator):
+        record = _records(site, operator)
+        record["site_verified"] = False
+        return record
+
+    monkeypatch.setattr(store, "resolve_authority", denied)
+    with pytest.raises(cash.CashServicePointError, match="cash_site_unverified"):
+        boundary.assess_with_oap_store(
+            intent_id="cash-002", service_point_id="point-001",
+            authenticated_operator_id="staff-001", customer_reference="customer-001",
+            amount="10.00", currency="GBP", direction="CASH_IN",
+        )
