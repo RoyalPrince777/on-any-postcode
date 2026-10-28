@@ -19,7 +19,7 @@ from typing import Any
 
 from oap.smi.agi_core import AGICore
 
-from . import agents, smi_capabilities
+from . import agents, oap_data, smi_capabilities
 
 _WORLD_ICONS = {
     "earth": "🌍",
@@ -155,9 +155,17 @@ def status() -> dict[str, Any]:
         for agent in agents.AGENT_REGISTRY
     )
 
+    data_contract = oap_data.get_product_status()
     command = capability_status["command_intelligence"]
     return {
         "component": "All OAP Intelligence",
+        "oap_data_contract": {
+            "product": data_contract["product"],
+            "consumer": data_contract["consumer"],
+            "domain_count": len(data_contract["domains"]),
+            "raw_records_exposed": False,
+            "integration_truth": "Contract metadata only; no raw-data access or live feed proven.",
+        },
         "brain": {
             "name": "Sovereign Megaverse Intelligence",
             "count": 1,
