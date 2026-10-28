@@ -81,7 +81,7 @@ def intelligence_posts_summary():
             total = record[0]
     except authority.HumanAuthorityRequired:
         return _no_store(make_response(jsonify(error={"code": "human_authority_required"}), 403))
-    except Exception:
+    except Exception:  # noqa: BLE001 - fail closed and avoid leaking database errors.
         return _no_store(make_response(jsonify(error={"code": "oap_data_unavailable"}), 503))
     return _no_store(make_response(jsonify({
         "product": "OAP Data",
