@@ -48,6 +48,10 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("getLaunchIntentForPackage(OAP_INTERNET_PACKAGE)", self.source)
         self.assertIn("else if (index == 2) launchOapInternet();", self.source)
         self.assertIn("No browser fallback or installation is started.", self.source)
+        self.assertIn("KORADASO Internet is separate", self.source)
+        self.assertIn("The KORADASO Internet Android app is not installed or visible.", self.source)
+        self.assertIn("KORADASO Internet could not be opened.", self.source)
+        self.assertIn("OPEN KORADASO INTERNET", self.source)
 
     def test_home_draws_native_royal_surface_not_html(self):
         self.assertIn("new RoyalHomeArt.EarthBackdrop()", self.source)
