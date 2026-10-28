@@ -284,6 +284,12 @@ def prove_local_gameplay_percentages(browser):
         context = browser.new_context(viewport={"width": 393, "height": 852})
         page = context.new_page()
         page.goto(BASE + "/arena/" + game, wait_until="domcontentloaded")
+        # Installed OAP World PWA shell must remain reachable from each game.
+        manifest = page.locator('link[rel="manifest"]')
+        expect(manifest).to_have_attribute("href", "/manifest.webmanifest")
+        manifest_response = page.request.get(BASE + "/manifest.webmanifest")
+        assert manifest_response.ok, "OAP PWA manifest unavailable from Arena game"
+        assert isinstance(manifest_response.json(), dict), "OAP PWA manifest invalid"
         page.locator("[data-start]").click()
         expect(page.locator("[data-game]")).to_be_visible()
         expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 0%")
