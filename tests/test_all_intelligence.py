@@ -91,7 +91,7 @@ def test_all_intelligence_founder_page_is_read_only(client):
     assert "Enable A7" not in page
 
 
-def test_oap_intelligence_reads_only_bounded_oap_data_contract_metadata():
+def test_oap_intelligence_recognises_first_party_governed_data_boundary():
     snapshot = all_intelligence.status()
     contract = snapshot["oap_data_contract"]
     assert contract == {
@@ -99,7 +99,8 @@ def test_oap_intelligence_reads_only_bounded_oap_data_contract_metadata():
         "consumer": "OAP Intelligence",
         "domain_count": 7,
         "raw_records_exposed": False,
-        "integration_truth": "Contract metadata only; no raw-data access or live feed proven.",
+        "access_model": "OAP-owned governed operational data",
+        "integration_truth": "Contract discovery implemented; authorised operational data retrieval not yet proven.",
     }
     assert snapshot["execution_granted"] is False
     assert snapshot["human_authority_final"] is True

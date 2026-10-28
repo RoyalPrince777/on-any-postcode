@@ -164,7 +164,8 @@ def status() -> dict[str, Any]:
             "consumer": data_contract["consumer"],
             "domain_count": len(data_contract["domains"]),
             "raw_records_exposed": False,
-            "integration_truth": "Contract metadata only; no raw-data access or live feed proven.",
+            "access_model": "OAP-owned governed operational data",
+            "integration_truth": "Contract discovery implemented; authorised operational data retrieval not yet proven.",
         },
         "brain": {
             "name": "Sovereign Megaverse Intelligence",
