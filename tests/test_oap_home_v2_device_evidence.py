@@ -78,12 +78,14 @@ class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
 
     def test_fully_verified_candidate_only_proves_identity_not_install(self):
         with mock.patch.object(probe, "installed_package", side_effect=[
-            _visible_v2(), _unknown_v2(),
+            _visible_v2(), _unknown_v2(), _unknown_v2(),
         ]), mock.patch.object(
             probe, "_apk_info", return_value=_metadata(probe.V2_PACKAGE, 21)
         ):
             result = probe.inspect(Path("candidate.apk"))
         assert result["candidate_update_verdict"] == "IDENTITY_COMPATIBLE_NOT_INSTALLED"
+        assert result["koradaso_internet"]["visibility"] == "unknown"
+        assert result["browser_launch_proven"] is False
         assert result["no_install_or_uninstall"] is True
         assert result["founder_final_required"] is True
 
@@ -95,7 +97,7 @@ class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
         )
         for code, signer, expected in cases:
             with mock.patch.object(probe, "installed_package", side_effect=[
-                _visible_v2(), _unknown_v2(),
+                _visible_v2(), _unknown_v2(), _unknown_v2(),
             ]), mock.patch.object(
                 probe, "_apk_info", return_value=_metadata(probe.V2_PACKAGE, code, signer)
             ):
@@ -109,12 +111,12 @@ class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
         )
         for candidate in candidates:
             with mock.patch.object(probe, "installed_package", side_effect=[
-                _visible_v2(), _unknown_v2(),
+                _visible_v2(), _unknown_v2(), _unknown_v2(),
             ]), mock.patch.object(probe, "_apk_info", return_value=candidate):
                 result = probe.inspect(Path("candidate.apk"))
             assert result["candidate_update_verdict"] == "HOLD_MISSING_EVIDENCE"
         with mock.patch.object(probe, "installed_package", side_effect=[
-            _unknown_v2(), _unknown_v2(),
+            _unknown_v2(), _unknown_v2(), _unknown_v2(),
         ]), mock.patch.object(
             probe, "_apk_info", return_value=_metadata(probe.V2_PACKAGE, 21)
         ):
@@ -123,7 +125,7 @@ class ReadOnlyDeviceEvidenceTests(unittest.TestCase):
 
     def test_no_candidate_is_read_only_and_old_home_never_automatically_removed(self):
         with mock.patch.object(probe, "installed_package", side_effect=[
-            _visible_v2(), _unknown_v2(),
+            _visible_v2(), _unknown_v2(), _unknown_v2(),
         ]):
             result = probe.inspect()
         assert result["candidate"] is None
