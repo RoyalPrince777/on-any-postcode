@@ -345,8 +345,8 @@ public class MainActivity extends Activity {
         Intent launch = getPackageManager().getLaunchIntentForPackage(OAP_INTERNET_PACKAGE);
         if (launch == null) {
             new android.app.AlertDialog.Builder(this)
-                    .setTitle("OAP Internet is separate")
-                    .setMessage("The OAP Internet Android app is not installed or visible. "
+                    .setTitle("KORADASO Internet is separate")
+                    .setMessage("The KORADASO Internet Android app is not installed or visible. "
                             + "Home V2 stays on this native home screen. "
                             + "No browser fallback or installation is started.")
                     .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
@@ -357,7 +357,7 @@ public class MainActivity extends Activity {
             startActivity(launch);
         } catch (ActivityNotFoundException error) {
             android.widget.Toast.makeText(this,
-                    "OAP Internet could not be opened.", android.widget.Toast.LENGTH_LONG).show();
+                    "KORADASO Internet could not be opened.", android.widget.Toast.LENGTH_LONG).show();
         }
     }
 
@@ -399,7 +399,7 @@ public class MainActivity extends Activity {
         body.addView(label("Runtime: NOT CONNECTED", 17));
         body.addView(label("No Android VM, remote session or virtual device has been provisioned.", 14));
         body.addView(label("OAP Home V2: local launcher source; virtual-device integration pending.", 14));
-        addButton("OPEN OAP INTERNET", v -> launchOapInternet());
+        addButton("OPEN KORADASO INTERNET", v -> launchOapInternet());
         addButton("BACK TO OAP HOME", v -> home());
     }
 
