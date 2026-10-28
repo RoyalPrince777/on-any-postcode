@@ -54,3 +54,32 @@ def assess_with_trusted_records(
         site_verified=evidence.get("site_verified") is True,
         regulated_cash_authority_proven=evidence.get("regulated_cash_authority_proven") is True,
     )
+
+
+def assess_with_oap_store(
+    *,
+    intent_id: object,
+    service_point_id: object,
+    authenticated_operator_id: object,
+    customer_reference: object,
+    amount: object,
+    currency: object,
+    direction: object,
+) -> dict[str, object]:
+    """Use the canonical read-only OAP database resolver, not caller booleans.
+
+    Only a trusted server-side caller may supply authenticated_operator_id.
+    This is not an HTTP route, session verifier or cash execution endpoint.
+    """
+    from . import sika_cash_authority_store
+
+    return assess_with_trusted_records(
+        intent_id=intent_id,
+        service_point_id=service_point_id,
+        operator_id=authenticated_operator_id,
+        customer_reference=customer_reference,
+        amount=amount,
+        currency=currency,
+        direction=direction,
+        resolve_authority=sika_cash_authority_store.resolve_authority,
+    )
