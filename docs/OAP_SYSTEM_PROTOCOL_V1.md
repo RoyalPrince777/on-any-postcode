@@ -64,3 +64,32 @@ Mission-to-100 is not a stage generator. It is a proof discipline for closing th
 
 This law adds no extra workflow stage. It sharpens the existing 25/50/75/100 protocol so that 100% means exact tested release + exact target runtime + Green Gate + Founder Final, not merely successful source or CI evidence.
 
+
+## Dynamic next-move mission executor — continuity amendment
+
+Status: **governance contract**, not proof of an autonomous orchestrator or a deployed scheduler. This amendment introduces no additional mandatory stage or permission.
+
+### Selection and continuity
+
+Captain ALL IN is the single Mission Keeper. On each new verifiable event (a changed PR head/check, runtime receipt, blocker or approved scope), SMI chooses the **smallest safe next action** from the existing mission queue using, in order:
+
+1. A failed mandatory safety/release gate or active regression (protect the known-good runtime first).
+2. Work already approved that directly removes a measured release blocker.
+3. Exact-artifact proof missing for the intended target (do not substitute sibling builds).
+4. Remaining feature work only when the earlier mandatory blockers are satisfied or independent.
+
+Do not create new stages, projects, agents or repeated status checks merely to produce progress. Avoid needless approvals inside already authorised bounded scope, but retain Founder Final for consequential actions. Keep work on the existing PR/branch where feasible; protect uncommitted local state.
+
+### Best-fit team, not biggest team
+
+Assign only distinct responsibilities. Captain ALL IN keeps ownership; Neo/Dozer repair verified software or deployment faults; Fox traces the smallest recovery; Foxy/Trinity review UI and user journeys; Tank/Benji protect known-good runtime; Bagheera/Guardian enforce safety; Shere Khan/Owl independently challenge evidence. Use other established Matrix, Jungle, Animal or Akan family roles only when uniquely justified. Names are advisory role labels unless independently executed and receipted. Capability-fit stars are provisional; verified-performance stars remain UNRATED without attributable outcomes; neither rating grants authority.
+
+### Closed-loop execution
+
+For a bounded approved action, perform the change, run relevant real tests, check exact head/artifact and target evidence, record an HRM receipt if the authorised system permits it, and then select the next unresolved independent blocker **without forcing an intermediate status ceremony**. If a tool cannot reach the target device/server, mark that proof UNKNOWN and supply one precise safe handoff; do not claim deployment. Never deliberately weaken fail-closed tests for a cosmetic green result.
+
+### Reporting and stopping rules
+
+Report only when evidence changes, using one concise **DONE / NEXT / RECOVERY** record with exact source links, changed head, checked outcomes, critical disagreement and any Founder decision. The percentages 25/50/75/100 are evidenced safety quarters, not approximate project progress. Do not assign a platform-wide percentage without an explicit measured denominator. A failed required gate blocks 100 regardless of other successes.
+
+Continue approved independent work if one external gate is unavailable; do not retry an unavailable endpoint or run dependency installs in loops. Stop actions that could risk data, signatures, credentials, user devices or production without the relevant proof and authority. Preserve known-good versions and rollback evidence before promotion.
