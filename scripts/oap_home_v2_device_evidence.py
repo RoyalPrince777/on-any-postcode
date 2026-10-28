@@ -20,6 +20,7 @@ import subprocess
 
 V2_PACKAGE = "com.onanypostcode.oaphome.v2"
 LEGACY_PACKAGE = "com.onanypostcode.oaphome"
+KORADASO_PACKAGE = "com.onanypostcode.oapworld"
 DISPLAY_LABEL = "OAP Home"
 _PACKAGE = re.compile(
     r"^package: name='([^']+)' versionCode='([0-9]+)'(?: versionName='([^']*)')?"
@@ -104,6 +105,7 @@ def installed_package(package: str) -> dict[str, object]:
 def inspect(candidate: Path | None = None) -> dict[str, object]:
     v2 = installed_package(V2_PACKAGE)
     legacy = installed_package(LEGACY_PACKAGE)
+    koradaso = installed_package(KORADASO_PACKAGE)
     result: dict[str, object] = {
         "operation": "read_only_oap_home_v2_update_probe",
         "v2_installed": v2,
@@ -111,6 +113,13 @@ def inspect(candidate: Path | None = None) -> dict[str, object]:
             "package": LEGACY_PACKAGE,
             "visibility": legacy["visibility"],
         },
+        "koradaso_internet": {
+            "package": KORADASO_PACKAGE,
+            "visibility": koradaso["visibility"],
+            "version_code": koradaso["version_code"],
+            "signer_sha256": koradaso["signer_sha256"],
+        },
+        "browser_launch_proven": False,
         "candidate": None,
         "candidate_update_verdict": "HOLD_MISSING_EVIDENCE",
         "no_install_or_uninstall": True,
