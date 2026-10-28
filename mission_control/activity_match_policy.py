@@ -9,9 +9,9 @@ from collections.abc import Mapping
 ALLOWED_FORMATS = frozenset({'online', 'in_person', 'both'})
 
 
-def eligible(viewer: Mapping[str, object], candidate: Mapping[str, object], *, blocked: bool = False) -> bool:
+def eligible(viewer: Mapping[str, object], candidate: Mapping[str, object], *, blocked: bool | None = None) -> bool:
     """Fail closed on missing proof, withdrawal, blocks or incompatible scope."""
-    if blocked or not isinstance(viewer, Mapping) or not isinstance(candidate, Mapping):
+    if blocked is not False or not isinstance(viewer, Mapping) or not isinstance(candidate, Mapping):
         return False
     if not viewer.get('identity_id') or not candidate.get('identity_id'):
         return False
