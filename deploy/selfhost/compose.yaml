@@ -1,0 +1,32 @@
+# First-party VPS edge only; requires a provisioned Linux host, DNS and real secrets.
+services:
+  edge:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      OAP_DOMAIN: ${OAP_DOMAIN:?Set OAP_DOMAIN to your verified domain}
+      OAP_TLS_EMAIL: ${OAP_TLS_EMAIL:?Set valid TLS contact email}
+    depends_on:
+      - world
+  world:
+    image: ${OAP_RUNTIME_IMAGE:?Set exact verified GHCR digest}
+    restart: unless-stopped
+    expose:
+      - "10000"
+    environment:
+      OAP_RUNTIME_TARGET: app:app
+      PORT: "10000"
+      OAP_AUTH_REQUIRED: "true"
+      OAP_PUBLIC_ORIGIN: https://${OAP_DOMAIN:?Set OAP_DOMAIN}
+      OAP_PRIMARY_DATABASE_URL: ${OAP_PRIMARY_DATABASE_URL:?Set first-party database secret locally}
+    # No host port: only the HTTPS edge reaches the app.
+volumes:
+  caddy_data:
+  caddy_config:
