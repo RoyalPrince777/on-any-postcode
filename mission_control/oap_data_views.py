@@ -63,3 +63,33 @@ def product_status():
         )
 
     return _no_store(make_response(jsonify(oap_data.get_product_status())))
+
+
+@bp.get("/data/intelligence/posts-summary")
+@web_security.login_required(api=True)
+def intelligence_posts_summary():
+    """Founder-authorised aggregate from real OAP posts, never post bodies."""
+    user = web_security.current_authenticated_user()
+    if user is None:
+        return _no_store(make_response(jsonify(error={"code": "human_authority_required"}), 403))
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            authority.require_human_authority(connection, str(user["id"]))
+            record = connection.execute("SELECT COUNT(*) FROM posts").fetchone()
+            if not record or not isinstance(record[0], int) or record[0] < 0:
+                raise ValueError("invalid_posts_aggregate")
+            total = record[0]
+    except authority.HumanAuthorityRequired:
+        return _no_store(make_response(jsonify(error={"code": "human_authority_required"}), 403))
+    except Exception:  # noqa: BLE001 - fail closed and avoid leaking database errors.
+        return _no_store(make_response(jsonify(error={"code": "oap_data_unavailable"}), 503))
+    return _no_store(make_response(jsonify({
+        "product": "OAP Data",
+        "consumer": "OAP Intelligence",
+        "domain": "world",
+        "metric": "posts_total",
+        "value": total,
+        "source": "first_party_postgres",
+        "read_only": True,
+        "raw_records_exposed": False,
+    })))
