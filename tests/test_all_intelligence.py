@@ -89,3 +89,18 @@ def test_all_intelligence_founder_page_is_read_only(client):
     assert "78/78 Agents" in page
     assert "Human Authority final" in page
     assert "Enable A7" not in page
+
+
+def test_oap_intelligence_reads_only_bounded_oap_data_contract_metadata():
+    snapshot = all_intelligence.status()
+    contract = snapshot["oap_data_contract"]
+    assert contract == {
+        "product": "OAP Data",
+        "consumer": "OAP Intelligence",
+        "domain_count": 7,
+        "raw_records_exposed": False,
+        "integration_truth": "Contract metadata only; no raw-data access or live feed proven.",
+    }
+    assert snapshot["execution_granted"] is False
+    assert snapshot["human_authority_final"] is True
+    assert "oap_data_contract" not in all_intelligence.public_safe_status()
