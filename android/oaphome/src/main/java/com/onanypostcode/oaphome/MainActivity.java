@@ -215,6 +215,9 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams storeQuickLayout = new LinearLayout.LayoutParams(-1, dp(64));
         storeQuickLayout.setMargins(0, dp(4), 0, dp(8));
         body.addView(storeQuick, storeQuickLayout);
+        Button dataQuick = button("◈ OAP DATA\nFOUNDER-ONLY · SIGN-IN REQUIRED", v -> destination("OAP DATA"));
+        dataQuick.setContentDescription("Open the private OAP Data dashboard; server authentication and human authority are required.");
+        body.addView(dataQuick, new LinearLayout.LayoutParams(-1, dp(62)));
 
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.HORIZONTAL);
@@ -251,7 +254,7 @@ public class MainActivity extends Activity {
             } else {
                 String normalized = query.toUpperCase(java.util.Locale.ROOT);
                 String[] destinations = {"OAP WORLD", "OAP STORE", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
-                        "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
+                        "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY", "OAP DATA"};
                 boolean matched = false;
                 if ("PTT".equals(normalized) || "PUSH TO TALK".equals(normalized)
                         || "PUSH-TO-TALK".equals(normalized)) {
@@ -610,6 +613,7 @@ public class MainActivity extends Activity {
             case "OAP TV": path = "/tv"; break;
             case "OAP ARENA": path = "/arena"; break;
             case "OAP LIBRARY": path = "/library"; break;
+            case "OAP DATA": path = "/data"; break;
             default:
                 base(name);
                 body.addView(label("No verified OAP route for this destination.", 18));
