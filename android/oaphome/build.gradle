@@ -13,8 +13,8 @@ android {
         applicationId 'com.onanypostcode.oaphome.v2'
         minSdk 26
         targetSdk 35
-        versionCode 22
-        versionName '2.2.0-founder-royal'
+        versionCode 23
+        versionName '2.3.0-oap-core'
     }
 
     signingConfigs {
