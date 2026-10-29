@@ -36,7 +36,11 @@ jobs:
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
           grep -Fq "storeType 'pkcs12'" android/oaphome/build.gradle
           grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
-          grep -Fq 'new RoyalHomeArt.EarthBackdrop()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            grep -Fq 'new RoyalHomeArt.EarthBackdrop()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          else
+            grep -Fq 'BEGORO-KORADASO' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          fi
           grep -Fq 'boolean safeWebAddress(Uri uri)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'settings.setJavaScriptEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'handler.cancel();' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
