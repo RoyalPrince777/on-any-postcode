@@ -36,7 +36,7 @@ jobs:
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
           grep -Fq "storeType 'pkcs12'" android/oaphome/build.gradle
           grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
-          grep -Fq 'BEGORO-KORADASO' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'new RoyalHomeArt.EarthBackdrop()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'boolean safeWebAddress(Uri uri)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'settings.setJavaScriptEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'handler.cancel();' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
@@ -75,6 +75,10 @@ jobs:
           grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
           test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
           test "$(grep -Fc 'private final Runnable clockTick' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            test "$SOURCE_REVISION" = "d943a53ed33c4ddcc4352246050787bd92f9f8d7"
+            grep -Fq 'versionCode 22' android/oaphome/build.gradle
+          fi
           echo "Compiling OAP Home V2 source revision: $SOURCE_REVISION"
       - uses: actions/setup-java@v4
         with:
@@ -132,6 +136,8 @@ jobs:
           OAP_HOME_KEY_ALIAS: ${{ secrets.OAP_HOME_KEY_ALIAS }}
           OAP_HOME_KEY_PASSWORD: ${{ secrets.OAP_HOME_KEY_PASSWORD }}
           OAP_HOME_CERT_SHA256: ${{ vars.OAP_HOME_CERT_SHA256 }}
+          OAP_HOME_V2_CERT_SHA256: ${{ vars.OAP_HOME_V2_CERT_SHA256 }}
+          OAP_BUILD_REVIEWED_V2: ${{ github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2 }}
         run: |
           set -euo pipefail
           for name in OAP_HOME_KEYSTORE_B64 OAP_HOME_KEYSTORE_PASSWORD OAP_HOME_KEY_ALIAS OAP_HOME_KEY_PASSWORD OAP_HOME_CERT_SHA256; do
@@ -153,6 +159,13 @@ jobs:
           if [[ -z "$ACTUAL_CERT" || "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
             echo "::error::Signing keystore fingerprint does not match the pinned OAP identity."
             exit 1
+          fi
+          if [[ "$OAP_BUILD_REVIEWED_V2" == "true" ]]; then
+            INSTALLED_V2_CERT=$(printf '%s' "${OAP_HOME_V2_CERT_SHA256:-}" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+            if [[ ! "$INSTALLED_V2_CERT" =~ ^[0-9a-f]{64}$ || "$ACTUAL_CERT" != "$INSTALLED_V2_CERT" ]]; then
+              echo "::error::Installed V2 signing identity missing or different; refusing V2 candidate."
+              exit 1
+            fi
           fi
           echo "Verified pinned signing identity before build."
           echo "OAP_HOME_KEYSTORE_PATH=$RUNNER_TEMP/oap-home-signing.jks" >> "$GITHUB_ENV"
@@ -183,6 +196,10 @@ jobs:
           BUILD_TOOLS="$SDK_ROOT/build-tools/35.0.0"
           "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
           grep -q "package: name='com.onanypostcode.oaphome.v2'" /tmp/oap-apk-badging.txt
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='22'" /tmp/oap-apk-badging.txt
+            grep -Fq "application-label:'OAP Home'" /tmp/oap-apk-badging.txt
+          fi
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$APK"
           ACTUAL_CERT=$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1 | tr '[:upper:]' '[:lower:]')
           EXPECTED_CERT=$(printf '%s' "$OAP_HOME_CERT_SHA256" | tr -d ': ' | tr '[:upper:]' '[:lower:]')
