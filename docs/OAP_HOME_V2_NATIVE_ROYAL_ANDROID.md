@@ -40,8 +40,8 @@ controlled by Home V2. A fully independent AOSP **OAP OS** image is not built.
 ## Same existing V2 — signing and version proof
 
 - Keep V2 `applicationId 'com.onanypostcode.oaphome.v2'`, with candidate
-  `versionCode 21` and `versionName '2.1.0-founder-royal'`.
-  Version 21 is a **candidate**, not proof it exceeds the installed V2 code.
+  `versionCode 22` and `versionName '2.2.0-founder-royal'`.
+  Version 22 is a **candidate**, not proof it exceeds the installed V2 code.
 - The visible `android:label` is **OAP Home**, not **OAP Home V2**.
 - The signed APK workflow requires a pinned `OAP_HOME_V2_CERT_SHA256` from
   the installed V2 app and an equal persistent-keystore and candidate signer.
