@@ -81,7 +81,7 @@ jobs:
           test "$(grep -Fc 'private final Runnable clockTick' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
             test "$SOURCE_REVISION" = "410493898d3407fede0282286b39f9001196c089"
-            grep -Fq 'versionCode 23' android/oaphome/build.gradle
+            grep -Fq 'versionCode 24' android/oaphome/build.gradle
           fi
           echo "Compiling OAP Home V2 source revision: $SOURCE_REVISION"
       - uses: actions/setup-java@v4
