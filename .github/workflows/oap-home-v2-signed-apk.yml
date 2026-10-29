@@ -30,7 +30,7 @@ jobs:
           grep -Fq 'private void openInternet()' "$SOURCE"
           grep -Fq 'else if (index == 2) launchOapInternet();' "$SOURCE"
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
-          grep -Fq 'versionCode 21' android/oaphome/build.gradle
+          grep -Fq 'versionCode 22' android/oaphome/build.gradle
           grep -Fq 'android:label="OAP Home"' "$MANIFEST"
           if grep -Fxq "        applicationId 'com.onanypostcode.oaphome'" android/oaphome/build.gradle; then
             echo "::error::Original Home must stay a separate legacy package"
@@ -117,7 +117,7 @@ jobs:
           SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
           BUILD_TOOLS="$SDK_ROOT/build-tools/35.0.0"
           "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
-          grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='21'" /tmp/oap-apk-badging.txt
+          grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='22'" /tmp/oap-apk-badging.txt
           grep -Fq "application-label:'OAP Home'" /tmp/oap-apk-badging.txt
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$APK"
           ACTUAL_APK_CERT="$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1 | tr '[:upper:]' '[:lower:]')"
