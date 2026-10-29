@@ -282,17 +282,19 @@ public class MainActivity extends Activity {
         destinationHeading.setPadding(0, dp(12), 0, dp(5));
         body.addView(destinationHeading);
         GridLayout grid = new GridLayout(this);
-        grid.setColumnCount(3);
-        body.addView(grid);
-        // The root uses 12dp padding on each side; each tile adds 4dp margins.
-        // Avoid a fixed minimum tile width that would overflow narrow screens.
+        // Keep all destinations readable on narrow Redmi A5 layouts and at
+        // larger Android display sizes. The same actions remain attached.
         int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(24);
-        int tileWidth = Math.max(dp(1), (availableWidth - dp(12)) / 3);
+        int columns = availableWidth < dp(336) ? 2 : 3;
+        grid.setColumnCount(columns);
+        body.addView(grid);
+        int tileWidth = Math.max(dp(1), (availableWidth - dp(4 * columns)) / columns);
         for (int i = 0; i < destinations.length; i++) {
             final String name = destinations[i];
             Button tile = button(name + "\n" + captions[i], v -> destination(name));
             tile.setBackground(new RoyalHomeArt.TileDrawable(i));
             tile.setTextSize(11);
+            tile.setAllCaps(false);
             tile.setTypeface(Typeface.SERIF, Typeface.BOLD);
             tile.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
             tile.setPadding(dp(3), dp(82), dp(3), dp(10));
@@ -306,6 +308,7 @@ public class MainActivity extends Activity {
         TextView divider = label("────  ON ANY POSTCODE  ────", 13);
         divider.setPadding(0, dp(10), 0, dp(10));
         body.addView(divider);
+        addButton("♻ OAP AUTOUPDATE PREFERENCES", v -> autoUpdatePreferences());
         addButton("⚙ SETTINGS", v -> open(new Intent(Settings.ACTION_SETTINGS)));
         addButton("↩ CHANGE DEFAULT HOME · ANDROID SETTINGS",
                 v -> open(new Intent(Settings.ACTION_HOME_SETTINGS)));
@@ -326,6 +329,8 @@ public class MainActivity extends Activity {
                 else allApps();
             });
             item.setTextSize(11);
+            // Preserve mixed-case native dock labels for accessibility and legibility.
+            item.setAllCaps(false);
             item.setContentDescription(dockLabels[i].replace("\n", " "));
             item.setMinWidth(dp(48));
             item.setMinHeight(dp(48));
@@ -340,8 +345,8 @@ public class MainActivity extends Activity {
         Intent launch = getPackageManager().getLaunchIntentForPackage(OAP_INTERNET_PACKAGE);
         if (launch == null) {
             new android.app.AlertDialog.Builder(this)
-                    .setTitle("OAP Internet is separate")
-                    .setMessage("The OAP Internet Android app is not installed or visible. "
+                    .setTitle("KORADASO Internet is separate")
+                    .setMessage("The KORADASO Internet Android app is not installed or visible. "
                             + "Home V2 stays on this native home screen. "
                             + "No browser fallback or installation is started.")
                     .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
@@ -352,7 +357,7 @@ public class MainActivity extends Activity {
             startActivity(launch);
         } catch (ActivityNotFoundException error) {
             android.widget.Toast.makeText(this,
-                    "OAP Internet could not be opened.", android.widget.Toast.LENGTH_LONG).show();
+                    "KORADASO Internet could not be opened.", android.widget.Toast.LENGTH_LONG).show();
         }
     }
 
@@ -394,7 +399,7 @@ public class MainActivity extends Activity {
         body.addView(label("Runtime: NOT CONNECTED", 17));
         body.addView(label("No Android VM, remote session or virtual device has been provisioned.", 14));
         body.addView(label("OAP Home V2: local launcher source; virtual-device integration pending.", 14));
-        addButton("OPEN OAP INTERNET", v -> launchOapInternet());
+        addButton("OPEN KORADASO INTERNET", v -> launchOapInternet());
         addButton("BACK TO OAP HOME", v -> home());
     }
 
@@ -623,6 +628,50 @@ public class MainActivity extends Activity {
                 return;
         }
         openInternetAddress(OAP_API_ORIGIN + path);
+    }
+
+
+    // Founder-approved local preferences only. No network, APK download,
+    // installer invocation or unattended update is performed by this screen.
+    private void autoUpdatePreferences() {
+        base("OAP AUTOUPDATE");
+        final android.content.SharedPreferences prefs =
+                getSharedPreferences("oap_autoupdate_preferences_v1", MODE_PRIVATE);
+        body.addView(label("SETTINGS ONLY — UPDATE ENGINE NOT CONNECTED", 16));
+        body.addView(label("Android controls when an installation needs approval. "
+                + "Package signatures and installed app data must remain protected.", 13));
+
+        android.widget.CheckBox automatic = new android.widget.CheckBox(this);
+        automatic.setText("Automatic secure updates where Android permits");
+        automatic.setTextColor(Color.WHITE);
+        automatic.setChecked(prefs.getBoolean("automatic", true));
+        body.addView(automatic);
+        android.widget.CheckBox wifi = new android.widget.CheckBox(this);
+        wifi.setText("Wi-Fi only for large downloads");
+        wifi.setTextColor(Color.WHITE);
+        wifi.setChecked(prefs.getBoolean("wifi_large", true));
+        body.addView(wifi);
+        android.widget.CheckBox idle = new android.widget.CheckBox(this);
+        idle.setText("Prefer idle-time updates");
+        idle.setTextColor(Color.WHITE);
+        idle.setChecked(prefs.getBoolean("prefer_idle", true));
+        body.addView(idle);
+        android.widget.CheckBox notify = new android.widget.CheckBox(this);
+        notify.setText("Notify on completion or failure");
+        notify.setTextColor(Color.WHITE);
+        notify.setChecked(prefs.getBoolean("notify", true));
+        body.addView(notify);
+        addButton("SAVE UPDATE PREFERENCES", v -> {
+            prefs.edit()
+                    .putBoolean("automatic", automatic.isChecked())
+                    .putBoolean("wifi_large", wifi.isChecked())
+                    .putBoolean("prefer_idle", idle.isChecked())
+                    .putBoolean("notify", notify.isChecked())
+                    .apply();
+            android.widget.Toast.makeText(this, "Preferences saved locally; updates not enabled",
+                    android.widget.Toast.LENGTH_LONG).show();
+        });
+        addButton("BACK TO OAP HOME", v -> home());
     }
 
     private void allApps() {

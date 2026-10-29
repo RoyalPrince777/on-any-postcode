@@ -37,9 +37,9 @@ class NativeRoyalHomeTests(unittest.TestCase):
     def test_package_identity_and_separate_internet_app(self):
         build = GRADLE.read_text(encoding="utf-8")
         self.assertIn("applicationId 'com.onanypostcode.oaphome.v2'", build)
-        self.assertIn("versionCode 21", build)
+        self.assertIn("versionCode 22", build)
         self.assertNotIn("applicationId 'com.onanypostcode.oaphome'\n", build)
-        self.assertIn("versionName '2.1.0-founder-royal'", build)
+        self.assertIn("versionName '2.2.0-founder-royal'", build)
         queries = self.manifest.find("queries")
         self.assertIsNotNone(queries)
         self.assertTrue(any(p.get(ANDROID + "name") == "com.onanypostcode.oapworld"
@@ -48,6 +48,10 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("getLaunchIntentForPackage(OAP_INTERNET_PACKAGE)", self.source)
         self.assertIn("else if (index == 2) launchOapInternet();", self.source)
         self.assertIn("No browser fallback or installation is started.", self.source)
+        self.assertIn("KORADASO Internet is separate", self.source)
+        self.assertIn("The KORADASO Internet Android app is not installed or visible.", self.source)
+        self.assertIn("KORADASO Internet could not be opened.", self.source)
+        self.assertIn("OPEN KORADASO INTERNET", self.source)
 
     def test_home_draws_native_royal_surface_not_html(self):
         self.assertIn("new RoyalHomeArt.EarthBackdrop()", self.source)
@@ -76,6 +80,32 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("clockHandler.postDelayed(clockTick, 60000)", self.source)
         self.assertIn("NOT CONNECTED", self.source)
         self.assertNotIn("Mostly Sunny", self.source)
+
+    def test_royal_tiles_adapt_without_changing_routes(self):
+        home = self.source.split("    private void home() {", 1)[1].split(
+            "    private void addPersistentHomeDock", 1)[0]
+        self.assertIn("int columns = availableWidth < dp(336) ? 2 : 3;", home)
+        self.assertIn("grid.setColumnCount(columns)", home)
+        self.assertIn("(availableWidth - dp(4 * columns)) / columns", home)
+        self.assertIn("tile.setAllCaps(false)", home)
+        self.assertIn("v -> destination(name)", home)
+        self.assertIn("new RoyalHomeArt.TileDrawable(i)", home)
+
+    def test_autoupdate_preferences_are_local_and_do_not_install(self):
+        source = self.source
+        self.assertIn('getSharedPreferences("oap_autoupdate_preferences_v1", MODE_PRIVATE)', source)
+        self.assertIn('addButton("♻ OAP AUTOUPDATE PREFERENCES", v -> autoUpdatePreferences())', source)
+        self.assertIn('"automatic", true', source)
+        self.assertIn('"wifi_large", true', source)
+        self.assertIn('"prefer_idle", true', source)
+        self.assertIn('"notify", true', source)
+        self.assertIn("UPDATE ENGINE NOT CONNECTED", source)
+        block = source.split("private void autoUpdatePreferences() {", 1)[1].split(
+            "    private void allApps()", 1
+        )[0]
+        for disallowed in ("PackageInstaller", "ACTION_INSTALL_PACKAGE", "DownloadManager",
+                           "HttpURLConnection", "startActivityForResult"):
+            self.assertNotIn(disallowed, block)
 
     def test_no_silent_install_or_os_replace(self):
         manifest = MANIFEST.read_text(encoding="utf-8")
