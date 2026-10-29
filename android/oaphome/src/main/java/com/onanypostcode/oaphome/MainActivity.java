@@ -235,7 +235,7 @@ public class MainActivity extends Activity {
         search.setSingleLine(true);
         search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
         search.setContentDescription("Search OAP destinations or enter a secure web address");
-        search.setHint("⌕ Search apps, OAP or web...");
+        search.setHint("⌕ Search web, OAP or apps...");
         search.setTextColor(Color.WHITE);
         search.setHintTextColor(Color.LTGRAY);
         search.setBackground(panel());
@@ -266,7 +266,10 @@ public class MainActivity extends Activity {
                         }
                     }
                 }
-                if (!matched) allApps();
+                if (!matched) {
+                    openInternetAddress("https://www.google.com/search?q="
+                            + Uri.encode(query));
+                }
             }
             return true;
         });
