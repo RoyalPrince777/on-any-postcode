@@ -32,7 +32,7 @@ import java.util.List;
 
 public class MainActivity extends Activity {
     private static final int GOLD = Color.rgb(236, 188, 75);
-    private static final String OAP_API_ORIGIN = "https://www.onanypostcode.com";
+    private static final String OAP_API_ORIGIN = "https://onanypostcode.global";
     private static final String PTT_CONTACTS_PATH = "/ptt/contacts";
     private static final int PTT_MIC_PERMISSION_REQUEST = 777;
     private boolean pttTransportReady = false;
@@ -343,25 +343,11 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** The Internet dock opens the separate OAP Android browser package. */
+    /** KORADASO Internet shares the first-party in-app HTTPS viewer. */
     private void launchOapInternet() {
-        Intent launch = getPackageManager().getLaunchIntentForPackage(OAP_INTERNET_PACKAGE);
-        if (launch == null) {
-            new android.app.AlertDialog.Builder(this)
-                    .setTitle("KORADASO Internet is separate")
-                    .setMessage("The KORADASO Internet Android app is not installed or visible. "
-                            + "Home V2 stays on this native home screen. "
-                            + "No browser fallback or installation is started.")
-                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
-                    .show();
-            return;
-        }
-        try {
-            startActivity(launch);
-        } catch (ActivityNotFoundException error) {
-            android.widget.Toast.makeText(this,
-                    "KORADASO Internet could not be opened.", android.widget.Toast.LENGTH_LONG).show();
-        }
+        pendingInternetAddress = OAP_API_ORIGIN + "/world";
+        openInternet();
+        if (activeWebView != null) activeWebView.loadUrl(pendingInternetAddress != null ? pendingInternetAddress : OAP_API_ORIGIN + "/world");
     }
 
     private void openPttApp() {
@@ -428,13 +414,13 @@ public class MainActivity extends Activity {
     private void openInternet() {
         closeWebView();
         base("OAP INTERNET");
-        body.addView(label("OAP INTERNET · IN-APP HTTPS VIEWER", 18));
+        body.addView(label("KORADASO INTERNET · OPEN WEB / OAP WORLD", 18));
         body.addView(label("Uses the device Android WebView provider, not an independent OAP browser engine. JavaScript and file access disabled.", 13));
         EditText address = new EditText(this);
         address.setSingleLine(true);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
         address.setHint("Enter HTTPS website");
-        address.setText(pendingInternetAddress != null ? pendingInternetAddress : "https://www.onanypostcode.com");
+        address.setText(pendingInternetAddress != null ? pendingInternetAddress : OAP_API_ORIGIN);
         pendingInternetAddress = null;
         address.setTextColor(Color.WHITE);
         address.setHintTextColor(Color.LTGRAY);
