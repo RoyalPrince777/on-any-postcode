@@ -277,6 +277,43 @@ def play_final_room(browser, game, host_viewport, guest_viewport):
     print("ARENA_REAL_CHROMIUM_POSTGRES_PASS", game)
     host_context.close(); guest_context.close()
 
+def prove_local_gameplay_percentages(browser):
+    """Exercise real Flask pages and observable game percentages in Chromium."""
+    for game in ("connect4", "chess", "oware"):
+        web_security.PUBLIC_WRITE_LIMITER.reset()
+        context = browser.new_context(viewport={"width": 393, "height": 852})
+        page = context.new_page()
+        page.goto(BASE + "/arena/" + game, wait_until="domcontentloaded")
+        # Installed OAP World PWA shell must remain reachable from each game.
+        manifest = page.locator('link[rel="manifest"]')
+        expect(manifest).to_have_attribute("href", "/manifest.webmanifest")
+        manifest_response = page.request.get(BASE + "/manifest.webmanifest")
+        assert manifest_response.ok, "OAP PWA manifest unavailable from Arena game"
+        assert isinstance(manifest_response.json(), dict), "OAP PWA manifest invalid"
+        page.locator("[data-start]").click()
+        expect(page.locator("[data-game]")).to_be_visible()
+        expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 0%")
+        expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "0")
+        if game == "connect4":
+            page.locator("[data-controls] button:not([disabled])").first.click()
+            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 2%")
+            expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "2")
+        elif game == "oware":
+            page.locator("[data-board] button:not([disabled])").first.click()
+            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Seeds captured:")
+        else:
+            for source, target in (("e2", "e4"), ("d7", "d5"), ("e4", "d5")):
+                page.locator("[data-source]").fill(source)
+                page.locator("[data-target]").fill(target)
+                page.locator("[data-move]").click()
+                expect(page.locator("[data-source]")).to_have_value("")
+            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 3%")
+            expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "3")
+        assert_layout(page)
+        context.close()
+        print("ARENA_GAMEPLAY_PERCENT_CHROMIUM_PASS", game)
+
+
 def main():
     prepare()
     server = make_server("127.0.0.1", 8768, app_module.app, threaded=True)
@@ -293,6 +330,7 @@ def main():
             play_added_room(browser, "oware", desktop, mobile)
             play_final_room(browser, "iq", mobile, desktop)
             play_final_room(browser, "route-empire", desktop, mobile)
+            prove_local_gameplay_percentages(browser)
             browser.close()
     finally:
         server.shutdown()
