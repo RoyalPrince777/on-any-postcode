@@ -26,7 +26,7 @@ jobs:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && '410493898d3407fede0282286b39f9001196c089' || 'oap-home-apk-master777' }}
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && 'e3af26f3ca6980a77f09fe7454486f3cad1a9d58' || 'oap-home-apk-master777' }}
       - name: Verify checked-out V2 source and record revision
         shell: bash
         run: |
@@ -80,8 +80,8 @@ jobs:
           test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
           test "$(grep -Fc 'private final Runnable clockTick' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
-            test "$SOURCE_REVISION" = "410493898d3407fede0282286b39f9001196c089"
-            grep -Fq 'versionCode 24' android/oaphome/build.gradle
+            test "$SOURCE_REVISION" = "e3af26f3ca6980a77f09fe7454486f3cad1a9d58"
+            grep -Fq 'versionCode 25' android/oaphome/build.gradle
           fi
           echo "Compiling OAP Home V2 source revision: $SOURCE_REVISION"
       - uses: actions/setup-java@v4
@@ -112,7 +112,7 @@ jobs:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && '410493898d3407fede0282286b39f9001196c089' || 'oap-home-apk-master777' }}
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && 'e3af26f3ca6980a77f09fe7454486f3cad1a9d58' || 'oap-home-apk-master777' }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -201,7 +201,7 @@ jobs:
           "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
           grep -q "package: name='com.onanypostcode.oaphome.v2'" /tmp/oap-apk-badging.txt
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
-            grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='24'" /tmp/oap-apk-badging.txt
+            grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='25'" /tmp/oap-apk-badging.txt
             grep -Fq "application-label:'OAP Core'" /tmp/oap-apk-badging.txt
           fi
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$APK"
