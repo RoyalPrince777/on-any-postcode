@@ -136,7 +136,8 @@ public class MainActivity extends Activity {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(3, 6, 14));
-        root.setPadding(dp(12), dp(8), dp(12), dp(8));
+        root.setPadding(dp(8), dp(4), dp(8), dp(4));
+        root.setFitsSystemWindows(true);
         getWindow().setStatusBarColor(Color.rgb(3, 6, 14));
         getWindow().setNavigationBarColor(Color.BLACK);
         setContentView(root);
@@ -290,8 +291,8 @@ public class MainActivity extends Activity {
         GridLayout grid = new GridLayout(this);
         // Keep all destinations readable on narrow Redmi A5 layouts and at
         // larger Android display sizes. The same actions remain attached.
-        int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(24);
-        int columns = availableWidth < dp(336) ? 2 : 3;
+        int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(16);
+        int columns = availableWidth < dp(330) ? 2 : 3;
         grid.setColumnCount(columns);
         body.addView(grid);
         int tileWidth = Math.max(dp(1), (availableWidth - dp(4 * columns)) / columns);
@@ -307,7 +308,7 @@ public class MainActivity extends Activity {
             tile.setContentDescription(name + ". " + captions[i]);
             GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
             lp.width = tileWidth;
-            lp.height = dp(134);
+            lp.height = dp(145);
             lp.setMargins(dp(2), dp(4), dp(2), dp(4));
             grid.addView(tile, lp);
         }
@@ -323,7 +324,8 @@ public class MainActivity extends Activity {
     private void addPersistentHomeDock(LinearLayout root) {
         LinearLayout dock = new LinearLayout(this);
         dock.setOrientation(LinearLayout.HORIZONTAL);
-        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(64)));
+        dock.setPadding(0, 0, 0, dp(8));
+        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(80)));
         String[] dockLabels = {"☎\nPhone", "▣\nMessages", "◎\nInternet", "◉\nCamera", "⌃\nApps"};
         for (int i = 0; i < dockLabels.length; i++) {
             final int index = i;
