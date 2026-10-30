@@ -277,6 +277,34 @@ def play_final_room(browser, game, host_viewport, guest_viewport):
     print("ARENA_REAL_CHROMIUM_POSTGRES_PASS", game)
     host_context.close(); guest_context.close()
 
+def prove_connect4_quick_match(browser):
+    """Two real browser clicks must each send exactly one matchmaking POST."""
+    web_security.PUBLIC_WRITE_LIMITER.reset()
+    contexts = [browser.new_context(viewport={"width": 393, "height": 852}) for _ in range(2)]
+    pages = [context.new_page() for context in contexts]
+    try:
+        counts = [0, 0]
+        for index, page in enumerate(pages):
+            def observe(request, i=index):
+                if request.method == "POST" and request.url.split("?")[0].endswith("/arena/rooms/matchmake"):
+                    counts[i] += 1
+            page.on("request", observe)
+            page.goto(BASE + "/arena/connect4/room", wait_until="domcontentloaded")
+            expect(page.locator("[data-matchmake]")).to_have_count(1)
+            page.locator("[data-host]").fill("Quick Match " + str(index + 1))
+            page.locator("[data-matchmake]").click()
+            expect(page.locator("[data-room]")).to_be_visible()
+            assert counts[index] == 1, ("unexpected matchmaking POST count", counts)
+        pages[0].locator("[data-refresh]").click()
+        expect(pages[0].locator("[data-status]")).to_have_text("ACTIVE")
+        expect(pages[1].locator("[data-status]")).to_have_text("ACTIVE")
+        assert counts == [1, 1], counts
+        print("ARENA_CONNECT4_QUICK_MATCH_SINGLE_REQUEST_PASS")
+    finally:
+        for context in contexts:
+            context.close()
+
+
 def prove_local_gameplay_percentages(browser):
     """Exercise real Flask pages and observable game percentages in Chromium."""
     for game in ("connect4", "chess", "oware"):
@@ -325,6 +353,7 @@ def main():
             mobile = {"width": 393, "height": 852}
             desktop = {"width": 1280, "height": 800}
             play_two_seats(browser, "connect4", mobile, desktop)
+            prove_connect4_quick_match(browser)
             play_two_seats(browser, "dot", desktop, mobile)
             play_added_room(browser, "ludo", mobile, desktop)
             play_added_room(browser, "oware", desktop, mobile)
