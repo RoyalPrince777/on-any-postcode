@@ -1,5 +1,6 @@
 """Regression gates for SMI A1-A7 read-only War Room projection."""
 import unittest
+
 from mission_control.war_room import _a1_a7_evidence_projection
 
 
