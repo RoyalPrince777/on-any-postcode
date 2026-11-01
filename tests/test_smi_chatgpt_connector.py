@@ -44,3 +44,13 @@ def test_missing_proof_cannot_turn_true():
     assert result["generation_backend_proven"] is False
     assert result["full_live_certificate"] is False
     assert result["deployment_proven"] is False
+
+
+def test_founder_route_requires_existing_session_auth():
+    from pathlib import Path
+    source = (Path(__file__).resolve().parents[1] / "mission_control" / "views.py").read_text()
+    assert '@bp.get("/smi/connector/status")' in source
+    assert '@web_security.login_required(api=True, founder_only=True)\ndef smi_connector_status():' in source
+    assert 'smi_chatgpt_connector.safe_status(' in source
+    assert 'studio_status=studio_intelligence.status()' in source
+    assert '_no_store(make_response(jsonify(' in source
