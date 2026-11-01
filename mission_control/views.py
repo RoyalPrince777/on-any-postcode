@@ -32,6 +32,7 @@ from . import (
     public_store,
     smi_android_live_evidence,
     smi_chat_runtime,
+    smi_chatgpt_connector,
     smi_command_dashboard,
     smi_founder_assets,
     smi_receipt_backend,
@@ -1340,3 +1341,16 @@ def civilization_system_status():
     return _no_store(
         make_response(jsonify(civilization.get_civilization_status()), 200)
     )
+
+
+@bp.get("/smi/connector/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_connector_status():
+    """Founder-session-only read-only status. Not an external ChatGPT auth path."""
+    return _no_store(make_response(jsonify(
+        smi_chatgpt_connector.safe_status(
+            authorized=True,
+            studio_status=studio_intelligence.status(),
+        )
+    ), 200))
+
