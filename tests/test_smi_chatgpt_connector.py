@@ -54,3 +54,47 @@ def test_founder_route_requires_existing_session_auth():
     assert 'smi_chatgpt_connector.safe_status(' in source
     assert 'studio_status=studio_intelligence.status()' in source
     assert '_no_store(make_response(jsonify(' in source
+
+
+def test_http_route_rejects_anonymous_and_non_founder(monkeypatch):
+    from flask import Flask
+    from mission_control import views, web_security
+
+    app = Flask(__name__)
+    app.secret_key = "test-only-no-production-secret"
+    app.register_blueprint(views.bp, url_prefix="/mission")
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: None)
+    client = app.test_client()
+    anonymous = client.get("/mission/smi/connector/status")
+    assert anonymous.status_code == 401
+    assert anonymous.headers["Cache-Control"] == "no-store"
+
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: {"id": "test-user"})
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: False)
+    denied = client.get("/mission/smi/connector/status")
+    assert denied.status_code == 403
+    assert denied.headers["Cache-Control"] == "no-store"
+
+
+def test_http_route_returns_only_allowlisted_data_to_founder(monkeypatch):
+    from flask import Flask
+    from mission_control import views, web_security
+
+    app = Flask(__name__)
+    app.secret_key = "test-only-no-production-secret"
+    app.register_blueprint(views.bp, url_prefix="/mission")
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: {"id": "founder-test"})
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: True)
+    monkeypatch.setattr(views.studio_intelligence, "status", lambda: {
+        "id": "oap-studio-intelligence",
+        "generation_backend_proven": False,
+        "full_live_certificate": False,
+        "secret": "never-send-this",
+    })
+    response = app.test_client().get("/mission/smi/connector/status")
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.json["studio_declared"] is True
+    assert response.json["execution_granted"] is False
+    assert "never-send-this" not in response.get_data(as_text=True)
