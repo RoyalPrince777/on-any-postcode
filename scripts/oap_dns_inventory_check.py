@@ -64,7 +64,7 @@ def compare_with_verified_baseline(candidate: dict, baseline: dict) -> list[str]
     """
     errors = ["candidate: " + e for e in validate(candidate)]
     errors += ["baseline: " + e for e in validate(baseline)]
-    if errors:
+    if not isinstance(candidate.get("records"), list) or not isinstance(baseline.get("records"), list):
         return errors
 
     def normalized(data):
