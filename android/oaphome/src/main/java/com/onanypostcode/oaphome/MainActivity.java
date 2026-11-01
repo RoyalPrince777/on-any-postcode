@@ -351,20 +351,13 @@ public class MainActivity extends Activity {
 
     /** KORADASO Internet shares the first-party in-app HTTPS viewer. */
     private void launchOapInternet() {
-        pendingInternetAddress = OAP_API_ORIGIN + "/world";
+        pendingInternetAddress = OAP_LOCAL_ORIGIN + "/world";
         openInternet();
-        if (activeWebView != null) activeWebView.loadUrl(pendingInternetAddress != null ? pendingInternetAddress : OAP_API_ORIGIN + "/world");
+        if (activeWebView != null) activeWebView.loadUrl(pendingInternetAddress != null ? pendingInternetAddress : OAP_LOCAL_ORIGIN + "/world");
     }
 
     private void openPttApp() {
-        Uri uri = Uri.parse(OAP_API_ORIGIN + "/ptt");
-        try {
-            Intent ptt = new Intent(Intent.ACTION_VIEW, uri);
-            ptt.addCategory(Intent.CATEGORY_BROWSABLE);
-            startActivity(ptt);
-        } catch (ActivityNotFoundException error) {
-            pttMenu();
-        }
+        openInternetAddress(OAP_LOCAL_ORIGIN + "/ptt");
     }
 
     private void openInternetAddress(String url) {
@@ -428,12 +421,16 @@ public class MainActivity extends Activity {
         EditText address = new EditText(this);
         address.setSingleLine(true);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
-        address.setHint("Enter HTTPS website");
+        address.setHint("HTTPS site or OAP LOCAL address");
         address.setText(pendingInternetAddress != null ? pendingInternetAddress : OAP_API_ORIGIN);
         pendingInternetAddress = null;
         address.setTextColor(Color.WHITE);
         address.setHintTextColor(Color.LTGRAY);
         body.addView(address, new LinearLayout.LayoutParams(-1, dp(56)));
+        addButton("OPEN WEB · ONANYPOSTCODE.GLOBAL", v -> {
+            address.setText(OAP_API_ORIGIN + "/world");
+            if (activeWebView != null) activeWebView.loadUrl(OAP_API_ORIGIN + "/world");
+        });
         addButton("OAP LOCAL · THIS DEVICE", v -> {
             address.setText(OAP_LOCAL_ORIGIN + "/");
             if (activeWebView != null) activeWebView.loadUrl(OAP_LOCAL_ORIGIN + "/");
@@ -467,7 +464,9 @@ public class MainActivity extends Activity {
             }
             @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request,
                     android.webkit.WebResourceError error) {
-                if (request.isForMainFrame()) loadStatus.setText("Page unavailable: " + error.getDescription());
+                if (request.isForMainFrame()) loadStatus.setText("Page unavailable: " + error.getDescription()
+                        + (request.getUrl().toString().startsWith(OAP_LOCAL_ORIGIN)
+                        ? " · Start OAP Flask on this phone at 127.0.0.1:5050; no public fallback." : ""));
             }
         });
         addButton("OPEN IN SYSTEM BROWSER (INTERACTIVE SITES)", v -> {
@@ -630,7 +629,9 @@ public class MainActivity extends Activity {
                 addButton("BACK TO OAP HOME", v -> home());
                 return;
         }
-        openInternetAddress(OAP_API_ORIGIN + path);
+        // Local-first: no automatic redirect to the unverified public origin.
+        // When the on-device server is unavailable, WebView reports the error.
+        openInternetAddress(OAP_LOCAL_ORIGIN + path);
     }
 
 
