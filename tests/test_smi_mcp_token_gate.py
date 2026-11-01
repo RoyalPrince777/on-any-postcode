@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 import pytest
@@ -26,7 +26,7 @@ def signing():
         founder_subject="founder-test-id",
         public_key_pem=public_pem,
     )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     claims = {
         "iss": policy.issuer,
         "aud": policy.audience,
@@ -50,7 +50,7 @@ def test_signed_readonly_access_token_is_verified(signing):
     {"sub": "someone-else"},
     {"scope": "oap.smi.status.readwrite"},
     {"scope": ""},
-    {"exp": datetime(2020, 1, 1, tzinfo=timezone.utc)},
+    {"exp": datetime(2020, 1, 1, tzinfo=UTC)},
 ])
 def test_invalid_claims_fail_closed(signing, change):
     private, policy, claims = signing
@@ -60,7 +60,7 @@ def test_invalid_claims_fail_closed(signing, change):
 
 
 def test_unsigned_or_wrong_key_tokens_rejected(signing):
-    private, policy, claims = signing
+    _, policy, claims = signing
     unsigned = jwt.encode(claims, key="", algorithm="none")
     other_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     wrong_signature = jwt.encode(claims, other_key, algorithm="RS256")
