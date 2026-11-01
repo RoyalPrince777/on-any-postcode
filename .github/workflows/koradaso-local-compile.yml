@@ -1,8 +1,8 @@
-name: KORADASO v26 local source compile proof
+name: OAP Core local-first v28 compile proof
 on:
   push:
     branches:
-      - fix/koradaso-localhost-20261101
+      - fix/oap-core-local-first-routes-20261101
     paths:
       - 'android/oaphome/**'
       - 'tests/test_oap_home_v2_native_royal.py'
