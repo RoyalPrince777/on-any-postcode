@@ -762,7 +762,7 @@ class OapSecureWebClient extends android.webkit.WebViewClient {
         android.widget.Toast.makeText(host, "HTTPS certificate rejected", android.widget.Toast.LENGTH_SHORT).show();
     }
     @Override public android.webkit.WebResourceResponse shouldInterceptRequest(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
-        if (!"https".equalsIgnoreCase(request.getUrl().getScheme())) {
+        if (!host.safeWebAddress(request.getUrl())) {
             return new android.webkit.WebResourceResponse("text/plain", "UTF-8",
                     new java.io.ByteArrayInputStream(new byte[0]));
         }
