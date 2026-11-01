@@ -15,10 +15,10 @@ SURFACES = (
 )
 BLOCKED = re.compile(
     r"(?i)(?:"
-    r"connect\\.facebook\\.net|facebook\\.com/tr|"
-    r"graph\\.facebook\\.com|graph\\.instagram\\.com|"
-    r"api\\.whatsapp\\.com|wa\\.me/|"
-    r"fbq\\s*\\(|_fbp\\b|_fbc\\b|"
+    r"connect\.facebook\.net|facebook\.com/tr|"
+    r"graph\.facebook\.com|graph\.instagram\.com|"
+    r"api\.whatsapp\.com|wa\.me/|"
+    r"fbq\s*\(|_fbp\b|_fbc\b|"
     r"facebook[-_]pixel|meta[-_]pixel|"
     r"facebook[-_]sdk|instagram[-_]sdk|whatsapp[-_]cloud[-_]api"
     r")"
