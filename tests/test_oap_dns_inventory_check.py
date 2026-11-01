@@ -1,5 +1,5 @@
 """Offline DNS inventory gate: no DNS writes or network calls."""
-from scripts.oap_dns_inventory_check import validate
+from scripts.oap_dns_inventory_check import validate, compare_with_verified_baseline
 
 
 def sample():
@@ -46,3 +46,25 @@ def test_missing_email_records_fails_closed():
     inventory = sample()
     inventory["records"] = inventory["records"][:2]
     assert any("missing MX" in error for error in validate(inventory))
+
+
+def test_baseline_exact_equivalence():
+    assert compare_with_verified_baseline(sample(), sample()) == []
+
+
+def test_baseline_rejects_missing_individual_record():
+    candidate = sample()
+    candidate["records"] = candidate["records"][:-1]
+    assert any("differ from verified baseline" in e for e in compare_with_verified_baseline(candidate, sample()))
+
+
+def test_baseline_rejects_modified_mail_target():
+    candidate = sample()
+    candidate["records"][2]["value"] = "different.example.invalid"
+    assert any("differ from verified baseline" in e for e in compare_with_verified_baseline(candidate, sample()))
+
+
+def test_baseline_rejects_unexpected_record():
+    candidate = sample()
+    candidate["records"].append({"host": "unexpected", "type": "TXT", "value": "extra"})
+    assert any("differ from verified baseline" in e for e in compare_with_verified_baseline(candidate, sample()))
