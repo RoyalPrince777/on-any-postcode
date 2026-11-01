@@ -39,6 +39,7 @@ def test_reject_unknown_sources_url_tricks_and_invalid_licence():
         {"reference_url": "https://commons.wikimedia.org@evil.test/wiki/File:x"},
         {"reference_url": "https://commons.wikimedia.org/wiki/File:x?stream=1"},
         {"reference_url": "https://commons.wikimedia.org:abc/wiki/File:x"},
+        {"reference_url": "https://[broken/wiki/File:x"},
     ):
         assert open_cinema.candidate({**GOOD, **mutation}) is None
 
