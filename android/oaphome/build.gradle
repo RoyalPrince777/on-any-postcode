@@ -13,8 +13,8 @@ android {
         applicationId 'com.onanypostcode.oaphome.v2'
         minSdk 26
         targetSdk 35
-        versionCode 26
-        versionName '2.6.0-screen-fit'
+        versionCode 27
+        versionName '2.7.0-koradaso-local'
     }
 
     signingConfigs {
