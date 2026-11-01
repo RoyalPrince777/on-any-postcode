@@ -51,6 +51,8 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn('settings.setAllowFileAccess(false)', self.source)
         self.assertIn('settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW)', self.source)
         self.assertIn('"127.0.0.1".equals(uri.getHost()) && uri.getPort() == 5050', self.source)
+        self.assertIn("if (!host.safeWebAddress(request.getUrl()))", self.source)
+        self.assertNotIn('if (!"https".equalsIgnoreCase(request.getUrl().getScheme()))', self.source)
         self.assertIn('return "https".equalsIgnoreCase(uri.getScheme())', self.source)
         config = (NATIVE / "src/main/res/xml/oap_network_security.xml").read_text(encoding="utf-8")
         self.assertIn('<base-config cleartextTrafficPermitted="false"/>', config)
