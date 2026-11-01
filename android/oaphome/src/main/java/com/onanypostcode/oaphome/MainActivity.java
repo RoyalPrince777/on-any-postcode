@@ -33,6 +33,7 @@ import java.util.List;
 public class MainActivity extends Activity {
     private static final int GOLD = Color.rgb(236, 188, 75);
     private static final String OAP_API_ORIGIN = "https://onanypostcode.global";
+    private static final String OAP_LOCAL_ORIGIN = "http://127.0.0.1:5050";
     private static final String PTT_CONTACTS_PATH = "/ptt/contacts";
     private static final int PTT_MIC_PERMISSION_REQUEST = 777;
     private boolean pttTransportReady = false;
@@ -350,20 +351,13 @@ public class MainActivity extends Activity {
 
     /** KORADASO Internet shares the first-party in-app HTTPS viewer. */
     private void launchOapInternet() {
-        pendingInternetAddress = OAP_API_ORIGIN + "/world";
+        pendingInternetAddress = OAP_LOCAL_ORIGIN + "/world";
         openInternet();
-        if (activeWebView != null) activeWebView.loadUrl(pendingInternetAddress != null ? pendingInternetAddress : OAP_API_ORIGIN + "/world");
+        if (activeWebView != null) activeWebView.loadUrl(pendingInternetAddress != null ? pendingInternetAddress : OAP_LOCAL_ORIGIN + "/world");
     }
 
     private void openPttApp() {
-        Uri uri = Uri.parse(OAP_API_ORIGIN + "/ptt");
-        try {
-            Intent ptt = new Intent(Intent.ACTION_VIEW, uri);
-            ptt.addCategory(Intent.CATEGORY_BROWSABLE);
-            startActivity(ptt);
-        } catch (ActivityNotFoundException error) {
-            pttMenu();
-        }
+        openInternetAddress(OAP_LOCAL_ORIGIN + "/ptt");
     }
 
     private void openInternetAddress(String url) {
@@ -401,9 +395,12 @@ public class MainActivity extends Activity {
     private String pendingInternetAddress;
 
     boolean safeWebAddress(Uri uri) {
-        return uri != null && "https".equalsIgnoreCase(uri.getScheme())
-                && uri.getHost() != null && !uri.getHost().isEmpty()
-                && uri.getUserInfo() == null && uri.getPort() == -1;
+        if (uri == null || uri.getUserInfo() != null || uri.getHost() == null) return false;
+        if ("http".equalsIgnoreCase(uri.getScheme())) {
+            return "127.0.0.1".equals(uri.getHost()) && uri.getPort() == 5050;
+        }
+        return "https".equalsIgnoreCase(uri.getScheme())
+                && !uri.getHost().isEmpty() && uri.getPort() == -1;
     }
 
     private void closeWebView() {
@@ -419,17 +416,25 @@ public class MainActivity extends Activity {
     private void openInternet() {
         closeWebView();
         base("OAP INTERNET");
-        body.addView(label("KORADASO INTERNET · OPEN WEB / OAP WORLD", 18));
+        body.addView(label("KORADASO INTERNET · OAP LOCAL / OPEN WEB", 18));
         body.addView(label("Uses the device Android WebView provider, not an independent OAP browser engine. JavaScript and file access disabled.", 13));
         EditText address = new EditText(this);
         address.setSingleLine(true);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
-        address.setHint("Enter HTTPS website");
+        address.setHint("HTTPS site or OAP LOCAL address");
         address.setText(pendingInternetAddress != null ? pendingInternetAddress : OAP_API_ORIGIN);
         pendingInternetAddress = null;
         address.setTextColor(Color.WHITE);
         address.setHintTextColor(Color.LTGRAY);
         body.addView(address, new LinearLayout.LayoutParams(-1, dp(56)));
+        addButton("OPEN WEB · ONANYPOSTCODE.GLOBAL", v -> {
+            address.setText(OAP_API_ORIGIN + "/world");
+            if (activeWebView != null) activeWebView.loadUrl(OAP_API_ORIGIN + "/world");
+        });
+        addButton("OAP LOCAL · THIS DEVICE", v -> {
+            address.setText(OAP_LOCAL_ORIGIN + "/");
+            if (activeWebView != null) activeWebView.loadUrl(OAP_LOCAL_ORIGIN + "/");
+        });
         android.webkit.WebView viewer = new android.webkit.WebView(this);
         activeWebView = viewer;
         android.webkit.WebSettings settings = viewer.getSettings();
@@ -452,14 +457,16 @@ public class MainActivity extends Activity {
         body.addView(loadStatus);
         viewer.setWebViewClient(new OapSecureWebClient(this) {
             @Override public void onPageStarted(android.webkit.WebView view, String url, android.graphics.Bitmap favicon) {
-                loadStatus.setText("Loading HTTPS page…");
+                loadStatus.setText(url.startsWith(OAP_LOCAL_ORIGIN + "/") ? "Loading OAP LOCAL…" : "Loading HTTPS page…");
             }
             @Override public void onPageFinished(android.webkit.WebView view, String url) {
                 loadStatus.setText("Page loaded. Some interactive services require JavaScript, currently disabled for safety.");
             }
             @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request,
                     android.webkit.WebResourceError error) {
-                if (request.isForMainFrame()) loadStatus.setText("Page unavailable: " + error.getDescription());
+                if (request.isForMainFrame()) loadStatus.setText("Page unavailable: " + error.getDescription()
+                        + (request.getUrl().toString().startsWith(OAP_LOCAL_ORIGIN)
+                        ? " · Start OAP Flask on this phone at 127.0.0.1:5050; no public fallback." : ""));
             }
         });
         addButton("OPEN IN SYSTEM BROWSER (INTERACTIVE SITES)", v -> {
@@ -476,10 +483,10 @@ public class MainActivity extends Activity {
                 loadStatus.setText("No browser installed to open this page.");
             }
         });
-        addButton("OPEN HTTPS PAGE", v -> {
+        addButton("OPEN SAFE ADDRESS", v -> {
             Uri uri = Uri.parse(address.getText().toString().trim());
             if (!safeWebAddress(uri)) {
-                android.widget.Toast.makeText(this, "Enter a standard HTTPS website", android.widget.Toast.LENGTH_SHORT).show();
+                android.widget.Toast.makeText(this, "Use HTTPS or OAP LOCAL at 127.0.0.1:5050", android.widget.Toast.LENGTH_SHORT).show();
                 return;
             }
             viewer.loadUrl(uri.toString());
@@ -491,7 +498,7 @@ public class MainActivity extends Activity {
         addButton("FORWARD IN OAP INTERNET", v -> {
             if (activeWebView == viewer && viewer.canGoForward()) viewer.goForward();
         });
-        addButton("RELOAD HTTPS PAGE", v -> {
+        addButton("RELOAD SAFE PAGE", v -> {
             if (activeWebView == viewer && viewer.getUrl() != null
                     && safeWebAddress(Uri.parse(viewer.getUrl()))) viewer.reload();
         });
@@ -606,12 +613,12 @@ public class MainActivity extends Activity {
         final String path;
         switch (name) {
             case "OAP WORLD": path = "/world"; break;
-            case "OAP STORE": path = "/store"; break;
+            case "OAP STORE": path = "/store"; break; // Store registered outside app.py; runtime check required
             case "LINK UP": path = "/linkup"; break;
             case "SIKA": path = "/sika"; break;
             case "OAP MAPS": path = "/maps"; break;
-            case "OAP MAIL": path = "/mail"; break;
-            case "OAP MARKET": path = "/market"; break;
+            case "OAP MAIL": path = "/the-link"; break;
+            case "OAP MARKET": path = "/the-spot/market"; break;
             case "OAP TV": path = "/tv"; break;
             case "OAP ARENA": path = "/arena"; break;
             case "OAP LIBRARY": path = "/library"; break;
@@ -622,7 +629,9 @@ public class MainActivity extends Activity {
                 addButton("BACK TO OAP HOME", v -> home());
                 return;
         }
-        openInternetAddress(OAP_API_ORIGIN + path);
+        // Local-first: no automatic redirect to the unverified public origin.
+        // When the on-device server is unavailable, WebView reports the error.
+        openInternetAddress(OAP_LOCAL_ORIGIN + path);
     }
 
 
@@ -754,7 +763,7 @@ class OapSecureWebClient extends android.webkit.WebViewClient {
         android.widget.Toast.makeText(host, "HTTPS certificate rejected", android.widget.Toast.LENGTH_SHORT).show();
     }
     @Override public android.webkit.WebResourceResponse shouldInterceptRequest(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
-        if (!"https".equalsIgnoreCase(request.getUrl().getScheme())) {
+        if (!host.safeWebAddress(request.getUrl())) {
             return new android.webkit.WebResourceResponse("text/plain", "UTF-8",
                     new java.io.ByteArrayInputStream(new byte[0]));
         }
