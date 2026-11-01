@@ -1,5 +1,5 @@
 """Offline DNS inventory gate: no DNS writes or network calls."""
-from scripts.oap_dns_inventory_check import validate, compare_with_verified_baseline
+from scripts.oap_dns_inventory_check import compare_with_verified_baseline, validate
 
 
 def sample():
