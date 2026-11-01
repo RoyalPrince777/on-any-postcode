@@ -56,13 +56,37 @@ def validate(inventory: dict) -> list[str]:
     return errors
 
 
+
+def compare_with_verified_baseline(candidate: dict, baseline: dict) -> list[str]:
+    """Require exact record-set equality with a separately acquired baseline.
+
+    This compares supplied files only; it cannot authenticate the baseline.
+    """
+    errors = ["candidate: " + e for e in validate(candidate)]
+    errors += ["baseline: " + e for e in validate(baseline)]
+    if errors:
+        return errors
+
+    def normalized(data):
+        return sorted(
+            (r["host"].strip().lower().rstrip("."),
+             r["type"].strip().upper(),
+             r["value"].strip())
+            for r in data["records"]
+        )
+    if normalized(candidate) != normalized(baseline):
+        errors.append("candidate records differ from verified baseline; do not delegate")
+    return errors
+
+
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("Usage: python scripts/oap_dns_inventory_check.py verified-records.json")
+    if len(sys.argv) != 3:
+        print("Usage: python scripts/oap_dns_inventory_check.py candidate-records.json verified-baseline.json")
         return 2
     try:
         data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-        problems = validate(data)
+        baseline = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+        problems = compare_with_verified_baseline(data, baseline)
     except (OSError, ValueError, TypeError) as exc:
         print(f"FAIL CLOSED: {exc}")
         return 1
@@ -70,7 +94,7 @@ def main() -> int:
         for problem in problems:
             print(f"FAIL CLOSED: {problem}")
         return 1
-    print("Inventory structure checked; NOT deployment, DNS equivalence or delegation approval")
+    print("Supplied inventories match; NOT baseline authenticity, live DNS or delegation approval")
     return 0
 
 
