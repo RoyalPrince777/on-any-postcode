@@ -1308,6 +1308,54 @@ def validate_war_room_scope() -> dict[str, Any]:
     }
 
 
+def _a1_a7_evidence_projection(ratings: list[dict[str, Any]]) -> dict[str, Any]:
+    """Informational SMI autonomy ladder; never grants authority or certification.
+
+    Existing stars are portfolio-component evidence, not proof that SMI can
+    autonomously operate or that any autonomy level is certified.
+    """
+    levels = (
+        ("A1", "Manual Support", "Reactive"),
+        ("A2", "Guided Assistance", "Analytical"),
+        ("A3", "Bounded Tool Support", "Reasoning"),
+        ("A4", "Supervised Autonomy", "Coordinated"),
+        ("A5", "Governed Operational Preparation", "Adaptive"),
+        ("A6", "Governed Operational Execution", "Advanced Autonomous"),
+        ("A7", "Certified Organism-Scale Autonomy", "Sovereign-Governed"),
+    )
+    return {
+        "name": "SMI A1-A7 evidence projection",
+        "intelligence": "Sovereign Megaverse Intelligence",
+        "mission_keeper": "Captain ALL IN",
+        "model": "one_intelligence_seven_operating_levels",
+        "mode": "read_only_no_authority",
+        "highest_certified_level": None,
+        "certification_status": "not_established",
+        "levels": tuple(
+            {
+                "id": level,
+                "name": name,
+                "capability": capability,
+                "certified": False,
+                "evidence_status": "not_independently_certified",
+                "locked": level in ("A6", "A7"),
+            }
+            for level, name, capability in levels
+        ),
+        "portfolio_rated_areas": len(ratings),
+        "portfolio_proves_autonomy": False,
+        "remaining_proof": (
+            "Independent SMI autonomy-level evidence and attribution",
+            "Guardian approval boundaries and Human Authority decisions",
+            "HRM receipts, rollback, emergency halt and runtime recovery",
+            "Independent operational certification before A6 or A7",
+        ),
+        "can_approve": False,
+        "can_execute": False,
+        "founder_final": True,
+    }
+
+
 def get_war_room_dashboard() -> dict[str, Any]:
     """Return the complete Founder-only, read-only programme projection."""
 
@@ -1395,6 +1443,7 @@ def get_war_room_dashboard() -> dict[str, Any]:
         "rubric": RATING_RUBRIC,
         "flow": WAR_ROOM_FLOW,
         "review_lenses": REVIEW_LENSES,
+        "smi_autonomy": _a1_a7_evidence_projection(ratings),
         "categories": tuple(categories),
         "summary": {
             "overall_evidence_score": overall,
