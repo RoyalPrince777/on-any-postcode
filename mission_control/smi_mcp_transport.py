@@ -27,7 +27,7 @@ def create_smi_mcp_blueprint(
 ) -> Blueprint:
     """Construct ONLY; never implicitly register an accessible route."""
     if not isinstance(policy, TrustedTokenPolicy) or not callable(token_active):
-        raise ValueError("trusted_mcp_authentication_required")
+        raise TypeError("trusted_mcp_authentication_required")
     bp = Blueprint("oap_smi_mcp", __name__)
 
     @bp.route("/mission/smi/mcp", methods=["POST"])
@@ -50,7 +50,7 @@ def create_smi_mcp_blueprint(
         if not isinstance(payload, dict) or payload.get("jsonrpc") != "2.0":
             return jsonify(jsonrpc="2.0", id=None, error={"code": -32600, "message": "Invalid Request"}), 400
         request_id: Any = payload.get("id")
-        if type(request_id) not in (int, str):  # noqa: E721 - bool must not count as int.
+        if type(request_id) not in (int, str):
             return jsonify(jsonrpc="2.0", id=None, error={"code": -32600, "message": "Invalid Request"}), 400
         method = payload.get("method")
         params = payload.get("params", {})
