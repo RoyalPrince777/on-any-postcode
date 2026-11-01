@@ -613,12 +613,12 @@ public class MainActivity extends Activity {
         final String path;
         switch (name) {
             case "OAP WORLD": path = "/world"; break;
-            case "OAP STORE": path = "/store"; break;
+            case "OAP STORE": path = "/store"; break; // Store registered outside app.py; runtime check required
             case "LINK UP": path = "/linkup"; break;
             case "SIKA": path = "/sika"; break;
             case "OAP MAPS": path = "/maps"; break;
-            case "OAP MAIL": path = "/mail"; break;
-            case "OAP MARKET": path = "/market"; break;
+            case "OAP MAIL": path = "/the-link"; break;
+            case "OAP MARKET": path = "/the-spot/market"; break;
             case "OAP TV": path = "/tv"; break;
             case "OAP ARENA": path = "/arena"; break;
             case "OAP LIBRARY": path = "/library"; break;
