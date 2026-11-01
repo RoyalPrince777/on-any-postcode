@@ -21,7 +21,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
 
     def test_android_launcher_is_selectable_not_forced(self):
         app = self.manifest.find("application")
-        self.assertEqual(app.get(ANDROID + "label"), "OAP Home")
+        self.assertEqual(app.get(ANDROID + "label"), "@string/app_name")
         activity = app.find("activity")
         self.assertEqual(activity.get(ANDROID + "exported"), "true")
         filters = activity.findall("intent-filter")
@@ -37,20 +37,25 @@ class NativeRoyalHomeTests(unittest.TestCase):
     def test_package_identity_and_separate_internet_app(self):
         build = GRADLE.read_text(encoding="utf-8")
         self.assertIn("applicationId 'com.onanypostcode.oaphome.v2'", build)
-        self.assertIn("versionCode 22", build)
+        self.assertIn("versionCode 26", build)
         self.assertNotIn("applicationId 'com.onanypostcode.oaphome'\n", build)
-        self.assertIn("versionName '2.2.0-founder-royal'", build)
+        self.assertIn("versionName '2.6.0-screen-fit'", build)
         queries = self.manifest.find("queries")
         self.assertIsNotNone(queries)
         self.assertTrue(any(p.get(ANDROID + "name") == "com.onanypostcode.oapworld"
                             for p in queries.findall("package")))
-        self.assertIn('OAP_INTERNET_PACKAGE = "com.onanypostcode.oapworld"', self.source)
-        self.assertIn("getLaunchIntentForPackage(OAP_INTERNET_PACKAGE)", self.source)
-        self.assertIn("else if (index == 2) launchOapInternet();", self.source)
-        self.assertIn("No browser fallback or installation is started.", self.source)
-        self.assertIn("KORADASO Internet is separate", self.source)
-        self.assertIn("The KORADASO Internet Android app is not installed or visible.", self.source)
-        self.assertIn("KORADASO Internet could not be opened.", self.source)
+        self.assertIn('else if (index == 2) launchOapInternet();', self.source)
+        self.assertIn('private static final String OAP_LOCAL_ORIGIN = "http://127.0.0.1:5050";', self.source)
+        self.assertIn('addButton("OAP LOCAL · THIS DEVICE"', self.source)
+        self.assertIn('settings.setJavaScriptEnabled(false)', self.source)
+        self.assertIn('settings.setAllowFileAccess(false)', self.source)
+        self.assertIn('settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW)', self.source)
+        self.assertIn('"127.0.0.1".equals(uri.getHost()) && uri.getPort() == 5050', self.source)
+        self.assertIn('return "https".equalsIgnoreCase(uri.getScheme())', self.source)
+        config = (NATIVE / "src/main/res/xml/oap_network_security.xml").read_text(encoding="utf-8")
+        self.assertIn('<base-config cleartextTrafficPermitted="false"/>', config)
+        self.assertIn('<domain>127.0.0.1</domain>', config)
+        self.assertIn('android:networkSecurityConfig="@xml/oap_network_security"', MANIFEST.read_text(encoding="utf-8"))
         self.assertIn("OPEN KORADASO INTERNET", self.source)
 
     def test_home_draws_native_royal_surface_not_html(self):
@@ -84,7 +89,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
     def test_royal_tiles_adapt_without_changing_routes(self):
         home = self.source.split("    private void home() {", 1)[1].split(
             "    private void addPersistentHomeDock", 1)[0]
-        self.assertIn("int columns = availableWidth < dp(336) ? 2 : 3;", home)
+        self.assertIn("int columns = availableWidth < dp(330) ? 2 : 3;", home)
         self.assertIn("grid.setColumnCount(columns)", home)
         self.assertIn("(availableWidth - dp(4 * columns)) / columns", home)
         self.assertIn("tile.setAllCaps(false)", home)
