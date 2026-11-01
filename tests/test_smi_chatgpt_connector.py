@@ -58,6 +58,7 @@ def test_founder_route_requires_existing_session_auth():
 
 def test_http_route_rejects_anonymous_and_non_founder(monkeypatch):
     from flask import Flask
+
     from mission_control import views, web_security
 
     app = Flask(__name__)
@@ -78,6 +79,7 @@ def test_http_route_rejects_anonymous_and_non_founder(monkeypatch):
 
 def test_http_route_returns_only_allowlisted_data_to_founder(monkeypatch):
     from flask import Flask
+
     from mission_control import views, web_security
 
     app = Flask(__name__)
