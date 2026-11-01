@@ -66,6 +66,8 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertNotIn('openInternetAddress(OAP_API_ORIGIN + path);', self.source)
         self.assertIn('openInternetAddress(OAP_LOCAL_ORIGIN + "/ptt");', self.source)
         self.assertIn('OPEN WEB · ONANYPOSTCODE.GLOBAL', self.source)
+        self.assertIn('case "OAP MAIL": path = "/the-link"; break;', self.source)
+        self.assertIn('case "OAP MARKET": path = "/the-spot/market"; break;', self.source)
         self.assertIn('no public fallback.', self.source)
 
     def test_home_draws_native_royal_surface_not_html(self):
