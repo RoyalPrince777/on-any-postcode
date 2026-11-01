@@ -59,7 +59,7 @@ jobs:
           grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
             grep -Fq 'new RoyalHomeArt.EarthBackdrop()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
-          elif [[ "${{ github.event_name }}" != "workflow_dispatch" || "${{ inputs.build_koradaso_v27 }}" != "true" ]]; then
+          elif [[ "${{ github.event_name }}" != "workflow_dispatch" || ( "${{ inputs.build_koradaso_v27 }}" != "true" && "${{ inputs.build_local_routes_v28 }}" != "true" ) ]]; then
             grep -Fq 'BEGORO-KORADASO' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           fi
           grep -Fq 'boolean safeWebAddress(Uri uri)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
