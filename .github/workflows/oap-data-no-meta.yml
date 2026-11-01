@@ -2,7 +2,16 @@ name: OAP Data first-party no-Meta source proof
 on:
   push:
     branches:
-      - policy/oap-data-no-meta-third-party-20261101
+      - main
+    paths:
+      - 'tests/test_oap_data_no_meta_tracking.py'
+      - 'app.py'
+      - 'templates/home.html'
+      - 'templates/world.html'
+      - '.github/workflows/oap-data-no-meta.yml'
+  pull_request:
+    branches:
+      - main
     paths:
       - 'tests/test_oap_data_no_meta_tracking.py'
       - 'app.py'
