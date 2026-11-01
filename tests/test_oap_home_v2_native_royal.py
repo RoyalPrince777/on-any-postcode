@@ -37,9 +37,9 @@ class NativeRoyalHomeTests(unittest.TestCase):
     def test_package_identity_and_separate_internet_app(self):
         build = GRADLE.read_text(encoding="utf-8")
         self.assertIn("applicationId 'com.onanypostcode.oaphome.v2'", build)
-        self.assertIn("versionCode 27", build)
+        self.assertIn("versionCode 28", build)
         self.assertNotIn("applicationId 'com.onanypostcode.oaphome'\n", build)
-        self.assertIn("versionName '2.7.0-koradaso-local'", build)
+        self.assertIn("versionName '2.8.0-local-first-routes'", build)
         queries = self.manifest.find("queries")
         self.assertIsNotNone(queries)
         self.assertTrue(any(p.get(ANDROID + "name") == "com.onanypostcode.oapworld"
@@ -59,6 +59,14 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn('<domain>127.0.0.1</domain>', config)
         self.assertIn('android:networkSecurityConfig="@xml/oap_network_security"', MANIFEST.read_text(encoding="utf-8"))
         self.assertIn("OPEN KORADASO INTERNET", self.source)
+
+    def test_local_first_routes_do_not_silently_use_public_domain(self):
+        self.assertIn('pendingInternetAddress = OAP_LOCAL_ORIGIN + "/world";', self.source)
+        self.assertIn('openInternetAddress(OAP_LOCAL_ORIGIN + path);', self.source)
+        self.assertNotIn('openInternetAddress(OAP_API_ORIGIN + path);', self.source)
+        self.assertIn('openInternetAddress(OAP_LOCAL_ORIGIN + "/ptt");', self.source)
+        self.assertIn('OPEN WEB · ONANYPOSTCODE.GLOBAL', self.source)
+        self.assertIn('no public fallback.', self.source)
 
     def test_home_draws_native_royal_surface_not_html(self):
         self.assertIn("new RoyalHomeArt.EarthBackdrop()", self.source)
