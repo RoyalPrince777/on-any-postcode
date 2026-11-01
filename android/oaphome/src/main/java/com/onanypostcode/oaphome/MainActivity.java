@@ -32,7 +32,8 @@ import java.util.List;
 
 public class MainActivity extends Activity {
     private static final int GOLD = Color.rgb(236, 188, 75);
-    private static final String OAP_API_ORIGIN = "https://www.onanypostcode.com";
+    // No unverified public hostname is a valid default for OAP Core routes.
+    private static final String OAP_ORIGIN_PREF = "oap_verified_https_origin";
     private static final String PTT_CONTACTS_PATH = "/ptt/contacts";
     private static final int PTT_MIC_PERMISSION_REQUEST = 777;
     private boolean pttTransportReady = false;
@@ -166,6 +167,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams storeQuickLayout = new LinearLayout.LayoutParams(-1, dp(64));
         storeQuickLayout.setMargins(0, dp(4), 0, dp(8));
         body.addView(storeQuick, storeQuickLayout);
+        addButton("OAP ROUTE CONNECTION · SET VERIFIED HTTPS ORIGIN", v -> configureOapOrigin());
 
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.HORIZONTAL);
@@ -281,7 +283,12 @@ public class MainActivity extends Activity {
     }
 
     private void openPttApp() {
-        Uri uri = Uri.parse(OAP_API_ORIGIN + "/ptt");
+        String origin = verifiedOapOrigin();
+        if (origin == null) {
+            showUnconfiguredOapRoute("PTT");
+            return;
+        }
+        Uri uri = Uri.parse(origin + "/ptt");
         try {
             Intent ptt = new Intent(Intent.ACTION_VIEW, uri);
             ptt.addCategory(Intent.CATEGORY_BROWSABLE);
@@ -506,7 +513,7 @@ public class MainActivity extends Activity {
     }
 
     private String pttStatusFor(String title) {
-        if ("CONTACTS".equals(title)) return "Certified Contacts endpoint: " + OAP_API_ORIGIN + PTT_CONTACTS_PATH + " · authenticated native session not connected yet.";
+        if ("CONTACTS".equals(title)) return "Certified Contacts endpoint: " + (verifiedOapOrigin() == null ? "NOT CONFIGURED" : verifiedOapOrigin()) + PTT_CONTACTS_PATH + " · authenticated native session not connected yet.";
         if ("ROOMS".equals(title)) return "PTT Rooms are not connected to this launcher yet.";
         if ("INCOMING".equals(title)) return "Incoming PTT signalling is not connected to this launcher yet.";
         if ("HISTORY".equals(title)) return "PTT history is not connected to this launcher yet.";
@@ -518,6 +525,49 @@ public class MainActivity extends Activity {
         body.addView(label(status, 16));
         body.addView(label("Nothing here is presented as live until the corresponding transport and device proof passes.", 12));
         addButton("BACK TO TALK", v -> pttMenu());
+        addButton("BACK TO OAP HOME", v -> home());
+    }
+
+    private String verifiedOapOrigin() {
+        String configured = getPreferences(MODE_PRIVATE).getString(OAP_ORIGIN_PREF, "").trim();
+        Uri uri = Uri.parse(configured);
+        if (!safeWebAddress(uri) || !configured.equals("https://" + uri.getHost())
+                && !configured.equals("https://" + uri.getHost() + "/")) {
+            return null;
+        }
+        return "https://" + uri.getHost();
+    }
+
+    private void showUnconfiguredOapRoute(String name) {
+        base(name);
+        body.addView(label("OAP route unavailable: no verified HTTPS origin has been configured. No automatic public-site redirect.", 17));
+        addButton("CONFIGURE OAP ROUTE CONNECTION", v -> configureOapOrigin());
+        addButton("BACK TO OAP HOME", v -> home());
+    }
+
+    private void configureOapOrigin() {
+        base("OAP ROUTE CONNECTION");
+        body.addView(label("Local-first: enter a verified OAP HTTPS origin you control. A local HTTP service is not supported by this secure WebView build.", 15));
+        EditText originInput = new EditText(this);
+        originInput.setSingleLine(true);
+        originInput.setText(verifiedOapOrigin() == null ? "" : verifiedOapOrigin());
+        originInput.setHint("https://your-verified-oap-host");
+        originInput.setTextColor(Color.WHITE);
+        body.addView(originInput);
+        addButton("SAVE VERIFIED HTTPS ORIGIN", v -> {
+            String candidate = originInput.getText().toString().trim();
+            Uri parsed = Uri.parse(candidate);
+            if (!safeWebAddress(parsed) || !candidate.equals("https://" + parsed.getHost())) {
+                android.widget.Toast.makeText(this, "Enter an HTTPS origin only, without path, port, or credentials", android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+            getPreferences(MODE_PRIVATE).edit().putString(OAP_ORIGIN_PREF, candidate).apply();
+            home();
+        });
+        addButton("DISCONNECT OAP ROUTES", v -> {
+            getPreferences(MODE_PRIVATE).edit().remove(OAP_ORIGIN_PREF).apply();
+            home();
+        });
         addButton("BACK TO OAP HOME", v -> home());
     }
 
@@ -546,7 +596,12 @@ public class MainActivity extends Activity {
                 addButton("BACK TO OAP HOME", v -> home());
                 return;
         }
-        openInternetAddress(OAP_API_ORIGIN + path);
+        String origin = verifiedOapOrigin();
+        if (origin == null) {
+            showUnconfiguredOapRoute(name);
+            return;
+        }
+        openInternetAddress(origin + path);
     }
 
     private void allApps() {
