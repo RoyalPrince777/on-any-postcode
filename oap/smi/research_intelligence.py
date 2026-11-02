@@ -128,17 +128,17 @@ def build_investigation_case(case_id: str, question: str, evidence: list[dict[st
     if not isinstance(question, str) or not question.strip():
         raise ValueError("question is required")
     if not isinstance(evidence, list):
-        raise ValueError("evidence must be a list")
+        raise TypeError("evidence must be a list")
     records: list[dict[str, str]] = []
     for item in evidence:
         if not isinstance(item, dict):
-            raise ValueError("evidence entries must be objects")
+            raise TypeError("evidence entries must be objects")
         claim = item.get("claim", "")
         source = item.get("source", "")
         if not isinstance(claim, str) or not claim.strip():
             raise ValueError("each evidence entry requires a claim")
         if not isinstance(source, str):
-            raise ValueError("source must be text")
+            raise TypeError("source must be text")
         records.append({
             "claim": claim.strip(),
             "source": source.strip(),
