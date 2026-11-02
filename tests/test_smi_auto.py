@@ -135,3 +135,28 @@ def test_nirmata_and_aei_route_as_advisory_lenses_only():
         assert result["provider_call_performed"] is False
         assert result["database_write_performed"] is False
         assert result["human_authority_final"] is True
+
+
+def test_hathi_memory_learning_routes_to_canonical_jungle_passport_with_seven_thinking():
+    result = smi_auto.observe("GET", "/mission/smi", message="Memory and learning review")
+    mission = result["specialist_mission"]
+    assert mission["lead"] == "Colonel Hathi"
+    assert mission["lead_alias"] == "Hathi"
+    assert mission["lead_passport"] == "JUNGLE-HATHI-001"
+    assert mission["support"] == ("Hathi Jr", "Owl", "Oracle", "Fox")
+    assert mission["thinking_depth"] == 7
+    assert len(mission["selected_checks"]) == 7
+    assert {x["block"] for x in mission["selected_checks"]} == {"Mind"}
+    assert set(mission["lenses"]).issubset(set(result["lenses"]))
+    assert mission["memory_owner"] == "HRM Core"
+    assert mission["guardian_required"] and mission["green_gate_required"]
+    assert not mission["checks_executed"] and not mission["receipts_verified"]
+    assert not mission["independent_votes_proven"]
+    assert not mission["execution_granted"] and not mission["approval_granted"]
+    assert mission["human_authority_final"]
+    assert not result["provider_call_performed"]
+    assert not result["database_write_performed"]
+
+
+def test_non_memory_request_does_not_invoke_hathi_specialist_team():
+    assert smi_auto.observe("GET", "/the-spot", message="Hello")["specialist_mission"] is None
