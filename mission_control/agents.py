@@ -129,6 +129,31 @@ MATRIX_ALLIANCE_POLICY = {
     "founder_final_required": True,
 }
 
+# Seven evidence-led review rounds: advisory plans, never simulated executions.
+MATRIX_SEVEN_ROUND_UPGRADE: tuple[dict[str, Any], ...] = (
+    {"round": 1, "name": "Source truth", "leads": ("Tank", "Neo"),
+     "check": "Identify current commit, files, and real implementation evidence.",
+     "evidence": "Repository revision and exact source paths"},
+    {"round": 2, "name": "Build continuity", "leads": ("Dozer", "Trinity"),
+     "check": "Review build dependencies, existing CI, and recovery paths.",
+     "evidence": "Exact-head build results or explicit unverified status"},
+    {"round": 3, "name": "Dual-path challenge", "leads": ("Twin One", "Architect"),
+     "check": "Compare minimal integration against alternate implementation risks.",
+     "evidence": "Traceable diff and documented tradeoffs"},
+    {"round": 4, "name": "Contradiction check", "leads": ("Twin Two", "Oracle"),
+     "check": "Challenge unsupported completion claims and conflicting reports.",
+     "evidence": "Contradictions resolved or recorded as blockers"},
+    {"round": 5, "name": "Adversarial security", "leads": ("Agent Smith", "Seraph"),
+     "check": "Assess signing, update gates, permissions, and hostile inputs.",
+     "evidence": "Security tests and identified gaps; never fabricated attacks"},
+    {"round": 6, "name": "Guardian and HRM", "leads": ("Bagheera", "Morpheus"),
+     "check": "Require attributable review, restricted permissions, and human authority.",
+     "evidence": "Guardian/HRM receipts if actually available"},
+    {"round": 7, "name": "Founder release gate", "leads": ("Neo", "Tank", "Dozer"),
+     "check": "Separate source changes from verified CI, signed APK, and device acceptance.",
+     "evidence": "Founder Final decision and actual release proof"},
+)
+
 LOCKED_WORLD_IDS = tuple(world["id"] for world in INTELLIGENCE_WORLDS)
 INTELLIGENCE_WORLD_NAMES = tuple(world["name"] for world in INTELLIGENCE_WORLDS)
 
@@ -456,6 +481,7 @@ def get_public_agent_directory(
         "non_agent_systems": ORGANISM_NON_AGENT_SYSTEMS,
         "matrix_advisory_alliances": MATRIX_ADVISORY_ALLIANCES,
         "matrix_alliance_policy": MATRIX_ALLIANCE_POLICY,
+        "matrix_seven_round_upgrade": MATRIX_SEVEN_ROUND_UPGRADE,
         "validation": validation,
         "filters": {"family_id": family_id, "query": query.strip()[:80]},
         "human_authority": {
