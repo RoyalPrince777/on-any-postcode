@@ -8,6 +8,9 @@ on:
     branches: [main, fix/oap-home-direct-update-v31-20261102]
     paths:
       - 'android/oaphome/**'
+      - 'tests/test_oap_home_v2_native_royal.py'
+      - 'tests/test_oap_home_v2_inplace_gate.py'
+      - 'scripts/oap_home_v2_inplace_apk_gate.py'
       - '.github/workflows/oap-home-apk.yml'
 
 permissions:
