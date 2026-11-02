@@ -102,6 +102,17 @@ MATRIX_ADVISORY_ALLIANCES: tuple[dict[str, Any], ...] = (
         "allies": ("Neo", "Morpheus", "Trinity", "Mouse"),
     },
     {
+        "id": "mouse_creative_simulation",
+        "name": "Mouse — Creative Simulation & Edge-Case Intelligence",
+        "members": ("Mouse",),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Interactive world and training-scene design review",
+                  "Game and UI edge-case analysis",
+                  "Explicit separation of simulations from runtime proof"),
+        "allies": ("Morpheus", "Neo", "Tank", "Dozer", "Nirmata"),
+    },
+    {
         "id": "matrix_twins",
         "name": "The Twins — Dual Intelligence",
         "members": ("Twin One", "Twin Two"),
