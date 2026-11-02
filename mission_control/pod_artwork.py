@@ -65,3 +65,17 @@ def load(*, owner_identity_id: str, asset_id: str) -> tuple[str, bytes] | None:
             (owner, asset),
         ).fetchone()
     return (str(row[0]), bytes(row[1])) if row else None
+
+
+def init_schema(*, assume_yes: bool = False, dry_run: bool = True) -> dict[str, object]:
+    """Install only through the already governed Commerce installer."""
+    if not assume_yes:
+        raise RuntimeError("Explicit human approval required: pass --yes")
+    if dry_run:
+        return {"schema_ready": False, "dry_run": True}
+    with postgres_db.connect() as conn:
+        for statement in SCHEMA.strip().split(";"):
+            if statement.strip():
+                conn.execute(statement)
+        conn.commit()
+    return {"schema_ready": True, "dry_run": False}
