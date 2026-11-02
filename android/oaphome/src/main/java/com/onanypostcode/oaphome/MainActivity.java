@@ -150,7 +150,7 @@ public class MainActivity extends Activity {
         setContentView(root);
         // The Home surface draws its own crowned native hero. Other screens
         // retain the standard native heading.
-        if (!"♛ OAP HOME".equals(title)) {
+        if (!"♛ OAP HOME".equals(title) && !"♛ KORADASO INTERNET".equals(title)) {
             TextView heading = label(title, 29);
             heading.setTypeface(Typeface.SERIF, Typeface.BOLD);
             root.addView(heading, new LinearLayout.LayoutParams(-1, dp(54)));
@@ -663,18 +663,23 @@ public class MainActivity extends Activity {
             String name = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimeType);
             requestKoradasoDownload(url, mimeType, name, loadStatus);
         });
+        final boolean[] browserPageFailed = {false};
         viewer.setWebViewClient(new OapSecureWebClient(this) {
             @Override public void onPageStarted(android.webkit.WebView view, String url, android.graphics.Bitmap favicon) {
+                browserPageFailed[0] = false;
                 loadStatus.setText(url.startsWith(OAP_LOCAL_ORIGIN + "/") ? "Loading OAP LOCAL…" : "Loading HTTPS page…");
             }
             @Override public void onPageFinished(android.webkit.WebView view, String url) {
-                loadStatus.setText("Page loaded. Some interactive services require JavaScript, currently disabled for safety.");
+                if (!browserPageFailed[0]) loadStatus.setText("Page loaded. Some interactive services require JavaScript, currently disabled for safety.");
             }
             @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request,
                     android.webkit.WebResourceError error) {
-                if (request.isForMainFrame()) loadStatus.setText("Page unavailable: " + error.getDescription()
+                if (request.isForMainFrame()) {
+                    browserPageFailed[0] = true;
+                    loadStatus.setText("Page unavailable: " + error.getDescription()
                         + (request.getUrl().toString().startsWith(OAP_LOCAL_ORIGIN)
                         ? " · Start OAP Flask on this phone at 127.0.0.1:5050; no public fallback." : ""));
+                }
             }
         });
         LinearLayout quickLinks = new LinearLayout(this);
