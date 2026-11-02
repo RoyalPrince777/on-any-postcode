@@ -54,3 +54,30 @@ def test_nonfailed_run_must_not_be_claimed_as_repaired():
     result = inspect_failed_run(157, token="read-only", fetch=green)
     assert result["ready"] is False
     assert result["error"] == "run_not_completed_failure"
+
+
+def test_discovery_finds_failed_runs_without_user_link():
+    from mission_control.smi_github_failure_evidence import discover_recent_failed_runs
+
+    def fetch(url, token):
+        assert "/actions/workflows/oap-home-apk.yml/runs?" in url
+        assert token == "read-only"
+        return {"workflow_runs": [
+            {"id": 157, "conclusion": "failure", "repository": {"full_name": REPO}},
+            {"id": 156, "conclusion": "failure", "repository": {"full_name": REPO}},
+            {"id": 155, "conclusion": "success", "repository": {"full_name": REPO}},
+        ]}
+    result = discover_recent_failed_runs(token="read-only", fetch=fetch)
+    assert result["ready"] is True
+    assert result["run_ids"] == (157, 156)
+    assert result["execution_granted"] is False
+
+
+def test_discovery_rejects_wrong_repository():
+    from mission_control.smi_github_failure_evidence import discover_recent_failed_runs
+    result = discover_recent_failed_runs(token="read-only", fetch=lambda u, t: {
+        "workflow_runs": [{"id": 157, "conclusion": "failure",
+                           "repository": {"full_name": "attacker/other"}}],
+    })
+    assert result["ready"] is False
+    assert result["error"] == "github_discovery_unavailable"
