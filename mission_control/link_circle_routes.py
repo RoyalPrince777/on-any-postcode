@@ -74,7 +74,7 @@ def circle_status():
         ready=bool(state.get("ready")),
         first_party=True,
         max_members=link_circles.MAX_CIRCLE_MEMBERS,
-        circle_messages_ready=False,
+        circle_messages_ready=bool(state.get("messages_ready")),
         circle_calls_ready=False,
     )))
 
@@ -166,7 +166,7 @@ def circle_step_out(circle_id: str):
 @bp.get("/linkup/circles/<circle_id>/messages")
 @web_security.login_required(api=True)
 def circle_message_list(circle_id: str):
-    if not link_circles.status().get("ready"):
+    if not link_circles.status().get("messages_ready"):
         return _error("circle_unavailable", 503)
     try:
         messages = link_circles.circle_messages(_identity(), circle_id)
@@ -185,7 +185,7 @@ def circle_message_send(circle_id: str):
         return guarded
     if not web_security.PUBLIC_WRITE_LIMITER.allow(_identity()):
         return _error("rate_limited", 429)
-    if not link_circles.status().get("ready"):
+    if not link_circles.status().get("messages_ready"):
         return _error("circle_unavailable", 503)
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
