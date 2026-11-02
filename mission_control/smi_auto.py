@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
+from . import ai_behaviour
+
 AUTO_VERSION = 6
 AUTO_LIGHT = "purple"
 BASE_LENSES = ("truth", "evidence", "alignment")
@@ -36,6 +38,40 @@ SEMANTIC_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
     (("scenario", "what if", "what-if"), ("scenario", "risk")),
 )
 
+
+
+MEMORY_LEARNING_TRIGGERS = (
+    "memory and learning", "memory & learning", "learning from outcomes",
+    "memory continuity", "hrm learning", "lessons learned",
+)
+
+
+def memory_learning_route(message: object) -> dict[str, object] | None:
+    """Bounded specialist routing, not actual specialist execution or a vote."""
+    source = str(message or "").casefold()
+    if not any(trigger in source for trigger in MEMORY_LEARNING_TRIGGERS):
+        return None
+    checks = ai_behaviour.review_checks_for("7")
+    return {
+        "mission": "memory_and_learning",
+        "lead": "Colonel Hathi",
+        "lead_alias": "Hathi",
+        "lead_passport": "JUNGLE-HATHI-001",
+        "support": ("Hathi Jr", "Owl", "Oracle", "Fox"),
+        "thinking_depth": 7,
+        "selected_checks": checks["selected_checks"],
+        "lenses": ("data", "learning", "behaviour", "impact", "verification"),
+        "memory_owner": "HRM Core",
+        "review_mode": "advisory_only",
+        "checks_executed": False,
+        "receipts_verified": False,
+        "independent_votes_proven": False,
+        "guardian_required": True,
+        "green_gate_required": True,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
 
 def _add(target: list[str], values: Iterable[str]) -> None:
     for value in values:
@@ -124,7 +160,10 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
         _add(lenses, ("risk", "security", "privacy", "readiness", "decision", "judgement"))
 
     semantic_lenses = _semantic_lenses(message)
+    memory_route = memory_learning_route(message)
     _add(lenses, semantic_lenses)
+    if memory_route:
+        _add(lenses, memory_route["lenses"])
 
     consequential = write_action or any(
         token in path_key
@@ -158,6 +197,7 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
         "endpoint": endpoint_key,
         "lenses": tuple(lenses),
         "semantic_lenses": semantic_lenses,
+        "specialist_mission": memory_route,
         "selector": "surface+action+mission",
         "smi_intelligence": adaptive,
         "private_surface": private_surface,
