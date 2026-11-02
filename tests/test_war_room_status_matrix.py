@@ -52,3 +52,12 @@ def test_war_room_status_matrix_uses_existing_evidence_not_fake_percentages():
     assert "{{ war_room.summary.runtime_verified }}/{{ war_room.summary.rated_areas }}" in PAGE
     assert "{{ war_room.summary.operationally_certified }}/{{ war_room.summary.rated_areas }}" in PAGE
     assert "a visible button, high percentage, unanimous vote or attractive dashboard never creates proof" in PAGE
+
+
+def test_war_room_existing_page_contains_multiselect_divisions():
+    assert 'id="smi-division-command"' in PAGE
+    assert 'name="smi-division"' in PAGE
+    assert 'id="smi-command-thinking"' in PAGE
+    assert 'id="smi-command-extra"' in PAGE
+    assert '/mission/war-room/divisions/route' in PAGE
+    assert 'No agents executed.' in PAGE
