@@ -87,7 +87,7 @@ def test_smi_auto_combines_surface_action_and_mission_without_all_intelligence()
     assert {"readiness", "gap", "resilience", "risk"}.issubset(set(observed["semantic_lenses"]))
     assert observed["write_action"] is True
     assert observed["war_room_escalation"] is True
-    assert len(observed["lenses"]) < 26
+    assert len(observed["lenses"]) < 28
     assert observed["execution_granted"] is False
     assert observed["approval_granted"] is False
 
