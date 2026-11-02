@@ -65,3 +65,26 @@ def test_morpheus_mouse_training_plan_rejects_unsupported_or_blank_scenario():
     for objective, mode in (("", "scenario"), ("practice", "invalid"), ("x" * 2001, "scenario")):
         with pytest.raises(ValueError):
             matrix_simulation.morpheus_mouse_training_plan(objective, mode=mode)
+
+
+def test_mouse_training_runs_bounded_decision_and_returns_morpheus_feedback():
+    case = matrix_simulation.run_mouse_attention_training("Spot an unsafe distraction")
+    assert case["scenario_created"] is True
+    assert case["scenario_executed"] is False
+    assert len(case["options"]) == 3
+    answer = matrix_simulation.run_mouse_attention_training(
+        "Spot an unsafe distraction", choice="observe_surroundings"
+    )
+    assert answer["exercise_completed"] is True
+    assert answer["scenario_executed"] is True
+    assert "Correct" in answer["feedback"]
+    assert answer["hrm_receipt_written"] is False
+    assert answer["external_action_taken"] is False
+    assert answer["execution_granted"] is False
+    assert answer["founder_final_required"] is True
+
+
+def test_mouse_training_rejects_invalid_choices():
+    import pytest
+    with pytest.raises(ValueError):
+        matrix_simulation.run_mouse_attention_training("Practice", choice="deploy")
