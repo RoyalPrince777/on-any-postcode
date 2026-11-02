@@ -251,3 +251,15 @@ def test_mouse_dynamic_recommendation_preserves_matrix_home_and_authority():
 def test_mouse_not_recommended_for_unrelated_mission_or_oversized_input():
     assert smi_auto.route_divisions(("memory",), mission="Review HRM receipts")["specialist_recommendation"] is None
     assert smi_auto.recommend_matrix_mouse("x" * 2001) is None
+
+
+def test_matrix_home_groups_preserve_character_home_and_external_smi_boundary():
+    from mission_control import agents
+    assert agents.matrix_home_for('Mouse')['group_id'] == 'nebuchadnezzar'
+    assert agents.matrix_home_for('Twin One')['group_id'] == 'merovingian'
+    assert agents.matrix_home_for('Twin Two')['group_id'] == 'merovingian'
+    assert agents.matrix_home_for('Oracle')['group_id'] == 'oracle_circle'
+    assert agents.matrix_home_for('Architect')['group_id'] == 'machine_system'
+    assert agents.matrix_home_for('Niobe')['group_id'] == 'logos'
+    assert agents.matrix_home_for('Nirmata') is None
+    assert agents.matrix_home_for('Mouse')['execution_granted'] is False
