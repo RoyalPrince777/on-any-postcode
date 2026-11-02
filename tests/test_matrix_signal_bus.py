@@ -136,3 +136,32 @@ def test_switch_and_ghost_remain_review_only_and_cannot_route() -> None:
             matrix_signal_bus.route_signal(
                 sender="Trinity", topic="Review-only check", recipients=(name,)
             )
+
+
+def test_matrix_agent_exchange_tracks_homes_and_reply_without_claiming_delivery():
+    first = matrix_signal_bus.route_signal(
+        sender="Morpheus", topic="Review scenario",
+        recipients=("Oracle",), consequential=True)
+    assert first["sender_home"]["group_id"] == "nebuchadnezzar"
+    assert first["recipient_homes"]["Oracle"]["group_id"] == "oracle_circle"
+    assert first["delivered_to_agent_runtime"] is False
+    reply = matrix_signal_bus.route_reply_signal(
+        original=first, sender="Oracle", topic="Scenario has unverified assumptions")
+    assert reply["in_reply_to"] == first["signal_id"]
+    assert reply["sender_home"]["group_id"] == "oracle_circle"
+    assert reply["recipient_homes"]["Morpheus"]["group_id"] == "nebuchadnezzar"
+    assert reply["war_room_required"] is True
+    assert reply["delivery_confirmed"] is False
+    assert reply["independent_agent_execution_proven"] is False
+    assert reply["execution_granted"] is False
+
+
+def test_matrix_reply_cannot_use_nonrecipient_or_review_only_sender():
+    first = matrix_signal_bus.route_signal(
+        sender="Morpheus", topic="Safety review", recipients=("Oracle",))
+    with pytest.raises(ValueError):
+        matrix_signal_bus.route_reply_signal(
+            original=first, sender="Architect", topic="Not invited")
+    with pytest.raises(ValueError):
+        matrix_signal_bus.route_reply_signal(
+            original=first, sender="Tank", topic="Review only")
