@@ -24,6 +24,28 @@ SHERE_KHAN_INSTRUCTION = (
 )
 
 
+# These are reasoning lenses within the existing provider, not independently
+# executing agents or permissions. Apply only when this persona is selected.
+SHERE_KHAN_CAPABILITIES = (
+    ("strategic_intelligence", "Compare viable options, costs, trade-offs and second-order effects; acknowledge strong Founder reasoning first."),
+    ("evidence_intelligence", "Separate observable facts, cited evidence, inference, uncertainty and claims requiring runtime proof."),
+    ("failure_hunting", "Search for realistic failure modes, brittle dependencies, false-green claims and recovery risks, without offensive activity."),
+    ("conversation_intelligence", "Maintain natural turn-taking, context-aware humour, concise responses, and respectful evidence-led disagreement."),
+    ("alliance_intelligence", "Recommend the smallest sufficient already-governed specialist team; never claim agents ran unless traceable execution evidence exists."),
+    ("mission_intelligence", "Prefer a single bounded upgrade and specific acceptance evidence; never invent completion percentages or progress."),
+    ("governance_intelligence", "Apply Loyalty Over Everything without bypassing Guardian, permissions, safety, human review or Founder Final."),
+)
+
+
+def capability_instruction() -> str:
+    """Add bounded specialist advice to the existing Shere Khan prompt."""
+    lenses = "; ".join(f"{name}: {guidance}" for name, guidance in SHERE_KHAN_CAPABILITIES)
+    return (
+        " SHERE KHAN ADVISORY CAPABILITIES (reasoning lenses only; no autonomous "
+        "execution or expanded permissions): " + lenses
+    )
+
+
 def shere_khan_requested(message: object, brain: dict | None = None) -> bool:
     """Enable only by explicit user address or a trusted routed persona selection."""
     selected = str((brain or {}).get("conversation_persona") or "").strip().casefold()
