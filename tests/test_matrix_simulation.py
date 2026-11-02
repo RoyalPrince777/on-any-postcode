@@ -88,3 +88,17 @@ def test_mouse_training_rejects_invalid_choices():
     import pytest
     with pytest.raises(ValueError):
         matrix_simulation.run_mouse_attention_training("Practice", choice="deploy")
+
+
+def test_matrix_status_exposes_distinct_film_homes_without_execution():
+    groups = {group["id"]: group for group in matrix_simulation.status()["home_groups"]}
+    assert {"nebuchadnezzar", "logos", "merovingian", "oracle_circle", "machine_system", "access_exiles", "agents", "smith_rogue"} <= set(groups)
+    assert {"Twin One", "Twin Two"} <= set(groups["merovingian"]["members"])
+    assert "Twin One" not in groups["nebuchadnezzar"]["members"]
+    assert "Oracle" not in groups["nebuchadnezzar"]["members"]
+    assert "Architect" not in groups["nebuchadnezzar"]["members"]
+    assert "Keymaker" not in groups["merovingian"]["members"]
+    assert "Agent Smith" not in groups["agents"]["members"]
+    assert "Agent Smith" in groups["smith_rogue"]["members"]
+    assert matrix_simulation.status()["home_groups_are_advisory"] is True
+    assert matrix_simulation.status()["execution_granted"] is False
