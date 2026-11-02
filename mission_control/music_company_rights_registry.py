@@ -109,6 +109,8 @@ class MusicCompanyRightsRegistry:
 
     def review(self, *, owner_identity_id, registry_id, reviewer_identity_id,
                decision):
+        # No caller may self-certify rights until a server-side reviewer authority gate is integrated.
+        raise PermissionError("review_authority_not_wired")
         owner = _uuid(owner_identity_id)
         record_id = _uuid(registry_id)
         reviewer = _uuid(reviewer_identity_id)
