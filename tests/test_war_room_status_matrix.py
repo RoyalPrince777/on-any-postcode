@@ -77,3 +77,15 @@ def test_smi_cc_is_an_alias_of_existing_war_room_not_a_second_application():
     old = next(rule for rule in app.url_map.iter_rules() if rule.rule == "/mission/war-room")
     assert cc.endpoint == old.endpoint
     assert "GET" in cc.methods and "GET" in old.methods
+
+
+def test_smi_cc_submits_bounded_mission_context_without_execution():
+    assert "mission: document.querySelector('.mission')?.value || ''" in PAGE
+    assert "notes: document.getElementById('smi-command-extra').value" in PAGE
+    from mission_control import views
+    import inspect
+    route = inspect.getsource(views.war_room_divisions_route)
+    assert 'len(mission) > 2000' in route
+    assert 'len(notes) > 2000' in route
+    assert '"invalid_mission"' in route
+    assert 'route_divisions' in route
