@@ -50,7 +50,7 @@ def test_completion_contract_reports_code_separately_from_runtime_proof():
 
     assert status["operating_level_model"] == "A1-A7"
     assert status["one_brain"] is True
-    assert status["intelligence"]["lens_count"] == 26
+    assert status["intelligence"]["lens_count"] == 28
     assert status["intelligence"]["core_lens_count"] == 10
     assert status["intelligence"]["execution_granted_by_lens"] is False
     assert status["green_gate"]["code_boundary_ready"] is True
@@ -68,14 +68,14 @@ def test_completion_contract_reports_code_separately_from_runtime_proof():
     }
 
 
-def test_all_26_intelligence_lenses_remain_capabilities_not_execution_authority():
-    assert len(intelligence_lenses.FULL_LENS_IDS) == 26
+def test_all_28_intelligence_lenses_remain_capabilities_not_execution_authority():
+    assert len(intelligence_lenses.FULL_LENS_IDS) == 28
     assert len(intelligence_lenses.CORE_LENS_IDS) == 10
 
     routed = intelligence_lenses.public_route("Full Intelligence on SIKA")
     assert routed["active"] is True
     assert routed["mode"] == "full"
-    assert len(routed["lenses"]) == 26
+    assert len(routed["lenses"]) == 28
     assert routed["execution_granted"] is False
     assert routed["human_authority_final"] is True
 
@@ -92,7 +92,7 @@ def test_personal_smi_grounding_exposes_a5_a6_a7_as_locked_not_authority():
     assert '"a5_enabled":false' in text
     assert '"a6_enabled":false' in text
     assert '"a7_enabled":false' in text
-    assert '"intelligence_lens_count":26' in text
+    assert '"intelligence_lens_count":28' in text
     assert "higher levels never move human authority" in text
     assert "truth intelligence plus evidence intelligence" in text
 
