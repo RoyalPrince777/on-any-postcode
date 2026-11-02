@@ -382,3 +382,17 @@ def test_pod_manufacturer_mismatch_rejected_before_database_connection(monkeypat
             supplier_label="Prodigi",
             supplier_product_ref="hoodie-123",
         )
+
+
+def test_pod_local_artwork_preview_is_bounded_and_never_submitted():
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+    assert 'id="market-local-artwork" type="file"' in template
+    assert 'accept="image/png,image/jpeg,image/webp"' in template
+    assert "file.size > 5 * 1024 * 1024" in template
+    assert "URL.createObjectURL(file)" in template
+    assert "URL.revokeObjectURL(localArtworkUrl)" in template
+    assert "image bytes are not uploaded" in template
+    assert 'name="artwork_reference"' in template
+    assert 'id="market-local-artwork" name=' not in template
