@@ -476,8 +476,8 @@ public class MainActivity extends Activity {
         });
         GridLayout quickLinks = new GridLayout(this);
         quickLinks.setColumnCount(3);
-        String[] names = {"🌍 WORLD", "📍 MAPS", "✉ MAIL", "🛒 MARKET", "✦ STUDIO", "⚙ SETTINGS"};
-        String[] paths = {"/world", "/maps", "/the-link", "/the-spot/market", "/studio", "/koradaso"};
+        String[] names = {"🌍 WORLD", "📍 MAPS", "✉ MAIL", "🛒 MARKET", "✦ AI STUDIO", "⬇ LIBRARY", "⚙ SETTINGS"};
+        String[] paths = {"/world", "/maps", "/the-link", "/the-spot/market", "/studio", "/library", "/koradaso"};
         for (int i = 0; i < names.length; i++) {
             final String path = paths[i];
             Button tile = button(names[i], v -> {
