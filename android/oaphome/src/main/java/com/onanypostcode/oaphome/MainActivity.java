@@ -474,11 +474,17 @@ public class MainActivity extends Activity {
                         ? " · Start OAP Flask on this phone at 127.0.0.1:5050; no public fallback." : ""));
             }
         });
-        GridLayout quickLinks = new GridLayout(this);
-        quickLinks.setColumnCount(3);
+        LinearLayout quickLinks = new LinearLayout(this);
+        quickLinks.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout destinationRow = null;
         String[] names = {"🌍 WORLD", "📍 MAPS", "✉ MAIL", "🛒 MARKET", "✦ AI STUDIO", "⬇ LIBRARY", "⚙ SETTINGS"};
         String[] paths = {"/world", "/maps", "/the-link", "/the-spot/market", "/studio", "/library", "/koradaso"};
         for (int i = 0; i < names.length; i++) {
+            if (i == 0 || i == 3) {
+                destinationRow = new LinearLayout(this);
+                destinationRow.setOrientation(LinearLayout.HORIZONTAL);
+                quickLinks.addView(destinationRow, new LinearLayout.LayoutParams(-1, dp(100)));
+            }
             final String path = paths[i];
             Button tile = button(names[i], v -> {
                 String target = OAP_LOCAL_ORIGIN + path;
@@ -487,11 +493,9 @@ public class MainActivity extends Activity {
             });
             tile.setAllCaps(false);
             tile.setTextSize(14);
-            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
-            lp.width = (getResources().getDisplayMetrics().widthPixels - dp(38)) / 3;
-            lp.height = dp(92);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(92), 1f);
             lp.setMargins(dp(2), dp(4), dp(2), dp(4));
-            quickLinks.addView(tile, lp);
+            destinationRow.addView(tile, lp);
         }
         body.addView(quickLinks);
         addButton("OPEN ADDRESS", v -> {
