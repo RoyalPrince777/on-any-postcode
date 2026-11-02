@@ -172,3 +172,53 @@ def test_circle_status_route_denies_anonymous_user(anonymous_client):
 def test_circle_page_exists_for_member_and_mutation_requires_csrf(client):
     assert client.get("/linkup/circles").status_code == 200
     assert client.post("/linkup/circles", data={"name": "Family"}).status_code == 403
+
+
+def test_invite_acceptance_locks_room_before_membership_capacity_check(monkeypatch):
+    host, invitee, circle, invite = (str(uuid.uuid4()) for _ in range(4))
+    monkeypatch.setattr(link_circles, "_guard_link", lambda *_args: None)
+
+    def handler(query, params):
+        if query.startswith("SELECT circle_id FROM link_circle_invites"):
+            return _Result(row=(circle,))
+        if query.startswith("SELECT id FROM link_circles") and "FOR UPDATE" in query:
+            return _Result(row=(circle,))
+        if query.startswith("SELECT i.circle_id,i.inviter_id,c.status"):
+            assert "FOR UPDATE OF i" in query
+            return _Result(row=(circle, host, "active"))
+        if query.startswith("SELECT COUNT(*) FROM link_circle_members"):
+            return _Result(row=(31,))
+        if query.startswith("SELECT 1 FROM link_circle_members"):
+            return _Result(row=None)
+        if query.startswith("INSERT INTO link_circle_members"):
+            return _Result()
+        if query.startswith("UPDATE link_circle_invites"):
+            return _Result(row=(invite,))
+        raise AssertionError(query)
+
+    connection = _Connection(handler)
+    monkeypatch.setattr(link_circles.postgres_db, "connect", lambda *a, **k: _Context(connection))
+    assert link_circles.respond_invite(invitee, invite, "accepted") is True
+    queries = [query for query, _ in connection.calls]
+    lock_index = next(i for i, query in enumerate(queries) if query.startswith("SELECT id FROM link_circles"))
+    count_index = next(i for i, query in enumerate(queries) if query.startswith("SELECT COUNT(*)"))
+    assert lock_index < count_index
+    assert connection.committed is True
+
+
+def test_invite_recheck_after_room_lock_rejects_already_processed_invite(monkeypatch):
+    invitee, circle, invite = (str(uuid.uuid4()) for _ in range(3))
+
+    def handler(query, params):
+        if query.startswith("SELECT circle_id FROM link_circle_invites"):
+            return _Result(row=(circle,))
+        if query.startswith("SELECT id FROM link_circles"):
+            return _Result(row=(circle,))
+        if query.startswith("SELECT i.circle_id,i.inviter_id,c.status"):
+            return _Result(row=None)
+        raise AssertionError(query)
+
+    connection = _Connection(handler)
+    monkeypatch.setattr(link_circles.postgres_db, "connect", lambda *a, **k: _Context(connection))
+    assert link_circles.respond_invite(invitee, invite, "accepted") is False
+    assert not any(query.startswith("INSERT INTO link_circle_members") for query, _ in connection.calls)
