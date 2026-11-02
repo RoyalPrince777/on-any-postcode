@@ -27,6 +27,17 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("setAcceptThirdPartyCookies(viewer, false)", self.source)
         self.assertIn("settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE)", self.source)
 
+    def test_koradaso_native_bookmark_save_open_and_clear_source(self):
+        source = self.source
+        self.assertIn("showKoradasoBookmarks(", source)
+        self.assertIn("saveKoradasoBookmark(", source)
+        self.assertIn('getSharedPreferences("koradaso_bookmarks", MODE_PRIVATE)', source)
+        self.assertIn('new String[]{"★ BOOKMARKS", "+ SAVE"}', source)
+        self.assertIn('setItems(urls.toArray(new String[0])', source)
+        self.assertIn('prefs.edit().remove("urls").apply()', source)
+        self.assertIn('urls.size() >= 12', source)
+        self.assertIn('safeWebAddress(Uri.parse(url))', source)
+
     def test_koradaso_keyword_search_requires_external_confirmation(self):
         source = self.source
         self.assertIn("private void navigateKoradasoInput(", source)
