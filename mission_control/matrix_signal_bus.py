@@ -185,6 +185,18 @@ def route_signal(
 ) -> dict[str, Any]:
     """Create a bounded Matrix Signal envelope without taking external action."""
 
+    if not isinstance(sender, str):
+        raise ValueError("Signal sender must be text")
+    if not isinstance(topic, str) or not topic.strip() or len(topic) > 2000:
+        raise ValueError("Signal topic must be 1-2000 characters")
+    if not isinstance(kind, str) or len(kind) > 64:
+        raise ValueError("Invalid signal kind")
+    if not isinstance(requested_action, str) or len(requested_action) > 256:
+        raise ValueError("Invalid requested action")
+    if recipients is not None and (isinstance(recipients, (str, bytes)) or not isinstance(recipients, (tuple, list)) or len(recipients) > 16 or any(not isinstance(x, str) for x in recipients)):
+        raise ValueError("Recipients must be at most 16 named entries")
+    if isinstance(evidence, (str, bytes)) or not isinstance(evidence, (tuple, list)) or len(evidence) > 16 or any(not isinstance(x, str) or len(x) > 1000 for x in evidence):
+        raise ValueError("Evidence must be at most 16 bounded text entries")
     sender = sender.strip()
     if sender not in registered_matrix_names():
         raise ValueError(
@@ -195,7 +207,7 @@ def route_signal(
     topic = topic.strip()
     if not topic:
         raise ValueError("Signal topic is required")
-    if confidence is not None and not 0 <= confidence <= 1:
+    if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (float, int)) or not 0 <= confidence <= 1):
         raise ValueError("confidence must be between 0 and 1")
 
     routed_recipients = _normalise_recipients(recipients)
