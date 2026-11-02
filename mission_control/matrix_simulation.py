@@ -85,6 +85,45 @@ def morpheus_mouse_training_plan(case: str, *, mode: str = "scenario") -> dict[s
         "founder_final_required": True,
     }
 
+
+# A deterministic, interactive attention-training exercise. It runs only
+# within this request; the scenario is fictional and creates no HRM receipt.
+ATTENTION_CHOICES = ("observe_surroundings", "follow_distraction", "take_unverified_action")
+
+
+def run_mouse_attention_training(objective: str, *, choice: str | None = None) -> dict[str, Any]:
+    """Run one real interactive decision exercise, without real-world effects."""
+    plan = morpheus_mouse_training_plan(objective)
+    if choice is not None and choice not in ATTENTION_CHOICES:
+        raise ValueError("Invalid training response")
+    feedback = {
+        "observe_surroundings": "Correct: check surroundings and confirm the threat before acting.",
+        "follow_distraction": "The distraction captured attention; review the surroundings first.",
+        "take_unverified_action": "Unsafe assumption: verify the situation before taking action.",
+    }
+    return {
+        **plan,
+        "exercise": "Mouse's Distraction Check",
+        "scene": "A fictional crowd crosses a training street. A red-clothed figure draws your attention while another pedestrian changes direction.",
+        "prompt": "What is the safest first response?",
+        "options": (
+            {"id": "observe_surroundings", "label": "Observe the surroundings before reacting"},
+            {"id": "follow_distraction", "label": "Follow the distracting figure"},
+            {"id": "take_unverified_action", "label": "React immediately without confirming"},
+        ),
+        "choice": choice,
+        "feedback": feedback.get(choice),
+        "decision_recorded_in_response": choice is not None,
+        "exercise_completed": choice is not None,
+        "scenario_executed": choice is not None,
+        "scenario_created": True,
+        "observations_verified": False,
+        "hrm_receipt_written": False,
+        "external_action_taken": False,
+        "execution_granted": False,
+    }
+
+
 def status() -> dict[str, Any]:
     return {
         "name": SIMULATION_NAME,
