@@ -56,6 +56,36 @@ def assess_with_trusted_records(
     )
 
 
+def assess_for_authenticated_operator(
+    *,
+    authenticated_operator_id: str,
+    requested_operator_id: str,
+    intent_id: object,
+    service_point_id: object,
+    customer_reference: object,
+    amount: object,
+    currency: object,
+    direction: object,
+) -> dict[str, object]:
+    """Deny cashier substitution; caller must supply server-authenticated identity.
+
+    This pure boundary is not a public endpoint or an authentication provider.
+    """
+    if not isinstance(authenticated_operator_id, str) or not authenticated_operator_id.strip():
+        raise cash.CashServicePointError("cash_authenticated_operator_required")
+    if authenticated_operator_id != requested_operator_id:
+        raise cash.CashServicePointError("cash_operator_identity_mismatch")
+    return assess_with_oap_store(
+        intent_id=intent_id,
+        service_point_id=service_point_id,
+        authenticated_operator_id=authenticated_operator_id,
+        customer_reference=customer_reference,
+        amount=amount,
+        currency=currency,
+        direction=direction,
+    )
+
+
 def assess_with_oap_store(
     *,
     intent_id: object,
