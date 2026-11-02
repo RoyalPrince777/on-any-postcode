@@ -1478,6 +1478,9 @@ def ludo_roll():
         return denied
     try:
         payload = _arena_payload()
+        existing = session.get(ludo.SESSION_KEY)
+        if isinstance(existing, dict) and existing.get("agent_mode", {}).get("agent") == "shere-khan" and existing.get("turn_index") == 1:
+            raise ValueError("ludo_agent_turn_reserved")
         state = ludo.roll(
             session.get(ludo.SESSION_KEY),
             request_id=payload.get("request_id"),
@@ -1496,6 +1499,9 @@ def ludo_move():
         return denied
     try:
         payload = _arena_payload()
+        existing = session.get(ludo.SESSION_KEY)
+        if isinstance(existing, dict) and existing.get("agent_mode", {}).get("agent") == "shere-khan" and existing.get("turn_index") == 1:
+            raise ValueError("ludo_agent_turn_reserved")
         state = ludo.move(
             session.get(ludo.SESSION_KEY),
             piece_id=payload.get("piece_id"),
