@@ -76,6 +76,7 @@ def test_investigation_case_is_read_only_and_preserves_unverified_state():
 
 def test_investigation_case_rejects_empty_or_untraceable_claims():
     import pytest
+
     from oap.smi.research_intelligence import build_investigation_case
 
     with pytest.raises(ValueError):
