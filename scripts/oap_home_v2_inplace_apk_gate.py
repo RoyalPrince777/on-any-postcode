@@ -80,7 +80,7 @@ def verify(installed_v2: Path, candidate: Path) -> str:
     if not candidate_version.startswith("3."):
         raise BlockedUpgrade("Candidate is not an OAP Core 3.x version")
     candidate_badging = command("aapt", "dump", "badging", str(candidate))
-    if "application-debuggable" in candidate_badging.splitlines():
+    if any(line.strip().startswith("application-debuggable") for line in candidate_badging.splitlines()):
         raise BlockedUpgrade("Candidate APK is debuggable; release update blocked")
     if f"application-label:'{EXPECTED_LABEL}'" not in candidate_badging:
         raise BlockedUpgrade("Candidate V2 display name must be OAP Core")
