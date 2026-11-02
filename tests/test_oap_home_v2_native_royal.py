@@ -27,6 +27,16 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("setAcceptThirdPartyCookies(viewer, false)", self.source)
         self.assertIn("settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE)", self.source)
 
+    def test_koradaso_bounded_tab_snapshots_are_present(self):
+        source = self.source
+        self.assertIn('addButton("TABS · OPEN / SWITCH / CLOSE"', source)
+        self.assertIn("viewer.saveState(stored)", source)
+        self.assertIn("viewer.restoreState(saved)", source)
+        self.assertIn("tabStates.size() >= 4", source)
+        self.assertIn("tabStates.remove(previous)", source)
+        self.assertIn('loadStatus.setText("New tab ready.', source)
+        self.assertIn("viewer.clearHistory()", source)
+
     def test_koradaso_downloads_are_https_and_user_confirmed(self):
         source = self.source
         self.assertIn("viewer.setDownloadListener(", source)
