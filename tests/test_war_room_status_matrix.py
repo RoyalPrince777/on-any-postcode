@@ -67,3 +67,11 @@ def test_smi_auto_action_uses_selected_division_route_before_review():
     assert "const chosen = [...document.querySelectorAll('input[name=\"smi-division\"]:checked')]" in PAGE
     assert "if (!routeResponse.ok) throw new Error" in PAGE
     assert "'🟣 SMI AUTO · ' + selectedPlan.thinking_depth" in PAGE
+
+
+def test_smi_cc_is_an_alias_of_existing_war_room_not_a_second_application():
+    assert 'id="smi-cc"' in PAGE
+    assert '/mission/smi-cc#smi-cc' in PAGE
+    from mission_control import views
+    rules = [rule for rule in views.bp.url_map.iter_rules()] if hasattr(views.bp, "url_map") else []
+    assert not rules or any("smi-cc" in str(rule) for rule in rules)
