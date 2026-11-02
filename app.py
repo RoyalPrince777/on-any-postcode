@@ -1423,12 +1423,52 @@ def ludo_start():
         return denied
     try:
         payload = _arena_payload()
+        opponents = payload.get("opponent")
+        level = payload.get("level", "cub")
+        if opponents is not None:
+            if opponents != "shere-khan" or level not in {"cub", "roar", "tyrant"}:
+                raise ValueError("ludo_agent_configuration_invalid")
+            if payload.get("players") != ["You", "Shere Khan"]:
+                raise ValueError("ludo_agent_players_invalid")
         state = ludo.new_game(payload.get("players"))
+        if opponents == "shere-khan":
+            state["agent_mode"] = {"player_id": "p2", "agent": opponents, "level": level}
+            state = ludo._seal(state)
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[ludo.SESSION_KEY] = state
     session.modified = True
     return _arena_json(ludo.public_state(state), 201)
+
+
+@app.post("/arena/ludo/shere-khan/turn")
+def ludo_shere_khan_turn():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        from mission_control.arena_ludo_shere_khan import choose_shere_khan_piece
+
+        payload = _arena_payload()
+        state = session.get(ludo.SESSION_KEY)
+        if not isinstance(state, dict) or state.get("agent_mode", {}).get("agent") != "shere-khan":
+            raise ValueError("ludo_agent_not_enabled")
+        if state.get("status") != "active" or state.get("turn_index") != 1:
+            raise ValueError("ludo_agent_not_turn")
+        if state.get("pending_roll") is not None:
+            raise ValueError("ludo_agent_pending_roll_invalid")
+        request_id = ludo._req(payload.get("request_id"))
+        if any(receipt.get("request_id") == request_id for receipt in state["request_receipts"]):
+            return _arena_json(ludo.public_state(state))
+        state = ludo.roll(state, request_id=request_id + "-roll")
+        if state["pending_roll"] is not None:
+            piece_id = choose_shere_khan_piece(state, state["agent_mode"]["level"])
+            state = ludo.move(state, piece_id=piece_id, request_id=request_id + "-move")
+    except (TypeError, ValueError, KeyError) as exc:
+        return _arena_error(exc)
+    session[ludo.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(ludo.public_state(state))
 
 
 @app.post("/arena/ludo/roll")
