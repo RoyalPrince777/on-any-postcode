@@ -27,6 +27,13 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("setAcceptThirdPartyCookies(viewer, false)", self.source)
         self.assertIn("settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE)", self.source)
 
+    def test_koradaso_failed_load_is_not_overwritten_by_success(self):
+        source = self.source
+        self.assertIn('!"♛ KORADASO INTERNET".equals(title)', source)
+        self.assertIn("browserPageFailed[0] = true;", source)
+        self.assertIn("browserPageFailed[0] = false;", source)
+        self.assertIn('if (!browserPageFailed[0]) loadStatus.setText("Page loaded.', source)
+
     def test_koradaso_bounded_tab_snapshots_are_present(self):
         source = self.source
         self.assertIn('addButton("TABS · OPEN / SWITCH / CLOSE"', source)
