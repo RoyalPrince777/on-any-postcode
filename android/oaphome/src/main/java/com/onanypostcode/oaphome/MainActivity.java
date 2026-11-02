@@ -479,6 +479,34 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void showKoradasoSessionHistory(android.webkit.WebView viewer, TextView status) {
+        android.webkit.WebBackForwardList list = viewer.copyBackForwardList();
+        java.util.ArrayList<String> labels = new java.util.ArrayList<>();
+        java.util.ArrayList<Integer> offsets = new java.util.ArrayList<>();
+        for (int i = 0; i < list.getSize(); i++) {
+            android.webkit.WebHistoryItem item = list.getItemAtIndex(i);
+            if (item == null || item.getUrl() == null) continue;
+            Uri uri;
+            try { uri = Uri.parse(item.getUrl()); }
+            catch (RuntimeException ignored) { continue; }
+            if (!safeWebAddress(uri)) continue;
+            labels.add(i == list.getCurrentIndex() ? "● " + uri : uri.toString());
+            offsets.add(i - list.getCurrentIndex());
+        }
+        if (labels.isEmpty()) {
+            status.setText("No browser history for this session."); return;
+        }
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("KORADASO · This session only")
+                .setItems(labels.toArray(new String[0]), (dialog, index) -> {
+                    if (activeWebView == viewer && viewer.canGoBackOrForward(offsets.get(index))) {
+                        viewer.goBackOrForward(offsets.get(index));
+                    }
+                })
+                .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
     private void showKoradasoBookmarks(android.webkit.WebView viewer, TextView status) {
         android.content.SharedPreferences prefs = getSharedPreferences("koradaso_bookmarks", MODE_PRIVATE);
         java.util.Set<String> saved = prefs.getStringSet("urls", java.util.Collections.emptySet());
@@ -682,7 +710,7 @@ public class MainActivity extends Activity {
                 navigateKoradasoInput(address.getText().toString(), viewer, loadStatus));
         LinearLayout browserControls = new LinearLayout(this);
         browserControls.setOrientation(LinearLayout.HORIZONTAL);
-        String[] controlNames = {"BACK", "FORWARD", "RELOAD"};
+        String[] controlNames = {"BACK", "FORWARD", "RELOAD", "HISTORY"};
         for (String name : controlNames) {
             Button control = button(name, v -> {
                 if (activeWebView != viewer) return;
@@ -692,6 +720,7 @@ public class MainActivity extends Activity {
                     case "RELOAD":
                         if (viewer.getUrl() != null && safeWebAddress(Uri.parse(viewer.getUrl()))) viewer.reload();
                         break;
+                    case "HISTORY": showKoradasoSessionHistory(viewer, loadStatus); break;
                     default: break;
                 }
             });
