@@ -50,6 +50,41 @@ TRAINING_PARTICIPANTS: tuple[str, ...] = (
     "Shere Khan",
 )
 
+
+def morpheus_mouse_training_plan(case: str, *, mode: str = "scenario") -> dict[str, Any]:
+    """Connect the existing Matrix training ground to governed film-grounded roles.
+
+    This produces an inspection-only plan, not an executed simulation or HRM proof.
+    """
+    from . import agents
+    if mode not in {item["id"] for item in SIMULATION_MODES}:
+        raise ValueError("Unsupported simulation mode")
+    if not isinstance(case, str) or not case.strip() or len(case) > 2000:
+        raise ValueError("Training objective must be 1-2000 characters")
+    profile = next(
+        (item for item in agents.MATRIX_ADVISORY_ALLIANCES
+         if item["id"] == "morpheus_mouse_mission_design"), None
+    )
+    if profile is None or profile["members"] != ("Morpheus", "Mouse"):
+        raise ValueError("Canonical Morpheus Mouse advisory profile unavailable")
+    return {
+        "objective": case.strip(),
+        "mode": mode,
+        "environment": SIMULATION_NAME,
+        "training_flow": profile["training_flow"],
+        "mission_director": "Morpheus",
+        "program_designer": "Mouse",
+        "runtime_operator": "Tank",
+        "scenario_created": False,
+        "scenario_executed": False,
+        "observations_verified": False,
+        "hrm_receipt_written": False,
+        "execution_granted": False,
+        "guardian_required": True,
+        "green_gate_required": True,
+        "founder_final_required": True,
+    }
+
 def status() -> dict[str, Any]:
     return {
         "name": SIMULATION_NAME,
