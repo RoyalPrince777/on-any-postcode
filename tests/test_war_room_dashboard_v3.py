@@ -37,8 +37,10 @@ def test_star_ratings_are_sequential_and_never_skip_missing_evidence():
                 break
             prefix += 1
         assert item["stars"] == prefix
-        assert item["score"] == item["stars"] * 20
-        assert len(item["stars_display"]) == 5
+        assert item["score"] == round(item["stars"] * 100 / 7)
+        assert len(item["stars_display"]) == 7
+        assert item["stars_max"] == 7
+        assert item["higher_star_proof"] == "UNRATED"
 
     physical = next(item for item in _ratings(projection) if item["id"] == "physical_oap_silicon")
     assert physical["stars"] == 1
