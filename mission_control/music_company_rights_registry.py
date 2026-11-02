@@ -5,7 +5,6 @@ No request-time schema creation, public API, or stored contract document bytes.
 """
 from __future__ import annotations
 
-import hashlib
 import re
 from uuid import UUID
 
@@ -51,7 +50,7 @@ def _uuid(value):
 
 def _text(value, field, limit=240):
     if not isinstance(value, str):
-        raise ValueError("invalid_" + field)
+        raise TypeError("invalid_" + field)
     cleaned = " ".join(value.split())
     if not cleaned or len(cleaned) > limit:
         raise ValueError("invalid_" + field)
