@@ -171,3 +171,14 @@ def test_seven_star_gate_rejects_unverified_receipt_references():
     assert spoof["sustained_certification_receipt"] is None
     assert spoof["human_approval_required"] is True
     assert spoof["higher_star_gate_reason"] == "authenticated_subject_bound_hrm_receipt_verification_pending"
+
+
+def test_seven_star_portfolio_denominator_matches_registered_ratings():
+    from mission_control import war_room
+    dashboard = war_room.get_war_room_dashboard()
+    ratings = _ratings(dashboard)
+    summary = dashboard['summary']
+    assert summary['star_max'] == 7
+    assert summary['overall_evidence_score'] == round(sum(x['stars'] for x in ratings) / (7 * len(ratings)) * 100)
+    assert len(summary['star_counts']) == 8
+    assert tuple(dashboard['thinking_check_profiles']) == ('3', '7', '21')
