@@ -27,6 +27,17 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("setAcceptThirdPartyCookies(viewer, false)", self.source)
         self.assertIn("settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE)", self.source)
 
+    def test_koradaso_offline_front_door_keeps_live_web_explicit(self):
+        source = self.source
+        launch = source.split("private void launchOapInternet() {", 1)[1].split(
+            "private void openPttApp()", 1
+        )[0]
+        self.assertIn("openInternet();", launch)
+        self.assertNotIn(".loadUrl(", launch)
+        self.assertIn('Search words will be sent to DuckDuckGo, outside OAP.', source)
+        self.assertIn('"Stay in OAP"', source)
+        self.assertIn('"Search"', source)
+
     def test_koradaso_failed_load_is_not_overwritten_by_success(self):
         source = self.source
         self.assertIn('!"♛ KORADASO INTERNET".equals(title)', source)
@@ -166,7 +177,9 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("OPEN KORADASO INTERNET", self.source)
 
     def test_local_first_routes_do_not_silently_use_public_domain(self):
-        self.assertIn('pendingInternetAddress = OAP_LOCAL_ORIGIN + "/koradaso";', self.source)
+        self.assertIn('private void launchOapInternet() {', self.source)
+        self.assertIn('pendingInternetAddress = null;', self.source)
+        self.assertIn('KORADASO ready offline', self.source)
         self.assertIn('openInternetAddress(OAP_LOCAL_ORIGIN + path);', self.source)
         self.assertNotIn('openInternetAddress(OAP_API_ORIGIN + path);', self.source)
         self.assertIn('openInternetAddress(OAP_LOCAL_ORIGIN + "/ptt");', self.source)
