@@ -165,7 +165,7 @@
   </div>
 </section>
 
-<section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…">
+<section class="panel" id="smi-cc"><div class="ey">👑 SMI CC · Command Centre</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…">
 <fieldset class="panel" id="smi-division-command">
 <legend>🧠 SMI divisions · select more than one</legend>
 <div class="bar" style="margin:8px 0">
@@ -621,7 +621,7 @@
   });
 })();
 </script>
-</main><nav class="bottom"><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav>
+</main><nav class="bottom"><a href="/mission/smi-cc#smi-cc">👑 SMI CC</a><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav>
 <script>
 (()=>{"use strict";
  const root=document.querySelector("main.w"); if(!root)return;
