@@ -207,7 +207,7 @@ def _runtime_modules() -> tuple[list[dict[str, Any]], dict[str, object]]:
             )
         elif module["id"] == "connectivity":
             module.update(
-                status="Local route observed; internet and cellular unverified" if local_route_observed else "No local route verified",
+                status="Not connected",
                 state="degraded",
                 readiness="Host interface and default-route evidence only" if local_route_observed else "Host connectivity evidence unavailable",
                 data="No external reachability, carrier attachment, or OAP-owned radio evidence asserted",
