@@ -459,7 +459,7 @@ public class MainActivity extends Activity {
         String raw = input == null ? "" : input.trim();
         if (raw.isEmpty()) { status.setText("Enter a website or search words."); return; }
         Uri target;
-        boolean search = raw.matches(".*\\\\s+.*") || (!raw.contains(".") && !raw.startsWith("http"));
+        boolean search = raw.matches(".*\\s+.*") || (!raw.contains(".") && !raw.startsWith("http"));
         if (search) {
             String encoded = java.net.URLEncoder.encode(raw, java.nio.charset.StandardCharsets.UTF_8);
             target = Uri.parse("https://duckduckgo.com/?q=" + encoded);
