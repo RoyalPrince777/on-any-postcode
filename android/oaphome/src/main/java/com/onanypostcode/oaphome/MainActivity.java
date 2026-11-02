@@ -491,17 +491,27 @@ public class MainActivity extends Activity {
             }
             viewer.loadUrl(uri.toString());
         });
-        body.addView(viewer, new LinearLayout.LayoutParams(-1, dp(440)));
-        addButton("BACK IN OAP INTERNET", v -> {
-            if (activeWebView == viewer && viewer.canGoBack()) viewer.goBack();
-        });
-        addButton("FORWARD IN OAP INTERNET", v -> {
-            if (activeWebView == viewer && viewer.canGoForward()) viewer.goForward();
-        });
-        addButton("RELOAD SAFE PAGE", v -> {
-            if (activeWebView == viewer && viewer.getUrl() != null
-                    && safeWebAddress(Uri.parse(viewer.getUrl()))) viewer.reload();
-        });
+        // Give OAP Internet a proper screen-relative browser viewport.\n        int browserHeight = Math.max(dp(480), getResources().getDisplayMetrics().heightPixels - dp(210));\n        body.addView(viewer, new LinearLayout.LayoutParams(-1, browserHeight));
+        LinearLayout browserControls = new LinearLayout(this);
+        browserControls.setOrientation(LinearLayout.HORIZONTAL);
+        String[] controlNames = {"BACK", "FORWARD", "RELOAD"};
+        for (String name : controlNames) {
+            Button control = button(name, v -> {
+                if (activeWebView != viewer) return;
+                switch (name) {
+                    case "BACK": if (viewer.canGoBack()) viewer.goBack(); break;
+                    case "FORWARD": if (viewer.canGoForward()) viewer.goForward(); break;
+                    case "RELOAD":
+                        if (viewer.getUrl() != null && safeWebAddress(Uri.parse(viewer.getUrl()))) viewer.reload();
+                        break;
+                    default: break;
+                }
+            });
+            LinearLayout.LayoutParams controlParams = new LinearLayout.LayoutParams(0, dp(52), 1);
+            controlParams.setMargins(dp(2), dp(4), dp(2), dp(4));
+            browserControls.addView(control, controlParams);
+        }
+        body.addView(browserControls);
         addButton("BACK TO OAP HOME", v -> { closeWebView(); home(); });
     }
 
