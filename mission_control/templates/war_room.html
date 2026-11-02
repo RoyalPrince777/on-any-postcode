@@ -399,10 +399,12 @@
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result?.error?.message || 'Selection unavailable');
       const teams = result.divisions.map(team => team.division + ': ' + team.lead).join(' · ');
+      const suggested = result.specialist_recommendation;
+      const specialistLine = suggested ? '\\nRecommended: ' + suggested.agent + ' · Commander: ' + suggested.commander + ' · Home: ' + suggested.home_system + ' (advisory only)' : '';
       const mission = document.querySelector('.mission')?.value.trim() || '(no mission entered)';
       const notes = document.getElementById('smi-command-extra').value.trim();
       show('purple', '🟣 Advisory team selected · ' + result.thinking_depth + ' Thinking\\n' +
-        teams + '\\nMission: ' + mission + (notes ? '\\nNotes: ' + notes : '') +
+        teams + specialistLine + '\\nMission: ' + mission + (notes ? '\\nNotes: ' + notes : '') +
         '\\nNo agents executed. Guardian, Green Gate and Founder Final required.');
     } catch (error) { show('yellow', '🟡 ' + error.message); }
     finally { button.disabled = false; }
@@ -467,6 +469,7 @@
       'Thinking plan: ' + selectedPlan.selected_checks.length + ' checks selected · 0 verified executed',
       'Agent execution: NONE · Independent votes: NOT VERIFIED'];
 
+    if (selectedPlan.specialist_recommendation) lines.push('Suggested Matrix specialist: Mouse · Morpheus command · no family transfer');
     for (const action of actions) {
       const payload = await run(action);
       const signal = payload.signal || payload.action?.signal || 'unknown';
