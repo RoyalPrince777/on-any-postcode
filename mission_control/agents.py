@@ -110,7 +110,8 @@ MATRIX_ADVISORY_ALLIANCES: tuple[dict[str, Any], ...] = (
         "roles": ("Interactive world and training-scene design review",
                   "Game and UI edge-case analysis",
                   "Explicit separation of simulations from runtime proof"),
-        "allies": ("Morpheus", "Neo", "Tank", "Dozer", "Nirmata"),
+        "allies": ("Morpheus", "Neo", "Tank", "Dozer"),
+        "external_smi_advisors": ("Nirmata",),
     },
     {
         "id": "morpheus_mouse_mission_design",
@@ -127,7 +128,16 @@ MATRIX_ADVISORY_ALLIANCES: tuple[dict[str, Any], ...] = (
                           "Tank operates approved runtime", "Neo or authorised user trains",
                           "Morpheus reviews observed outcome", "HRM records evidence only when verified"),
         "runtime_execution": False,
-        "allies": ("Oracle", "Neo", "Trinity", "Nirmata", "Tank", "Dozer"),
+        "allies": ("Oracle", "Neo", "Trinity", "Tank", "Dozer"),
+        "external_smi_advisors": ("Nirmata",),
+        "film_role_boundaries": {
+            "Morpheus": "Nebuchadnezzar captain, mission leader and training instructor",
+            "Mouse": "Agent training-program programmer and Woman in the Red Dress designer",
+            "Tank": "Operator for program loading, monitoring and exits",
+            "Dozer": "Ship crew and physical support; Tank brother",
+            "Neo": "Trainee and field operative",
+            "Trinity": "Hacker and field operative",
+        },
     },
     {
         "id": "matrix_twins",
