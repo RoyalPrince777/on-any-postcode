@@ -108,3 +108,30 @@ def test_latest_failed_run_is_actionable_without_repair_authority():
     })
     assert evidence["current_failure"] is True
     assert evidence["execution_granted"] is False
+
+
+def test_malformed_or_partial_job_pages_fail_closed():
+    def fake_response(jobs_result):
+        def fetch(url, token):
+            if url.endswith("/jobs?per_page=100"):
+                return jobs_result
+            return {"id": 157, "status": "completed", "conclusion": "failure",
+                    "repository": {"full_name": REPO}}
+        return fetch
+
+    for payload in (
+        None, {"total_count": 2, "jobs": []},
+        {"total_count": "1", "jobs": [{}]},
+        {"total_count": True, "jobs": [{}]},
+        {"total_count": 1, "jobs": "not-a-list"},
+    ):
+        result = inspect_failed_run(157, token="read-only", fetch=fake_response(payload))
+        assert result["ready"] is False
+        assert result["error"] == "github_evidence_unavailable"
+
+
+def test_invalid_discovery_response_fails_closed():
+    from mission_control.smi_github_failure_evidence import discover_recent_failed_runs
+    result = discover_recent_failed_runs(token="read-only", fetch=lambda u, t: None)
+    assert result["ready"] is False
+    assert result["error"] == "github_discovery_unavailable"
