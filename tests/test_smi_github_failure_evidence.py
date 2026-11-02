@@ -135,3 +135,26 @@ def test_invalid_discovery_response_fails_closed():
     result = discover_recent_failed_runs(token="read-only", fetch=lambda u, t: None)
     assert result["ready"] is False
     assert result["error"] == "github_discovery_unavailable"
+
+
+def test_log_classification_is_bounded_and_never_returns_secrets():
+    from mission_control.smi_github_failure_evidence import inspect_failed_job_logs
+    evidence = {"ready": True, "failed_jobs": ({"job_id": 123},)}
+    secret = "SECRET_TOKEN_SHOULD_NOT_LEAK"
+    result = inspect_failed_job_logs(
+        evidence, token="read-only",
+        fetch_log=lambda job_id, token: (
+            f"Missing OAP_HOME_KEYSTORE_B64: {secret}\\n"
+            "Execution failed for task ':compileDebugJavaWithJavac'"
+        ),
+    )
+    assert result["ready"] is True
+    assert "signing_configuration" in result["log_categories"][0]["categories"]
+    assert secret not in str(result)
+    assert result["execution_granted"] is False
+
+
+def test_logs_fail_closed_without_prior_job_proof():
+    from mission_control.smi_github_failure_evidence import inspect_failed_job_logs
+    assert inspect_failed_job_logs({}, token="read-only")["ready"] is False
+    assert inspect_failed_job_logs({"ready": True, "failed_jobs": ()}, token="read-only")["ready"] is False
