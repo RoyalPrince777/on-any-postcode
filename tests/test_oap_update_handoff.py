@@ -20,6 +20,8 @@ class OapUpdateHandoffTests(unittest.TestCase):
             "onActivityResult(int requestCode, int resultCode, Intent data)",
             '"content".equals(apk.getScheme())',
             "CHOOSE DOWNLOADED APK · UPDATE OAP CORE",
+            "♻ UPDATE OAP CORE · CHOOSE APK",
+            "⚙ OAP UPDATE PREFERENCES",
         ):
             self.assertIn(token, self.source)
 
