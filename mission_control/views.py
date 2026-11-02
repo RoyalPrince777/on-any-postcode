@@ -37,6 +37,7 @@ from . import (
     smi_founder_assets,
     smi_receipt_backend,
     smi_auto,
+    matrix_simulation,
     smi_recursive_improvement,
     smi_reply_voice_local,
     smi_workbench,
@@ -377,6 +378,27 @@ def war_room_divisions_route():
         return _error("invalid_selection", str(exc), 400)
     # Founder-supplied text is request-scoped; never log, store or treat it as authorisation.
     return _no_store(make_response(jsonify({**result, "mission": mission.strip(), "notes": notes.strip()})))
+
+
+@bp.post("/war-room/mouse-training")
+@web_security.login_required(api=True)
+def war_room_mouse_training():
+    """Run a bounded interactive fictional exercise inside Founder War Room."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh secure session.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Expected a JSON object.", 400)
+    choice = payload.get("choice")
+    if choice is not None and not isinstance(choice, str):
+        return _error("invalid_choice", "Invalid response.", 400)
+    try:
+        result = matrix_simulation.run_mouse_attention_training(
+            payload.get("objective"), choice=choice
+        )
+    except ValueError as exc:
+        return _error("invalid_training", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.get("/war-room/actions")
