@@ -183,7 +183,7 @@ public class MainActivity extends Activity {
         brandRow.setGravity(Gravity.TOP | Gravity.CENTER_VERTICAL);
         heroContents.addView(brandRow, new LinearLayout.LayoutParams(-1, dp(133)));
 
-        TextView royalBrand = label("♛\nOAP\nON ANY POSTCODE\nHOME", 20);
+        TextView royalBrand = label("♛\nOAP\nON ANY POSTCODE\nCORE", 20);
         royalBrand.setTypeface(Typeface.SERIF, Typeface.BOLD);
         royalBrand.setGravity(Gravity.START | Gravity.TOP);
         royalBrand.setLineSpacing(0, 0.88f);
@@ -210,10 +210,10 @@ public class MainActivity extends Activity {
         pttQuickLayout.setMargins(0, dp(6), 0, dp(4));
         body.addView(pttQuick, pttQuickLayout);
 
-        Button storeQuick = button("▣ OAP STORE\nINSTALL OAP APPS", v -> destination("OAP STORE"));
+        Button storeQuick = button("▣ OAP STORE\nBROWSE OAP APPS", v -> destination("OAP STORE"));
         storeQuick.setTextSize(14);
         storeQuick.setGravity(Gravity.CENTER_VERTICAL);
-        storeQuick.setContentDescription("Open OAP Store to install first-party OAP apps into the phone and OAP Home app list.");
+        storeQuick.setContentDescription("Browse first-party OAP apps in the Store. Installation depends on verified release availability.");
         LinearLayout.LayoutParams storeQuickLayout = new LinearLayout.LayoutParams(-1, dp(64));
         storeQuickLayout.setMargins(0, dp(4), 0, dp(8));
         body.addView(storeQuick, storeQuickLayout);
