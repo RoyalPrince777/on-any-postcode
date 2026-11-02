@@ -29,6 +29,7 @@ from . import (
     music_recovery,
     open_cinema,
     open_cinema_evidence,
+    tv_founder_intake,
     open_music_intake,
     pod_provider_registry,
     printful_pod_adapter,
@@ -529,6 +530,29 @@ def append_tune_release_acceptance(release_id: str):
 def music_civilization_status():
     """Single Music/Radio/Records/Live contract with no execution authority."""
     return _no_store(make_response(jsonify(music_civilization.contracts())))
+
+
+@bp.post("/entertainment/tv/founder-upload")
+@web_security.login_required(api=True, founder_only=True)
+def tv_founder_upload():
+    """Private OAP TV video intake. No publication or playback authority."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    upload = request.files.get("video")
+    if upload is None:
+        return _error("invalid_request", "Video file required.", 400)
+    try:
+        receipt = tv_founder_intake.intake(
+            upload.stream,
+            content_type=upload.mimetype,
+            title=request.form.get("title", ""),
+            owner_id=_identity(),
+        )
+    except (ValueError, TypeError):
+        return _error("invalid_request", "Invalid video, title or media type.", 400)
+    except (OSError, RuntimeError):
+        return _error("tv_storage_unavailable", "Private TV storage is unavailable.", 503)
+    return _no_store(make_response(jsonify(receipt), 201))
 
 
 @bp.post("/entertainment/open-cinema/preview")
