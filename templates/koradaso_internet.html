@@ -30,6 +30,31 @@ h2{font-size:.9rem;letter-spacing:.12em;color:#edcb83;margin:22px 0 12px}
 footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 0;margin-top:16px}
 @media(max-width:490px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:118px}.hero{padding-top:24px}.hero h1{font-size:2.35rem}.crest{width:119px;height:119px}.crest span{font-size:5.5rem}}
 @media(prefers-reduced-motion:reduce){*,*:before{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+ 
+/* Royal KORADASO mobile hierarchy: crowned navigation, luminous hero,
+   seven functional first-party destinations and an honest browser toolbar. */
+:root{--gold:#f5cd77;--violet:#a66bff}
+.top{padding:8px 2px 11px;border-bottom:1px solid #a57b46;position:relative}
+.top:before{content:"♛";color:var(--gold);font-size:1.35rem;margin-right:8px}
+.brand{margin-right:auto}.tag{border-color:#815bbb}
+.shell{max-width:650px;padding:9px 11px calc(35px + env(safe-area-inset-bottom));border-inline:1px solid #3e2b4e}
+.hero{margin-top:10px;padding:21px 10px 20px;border-radius:20px;background:radial-gradient(ellipse at 50% 56%,#513b82 0%,#231c49 27%,#100b23 57%,#060816 79%);box-shadow:0 0 16px #f0b65b55,inset 0 0 36px #b35afb38}
+.hero:after{content:"";position:absolute;inset:18px 8px;border:2px solid #b887eb66;border-radius:50%;transform:rotate(-27deg);pointer-events:none}
+.crest{width:166px;height:166px;background:radial-gradient(circle at 55% 40%,#f2c872 0%,#a97b22 14%,#2c1b49 16%,#332058 37%,#0f0a1e 71%);box-shadow:0 0 26px #f8c56d66,inset 0 0 20px #f7c06d66}
+.crest span{font-size:7.5rem;text-shadow:0 0 5px #fff9be,0 0 15px #ffc94e,3px 4px #693f19}
+.crown{text-shadow:0 0 18px #f6cd56;font-size:2.6rem}
+.hero h1{font-size:clamp(2.1rem,10vw,3.7rem);text-shadow:0 1px #fff4ba,0 0 20px #f3a54f99}
+.subtitle{color:#fff6dc;letter-spacing:.44em}
+.search{border-color:#ffe59f;box-shadow:0 0 15px #9b47ff55,0 0 10px #ffc75944;border-radius:27px}
+.grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:8px}
+.tile{grid-column:span 3;min-height:111px;border-color:#d9ad66;box-shadow:inset 0 1px #fff3,0 0 10px #6c35c044}
+.tile:nth-child(-n+3){grid-column:span 4;min-height:130px}
+.tile .ico{font-size:2.35rem}.tile strong{font-size:1rem}
+.nav{border:1px solid #8b6b3a;border-radius:18px;padding:10px;margin-bottom:12px}
+.browser-bar{display:flex;justify-content:space-around;gap:7px;border:1px solid #c69a57;border-radius:18px;background:#10101b;padding:9px;margin:17px 0}
+.browser-bar a{flex:1;text-align:center;color:#f1cd8d;border:1px solid #736044;border-radius:12px;padding:9px 4px;font-size:.86rem}
+.shortcuts{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}.shortcuts a{padding:8px 10px;background:#141423;border:1px solid #65553d;border-radius:10px;font-size:.78rem}
+@media(max-width:490px){.tile:nth-child(-n+3){min-height:118px}.tile{min-height:105px}.hero{padding-top:18px}.crest{width:139px;height:139px}.crest span{font-size:6rem}}
 </style>
 </head>
 <body>
@@ -52,10 +77,14 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <a class="tile" href="/maps"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Places & routes</span></a>
 <a class="tile" href="/the-link"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>The Link</span></a>
 <a class="tile" href="/the-spot/market"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>First-party market</span></a>
-<a class="tile" href="/studio"><span class="ico" aria-hidden="true">✦</span><strong>Studio</strong><span>Create & explore</span></a>
-<a class="tile" href="/library"><span class="ico" aria-hidden="true">📚</span><strong>Library</strong><span>Knowledge & legacy</span></a>
+<a class="tile" href="/studio"><span class="ico" aria-hidden="true">✦</span><strong>AI Studio</strong><span>Create & explore</span></a>
+<a class="tile" href="/library"><span class="ico" aria-hidden="true">⬇</span><strong>Library</strong><span>Knowledge & legacy</span></a><a class="tile" href="/world"><span class="ico" aria-hidden="true">⚙</span><strong>Settings</strong><span>OAP World settings entry</span></a>
 </div>
-<nav class="nav" aria-label="KORADASO navigation"><a href="/world">OAP World</a><a href="/">OAP Home</a></nav>
+<h2>★ BOOKMARKS</h2>
+<div class="shortcuts" aria-label="Website shortcuts">
+<a href="/koradaso">KORADASO</a><a href="/world">OAP World</a><a href="/library">Library</a>
+</div>
+<nav class="browser-bar" aria-label="Browser navigation"><a href="/koradaso">⌂ Home</a><a href="/world">🌍 World</a><a href="/the-link">✉ Link</a><a href="/">↩ OAP</a></nav>
 </main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
 </div>
 <script>
