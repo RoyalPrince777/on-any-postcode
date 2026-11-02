@@ -11,11 +11,80 @@ import re
 from collections.abc import Callable
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
+from urllib.parse import urlsplit
 
 REPO = "RoyalPrince777/on-any-postcode"
 API = f"https://api.github.com/repos/{REPO}"
 MAX_JOBS = 100
+MAX_LOG_BYTES = 131072
+
+
+class _SafeLogRedirect(HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, msg, headers, newurl):
+        target = urlsplit(newurl)
+        host = (target.hostname or "").lower()
+        # Follow GitHub Actions log redirects only over HTTPS and never
+        # forward the API token to a redirected download host.
+        if target.scheme != "https" or not (host == "github.com" or host.endswith(".githubusercontent.com") or host.endswith(".githubassets.com") or host.endswith(".blob.core.windows.net")):
+            raise ValueError("github_log_redirect_not_allowlisted")
+        return Request(newurl, headers={"User-Agent": "oap-smi-evidence-reader"})
+
+
+def _fetch_job_log(job_id: int, token: str) -> str:
+    request = Request(f"{API}/actions/jobs/{job_id}/logs", headers={
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "User-Agent": "oap-smi-evidence-reader",
+    })
+    with build_opener(_SafeLogRedirect()).open(request, timeout=10) as response:
+        raw = response.read(MAX_LOG_BYTES + 1)
+    if len(raw) > MAX_LOG_BYTES:
+        raise ValueError("github_job_log_too_large")
+    return raw.decode("utf-8", errors="replace")
+
+
+def _safe_log_summary(raw: str) -> tuple[str, ...]:
+    # Do not retain arbitrary log lines, credentials, environment dumps, or URLs.
+    # Output only controlled error categories for evidence-based diagnosis.
+    patterns = (
+        ("signing_configuration", r"Missing OAP_HOME_|signing keystore|certificate mismatch"),
+        ("source_verification", r"Verify checked-out|grep:|AssertionError|source candidate"),
+        ("gradle_compile", r"Compilation failed|Execution failed for task|error: cannot find symbol"),
+        ("dependency_resolution", r"Could not resolve|Could not find.*gradle|Plugin .* was not found"),
+        ("android_sdk", r"SDK location not found|Failed to find Build Tools|sdkmanager: command not found"),
+    )
+    return tuple(name for name, pattern in patterns if re.search(pattern, raw, flags=re.I))
+
+
+def inspect_failed_job_logs(evidence: dict[str, Any], *, token: str,
+                            fetch_log: Callable[[int, str], str] = _fetch_job_log) -> dict[str, Any]:
+    """Classify bounded failed-job logs; never persist raw logs or infer release."""
+    base = {"ready": False, "error": None, "log_categories": (),
+            "read_only": True, "execution_granted": False,
+            "approval_granted": False, "human_authority_final": True,
+            "consequential_action": False}
+    if not token or not token.strip():
+        return {**base, "error": "github_read_token_missing"}
+    if not isinstance(evidence, dict) or evidence.get("ready") is not True:
+        return {**base, "error": "failed_run_evidence_required"}
+    jobs = evidence.get("failed_jobs")
+    if not isinstance(jobs, (list, tuple)) or not 0 < len(jobs) <= 10:
+        return {**base, "error": "failed_job_count_unacceptable"}
+    try:
+        summaries = []
+        for job in jobs:
+            job_id = job.get("job_id") if isinstance(job, dict) else None
+            if not isinstance(job_id, int) or isinstance(job_id, bool) or job_id <= 0:
+                raise ValueError("invalid_job_id")
+            log = fetch_log(job_id, token)
+            if not isinstance(log, str) or len(log.encode("utf-8")) > MAX_LOG_BYTES:
+                raise ValueError("invalid_log")
+            summaries.append({"job_id": job_id, "categories": _safe_log_summary(log)})
+        return {**base, "ready": True, "log_categories": tuple(summaries)}
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError):
+        return {**base, "error": "github_job_logs_unavailable"}
+
 Fetch = Callable[[str, str], dict[str, Any]]
 
 
