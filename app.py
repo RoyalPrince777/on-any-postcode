@@ -659,6 +659,14 @@ def root_front_door():
     return redirect("/world", code=302)
 
 
+@app.get("/koradaso")
+def koradaso_internet_home():
+    """First-party KORADASO browser start page; no access or release grants."""
+    response = make_response(render_template("koradaso_internet.html"))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.get("/world")
 def home():
     if request.args.get("source") == "oap-os":
