@@ -183,3 +183,19 @@ def test_matrix_signal_rejects_malformed_or_unbounded_inputs(changes):
     payload.update(changes)
     with pytest.raises(ValueError):
         matrix_signal_bus.route_signal(**payload)
+
+
+def test_matrix_reply_rejects_forged_home_or_execution_state():
+    first = matrix_signal_bus.route_signal(
+        sender="Morpheus", topic="Review", recipients=("Oracle",))
+    for change in (
+        {"sender_home": {"group_id": "oracle_circle"}},
+        {"recipient_homes": {"Oracle": {"group_id": "nebuchadnezzar"}}},
+        {"execution_granted": True},
+        {"external_action_taken": True},
+        {"recipients": "Oracle"},
+    ):
+        forged = {**first, **change}
+        with pytest.raises(ValueError):
+            matrix_signal_bus.route_reply_signal(
+                original=forged, sender="Oracle", topic="Review response")
