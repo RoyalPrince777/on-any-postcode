@@ -9,8 +9,8 @@ authority.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import math
+from collections.abc import Mapping
 from typing import Any
 
 from . import live_signals
