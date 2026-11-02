@@ -82,6 +82,18 @@ RATING_RUBRIC: tuple[dict[str, Any], ...] = (
         "signal": "green",
         "meaning": "Live outcome evidence and required Human approval exist.",
     },
+    {
+        "stars": 6,
+        "label": "Stability & resilience certified",
+        "signal": "green",
+        "meaning": "Independent evidence of defined reliability, recovery, security and performance gates.",
+    },
+    {
+        "stars": 7,
+        "label": "Sovereign Gold certified",
+        "signal": "green",
+        "meaning": "End-to-end audited operation, Guardian/HRM evidence and Founder certification.",
+    },
 )
 
 WAR_ROOM_FLOW = tuple(
@@ -340,6 +352,20 @@ def _rating(
         "truth_boundary": truth_boundary,
         "human_approval_required": stars < 5,
         "stages": stages,
+        # Additive seven-star display: legacy 0-5 ratings and percentages remain
+        # unchanged. Levels 6-7 require separate evidence and are never inferred.
+        "sovereign_gold": {
+            "stars": stars,
+            "max_stars": 7,
+            "display": "★" * stars + "☆" * (7 - stars),
+            "stability_certified": False,
+            "sovereign_gold_certified": False,
+            "next_certification": (
+                "Stability & resilience certified" if stars == 5
+                else first_missing
+            ),
+            "higher_gate_evidence": None,
+        },
     }
 
 
@@ -1441,6 +1467,14 @@ def get_war_room_dashboard() -> dict[str, Any]:
             },
         },
         "rubric": RATING_RUBRIC,
+        "sovereign_gold_scale": {
+            "maximum_stars": 7,
+            "higher_certifications_active": False,
+            "evidence_boundary": (
+                "Levels 6 and 7 require independent evidence not present in "
+                "the canonical five-stage rating; no automatic promotion."
+            ),
+        },
         "flow": WAR_ROOM_FLOW,
         "review_lenses": REVIEW_LENSES,
         "smi_autonomy": _a1_a7_evidence_projection(ratings),
