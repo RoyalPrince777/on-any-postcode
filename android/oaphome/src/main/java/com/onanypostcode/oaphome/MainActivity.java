@@ -199,7 +199,7 @@ public class MainActivity extends Activity {
             } else {
                 String normalized = query.toUpperCase(java.util.Locale.ROOT);
                 String[] destinations = {"OAP WORLD", "OAP STORE", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
-                        "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
+                        "OAP MARKET", "OAP TV", "OAP MUSIC", "OAP ARENA", "OAP LIBRARY"};
                 boolean matched = false;
                 if ("PTT".equals(normalized) || "PUSH TO TALK".equals(normalized)
                         || "PUSH-TO-TALK".equals(normalized)) {
@@ -220,11 +220,11 @@ public class MainActivity extends Activity {
         });
 
          String[] destinations = {"OAP WORLD", "LINK UP", "SIKA", "OAP MAPS", "OAP MAIL",
-                "OAP MARKET", "OAP TV", "OAP ARENA", "OAP LIBRARY"};
-        String[] icons = {"🌍", "◉", "◈", "⌖", "✉", "▣", "▶", "♟", "▤"};
+                "OAP MARKET", "OAP TV", "OAP MUSIC", "OAP ARENA", "OAP LIBRARY"};
+        String[] icons = {"🌍", "◉", "◈", "⌖", "✉", "▣", "▶", "♫", "♟", "▤"};
         String[] captions = {"ONE ECOSYSTEM", "PEOPLE & COMMUNITY", "FINANCE & OPPORTUNITY",
                 "PLACES & NAVIGATION", "YOUR INBOX", "BUY · SELL · GROW",
-                "WATCH & STREAM", "GAMES & CHALLENGES", "LEARN & EXPLORE"};
+                "WATCH & STREAM", "UPLOAD & LISTEN", "GAMES & CHALLENGES", "LEARN & EXPLORE"};
         TextView destinationHeading = label("✦  EXPLORE YOUR WORLD  ✦", 15);
         destinationHeading.setTypeface(Typeface.SERIF, Typeface.BOLD);
         destinationHeading.setPadding(0, dp(12), 0, dp(5));
@@ -538,6 +538,7 @@ public class MainActivity extends Activity {
             case "OAP MAIL": path = "/mail"; break;
             case "OAP MARKET": path = "/market"; break;
             case "OAP TV": path = "/tv"; break;
+            case "OAP MUSIC": path = "/music"; break;
             case "OAP ARENA": path = "/arena"; break;
             case "OAP LIBRARY": path = "/library"; break;
             default:
