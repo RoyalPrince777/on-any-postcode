@@ -73,6 +73,62 @@ def memory_learning_route(message: object) -> dict[str, object] | None:
         "human_authority_final": True,
     }
 
+
+# Seven mission divisions share the existing SMI brain, lens registry and agent
+# review roles. These are routing recommendations, never agent execution.
+DYNAMIC_DIVISIONS: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
+    ("truth", "Owl", ("Oracle", "Morpheus", "Spider"), ("truth", "evidence", "causality", "gap")),
+    ("strategy", "Fox", ("Nirmata", "Lion", "Akela"), ("swot", "priority", "impact", "opportunity")),
+    ("engineering", "Nirmata", ("Tank", "Dozer", "Neo"), ("architecture", "dependency", "resilience", "verification")),
+    ("decision", "Morpheus", ("Oracle", "Akela", "Lion"), ("decision", "judgement", "readiness", "risk")),
+    ("awareness", "Owl", ("Eagle", "Spider", "Fox"), ("trend", "data", "risk", "evidence")),
+    ("recovery", "AEI", ("Gorilla", "Neo", "Tank", "Dozer"), ("resilience", "security", "readiness", "verification")),
+    ("memory", "Colonel Hathi", ("Hathi Jr", "Oracle", "Owl"), ("data", "learning", "behaviour", "verification")),
+)
+
+
+def route_divisions(divisions: object, *, thinking: object = "AUTO") -> dict[str, object]:
+    """Select several bounded specialist perspectives without creating agents."""
+    from . import intelligence_lenses
+    names = tuple(str(x).strip().lower() for x in divisions) if isinstance(divisions, (tuple, list)) else ()
+    canonical = {row[0]: row for row in DYNAMIC_DIVISIONS}
+    if not names or any(x not in canonical for x in names):
+        raise ValueError("invalid_smi_divisions")
+    distinct = tuple(dict.fromkeys(names))
+    if len(distinct) > 7:
+        raise ValueError("too_many_smi_divisions")
+    choice = str(thinking or "AUTO").upper()
+    if choice not in {"AUTO", "3", "7", "21"}:
+        raise ValueError("invalid_smi_thinking")
+    depth = (21 if "recovery" in distinct or len(distinct) >= 5 else
+             7 if len(distinct) >= 2 else 3) if choice == "AUTO" else int(choice)
+    lenses: list[str] = []
+    teams = []
+    for name in distinct:
+        _, lead, support, selected_lenses = canonical[name]
+        _add(lenses, selected_lenses)
+        teams.append({"division": name, "lead": lead, "support": support})
+    if any(lens not in intelligence_lenses.FULL_LENS_IDS for lens in lenses):
+        raise ValueError("unregistered_smi_lens")
+    checks = ai_behaviour.review_checks_for(str(depth))
+    return {
+        "divisions": tuple(teams),
+        "thinking_mode": choice,
+        "thinking_depth": depth,
+        "selected_checks": checks["selected_checks"],
+        "lenses": tuple(lenses),
+        "selection_only": True,
+        "agents_executed": False,
+        "independent_votes_proven": False,
+        "guardian_required": True,
+        "green_gate_required": True,
+        "hrm_proof_required": True,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
 def _add(target: list[str], values: Iterable[str]) -> None:
     for value in values:
         if value not in target:
