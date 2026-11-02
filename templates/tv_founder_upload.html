@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Legacy · OAP TV</title>
+<style>
+:root{color-scheme:dark}body{margin:0;background:#090909;color:#f7edda;font:16px system-ui,sans-serif}
+main{max-width:650px;margin:auto;padding:24px}header{border-bottom:2px solid #a77d34;padding:24px 0;text-align:center}
+small,.muted{color:#c8bca4}h1{font-size:clamp(30px,7vw,48px);margin:.2em 0;color:#e9c574}
+.panel{border:1px solid #7d632f;background:#17130f;border-radius:18px;padding:24px;margin-top:24px}
+label{display:block;margin:16px 0 8px;font-weight:600}input{display:block;box-sizing:border-box;width:100%;padding:13px;background:#0d0d0d;border:1px solid #9d875f;border-radius:8px;color:#fff;font:inherit}
+button{background:#d3ac5b;color:#16100a;border:0;border-radius:9px;padding:15px 24px;font:inherit;font-weight:800;width:100%;margin-top:22px}
+button:disabled{opacity:.5}p{line-height:1.5}#message{white-space:pre-wrap;overflow-wrap:anywhere}
+</style></head><body><main>
+<header><small>POWERED BY ON ANY POSTCODE</small><h1>🎬 MY LEGACY</h1><p>Royal Cinema · Founder Film Intake</p></header>
+<section class="panel">
+<h2>Upload your film</h2><p class="muted">Private draft only. Uploading does not publish, license, sell, or enable playback.</p>
+<form method="post" enctype="multipart/form-data" id="upload">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<label for="title">Film title</label><input id="title" name="title" maxlength="180" required autocomplete="off">
+<label for="video">Choose MP4 or WebM (maximum {{ max_video_mib }} MiB)</label>
+<input id="video" name="video" type="file" accept="video/mp4,video/webm,.mp4,.webm" required>
+<button type="submit" id="send">Save private draft</button>
+</form><p id="message" role="status" aria-live="polite"></p>
+</section><p class="muted">Rights approval, rental purchase, SIKA Pay and public Cinema remain locked until verified. Do not upload material without permission.</p>
+</main><script>
+const form=document.getElementById('upload'), message=document.getElementById('message'), btn=document.getElementById('send');
+form.addEventListener('submit',async e=>{
+ e.preventDefault();const file=document.getElementById('video').files[0];
+ if(!file)return;
+ if(file.size> {{ max_video_mib }}*1024*1024){message.textContent='File too large for current private intake.';return;}
+ btn.disabled=true;message.textContent='Saving private draft…';
+ try{
+   const r=await fetch(form.action||location.pathname,{method:'POST',body:new FormData(form),credentials:'same-origin'});
+   const data=await r.json();
+   if(!r.ok)throw Error(data.error?.message||'Upload failed');
+   message.textContent='Private draft saved. Candidate ID: '+data.candidate_id+'\nSHA-256: '+data.sha256+'\nNot published or playable.';
+   form.reset();
+ }catch(err){message.textContent='Upload not completed: '+err.message}
+ finally{btn.disabled=false}
+});
+</script></body></html>
