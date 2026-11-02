@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Final
 
+from . import smi_brain_protocol
+
 AI_BEHAVIOUR_REVISION: Final = "2026-09-04-v1"
 ADAPTIVE_REASONING_DEPTHS: Final = (3, 7, 21)
 TRUTH_LABELS: Final = ("VERIFIED", "INFERRED", "UNKNOWN", "BLOCKED")
@@ -49,6 +51,34 @@ def depth_for(mode: str) -> int:
     if normalized in {"material", "complex", "review", "7"}:
         return 7
     return 3
+
+
+
+def review_checks_for(mode: str) -> dict[str, object]:
+    """Project existing Mind/Body/Soul checks to canonical 3/7/21 depth.
+
+    Planning metadata only: selecting checks never means they passed or that
+    SMI has been authorised to execute consequential actions.
+    """
+    depth = depth_for(mode)
+    blocks = smi_brain_protocol.MIND_BODY_SOUL_777
+    checks = tuple(
+        {"block": str(block["block"]), "check": str(check)}
+        for block in blocks
+        for check in block["steps"]
+    )
+    if len(checks) != 21 or tuple(len(block["steps"]) for block in blocks) != (7, 7, 7):
+        raise ValueError("invalid_mind_body_soul_contract")
+    return {
+        "thinking_depth": depth,
+        "selected_checks": checks[:depth],
+        "total_available_checks": len(checks),
+        "checks_executed": False,
+        "checks_passed": False,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
 
 
 def status() -> dict[str, object]:
