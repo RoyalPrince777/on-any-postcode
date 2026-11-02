@@ -42,7 +42,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
 
     def test_koradaso_failed_load_is_not_overwritten_by_success(self):
         source = self.source
-        self.assertIn('!"♛ KORADASO INTERNET".equals(title)', source)
+        self.assertIn('!"♛ KORADASO".equals(title)', source)
         self.assertIn("browserPageFailed[0] = true;", source)
         self.assertIn("onReceivedHttpError(", source)
         self.assertIn('loadStatus.setText("Page unavailable: HTTP "', source)
@@ -168,7 +168,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
                             for p in queries.findall("package")))
         self.assertIn('else if (index == 2) launchOapInternet();', self.source)
         self.assertIn('private static final String OAP_LOCAL_ORIGIN = "http://127.0.0.1:5050";', self.source)
-        self.assertIn('address.setHint("HTTPS site or OAP LOCAL address")', self.source)
+        self.assertIn('address.setHint("Search the live web or enter HTTPS / OAP LOCAL address")', self.source)
         self.assertIn('settings.setJavaScriptEnabled(false)', self.source)
         self.assertIn('settings.setAllowFileAccess(false)', self.source)
         self.assertIn('settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW)', self.source)
