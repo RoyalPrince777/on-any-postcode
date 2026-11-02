@@ -72,6 +72,8 @@ def test_smi_auto_action_uses_selected_division_route_before_review():
 def test_smi_cc_is_an_alias_of_existing_war_room_not_a_second_application():
     assert 'id="smi-cc"' in PAGE
     assert '/mission/smi-cc#smi-cc' in PAGE
-    from mission_control import views
-    rules = [rule for rule in views.bp.url_map.iter_rules()] if hasattr(views.bp, "url_map") else []
-    assert not rules or any("smi-cc" in str(rule) for rule in rules)
+    from app import app
+    cc = next(rule for rule in app.url_map.iter_rules() if rule.rule == "/mission/smi-cc")
+    old = next(rule for rule in app.url_map.iter_rules() if rule.rule == "/mission/war-room")
+    assert cc.endpoint == old.endpoint
+    assert "GET" in cc.methods and "GET" in old.methods
