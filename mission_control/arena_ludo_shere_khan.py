@@ -57,4 +57,4 @@ def choose_shere_khan_piece(state: dict, level: str = "cub") -> str:
             score = capture * 50 + finish * 60 + safe * 12 + after * 0.4
         choices.append((score, piece["id"]))
     # Stable tie-breaking, no invented randomness or access to hidden information.
-    return sorted(choices, key=lambda item: (-item[0], item[1]))[0][1]
+    return min(choices, key=lambda item: (-item[0], item[1]))[1]
