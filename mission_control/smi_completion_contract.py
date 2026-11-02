@@ -27,7 +27,7 @@ SMI_COMPLETION_CHECKS = (
     {"check": "Personal SMI streaming chat", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "stop / mic / plus / history / code controls", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "safe visible work stages", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "26 Intelligence lenses", "status": "implemented", "light": "🟢", "proof_class": "code"},
+    {"check": "28 Intelligence lenses", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "Intelligence command router", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "War Room and evidence runner", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "Guardian / Aegis fail-closed boundary", "status": "implemented", "light": "🟢", "proof_class": "code"},
