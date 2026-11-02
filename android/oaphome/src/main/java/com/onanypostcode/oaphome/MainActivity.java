@@ -527,6 +527,8 @@ public class MainActivity extends Activity {
         android.webkit.WebView viewer = new android.webkit.WebView(this);
         activeWebView = viewer;
         android.webkit.WebSettings settings = viewer.getSettings();
+        settings.setSafeBrowsingEnabled(true); // Android API 26+; malware/phishing protection.
+        settings.setMediaPlaybackRequiresUserGesture(true);
         settings.setJavaScriptEnabled(false);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
