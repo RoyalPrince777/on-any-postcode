@@ -427,8 +427,9 @@ public class MainActivity extends Activity {
         royalPanel.setCornerRadius(dp(22));
         royalPanel.setStroke(dp(2), GOLD);
         royal.setShadowLayer(dp(5), 0, 0, Color.rgb(165, 80, 250));
-        royal.setBackground(royalPanel);
+        royal.setBackgroundColor(Color.TRANSPARENT);
         FrameLayout royalHero = new FrameLayout(this);
+        royalHero.setBackground(royalPanel);
         android.view.View royalEarth = new android.view.View(this);
         royalEarth.setBackground(new RoyalHomeArt.EarthBackdrop());
         royalHero.addView(royalEarth, new FrameLayout.LayoutParams(-1, -1));
