@@ -150,7 +150,7 @@ public class MainActivity extends Activity {
         setContentView(root);
         // The Home surface draws its own crowned native hero. Other screens
         // retain the standard native heading.
-        if (!"♛ OAP HOME".equals(title) && !"♛ KORADASO INTERNET".equals(title)) {
+        if (!"♛ OAP HOME".equals(title) && !"♛ KORADASO".equals(title)) {
             TextView heading = label(title, 29);
             heading.setTypeface(Typeface.SERIF, Typeface.BOLD);
             root.addView(heading, new LinearLayout.LayoutParams(-1, dp(54)));
