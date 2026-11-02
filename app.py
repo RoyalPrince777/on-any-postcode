@@ -1458,7 +1458,7 @@ def ludo_shere_khan_turn():
         if state.get("pending_roll") is not None:
             raise ValueError("ludo_agent_pending_roll_invalid")
         request_id = ludo._req(payload.get("request_id"))
-        if any(receipt.get("request_id") == request_id for receipt in state["request_receipts"]):
+        if any(receipt.get("request_id") == request_id + "-roll" for receipt in state["request_receipts"]):
             return _arena_json(ludo.public_state(state))
         state = ludo.roll(state, request_id=request_id + "-roll")
         if state["pending_roll"] is not None:
