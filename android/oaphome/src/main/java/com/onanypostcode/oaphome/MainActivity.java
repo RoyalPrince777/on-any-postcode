@@ -352,9 +352,9 @@ public class MainActivity extends Activity {
 
     /** KORADASO Internet shares the first-party in-app HTTPS viewer. */
     private void launchOapInternet() {
-        pendingInternetAddress = OAP_LOCAL_ORIGIN + "/world";
+        pendingInternetAddress = OAP_LOCAL_ORIGIN + "/koradaso";
         openInternet();
-        if (activeWebView != null) activeWebView.loadUrl(pendingInternetAddress != null ? pendingInternetAddress : OAP_LOCAL_ORIGIN + "/world");
+        if (activeWebView != null) activeWebView.loadUrl(OAP_LOCAL_ORIGIN + "/koradaso");
     }
 
     private void openPttApp() {
