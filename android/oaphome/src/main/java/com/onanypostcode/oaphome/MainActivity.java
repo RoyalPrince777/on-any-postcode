@@ -416,25 +416,30 @@ public class MainActivity extends Activity {
 
     private void openInternet() {
         closeWebView();
-        base("OAP INTERNET");
-        body.addView(label("♛ KORADASO INTERNET · POWERED BY ON ANY POSTCODE", 17));
+        base("♛ KORADASO INTERNET");
+        TextView royal = label("♛\nK\nKORADASO\nINTERNET", 32);
+        royal.setTypeface(Typeface.SERIF, Typeface.BOLD);
+        royal.setGravity(Gravity.CENTER);
+        royal.setTextColor(GOLD);
+        GradientDrawable royalPanel = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                new int[]{Color.rgb(12, 12, 27), Color.rgb(58, 29, 92), Color.rgb(5, 6, 17)});
+        royalPanel.setCornerRadius(dp(22));
+        royalPanel.setStroke(dp(2), GOLD);
+        royal.setBackground(royalPanel);
+        body.addView(royal, new LinearLayout.LayoutParams(-1, dp(260)));
+        TextView powered = label("POWERED BY ON ANY POSTCODE · BORN LOCAL. BUILT GLOBAL.", 12);
+        powered.setGravity(Gravity.CENTER);
+        body.addView(powered);
         EditText address = new EditText(this);
         address.setSingleLine(true);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
         address.setHint("HTTPS site or OAP LOCAL address");
-        address.setText(pendingInternetAddress != null ? pendingInternetAddress : OAP_API_ORIGIN);
+        address.setText(pendingInternetAddress != null ? pendingInternetAddress : OAP_LOCAL_ORIGIN + "/koradaso");
         pendingInternetAddress = null;
         address.setTextColor(Color.WHITE);
         address.setHintTextColor(Color.LTGRAY);
         body.addView(address, new LinearLayout.LayoutParams(-1, dp(56)));
-        addButton("OPEN WEB · ONANYPOSTCODE.GLOBAL", v -> {
-            address.setText(OAP_API_ORIGIN + "/world");
-            if (activeWebView != null) activeWebView.loadUrl(OAP_API_ORIGIN + "/world");
-        });
-        addButton("OAP LOCAL · THIS DEVICE", v -> {
-            address.setText(OAP_LOCAL_ORIGIN + "/");
-            if (activeWebView != null) activeWebView.loadUrl(OAP_LOCAL_ORIGIN + "/");
-        });
         android.webkit.WebView viewer = new android.webkit.WebView(this);
         activeWebView = viewer;
         android.webkit.WebSettings settings = viewer.getSettings();
@@ -469,12 +474,37 @@ public class MainActivity extends Activity {
                         ? " · Start OAP Flask on this phone at 127.0.0.1:5050; no public fallback." : ""));
             }
         });
+        GridLayout quickLinks = new GridLayout(this);
+        quickLinks.setColumnCount(3);
+        String[] names = {"🌍 WORLD", "📍 MAPS", "✉ MAIL", "🛒 MARKET", "✦ STUDIO", "⚙ SETTINGS"};
+        String[] paths = {"/world", "/maps", "/the-link", "/the-spot/market", "/studio", "/koradaso"};
+        for (int i = 0; i < names.length; i++) {
+            final String path = paths[i];
+            Button tile = button(names[i], v -> {
+                String target = OAP_LOCAL_ORIGIN + path;
+                address.setText(target);
+                viewer.loadUrl(target);
+            });
+            tile.setAllCaps(false);
+            tile.setTextSize(14);
+            GridLayout.LayoutParams lp = new GridLayout.LayoutParams();
+            lp.width = (getResources().getDisplayMetrics().widthPixels - dp(38)) / 3;
+            lp.height = dp(92);
+            lp.setMargins(dp(2), dp(4), dp(2), dp(4));
+            quickLinks.addView(tile, lp);
+        }
+        body.addView(quickLinks);
+        addButton("OPEN ADDRESS", v -> {
+            Uri uri = Uri.parse(address.getText().toString().trim());
+            if (safeWebAddress(uri)) viewer.loadUrl(uri.toString());
+            else android.widget.Toast.makeText(this, "Enter HTTPS or OAP LOCAL", android.widget.Toast.LENGTH_SHORT).show();
+        });
         // Keep browser content visible before secondary actions; never allow
         // an oversized navigation column to hide the loaded page.
-        int browserHeight = Math.max(dp(480),
-                getResources().getDisplayMetrics().heightPixels - dp(260));
+        int browserHeight = Math.max(dp(350),
+                getResources().getDisplayMetrics().heightPixels - dp(360));
         body.addView(viewer, new LinearLayout.LayoutParams(-1, browserHeight));
-        addButton("OPEN IN SYSTEM BROWSER (INTERACTIVE SITES)", v -> {
+        addButton("OPEN WEB IN SYSTEM BROWSER", v -> {
             Uri uri = Uri.parse(address.getText().toString().trim());
             if (!safeWebAddress(uri)) {
                 android.widget.Toast.makeText(this, "Only standard HTTPS pages allowed", android.widget.Toast.LENGTH_SHORT).show();
@@ -488,7 +518,7 @@ public class MainActivity extends Activity {
                 loadStatus.setText("No browser installed to open this page.");
             }
         });
-        addButton("OPEN SAFE ADDRESS", v -> {
+        addButton("GO TO ADDRESS", v -> {
             Uri uri = Uri.parse(address.getText().toString().trim());
             if (!safeWebAddress(uri)) {
                 android.widget.Toast.makeText(this, "Use HTTPS or OAP LOCAL at 127.0.0.1:5050", android.widget.Toast.LENGTH_SHORT).show();
