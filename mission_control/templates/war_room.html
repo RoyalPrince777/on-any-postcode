@@ -69,6 +69,21 @@
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
 
+<section class="panel" id="sovereign-gold-evidence" aria-labelledby="sovereign-gold-title">
+  <div class="ey">👑 OAP Gold War Room · Evidence only</div>
+  <h2 id="sovereign-gold-title">Seven-star Sovereign Gold certification</h2>
+  <p class="muted">Levels 6 and 7 are not awarded. Historical 0–5 ratings and portfolio percentages remain unchanged. This board is not a Green Gate or Android release certificate.</p>
+  <div class="grid stars" aria-label="Seven certification levels">
+    {% for level in war_room.rubric %}
+    <div class="card" data-certification-level="{{ level.stars }}">
+      <strong>{{ level.stars }}★</strong>
+      <small>{{ level.label }}</small>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="truth">🛡 Guardian + HRM evidence and 👑 Founder Final remain mandatory. Stability, end-to-end resilience and physical Android acceptance must be proven separately; 6★ and 7★ remain unawarded.</p>
+</section>
+
 <section class="panel wr-status-matrix" id="war-room-status-matrix" aria-labelledby="wr-status-title">
   <div class="ey">🟣 SMI CC · War Room Status Matrix</div>
   <h2 id="wr-status-title">UI · UX · Buttons · Functions · Proof · Authority</h2>
