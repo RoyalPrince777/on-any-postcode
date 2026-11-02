@@ -707,7 +707,7 @@ public class MainActivity extends Activity {
         quickLinks.setOrientation(LinearLayout.VERTICAL);
         LinearLayout destinationRow = null;
         String[] names = {"🌍 WORLD", "📍 MAPS", "✉ MAIL", "🛒 MARKET", "✦ AI STUDIO", "⬇ DOWNLOADS", "⚙ SETTINGS"};
-        String[] paths = {"/world", "/maps", "/the-link", "/the-spot/market", "/studio", "/library", "/koradaso"};
+        String[] paths = {"/world", "/maps", "/the-link", "/the-spot/market", "/studio", "/downloads", "/koradaso"};
         for (int i = 0; i < names.length; i++) {
             if (i == 0 || i == 3) {
                 destinationRow = new LinearLayout(this);
@@ -729,7 +729,7 @@ public class MainActivity extends Activity {
                             .show();
                     return;
                 }
-                if ("/library".equals(path)) {
+                if ("/downloads".equals(path)) {
                     try { startActivity(new Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS)); }
                     catch (ActivityNotFoundException error) { loadStatus.setText("Android Downloads view unavailable."); }
                     return;
