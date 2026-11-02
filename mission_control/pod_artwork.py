@@ -7,6 +7,7 @@ import uuid
 from . import postgres_db
 
 MAX_ARTWORK_BYTES = 5 * 1024 * 1024
+MAX_OWNER_ARTWORK_BYTES = 250 * 1024 * 1024
 ALLOWED_TYPES = {"image/png": "png", "image/jpeg": "jpeg", "image/webp": "webp"}
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS oap_pod_artwork (
@@ -45,6 +46,18 @@ def save(*, owner_identity_id: str, filename: str, mime_type: str, media: bytes)
         raise ValueError("pod_artwork_filename_invalid")
     asset_id = str(uuid.uuid4())
     with postgres_db.connect() as conn:
+        # Serialize uploads per owner so concurrent writes cannot evade the quota.
+        owner_row = conn.execute(
+            "SELECT id FROM users WHERE id=%s FOR UPDATE", (owner,)
+        ).fetchone()
+        if owner_row is None:
+            raise PermissionError("pod_artwork_owner_unavailable")
+        total = conn.execute(
+            "SELECT COALESCE(SUM(byte_size),0) FROM oap_pod_artwork WHERE owner_identity_id=%s",
+            (owner,),
+        ).fetchone()
+        if int(total[0] or 0) + len(media) > MAX_OWNER_ARTWORK_BYTES:
+            raise ValueError("pod_artwork_owner_quota")
         conn.execute(
             """INSERT INTO oap_pod_artwork
               (asset_id,owner_identity_id,filename,mime_type,byte_size,sha256,media)
