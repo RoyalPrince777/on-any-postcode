@@ -160,3 +160,32 @@ def test_hathi_memory_learning_routes_to_canonical_jungle_passport_with_seven_th
 
 def test_non_memory_request_does_not_invoke_hathi_specialist_team():
     assert smi_auto.observe("GET", "/the-spot", message="Hello")["specialist_mission"] is None
+
+
+def test_dynamic_multi_division_routing_preserves_one_brain_and_governance():
+    selection = smi_auto.route_divisions(("truth", "engineering", "memory", "engineering"), thinking="7")
+    assert tuple(row["division"] for row in selection["divisions"]) == ("truth", "engineering", "memory")
+    assert selection["thinking_depth"] == 7
+    assert len(selection["selected_checks"]) == 7
+    assert selection["divisions"][-1]["lead"] == "Colonel Hathi"
+    assert selection["selection_only"] is True
+    assert selection["agents_executed"] is False
+    assert selection["independent_votes_proven"] is False
+    assert selection["guardian_required"] is True
+    assert selection["green_gate_required"] is True
+    assert selection["hrm_proof_required"] is True
+    assert selection["execution_granted"] is False
+    assert selection["approval_granted"] is False
+    assert selection["human_authority_final"] is True
+
+
+def test_dynamic_multi_division_auto_escalates_and_rejects_invalid_scope():
+    import pytest
+    full = smi_auto.route_divisions(("truth", "strategy", "engineering", "decision", "memory"))
+    assert full["thinking_depth"] == 21
+    assert len(full["selected_checks"]) == 21
+    assert len(full["divisions"]) == 5
+    assert smi_auto.route_divisions(("truth",), thinking="AUTO")["thinking_depth"] == 3
+    for divisions, thinking in (((), "AUTO"), (("unknown",), "AUTO"), (("truth",), "14")):
+        with pytest.raises(ValueError):
+            smi_auto.route_divisions(divisions, thinking=thinking)
