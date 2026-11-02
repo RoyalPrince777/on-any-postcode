@@ -31,6 +31,9 @@ class NativeRoyalHomeTests(unittest.TestCase):
         source = self.source
         self.assertIn('!"♛ KORADASO INTERNET".equals(title)', source)
         self.assertIn("browserPageFailed[0] = true;", source)
+        self.assertIn("onReceivedHttpError(", source)
+        self.assertIn('loadStatus.setText("Page unavailable: HTTP "', source)
+        self.assertIn("address.setText(url);", source)
         self.assertIn("viewer.setVisibility(View.GONE);", source)
         self.assertIn("viewer.setVisibility(View.VISIBLE);", source)
         self.assertIn("browserPageFailed[0] = false;", source)
