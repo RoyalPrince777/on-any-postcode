@@ -341,6 +341,22 @@ def test_ollama_adapter_rejects_remote_hosts():
         OllamaAdapter("https://example.com/api/generate")
 
 
+def test_ollama_adapter_rejects_credentials_and_malformed_urls():
+    for url in (
+        "http://user:password@127.0.0.1:11434/api/generate",
+        "http://127.0.0.1:invalid/api/generate",
+        "http://[broken/api/generate",
+        "http://127.0.0.1:11434/api/generate?model=unsafe",
+        "http://127.0.0.1:11434/api/generate#fragment",
+    ):
+        with pytest.raises(ValueError):
+            OllamaAdapter(url)
+
+
+def test_ollama_adapter_accepts_normal_loopback_endpoint():
+    assert OllamaAdapter().provider_id == "ollama"
+
+
 def test_ollama_adapter_rejects_redirect_outside_loopback(monkeypatch):
     class FakeResponse:
         def __enter__(self):

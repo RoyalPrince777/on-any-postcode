@@ -40,11 +40,22 @@ class OllamaAdapter:
         model: str = "qwen2.5:1.5b",
         timeout: float = 3.0,
     ) -> None:
-        parsed = urlparse(url)
+        try:
+            parsed = urlparse(url)
+            host = parsed.hostname
+            port = parsed.port
+        except ValueError as exc:
+            raise ValueError("Invalid Ollama endpoint URL") from exc
         if parsed.scheme not in {"http", "https"}:
             raise ValueError("Ollama URL must use HTTP or HTTPS")
-        if parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
+        if host not in {"localhost", "127.0.0.1", "::1"}:
             raise ValueError("Ollama advisor is restricted to loopback")
+        if parsed.username is not None or parsed.password is not None:
+            raise ValueError("Ollama URL must not contain credentials")
+        if port is not None and not 1 <= port <= 65535:
+            raise ValueError("Invalid Ollama port")
+        if parsed.query or parsed.fragment:
+            raise ValueError("Ollama URL must not contain query or fragment")
         self.url = url
         self.model = model
         self.timeout = timeout
