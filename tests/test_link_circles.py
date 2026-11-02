@@ -269,3 +269,17 @@ def test_circle_message_member_write_and_private_read(monkeypatch):
         {"message_id": message_id, "sender_id": author,
          "body": "Hello Room", "created_at": now.isoformat()}
     ]
+
+
+def test_circle_message_routes_require_authentication_and_csrf(anonymous_client, client):
+    circle = str(uuid.uuid4())
+    path = f"/linkup/circles/{circle}/messages"
+    assert anonymous_client.get(path).status_code == 401
+    assert anonymous_client.post(path, json={"body": "hello"}).status_code == 401
+    assert client.post(path, json={"body": "hello"}).status_code == 403
+
+
+def test_circle_message_route_unready_never_reads_messages(client, monkeypatch):
+    monkeypatch.setattr(link_circles, "status", lambda: {"ready": False})
+    response = client.get(f"/linkup/circles/{uuid.uuid4()}/messages")
+    assert response.status_code == 503
