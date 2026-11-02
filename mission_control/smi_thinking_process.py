@@ -142,10 +142,22 @@ def process_contract() -> dict[str, Any]:
 
 def _bounded_score(value: object) -> int | None:
     try:
-        score = round(float(value))
-    except (TypeError, ValueError):
+        numeric = float(value)
+        if not math.isfinite(numeric):
+            return None
+        score = round(numeric)
+    except (TypeError, ValueError, OverflowError):
         return None
     return min(100, max(0, score))
+
+
+
+def _nonnegative_count(value: object) -> int:
+    """Prevent malformed runtime counters from breaking public summaries."""
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError, OverflowError):
+        return 0
 
 
 def completion_summary(result: Mapping[str, Any]) -> dict[str, Any]:
@@ -154,7 +166,7 @@ def completion_summary(result: Mapping[str, Any]) -> dict[str, Any]:
     task_type = str(result.get("task_type") or "GENERAL")
     advisor_ids = result.get("advisor_ids")
     advisors = len(advisor_ids) if isinstance(advisor_ids, (tuple, list)) else 0
-    regions = int(result.get("brain_regions") or 0)
+    regions = _nonnegative_count(result.get("brain_regions"))
     signal_level = str(result.get("signal_level") or "UNKNOWN")
     guardian = str(result.get("guardian") or "UNKNOWN")
     coherent = result.get("coherent") if isinstance(result.get("coherent"), Mapping) else {}
@@ -162,19 +174,19 @@ def completion_summary(result: Mapping[str, Any]) -> dict[str, Any]:
     judgement = result.get("judgement") if isinstance(result.get("judgement"), Mapping) else {}
     judgement_confidence = _bounded_score(judgement.get("confidence"))
     adaptive = result.get("adaptive") if isinstance(result.get("adaptive"), Mapping) else {}
-    lessons = int(adaptive.get("hrm_lessons") or 0)
+    lessons = _nonnegative_count(adaptive.get("hrm_lessons"))
     war_room = result.get("war_room") if isinstance(result.get("war_room"), Mapping) else {}
     war_room_triggered = bool(war_room.get("triggered"))
 
     if guardian == "BLOCKED":
         outcome_signal = live_signals.get_signal("critical")
-    elif str(result.get("output_state")) == "REVIEW_REQUIRED":
+    elif guardian != "PASSED" or str(result.get("output_state")) == "REVIEW_REQUIRED":
         outcome_signal = live_signals.get_signal("warning")
     else:
         outcome_signal = live_signals.get_signal("complete")
 
     evidence_state = "PARTIAL"
-    if coherence_score is not None and coherence_score >= 80 and guardian != "BLOCKED":
+    if coherent.get("passed") is True and coherence_score is not None and coherence_score >= 80 and guardian == "PASSED":
         evidence_state = "SUPPORTED"
     if guardian == "BLOCKED":
         evidence_state = "BLOCKED"
