@@ -79,6 +79,12 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
                     github_evidence["run_ids"][0], token=github_token,
                 ),
             }
+    if github_evidence.get("latest_failure", {}).get("ready"):
+        github_evidence["latest_failure"]["log_analysis"] = (
+            smi_github_failure_evidence.inspect_failed_job_logs(
+                github_evidence["latest_failure"], token=github_token,
+            )
+        )
     return {
         "kind": "runtime_health_probe",
         "database_ready": bool(database.get("initialized")),
