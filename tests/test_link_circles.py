@@ -54,7 +54,8 @@ def test_circle_schema_is_explicit_bounded_and_membership_only():
     assert "link_circles" in joined
     assert "link_circle_members" in joined
     assert "link_circle_invites" in joined
-    assert "link_circle_messages" in joined\n    assert "recipient_id" not in joined.casefold()
+    assert "link_circle_messages" in joined
+    assert "recipient_id" not in joined.casefold()
     assert "media" not in joined.casefold()
 
 
