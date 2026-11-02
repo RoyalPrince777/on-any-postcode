@@ -89,3 +89,9 @@ def test_smi_cc_submits_bounded_mission_context_without_execution():
     assert 'len(notes) > 2000' in route
     assert '"invalid_mission"' in route
     assert 'route_divisions' in route
+
+
+def test_smi_cc_does_not_present_selected_21_checks_as_executed():
+    assert "Thinking plan: ' + selectedPlan.selected_checks.length + ' checks selected · 0 verified executed" in PAGE
+    assert 'Agent execution: NONE · Independent votes: NOT VERIFIED' in PAGE
+    assert 'not equivalent to Thinking checks' in PAGE
