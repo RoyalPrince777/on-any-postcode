@@ -189,10 +189,26 @@ def respond_invite(invitee_id: object, invite_id: object, decision: object) -> b
         raise ValueError("invalid_circle_decision")
     try:
         with postgres_db.connect() as connection:
+            # Serialize acceptance per Room before checking capacity. Locking only
+            # the invite would allow separate invites to pass the 32-member limit.
+            pending = connection.execute(
+                """SELECT circle_id FROM link_circle_invites
+                   WHERE id=%s AND invitee_id=%s AND status='pending'""",
+                (invite, invitee),
+            ).fetchone()
+            if pending is None:
+                return False
+            room_lock = connection.execute(
+                "SELECT id FROM link_circles WHERE id=%s FOR UPDATE",
+                (str(pending[0]),),
+            ).fetchone()
+            if room_lock is None:
+                return False
             row = connection.execute(
                 """SELECT i.circle_id,i.inviter_id,c.status
                    FROM link_circle_invites i JOIN link_circles c ON c.id=i.circle_id
-                   WHERE i.id=%s AND i.invitee_id=%s AND i.status='pending'""",
+                   WHERE i.id=%s AND i.invitee_id=%s AND i.status='pending'
+                   FOR UPDATE OF i""",
                 (invite, invitee),
             ).fetchone()
             if row is None:
