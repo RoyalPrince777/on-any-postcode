@@ -53,7 +53,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
         source = self.source
         self.assertIn("showKoradasoSessionHistory(", source)
         self.assertIn("viewer.copyBackForwardList()", source)
-        self.assertIn('new String[]{"BACK", "FORWARD", "RELOAD", "HISTORY"}', source)
+        self.assertIn('showKoradasoSessionHistory(viewer, loadStatus)', source)
         self.assertIn("viewer.canGoBackOrForward(offsets.get(index))", source)
         method = source.split("private void showKoradasoSessionHistory(", 1)[1].split(
             "private void showKoradasoBookmarks(", 1
@@ -138,7 +138,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
                             for p in queries.findall("package")))
         self.assertIn('else if (index == 2) launchOapInternet();', self.source)
         self.assertIn('private static final String OAP_LOCAL_ORIGIN = "http://127.0.0.1:5050";', self.source)
-        self.assertIn('addButton("OAP LOCAL · THIS DEVICE"', self.source)
+        self.assertIn('address.setHint("HTTPS site or OAP LOCAL address")', self.source)
         self.assertIn('settings.setJavaScriptEnabled(false)', self.source)
         self.assertIn('settings.setAllowFileAccess(false)', self.source)
         self.assertIn('settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW)', self.source)
@@ -153,7 +153,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("OPEN KORADASO INTERNET", self.source)
 
     def test_local_first_routes_do_not_silently_use_public_domain(self):
-        self.assertIn('pendingInternetAddress = OAP_LOCAL_ORIGIN + "/world";', self.source)
+        self.assertIn('pendingInternetAddress = OAP_LOCAL_ORIGIN + "/koradaso";', self.source)
         self.assertIn('openInternetAddress(OAP_LOCAL_ORIGIN + path);', self.source)
         self.assertNotIn('openInternetAddress(OAP_API_ORIGIN + path);', self.source)
         self.assertIn('openInternetAddress(OAP_LOCAL_ORIGIN + "/ptt");', self.source)
@@ -203,7 +203,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
     def test_autoupdate_preferences_are_local_and_do_not_install(self):
         source = self.source
         self.assertIn('getSharedPreferences("oap_autoupdate_preferences_v1", MODE_PRIVATE)', source)
-        self.assertIn('addButton("♻ OAP AUTOUPDATE PREFERENCES", v -> autoUpdatePreferences())', source)
+        self.assertIn('base("OAP AUTOUPDATE")', source)
         self.assertIn('"automatic", true', source)
         self.assertIn('"wifi_large", true', source)
         self.assertIn('"prefer_idle", true', source)
