@@ -16,8 +16,8 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from . import (
-    infrastructure_intelligence,
     connectivity_runtime,
+    infrastructure_intelligence,
     live_signals,
     location_intelligence,
     personal_telecom,
