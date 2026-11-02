@@ -23,8 +23,8 @@ from . import (
     postgres_db,
     smi_auto,
     smi_cancellation,
-    smi_shere_khan_dialogue,
     smi_founder_assets,
+    smi_shere_khan_dialogue,
     studio_intelligence,
 )
 
