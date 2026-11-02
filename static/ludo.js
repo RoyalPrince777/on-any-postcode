@@ -19,14 +19,14 @@ function render(){
   for(const piece of player.pieces){
    const btn=document.createElement("button");btn.type="button";btn.dataset.piece=piece.id;btn.textContent=piece.id.split("-").at(-1)+" · "+pieceLabel(piece);
    const selectable=state.status==="active"&&player.id===state.current_player_id&&state.movable_piece_ids.includes(piece.id)&&state.pending_roll!==null;
-   btn.disabled=busy||!selectable;pieces.append(btn);
+   btn.disabled=busy||!selectable||(khanMode&&player.id==="p2");pieces.append(btn);
   }
   row.append(title,pieces);view.append(row);
  }
  const active=state.status==="active",pending=state.pending_roll!==null;
  q("[data-start]").disabled=busy||active;
  q("[data-players]").disabled=busy||active;
- q("[data-roll]").disabled=busy||!active||pending;
+ q("[data-roll]").disabled=busy||!active||pending||(khanMode&&state.current_player_id==="p2");
  q("[data-stop]").disabled=busy||!active;
  const feedback=q("[data-feedback]");
  if(state.status==="completed"){feedback.textContent="Winner: "+(state.winner_name||state.players.find(p=>p.id===state.winner_id)?.name||"—")+" · All four pieces home";}
@@ -35,8 +35,36 @@ function render(){
  else if(pending){feedback.textContent="Rolled "+state.pending_roll+".";}
  else{feedback.textContent="Roll the die.";}
 }
-async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();}}
-q("[data-start]").onclick=()=>action("/arena/ludo/start",{players:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean)});
+async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();if(khanMode&&state?.status==="active"&&state.current_player_id==="p2")void playKhan();}}
+let khanMode=false, khanBusy=false, khanLines=0;
+const quips={
+  move:["That track belongs to the jungle.","Careful, I'm picking up speed."],
+  finish:["One step closer to the throne.","The finish line is looking rather royal."],
+  block:["Not every roll is a royal six.","Even tigers must wait their turn."]
+};
+function khanQuip(kind){
+ const options=quips[kind]||quips.move;
+ q("[data-khan-quip]").textContent="🐅 "+options[(khanLines++)%options.length];
+}
+async function playKhan(){
+ if(!khanMode||khanBusy||!state||state.status!=="active"||state.current_player_id!=="p2")return;
+ khanBusy=true;
+ try{
+  for(let turn=0;turn<12&&state?.status==="active"&&state.current_player_id==="p2";turn++){
+   const before=state.players.find(p=>p.id==="p2")?.finished||0;
+   state=await post("/arena/ludo/shere-khan/turn",{request_id:requestId()});
+   const after=state.players.find(p=>p.id==="p2")?.finished||0;
+   khanQuip(after>before?"finish":state.pending_roll===null?"move":"block");
+   render();
+  }
+ }catch(e){error(e);khanQuip("block")}finally{khanBusy=false}
+}
+q("[data-start]").onclick=()=>{
+ khanMode=q("[data-opponent]").value==="shere-khan";
+ const players=khanMode?["You","Shere Khan"]:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean);
+ action("/arena/ludo/start",{players,...(khanMode?{opponent:"shere-khan",level:q("[data-level]").value}:{})});
+};
+
 q("[data-roll]").onclick=()=>action("/arena/ludo/roll",{request_id:requestId()});
 root.addEventListener("click",e=>{const btn=e.target.closest("[data-piece]");if(btn&&!btn.disabled)action("/arena/ludo/move",{piece_id:btn.dataset.piece,request_id:requestId()});});
 q("[data-stop]").onclick=()=>action("/arena/ludo/stop",{request_id:requestId()});
