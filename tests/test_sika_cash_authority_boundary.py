@@ -65,7 +65,7 @@ def test_canonical_database_path_without_caller_approval_flags(monkeypatch):
     monkeypatch.setattr(store, "resolve_authority", trusted_record)
     result = boundary.assess_with_oap_store(
         intent_id="cash-001", service_point_id="point-001",
-        authenticated_operator_id="staff-001", customer_reference="customer-001",
+        authenticated_operator_id="staff-001", session_operator_id="staff-001", customer_reference="customer-001",
         amount="10.00", currency="GBP", direction="CASH_OUT",
     )
     assert result["intent_validated"] is True
@@ -85,6 +85,22 @@ def test_canonical_database_path_fails_when_site_not_authorised(monkeypatch):
     with pytest.raises(cash.CashServicePointError, match="cash_site_unverified"):
         boundary.assess_with_oap_store(
             intent_id="cash-002", service_point_id="point-001",
-            authenticated_operator_id="staff-001", customer_reference="customer-001",
+            authenticated_operator_id="staff-001", session_operator_id="staff-001", customer_reference="customer-001",
             amount="10.00", currency="GBP", direction="CASH_IN",
+        )
+
+
+def test_canonical_path_rejects_session_identity_substitution(monkeypatch):
+    from mission_control import sika_cash_authority_store as store
+
+    def should_not_read(site, operator):
+        raise AssertionError("must deny before reading authority records")
+
+    monkeypatch.setattr(store, "resolve_authority", should_not_read)
+    with pytest.raises(cash.CashServicePointError, match="cash_authenticated_operator_mismatch"):
+        boundary.assess_with_oap_store(
+            intent_id="cash-003", service_point_id="point-001",
+            authenticated_operator_id="staff-other", session_operator_id="staff-001",
+            customer_reference="customer-001", amount="10.00", currency="GBP",
+            direction="CASH_OUT",
         )
