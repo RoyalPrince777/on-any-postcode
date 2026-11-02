@@ -139,6 +139,8 @@ def build_investigation_case(case_id: str, question: str, evidence: list[dict[st
             raise ValueError("each evidence entry requires a claim")
         if not isinstance(source, str):
             raise TypeError("source must be text")
+        if not source.strip():
+            raise ValueError("each evidence entry requires a source")
         records.append({
             "claim": claim.strip(),
             "source": source.strip(),
