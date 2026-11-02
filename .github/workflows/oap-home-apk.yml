@@ -62,7 +62,7 @@ jobs:
           assert '"PUSH TO TALK".equals(normalized)' in source, "Home search must recognise Push to Talk"
           assert 'private void openPttApp()' in source, "OAP Home must expose the standalone PTT launch helper"
           assert 'new Intent(Intent.ACTION_VIEW, uri)' in source, "PTT must launch through Android app/browser routing"
-          store = 'Button storeQuick = button("▣ OAP STORE\\nINSTALL OAP APPS", v -> destination("OAP STORE"));'
+          store = 'Button storeQuick = button("▣ OAP STORE\\nBROWSE OAP APPS", v -> destination("OAP STORE"));'
           assert source.count(store) == 1, "OAP Store quick action must appear exactly once"
           assert 'case "OAP STORE": path = "/store"; break;' in source, "OAP Home must route directly to OAP Store"
           PY
