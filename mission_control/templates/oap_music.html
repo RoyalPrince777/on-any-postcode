@@ -473,12 +473,6 @@
       const catalogueHelp = document.getElementById('catalogue-choice-help');
       function switchCatalogue() {
         const choice = catalogueChoice.value;
-        document.getElementById('catalogue').classList.toggle('hidden', choice !== 'oap');
-        document.getElementById('player').classList.toggle('hidden', choice !== 'private');
-        document.getElementById('radio').classList.toggle('hidden', choice !== 'radio');
-        input.classList.toggle('hidden', choice !== 'oap');
-        input.previousElementSibling.classList.toggle('hidden', choice !== 'oap');
-        state.classList.toggle('hidden', choice !== 'oap');
         catalogueHelp.textContent = ({
           oap:'Only published, rights-verified OAP metadata is shown. Playback has a separate gate.',
           private:'Your authenticated uploads can be played privately below.',
@@ -486,7 +480,11 @@
           radio:'Manage your existing OAP Radio station controls below. No public broadcast is implied.'
         })[choice];
       }
-      catalogueChoice.addEventListener('change', switchCatalogue);
+      catalogueChoice.addEventListener('change', () => {
+        switchCatalogue();
+        const destinations = {oap:'catalogue', private:'player', open:'first-party-discovery', radio:'radio'};
+        document.getElementById(destinations[catalogueChoice.value])?.scrollIntoView({behavior:'smooth', block:'start'});
+      });
       switchCatalogue();
       let searchTimer = null;
 
