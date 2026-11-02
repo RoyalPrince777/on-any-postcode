@@ -254,6 +254,7 @@
             <input id="market-local-artwork" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="market-local-artwork-status">
             <p id="market-local-artwork-status" class="market-meta" role="status" aria-live="polite">Local preview only. The selected image is not uploaded, saved or sent to a manufacturer.</p>
             <img id="market-local-artwork-preview" alt="Selected local design artwork preview" hidden style="max-width:260px;max-height:260px;object-fit:contain;border-radius:12px;border:1px solid var(--mc-line)">
+            <button id="market-upload-artwork" type="button" class="mc-secondary-link">Save selected artwork privately to OAP</button>
             <label for="market-artwork-ref">Artwork / design reference</label>
             <input id="market-artwork-ref" name="artwork_reference" maxlength="500" placeholder="OAP design asset or supplier design reference">
             <label for="market-placements">Print placements</label>
@@ -322,6 +323,37 @@
         if (localArtworkUrl) URL.revokeObjectURL(localArtworkUrl);
       });
     }
+    const uploadArtworkButton = document.getElementById('market-upload-artwork');
+    uploadArtworkButton?.addEventListener('click', async () => {
+      const file = artworkFile?.files?.[0];
+      if (!file || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size < 1 || file.size > 5 * 1024 * 1024) {
+        if (artworkStatus) artworkStatus.textContent = 'Select a valid image up to 5 MB first.';
+        return;
+      }
+      const form = new FormData();
+      form.append('artwork', file);
+      uploadArtworkButton.disabled = true;
+      if (artworkStatus) artworkStatus.textContent = 'Saving private artwork…';
+      try {
+        const response = await fetch('/mission/organs/market/pod/artwork', {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': {{ oap_csrf_token|tojson }} },
+          body: form,
+          credentials: 'same-origin'
+        });
+        if (!response.ok) throw new Error('Artwork save failed');
+        const result = await response.json();
+        if (typeof result.artwork_reference !== 'string' || !result.artwork_reference.startsWith('oap-pod-artwork:')) {
+          throw new Error('Unexpected artwork reference');
+        }
+        document.getElementById('market-artwork-ref').value = result.artwork_reference;
+        if (artworkStatus) artworkStatus.textContent = 'Artwork saved privately to OAP. Product is not published or ordered.';
+      } catch (_) {
+        if (artworkStatus) artworkStatus.textContent = 'Artwork not saved. Check your connection and try again.';
+      } finally {
+        uploadArtworkButton.disabled = false;
+      }
+    });
     const podSupplier = document.getElementById('market-supplier-slug');
     const podSupplierLabel = document.getElementById('market-supplier-label');
     if (podSupplier && podSupplierLabel) {
