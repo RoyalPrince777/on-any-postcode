@@ -231,7 +231,7 @@ def test_public_connectivity_never_claims_internet_or_cellular_from_local_route(
     projection = infrastructure.get_public_infrastructure()
     item = next(item for item in projection["modules"] if item["id"] == "connectivity")
     assert item["state"] == "degraded"
-    assert "Local route observed" in item["status"]
+    assert item["status"] == "Not connected"
     evidence = projection["runtime_evidence"]
     assert evidence["host_local_route_observed"] is True
     assert evidence["internet_reachability_verified"] is False
