@@ -157,3 +157,19 @@ def test_market_projection_exposes_sika_pod_runtime(client, monkeypatch):
     projected = views._market_projection("00000000-0000-0000-0000-000000000001")
     assert projected["organ"] == "OAP Market"
     assert projected["sika_pod_runtime"]["internal_orchestration_ready"] is True
+
+
+def test_provider_configuration_cannot_claim_external_execution(monkeypatch):
+    from mission_control import sika_secure_provider_runtime
+
+    monkeypatch.setattr(
+        sika_secure_provider_runtime,
+        "configuration_status",
+        lambda provider: {"configuration_complete": True},
+    )
+    status = market_sika_pod_runtime.status()
+    assert status["payment_provider_configuration_ready"] is True
+    assert status["pod_provider_configuration_ready"] is True
+    assert status["external_payment_execution_proven"] is False
+    assert status["external_manufacturer_execution_proven"] is False
+    assert status["money_movement_proven"] is False
