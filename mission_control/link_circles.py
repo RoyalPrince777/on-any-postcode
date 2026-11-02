@@ -48,6 +48,14 @@ SCHEMA_SQL = (
     """CREATE UNIQUE INDEX IF NOT EXISTS uq_link_circle_pending_invite
         ON link_circle_invites(circle_id,invitee_id) WHERE status='pending'""",
     "CREATE INDEX IF NOT EXISTS idx_link_circle_invites_invitee ON link_circle_invites(invitee_id,status,created_at DESC)",
+    """CREATE TABLE IF NOT EXISTS link_circle_messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        circle_id UUID NOT NULL REFERENCES link_circles(id) ON DELETE CASCADE,
+        sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL CHECK (char_length(body) BETWEEN 1 AND 4000),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_link_circle_messages_order ON link_circle_messages(circle_id,created_at,id)",
 )
 
 
@@ -345,3 +353,79 @@ def dashboard(identity_id: object) -> dict[str, Any]:
         ],
         "max_members": MAX_CIRCLE_MEMBERS,
     }
+
+
+def send_circle_message(identity_id: object, circle_id: object, body: object) -> str:
+    """Write only for an active Room member; lock Room to serialize with closures."""
+    identity = _uuid(identity_id, "invalid_identity")
+    circle = _uuid(circle_id, "invalid_circle")
+    message = str(body or "").strip()
+    if not message or len(message) > 4000:
+        raise ValueError("invalid_circle_message")
+    # Reuse existing guardian screening; do not create a second moderation model.
+    from . import product_store
+    if product_store._BLOCKED_MESSAGE.search(message):
+        raise ValueError("guardian_blocked_message")
+    try:
+        with postgres_db.connect() as connection:
+            room = connection.execute(
+                "SELECT id FROM link_circles WHERE id=%s AND status='active' FOR UPDATE",
+                (circle,),
+            ).fetchone()
+            if room is None:
+                raise ValueError("circle_unavailable")
+            member = connection.execute(
+                """SELECT 1 FROM link_circle_members
+                   WHERE circle_id=%s AND user_id=%s AND status='active'""",
+                (circle, identity),
+            ).fetchone()
+            if member is None:
+                raise ValueError("circle_membership_required")
+            recent = connection.execute(
+                """SELECT COUNT(*) FROM link_circle_messages
+                   WHERE sender_id=%s AND created_at >= CURRENT_TIMESTAMP - INTERVAL '1 minute'""",
+                (identity,),
+            ).fetchone()
+            if recent and int(recent[0]) >= product_store.MAX_MESSAGES_PER_MINUTE:
+                raise ValueError("linkup_rate_limit")
+            row = connection.execute(
+                """INSERT INTO link_circle_messages(circle_id,sender_id,body)
+                   VALUES (%s,%s,%s) RETURNING id""",
+                (circle, identity, message),
+            ).fetchone()
+            connection.commit()
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise LinkCirclesUnavailable("circle_message_write_failed") from exc
+    return str(row[0])
+
+
+def circle_messages(identity_id: object, circle_id: object, *, limit: int = 50) -> list[dict[str, str]]:
+    """Read only as an active Room member; never expose another Room's contents."""
+    identity = _uuid(identity_id, "invalid_identity")
+    circle = _uuid(circle_id, "invalid_circle")
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            member = connection.execute(
+                """SELECT 1 FROM link_circle_members m JOIN link_circles c ON c.id=m.circle_id
+                   WHERE m.circle_id=%s AND m.user_id=%s
+                     AND m.status='active' AND c.status='active'""",
+                (circle, identity),
+            ).fetchone()
+            if member is None:
+                raise ValueError("circle_membership_required")
+            rows = connection.execute(
+                """SELECT id,sender_id,body,created_at FROM link_circle_messages
+                   WHERE circle_id=%s ORDER BY created_at DESC,id DESC LIMIT %s""",
+                (circle, max(1, min(int(limit), 100))),
+            ).fetchall()
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise LinkCirclesUnavailable("circle_message_read_failed") from exc
+    return [
+        {"message_id": str(row[0]), "sender_id": str(row[1]),
+         "body": str(row[2]), "created_at": row[3].isoformat()}
+        for row in reversed(rows)
+    ]
