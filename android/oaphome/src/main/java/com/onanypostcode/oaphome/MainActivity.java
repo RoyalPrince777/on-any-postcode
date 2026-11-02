@@ -417,8 +417,7 @@ public class MainActivity extends Activity {
     private void openInternet() {
         closeWebView();
         base("OAP INTERNET");
-        body.addView(label("KORADASO INTERNET · OAP LOCAL / OPEN WEB", 18));
-        body.addView(label("Uses the device Android WebView provider, not an independent OAP browser engine. JavaScript and file access disabled.", 13));
+        body.addView(label("♛ KORADASO INTERNET · POWERED BY ON ANY POSTCODE", 17));
         EditText address = new EditText(this);
         address.setSingleLine(true);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
@@ -470,6 +469,11 @@ public class MainActivity extends Activity {
                         ? " · Start OAP Flask on this phone at 127.0.0.1:5050; no public fallback." : ""));
             }
         });
+        // Keep browser content visible before secondary actions; never allow
+        // an oversized navigation column to hide the loaded page.
+        int browserHeight = Math.max(dp(480),
+                getResources().getDisplayMetrics().heightPixels - dp(260));
+        body.addView(viewer, new LinearLayout.LayoutParams(-1, browserHeight));
         addButton("OPEN IN SYSTEM BROWSER (INTERACTIVE SITES)", v -> {
             Uri uri = Uri.parse(address.getText().toString().trim());
             if (!safeWebAddress(uri)) {
@@ -492,7 +496,6 @@ public class MainActivity extends Activity {
             }
             viewer.loadUrl(uri.toString());
         });
-        // Give OAP Internet a proper screen-relative browser viewport.\n        int browserHeight = Math.max(dp(480), getResources().getDisplayMetrics().heightPixels - dp(210));\n        body.addView(viewer, new LinearLayout.LayoutParams(-1, browserHeight));
         LinearLayout browserControls = new LinearLayout(this);
         browserControls.setOrientation(LinearLayout.HORIZONTAL);
         String[] controlNames = {"BACK", "FORWARD", "RELOAD"};
