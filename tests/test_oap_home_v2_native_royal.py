@@ -103,7 +103,9 @@ class NativeRoyalHomeTests(unittest.TestCase):
         source = self.source
         self.assertIn("private void navigateKoradasoInput(", source)
         self.assertIn('"SEARCH / OPEN ADDRESS"', source)
-        self.assertIn('"GO / SEARCH"', source)
+        self.assertNotIn('addButton("GO / SEARCH"', source)
+        self.assertIn('"⬇ DOWNLOADS"', source)
+        self.assertIn('ACTION_VIEW_DOWNLOADS', source)
         self.assertIn('"https://duckduckgo.com/?q="', source)
         self.assertIn('Search words leave OAP Data and are sent directly', source)
         self.assertIn('"DuckDuckGo", "Google"', source)
