@@ -92,3 +92,71 @@ def status() -> dict[str, object]:
         "hrm_audit_required": True,
         "human_authority_final": True,
     }
+
+
+
+# Agency-inspired profiles are analytical roles, not real agency credentials,
+# new agents, intelligence worlds, or access to classified systems.
+INVESTIGATION_SPECIALISTS = {
+    "owl": "source_provenance",
+    "cia": "international_public_sources",
+    "fbi": "forensic_public_records",
+    "mi5": "domestic_threat_context",
+    "mi6": "international_source_comparison",
+    "nasa": "public_aerospace_science",
+    "nato": "public_defence_context",
+    "police_cid": "incident_timeline",
+    "undercover": "open_source_deception_review",
+    "special_forces": "defensive_crisis_risk",
+    "x_files": "alternative_hypothesis_challenge",
+    "neo_matrix": "digital_media_integrity",
+    "ethan_benji": "technical_reconstruction",
+    "batman_robin": "independent_forensic_challenge",
+    "fox_spider_octopus": "contradiction_and_source_links",
+    "guardian_hrm": "permission_and_audit_review",
+}
+
+
+def build_investigation_case(case_id: str, question: str, evidence: list[dict[str, str]]) -> dict[str, object]:
+    """Produce a read-only, source-traceable investigation review.
+
+    Never converts a claim into a verified fact or grants execution permissions.
+    Caller remains responsible for checking each cited source and its freshness.
+    """
+    if not isinstance(case_id, str) or not case_id.strip():
+        raise ValueError("case_id is required")
+    if not isinstance(question, str) or not question.strip():
+        raise ValueError("question is required")
+    if not isinstance(evidence, list):
+        raise ValueError("evidence must be a list")
+    records: list[dict[str, str]] = []
+    for item in evidence:
+        if not isinstance(item, dict):
+            raise ValueError("evidence entries must be objects")
+        claim = item.get("claim", "")
+        source = item.get("source", "")
+        if not isinstance(claim, str) or not claim.strip():
+            raise ValueError("each evidence entry requires a claim")
+        if not isinstance(source, str):
+            raise ValueError("source must be text")
+        records.append({
+            "claim": claim.strip(),
+            "source": source.strip(),
+            "source_class": str(item.get("source_class", "unclassified")),
+            "published_at": str(item.get("published_at", "")),
+            "observed_or_inferred": str(item.get("observed_or_inferred", "unassessed")),
+            "verification": "pending_independent_review",
+        })
+    return {
+        "case_id": case_id.strip(),
+        "question": question.strip(),
+        "case_status": "unverified",
+        "evidence": records,
+        "specialist_roles": tuple(INVESTIGATION_SPECIALISTS),
+        "creates_agents": False,
+        "external_agency_access": False,
+        "consequential_execution_authority": False,
+        "guardian_required": True,
+        "hrm_audit_required": True,
+        "founder_final_required": True,
+    }
