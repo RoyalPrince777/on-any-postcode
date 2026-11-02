@@ -208,7 +208,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn('"wifi_large", true', source)
         self.assertIn('"prefer_idle", true', source)
         self.assertIn('"notify", true', source)
-        self.assertIn("UPDATE ENGINE NOT CONNECTED", source)
+        self.assertIn("No automatic download is connected.", source)
         block = source.split("private void autoUpdatePreferences() {", 1)[1].split(
             "    private void allApps()", 1
         )[0]
