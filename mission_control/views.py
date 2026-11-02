@@ -373,7 +373,7 @@ def war_room_divisions_route():
     if not isinstance(mission, str) or not isinstance(notes, str) or len(mission) > 2000 or len(notes) > 2000:
         return _error("invalid_mission", "Mission and notes must be text within 2000 characters.", 400)
     try:
-        result = smi_auto.route_divisions(payload.get("divisions"), thinking=payload.get("thinking", "AUTO"))
+        result = smi_auto.route_divisions(payload.get("divisions"), thinking=payload.get("thinking", "AUTO"), mission=mission)
     except ValueError as exc:
         return _error("invalid_selection", str(exc), 400)
     # Founder-supplied text is request-scoped; never log, store or treat it as authorisation.
