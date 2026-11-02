@@ -335,6 +335,7 @@ def brain_status():
     return _no_store(make_response(jsonify(brain.get_public_brain_status())))
 
 
+@bp.get("/smi-cc")
 @bp.get("/war-room")
 @web_security.login_required()
 def war_room_dashboard():
