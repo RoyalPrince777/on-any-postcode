@@ -12,6 +12,11 @@ SURFACES = (
     ROOT / "app.py",
     ROOT / "templates" / "home.html",
     ROOT / "templates" / "world.html",
+    ROOT / "templates" / "koradaso_internet.html",
+    ROOT / "mission_control" / "oap_data.py",
+    ROOT / "mission_control" / "telemetry.py",
+    ROOT / "static" / "oap-os.js",
+    ROOT / "static" / "oap-os-sw.js",
 )
 BLOCKED = re.compile(
     r"(?i)(?:"
