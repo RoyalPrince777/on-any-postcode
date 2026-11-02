@@ -645,13 +645,50 @@ public class MainActivity extends Activity {
     }
 
 
-    // Founder-approved local preferences only. No network, APK download,
-    // installer invocation or unattended update is performed by this screen.
+    // Explicit, user-selected APK handoff. Android Package Installer makes the
+    // final signature/version/consent decision. No background updater or data wipe.
+    private static final int OAP_UPDATE_PICK_APK = 7301;
+
+    private void chooseOapUpdateApk() {
+        Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        pick.addCategory(Intent.CATEGORY_OPENABLE);
+        pick.setType("application/vnd.android.package-archive");
+        try {
+            startActivityForResult(pick, OAP_UPDATE_PICK_APK);
+        } catch (ActivityNotFoundException error) {
+            android.widget.Toast.makeText(this, "No file picker available", android.widget.Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != OAP_UPDATE_PICK_APK || resultCode != RESULT_OK
+                || data == null || data.getData() == null) return;
+        Uri apk = data.getData();
+        if (!"content".equals(apk.getScheme())) {
+            android.widget.Toast.makeText(this, "Select an APK using Android Files", android.widget.Toast.LENGTH_LONG).show();
+            return;
+        }
+        Intent install = new Intent(Intent.ACTION_VIEW);
+        install.setDataAndType(apk, "application/vnd.android.package-archive");
+        install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(install);
+        } catch (ActivityNotFoundException error) {
+            android.widget.Toast.makeText(this, "Android Package Installer unavailable", android.widget.Toast.LENGTH_LONG).show();
+        } catch (SecurityException error) {
+            android.widget.Toast.makeText(this, "Android blocked installation; check Install unknown apps permission", android.widget.Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // Local preferences and a user-initiated Android installer handoff only.
+    // No silent download, auto-update service or unauthorised installation.
     private void autoUpdatePreferences() {
         base("OAP AUTOUPDATE");
         final android.content.SharedPreferences prefs =
                 getSharedPreferences("oap_autoupdate_preferences_v1", MODE_PRIVATE);
-        body.addView(label("SETTINGS ONLY — UPDATE ENGINE NOT CONNECTED", 16));
+        body.addView(label("MANUAL APK UPDATE · ANDROID APPROVAL REQUIRED", 16));
         body.addView(label("Android controls when an installation needs approval. "
                 + "Package signatures and installed app data must remain protected.", 13));
 
@@ -685,6 +722,8 @@ public class MainActivity extends Activity {
             android.widget.Toast.makeText(this, "Preferences saved locally; updates not enabled",
                     android.widget.Toast.LENGTH_LONG).show();
         });
+        addButton("CHOOSE DOWNLOADED APK · UPDATE OAP CORE", v -> chooseOapUpdateApk());
+        body.addView(label("Select your verified OAP-Core APK in Downloads. Android checks package signing and asks for installation approval. No automatic download is connected.", 13));
         addButton("BACK TO OAP HOME", v -> home());
     }
 
