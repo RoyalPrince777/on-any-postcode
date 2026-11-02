@@ -87,6 +87,7 @@ def status() -> dict[str, object]:
         "component": "Personal SMI Behaviour",
         "revision": AI_BEHAVIOUR_REVISION,
         "adaptive_reasoning_depths": ADAPTIVE_REASONING_DEPTHS,
+        "thinking_check_profiles": {str(depth): review_checks_for(str(depth)) for depth in ADAPTIVE_REASONING_DEPTHS},
         "truth_labels": TRUTH_LABELS,
         "response_rules": RESPONSE_RULES,
         "thinking_stage_labels": THINKING_STAGE_LABELS,
