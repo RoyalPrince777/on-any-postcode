@@ -866,6 +866,26 @@ final class OapSecureChromeClient extends android.webkit.WebChromeClient {
     }
 }
 
+// KORADASO Shield Standard: a deliberately small, auditable host denylist.
+// No network list fetch, no private URL logging, and no blocking first-party OAP.
+final class KoradasoShield {
+    private static final String[] BLOCKED_DOMAINS = {
+        "doubleclick.net", "googlesyndication.com",
+        "googleadservices.com", "adnxs.com", "adsrvr.org",
+        "scorecardresearch.com"
+    };
+    static boolean blocks(android.net.Uri uri, boolean mainFrame) {
+        if (mainFrame || uri == null || !"https".equalsIgnoreCase(uri.getScheme())) return false;
+        String host = uri.getHost();
+        if (host == null) return false;
+        host = host.toLowerCase(java.util.Locale.ROOT);
+        for (String domain : BLOCKED_DOMAINS) {
+            if (host.equals(domain) || host.endsWith("." + domain)) return true;
+        }
+        return false;
+    }
+}
+
 class OapSecureWebClient extends android.webkit.WebViewClient {
     private final MainActivity host;
     OapSecureWebClient(MainActivity host) { this.host = host; }
@@ -874,7 +894,8 @@ class OapSecureWebClient extends android.webkit.WebViewClient {
         android.widget.Toast.makeText(host, "HTTPS certificate rejected", android.widget.Toast.LENGTH_SHORT).show();
     }
     @Override public android.webkit.WebResourceResponse shouldInterceptRequest(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
-        if (!host.safeWebAddress(request.getUrl())) {
+        if (!host.safeWebAddress(request.getUrl())
+                || KoradasoShield.blocks(request.getUrl(), request.isForMainFrame())) {
             return new android.webkit.WebResourceResponse("text/plain", "UTF-8",
                     new java.io.ByteArrayInputStream(new byte[0]));
         }
