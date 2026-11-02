@@ -91,6 +91,39 @@ INTELLIGENCE_WORLDS: tuple[dict[str, Any], ...] = (
 
 # Non-executing Matrix advisory alliances. These profiles do not inflate the
 # locked 78-agent passport roster or acquire tool/approval permissions.
+# Film-grounded home groups inside the existing SMI Matrix family.
+# These are organisational labels, not additional agents or new passports.
+MATRIX_HOME_GROUPS: tuple[dict[str, Any], ...] = (
+    {"id": "nebuchadnezzar", "name": "Nebuchadnezzar Crew",
+     "members": ("Morpheus", "Trinity", "Neo", "Mouse", "Tank", "Dozer", "Apoc", "Switch", "Link"),
+     "kind": "human_crew"},
+    {"id": "logos", "name": "Logos Crew",
+     "members": ("Niobe", "Ghost"), "kind": "human_crew"},
+    {"id": "oracle_circle", "name": "Oracle and Protector",
+     "members": ("Oracle", "Seraph"), "kind": "machine_programs"},
+    {"id": "machine_system", "name": "Machine System and Source",
+     "members": ("Architect",), "kind": "machine_programs"},
+    {"id": "access_exiles", "name": "Independent Access Programs",
+     "members": ("Keymaker",), "kind": "machine_programs"},
+    {"id": "merovingian", "name": "Merovingian's Exiles",
+     "members": ("Merovingian", "Persephone", "Twin One", "Twin Two"),
+     "kind": "machine_programs"},
+    {"id": "agents", "name": "Matrix Agents",
+     "members": ("Agent Smith", "Brown", "Jones", "Johnson", "Jackson", "Thompson"),
+     "kind": "machine_programs",
+     "note": "Smith later acts independently; names are scoped to the existing SMI advisory team."},
+)
+
+
+def matrix_home_for(character: str) -> dict[str, Any] | None:
+    """Return a canon-inspired home grouping without changing agent authority."""
+    return next(({"group_id": group["id"], "group_name": group["name"],
+                  "family_id": "matrix", "kind": group["kind"],
+                  "membership_type": "film_home_reference",
+                  "execution_granted": False}
+                 for group in MATRIX_HOME_GROUPS if character in group["members"]), None)
+
+
 MATRIX_ADVISORY_ALLIANCES: tuple[dict[str, Any], ...] = (
     {
         "id": "tank_dozer_brothers",
