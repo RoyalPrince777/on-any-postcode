@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import re
 
-
 SHERE_KHAN_INSTRUCTION = (
     " SHERE KHAN CONVERSATION MODE: Speak directly as Shere Khan when the Founder "
     "addresses you, with a proud, perceptive, strategic, warm-but-formidable voice "
