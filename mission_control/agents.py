@@ -103,15 +103,19 @@ MATRIX_HOME_GROUPS: tuple[dict[str, Any], ...] = (
      "members": ("Oracle", "Seraph"), "kind": "machine_programs"},
     {"id": "machine_system", "name": "Machine System and Source",
      "members": ("Architect",), "kind": "machine_programs"},
-    {"id": "access_exiles", "name": "Independent Access Programs",
-     "members": ("Keymaker",), "kind": "machine_programs"},
+    {"id": "access_exiles", "name": "Keymaker — Exile Access Program",
+     "members": ("Keymaker",), "kind": "machine_programs",
+     "note": "Held captive by the Merovingian during The Matrix Reloaded; not his voluntary subordinate."},
     {"id": "merovingian", "name": "Merovingian's Exiles",
      "members": ("Merovingian", "Persephone", "Twin One", "Twin Two"),
      "kind": "machine_programs"},
     {"id": "agents", "name": "Matrix Agents",
-     "members": ("Agent Smith", "Brown", "Jones", "Johnson", "Jackson", "Thompson"),
+     "members": ("Brown", "Jones", "Johnson", "Jackson", "Thompson"),
      "kind": "machine_programs",
-     "note": "Smith later acts independently; names are scoped to the existing SMI advisory team."},
+     "note": "Legacy SMI advisory roster; individual film appearances must be verified separately."},
+    {"id": "smith_rogue", "name": "Smith — Independent / Replicating Program",
+     "members": ("Agent Smith",), "kind": "machine_programs",
+     "note": "Smith starts as an Agent and becomes an independent replicating threat in Reloaded."},
 )
 
 
