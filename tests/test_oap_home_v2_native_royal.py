@@ -105,6 +105,8 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn('"SEARCH / OPEN ADDRESS"', source)
         self.assertNotIn('addButton("GO / SEARCH"', source)
         self.assertIn('"⬇ DOWNLOADS"', source)
+        self.assertIn('"/downloads", "/koradaso"', source)
+        self.assertIn('if ("/downloads".equals(path))', source)
         self.assertIn('ACTION_VIEW_DOWNLOADS', source)
         self.assertIn('"https://duckduckgo.com/?q="', source)
         self.assertIn('Search words leave OAP Data and are sent directly', source)
