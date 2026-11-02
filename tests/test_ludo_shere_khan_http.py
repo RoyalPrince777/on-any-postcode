@@ -58,3 +58,45 @@ def test_ludo_agent_requires_opt_in(client, csrf):
         headers=headers,
     )
     assert denied.status_code == 400
+
+
+def test_shere_khan_completes_match_with_exact_roll(client, csrf, monkeypatch):
+    """Exercise a real HTTP AI decision, game-engine finish, and replay guard."""
+    from mission_control import ludo
+
+    headers = {"X-OAP-CSRF": csrf["csrf_token"]}
+    response = client.post(
+        "/arena/ludo/start",
+        json={"players": ["You", "Shere Khan"], "opponent": "shere-khan", "level": "tyrant"},
+        headers=headers,
+    )
+    assert response.status_code == 201
+
+    with client.session_transaction() as session:
+        state = session[ludo.SESSION_KEY]
+        state["turn_index"] = 1
+        for piece in state["players"][1]["pieces"][:3]:
+            piece["progress"] = ludo.FINISH_PROGRESS
+        state["players"][1]["pieces"][3]["progress"] = ludo.FINISH_PROGRESS - 1
+        session[ludo.SESSION_KEY] = ludo._seal(state)
+
+    monkeypatch.setattr(ludo.secrets, "randbelow", lambda upper: 0)
+    win = client.post(
+        "/arena/ludo/shere-khan/turn",
+        json={"request_id": "agent-finish-0001"},
+        headers=headers,
+    )
+    assert win.status_code == 200
+    assert win.get_json()["status"] == "completed"
+    assert win.get_json()["winner_id"] == "p2"
+    with client.session_transaction() as session:
+        completed = session[ludo.SESSION_KEY]
+    retry = client.post(
+        "/arena/ludo/shere-khan/turn",
+        json={"request_id": "agent-finish-0001"},
+        headers=headers,
+    )
+    assert retry.status_code == 200
+    assert retry.get_json() == win.get_json()
+    with client.session_transaction() as session:
+        assert session[ludo.SESSION_KEY] == completed
