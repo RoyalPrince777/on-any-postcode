@@ -124,3 +124,14 @@ def test_smi_intelligence_does_not_escalate_depth_without_need():
     assert observed["smi_intelligence"]["level"] == "A1"
     assert observed["semantic_lenses"] == ()
     assert observed["smi_intelligence"]["stop_reason"].startswith("minimum sufficient intelligence")
+
+
+def test_nirmata_and_aei_route_as_advisory_lenses_only():
+    for phrase, expected in (("Nirmata design upgrade", "architecture"), ("AEI execute upgrade", "security")):
+        result = smi_auto.observe("GET", "/mission/smi", message=phrase)
+        assert expected in result["semantic_lenses"]
+        assert result["execution_granted"] is False
+        assert result["approval_granted"] is False
+        assert result["provider_call_performed"] is False
+        assert result["database_write_performed"] is False
+        assert result["human_authority_final"] is True

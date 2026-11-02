@@ -16,6 +16,8 @@ BASE_LENSES = ("truth", "evidence", "alignment")
 WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 SEMANTIC_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
+    (("nirmata", "creation architect", "draft blueprint"), ("architecture", "dependency", "gap")),
+    (("aei", "automatically executing intelligence"), ("security", "readiness", "risk")),
     (("confusing", "hard to use", "usability", "navigation", "button", "layout", "mobile", "desktop"), ("ux", "behaviour")),
     (("slow", "latency", "performance", "speed", "bottleneck", "load"), ("performance", "architecture")),
     (("crash", "failure", "broken", "rollback", "recover", "recovery", "fallback"), ("resilience", "risk")),
