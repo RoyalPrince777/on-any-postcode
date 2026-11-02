@@ -125,7 +125,12 @@ def run_mouse_attention_training(objective: str, *, choice: str | None = None) -
 
 
 def status() -> dict[str, Any]:
+    from . import agents
     return {
+        "home_groups": tuple({"id": group["id"], "name": group["name"],
+                              "members": group["members"], "kind": group["kind"]}
+                             for group in agents.MATRIX_HOME_GROUPS),
+        "home_groups_are_advisory": True,
         "name": SIMULATION_NAME,
         "kind": "bounded_training_environment",
         "modes": SIMULATION_MODES,
