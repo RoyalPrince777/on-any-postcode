@@ -416,7 +416,18 @@
   }
   async function runAuto(button) {
     const actions = ['alignment-check','aegis-check','function-health','green-gate','hrm-receipt'];
-    const lines = ['🟣 SMI AUTO · 3 / 7 / 21 governed review'];
+    const chosen = [...document.querySelectorAll('input[name="smi-division"]:checked')].map(el => el.value);
+    if (!chosen.length) throw new Error('Choose at least one SMI division.');
+    const routeResponse = await fetch('/mission/war-room/divisions/route', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: JSON.stringify({divisions: chosen, thinking: document.getElementById('smi-command-thinking').value})
+    });
+    const selectedPlan = await routeResponse.json().catch(() => ({}));
+    if (!routeResponse.ok) throw new Error(selectedPlan?.error?.message || 'SMI routing failed');
+    const lines = ['🟣 SMI AUTO · ' + selectedPlan.thinking_depth + ' Thinking · advisory route',
+      'Divisions: ' + selectedPlan.divisions.map(x => x.division + ' (' + x.lead + ')').join(', ')];
+
     for (const action of actions) {
       const payload = await run(action);
       const signal = payload.signal || payload.action?.signal || 'unknown';
