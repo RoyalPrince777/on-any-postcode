@@ -86,3 +86,27 @@ def test_nirmata_aei_gorilla_recovery_review_is_coupled_without_authority():
     assert board["summary"]["FAIL"] == 3
     assert board["authority_granted"] is False
     assert board["human_authority_final"] is True
+
+
+def test_auto_swot_requires_verified_failed_build_logs():
+    assert smi_auto.evidence_swot_for_failed_build({})["ready"] is False
+    assert smi_auto.evidence_swot_for_failed_build({
+        "ready": True, "log_analysis": {"ready": False}
+    })["ready"] is False
+
+
+def test_auto_swot_uses_only_verified_categories_without_granting_execution():
+    data = {"ready": True, "log_analysis": {"ready": True, "log_categories": (
+        {"job_id": 31, "categories": ("gradle_compile", "source_verification")},
+    )}}
+    result = smi_auto.evidence_swot_for_failed_build(data)
+    assert result["ready"] is True
+    assert result["weaknesses"] == ("gradle_compile", "source_verification")
+    assert result["execution_granted"] is False
+    assert result["approval_granted"] is False
+    assert result["human_authority_final"] is True
+    assert smi_auto.evidence_swot_for_failed_build({
+        "ready": True, "log_analysis": {"ready": True, "log_categories": (
+            {"job_id": 31, "categories": ("untrusted_input",)},
+        )}
+    })["ready"] is False
