@@ -284,3 +284,14 @@ def test_circle_message_route_unready_never_reads_messages(client, monkeypatch):
     monkeypatch.setattr(link_circles, "status", lambda: {"ready": False})
     response = client.get(f"/linkup/circles/{uuid.uuid4()}/messages")
     assert response.status_code == 503
+
+
+def test_circle_message_route_requires_message_table_not_just_membership(client, monkeypatch):
+    monkeypatch.setattr(link_circles, "status", lambda: {
+        "ready": True, "messages_ready": False,
+    })
+    path = f"/linkup/circles/{uuid.uuid4()}/messages"
+    assert client.get(path).status_code == 503
+    response = client.get("/linkup/circles/status")
+    assert response.status_code == 200
+    assert response.get_json()["circle_messages_ready"] is False
