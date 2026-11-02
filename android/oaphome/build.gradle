@@ -32,9 +32,10 @@ android {
 
     buildTypes {
         debug {
-            signingConfig signingConfigs.oapPersistent
+            // Use the Android default debug keystore, never the persistent release key.
         }
         release {
+            signingConfig signingConfigs.oapPersistent
             minifyEnabled false
         }
     }
