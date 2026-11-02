@@ -1,8 +1,8 @@
 """Focused fail-closed contract checks for the OAP Music company registry."""
 import pytest
 
-from mission_control import music_company_rights_registry as registry
 from mission_control import music_civilization_migration
+from mission_control import music_company_rights_registry as registry
 
 
 def test_registry_migration_is_governed_not_request_time():
