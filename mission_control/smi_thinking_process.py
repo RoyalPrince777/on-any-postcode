@@ -159,6 +159,7 @@ def _nonnegative_count(value: object) -> int:
     except (TypeError, ValueError, OverflowError):
         return 0
 
+
 def completion_summary(result: Mapping[str, Any]) -> dict[str, Any]:
     """Build a safe post-response explanation from already-produced runtime evidence."""
 
@@ -179,7 +180,7 @@ def completion_summary(result: Mapping[str, Any]) -> dict[str, Any]:
 
     if guardian == "BLOCKED":
         outcome_signal = live_signals.get_signal("critical")
-    elif str(result.get("output_state")) == "REVIEW_REQUIRED":
+    elif guardian != "PASSED" or str(result.get("output_state")) == "REVIEW_REQUIRED":
         outcome_signal = live_signals.get_signal("warning")
     else:
         outcome_signal = live_signals.get_signal("complete")
