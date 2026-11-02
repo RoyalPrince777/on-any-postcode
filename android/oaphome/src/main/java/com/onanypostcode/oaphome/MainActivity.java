@@ -623,7 +623,9 @@ public class MainActivity extends Activity {
         royalEarth.setBackground(new RoyalHomeArt.EarthBackdrop());
         royalHero.addView(royalEarth, new FrameLayout.LayoutParams(-1, -1));
         royalHero.addView(royal, new FrameLayout.LayoutParams(-1, -1));
-        body.addView(royalHero, new LinearLayout.LayoutParams(-1, dp(260)));
+        // Keep the full seven-card browser launcher reachable on compact phones.
+        int heroHeight = Math.min(dp(194), getResources().getDisplayMetrics().heightPixels / 4);
+        body.addView(royalHero, new LinearLayout.LayoutParams(-1, heroHeight));
         TextView powered = label("POWERED BY ON ANY POSTCODE · BORN LOCAL. BUILT GLOBAL.", 12);
         powered.setGravity(Gravity.CENTER);
         body.addView(powered);
@@ -744,8 +746,8 @@ public class MainActivity extends Activity {
                 navigateKoradasoInput(address.getText().toString(), viewer, loadStatus));
         // Keep browser content visible before secondary actions; never allow
         // an oversized navigation column to hide the loaded page.
-        int browserHeight = Math.max(dp(350),
-                getResources().getDisplayMetrics().heightPixels - dp(360));
+        int browserHeight = Math.max(dp(220),
+                Math.min(dp(380), getResources().getDisplayMetrics().heightPixels / 3));
         body.addView(viewer, new LinearLayout.LayoutParams(-1, browserHeight));
         addButton("OPEN WEB IN SYSTEM BROWSER", v -> {
             Uri uri = Uri.parse(address.getText().toString().trim());
