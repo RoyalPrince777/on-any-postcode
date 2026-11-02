@@ -18,6 +18,7 @@ WRITE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 SEMANTIC_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
     (("nirmata", "creation architect", "draft blueprint"), ("architecture", "dependency", "gap")),
     (("aei", "automatically executing intelligence"), ("security", "readiness", "risk")),
+    (("gorilla", "containment", "safe rollback"), ("resilience", "security", "risk")),
     (("confusing", "hard to use", "usability", "navigation", "button", "layout", "mobile", "desktop"), ("ux", "behaviour")),
     (("slow", "latency", "performance", "speed", "bottleneck", "load"), ("performance", "architecture")),
     (("crash", "failure", "broken", "rollback", "recover", "recovery", "fallback"), ("resilience", "risk")),
@@ -198,6 +199,8 @@ def public_status() -> dict[str, object]:
 # Canonical named-review routing. These are evidence lenses inside SMI Auto,
 # not separate brains, model providers or autonomous authorities.
 REVIEW_ROLE_LENSES: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    ("Nirmata", ("nirmata",), "bounded repair architecture, dependencies and rollback design"),
+    ("AEI", ("aei", "automatically executing intelligence"), "permitted execution readiness, auditability and failure limits"),
     ("Neo", ("neo",), "true path, execution coherence and recovery"),
     ("Shere Khan", ("shere khan", "claw test"), "adversarial stress-test, threat intelligence, failure-hunting, survivability authority and false-Green blocking; Claw Test is one pressure mode"),
     ("Bagheera", ("bagheera",), "protection, balance and reversible judgement"),
@@ -214,7 +217,7 @@ REVIEW_ROLE_LENSES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Panther", ("panther",), "adaptation, gaps and security"),
     ("Eagle", ("eagle",), "whole-system view"),
     ("Falcon", ("falcon",), "speed and smallest bounded next gate"),
-    ("Gorilla", ("gorilla",), "protection and pressure resistance"),
+    ("Gorilla", ("gorilla",), "containment, pressure resistance, safe rollback and fail-closed recovery"),
     ("Octopus", ("octopus",), "systems integration, multi-route coordination and dependency reach"),
     ("Spider", ("spider",), "route mesh, connection integrity and hidden dependency detection"),
     ("Fox", ("fox",), "optimisation, loophole detection and edge-case efficiency"),
@@ -258,6 +261,11 @@ def selected_review_roles(message: object, *, auto_mode: bool) -> tuple[str, ...
     if auto_mode:
         selected: list[str] = list(DEFAULT_AUTO_REVIEW)
         _add(selected, explicit)
+        # Couple bounded design, execution review and resilience whenever the
+        # Founder invokes any member of this recovery triad. Review only:
+        # no repair execution, approval or release authority is granted here.
+        if any(role in explicit for role in ("Nirmata", "AEI", "Gorilla")):
+            _add(selected, ("Nirmata", "AEI", "Gorilla"))
         return tuple(selected)
     return explicit
 
