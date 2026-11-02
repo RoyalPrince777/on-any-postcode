@@ -18,11 +18,24 @@ button:disabled{opacity:.5}p{line-height:1.5}#message{white-space:pre-wrap;overf
 <label for="title">Film title</label><input id="title" name="title" maxlength="180" required autocomplete="off">
 <label for="video">Choose MP4 or WebM (maximum {{ max_video_mib }} MiB)</label>
 <input id="video" name="video" type="file" accept="video/mp4,video/webm,.mp4,.webm" required>
-<button type="submit" id="send">Save private draft</button>
+<video id="preview" controls playsinline preload="metadata" style="display:none;width:100%;margin-top:16px;max-height:350px" aria-label="Private local video preview"></video><p id="preview-status" class="muted">Choose a video to preview it privately on this device before upload.</p><button type="button" id="fullscreen" disabled>Fullscreen preview</button><button type="submit" id="send">Save private draft</button>
 </form><p id="message" role="status" aria-live="polite"></p>
-</section><p class="muted">Rights approval, rental purchase, SIKA Pay and public Cinema remain locked until verified. Do not upload material without permission.</p>
+</section><section class="panel"><h2>OAP Cast</h2><p class="muted">Casting to a television requires a supported receiver and real device testing. OAP Cast is not enabled here. You can use fullscreen on this device.</p></section><p class="muted">Rights approval, rental purchase, SIKA Pay and public Cinema remain locked until verified. Do not upload material without permission.</p>
 </main><script>
 const form=document.getElementById('upload'), message=document.getElementById('message'), btn=document.getElementById('send');
+const video=document.getElementById('preview'), status=document.getElementById('preview-status'), full=document.getElementById('fullscreen'), picker=document.getElementById('video');
+let blobUrl=null;
+picker.addEventListener('change',()=>{
+ if(blobUrl){URL.revokeObjectURL(blobUrl);blobUrl=null;}
+ video.pause();video.removeAttribute('src');video.load();video.style.display='none';full.disabled=true;
+ const file=picker.files[0];
+ if(!file){status.textContent='Choose an MP4 or WebM to preview.';return;}
+ if(!['video/mp4','video/webm'].includes(file.type)){status.textContent='Select MP4 or WebM.';return;}
+ blobUrl=URL.createObjectURL(file);video.src=blobUrl;video.style.display='block';full.disabled=false;
+ status.textContent='Private on-device preview. Not yet uploaded or published.';
+});
+full.addEventListener('click',()=>{if(video.requestFullscreen)video.requestFullscreen().catch(()=>{status.textContent='Fullscreen unavailable on this device.';});});
+window.addEventListener('pagehide',()=>{if(blobUrl)URL.revokeObjectURL(blobUrl);});
 form.addEventListener('submit',async e=>{
  e.preventDefault();const file=document.getElementById('video').files[0];
  if(!file)return;
@@ -33,7 +46,7 @@ form.addEventListener('submit',async e=>{
    const data=await r.json();
    if(!r.ok)throw Error(data.error?.message||'Upload failed');
    message.textContent='Private draft saved. Candidate ID: '+data.candidate_id+'\nSHA-256: '+data.sha256+'\nNot published or playable.';
-   form.reset();
+   // Keep the selected local preview available until the Founder chooses another file.
  }catch(err){message.textContent='Upload not completed: '+err.message}
  finally{btn.disabled=false}
 });
