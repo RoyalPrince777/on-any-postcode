@@ -71,7 +71,8 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         github_evidence = smi_github_failure_evidence.discover_recent_failed_runs(
             token=github_token,
         )
-        if github_evidence.get("ready") and github_evidence.get("run_ids"):
+        if (github_evidence.get("ready") and github_evidence.get("current_failure")
+                and github_evidence.get("run_ids")):
             github_evidence = {
                 **github_evidence,
                 "latest_failure": smi_github_failure_evidence.inspect_failed_run(
