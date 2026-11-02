@@ -408,9 +408,10 @@ public class MainActivity extends Activity {
 
     /** KORADASO Internet shares the first-party in-app HTTPS viewer. */
     private void launchOapInternet() {
-        pendingInternetAddress = OAP_LOCAL_ORIGIN + "/koradaso";
+        // The native KORADASO launcher works offline without a Flask server.
+        // Opening OAP LOCAL remains an explicit action when the service is running.
+        pendingInternetAddress = null;
         openInternet();
-        if (activeWebView != null) activeWebView.loadUrl(OAP_LOCAL_ORIGIN + "/koradaso");
     }
 
     private void openPttApp() {
@@ -633,7 +634,8 @@ public class MainActivity extends Activity {
         address.setSingleLine(true);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
         address.setHint("HTTPS site or OAP LOCAL address");
-        address.setText(pendingInternetAddress != null ? pendingInternetAddress : OAP_LOCAL_ORIGIN + "/koradaso");
+        address.setText(pendingInternetAddress != null ? pendingInternetAddress : "");
+        address.setHint("Search the live web or enter HTTPS / OAP LOCAL address");
         pendingInternetAddress = null;
         address.setTextColor(Color.WHITE);
         address.setHintTextColor(Color.LTGRAY);
@@ -659,7 +661,7 @@ public class MainActivity extends Activity {
         settings.setBlockNetworkLoads(false);
         viewer.setWebChromeClient(new OapSecureChromeClient());
         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);
-        TextView loadStatus = label("No page loaded", 12);
+        TextView loadStatus = label("KORADASO ready offline · Native tiles and bookmarks available. Live search requires internet and your confirmation.", 12);
         body.addView(loadStatus);
         viewer.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
             String name = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimeType);
