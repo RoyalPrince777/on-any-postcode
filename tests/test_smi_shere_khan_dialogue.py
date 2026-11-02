@@ -1,7 +1,9 @@
 """Focused Shere Khan conversational routing and governance regression."""
 from mission_control.smi_shere_khan_dialogue import (
-    SHERE_KHAN_INSTRUCTION, SHERE_KHAN_CAPABILITIES,
-    capability_instruction, shere_khan_requested,
+    SHERE_KHAN_CAPABILITIES,
+    SHERE_KHAN_INSTRUCTION,
+    capability_instruction,
+    shere_khan_requested,
 )
 
 
