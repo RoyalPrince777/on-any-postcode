@@ -355,7 +355,7 @@
         const button = uploadForm.querySelector('button[type="submit"]');
         button.disabled = true;
         try {
-          message('upload-result', 'Uploading · 0%');
+          message('upload-result', 'Uploading · preparing secure transfer…');
           await new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/mission/organs/tune/releases/' + encodeURIComponent(releaseId) + '/upload');
@@ -364,7 +364,8 @@
             xhr.setRequestHeader('Accept', 'application/json');
             xhr.upload.onprogress = event => {
               if (event.lengthComputable) {
-                message('upload-result', 'Uploading · ' + Math.min(100, Math.floor(event.loaded * 100 / event.total)) + '%');
+                const percent = Math.min(100, Math.floor(event.loaded * 100 / event.total));
+                message('upload-result', 'Transferring · ' + percent + '%' + (percent === 100 ? ' · processing on OAP…' : ''));
               }
             };
             xhr.onload = () => {
