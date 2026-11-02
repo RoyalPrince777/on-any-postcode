@@ -316,7 +316,8 @@ public class MainActivity extends Activity {
         TextView divider = label("────  ON ANY POSTCODE  ────", 13);
         divider.setPadding(0, dp(10), 0, dp(10));
         body.addView(divider);
-        addButton("♻ OAP AUTOUPDATE PREFERENCES", v -> autoUpdatePreferences());
+        addButton("♻ UPDATE OAP CORE · CHOOSE APK", v -> chooseOapUpdateApk());
+        addButton("⚙ OAP UPDATE PREFERENCES", v -> autoUpdatePreferences());
         addButton("⚙ SETTINGS", v -> open(new Intent(Settings.ACTION_SETTINGS)));
         addButton("↩ CHANGE DEFAULT HOME · ANDROID SETTINGS",
                 v -> open(new Intent(Settings.ACTION_HOME_SETTINGS)));
