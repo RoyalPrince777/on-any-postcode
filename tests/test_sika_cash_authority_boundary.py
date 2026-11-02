@@ -104,3 +104,29 @@ def test_canonical_path_rejects_session_identity_substitution(monkeypatch):
             customer_reference="customer-001", amount="10.00", currency="GBP",
             direction="CASH_OUT",
         )
+
+
+def test_authenticated_operator_substitution_rejected_before_database(monkeypatch):
+    from mission_control import sika_cash_authority_store as store
+
+    def unexpected(*args):
+        raise AssertionError("database must not be called")
+
+    monkeypatch.setattr(store, "resolve_authority", unexpected)
+    with pytest.raises(cash.CashServicePointError, match="cash_operator_identity_mismatch"):
+        boundary.assess_for_authenticated_operator(
+            authenticated_operator_id="staff-001", requested_operator_id="staff-002",
+            intent_id="cash-003", service_point_id="point-001",
+            customer_reference="customer-001", amount="10.00",
+            currency="GBP", direction="CASH_OUT",
+        )
+
+
+def test_missing_authenticated_operator_rejected():
+    with pytest.raises(cash.CashServicePointError, match="cash_authenticated_operator_required"):
+        boundary.assess_for_authenticated_operator(
+            authenticated_operator_id="", requested_operator_id="",
+            intent_id="cash-003", service_point_id="point-001",
+            customer_reference="customer-001", amount="10.00",
+            currency="GBP", direction="CASH_IN",
+        )
