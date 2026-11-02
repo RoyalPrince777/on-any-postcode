@@ -148,7 +148,8 @@ def get_founder_alliance_board(
         },
         "oversight": ("Guardian", "HRM Core"),
         "specialist_research": tuple(
-            {**profile, "world_id": "matrix", "agent_id": None,
+            {**profile, "world_id": None, "family_id": None,
+             "alignment": "independent_specialist_research", "agent_id": None,
              "ranking_eligible": False, "execution_enabled": False,
              "can_approve": False, "can_change_permissions": False,
              "requires_human_authority": True, "status": "advisory_design_only"}
