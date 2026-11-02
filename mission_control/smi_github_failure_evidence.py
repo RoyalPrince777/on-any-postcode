@@ -115,6 +115,9 @@ def discover_recent_failed_runs(*, token: str, fetch: Fetch = _fetch_json) -> di
         runs = response.get("workflow_runs")
         if not isinstance(runs, list) or len(runs) > 10:
             raise ValueError("run_list_unavailable")
+        # The API lists newest first. A historical failure must not be
+        # reported as the current blocker after a newer successful run.
+        latest_conclusion = runs[0].get("conclusion") if runs and isinstance(runs[0], dict) else None
         ids = []
         for run in runs:
             if not isinstance(run, dict):
@@ -127,6 +130,8 @@ def discover_recent_failed_runs(*, token: str, fetch: Fetch = _fetch_json) -> di
             if not isinstance(rid, int) or isinstance(rid, bool) or rid <= 0:
                 raise ValueError("invalid_run_id")
             ids.append(rid)
-        return {**result, "ready": True, "run_ids": tuple(dict.fromkeys(ids))}
+        return {**result, "ready": True, "run_ids": tuple(dict.fromkeys(ids)),
+                "latest_conclusion": latest_conclusion,
+                "current_failure": latest_conclusion == "failure"}
     except (HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError, AttributeError):
         return {**result, "error": "github_discovery_unavailable"}
