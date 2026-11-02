@@ -51,6 +51,14 @@
       <p class="result" data-oap-music-install-status role="status"></p>
     </div>
 
+    <label for="catalogue-choice" class="muted">Choose catalogue</label>
+    <select id="catalogue-choice" class="search" aria-describedby="catalogue-choice-help">
+      <option value="oap">OAP approved releases</option>
+      <option value="private">My private uploads</option>
+      <option value="open">Open music discovery</option>
+      <option value="radio">OAP Radio</option>
+    </select>
+    <p id="catalogue-choice-help" class="muted">Only rights-cleared OAP releases are shown publicly. Open music sources remain review-only.</p>
     <label for="music-search" class="muted">Search OAP Music</label>
     <input id="music-search" class="search" type="search" placeholder="Search OAP tracks and releases…" autocomplete="off">
     <p id="catalogue-state" class="count"></p>
@@ -461,6 +469,25 @@
       const results = document.getElementById('oap-results');
       const emptyOap = document.getElementById('oap-empty');
       const state = document.getElementById('catalogue-state');
+      const catalogueChoice = document.getElementById('catalogue-choice');
+      const catalogueHelp = document.getElementById('catalogue-choice-help');
+      function switchCatalogue() {
+        const choice = catalogueChoice.value;
+        document.getElementById('catalogue').classList.toggle('hidden', choice !== 'oap');
+        document.getElementById('player').classList.toggle('hidden', choice !== 'private');
+        document.getElementById('radio').classList.toggle('hidden', choice !== 'radio');
+        input.classList.toggle('hidden', choice !== 'oap');
+        input.previousElementSibling.classList.toggle('hidden', choice !== 'oap');
+        state.classList.toggle('hidden', choice !== 'oap');
+        catalogueHelp.textContent = ({
+          oap:'Only published, rights-verified OAP metadata is shown. Playback has a separate gate.',
+          private:'Your authenticated uploads can be played privately below.',
+          open:'Open music sources are discovery candidates only. No unverified track is streamed or imported.',
+          radio:'Manage your existing OAP Radio station controls below. No public broadcast is implied.'
+        })[choice];
+      }
+      catalogueChoice.addEventListener('change', switchCatalogue);
+      switchCatalogue();
       let searchTimer = null;
 
       async function searchOapMusic() {
