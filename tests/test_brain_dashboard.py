@@ -50,7 +50,7 @@ def test_brain_dashboard_is_read_only_and_does_not_create_database(
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert "SMI Intelligence" in page
     assert "From truth to judgement without fake green" in page
-    assert "26 lenses inside one SMI brain" in page
+    assert "28 lenses inside one SMI brain" in page
     assert "Truth lock" in page
     assert "Human Authority" in page
     assert 'method="post"' not in page.lower()
