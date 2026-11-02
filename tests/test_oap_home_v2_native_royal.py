@@ -19,6 +19,16 @@ class NativeRoyalHomeTests(unittest.TestCase):
         cls.art = ART.read_text(encoding="utf-8")
         cls.manifest = ET.parse(MANIFEST).getroot()
 
+    def test_koradaso_keyword_search_requires_external_confirmation(self):
+        source = self.source
+        self.assertIn("private void navigateKoradasoInput(", source)
+        self.assertIn('"SEARCH / OPEN ADDRESS"', source)
+        self.assertIn('"GO / SEARCH"', source)
+        self.assertIn('"https://duckduckgo.com/?q="', source)
+        self.assertIn('Search words will be sent to DuckDuckGo, outside OAP.', source)
+        self.assertIn('if (!safeWebAddress(target))', source)
+        self.assertIn('settings.setJavaScriptEnabled(false)', source)
+
     def test_koradaso_strict_shield_source_boundaries(self):
         source = self.source
         shield = source.split("final class KoradasoShield {", 1)[1].split(
