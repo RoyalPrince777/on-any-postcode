@@ -165,3 +165,21 @@ def test_matrix_reply_cannot_use_nonrecipient_or_review_only_sender():
     with pytest.raises(ValueError):
         matrix_signal_bus.route_reply_signal(
             original=first, sender="Tank", topic="Review only")
+
+
+@pytest.mark.parametrize("changes", [
+    {"topic": "x" * 2001},
+    {"sender": 123},
+    {"recipients": "Oracle"},
+    {"recipients": ["Oracle"] * 17},
+    {"evidence": "not a list"},
+    {"evidence": ["x" * 1001]},
+    {"confidence": True},
+    {"kind": "x" * 65},
+    {"requested_action": "x" * 257},
+])
+def test_matrix_signal_rejects_malformed_or_unbounded_inputs(changes):
+    payload = {"sender": "Morpheus", "topic": "Bounded review", "recipients": ("Oracle",)}
+    payload.update(changes)
+    with pytest.raises(ValueError):
+        matrix_signal_bus.route_signal(**payload)
