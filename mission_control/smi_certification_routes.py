@@ -56,3 +56,45 @@ def thinking_certification():
     response.status_code = 200 if certified else 503
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+
+@bp.post("/api/smi/investigation-case")
+def investigation_case():
+    """Prepare an unverified evidence case behind the existing signed gateway."""
+    from flask import request
+
+    from oap.smi.research_intelligence import build_investigation_case
+
+    from . import surface_security
+
+    if not surface_security.gateway_authorized():
+        response = make_response("", 404)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    if request.content_length is None or request.content_length > 32768:
+        response = jsonify(error="invalid_case_size")
+        response.status_code = 413
+    else:
+        body = request.get_json(silent=True)
+        if not isinstance(body, dict):
+            response = jsonify(error="invalid_case")
+            response.status_code = 400
+        elif not isinstance(body.get("evidence"), list) or len(body["evidence"]) > 40:
+            response = jsonify(error="invalid_evidence")
+            response.status_code = 400
+        else:
+            try:
+                case = build_investigation_case(
+                    body.get("case_id", ""),
+                    body.get("question", ""),
+                    body["evidence"],
+                )
+            except (TypeError, ValueError):
+                response = jsonify(error="invalid_case")
+                response.status_code = 400
+            else:
+                response = jsonify(case)
+                response.status_code = 200
+    response.headers["Cache-Control"] = "no-store"
+    return response
