@@ -202,3 +202,16 @@ def test_music_install_controller_uses_existing_safe_root_worker(client):
     assert "beforeinstallprompt" in source
     assert "appinstalled" in source
     assert "OAP Music is ready to install." in source
+
+
+def test_music_catalogue_choice_preserves_existing_sections_and_rights_gate():
+    from pathlib import Path
+    html = Path("mission_control/templates/oap_music.html").read_text(encoding="utf-8")
+    assert 'id="catalogue-choice"' in html
+    for choice in ("oap", "private", "open", "radio"):
+        assert f'<option value="{choice}">' in html
+    assert "No unverified track is streamed or imported." in html
+    assert "scrollIntoView" in html
+    for existing in ("catalogue", "player", "radio", "creators", "records"):
+        assert f'id="{existing}"' in html
+    assert "classList.toggle('hidden', choice" not in html
