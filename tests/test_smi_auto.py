@@ -203,3 +203,15 @@ def test_memory_auto_depth_matches_hathi_seven_check_contract():
         assert selection["approval_granted"] is False
         assert selection["human_authority_final"] is True
     assert smi_auto.route_divisions(("engineering",), thinking="AUTO")["thinking_depth"] == 3
+
+
+def test_matrix_mouse_creative_simulation_is_advisory_not_new_passport():
+    from mission_control import agents
+    profiles = [row for row in agents.MATRIX_ADVISORY_ALLIANCES if row["id"] == "mouse_creative_simulation"]
+    assert len(profiles) == 1
+    assert profiles[0]["members"] == ("Mouse",)
+    assert profiles[0]["world_id"] == "matrix"
+    assert "Morpheus" in profiles[0]["allies"]
+    assert agents.MATRIX_ALLIANCE_POLICY["execution"] == "DISABLED"
+    assert agents.MATRIX_ALLIANCE_POLICY["independent_votes"] is False
+    assert agents.MATRIX_ALLIANCE_POLICY["founder_final_required"] is True
