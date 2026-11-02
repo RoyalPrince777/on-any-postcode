@@ -201,6 +201,12 @@
 <a class="chip" href="/mission/war-room/routes">🧭 Routes</a>
 <span class="chip" aria-disabled="true" title="Bounded reviews complete synchronously; there is no background task to stop.">■ STOP</span>
 </div>
+<section class="panel" id="mouse-training">
+<h3>🐭 Mouse + 🕶️ Morpheus · Attention Training</h3>
+<p class="muted">Interactive fictional decision exercise. No autonomous agents, production actions or HRM writes.</p>
+<button id="mouse-training-start" class="btn" type="button">Start training</button>
+<div id="mouse-training-content" role="status" aria-live="polite"></div>
+</section>
 <div id="war-action-result" class="receipt action-result" data-signal="purple" role="status" aria-live="polite">🟣 Ready. SMI AUTO runs bounded review checks only; it cannot approve, deploy, spend, dispatch or bypass Founder Final.</div>
 <p class="truth">Primary controls now separate governed actions from review/navigation. 7★ and Vote open their evidence boards; they do not manufacture scores or tallies. Founder Final remains separate Human Authority. This surface performs no production write.</p></section>
 <section class="panel review-command" id="review-21x" aria-labelledby="review-21x-title">
@@ -401,6 +407,37 @@
     } catch (error) { show('yellow', '🟡 ' + error.message); }
     finally { button.disabled = false; }
   });
+  const mouseTraining = document.getElementById('mouse-training-content');
+  async function mouseExercise(choice) {
+    const objective = document.querySelector('.mission')?.value.trim() || 'Practice noticing distractions';
+    const response = await fetch('/mission/war-room/mouse-training', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: JSON.stringify({objective, choice})
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload?.error?.message || 'Training request failed');
+    mouseTraining.replaceChildren();
+    const scene = document.createElement('p');
+    scene.textContent = payload.scene + ' ' + payload.prompt;
+    mouseTraining.append(scene);
+    if (payload.feedback) {
+      const feedback = document.createElement('p');
+      feedback.textContent = 'Morpheus review: ' + payload.feedback + ' Fictional training only; no HRM receipt.';
+      mouseTraining.append(feedback);
+    } else {
+      for (const option of payload.options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn';
+        button.textContent = option.label;
+        button.addEventListener('click', () => mouseExercise(option.id).catch(error => { mouseTraining.textContent = error.message; }));
+        mouseTraining.append(button);
+      }
+    }
+  }
+  document.getElementById('mouse-training-start')?.addEventListener('click', () =>
+    mouseExercise(null).catch(error => { mouseTraining.textContent = error.message; }));
   async function run(action) {
     const response = await fetch(endpoint(action), {
       method: 'POST',
