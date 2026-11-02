@@ -18,6 +18,7 @@ from . import (
     postgres_db,
     smi_runtime_autonomy,
     smi_github_failure_evidence,
+    smi_auto,
 )
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
 
@@ -84,6 +85,10 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
             smi_github_failure_evidence.inspect_failed_job_logs(
                 github_evidence["latest_failure"], token=github_token,
             )
+        )
+    if github_evidence.get("latest_failure", {}).get("ready"):
+        github_evidence["latest_failure"]["swot_intelligence"] = (
+            smi_auto.evidence_swot_for_failed_build(github_evidence["latest_failure"])
         )
     return {
         "kind": "runtime_health_probe",
