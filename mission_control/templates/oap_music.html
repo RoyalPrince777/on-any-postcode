@@ -342,19 +342,51 @@
 
       uploadForm.addEventListener('submit', async event => {
         event.preventDefault();
+        const file = uploadForm.querySelector('input[name="audio"]').files[0];
+        if (!file) { message('upload-result', 'Choose an audio file.'); return; }
+        if (file.size === 0 || file.size > 6 * 1024 * 1024) {
+          message('upload-result', 'Choose an audio file up to 6 MB.');
+          return;
+        }
         const data = new FormData(uploadForm);
         const releaseId = data.get('release_id');
+        if (!releaseId) { message('upload-result', 'Choose a release first.'); return; }
         data.delete('release_id');
+        const button = uploadForm.querySelector('button[type="submit"]');
+        button.disabled = true;
         try {
-          message('upload-result','Uploading…');
-          const response = await fetch('/mission/organs/tune/releases/' + encodeURIComponent(releaseId) + '/upload', {
-            method:'POST', credentials:'same-origin', headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}, body:data
+          message('upload-result', 'Uploading · 0%');
+          await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/mission/organs/tune/releases/' + encodeURIComponent(releaseId) + '/upload');
+            xhr.withCredentials = true;
+            xhr.setRequestHeader('X-OAP-CSRF', csrf);
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.upload.onprogress = event => {
+              if (event.lengthComputable) {
+                message('upload-result', 'Uploading · ' + Math.min(100, Math.floor(event.loaded * 100 / event.total)) + '%');
+              }
+            };
+            xhr.onload = () => {
+              let payload = {};
+              try { payload = JSON.parse(xhr.responseText); } catch (_) {}
+              if (xhr.status < 200 || xhr.status >= 300) {
+                reject(new Error(payload.error?.message || payload.error?.code || 'Upload failed (HTTP ' + xhr.status + ')'));
+              } else { resolve(payload); }
+            };
+            xhr.onerror = () => reject(new Error('Connection lost. Check your network before retrying.'));
+            xhr.onabort = () => reject(new Error('Upload interrupted.'));
+            xhr.send(data);
           });
-          const payload = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(payload.error?.message || payload.error?.code || 'Upload failed');
-          message('upload-result','Uploaded successfully.');
-          uploadForm.reset(); await refreshCreatorControls();
-        } catch (error) { message('upload-result',error.message); }
+          message('upload-result', 'Uploaded successfully. Refreshing your private player…');
+          uploadForm.reset();
+          await refreshCreatorControls();
+          message('upload-result', 'Uploaded successfully. Find your track under OAP Player.');
+        } catch (error) {
+          message('upload-result', error.message);
+        } finally {
+          button.disabled = false;
+        }
       });
 
       stationForm.addEventListener('submit', async event => {
