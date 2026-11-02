@@ -465,25 +465,29 @@ public class MainActivity extends Activity {
     private void navigateKoradasoInput(String input, android.webkit.WebView viewer, TextView status) {
         String raw = input == null ? "" : input.trim();
         if (raw.isEmpty()) { status.setText("Enter a website or search words."); return; }
-        Uri target;
-        boolean search = raw.matches(".*\\s+.*") || (!raw.contains(".") && !raw.startsWith("http"));
+        boolean search = raw.matches(".*\\s+.*") || (!raw.contains(".") && !raw.toLowerCase(java.util.Locale.ROOT).startsWith("http"));
         if (search) {
             String encoded = java.net.URLEncoder.encode(raw, java.nio.charset.StandardCharsets.UTF_8);
-            target = Uri.parse("https://duckduckgo.com/?q=" + encoded);
-        } else {
-            target = Uri.parse(raw.matches("(?i)^https?://.*") ? raw : "https://" + raw);
-        }
-        if (!safeWebAddress(target)) { status.setText("Only HTTPS domains or OAP LOCAL are supported."); return; }
-        if (search) {
+            String[] engines = {"DuckDuckGo", "Google"};
+            String[] destinations = {
+                    "https://duckduckgo.com/?q=" + encoded,
+                    "https://www.google.com/search?q=" + encoded
+            };
             new android.app.AlertDialog.Builder(this)
-                    .setTitle("OPEN WEB search")
-                    .setMessage("Search words will be sent to DuckDuckGo, outside OAP. Continue?")
+                    .setTitle("OPEN WEB · Choose search provider")
+                    .setMessage("Search words leave OAP Data and are sent directly to the selected external provider. No OAP-owned search index is claimed.")
+                    .setItems(engines, (dialog, which) -> {
+                        Uri target = Uri.parse(destinations[which]);
+                        if (safeWebAddress(target)) viewer.loadUrl(target.toString());
+                        else status.setText("External search address rejected.");
+                    })
                     .setNegativeButton("Stay in OAP", (dialog, which) -> dialog.dismiss())
-                    .setPositiveButton("Search", (dialog, which) -> viewer.loadUrl(target.toString()))
                     .show();
-        } else {
-            viewer.loadUrl(target.toString());
+            return;
         }
+        Uri target = Uri.parse(raw.matches("(?i)^https?://.*") ? raw : "https://" + raw);
+        if (!safeWebAddress(target)) { status.setText("Only HTTPS domains or OAP LOCAL are supported."); return; }
+        viewer.loadUrl(target.toString());
     }
 
     private void requestKoradasoDownload(String url, String mimeType, String filename,
