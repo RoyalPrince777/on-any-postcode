@@ -19,6 +19,14 @@ class NativeRoyalHomeTests(unittest.TestCase):
         cls.art = ART.read_text(encoding="utf-8")
         cls.manifest = ET.parse(MANIFEST).getroot()
 
+    def test_release_signing_is_not_used_for_debug(self):
+        build = GRADLE.read_text(encoding="utf-8")
+        debug = build.split("    buildTypes {", 1)[1].split("        release {", 1)[0]
+        release = build.split("        release {", 1)[1].split("    compileOptions {", 1)[0]
+        self.assertNotIn("signingConfig signingConfigs.oapPersistent", debug)
+        self.assertIn("signingConfig signingConfigs.oapPersistent", release)
+        self.assertIn("applicationId 'com.onanypostcode.oaphome.v2'", build)
+
     def test_android_launcher_is_selectable_not_forced(self):
         app = self.manifest.find("application")
         self.assertEqual(app.get(ANDROID + "label"), "@string/app_name")
