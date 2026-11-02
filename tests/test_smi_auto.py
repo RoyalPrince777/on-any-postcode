@@ -189,3 +189,17 @@ def test_dynamic_multi_division_auto_escalates_and_rejects_invalid_scope():
     for divisions, thinking in (((), "AUTO"), (("unknown",), "AUTO"), (("truth",), "14")):
         with pytest.raises(ValueError):
             smi_auto.route_divisions(divisions, thinking=thinking)
+
+
+def test_memory_auto_depth_matches_hathi_seven_check_contract():
+    memory_only = smi_auto.route_divisions(("memory",), thinking="AUTO")
+    engineering_and_memory = smi_auto.route_divisions(("engineering", "memory"), thinking="AUTO")
+    for selection in (memory_only, engineering_and_memory):
+        assert selection["thinking_depth"] == 7
+        assert len(selection["selected_checks"]) == 7
+        assert selection["selection_only"] is True
+        assert selection["agents_executed"] is False
+        assert selection["execution_granted"] is False
+        assert selection["approval_granted"] is False
+        assert selection["human_authority_final"] is True
+    assert smi_auto.route_divisions(("engineering",), thinking="AUTO")["thinking_depth"] == 3
