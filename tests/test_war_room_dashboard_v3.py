@@ -153,21 +153,21 @@ def test_mission_navigation_links_to_war_room(client):
         assert 'href="/mission/war-room"' in page
 
 
-def test_seven_star_rating_requires_sequential_higher_gate_receipts():
+def test_seven_star_gate_rejects_unverified_receipt_references():
     from mission_control.war_room import _rating, _stages
     stages = _stages(True, True, True, True, True, ("a", "b", "c", "d", "e"))
     args = dict(item_id="proof", name="Proof", category="SMI", summary="test",
                 stages=stages, next_gate="audit", impact=1)
     base = _rating(**args)
     assert base["stars"] == 5
+    assert base["stars_max"] == 7
     assert base["higher_star_proof"] == "UNRATED"
-    assert _rating(**args, sustained_certification="receipt-7")["stars"] == 5
-    sixth = _rating(**args, independent_verification="receipt-6")
-    assert sixth["stars"] == 6
-    assert sixth["human_approval_required"] is True
-    seventh = _rating(**args, independent_verification="receipt-6",
-                     sustained_certification="receipt-7")
-    assert seventh["stars"] == 7
-    assert seventh["stars_display"] == "★★★★★★★"
-    assert seventh["legacy_proof_gates_passed"] == 5
-    assert seventh["score"] == 100
+    assert _rating(**args, sustained_certification="fabricated")["stars"] == 5
+    spoof = _rating(**args, independent_verification="fake-6",
+                    sustained_certification="fake-7")
+    assert spoof["stars"] == 5
+    assert spoof["stars_display"] == "★★★★★☆☆"
+    assert spoof["independent_verification_receipt"] is None
+    assert spoof["sustained_certification_receipt"] is None
+    assert spoof["human_approval_required"] is True
+    assert spoof["higher_star_gate_reason"] == "authenticated_subject_bound_hrm_receipt_verification_pending"
