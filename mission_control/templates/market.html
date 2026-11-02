@@ -337,7 +337,7 @@
       try {
         const response = await fetch('/mission/organs/market/pod/artwork', {
           method: 'POST',
-          headers: { 'X-CSRF-Token': {{ oap_csrf_token|tojson }} },
+          headers: { 'X-OAP-CSRF': {{ oap_csrf_token|tojson }} },
           body: form,
           credentials: 'same-origin'
         });
