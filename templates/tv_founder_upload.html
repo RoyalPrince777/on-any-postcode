@@ -15,7 +15,7 @@ button:disabled{opacity:.5}p{line-height:1.5}#message{white-space:pre-wrap;overf
 <h2>Upload your film</h2><p class="muted">Private draft only. Uploading does not publish, license, sell, or enable playback.</p>
 <form method="post" enctype="multipart/form-data" id="upload">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-<label for="title">Film title</label><input id="title" name="title" maxlength="180" required autocomplete="off">
+<label for="content_kind">Upload type</label><select id="content_kind" name="content_kind" style="width:100%;padding:13px;background:#0d0d0d;border:1px solid #9d875f;border-radius:8px;color:#fff;font:inherit"><option value="film">Film</option><option value="clip">Clip</option><option value="trailer">Trailer</option><option value="episode">Episode</option></select><label for="title">Video title</label><input id="title" name="title" maxlength="180" required autocomplete="off">
 <label for="video">Choose MP4 or WebM (maximum {{ max_video_mib }} MiB)</label>
 <input id="video" name="video" type="file" accept="video/mp4,video/webm,.mp4,.webm" required>
 <video id="preview" controls playsinline preload="metadata" style="display:none;width:100%;margin-top:16px;max-height:350px" aria-label="Private local video preview"></video><p id="preview-status" class="muted">Choose a video to preview it privately on this device before upload.</p><button type="button" id="fullscreen" disabled>Fullscreen preview</button><button type="submit" id="send">Save private draft</button>
@@ -45,7 +45,7 @@ form.addEventListener('submit',async e=>{
    const r=await fetch(form.action||location.pathname,{method:'POST',body:new FormData(form),credentials:'same-origin'});
    const data=await r.json();
    if(!r.ok)throw Error(data.error?.message||'Upload failed');
-   message.textContent='Private draft saved. Candidate ID: '+data.candidate_id+'\nSHA-256: '+data.sha256+'\nNot published or playable.';
+   message.textContent='Private '+data.content_kind+' draft saved. Candidate ID: '+data.candidate_id+'\nSHA-256: '+data.sha256+'\nNot published or playable.';
    // Keep the selected local preview available until the Founder chooses another file.
  }catch(err){message.textContent='Upload not completed: '+err.message}
  finally{btn.disabled=false}
