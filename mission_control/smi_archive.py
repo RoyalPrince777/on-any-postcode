@@ -25,6 +25,11 @@ SMI_LINEAGE: tuple[dict[str, str], ...] = (
         "position": "canonical_current",
         "meaning": "Current technical definition of the single OAP machine-intelligence brain.",
     },
+    {
+        "name": "Stealth Mode Intelligence",
+        "position": "privacy_preserving_operating_mode",
+        "meaning": "Authorised low-exposure processing, data minimisation and selective disclosure; required audit, safety and human approval remain mandatory.",
+    },
 )
 
 ARCHIVE_SECTIONS: tuple[dict[str, str], ...] = (
