@@ -46,3 +46,13 @@ def test_thinking_depth_uses_existing_mind_body_soul_checks_without_new_authorit
     full = ai_behaviour.review_checks_for("war_room")
     assert {item["block"] for item in full["selected_checks"]} == {"Mind", "Body", "Soul"}
     assert full["selected_checks"][:7] == ai_behaviour.review_checks_for("review")["selected_checks"]
+
+
+def test_existing_behaviour_status_exposes_real_3_7_21_check_profiles():
+    profiles = ai_behaviour.status()["thinking_check_profiles"]
+    assert tuple(profiles) == ("3", "7", "21")
+    for depth in (3, 7, 21):
+        profile = profiles[str(depth)]
+        assert len(profile["selected_checks"]) == depth
+        assert profile["checks_executed"] is False
+        assert profile["execution_granted"] is False
