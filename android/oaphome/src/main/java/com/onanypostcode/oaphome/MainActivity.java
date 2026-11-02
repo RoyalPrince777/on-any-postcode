@@ -479,6 +479,47 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void showKoradasoBookmarks(android.webkit.WebView viewer, TextView status) {
+        android.content.SharedPreferences prefs = getSharedPreferences("koradaso_bookmarks", MODE_PRIVATE);
+        java.util.Set<String> saved = prefs.getStringSet("urls", java.util.Collections.emptySet());
+        java.util.ArrayList<String> urls = new java.util.ArrayList<>();
+        for (String url : saved) {
+            try {
+                if (safeWebAddress(Uri.parse(url))) urls.add(url);
+            } catch (RuntimeException ignored) { /* Ignore damaged local bookmark entries. */ }
+        }
+        java.util.Collections.sort(urls);
+        if (urls.isEmpty()) { status.setText("No saved bookmarks. Open a page, then use SAVE BOOKMARK."); return; }
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("KORADASO · Saved bookmarks")
+                .setItems(urls.toArray(new String[0]), (dialog, index) -> viewer.loadUrl(urls.get(index)))
+                .setNeutralButton("Clear all", (dialog, index) -> {
+                    new android.app.AlertDialog.Builder(this)
+                            .setTitle("Clear saved bookmarks?")
+                            .setNegativeButton("Cancel", (d, which) -> d.dismiss())
+                            .setPositiveButton("Clear", (d, which) -> prefs.edit().remove("urls").apply())
+                            .show();
+                })
+                .setNegativeButton("Close", (dialog, index) -> dialog.dismiss())
+                .show();
+    }
+
+    private void saveKoradasoBookmark(android.webkit.WebView viewer, TextView status) {
+        String url = viewer.getUrl();
+        if (url == null || !safeWebAddress(Uri.parse(url))) {
+            status.setText("Open a valid OAP LOCAL or HTTPS page first."); return;
+        }
+        android.content.SharedPreferences prefs = getSharedPreferences("koradaso_bookmarks", MODE_PRIVATE);
+        java.util.Set<String> urls = new java.util.HashSet<>(
+                prefs.getStringSet("urls", java.util.Collections.emptySet()));
+        if (!urls.contains(url) && urls.size() >= 12) {
+            status.setText("Bookmark limit is 12; clear saved bookmarks to add more."); return;
+        }
+        urls.add(url);
+        prefs.edit().putStringSet("urls", urls).apply();
+        status.setText("Bookmark saved locally on this device.");
+    }
+
     private void closeWebView() {
         if (activeWebView != null) {
             android.webkit.WebView old = activeWebView;
@@ -602,6 +643,20 @@ public class MainActivity extends Activity {
             destinationRow.addView(tile, lp);
         }
         body.addView(quickLinks);
+        LinearLayout bookmarkBar = new LinearLayout(this);
+        bookmarkBar.setOrientation(LinearLayout.HORIZONTAL);
+        for (String action : new String[]{"★ BOOKMARKS", "+ SAVE"}) {
+            Button bookmarkButton = button(action, v -> {
+                if (activeWebView != viewer) return;
+                if (action.startsWith("+")) saveKoradasoBookmark(viewer, loadStatus);
+                else showKoradasoBookmarks(viewer, loadStatus);
+            });
+            bookmarkButton.setAllCaps(false);
+            LinearLayout.LayoutParams bookmarkParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+            bookmarkParams.setMargins(dp(3), dp(4), dp(3), dp(4));
+            bookmarkBar.addView(bookmarkButton, bookmarkParams);
+        }
+        body.addView(bookmarkBar);
         addButton("SEARCH / OPEN ADDRESS", v ->
                 navigateKoradasoInput(address.getText().toString(), viewer, loadStatus));
         // Keep browser content visible before secondary actions; never allow
