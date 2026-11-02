@@ -16,7 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check native source contracts
-        run: python3 tests/test_oap_home_v2_native_royal.py
+        run: |
+          python3 tests/test_oap_home_v2_native_royal.py
+          python3 tests/test_oap_update_handoff.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
