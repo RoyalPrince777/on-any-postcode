@@ -494,6 +494,19 @@ public class MainActivity extends Activity {
             }
             final String path = paths[i];
             Button tile = button(names[i], v -> {
+                if ("/koradaso".equals(path)) {
+                    new android.app.AlertDialog.Builder(this)
+                            .setTitle("KORADASO browser settings")
+                            .setMessage("JavaScript: OFF\nFile access: OFF\nThird-party cookies: blocked\nMixed content: blocked\nOAP LOCAL: 127.0.0.1:5050\nOpen Web: HTTPS only\nSettings shown are current browser protections, not per-site controls.")
+                            .setPositiveButton("Close", (dialog, which) -> dialog.dismiss())
+                            .setNeutralButton("Android app info", (dialog, which) -> {
+                                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                        Uri.parse("package:" + getPackageName()));
+                                open(intent);
+                            })
+                            .show();
+                    return;
+                }
                 String target = OAP_LOCAL_ORIGIN + path;
                 address.setText(target);
                 viewer.loadUrl(target);
