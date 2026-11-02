@@ -4,6 +4,7 @@ Only bounded aggregate counts and timing are kept in process memory. No paths,
 queries, cookies, identifiers, or request bodies are retained or exported.
 """
 from __future__ import annotations
+
 import threading
 import time
 
