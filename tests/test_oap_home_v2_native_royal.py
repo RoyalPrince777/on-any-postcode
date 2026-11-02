@@ -27,6 +27,19 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("setAcceptThirdPartyCookies(viewer, false)", self.source)
         self.assertIn("settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE)", self.source)
 
+    def test_koradaso_session_history_is_not_persisted(self):
+        source = self.source
+        self.assertIn("showKoradasoSessionHistory(", source)
+        self.assertIn("viewer.copyBackForwardList()", source)
+        self.assertIn('new String[]{"BACK", "FORWARD", "RELOAD", "HISTORY"}', source)
+        self.assertIn("viewer.canGoBackOrForward(offsets.get(index))", source)
+        method = source.split("private void showKoradasoSessionHistory(", 1)[1].split(
+            "private void showKoradasoBookmarks(", 1
+        )[0]
+        self.assertNotIn("getSharedPreferences", method)
+        self.assertNotIn("putString", method)
+        self.assertIn("safeWebAddress(uri)", method)
+
     def test_koradaso_native_bookmark_save_open_and_clear_source(self):
         source = self.source
         self.assertIn("showKoradasoBookmarks(", source)
