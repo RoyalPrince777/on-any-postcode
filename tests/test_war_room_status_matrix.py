@@ -61,3 +61,9 @@ def test_war_room_existing_page_contains_multiselect_divisions():
     assert 'id="smi-command-extra"' in PAGE
     assert '/mission/war-room/divisions/route' in PAGE
     assert 'No agents executed.' in PAGE
+
+
+def test_smi_auto_action_uses_selected_division_route_before_review():
+    assert "const chosen = [...document.querySelectorAll('input[name=\"smi-division\"]:checked')]" in PAGE
+    assert "if (!routeResponse.ok) throw new Error" in PAGE
+    assert "'🟣 SMI AUTO · ' + selectedPlan.thinking_depth" in PAGE
