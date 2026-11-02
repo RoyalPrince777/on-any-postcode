@@ -113,6 +113,18 @@ MATRIX_ADVISORY_ALLIANCES: tuple[dict[str, Any], ...] = (
         "allies": ("Morpheus", "Neo", "Tank", "Dozer", "Nirmata"),
     },
     {
+        "id": "morpheus_mouse_mission_design",
+        "name": "Morpheus & Mouse — Mission Design Review",
+        "members": ("Morpheus", "Mouse"),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Morpheus defines mission objectives, assumptions and decision criteria",
+                  "Mouse reviews interactive training concepts, UI edge cases and scenario boundaries",
+                  "Both label hypothetical scenarios separately from verified test and runtime results",
+                  "Recommendations require existing Guardian, Green Gate, HRM and Founder Final checks"),
+        "allies": ("Oracle", "Neo", "Trinity", "Nirmata", "Tank", "Dozer"),
+    },
+    {
         "id": "matrix_twins",
         "name": "The Twins — Dual Intelligence",
         "members": ("Twin One", "Twin Two"),
