@@ -259,18 +259,14 @@
             <label for="market-sizes">Sizes</label>
             <input id="market-sizes" name="sizes" maxlength="240" placeholder="S, M, L, XL, 2XL">
             <p class="market-meta">Design setup only: this form saves an OAP product record. It does not upload artwork, create a manufacturer mockup, collect payment or submit an order.</p>
-            <label for="market-supplier-label">Manufacturer</label>
-            <input id="market-supplier-label" name="supplier_label" maxlength="120" list="oap-pod-manufacturers" placeholder="Printful or Prodigi">
-            <datalist id="oap-pod-manufacturers">
-              <option value="Printful"></option>
-              <option value="Prodigi"></option>
-            </datalist>
-            <label for="market-supplier-slug">Supplier key</label>
-            <input id="market-supplier-slug" name="supplier_slug" maxlength="64" list="oap-pod-provider-keys" placeholder="printful or prodigi">
-            <datalist id="oap-pod-provider-keys">
-              <option value="printful"></option>
-              <option value="prodigi"></option>
-            </datalist>
+            <label for="market-supplier-slug">Manufacturer</label>
+            <select id="market-supplier-slug" name="supplier_slug">
+              <option value="">Choose a manufacturer</option>
+              <option value="printful">Printful</option>
+              <option value="prodigi">Prodigi</option>
+            </select>
+            <input id="market-supplier-label" name="supplier_label" type="hidden" value="">
+            <p class="market-meta">Manufacturer selection sets the supplier key automatically, avoiding mismatched label/key records.</p>
             <p class="market-meta">Printful and Prodigi are the first integration targets. Selecting a manufacturer does not activate its API. Tapstitch direct ordering remains restricted.</p>
             <label for="market-supplier-product-ref">Supplier garment reference</label>
             <input id="market-supplier-product-ref" name="supplier_product_ref" maxlength="240">
@@ -292,6 +288,16 @@
   </main>
   <script>
   (() => {
+    const podSupplier = document.getElementById('market-supplier-slug');
+    const podSupplierLabel = document.getElementById('market-supplier-label');
+    if (podSupplier && podSupplierLabel) {
+      const names = { printful: 'Printful', prodigi: 'Prodigi' };
+      const syncSupplier = () => {
+        podSupplierLabel.value = names[podSupplier.value] || '';
+      };
+      podSupplier.addEventListener('change', syncSupplier);
+      syncSupplier();
+    }
     const authenticated = {{ 'true' if auth_user else 'false' }};
     if (!authenticated) return;
     const csrf = {{ oap_csrf_token|tojson }};
