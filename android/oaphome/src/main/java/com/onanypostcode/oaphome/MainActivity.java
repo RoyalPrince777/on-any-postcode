@@ -479,6 +479,43 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void requestKoradasoDownload(String url, String mimeType, String filename,
+                                         TextView status) {
+        Uri uri;
+        try { uri = Uri.parse(url); }
+        catch (RuntimeException invalid) { status.setText("Download address rejected."); return; }
+        // Never send local OAP HTTP content or unsupported schemes to DownloadManager.
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || !safeWebAddress(uri)
+                || KoradasoShield.blocks(uri, true)) {
+            status.setText("Downloads require a permitted HTTPS address."); return;
+        }
+        String safeName = filename == null ? "download" : filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+        if (safeName.isEmpty() || safeName.equals(".") || safeName.equals("..")) safeName = "download";
+        if (safeName.length() > 100) safeName = safeName.substring(0, 100);
+        final String downloadName = safeName;
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("Download file to OAP Core?")
+                .setMessage("Source: " + uri.getHost() + "\\nFile: " + downloadName
+                        + "\\nUses Android Download Manager; data leaves OAP to retrieve this file.")
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                .setPositiveButton("Download", (dialog, which) -> {
+                    try {
+                        android.app.DownloadManager.Request item = new android.app.DownloadManager.Request(uri);
+                        item.setTitle(downloadName);
+                        item.setMimeType(mimeType == null ? "application/octet-stream" : mimeType);
+                        item.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                        item.setDestinationInExternalFilesDir(this, android.os.Environment.DIRECTORY_DOWNLOADS, downloadName);
+                        android.app.DownloadManager manager =
+                                (android.app.DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                        if (manager == null) throw new IllegalStateException("Download service unavailable");
+                        manager.enqueue(item);
+                        status.setText("Download queued in Android Download Manager.");
+                    } catch (RuntimeException error) {
+                        status.setText("Download could not be started.");
+                    }
+                }).show();
+    }
+
     private void showKoradasoSessionHistory(android.webkit.WebView viewer, TextView status) {
         android.webkit.WebBackForwardList list = viewer.copyBackForwardList();
         java.util.ArrayList<String> labels = new java.util.ArrayList<>();
@@ -616,6 +653,10 @@ public class MainActivity extends Activity {
         android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(viewer, false);
         TextView loadStatus = label("No page loaded", 12);
         body.addView(loadStatus);
+        viewer.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
+            String name = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimeType);
+            requestKoradasoDownload(url, mimeType, name, loadStatus);
+        });
         viewer.setWebViewClient(new OapSecureWebClient(this) {
             @Override public void onPageStarted(android.webkit.WebView view, String url, android.graphics.Bitmap favicon) {
                 loadStatus.setText(url.startsWith(OAP_LOCAL_ORIGIN + "/") ? "Loading OAP LOCAL…" : "Loading HTTPS page…");
@@ -705,6 +746,10 @@ public class MainActivity extends Activity {
             } catch (ActivityNotFoundException error) {
                 loadStatus.setText("No browser installed to open this page.");
             }
+        });
+        addButton("DOWNLOADS", v -> {
+            try { startActivity(new Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS)); }
+            catch (ActivityNotFoundException e) { loadStatus.setText("Android Downloads view unavailable."); }
         });
         addButton("GO / SEARCH", v ->
                 navigateKoradasoInput(address.getText().toString(), viewer, loadStatus));
