@@ -61,6 +61,7 @@ def assess_with_oap_store(
     intent_id: object,
     service_point_id: object,
     authenticated_operator_id: object,
+    session_operator_id: object,
     customer_reference: object,
     amount: object,
     currency: object,
@@ -72,6 +73,12 @@ def assess_with_oap_store(
     This is not an HTTP route, session verifier or cash execution endpoint.
     """
     from . import sika_cash_authority_store
+
+    # Both identities must already be established by trusted server-side code.
+    # A client-supplied operator ID cannot substitute for session identity.
+    if (not str(session_operator_id or "").strip()
+            or str(authenticated_operator_id or "").strip() != str(session_operator_id).strip()):
+        raise cash.CashServicePointError("cash_authenticated_operator_mismatch")
 
     return assess_with_trusted_records(
         intent_id=intent_id,
