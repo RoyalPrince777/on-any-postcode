@@ -454,6 +454,31 @@ public class MainActivity extends Activity {
                 && !uri.getHost().isEmpty() && uri.getPort() == -1;
     }
 
+    // Search uses an explicitly chosen external provider, never a claimed OAP search index.
+    private void navigateKoradasoInput(String input, android.webkit.WebView viewer, TextView status) {
+        String raw = input == null ? "" : input.trim();
+        if (raw.isEmpty()) { status.setText("Enter a website or search words."); return; }
+        Uri target;
+        boolean search = raw.matches(".*\\\\s+.*") || (!raw.contains(".") && !raw.startsWith("http"));
+        if (search) {
+            String encoded = java.net.URLEncoder.encode(raw, java.nio.charset.StandardCharsets.UTF_8);
+            target = Uri.parse("https://duckduckgo.com/?q=" + encoded);
+        } else {
+            target = Uri.parse(raw.matches("(?i)^https?://.*") ? raw : "https://" + raw);
+        }
+        if (!safeWebAddress(target)) { status.setText("Only HTTPS domains or OAP LOCAL are supported."); return; }
+        if (search) {
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("OPEN WEB search")
+                    .setMessage("Search words will be sent to DuckDuckGo, outside OAP. Continue?")
+                    .setNegativeButton("Stay in OAP", (dialog, which) -> dialog.dismiss())
+                    .setPositiveButton("Search", (dialog, which) -> viewer.loadUrl(target.toString()))
+                    .show();
+        } else {
+            viewer.loadUrl(target.toString());
+        }
+    }
+
     private void closeWebView() {
         if (activeWebView != null) {
             android.webkit.WebView old = activeWebView;
@@ -575,11 +600,8 @@ public class MainActivity extends Activity {
             destinationRow.addView(tile, lp);
         }
         body.addView(quickLinks);
-        addButton("OPEN ADDRESS", v -> {
-            Uri uri = Uri.parse(address.getText().toString().trim());
-            if (safeWebAddress(uri)) viewer.loadUrl(uri.toString());
-            else android.widget.Toast.makeText(this, "Enter HTTPS or OAP LOCAL", android.widget.Toast.LENGTH_SHORT).show();
-        });
+        addButton("SEARCH / OPEN ADDRESS", v ->
+                navigateKoradasoInput(address.getText().toString(), viewer, loadStatus));
         // Keep browser content visible before secondary actions; never allow
         // an oversized navigation column to hide the loaded page.
         int browserHeight = Math.max(dp(350),
@@ -599,14 +621,8 @@ public class MainActivity extends Activity {
                 loadStatus.setText("No browser installed to open this page.");
             }
         });
-        addButton("GO TO ADDRESS", v -> {
-            Uri uri = Uri.parse(address.getText().toString().trim());
-            if (!safeWebAddress(uri)) {
-                android.widget.Toast.makeText(this, "Use HTTPS or OAP LOCAL at 127.0.0.1:5050", android.widget.Toast.LENGTH_SHORT).show();
-                return;
-            }
-            viewer.loadUrl(uri.toString());
-        });
+        addButton("GO / SEARCH", v ->
+                navigateKoradasoInput(address.getText().toString(), viewer, loadStatus));
         LinearLayout browserControls = new LinearLayout(this);
         browserControls.setOrientation(LinearLayout.HORIZONTAL);
         String[] controlNames = {"BACK", "FORWARD", "RELOAD"};
