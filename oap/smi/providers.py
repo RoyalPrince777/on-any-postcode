@@ -87,8 +87,8 @@ class OllamaAdapter:
                     raise ValueError("Provider redirected outside loopback")
                 body = json.loads(response.read(1_000_000).decode("utf-8"))
                 if not isinstance(body, dict):
-                    raise ValueError("Invalid Ollama response structure")
-        except (OSError, ValueError, error.URLError, json.JSONDecodeError):
+                    raise TypeError("Invalid Ollama response structure")
+        except (OSError, ValueError, TypeError, error.URLError, json.JSONDecodeError):
             return ProviderResult(
                 provider_id=self.provider_id,
                 available=False,
