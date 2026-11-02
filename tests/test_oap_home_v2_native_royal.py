@@ -34,9 +34,11 @@ class NativeRoyalHomeTests(unittest.TestCase):
         )[0]
         self.assertIn("openInternet();", launch)
         self.assertNotIn(".loadUrl(", launch)
-        self.assertIn('Search words will be sent to DuckDuckGo, outside OAP.', source)
+        self.assertIn('Search words leave OAP Data and are sent directly', source)
+        self.assertIn('"DuckDuckGo", "Google"', source)
+        self.assertIn('https://www.google.com/search?q=', source)
         self.assertIn('"Stay in OAP"', source)
-        self.assertIn('"Search"', source)
+        self.assertIn('setItems(engines', source)
 
     def test_koradaso_failed_load_is_not_overwritten_by_success(self):
         source = self.source
@@ -103,7 +105,9 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn('"SEARCH / OPEN ADDRESS"', source)
         self.assertIn('"GO / SEARCH"', source)
         self.assertIn('"https://duckduckgo.com/?q="', source)
-        self.assertIn('Search words will be sent to DuckDuckGo, outside OAP.', source)
+        self.assertIn('Search words leave OAP Data and are sent directly', source)
+        self.assertIn('"DuckDuckGo", "Google"', source)
+        self.assertIn('https://www.google.com/search?q=', source)
         self.assertIn('if (!safeWebAddress(target))', source)
         self.assertIn('settings.setJavaScriptEnabled(false)', source)
 
