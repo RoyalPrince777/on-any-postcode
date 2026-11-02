@@ -55,3 +55,30 @@ def test_founder_memory_channel_can_retrieve_research_intelligence_decision():
     joined = " ".join(item.summary for item in items)
     assert "Research Intelligence" in joined
     assert "not an eighth Intelligence World" in joined
+
+
+def test_investigation_case_is_read_only_and_preserves_unverified_state():
+    from oap.smi.research_intelligence import build_investigation_case
+
+    case = build_investigation_case(
+        "palm-beach-video",
+        "Does the shared clip depict the reported incident?",
+        [{"claim": "A video shows an aircraft", "source": "user supplied screenshot"}],
+    )
+    assert case["case_status"] == "unverified"
+    assert case["evidence"][0]["verification"] == "pending_independent_review"
+    assert case["external_agency_access"] is False
+    assert case["creates_agents"] is False
+    assert case["guardian_required"] is True
+    assert case["hrm_audit_required"] is True
+    assert case["founder_final_required"] is True
+
+
+def test_investigation_case_rejects_empty_or_untraceable_claims():
+    import pytest
+    from oap.smi.research_intelligence import build_investigation_case
+
+    with pytest.raises(ValueError):
+        build_investigation_case("", "question", [])
+    with pytest.raises(ValueError):
+        build_investigation_case("case", "question", [{"source": "example"}])
