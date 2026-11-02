@@ -10,7 +10,7 @@ MAX_VIDEO_BYTES = 25 * 1024 * 1024
 ACCEPTED = {"video/mp4": b"ftyp", "video/webm": b"\x1aE\xdf\xa3"}
 
 
-def intake(stream, *, content_type: str, title: str, owner_id: str) -> dict[str, object]:
+def intake(stream, *, content_type: str, title: str, owner_id: str, content_kind: str = "film") -> dict[str, object]:
     """Store a bounded, private first-party candidate, with no public access."""
     directory = os.environ.get("OAP_TV_PRIVATE_MEDIA_DIR", "").strip()
     root = Path(directory) if directory else None
@@ -18,6 +18,8 @@ def intake(stream, *, content_type: str, title: str, owner_id: str) -> dict[str,
         raise RuntimeError("tv_private_storage_not_configured")
     if not isinstance(title, str) or not 1 <= len(title.strip()) <= 180:
         raise ValueError("invalid_tv_title")
+    if content_kind not in {"film", "clip", "trailer", "episode"}:
+        raise ValueError("invalid_tv_content_kind")
     if content_type not in ACCEPTED:
         raise ValueError("unsupported_tv_media_type")
     try:
@@ -41,6 +43,7 @@ def intake(stream, *, content_type: str, title: str, owner_id: str) -> dict[str,
     return {
         "candidate_id": item_id,
         "title": title.strip(),
+        "content_kind": content_kind,
         "owner_id": owner,
         "mime_type": content_type,
         "byte_size": len(data),
