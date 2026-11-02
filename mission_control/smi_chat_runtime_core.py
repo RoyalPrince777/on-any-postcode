@@ -23,6 +23,7 @@ from . import (
     postgres_db,
     smi_auto,
     smi_cancellation,
+    smi_shere_khan_dialogue,
     smi_founder_assets,
     studio_intelligence,
 )
@@ -135,6 +136,8 @@ def _provider(
             separators=(",", ":"),
         )
     )
+    if smi_shere_khan_dialogue.shere_khan_requested(message, brain):
+        system += smi_shere_khan_dialogue.SHERE_KHAN_INSTRUCTION
     if code_mode:
         system += (
             " CODE PROPOSAL MODE: provide a reviewable proposal, a unified diff when "
