@@ -273,8 +273,15 @@ def route_reply_signal(*, original: dict[str, Any], sender: str,
         raise ValueError("Original sender must be registered")
     if sender not in registered_matrix_names():
         raise ValueError("Reply sender must be registered")
-    if sender not in original.get("recipients", ()):
+    original_recipients = original.get("recipients")
+    if not isinstance(original_recipients, (tuple, list)) or sender not in original_recipients:
         raise ValueError("Reply sender must be a registered original recipient")
+    if original.get("execution_granted") is not False or original.get("external_action_taken") is not False:
+        raise ValueError("Reply requires an unexecuted review-only original")
+    if original.get("sender_home") != agents.matrix_home_for(original["sender"]):
+        raise ValueError("Original sender home mismatch")
+    if original.get("recipient_homes", {}).get(sender) != agents.matrix_home_for(sender):
+        raise ValueError("Original recipient home mismatch")
     if not isinstance(topic, str) or not topic.strip() or len(topic) > 2000:
         raise ValueError("Reply topic must be 1-2000 characters")
     reply = route_signal(
