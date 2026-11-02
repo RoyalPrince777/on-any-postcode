@@ -367,11 +367,16 @@ def war_room_divisions_route():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return _error("invalid_request", "Expected JSON object.", 400)
+    mission = payload.get("mission", "")
+    notes = payload.get("notes", "")
+    if not isinstance(mission, str) or not isinstance(notes, str) or len(mission) > 2000 or len(notes) > 2000:
+        return _error("invalid_mission", "Mission and notes must be text within 2000 characters.", 400)
     try:
         result = smi_auto.route_divisions(payload.get("divisions"), thinking=payload.get("thinking", "AUTO"))
     except ValueError as exc:
         return _error("invalid_selection", str(exc), 400)
-    return _no_store(make_response(jsonify(result)))
+    # Founder-supplied text is request-scoped; never log, store or treat it as authorisation.
+    return _no_store(make_response(jsonify({**result, "mission": mission.strip(), "notes": notes.strip()})))
 
 
 @bp.get("/war-room/actions")
