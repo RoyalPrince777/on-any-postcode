@@ -66,8 +66,13 @@ def inspect_failed_run(run_id: object, *, token: str, fetch: Fetch = _fetch_json
         if not isinstance(run.get("repository"), dict) or run["repository"].get("full_name") != REPO:
             return {**result, "error": "repository_identity_mismatch"}
         jobs_data = fetch(f"{API}/actions/runs/{run_id}/jobs?per_page=100", token)
+        if not isinstance(jobs_data, dict):
+            raise ValueError("jobs_not_object")
         jobs = jobs_data.get("jobs")
-        if not isinstance(jobs, list) or len(jobs) > MAX_JOBS or int(jobs_data.get("total_count", -1)) > MAX_JOBS:
+        count = jobs_data.get("total_count")
+        if (not isinstance(count, int) or isinstance(count, bool)
+                or not isinstance(jobs, list) or count != len(jobs)
+                or count > MAX_JOBS):
             raise ValueError("jobs_unavailable_or_truncated")
         failed = []
         for job in jobs:
@@ -112,6 +117,8 @@ def discover_recent_failed_runs(*, token: str, fetch: Fetch = _fetch_json) -> di
             f"{API}/actions/workflows/oap-home-apk.yml/runs?per_page=10&status=completed",
             token,
         )
+        if not isinstance(response, dict):
+            raise ValueError("runs_not_object")
         runs = response.get("workflow_runs")
         if not isinstance(runs, list) or len(runs) > 10:
             raise ValueError("run_list_unavailable")
