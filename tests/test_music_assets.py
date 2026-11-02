@@ -62,3 +62,31 @@ def test_music_creator_surface_exposes_real_governed_controls():
     assert "/radio/stations/" in template
     assert "broadcast not auto-started" not in template
     assert "schedule-form" in template
+
+
+def test_music_upload_progress_uses_real_transfer_and_preserves_governed_api():
+    from pathlib import Path
+
+    page = Path("mission_control/templates/oap_music.html").read_text(encoding="utf-8")
+    assert "xhr.upload.onprogress" in page
+    assert "event.lengthComputable" in page
+    assert "event.loaded * 100 / event.total" in page
+    assert "file.size > 6 * 1024 * 1024" in page
+    assert "button.disabled = true" in page
+    assert "button.disabled = false" in page
+    assert "xhr.setRequestHeader('X-OAP-CSRF', csrf)" in page
+    assert "'/mission/organs/tune/releases/' + encodeURIComponent(releaseId) + '/upload'" in page
+    assert "stationForm.addEventListener('submit'" in page
+
+
+def test_oap_core_music_launcher_uses_existing_first_party_route():
+    from pathlib import Path
+
+    launcher = Path("android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java")
+    if not launcher.exists():
+        import pytest
+        pytest.skip("Android Home is maintained on its dedicated branch")
+    source = launcher.read_text(encoding="utf-8")
+    assert 'case "OAP MUSIC": path = "/music"; break;' in source
+    assert source.count('"OAP MUSIC"') >= 3
+    assert '"UPLOAD & LISTEN"' in source

@@ -8,6 +8,7 @@ from . import (
     live_music_core,
     music_acceptance,
     music_assets,
+    music_company_rights_registry,
     music_evidence,
     music_market_purchase,
     music_recovery,
@@ -26,6 +27,7 @@ _MIGRATIONS = (
     (music_acceptance.ACCEPTANCE_MIGRATION_VERSION, music_acceptance.SCHEMA_STATEMENTS),
     (music_assets.MUSIC_ASSET_MIGRATION_VERSION, music_assets.SCHEMA_STATEMENTS),
     (music_market_purchase.MIGRATION_VERSION, music_market_purchase.SCHEMA_STATEMENTS),
+    (music_company_rights_registry.MIGRATION_VERSION, music_company_rights_registry.SCHEMA_STATEMENTS),
 )
 _LOCK_KEY = 25800014
 

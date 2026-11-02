@@ -51,6 +51,14 @@
       <p class="result" data-oap-music-install-status role="status"></p>
     </div>
 
+    <label for="catalogue-choice" class="muted">Choose catalogue</label>
+    <select id="catalogue-choice" class="search" aria-describedby="catalogue-choice-help">
+      <option value="oap">OAP approved releases</option>
+      <option value="private">My private uploads</option>
+      <option value="open">Open music discovery</option>
+      <option value="radio">OAP Radio</option>
+    </select>
+    <p id="catalogue-choice-help" class="muted">Only rights-cleared OAP releases are shown publicly. Open music sources remain review-only.</p>
     <label for="music-search" class="muted">Search OAP Music</label>
     <input id="music-search" class="search" type="search" placeholder="Search OAP tracks and releases…" autocomplete="off">
     <p id="catalogue-state" class="count"></p>
@@ -342,19 +350,52 @@
 
       uploadForm.addEventListener('submit', async event => {
         event.preventDefault();
+        const file = uploadForm.querySelector('input[name="audio"]').files[0];
+        if (!file) { message('upload-result', 'Choose an audio file.'); return; }
+        if (file.size === 0 || file.size > 6 * 1024 * 1024) {
+          message('upload-result', 'Choose an audio file up to 6 MB.');
+          return;
+        }
         const data = new FormData(uploadForm);
         const releaseId = data.get('release_id');
+        if (!releaseId) { message('upload-result', 'Choose a release first.'); return; }
         data.delete('release_id');
+        const button = uploadForm.querySelector('button[type="submit"]');
+        button.disabled = true;
         try {
-          message('upload-result','Uploading…');
-          const response = await fetch('/mission/organs/tune/releases/' + encodeURIComponent(releaseId) + '/upload', {
-            method:'POST', credentials:'same-origin', headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}, body:data
+          message('upload-result', 'Uploading · preparing secure transfer…');
+          await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/mission/organs/tune/releases/' + encodeURIComponent(releaseId) + '/upload');
+            xhr.withCredentials = true;
+            xhr.setRequestHeader('X-OAP-CSRF', csrf);
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.upload.onprogress = event => {
+              if (event.lengthComputable) {
+                const percent = Math.min(100, Math.floor(event.loaded * 100 / event.total));
+                message('upload-result', 'Transferring · ' + percent + '%' + (percent === 100 ? ' · processing on OAP…' : ''));
+              }
+            };
+            xhr.onload = () => {
+              let payload = {};
+              try { payload = JSON.parse(xhr.responseText); } catch (_) {}
+              if (xhr.status < 200 || xhr.status >= 300) {
+                reject(new Error(payload.error?.message || payload.error?.code || 'Upload failed (HTTP ' + xhr.status + ')'));
+              } else { resolve(payload); }
+            };
+            xhr.onerror = () => reject(new Error('Connection lost. Check your network before retrying.'));
+            xhr.onabort = () => reject(new Error('Upload interrupted.'));
+            xhr.send(data);
           });
-          const payload = await response.json().catch(() => ({}));
-          if (!response.ok) throw new Error(payload.error?.message || payload.error?.code || 'Upload failed');
-          message('upload-result','Uploaded successfully.');
-          uploadForm.reset(); await refreshCreatorControls();
-        } catch (error) { message('upload-result',error.message); }
+          message('upload-result', 'Uploaded successfully. Refreshing your private player…');
+          uploadForm.reset();
+          await refreshCreatorControls();
+          message('upload-result', 'Uploaded successfully. Find your track under OAP Player.');
+        } catch (error) {
+          message('upload-result', error.message);
+        } finally {
+          button.disabled = false;
+        }
       });
 
       stationForm.addEventListener('submit', async event => {
@@ -428,6 +469,23 @@
       const results = document.getElementById('oap-results');
       const emptyOap = document.getElementById('oap-empty');
       const state = document.getElementById('catalogue-state');
+      const catalogueChoice = document.getElementById('catalogue-choice');
+      const catalogueHelp = document.getElementById('catalogue-choice-help');
+      function switchCatalogue() {
+        const choice = catalogueChoice.value;
+        catalogueHelp.textContent = ({
+          oap:'Only published, rights-verified OAP metadata is shown. Playback has a separate gate.',
+          private:'Your authenticated uploads can be played privately below.',
+          open:'Open music sources are discovery candidates only. No unverified track is streamed or imported.',
+          radio:'Manage your existing OAP Radio station controls below. No public broadcast is implied.'
+        })[choice];
+      }
+      catalogueChoice.addEventListener('change', () => {
+        switchCatalogue();
+        const destinations = {oap:'catalogue', private:'player', open:'first-party-discovery', radio:'radio'};
+        document.getElementById(destinations[catalogueChoice.value])?.scrollIntoView({behavior:'smooth', block:'start'});
+      });
+      switchCatalogue();
       let searchTimer = null;
 
       async function searchOapMusic() {
