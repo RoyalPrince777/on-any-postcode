@@ -19,6 +19,14 @@ class NativeRoyalHomeTests(unittest.TestCase):
         cls.art = ART.read_text(encoding="utf-8")
         cls.manifest = ET.parse(MANIFEST).getroot()
 
+    def test_koradaso_metadata_minimisation_controls(self):
+        self.assertIn("settings.setSafeBrowsingEnabled(true)", self.source)
+        self.assertIn("settings.setMediaPlaybackRequiresUserGesture(true)", self.source)
+        self.assertIn("settings.setGeolocationEnabled(false)", self.source)
+        self.assertIn("settings.setAllowFileAccess(false)", self.source)
+        self.assertIn("setAcceptThirdPartyCookies(viewer, false)", self.source)
+        self.assertIn("settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE)", self.source)
+
     def test_koradaso_keyword_search_requires_external_confirmation(self):
         source = self.source
         self.assertIn("private void navigateKoradasoInput(", source)
