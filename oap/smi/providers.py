@@ -140,6 +140,20 @@ class ProviderRouter:
 
         adapter = self._adapters[provider_id]
         local = self._provider_scopes[provider_id] == "local"
+        # External approval is not permission to export private OAP Data.
+        # Fail closed for structured private context and sensor-sensitive signals.
+        sensitive_tags = {"private", "personal", "sensor", "camera", "microphone",
+                          "location", "bluetooth", "memory", "identity", "health",
+                          "oap_data_private"}
+        signal_tags = {str(tag).strip().casefold() for tag in signal.tags}
+        if not local and (signal.high_impact or bool(signal.oapcore)
+                          or bool(signal_tags & sensitive_tags)):
+            return (
+                ProviderResult(
+                    provider_id=provider_id, available=False, text="",
+                    error_code="private_oap_data_egress_blocked",
+                ),
+            )
         if not self._sovereign_controls.provider_allowed(provider_id, local=local):
             return (
                 ProviderResult(
