@@ -64,3 +64,28 @@ def test_private_gateway_allows_only_the_named_smi_certification_path():
     assert smi_gateway._allowed("api/smi/thinking-certification") is True
     assert smi_gateway._allowed("api/smi/private-reasoning") is False
     assert smi_gateway._allowed("api/smi/execute") is False
+
+
+def test_investigation_case_requires_signed_gateway(anonymous_client, monkeypatch):
+    secret = "g" * 40
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
+    monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", secret)
+    path = "/api/smi/investigation-case"
+    request_body = {
+        "case_id": "video-001",
+        "question": "Is this video authentic?",
+        "evidence": [{"claim": "Clip depicts a crash", "source": "user upload"}],
+    }
+    blocked = anonymous_client.post(path, json=request_body)
+    assert blocked.status_code == 404
+    assert blocked.headers["Cache-Control"] == "no-store"
+    allowed = anonymous_client.post(path, json=request_body, headers={"X-OAP-SMI-Gateway": secret})
+    assert allowed.status_code == 200
+    payload = allowed.get_json()
+    assert payload["case_status"] == "unverified"
+    assert payload["evidence"][0]["verification"] == "pending_independent_review"
+    assert payload["external_agency_access"] is False
+    assert allowed.headers["Cache-Control"] == "no-store"
+    invalid = anonymous_client.post(path, json={"case_id": "x", "question": "q", "evidence": [1]}, headers={"X-OAP-SMI-Gateway": secret})
+    assert invalid.status_code == 400
+    assert smi_gateway._allowed("api/smi/investigation-case") is True
