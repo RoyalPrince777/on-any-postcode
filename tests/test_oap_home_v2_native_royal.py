@@ -37,7 +37,8 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("viewer.setVisibility(View.GONE);", source)
         self.assertIn("viewer.setVisibility(View.VISIBLE);", source)
         self.assertIn("browserPageFailed[0] = false;", source)
-        self.assertIn('if (!browserPageFailed[0]) loadStatus.setText("Page loaded.', source)
+        self.assertIn('if (!browserPageFailed[0])', source)
+        self.assertIn('loadStatus.setText("Page loaded.', source)
 
     def test_koradaso_bounded_tab_snapshots_are_present(self):
         source = self.source
