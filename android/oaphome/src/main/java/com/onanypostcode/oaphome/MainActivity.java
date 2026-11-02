@@ -426,8 +426,14 @@ public class MainActivity extends Activity {
                 new int[]{Color.rgb(12, 12, 27), Color.rgb(58, 29, 92), Color.rgb(5, 6, 17)});
         royalPanel.setCornerRadius(dp(22));
         royalPanel.setStroke(dp(2), GOLD);
+        royal.setShadowLayer(dp(5), 0, 0, Color.rgb(165, 80, 250));
         royal.setBackground(royalPanel);
-        body.addView(royal, new LinearLayout.LayoutParams(-1, dp(260)));
+        FrameLayout royalHero = new FrameLayout(this);
+        android.view.View royalEarth = new android.view.View(this);
+        royalEarth.setBackground(new RoyalHomeArt.EarthBackdrop());
+        royalHero.addView(royalEarth, new FrameLayout.LayoutParams(-1, -1));
+        royalHero.addView(royal, new FrameLayout.LayoutParams(-1, -1));
+        body.addView(royalHero, new LinearLayout.LayoutParams(-1, dp(260)));
         TextView powered = label("POWERED BY ON ANY POSTCODE · BORN LOCAL. BUILT GLOBAL.", 12);
         powered.setGravity(Gravity.CENTER);
         body.addView(powered);
@@ -483,7 +489,7 @@ public class MainActivity extends Activity {
             if (i == 0 || i == 3) {
                 destinationRow = new LinearLayout(this);
                 destinationRow.setOrientation(LinearLayout.HORIZONTAL);
-                quickLinks.addView(destinationRow, new LinearLayout.LayoutParams(-1, dp(100)));
+                quickLinks.addView(destinationRow, new LinearLayout.LayoutParams(-1, dp(114)));
             }
             final String path = paths[i];
             Button tile = button(names[i], v -> {
@@ -492,8 +498,12 @@ public class MainActivity extends Activity {
                 viewer.loadUrl(target);
             });
             tile.setAllCaps(false);
-            tile.setTextSize(14);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(92), 1f);
+            tile.setTextSize(12);
+            tile.setGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+            tile.setPadding(dp(2), dp(2), dp(2), dp(9));
+            int[] royalArt = {0, 3, 4, 5, 8, 8, 2};
+            tile.setBackground(new RoyalHomeArt.TileDrawable(royalArt[i]));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(106), 1f);
             lp.setMargins(dp(2), dp(4), dp(2), dp(4));
             destinationRow.addView(tile, lp);
         }
