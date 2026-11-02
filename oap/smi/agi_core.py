@@ -204,6 +204,13 @@ _WORLD_RULES: tuple[dict[str, object], ...] = (
 # below is the authoritative placement for each specialist context.
 _SPECIALIST_RULES: tuple[dict[str, object], ...] = (
     {
+        "id": "fictional_specialist_review",
+        "name": "Fiction-inspired Specialist Research",
+        "kind": "advisory_capability_only",
+        "world_ids": ("matrix",),
+        "keywords": ("m3gan", "amelia", "black box ai", "black-box ai"),
+    },
+    {
         "id": "distribution",
         "name": "Distribution Intelligence",
         "kind": "cross_system_capability",
