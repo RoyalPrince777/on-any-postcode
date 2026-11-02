@@ -87,7 +87,43 @@ DYNAMIC_DIVISIONS: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...]
 )
 
 
-def route_divisions(divisions: object, *, thinking: object = "AUTO") -> dict[str, object]:
+
+MOUSE_FIT_TERMS = ("interactive world", "training scene", "simulation design",
+                   "game mechanic", "ui edge case", "user interface edge case",
+                   "training scenario", "virtual environment")
+
+
+def recommend_matrix_mouse(mission: object) -> dict[str, object] | None:
+    """Cross-family specialist suggestion; ownership and permissions never move."""
+    from . import agents
+    if not isinstance(mission, str) or len(mission) > 2000:
+        return None
+    text = mission.casefold()
+    if not any(term in text for term in MOUSE_FIT_TERMS):
+        return None
+    profile = next((item for item in agents.MATRIX_ADVISORY_ALLIANCES
+                    if item["id"] == "mouse_creative_simulation"), None)
+    if profile is None or profile.get("members") != ("Mouse",) or profile.get("world_id") != "matrix":
+        return None
+    return {
+        "agent": "Mouse",
+        "commander": "Morpheus",
+        "home_world": "matrix",
+        "home_system": "Matrix System",
+        "role": "Creative Simulation & Edge-Case Intelligence",
+        "technical_allies": ("Neo", "Tank", "Dozer", "Nirmata"),
+        "dynamic_recommendation_only": True,
+        "family_transfer": False,
+        "simulation_is_runtime_proof": False,
+        "execution_granted": False,
+        "approval_granted": False,
+        "guardian_required": True,
+        "green_gate_required": True,
+        "human_authority_final": True,
+    }
+
+
+def route_divisions(divisions: object, *, thinking: object = "AUTO", mission: object = "") -> dict[str, object]:
     """Select several bounded specialist perspectives without creating agents."""
     from . import intelligence_lenses
     names = tuple(str(x).strip().lower() for x in divisions) if isinstance(divisions, (tuple, list)) else ()
@@ -115,6 +151,7 @@ def route_divisions(divisions: object, *, thinking: object = "AUTO") -> dict[str
     checks = ai_behaviour.review_checks_for(str(depth))
     return {
         "divisions": tuple(teams),
+        "specialist_recommendation": recommend_matrix_mouse(mission),
         "thinking_mode": choice,
         "thinking_depth": depth,
         "selected_checks": checks["selected_checks"],
