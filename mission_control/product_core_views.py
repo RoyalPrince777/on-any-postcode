@@ -532,6 +532,17 @@ def music_civilization_status():
     return _no_store(make_response(jsonify(music_civilization.contracts())))
 
 
+@bp.get("/entertainment/tv/founder-upload")
+@web_security.login_required(api=False, founder_only=True)
+def tv_founder_upload_page():
+    """Private Royal Cinema Founder upload form."""
+    return _no_store(make_response(render_template(
+        "tv_founder_upload.html",
+        csrf_token=web_security.csrf_token(),
+        max_video_mib=tv_founder_intake.MAX_VIDEO_BYTES // (1024 * 1024),
+    )))
+
+
 @bp.post("/entertainment/tv/founder-upload")
 @web_security.login_required(api=True, founder_only=True)
 def tv_founder_upload():
