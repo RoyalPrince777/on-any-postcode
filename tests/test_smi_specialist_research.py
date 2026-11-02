@@ -20,3 +20,24 @@ def test_specialist_overlay_preserves_registry_and_authority():
     assert board["human_authority"] == "Founder Final"
     assert board["oversight"] == ("Guardian", "HRM Core")
     assert tuple((a["agent_id"], a["name"]) for a in agents.AGENT_REGISTRY) == before
+
+
+def test_specialist_research_routes_through_one_brain_without_authority():
+    from oap.smi.agi_core import AGICore
+
+    core = AGICore()
+    for term in ("M3GAN", "AMELIA", "black box AI"):
+        route = core.route("Review " + term, "TECHNICAL")
+        assert "fictional_specialist_review" in route["specialist_ids"]
+        assert "matrix" in route["world_ids"]
+        assert route["world_count_limit"] == 7
+        assert route["decision_authority"] is False
+        assert route["execution_authority"] is False
+        assert route["human_authority_final"] is True
+
+    unrelated = core.route("community garden", "COMMUNITY")
+    assert "fictional_specialist_review" not in unrelated["specialist_ids"]
+    status = core.status()
+    assert status["brain_count"] == 0
+    assert status["world_count"] == 7
+    assert status["independent_execute"] is False
