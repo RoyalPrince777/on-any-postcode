@@ -388,7 +388,7 @@
       const response = await fetch('/mission/war-room/divisions/route', {
         method: 'POST', credentials: 'same-origin',
         headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
-        body: JSON.stringify({divisions, thinking: document.getElementById('smi-command-thinking').value})
+        body: JSON.stringify({divisions, thinking: document.getElementById('smi-command-thinking').value, mission: document.querySelector('.mission')?.value || '', notes: document.getElementById('smi-command-extra').value})
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result?.error?.message || 'Selection unavailable');
@@ -421,7 +421,7 @@
     const routeResponse = await fetch('/mission/war-room/divisions/route', {
       method: 'POST', credentials: 'same-origin',
       headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
-      body: JSON.stringify({divisions: chosen, thinking: document.getElementById('smi-command-thinking').value})
+      body: JSON.stringify({divisions: chosen, thinking: document.getElementById('smi-command-thinking').value, mission: document.querySelector('.mission')?.value || '', notes: document.getElementById('smi-command-extra').value})
     });
     const selectedPlan = await routeResponse.json().catch(() => ({}));
     if (!routeResponse.ok) throw new Error(selectedPlan?.error?.message || 'SMI routing failed');
