@@ -558,6 +558,7 @@ def tv_founder_upload():
             content_type=upload.mimetype,
             title=request.form.get("title", ""),
             owner_id=_identity(),
+            content_kind=request.form.get("content_kind", "film"),
         )
     except (ValueError, TypeError):
         return _error("invalid_request", "Invalid video, title or media type.", 400)
