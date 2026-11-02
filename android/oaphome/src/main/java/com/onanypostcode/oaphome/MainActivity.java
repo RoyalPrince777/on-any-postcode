@@ -673,7 +673,18 @@ public class MainActivity extends Activity {
                 loadStatus.setText(url.startsWith(OAP_LOCAL_ORIGIN + "/") ? "Loading OAP LOCAL…" : "Loading HTTPS page…");
             }
             @Override public void onPageFinished(android.webkit.WebView view, String url) {
-                if (!browserPageFailed[0]) loadStatus.setText("Page loaded. Some interactive services require JavaScript, currently disabled for safety.");
+                if (url != null && safeWebAddress(Uri.parse(url))) address.setText(url);
+                if (!browserPageFailed[0])
+                    loadStatus.setText("Page loaded. Some interactive services require JavaScript, currently disabled for safety.");
+            }
+            @Override public void onReceivedHttpError(android.webkit.WebView view,
+                    android.webkit.WebResourceRequest request,
+                    android.webkit.WebResourceResponse response) {
+                if (!request.isForMainFrame()) return;
+                browserPageFailed[0] = true;
+                viewer.setVisibility(View.GONE);
+                loadStatus.setText("Page unavailable: HTTP " + response.getStatusCode()
+                        + " · Check the address or OAP LOCAL service.");
             }
             @Override public void onReceivedError(android.webkit.WebView view, android.webkit.WebResourceRequest request,
                     android.webkit.WebResourceError error) {
