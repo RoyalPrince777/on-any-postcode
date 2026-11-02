@@ -31,14 +31,17 @@ def test_ludo_shere_khan_opt_in_turn_and_human_boundary(client, csrf):
     )
     assert automatic.status_code == 200
     assert automatic.get_json()["status"] == "active"
+    with client.session_transaction() as session:
+        before_retry = session[ludo.SESSION_KEY]
     repeat = client.post(
         "/arena/ludo/shere-khan/turn",
         json={"request_id": "agent-turn-0001"},
         headers=headers,
     )
-    # If the server retained an extra turn, identical request is idempotent.
-    # Otherwise the turn boundary must reject the attempt.
-    assert repeat.status_code in {200, 400}
+    assert repeat.status_code == 200
+    assert repeat.get_json() == automatic.get_json()
+    with client.session_transaction() as session:
+        assert session[ludo.SESSION_KEY] == before_retry
 
 
 def test_ludo_agent_requires_opt_in(client, csrf):
