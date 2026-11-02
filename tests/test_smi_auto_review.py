@@ -68,3 +68,21 @@ def test_shere_khan_full_authority_exceeds_claw_test_mode():
     assert "survivability authority" in lens
     assert "false-Green blocking" in lens
     assert "Claw Test is one pressure mode" in lens
+
+
+def test_nirmata_aei_gorilla_recovery_review_is_coupled_without_authority():
+    roles = smi_auto.selected_review_roles("Nirmata recover the build", auto_mode=True)
+    assert all(role in roles for role in ("Nirmata", "AEI", "Gorilla"))
+    assert len(roles) == len(set(roles))
+    assert "rollback" in smi_auto.review_lens("Gorilla")
+    assert smi_auto.selected_review_roles("Gorilla", auto_mode=False) == ("Gorilla",)
+    board = smi_auto.build_evidence_vote_board(
+        roles=("Nirmata", "AEI", "Gorilla"),
+        brain={"passed": False, "high_impact": True},
+        coherence={"passed": False},
+        judgement={"constitution_consistent": False},
+        guardian_outcome="BLOCKED",
+    )
+    assert board["summary"]["FAIL"] == 3
+    assert board["authority_granted"] is False
+    assert board["human_authority_final"] is True
