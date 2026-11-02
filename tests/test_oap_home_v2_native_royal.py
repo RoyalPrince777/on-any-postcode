@@ -27,6 +27,18 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn("setAcceptThirdPartyCookies(viewer, false)", self.source)
         self.assertIn("settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE)", self.source)
 
+    def test_koradaso_downloads_are_https_and_user_confirmed(self):
+        source = self.source
+        self.assertIn("viewer.setDownloadListener(", source)
+        self.assertIn("requestKoradasoDownload(", source)
+        self.assertIn('"https".equalsIgnoreCase(uri.getScheme())', source)
+        self.assertIn("KoradasoShield.blocks(uri, true)", source)
+        self.assertIn('setTitle("Download file to OAP Core?")', source)
+        self.assertIn("setDestinationInExternalFilesDir(", source)
+        self.assertIn("manager.enqueue(item)", source)
+        self.assertIn('addButton("DOWNLOADS"', source)
+        self.assertNotIn("WRITE_EXTERNAL_STORAGE", source)
+
     def test_koradaso_session_history_is_not_persisted(self):
         source = self.source
         self.assertIn("showKoradasoSessionHistory(", source)
