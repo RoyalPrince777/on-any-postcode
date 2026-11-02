@@ -89,6 +89,46 @@ INTELLIGENCE_WORLDS: tuple[dict[str, Any], ...] = (
     },
 )
 
+# Non-executing Matrix advisory alliances. These profiles do not inflate the
+# locked 78-agent passport roster or acquire tool/approval permissions.
+MATRIX_ADVISORY_ALLIANCES: tuple[dict[str, Any], ...] = (
+    {
+        "id": "tank_dozer_brothers",
+        "name": "Tank & Dozer — Brothers Intelligence",
+        "members": ("Tank", "Dozer"),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Build diagnostics and recovery", "Infrastructure continuity review"),
+        "allies": ("Neo", "Morpheus", "Trinity", "Mouse"),
+    },
+    {
+        "id": "matrix_twins",
+        "name": "The Twins — Dual Intelligence",
+        "members": ("Twin One", "Twin Two"),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Alternative-path review", "Contradiction and mirrored-evidence review"),
+        "allies": ("Fox", "Spider", "Architect"),
+    },
+    {
+        "id": "smith_adversarial",
+        "name": "Agent Smith — Adversarial Intelligence",
+        "members": ("Agent Smith", "Brown", "Jones", "Johnson", "Jackson", "Thompson"),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Threat modelling", "Hostile-assumption and update-gate review"),
+        "allies": ("Bagheera", "Seraph", "Guardian"),
+    },
+)
+MATRIX_ALLIANCE_POLICY = {
+    "status": "ADVISORY_PROFILE_ONLY",
+    "execution": "DISABLED",
+    "independent_votes": False,
+    "can_modify_permissions": False,
+    "guardian_hrm_required": True,
+    "founder_final_required": True,
+}
+
 LOCKED_WORLD_IDS = tuple(world["id"] for world in INTELLIGENCE_WORLDS)
 INTELLIGENCE_WORLD_NAMES = tuple(world["name"] for world in INTELLIGENCE_WORLDS)
 
@@ -414,6 +454,8 @@ def get_public_agent_directory(
         "providers": INTELLIGENCE_PROVIDERS,
         "agent_anatomy": AGENT_ANATOMY,
         "non_agent_systems": ORGANISM_NON_AGENT_SYSTEMS,
+        "matrix_advisory_alliances": MATRIX_ADVISORY_ALLIANCES,
+        "matrix_alliance_policy": MATRIX_ALLIANCE_POLICY,
         "validation": validation,
         "filters": {"family_id": family_id, "query": query.strip()[:80]},
         "human_authority": {
