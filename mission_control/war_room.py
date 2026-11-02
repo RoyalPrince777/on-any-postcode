@@ -321,13 +321,12 @@ def _rating(
             stage_blocked = True
 
     legacy_stars = stars
-    # Higher stars are never inferred from a passing five-gate projection.
-    # Each requires an attributable receipt and the preceding stage.
-    if stars == 5 and isinstance(independent_verification, str) and independent_verification.strip():
-        stars = 6
-    if stars == 6 and isinstance(sustained_certification, str) and sustained_certification.strip():
-        stars = 7
-    rubric = RATING_RUBRIC[min(stars, 5)]
+    # A receipt *reference* is not independently authenticated evidence.
+    # Remain at the five proven gates until a durable, subject-bound,
+    # independent verifier is wired into the canonical HRM proof path.
+    # Never promote from caller-controlled strings alone.
+    stars = legacy_stars
+    rubric = RATING_RUBRIC[stars]
     first_missing = next(
         (stage["stage"] for stage in stages if not stage["passed"]),
         None,
@@ -343,8 +342,9 @@ def _rating(
         "stars_max": 7,
         "legacy_proof_gates_passed": legacy_stars,
         "higher_star_proof": "CERTIFIED" if stars == 7 else "INDEPENDENT_VERIFIED" if stars == 6 else "UNRATED",
-        "independent_verification_receipt": independent_verification if stars >= 6 else None,
-        "sustained_certification_receipt": sustained_certification if stars == 7 else None,
+        "independent_verification_receipt": None,
+        "sustained_certification_receipt": None,
+        "higher_star_gate_reason": "authenticated_subject_bound_hrm_receipt_verification_pending",
         "score": round(stars * 100 / 7),
         "label": "Sustained operationally certified" if stars == 7 else "Independently verified" if stars == 6 else rubric["label"],
         "signal": rubric["signal"],
