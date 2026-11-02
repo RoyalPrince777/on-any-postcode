@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read-only APK update gate for the existing V2 Android app.
 
-V2 stays com.onanypostcode.oaphome.v2, with the visible label OAP Home.
+V2 stays com.onanypostcode.oaphome.v2, with the visible label OAP Core.
 The older com.onanypostcode.oaphome is a *different* package and must not be
 confused with the V2 signing certificate or silently uninstalled here.
 
@@ -19,7 +19,7 @@ import sys
 
 EXPECTED_PACKAGE = "com.onanypostcode.oaphome.v2"
 LEGACY_PACKAGE = "com.onanypostcode.oaphome"
-EXPECTED_LABEL = "OAP Home"
+EXPECTED_LABEL = "OAP Core"
 PACKAGE_LINE = re.compile(
     r"^package: name='([^']+)' versionCode='([0-9]+)'(?: versionName='([^']*)')?"
 )
@@ -77,14 +77,16 @@ def verify(installed_v2: Path, candidate: Path) -> str:
         raise BlockedUpgrade("V2 APK certificates DIFFER: update would be unsafe")
     if candidate_code <= installed_code:
         raise BlockedUpgrade("Candidate Android versionCode is not higher than installed V2")
-    if not candidate_version.startswith("2."):
-        raise BlockedUpgrade("Candidate is not an OAP Home V2 version")
+    if not candidate_version.startswith("3."):
+        raise BlockedUpgrade("Candidate is not an OAP Core 3.x version")
     candidate_badging = command("aapt", "dump", "badging", str(candidate))
+    if "application-debuggable" in candidate_badging.splitlines():
+        raise BlockedUpgrade("Candidate APK is debuggable; release update blocked")
     if f"application-label:'{EXPECTED_LABEL}'" not in candidate_badging:
-        raise BlockedUpgrade("Candidate V2 display name must be OAP Home")
+        raise BlockedUpgrade("Candidate V2 display name must be OAP Core")
     return (
         "V2_UPDATE_IDENTITY_PASSED (offline only): same installed V2 package, "
-        "one matching signer, higher versionCode, OAP Home label. "
+        "one matching signer, higher versionCode, OAP Core label. "
         "No installation, default Home switch, or old Home removal performed. "
         "Physical device acceptance and Founder Final remain required."
     )
