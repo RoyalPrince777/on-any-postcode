@@ -1453,13 +1453,15 @@ def ludo_shere_khan_turn():
         state = session.get(ludo.SESSION_KEY)
         if not isinstance(state, dict) or state.get("agent_mode", {}).get("agent") != "shere-khan":
             raise ValueError("ludo_agent_not_enabled")
+        request_id = ludo._req(payload.get("request_id"))
+        if len(request_id) > 122:
+            raise ValueError("ludo_agent_request_id_invalid")
+        if any(receipt.get("request_id") == request_id + "-roll" for receipt in state["request_receipts"]):
+            return _arena_json(ludo.public_state(state))
         if state.get("status") != "active" or state.get("turn_index") != 1:
             raise ValueError("ludo_agent_not_turn")
         if state.get("pending_roll") is not None:
             raise ValueError("ludo_agent_pending_roll_invalid")
-        request_id = ludo._req(payload.get("request_id"))
-        if any(receipt.get("request_id") == request_id + "-roll" for receipt in state["request_receipts"]):
-            return _arena_json(ludo.public_state(state))
         state = ludo.roll(state, request_id=request_id + "-roll")
         if state["pending_roll"] is not None:
             piece_id = choose_shere_khan_piece(state, state["agent_mode"]["level"])
