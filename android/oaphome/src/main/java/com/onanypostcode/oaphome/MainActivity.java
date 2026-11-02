@@ -409,6 +409,8 @@ public class MainActivity extends Activity {
             android.webkit.WebView old = activeWebView;
             activeWebView = null;
             old.stopLoading();
+            old.clearHistory();
+            old.clearCache(true); // WebView disk cache is app-wide, not an isolated profile.
             old.loadUrl("about:blank");
             old.destroy();
         }
@@ -454,6 +456,7 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setDomStorageEnabled(false);
+        settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
         settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
@@ -869,16 +872,23 @@ final class OapSecureChromeClient extends android.webkit.WebChromeClient {
 // KORADASO Shield Standard: a deliberately small, auditable host denylist.
 // No network list fetch, no private URL logging, and no blocking first-party OAP.
 final class KoradasoShield {
+    // Conservative local list: exact domain or its subdomains only.
+    // No remote filter subscription, telemetry, logging, or wildcard substring matching.
     private static final String[] BLOCKED_DOMAINS = {
-        "doubleclick.net", "googlesyndication.com",
-        "googleadservices.com", "adnxs.com", "adsrvr.org",
-        "scorecardresearch.com"
+        "doubleclick.net", "googlesyndication.com", "googleadservices.com",
+        "google-analytics.com", "googletagmanager.com", "adnxs.com",
+        "adsrvr.org", "scorecardresearch.com", "taboola.com",
+        "outbrain.com", "criteo.com", "criteo.net",
+        "pubmatic.com", "rubiconproject.com", "openx.net",
+        "casalemedia.com", "quantserve.com", "demdex.net",
+        "facebook.net", "connect.facebook.net", "hotjar.com"
     };
     static boolean blocks(android.net.Uri uri, boolean mainFrame) {
-        if (mainFrame || uri == null || !"https".equalsIgnoreCase(uri.getScheme())) return false;
+        if (uri == null || !"https".equalsIgnoreCase(uri.getScheme())) return false;
         String host = uri.getHost();
         if (host == null) return false;
         host = host.toLowerCase(java.util.Locale.ROOT);
+        // Block known ad/tracker hosts even when directly navigated to.
         for (String domain : BLOCKED_DOMAINS) {
             if (host.equals(domain) || host.endsWith("." + domain)) return true;
         }
@@ -903,7 +913,8 @@ class OapSecureWebClient extends android.webkit.WebViewClient {
     }
     @Override public boolean shouldOverrideUrlLoading(android.webkit.WebView view, android.webkit.WebResourceRequest request) {
         if (!request.isForMainFrame()) return false;
-        if (!host.safeWebAddress(request.getUrl())) {
+        if (!host.safeWebAddress(request.getUrl())
+                || KoradasoShield.blocks(request.getUrl(), true)) {
             android.widget.Toast.makeText(host, "Only standard HTTPS pages allowed", android.widget.Toast.LENGTH_SHORT).show();
             return true;
         }
