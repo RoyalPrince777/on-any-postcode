@@ -17,6 +17,7 @@ from oap.war_room import WarRoomEngine
 
 from . import (
     agent_achievements,
+    ai_behaviour,
     agents,
     authority,
     brain,
@@ -1403,7 +1404,7 @@ def get_war_room_dashboard() -> dict[str, Any]:
                 if items
                 else 0,
                 "runtime_verified": sum(int(item["stars"]) >= 4 for item in items),
-                "certified": sum(int(item["stars"]) == 5 for item in items),
+                "certified": sum(int(item["stars"]) == 7 for item in items),
             }
         )
 
@@ -1429,10 +1430,10 @@ def get_war_room_dashboard() -> dict[str, Any]:
     )
     star_counts = {
         str(stars): sum(int(item["stars"]) == stars for item in ratings)
-        for stars in range(6)
+        for stars in range(8)
     }
     overall = round(
-        sum(int(item["stars"]) for item in ratings) / (len(ratings) * 5) * 100
+        sum(int(item["stars"]) for item in ratings) / (len(ratings) * 7) * 100
     )
     conflict_audit = _conflict_audit(snapshot)
     scope = validate_war_room_scope()
@@ -1458,6 +1459,7 @@ def get_war_room_dashboard() -> dict[str, Any]:
         "flow": WAR_ROOM_FLOW,
         "review_lenses": REVIEW_LENSES,
         "smi_autonomy": _a1_a7_evidence_projection(ratings),
+        "thinking_check_profiles": ai_behaviour.status()["thinking_check_profiles"],
         "categories": tuple(categories),
         "summary": {
             "overall_evidence_score": overall,
@@ -1467,9 +1469,11 @@ def get_war_room_dashboard() -> dict[str, Any]:
             "rated_areas": len(ratings),
             "runtime_verified": sum(int(item["stars"]) >= 4 for item in ratings),
             "operationally_certified": sum(
-                int(item["stars"]) == 5 for item in ratings
+                int(item["stars"]) == 7 for item in ratings
             ),
             "star_counts": star_counts,
+            "star_max": 7,
+            "higher_star_certification": "blocked_pending_authenticated_hrm_proof",
             "meaning": "Portfolio evidence view; not a release or safety certification.",
         },
         "intelligence_alliance_board": intelligence_alliances.get_founder_alliance_board(
