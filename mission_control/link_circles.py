@@ -107,16 +107,18 @@ def init_schema(*, assume_yes: bool = False, dry_run: bool = False) -> dict[str,
 
 def status() -> dict[str, Any]:
     needed = {"link_circles", "link_circle_members", "link_circle_invites"}
-    result: dict[str, Any] = {"configured": postgres_db.configured(), "ready": False, "first_party": True}
+    result: dict[str, Any] = {"configured": postgres_db.configured(), "ready": False, "messages_ready": False, "first_party": True}
     if not result["configured"]:
         return result
     try:
         with postgres_db.connect(readonly=True) as connection:
             rows = connection.execute(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_name=ANY(%s)",
-                (list(needed),),
+                (list(needed | {"link_circle_messages"}),),
             ).fetchall()
-        result["ready"] = needed <= {str(row[0]) for row in rows}
+        tables = {str(row[0]) for row in rows}
+        result["ready"] = needed <= tables
+        result["messages_ready"] = result["ready"] and "link_circle_messages" in tables
     except Exception:  # noqa: BLE001 - coarse fail-closed readiness only.
         return result
     return result
