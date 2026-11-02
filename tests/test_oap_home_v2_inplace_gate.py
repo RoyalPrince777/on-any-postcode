@@ -65,6 +65,21 @@ class HomeV2UpdateGateTests(unittest.TestCase):
         ), self.assertRaisesRegex(gate.BlockedUpgrade, "debuggable"):
             gate.verify(Path("installed-v2.apk"), Path("candidate-v2.apk"))
 
+    def test_debuggable_metadata_with_whitespace_is_rejected(self):
+        for badging in (
+            "application-label:'OAP Core'\\n application-debuggable \\n",
+            "application-label:'OAP Core'\\napplication-debuggable: true\\n",
+        ):
+            with self.subTest(badging=badging), mock.patch.object(
+                gate, "inspect_apk", side_effect=[
+                    (gate.EXPECTED_PACKAGE, 30, "3.0.0", ("a" * 64,)),
+                    (gate.EXPECTED_PACKAGE, 31, "3.1.0-home-update", ("a" * 64,)),
+                ]
+            ), mock.patch.object(gate, "command", return_value=badging), self.assertRaisesRegex(
+                gate.BlockedUpgrade, "debuggable"
+            ):
+                gate.verify(Path("installed-v2.apk"), Path("candidate-v2.apk"))
+
     def test_missing_apk_inspection_tools_block(self):
         with mock.patch.object(gate.shutil, "which", return_value=None), self.assertRaisesRegex(
             gate.BlockedUpgrade, "unavailable"
