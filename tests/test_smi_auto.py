@@ -223,7 +223,10 @@ def test_morpheus_mouse_mission_review_uses_existing_matrix_advisory_boundary():
     assert len(profiles) == 1
     assert profiles[0]["members"] == ("Morpheus", "Mouse")
     assert profiles[0]["world_id"] == "matrix"
-    assert "scenario boundaries" in " ".join(profiles[0]["roles"])
+    assert "Mouse designs training programs" in " ".join(profiles[0]["roles"])
+    assert profiles[0]["training_flow"][0] == "Morpheus defines lesson"
+    assert profiles[0]["training_flow"][2] == "Tank operates approved runtime"
+    assert profiles[0]["runtime_execution"] is False
     assert agents.MATRIX_ALLIANCE_POLICY["execution"] == "DISABLED"
     assert agents.MATRIX_ALLIANCE_POLICY["independent_votes"] is False
     assert agents.MATRIX_ALLIANCE_POLICY["founder_final_required"] is True
