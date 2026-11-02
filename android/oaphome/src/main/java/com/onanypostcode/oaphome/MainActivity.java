@@ -124,6 +124,12 @@ public class MainActivity extends Activity {
         b.setAllCaps(false);
         b.setTextColor(GOLD);
         b.setBackground(panel());
+        // Native pressed-state feedback: no JavaScript, tracking or long animations.
+        b.setMinHeight(dp(48));
+        b.setStateListAnimator(null);
+        android.content.res.ColorStateList pressTint =
+                android.content.res.ColorStateList.valueOf(Color.argb(72, 181, 98, 255));
+        b.setForeground(new android.graphics.drawable.RippleDrawable(pressTint, null, null));
         b.setOnClickListener(click);
         return b;
     }
