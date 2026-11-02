@@ -230,3 +230,24 @@ def test_morpheus_mouse_mission_review_uses_existing_matrix_advisory_boundary():
     assert agents.MATRIX_ALLIANCE_POLICY["execution"] == "DISABLED"
     assert agents.MATRIX_ALLIANCE_POLICY["independent_votes"] is False
     assert agents.MATRIX_ALLIANCE_POLICY["founder_final_required"] is True
+
+
+
+def test_mouse_dynamic_recommendation_preserves_matrix_home_and_authority():
+    recommendation = smi_auto.route_divisions(
+        ("engineering", "decision"), thinking="7",
+        mission="Review game mechanics and UI edge cases"
+    )["specialist_recommendation"]
+    assert recommendation["agent"] == "Mouse"
+    assert recommendation["commander"] == "Morpheus"
+    assert recommendation["home_world"] == "matrix"
+    assert recommendation["family_transfer"] is False
+    assert recommendation["dynamic_recommendation_only"] is True
+    assert recommendation["execution_granted"] is False
+    assert recommendation["approval_granted"] is False
+    assert recommendation["human_authority_final"] is True
+
+
+def test_mouse_not_recommended_for_unrelated_mission_or_oversized_input():
+    assert smi_auto.route_divisions(("memory",), mission="Review HRM receipts")["specialist_recommendation"] is None
+    assert smi_auto.recommend_matrix_mouse("x" * 2001) is None
