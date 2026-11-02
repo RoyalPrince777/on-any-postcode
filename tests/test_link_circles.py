@@ -54,7 +54,7 @@ def test_circle_schema_is_explicit_bounded_and_membership_only():
     assert "link_circles" in joined
     assert "link_circle_members" in joined
     assert "link_circle_invites" in joined
-    assert "message" not in joined.casefold()
+    assert "link_circle_messages" in joined\n    assert "recipient_id" not in joined.casefold()
     assert "media" not in joined.casefold()
 
 
@@ -222,3 +222,50 @@ def test_invite_recheck_after_room_lock_rejects_already_processed_invite(monkeyp
     monkeypatch.setattr(link_circles.postgres_db, "connect", lambda *a, **k: _Context(connection))
     assert link_circles.respond_invite(invitee, invite, "accepted") is False
     assert not any(query.startswith("INSERT INTO link_circle_members") for query, _ in connection.calls)
+
+
+def test_circle_message_rejects_nonmember_without_writing(monkeypatch):
+    author, circle = str(uuid.uuid4()), str(uuid.uuid4())
+
+    def handler(query, params):
+        if query.startswith("SELECT id FROM link_circles"):
+            return _Result(row=(circle,))
+        if query.startswith("SELECT 1 FROM link_circle_members"):
+            return _Result(row=None)
+        raise AssertionError("Unexpected query: " + query)
+
+    connection = _Connection(handler)
+    monkeypatch.setattr(link_circles.postgres_db, "connect", lambda *a, **k: _Context(connection))
+    with pytest.raises(ValueError, match="circle_membership_required"):
+        link_circles.send_circle_message(author, circle, "secret")
+    assert not connection.committed
+    assert not any(q.startswith("INSERT") for q, _ in connection.calls)
+
+
+def test_circle_message_member_write_and_private_read(monkeypatch):
+    author, circle, message_id = (str(uuid.uuid4()) for _ in range(3))
+    now = datetime.now(UTC)
+
+    def handler(query, params):
+        if query.startswith("SELECT id FROM link_circles"):
+            return _Result(row=(circle,))
+        if query.startswith("SELECT 1 FROM link_circle_members"):
+            return _Result(row=(1,))
+        if query.startswith("SELECT COUNT(*) FROM link_circle_messages"):
+            return _Result(row=(0,))
+        if query.startswith("INSERT INTO link_circle_messages"):
+            assert params == (circle, author, "Hello Room")
+            return _Result(row=(message_id,))
+        if query.startswith("SELECT id,sender_id,body,created_at"):
+            assert params == (circle, 50)
+            return _Result(rows=[(message_id, author, "Hello Room", now)])
+        raise AssertionError(query)
+
+    connection = _Connection(handler)
+    monkeypatch.setattr(link_circles.postgres_db, "connect", lambda *a, **k: _Context(connection))
+    assert link_circles.send_circle_message(author, circle, "Hello Room") == message_id
+    assert connection.committed
+    assert link_circles.circle_messages(author, circle) == [
+        {"message_id": message_id, "sender_id": author,
+         "body": "Hello Room", "created_at": now.isoformat()}
+    ]
