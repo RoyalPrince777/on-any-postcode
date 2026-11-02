@@ -29,6 +29,7 @@ def test_music_migration_versions_are_ordered_and_complete():
         "0012_oap_music_acceptance_receipts",
         "0013_oap_music_assets",
         "0014_music_market_purchase_spine",
+        "0015_music_company_rights_registry",
     ]
 
 
