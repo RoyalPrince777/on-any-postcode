@@ -19,6 +19,26 @@ class NativeRoyalHomeTests(unittest.TestCase):
         cls.art = ART.read_text(encoding="utf-8")
         cls.manifest = ET.parse(MANIFEST).getroot()
 
+    def test_koradaso_strict_shield_source_boundaries(self):
+        source = self.source
+        shield = source.split("final class KoradasoShield {", 1)[1].split(
+            "class OapSecureWebClient extends", 1
+        )[0]
+        for domain in ("doubleclick.net", "google-analytics.com", "taboola.com",
+                       "criteo.com", "quantserve.com"):
+            self.assertIn('"' + domain + '"', shield)
+        self.assertIn('host.equals(domain) || host.endsWith("." + domain)', shield)
+        self.assertNotIn("contains(domain)", shield)
+        self.assertIn("KoradasoShield.blocks(request.getUrl(), request.isForMainFrame())", source)
+        self.assertIn("KoradasoShield.blocks(request.getUrl(), true)", source)
+        self.assertIn("settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE)", source)
+        self.assertIn("old.clearHistory()", source)
+        self.assertIn("old.clearCache(true)", source)
+        self.assertIn("settings.setJavaScriptEnabled(false)", source)
+        self.assertIn("settings.setDomStorageEnabled(false)", source)
+        self.assertIn("setAcceptThirdPartyCookies(viewer, false)", source)
+        self.assertNotIn("removeAllCookies", source)
+
     def test_release_signing_is_not_used_for_debug(self):
         build = GRADLE.read_text(encoding="utf-8")
         debug = build.split("    buildTypes {", 1)[1].split("        release {", 1)[0]
