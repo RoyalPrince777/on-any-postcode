@@ -346,3 +346,15 @@ def test_my_market_has_private_pod_workspace_without_public_launch_control():
     assert "Save product" in template
     assert "Publish listing" not in template
     assert "public-launch" not in template
+
+
+def test_pod_manufacturer_choice_keeps_label_and_provider_key_in_sync():
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert 'id="market-supplier-slug" name="supplier_slug"' in template
+    assert '<option value="printful">Printful</option>' in template
+    assert '<option value="prodigi">Prodigi</option>' in template
+    assert 'id="market-supplier-label" name="supplier_label" type="hidden"' in template
+    assert "podSupplierLabel.value = names[podSupplier.value] || ''" in template
