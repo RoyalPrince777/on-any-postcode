@@ -1,8 +1,8 @@
-name: OAP Core local-first v28 compile proof
+name: OAP Core local-first v29 compile proof
 on:
   push:
     branches:
-      - fix/oap-core-local-first-routes-20261101
+      - fix/koradaso-browser-viewport-v29-20261102
     paths:
       - 'android/oaphome/**'
       - 'tests/test_oap_home_v2_native_royal.py'
