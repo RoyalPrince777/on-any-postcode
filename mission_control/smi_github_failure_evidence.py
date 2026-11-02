@@ -63,7 +63,7 @@ def inspect_failed_run(run_id: object, *, token: str, fetch: Fetch = _fetch_json
             raise ValueError("run_identity_mismatch")
         if run.get("status") != "completed" or run.get("conclusion") != "failure":
             return {**result, "error": "run_not_completed_failure"}
-        if run.get("repository", {}).get("full_name") != REPO:
+        if not isinstance(run.get("repository"), dict) or run["repository"].get("full_name") != REPO:
             return {**result, "error": "repository_identity_mismatch"}
         jobs_data = fetch(f"{API}/actions/runs/{run_id}/jobs?per_page=100", token)
         jobs = jobs_data.get("jobs")
@@ -91,3 +91,42 @@ def inspect_failed_run(run_id: object, *, token: str, fetch: Fetch = _fetch_json
         return {**result, "ready": True, "failed_jobs": tuple(failed), "error": None}
     except (HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError, json.JSONDecodeError):
         return {**result, "error": "github_evidence_unavailable"}
+
+
+def discover_recent_failed_runs(*, token: str, fetch: Fetch = _fetch_json) -> dict[str, Any]:
+    """Find recent completed OAP Core failures without requesting a link from Founder.
+
+    Bounded to the existing workflow, first page, and ten entries. This only
+    discovers run IDs; subsequent inspection is separately validated.
+    """
+    result: dict[str, Any] = {
+        "kind": "smi_github_failed_run_discovery", "ready": False,
+        "run_ids": (), "error": None, "read_only": True,
+        "execution_granted": False, "approval_granted": False,
+        "human_authority_final": True, "consequential_action": False,
+    }
+    if not token or not token.strip():
+        return {**result, "error": "github_read_token_missing"}
+    try:
+        response = fetch(
+            f"{API}/actions/workflows/oap-home-apk.yml/runs?per_page=10&status=completed",
+            token,
+        )
+        runs = response.get("workflow_runs")
+        if not isinstance(runs, list) or len(runs) > 10:
+            raise ValueError("run_list_unavailable")
+        ids = []
+        for run in runs:
+            if not isinstance(run, dict):
+                raise ValueError("invalid_run")
+            if run.get("conclusion") != "failure":
+                continue
+            if not isinstance(run.get("repository"), dict) or run["repository"].get("full_name") != REPO:
+                raise ValueError("repository_identity_mismatch")
+            rid = run.get("id")
+            if not isinstance(rid, int) or isinstance(rid, bool) or rid <= 0:
+                raise ValueError("invalid_run_id")
+            ids.append(rid)
+        return {**result, "ready": True, "run_ids": tuple(dict.fromkeys(ids))}
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError, AttributeError):
+        return {**result, "error": "github_discovery_unavailable"}
