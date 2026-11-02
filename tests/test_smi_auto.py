@@ -215,3 +215,15 @@ def test_matrix_mouse_creative_simulation_is_advisory_not_new_passport():
     assert agents.MATRIX_ALLIANCE_POLICY["execution"] == "DISABLED"
     assert agents.MATRIX_ALLIANCE_POLICY["independent_votes"] is False
     assert agents.MATRIX_ALLIANCE_POLICY["founder_final_required"] is True
+
+
+def test_morpheus_mouse_mission_review_uses_existing_matrix_advisory_boundary():
+    from mission_control import agents
+    profiles = [x for x in agents.MATRIX_ADVISORY_ALLIANCES if x["id"] == "morpheus_mouse_mission_design"]
+    assert len(profiles) == 1
+    assert profiles[0]["members"] == ("Morpheus", "Mouse")
+    assert profiles[0]["world_id"] == "matrix"
+    assert "scenario boundaries" in " ".join(profiles[0]["roles"])
+    assert agents.MATRIX_ALLIANCE_POLICY["execution"] == "DISABLED"
+    assert agents.MATRIX_ALLIANCE_POLICY["independent_votes"] is False
+    assert agents.MATRIX_ALLIANCE_POLICY["founder_final_required"] is True
