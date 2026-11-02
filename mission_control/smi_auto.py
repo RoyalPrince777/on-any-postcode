@@ -349,3 +349,40 @@ def build_evidence_vote_board(
         "authority_granted": False,
         "human_authority_final": True,
     }
+
+
+def evidence_swot_for_failed_build(evidence: object) -> dict[str, object]:
+    """Bounded SWOT from verified GitHub failure evidence, never an AI vote.
+
+    Returns nothing actionable unless run, failed-job and log-category proof
+    is complete. No new engine, model call, permission, or production write.
+    """
+    base = {"ready": False, "strengths": (), "weaknesses": (),
+            "opportunities": (), "threats": (), "next_action": None,
+            "execution_granted": False, "approval_granted": False,
+            "human_authority_final": True}
+    if not isinstance(evidence, dict) or evidence.get("ready") is not True:
+        return base
+    log_analysis = evidence.get("log_analysis")
+    if not isinstance(log_analysis, dict) or log_analysis.get("ready") is not True:
+        return base
+    categories = log_analysis.get("log_categories")
+    if not isinstance(categories, (tuple, list)) or not categories:
+        return base
+    allowed = {"signing_configuration", "source_verification",
+               "gradle_compile", "dependency_resolution", "android_sdk"}
+    seen = set()
+    for row in categories:
+        if not isinstance(row, dict) or not isinstance(row.get("categories"), (tuple, list)):
+            return base
+        if any(not isinstance(x, str) or x not in allowed for x in row["categories"]):
+            return base
+        seen.update(row["categories"])
+    if not seen:
+        return base
+    return {**base, "ready": True,
+            "strengths": ("A completed failed run and bounded job-log evidence were collected.",),
+            "weaknesses": tuple(sorted(seen)),
+            "opportunities": ("Prepare one targeted reversible correction after exact-commit review.",),
+            "threats": ("Unverified fixes, signing bypass and stale CI evidence must not grant Green.",),
+            "next_action": "NIRMATA review classified failure; require exact-head CI and Founder Final for release."}
