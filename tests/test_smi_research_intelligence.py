@@ -83,3 +83,12 @@ def test_investigation_case_rejects_empty_or_untraceable_claims():
         build_investigation_case("", "question", [])
     with pytest.raises(ValueError):
         build_investigation_case("case", "question", [{"source": "example"}])
+
+
+def test_investigation_case_rejects_blank_source():
+    import pytest
+
+    from oap.smi.research_intelligence import build_investigation_case
+
+    with pytest.raises(ValueError, match="requires a source"):
+        build_investigation_case("case", "question", [{"claim": "Unsupported claim", "source": "   "}])
