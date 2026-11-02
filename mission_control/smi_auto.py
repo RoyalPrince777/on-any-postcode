@@ -100,8 +100,10 @@ def route_divisions(divisions: object, *, thinking: object = "AUTO") -> dict[str
     choice = str(thinking or "AUTO").upper()
     if choice not in {"AUTO", "3", "7", "21"}:
         raise ValueError("invalid_smi_thinking")
+    # Memory missions require the established seven-check Hathi review even
+    # when selected alone; AUTO remains advisory and grants no execution.
     depth = (21 if "recovery" in distinct or len(distinct) >= 5 else
-             7 if len(distinct) >= 2 else 3) if choice == "AUTO" else int(choice)
+             7 if "memory" in distinct or len(distinct) >= 2 else 3) if choice == "AUTO" else int(choice)
     lenses: list[str] = []
     teams = []
     for name in distinct:
