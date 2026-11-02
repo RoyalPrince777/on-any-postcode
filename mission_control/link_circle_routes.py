@@ -161,3 +161,41 @@ def circle_step_out(circle_id: str):
         return _notice("stepped-out")
     except (ValueError, link_circles.LinkCirclesUnavailable):
         return _notice("circle-unavailable")
+
+
+@bp.get("/linkup/circles/<circle_id>/messages")
+@web_security.login_required(api=True)
+def circle_message_list(circle_id: str):
+    if not link_circles.status().get("ready"):
+        return _error("circle_unavailable", 503)
+    try:
+        messages = link_circles.circle_messages(_identity(), circle_id)
+        return _no_store(make_response(jsonify(messages=messages), 200))
+    except ValueError as exc:
+        return _error(str(exc), 403 if str(exc) == "circle_membership_required" else 400)
+    except link_circles.LinkCirclesUnavailable:
+        return _error("circle_unavailable", 503)
+
+
+@bp.post("/linkup/circles/<circle_id>/messages")
+@web_security.login_required(api=True)
+def circle_message_send(circle_id: str):
+    guarded = _mutation_guard()
+    if guarded is not None:
+        return guarded
+    if not web_security.PUBLIC_WRITE_LIMITER.allow(_identity()):
+        return _error("rate_limited", 429)
+    if not link_circles.status().get("ready"):
+        return _error("circle_unavailable", 503)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_payload", 400)
+    try:
+        message_id = link_circles.send_circle_message(_identity(), circle_id, payload.get("body"))
+        return _no_store(make_response(jsonify(message_id=message_id, state="landed"), 201))
+    except ValueError as exc:
+        code = str(exc)
+        status = 403 if code in {"circle_membership_required", "guardian_blocked_message"} else 429 if code == "linkup_rate_limit" else 400
+        return _error(code, status)
+    except link_circles.LinkCirclesUnavailable:
+        return _error("circle_unavailable", 503)
