@@ -36,6 +36,7 @@ from . import (
     smi_command_dashboard,
     smi_founder_assets,
     smi_receipt_backend,
+    smi_auto,
     smi_recursive_improvement,
     smi_reply_voice_local,
     smi_workbench,
@@ -354,6 +355,22 @@ def war_room_status():
     """Return the same read-only, redacted War Room evidence projection."""
 
     return _no_store(make_response(jsonify(war_room.get_war_room_dashboard())))
+
+
+@bp.post("/war-room/divisions/route")
+@web_security.login_required(api=True)
+def war_room_divisions_route():
+    """Founder-session-only advisory selection; no actions or votes executed."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh the secure session.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Expected JSON object.", 400)
+    try:
+        result = smi_auto.route_divisions(payload.get("divisions"), thinking=payload.get("thinking", "AUTO"))
+    except ValueError as exc:
+        return _error("invalid_selection", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.get("/war-room/actions")
