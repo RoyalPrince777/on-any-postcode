@@ -217,6 +217,9 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams storeQuickLayout = new LinearLayout.LayoutParams(-1, dp(64));
         storeQuickLayout.setMargins(0, dp(4), 0, dp(8));
         body.addView(storeQuick, storeQuickLayout);
+        addButton("♛ MY OAP ACCOUNT · LOCAL PROFILE", v -> oapAccount());
+        addButton("◇ PAY FOR OAP SERVICES · VIEW OPTIONS", v -> oapServicePayments());
+
         Button dataQuick = button("◈ OAP DATA\nFOUNDER-ONLY · SIGN-IN REQUIRED", v -> destination("OAP DATA"));
         dataQuick.setContentDescription("Open the private OAP Data dashboard; server authentication and human authority are required.");
         body.addView(dataQuick, new LinearLayout.LayoutParams(-1, dp(62)));
@@ -321,6 +324,53 @@ public class MainActivity extends Activity {
         addButton("⚙ SETTINGS", v -> open(new Intent(Settings.ACTION_SETTINGS)));
         addButton("↩ CHANGE DEFAULT HOME · ANDROID SETTINGS",
                 v -> open(new Intent(Settings.ACTION_HOME_SETTINGS)));
+    }
+
+    // Local profile is device-only UI, never a verified server account or Founder authority.
+    private void oapAccount() {
+        base("MY OAP ACCOUNT");
+        final android.content.SharedPreferences prefs =
+                getSharedPreferences("oap_core_local_profile", MODE_PRIVATE);
+        body.addView(label("LOCAL PROFILE · THIS DEVICE ONLY", 16));
+        body.addView(label("A saved display name does not create an online account, "
+                + "verify identity or grant Founder permissions.", 13));
+        EditText displayName = new EditText(this);
+        displayName.setSingleLine(true);
+        displayName.setText(prefs.getString("display_name", ""));
+        displayName.setHint("Display name");
+        displayName.setTextColor(Color.WHITE);
+        displayName.setHintTextColor(Color.LTGRAY);
+        displayName.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+                | android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
+        body.addView(displayName, new LinearLayout.LayoutParams(-1, dp(58)));
+        addButton("SAVE LOCAL PROFILE", v -> {
+            String name = displayName.getText().toString().trim();
+            if (name.isEmpty() || name.length() > 60) {
+                android.widget.Toast.makeText(this, "Enter a name up to 60 characters",
+                        android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+            prefs.edit().putString("display_name", name).apply();
+            android.widget.Toast.makeText(this, "Local profile saved on this device",
+                    android.widget.Toast.LENGTH_SHORT).show();
+        });
+        addButton("CLEAR LOCAL PROFILE", v -> {
+            prefs.edit().remove("display_name").apply();
+            displayName.setText("");
+        });
+        addButton("BACK TO OAP CORE", v -> home());
+    }
+
+    // Deliberately non-executing service catalogue; no amount, card, charge or claim of payment.
+    private void oapServicePayments() {
+        base("PAY FOR OAP SERVICES");
+        body.addView(label("OAP PAY · SERVICE OPTIONS", 19));
+        body.addView(label("Choose an OAP service to explore. Payments are not active "
+                + "on this device. No money will be taken.", 14));
+        addButton("OAP STORE · BROWSE", v -> destination("OAP STORE"));
+        addButton("SIKA FINANCE · VIEW", v -> destination("SIKA"));
+        addButton("OAP WORLD · SERVICES", v -> destination("OAP WORLD"));
+        addButton("BACK TO OAP CORE", v -> home());
     }
 
     private void addPersistentHomeDock(LinearLayout root) {
