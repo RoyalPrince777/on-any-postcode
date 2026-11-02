@@ -426,7 +426,9 @@
     const selectedPlan = await routeResponse.json().catch(() => ({}));
     if (!routeResponse.ok) throw new Error(selectedPlan?.error?.message || 'SMI routing failed');
     const lines = ['🟣 SMI AUTO · ' + selectedPlan.thinking_depth + ' Thinking · advisory route',
-      'Divisions: ' + selectedPlan.divisions.map(x => x.division + ' (' + x.lead + ')').join(', ')];
+      'Divisions: ' + selectedPlan.divisions.map(x => x.division + ' (' + x.lead + ')').join(', '),
+      'Thinking plan: ' + selectedPlan.selected_checks.length + ' checks selected · 0 verified executed',
+      'Agent execution: NONE · Independent votes: NOT VERIFIED'];
 
     for (const action of actions) {
       const payload = await run(action);
@@ -435,6 +437,7 @@
       const state = payload.state || payload.action?.state || 'reviewed';
       lines.push(label + ': ' + signal + ' · ' + state);
     }
+    lines.push('Proof actions queried: ' + actions.length + ' (not equivalent to Thinking checks)');
     lines.push('👑 Founder Final: unchanged · separate authority');
     show('purple', lines.join('\n'));
   }
