@@ -171,3 +171,16 @@ def test_completion_summary_fails_closed_on_malformed_metrics_and_unproved_coher
         "coherent": {"passed": False, "score": 99},
     })
     assert misleading["evidence_state"] == "PARTIAL"
+
+
+def test_unknown_guardian_outcome_never_reports_completion_signal():
+    unknown = smi_thinking_process.completion_summary({
+        "guardian": "UNKNOWN",
+        "output_state": "RECOMMENDATION_READY",
+        "coherent": {"passed": True, "score": 99},
+    })
+    assert unknown["evidence_state"] == "PARTIAL"
+    assert unknown["signal"]["id"] == "warning"
+    blocked = smi_thinking_process.completion_summary({"guardian": "BLOCKED"})
+    assert blocked["evidence_state"] == "BLOCKED"
+    assert blocked["signal"]["id"] == "critical"
