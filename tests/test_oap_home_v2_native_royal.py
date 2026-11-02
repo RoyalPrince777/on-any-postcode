@@ -148,7 +148,7 @@ class NativeRoyalHomeTests(unittest.TestCase):
         self.assertIn('return "https".equalsIgnoreCase(uri.getScheme())', self.source)
         config = (NATIVE / "src/main/res/xml/oap_network_security.xml").read_text(encoding="utf-8")
         self.assertIn('<base-config cleartextTrafficPermitted="false"/>', config)
-        self.assertIn('<domain>127.0.0.1</domain>', config)
+        self.assertIn('<domain includeSubdomains="false">127.0.0.1</domain>', config)
         self.assertIn('android:networkSecurityConfig="@xml/oap_network_security"', MANIFEST.read_text(encoding="utf-8"))
         self.assertIn("OPEN KORADASO INTERNET", self.source)
 
