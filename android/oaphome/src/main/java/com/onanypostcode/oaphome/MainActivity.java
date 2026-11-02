@@ -667,6 +667,7 @@ public class MainActivity extends Activity {
         viewer.setWebViewClient(new OapSecureWebClient(this) {
             @Override public void onPageStarted(android.webkit.WebView view, String url, android.graphics.Bitmap favicon) {
                 browserPageFailed[0] = false;
+                viewer.setVisibility(View.VISIBLE);
                 loadStatus.setText(url.startsWith(OAP_LOCAL_ORIGIN + "/") ? "Loading OAP LOCAL…" : "Loading HTTPS page…");
             }
             @Override public void onPageFinished(android.webkit.WebView view, String url) {
@@ -676,6 +677,8 @@ public class MainActivity extends Activity {
                     android.webkit.WebResourceError error) {
                 if (request.isForMainFrame()) {
                     browserPageFailed[0] = true;
+                    // Prevent the Android system error page covering the royal navigation.
+                    viewer.setVisibility(View.GONE);
                     loadStatus.setText("Page unavailable: " + error.getDescription()
                         + (request.getUrl().toString().startsWith(OAP_LOCAL_ORIGIN)
                         ? " · Start OAP Flask on this phone at 127.0.0.1:5050; no public fallback." : ""));
