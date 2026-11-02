@@ -751,6 +751,60 @@ public class MainActivity extends Activity {
             try { startActivity(new Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS)); }
             catch (ActivityNotFoundException e) { loadStatus.setText("Android Downloads view unavailable."); }
         });
+        // Bounded tab sessions: each slot owns a separate WebView history snapshot.
+        // This keeps the existing hardened single-WebView configuration and avoids
+        // silently enabling JavaScript or cross-tab execution.
+        java.util.ArrayList<android.os.Bundle> tabStates = new java.util.ArrayList<>();
+        tabStates.add(new android.os.Bundle());
+        final int[] selectedTab = {0};
+        addButton("TABS · OPEN / SWITCH / CLOSE", v -> {
+            if (activeWebView != viewer) return;
+            java.util.ArrayList<String> options = new java.util.ArrayList<>();
+            for (int i = 0; i < tabStates.size(); i++) {
+                options.add((i == selectedTab[0] ? "● " : "") + "Tab " + (i + 1));
+            }
+            options.add("+ New tab (max 4)");
+            if (tabStates.size() > 1) options.add("× Close current tab");
+            new android.app.AlertDialog.Builder(this)
+                    .setTitle("KORADASO · Browser tabs")
+                    .setItems(options.toArray(new String[0]), (dialog, which) -> {
+                        int previous = selectedTab[0];
+                        if (which == tabStates.size()) {
+                            if (tabStates.size() >= 4) {
+                                loadStatus.setText("Four-tab limit reached."); return;
+                            }
+                            android.os.Bundle stored = new android.os.Bundle();
+                            viewer.saveState(stored);
+                            tabStates.set(previous, stored);
+                            tabStates.add(new android.os.Bundle());
+                            selectedTab[0] = tabStates.size() - 1;
+                            viewer.loadUrl("about:blank");
+                            viewer.clearHistory();
+                            address.setText("");
+                            loadStatus.setText("New tab ready. Enter an address or search.");
+                        } else if (which == tabStates.size() + 1 && tabStates.size() > 1) {
+                            tabStates.remove(previous);
+                            selectedTab[0] = Math.min(previous, tabStates.size() - 1);
+                            viewer.loadUrl("about:blank");
+                            viewer.clearHistory();
+                            android.os.Bundle saved = tabStates.get(selectedTab[0]);
+                            if (!saved.isEmpty()) viewer.restoreState(saved);
+                            address.setText(viewer.getUrl() == null ? "" : viewer.getUrl());
+                        } else if (which < tabStates.size() && which != previous) {
+                            android.os.Bundle stored = new android.os.Bundle();
+                            viewer.saveState(stored);
+                            tabStates.set(previous, stored);
+                            selectedTab[0] = which;
+                            viewer.loadUrl("about:blank");
+                            viewer.clearHistory();
+                            android.os.Bundle saved = tabStates.get(which);
+                            if (!saved.isEmpty()) viewer.restoreState(saved);
+                            address.setText(viewer.getUrl() == null ? "" : viewer.getUrl());
+                        }
+                    })
+                    .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                    .show();
+        });
         addButton("GO / SEARCH", v ->
                 navigateKoradasoInput(address.getText().toString(), viewer, loadStatus));
         LinearLayout browserControls = new LinearLayout(this);
