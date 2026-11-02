@@ -610,8 +610,8 @@ public class MainActivity extends Activity {
 
     private void openInternet() {
         closeWebView();
-        base("♛ KORADASO INTERNET");
-        TextView royal = label("♛\nK\nKORADASO\nINTERNET", 32);
+        base("♛ KORADASO");
+        TextView royal = label("♛\nK\nKORADASO INTERNET", 28);
         royal.setTypeface(Typeface.SERIF, Typeface.BOLD);
         royal.setGravity(Gravity.CENTER);
         royal.setTextColor(GOLD);
@@ -637,7 +637,6 @@ public class MainActivity extends Activity {
         EditText address = new EditText(this);
         address.setSingleLine(true);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
-        address.setHint("HTTPS site or OAP LOCAL address");
         address.setText(pendingInternetAddress != null ? pendingInternetAddress : "");
         address.setHint("Search the live web or enter HTTPS / OAP LOCAL address");
         pendingInternetAddress = null;
@@ -707,7 +706,7 @@ public class MainActivity extends Activity {
         LinearLayout quickLinks = new LinearLayout(this);
         quickLinks.setOrientation(LinearLayout.VERTICAL);
         LinearLayout destinationRow = null;
-        String[] names = {"🌍 WORLD", "📍 MAPS", "✉ MAIL", "🛒 MARKET", "✦ AI STUDIO", "⬇ LIBRARY", "⚙ SETTINGS"};
+        String[] names = {"🌍 WORLD", "📍 MAPS", "✉ MAIL", "🛒 MARKET", "✦ AI STUDIO", "⬇ DOWNLOADS", "⚙ SETTINGS"};
         String[] paths = {"/world", "/maps", "/the-link", "/the-spot/market", "/studio", "/library", "/koradaso"};
         for (int i = 0; i < names.length; i++) {
             if (i == 0 || i == 3) {
@@ -728,6 +727,11 @@ public class MainActivity extends Activity {
                                 open(intent);
                             })
                             .show();
+                    return;
+                }
+                if ("/library".equals(path)) {
+                    try { startActivity(new Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS)); }
+                    catch (ActivityNotFoundException error) { loadStatus.setText("Android Downloads view unavailable."); }
                     return;
                 }
                 String target = OAP_LOCAL_ORIGIN + path;
@@ -838,8 +842,6 @@ public class MainActivity extends Activity {
                     .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                     .show();
         });
-        addButton("GO / SEARCH", v ->
-                navigateKoradasoInput(address.getText().toString(), viewer, loadStatus));
         LinearLayout browserControls = new LinearLayout(this);
         browserControls.setOrientation(LinearLayout.HORIZONTAL);
         String[] controlNames = {"BACK", "FORWARD", "RELOAD", "HISTORY"};
