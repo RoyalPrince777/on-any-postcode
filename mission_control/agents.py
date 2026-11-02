@@ -389,6 +389,25 @@ def validate_agent_registry(
         if "EXECUTE" in nirmata["permissions"] or nirmata["body"]["execution"] != "Disabled":
             errors.append("Nirmata cannot hold execution authority.")
 
+    # Fail closed if advisory rounds are altered, duplicated or granted authority.
+    round_numbers = tuple(item["round"] for item in MATRIX_SEVEN_ROUND_UPGRADE)
+    if round_numbers != (1, 2, 3, 4, 5, 6, 7):
+        errors.append("Matrix review rounds must be exactly 1 through 7.")
+    if any(not item.get("leads") or not item.get("evidence") or not item.get("check")
+           for item in MATRIX_SEVEN_ROUND_UPGRADE):
+        errors.append("Every Matrix round needs leads, an evidence requirement and a check.")
+    alliance_ids = tuple(item["id"] for item in MATRIX_ADVISORY_ALLIANCES)
+    if len(alliance_ids) != len(set(alliance_ids)):
+        errors.append("Matrix advisory alliances must have unique identifiers.")
+    if any(item.get("world_id") != "matrix" or item.get("home_system") != "Matrix System"
+           for item in MATRIX_ADVISORY_ALLIANCES):
+        errors.append("Matrix advisory alliances must remain in Matrix Intelligence.")
+    if (MATRIX_ALLIANCE_POLICY.get("execution") != "DISABLED"
+            or MATRIX_ALLIANCE_POLICY.get("independent_votes") is not False
+            or MATRIX_ALLIANCE_POLICY.get("founder_final_required") is not True
+            or MATRIX_ALLIANCE_POLICY.get("guardian_hrm_required") is not True):
+        errors.append("Matrix advisory alliance authority boundary has changed.")
+
     passed = not errors
     result = dict(base)
     result["errors"] = errors
