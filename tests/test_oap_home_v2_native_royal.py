@@ -37,9 +37,9 @@ class NativeRoyalHomeTests(unittest.TestCase):
     def test_package_identity_and_separate_internet_app(self):
         build = GRADLE.read_text(encoding="utf-8")
         self.assertIn("applicationId 'com.onanypostcode.oaphome.v2'", build)
-        self.assertIn("versionCode 30", build)
+        self.assertIn("versionCode 31", build)
         self.assertNotIn("applicationId 'com.onanypostcode.oaphome'\n", build)
-        self.assertIn("versionName '3.0.0-manual-update'", build)
+        self.assertIn("versionName '3.1.0-home-update'", build)
         queries = self.manifest.find("queries")
         self.assertIsNotNone(queries)
         self.assertTrue(any(p.get(ANDROID + "name") == "com.onanypostcode.oapworld"
