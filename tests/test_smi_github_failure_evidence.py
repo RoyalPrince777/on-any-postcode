@@ -81,3 +81,30 @@ def test_discovery_rejects_wrong_repository():
     })
     assert result["ready"] is False
     assert result["error"] == "github_discovery_unavailable"
+
+
+def test_newer_success_does_not_reactivate_old_failure():
+    from mission_control.smi_github_failure_evidence import discover_recent_failed_runs
+
+    def fetch(url, token):
+        return {"workflow_runs": [
+            {"id": 160, "conclusion": "success", "repository": {"full_name": REPO}},
+            {"id": 157, "conclusion": "failure", "repository": {"full_name": REPO}},
+        ]}
+
+    evidence = discover_recent_failed_runs(token="read-only", fetch=fetch)
+    assert evidence["ready"] is True
+    assert evidence["run_ids"] == (157,)
+    assert evidence["latest_conclusion"] == "success"
+    assert evidence["current_failure"] is False
+
+
+def test_latest_failed_run_is_actionable_without_repair_authority():
+    from mission_control.smi_github_failure_evidence import discover_recent_failed_runs
+
+    evidence = discover_recent_failed_runs(token="read-only", fetch=lambda url, token: {
+        "workflow_runs": [{"id": 157, "conclusion": "failure",
+                           "repository": {"full_name": REPO}}],
+    })
+    assert evidence["current_failure"] is True
+    assert evidence["execution_granted"] is False
