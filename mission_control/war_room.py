@@ -306,6 +306,8 @@ def _rating(
     impact: int,
     parent: str | None = None,
     truth_boundary: str | None = None,
+    independent_verification: str | None = None,
+    sustained_certification: str | None = None,
 ) -> dict[str, Any]:
     if len(stages) != 5:
         raise ValueError("Every War Room rating requires exactly five evidence stages")
@@ -318,7 +320,14 @@ def _rating(
         else:
             stage_blocked = True
 
-    rubric = RATING_RUBRIC[stars]
+    legacy_stars = stars
+    # Higher stars are never inferred from a passing five-gate projection.
+    # Each requires an attributable receipt and the preceding stage.
+    if stars == 5 and isinstance(independent_verification, str) and independent_verification.strip():
+        stars = 6
+    if stars == 6 and isinstance(sustained_certification, str) and sustained_certification.strip():
+        stars = 7
+    rubric = RATING_RUBRIC[min(stars, 5)]
     first_missing = next(
         (stage["stage"] for stage in stages if not stage["passed"]),
         None,
@@ -332,16 +341,18 @@ def _rating(
         "stars": stars,
         "stars_display": "★" * stars + "☆" * (7 - stars),
         "stars_max": 7,
-        "legacy_proof_gates_passed": stars,
-        "higher_star_proof": "UNRATED",
+        "legacy_proof_gates_passed": legacy_stars,
+        "higher_star_proof": "CERTIFIED" if stars == 7 else "INDEPENDENT_VERIFIED" if stars == 6 else "UNRATED",
+        "independent_verification_receipt": independent_verification if stars >= 6 else None,
+        "sustained_certification_receipt": sustained_certification if stars == 7 else None,
         "score": round(stars * 100 / 7),
-        "label": rubric["label"],
+        "label": "Sustained operationally certified" if stars == 7 else "Independently verified" if stars == 6 else rubric["label"],
         "signal": rubric["signal"],
         "first_missing_stage": first_missing,
         "next_gate": next_gate,
         "impact": impact,
         "truth_boundary": truth_boundary,
-        "human_approval_required": stars < 5,
+        "human_approval_required": stars < 7,
         "stages": stages,
     }
 
