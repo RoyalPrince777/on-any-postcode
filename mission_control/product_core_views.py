@@ -29,7 +29,6 @@ from . import (
     music_recovery,
     open_cinema,
     open_cinema_evidence,
-    tv_founder_intake,
     open_music_intake,
     pod_provider_registry,
     printful_pod_adapter,
@@ -43,6 +42,7 @@ from . import (
     sika_payment_orchestrator,
     sika_payment_submission_evidence,
     sika_secure_provider_runtime,
+    tv_founder_intake,
     web_security,
 )
 
