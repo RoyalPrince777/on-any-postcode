@@ -71,7 +71,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <input id="address" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Website address" placeholder="Search or type a website address…" required>
 <button type="submit">GO</button>
 </form>
-<p class="note" id="address-note" role="status">Search OAP first. External web searches are optional and require confirmation.</p>
+<p class="note" id="address-note" role="status">OAP Search currently finds public OAP apps only. For wider web results, enable external search in Settings; each query requires confirmation.</p>
 <h2>EXPLORE YOUR WORLD</h2>
 <div class="grid">
 <a class="tile" href="/world"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>Discover OAP World</span></a>
@@ -86,7 +86,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <a href="/koradaso">KORADASO</a><a href="/world">OAP World</a><a href="/library">Library</a>
 </div>
 <p class="note" id="bookmark-note" role="status">Saved bookmarks stay in this browser only. Nothing is uploaded to OAP.</p>
-<details class="browser-settings" id="browser-settings"><summary>⚙ Browser settings</summary><p>Searches stay within OAP by default. Optional OPEN WEB search sends your query to an external provider only after confirmation. External HTTPS addresses also require confirmation. OAP does not operate a global web index. No private pages are saved offline here.</p><label for="open-web-search"><input type="checkbox" id="open-web-search"> Use external web search for search queries (confirm each time)</label><label for="reduce-motion"><input type="checkbox" id="reduce-motion"> Reduce visual motion for this page</label></details><nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button><a href="/koradaso">⌂ Home</a><a href="/world">🌍 World</a><a href="/">↩ OAP</a></nav>
+<details class="browser-settings" id="browser-settings"><summary>⚙ Browser settings</summary><p>OAP Search searches the public OAP app catalogue only, not a global web index. Optional OPEN WEB search sends your query to DuckDuckGo only after confirmation. External HTTPS addresses also require confirmation. OAP does not operate a global web index. No private pages are saved offline here.</p><label for="open-web-search"><input type="checkbox" id="open-web-search"> Search the wider web using DuckDuckGo (confirm each time)</label><label for="reduce-motion"><input type="checkbox" id="reduce-motion"> Reduce visual motion for this page</label></details><nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button><a href="/koradaso">⌂ Home</a><a href="/world">🌍 World</a><a href="/">↩ OAP</a></nav>
 </main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
 </div>
 <script>
@@ -136,7 +136,7 @@ if(raw.startsWith("/")&&!raw.startsWith("//")){
 const explicitScheme=/^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
 const hostLike=/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:[/?#][^\s]*)?$/i.test(raw);
 if(!explicitScheme&&!hostLike){
-  if(raw.length>500){note.textContent="Search query is too long.";return;}
+  if(raw.length>120){note.textContent="OAP Search supports up to 120 characters. Shorten your query.";return;}
   if(openWebSearch.checked){
     if(window.confirm("OPEN WEB SEARCH — Your query will be sent to DuckDuckGo outside OAP. Continue?")){
       window.location.assign("https://duckduckgo.com/?q="+encodeURIComponent(raw));
