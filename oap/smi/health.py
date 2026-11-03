@@ -36,10 +36,15 @@ class SMIHealthService:
             except Exception:  # noqa: BLE001 - a health probe must fail closed.
                 kernel = {"ready": False, "reason": "status_unavailable"}
 
-        healthy = brain.get("ready") is True and kernel.get("ready") is True
+        blockers = tuple(
+            name
+            for name, snapshot in (("brain", brain), ("living_kernel", kernel))
+            if snapshot.get("ready") is not True
+        )
         return {
             "timestamp": utc_now().isoformat(),
-            "status": "healthy" if healthy else "degraded",
+            "status": "degraded" if blockers else "healthy",
+            "readiness_blockers": blockers,
             "brain": brain,
             "kernel": kernel,
             "human_approval_final": True,
