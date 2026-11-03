@@ -12,6 +12,20 @@ assert.equal(api.motionFor("paused",220,1).mouth[2],1);
 assert.equal(api.motionFor("speaking",220,0).mouth[2],1);
 assert.ok(api.motionFor("speaking",220,1).mouth[2]>1);
 assert.ok(api.motionFor("thinking",220,1).mouth[2]===1);
+assert.equal(api.boundedGaze({x:2,y:-3}).x,1);
+assert.equal(api.boundedGaze({x:2,y:-3}).y,-1);
+assert.equal(api.boundedGaze({x:NaN,y:0}),null);
+assert.ok(api.blinkEnvelope(750)>0,"first nonuniform blink");
+assert.ok(api.blinkEnvelope(3420)>0,"second nonuniform blink");
+assert.ok(api.blinkEnvelope(3575)>0,"short follow-up blink");
+assert.equal(api.blinkEnvelope(2000),0);
+const neutral=api.motionFor("listening",1200,0);
+const directed=api.motionFor("listening",1200,0,{x:1,y:-1});
+assert.ok(directed.eyes[0]>neutral.eyes[0],"gaze moves eye pixels right");
+assert.ok(directed.eyes[1]<neutral.eyes[1],"gaze moves eye pixels up");
+assert.ok(directed.head[0]>neutral.head[0],"head coordinates with gaze");
+assert.deepEqual(api.motionFor("stopped",1200,0,{x:1,y:1}),api.motionFor("stopped",1200,0),"STOP ignores gaze");
+assert.deepEqual(api.motionFor("paused",1200,0,{x:1,y:1}),api.motionFor("paused",1200,0),"PAUSE ignores gaze");
 const region={x:0,y:0,w:11,h:11,cx:5,cy:5,rx:5,ry:5};
 const data=new Uint8ClampedArray(11*11*4);
 for(let y=0;y<11;y++)for(let x=0;x<11;x++){
@@ -54,3 +68,7 @@ assert.ok(source.includes('win.addEventListener("oap-smi-reduced-motion-change"'
   "motion engine must react to Settings changes");
 assert.ok(source.includes("userReducedMotionPreference:userReducedMotion"),
   "proof snapshot must expose explicit Reduced Motion state");
+
+assert.ok(source.includes('win.addEventListener("oap-smi-gaze-target"'),"gaze must use explicit event only");
+assert.ok(source.includes("if(stoppedLatched)return;"),"STOP must latch against late state events");
+assert.ok(source.includes("if(stoppedLatched||!live||userReducedMotion)return;"),"gaze respects STOP, live and reduced-motion state");
