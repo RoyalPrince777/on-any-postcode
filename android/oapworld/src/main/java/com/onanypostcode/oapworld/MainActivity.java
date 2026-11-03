@@ -182,13 +182,18 @@ public final class MainActivity extends ComponentActivity {
             public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
                 Uri origin = Uri.parse(url == null ? "" : url);
                 Uri certified = Uri.parse(OAP_ORIGIN);
-                boolean fromWorld = "https".equalsIgnoreCase(origin.getScheme())
+                boolean sameTrustedOrigin = "https".equalsIgnoreCase(origin.getScheme())
                         && certified.getHost() != null
                         && certified.getHost().equalsIgnoreCase(origin.getHost())
-                        && origin.getPort() == -1
-                        && "/world".equals(origin.getPath());
-                if (!fromWorld || message == null
-                        || !message.startsWith("OPEN WEB — Leave OAP World and visit ")) {
+                        && origin.getPort() == -1;
+                boolean worldConsent = "/world".equals(origin.getPath())
+                        && message != null
+                        && message.startsWith("OPEN WEB — Leave OAP World and visit ");
+                boolean koradasoConsent = "/koradaso".equals(origin.getPath())
+                        && message != null
+                        && (message.startsWith("OPEN WEB — ")
+                            || message.startsWith("OPEN WEB SEARCH — "));
+                if (!sameTrustedOrigin || !(worldConsent || koradasoConsent)) {
                     result.cancel();
                     return true;
                 }
