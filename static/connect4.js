@@ -29,6 +29,35 @@ function winCells(board){
  }
  return [];
 }
+function winningColumns(board,piece){
+ const cols=[];
+ for(let col=0;col<7;col++){
+  if(board[0][col]!==0)continue;
+  const next=board.map(row=>row.slice());
+  for(let row=5;row>=0;row--)if(next[row][col]===0){next[row][col]=piece;break;}
+  if(winCells(next).length)cols.push(col);
+ }
+ return cols;
+}
+const quips={
+ fox:{win:["Fox business. Four connected. 🦊","Outfoxed you that time!"],block:["Saw that coming a postcode away!","Nice try. I was watching."],trap:["One threat? Look again. 🦊","That board's getting rather interesting."],move:["Cheeky little move. 😏","Watch those diagonals."]},
+ tiger:{win:["The jungle has its champion. 🐅","Four in a row. A royal finish."],block:["A rather obvious ambush. Denied.","You didn't think I'd leave that open?"],trap:["Two threats. One decision.","The tiger is circling."] ,move:["The centre is my territory.","Interesting. But I am not impressed."]},
+ default:{win:["Four connected. Well played."],block:["That threat is now blocked."],trap:["Two winning routes are opening."],move:["Your opponent has moved."]}
+};
+let lastQuip="";
+function announceAgent(previous,next){
+ const key=q("[data-agent]").value;
+ const source=quips[key]||quips.default;
+ const blocks=winningColumns(previous.board,1);
+ const kind=next.winner_id==="p2"?"win":blocks.includes(next.agent_column)?"block":
+  winningColumns(next.board,2).length>=2?"trap":"move";
+ const choices=source[kind]||source.move;
+ const index=Math.floor(next.moves/2)%choices.length;
+ let line=choices[index];
+ if(line===lastQuip)line=choices[(index+1)%choices.length];
+ lastQuip=line;
+ q("[data-agent-status]").textContent=next.agent.name+" · "+line;
+}
 function applyState(next){
  const previous=state?.board;
  lastMove=null;
@@ -104,15 +133,17 @@ async function runAgent(){
  if(!agentMode||state?.status!=="active"||state.current_player_id!=="p2")return;
  const key=q("[data-agent]").value,difficulty=q("[data-difficulty]").value;
  q("[data-agent-status]").textContent="Agent turn · calculating legal move…";
+ const previous=state;
  const response=await post("/arena/connect4/agent-move",{agent_key:key,difficulty,request_id:req()});
  applyState(response);
- q("[data-agent-status]").textContent=response.agent.name+" · "+response.agent.fit_stars+"/7 stars · "+difficulty;
+ announceAgent(previous,response);
  q("[data-retry-agent]").hidden=true;
  render();
 }
 async function action(path,payload,followAgent=false){
  if(busy)return;busy=true;q("[data-error]").textContent="";render();
  try{
+  if(path==="/arena/connect4/start"){lastQuip="";lastMove=null;}
   applyState(await post(path,payload));
   render();
   if(followAgent)await runAgent();
@@ -136,6 +167,21 @@ q("[data-start]").onclick=()=>{
  action("/arena/connect4/start",{player_one:q("[data-p1]").value,player_two:agentName,
   opponent_mode:agentMode?"agent":"human",agent_key:agentMode?q("[data-agent]").value:null});
 };
+function updateAgentLevels(){
+ const key=q("[data-agent]").value;
+ const select=q("[data-difficulty]");
+ const previous=select.value;
+ let choices=[["Easy","easy"],["Standard","standard"],["Strong","strong"],["A7","a7"]];
+ if(key==="fox")choices=[["Cheeky Fox","easy"],["Sly Fox","strong"],["Fox No Mercy","a7"]];
+ if(key==="tiger")choices=[["Tiger Cub","easy"],["Royal Roar","strong"],["Jungle Tyrant","a7"]];
+ select.replaceChildren();
+ for(const [label,value] of choices){
+  const option=document.createElement("option");option.value=value;option.textContent=label;select.append(option);
+ }
+ select.value=choices.some(([,value])=>value===previous)?previous:choices[1][1];
+}
+q("[data-agent]").onchange=updateAgentLevels;
+updateAgentLevels();
 q("[data-piece-style]").onchange=()=>{pieceSelection();render();};
 q("[data-piece-choice]").onchange=()=>render();
 pieceSelection();
