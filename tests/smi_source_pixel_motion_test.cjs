@@ -54,3 +54,12 @@ assert.ok(source.includes('win.addEventListener("oap-smi-reduced-motion-change"'
   "motion engine must react to Settings changes");
 assert.ok(source.includes("userReducedMotionPreference:userReducedMotion"),
   "proof snapshot must expose explicit Reduced Motion state");
+
+const homeHtml=fs.readFileSync('mission_control/templates/smi_command_dashboard.html','utf8');
+assert.ok(homeHtml.includes('data-smi-home-motion'));
+assert.ok(homeHtml.includes('engine.attach(window,document,{home:true})'));
+assert.ok(homeHtml.includes('event?.detail?.state'));
+assert.ok(homeHtml.includes('MOTION UNAVAILABLE'));
+
+assert.ok(homeHtml.includes("canvas.style.zIndex='1'"));
+assert.ok(homeHtml.includes("fallback.style.visibility='hidden'"));

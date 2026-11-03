@@ -47,6 +47,8 @@ def host_attestation() -> dict[str, Any]:
         "recovery_restore_proven": _enabled("OAP_SOVEREIGN_RECOVERY_PROVEN"),
         "supply_chain_attested": _enabled("OAP_SOVEREIGN_SUPPLY_CHAIN_ATTESTED"),
         "host_deploy_rollback_proven": _enabled("OAP_HOST_DEPLOY_ROLLBACK_PROVEN"),
+        # Configuration declarations are not independent connection evidence.
+        "authenticated_node_connection_proven": False,
     }
     failed = tuple(name for name, passed in runtime_checks.items() if not passed)
     return {

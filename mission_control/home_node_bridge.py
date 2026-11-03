@@ -24,6 +24,8 @@ _MAX_PENDING = 8
 _JOB_TTL_SECONDS = 45.0
 _RESULT_WAIT_SECONDS = 20.0
 _WORKER_RECENCY_SECONDS = 30.0
+_CONNECTION_TTL_SECONDS = 30.0
+_CONNECTION_RECEIPTS: dict[str, float] = {}
 
 
 def _shared_secret() -> str:
@@ -192,6 +194,69 @@ def complete(
                 job.result = text[:12000]
         job.event.set()
         return True
+
+
+_NODE_CHALLENGE_TTL_SECONDS = 30.0
+_NODE_CHALLENGES: dict[str, tuple[str, float]] = {}
+
+
+def issue_node_challenge(node_id: object) -> dict[str, Any] | None:
+    """Issue an expiring challenge; callers must authenticate at the HTTP boundary.
+
+    A completed challenge proves possession of the bridge credential, not VPS
+    ownership or deployment readiness. Do not feed this into host_attestation.
+    """
+    if not isinstance(node_id, str) or not node_id.strip() or len(node_id) > 128:
+        return None
+    now = time.monotonic()
+    with _LOCK:
+        for nonce, (_, expiry) in list(_NODE_CHALLENGES.items()):
+            if expiry <= now:
+                del _NODE_CHALLENGES[nonce]
+        nonce = secrets.token_urlsafe(32)
+        _NODE_CHALLENGES[nonce] = (node_id, now + _NODE_CHALLENGE_TTL_SECONDS)
+    return {"challenge": nonce, "node_id": node_id, "expires_in_seconds": 30}
+
+
+def verify_node_challenge(node_id: object, challenge: object, signature: object) -> bool:
+    """Verify one-use HMAC over the exact node ID and server challenge."""
+    if not configured() or not all(isinstance(x, str) and x for x in (node_id, challenge, signature)):
+        return False
+    now = time.monotonic()
+    with _LOCK:
+        record = _NODE_CHALLENGES.pop(challenge, None)
+    if record is None or record[0] != node_id or now >= record[1]:
+        return False
+    expected = hmac.new(
+        _shared_secret().encode("utf-8"),
+        (node_id + "\n" + challenge).encode("utf-8"),
+        "sha256",
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)
+
+
+def issue_connection_receipt() -> dict[str, Any]:
+    """Issue a one-time server-side receipt after the caller authenticates."""
+    if not configured():
+        raise RuntimeError("home_node_bridge_not_configured")
+    now = time.monotonic()
+    with _LOCK:
+        for key, expires in list(_CONNECTION_RECEIPTS.items()):
+            if expires <= now:
+                del _CONNECTION_RECEIPTS[key]
+        nonce = secrets.token_urlsafe(32)
+        _CONNECTION_RECEIPTS[nonce] = now + _CONNECTION_TTL_SECONDS
+    return {"receipt": nonce, "expires_in_seconds": int(_CONNECTION_TTL_SECONDS)}
+
+
+def consume_connection_receipt(receipt: object) -> bool:
+    """Consume a server-issued receipt once; never infer infrastructure ownership."""
+    if not isinstance(receipt, str) or not receipt:
+        return False
+    now = time.monotonic()
+    with _LOCK:
+        expiry = _CONNECTION_RECEIPTS.pop(receipt, None)
+    return expiry is not None and now < expiry
 
 
 def status() -> dict[str, Any]:

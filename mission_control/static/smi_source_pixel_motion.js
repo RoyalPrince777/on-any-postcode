@@ -50,8 +50,8 @@
    hands:[a*.48,-b*.42,1]
   });
  }
- async function attach(win=typeof window!=="undefined"?window:null,doc=win?.document){
-  const shell=doc?.querySelector?.(".smi-shell");
+ async function attach(win=typeof window!=="undefined"?window:null,doc=win?.document,options={}){
+  const shell=doc?.querySelector?.(options?.home===true?"[data-smi-home-motion]":".smi-shell");
   if(!shell||!win?.fetch||!win?.crypto?.subtle||!win?.requestAnimationFrame||!doc.createElement)return null;
   const response=await win.fetch(SOURCE,{credentials:"same-origin",cache:"no-store"});
   if(!response.ok)return null;
