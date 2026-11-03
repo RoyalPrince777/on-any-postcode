@@ -123,6 +123,7 @@ showBookmarks();
 
 form.addEventListener("submit",function(e){
 e.preventDefault();const raw=field.value.trim();if(!raw){note.textContent="Enter a website address.";return;}
+if(raw.startsWith("//")){note.textContent="Protocol-relative addresses are not allowed.";return;}
 // Keep the same OAP-first routing as the native Android omnibox.
 // Approved OAP paths stay first-party; never interpret arbitrary // URLs as OAP routes.
 if(raw.startsWith("/")&&!raw.startsWith("//")){
