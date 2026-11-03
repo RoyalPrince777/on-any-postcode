@@ -38,7 +38,7 @@ function create(opts={}){
   // Human-friendly status is never upgraded to 'healthy' without a real source and clock.
   const source=typeof input.source==="string"?input.source.trim():"";
   const time=Number(input.observedAt);
-  const evidenced=source.length>0&&Number.isFinite(time)&&time>0&&time<=clock()+30000;
+  const evidenced=source.length>0&&Number.isFinite(time)&&time>0&&time<=clock()+30000&&clock()-time<=60000;
   const safeState=evidenced?state:"unknown";
   const id=region(input.system,input.part);
   const record=Object.freeze({system:input.system,part:input.part,state:safeState,source:evidenced?source:null,observedAt:evidenced?time:null,activity:typeof input.activity==="string"?input.activity.slice(0,160):"",evidence:evidenced});
