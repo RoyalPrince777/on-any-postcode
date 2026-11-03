@@ -164,7 +164,23 @@
    live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
    if(!live||phase==="paused"||phase==="stopped"){speechUntil=0;localViseme="silence";draw(0);}
   }
+  // Only the explicit Live SMI human control may clear the renderer's STOP latch.
+  win.addEventListener("oap-smi-human-motion-reset",event=>{
+   if(event?.detail?.approved!==true||!stoppedLatched||epoch<0)return;
+   stoppedLatched=false;gazeTarget=null;phase="ready";live=false;
+   speechUntil=0;localViseme="silence";localAudio=false;
+   context.drawImage(image,0,0);
+  });
   win.addEventListener("oap-smi-character-state",onState);
+  // Focus changes are explicit in-page interactions, not camera or pointer tracking.
+  const focusTargets=[["message",{x:0.3,y:0.75}],["send",{x:0.65,y:0.55}],["live-character-toggle",{x:-0.65,y:-0.3}]];
+  for(const [id,target] of focusTargets){
+   const element=doc.getElementById?.(id);
+   element?.addEventListener?.("focus",()=>{
+    if(stoppedLatched||!live||userReducedMotion)return;
+    gazeTarget=boundedGaze(target);
+   });
+  }
   // Opt-in directional gaze from explicit, bounded UI targets only; no eye/camera tracking.
   win.addEventListener("oap-smi-gaze-target",event=>{
    if(stoppedLatched||!live||userReducedMotion)return;
