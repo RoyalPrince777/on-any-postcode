@@ -40,6 +40,7 @@ class MindAssessment:
     missing_proof: tuple[str, ...]
     confidence: str
     further_research_needed: bool
+    next_evidence_action: str = "AUTHENTICATE_OAP_EVIDENCE"
     advisory_only: bool = True
     founder_final: bool = True
     runtime_certified: bool = False
@@ -103,4 +104,8 @@ def assess_oap_evidence(
         missing_proof=missing,
         confidence=confidence,
         further_research_needed=True,
+        next_evidence_action=(
+            "RESOLVE_CONTRADICTORY_OAP_RECORDS" if contradicts
+            else "RETRIEVE_AND_AUTHENTICATE_OAP_PROOF"
+        ),
     )
