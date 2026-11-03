@@ -8,6 +8,10 @@ assert.ok(api.systems.brain.includes("left-hemisphere"));
 assert.ok(api.systems.brain.includes("right-hemisphere"));
 assert.ok(api.systems.brain.includes("hippocampus"));
 assert.ok(api.systems.cardiovascular.includes("heart"));
+assert.equal(Object.keys(api.systems).length,16);
+for(const part of ["scalp","left-eye","right-eye","left-hand","right-hand","left-foot","right-foot","nails"]){assert.ok(api.systems.external.includes(part),part);}
+for(const part of ["longitudinal-fissure","corpus-callosum","thalamus","fornix","pituitary-gland","interventricular-foramen","foramen-of-luschka","spinal-cord"]){assert.ok(api.systems.brain.includes(part),part);}
+for(const system of ["nervous","sensory","skeletal","muscular","cardiovascular","respiratory","digestive","urinary","endocrine","immune","reproductive","integumentary","cellular","support"]){assert.ok(api.systems[system].length>0,system);}
 const now=1762191000000;
 const m=api.create({clock:()=>now});
 assert.equal(m.stateFor("brain","thalamus").state,"unknown");
@@ -28,4 +32,11 @@ m.stop();assert.equal(m.observe({system:"brain",part:"pons",state:"healthy",sour
 assert.equal(m.reset(false),false);
 assert.equal(m.reset(true),true);
 assert.equal(m.getSnapshot().identity,"SMI");
+let tick=now;
+const expiry=api.create({clock:()=>tick});
+assert.equal(expiry.observe({system:"cardiovascular",part:"heart",state:"healthy",source:"signed-health-receipt",observedAt:tick}),true);
+assert.equal(expiry.stateFor("cardiovascular","heart").state,"healthy");
+tick+=60001;
+assert.equal(expiry.stateFor("cardiovascular","heart").state,"unknown","health reading must expire without another event");
+
 console.log("SMI anatomy monitor contract: passed");
