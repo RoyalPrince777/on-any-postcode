@@ -11,7 +11,7 @@ def test_koradaso_omnibox_routes_queries_to_existing_oap_search(client):
     assert 'window.location.assign("/search?q="+encodeURIComponent(raw))' in source
     assert 'const explicitScheme=' in source
     assert 'const hostLike=' in source
-    assert 'raw.length>500' in source
+    assert 'raw.length>120' in source
     assert 'allowedRoutes.has(firstParty.pathname)' in source
     assert 'firstParty.origin===window.location.origin' in source
     assert 'raw.startsWith("/")&&!raw.startsWith("//")' in source
