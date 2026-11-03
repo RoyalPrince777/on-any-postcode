@@ -3,9 +3,11 @@ from mission_control.smi_shere_khan_dialogue import (
     SHERE_KHAN_CAPABILITIES,
     SHERE_KHAN_INSTRUCTION,
     TIGER_INTELLIGENCE,
+    SHERE_KHAN_WORKING_PROTOCOL,
     capability_instruction,
     shere_khan_requested,
     tiger_intelligence_instruction,
+    working_protocol_instruction,
 )
 
 
@@ -41,5 +43,16 @@ def test_tiger_intelligence_has_seven_distinct_bounded_heuristics():
     instruction = tiger_intelligence_instruction()
     for name in names:
         assert name in instruction
-    for boundary in ("no independent", "Guardian", "Founder Final", "auditability", "nonviolent", "biological instincts"):
+    for boundary in ("not simulated animal senses", "Guardian", "Founder Final", "auditability", "nonviolent", "biological instincts"):
+        assert boundary in instruction
+
+
+def test_working_protocol_is_seven_distinct_honest_behaviours():
+    names = [name for name, _ in SHERE_KHAN_WORKING_PROTOCOL]
+    assert len(names) == len(set(names)) == 7
+    instruction = working_protocol_instruction()
+    for name in names:
+        assert name in instruction
+    for boundary in ("Founder Final", "Guardian", "do not invent status percentages",
+                     "never flatter", "Do not claim actual independent agency"):
         assert boundary in instruction
