@@ -128,26 +128,28 @@ def enrich(observation: Mapping[str, Any]) -> dict[str, Any]:
     return result
 
 
-def status(live_observation_verified: bool) -> dict[str, Any]:
+def status(live_observation_verified: bool, *, source_mode: str = "external_live_bootstrap") -> dict[str, Any]:
     """Return truthful architecture and delivery state for Weather Intelligence."""
 
-    earth = earth_intelligence.status(weather_ready=bool(live_observation_verified))
+    strict = source_mode == "strict_oap_owned"
+    verified = bool(live_observation_verified) and not strict
+    earth = earth_intelligence.status(weather_ready=verified)
     return {
         "name": "OAP Weather Intelligence",
         "architecture_passed": True,
         "component_count": len(COMPONENTS),
         "components": COMPONENTS,
-        "live_observation_verified": bool(live_observation_verified),
+        "live_observation_verified": verified,
         "the_spot_connected": True,
         "spatial_binding": "POSTCODE_TO_UNIVERSE",
         "earth_intelligence": earth,
         "earth_intelligence_connected": bool(earth["weather_intelligence_connected"]),
-        "source_mode": "external_live_bootstrap",
+        "source_mode": source_mode,
         "first_party_observation_ready": False,
-        "external_dependency_present": True,
-        "ready": bool(live_observation_verified),
+        "external_dependency_present": not strict,
+        "ready": verified,
         "truth_boundary": (
-            "Live observations currently depend on bounded external no-key feeds; "
-            "the final OAP-owned observation network is not yet operational."
+            "Strict OAP-owned mode: no authenticated physical station connected." if strict else
+            "Legacy external weather bootstrap; no OAP-owned observation network is operational."
         ),
     }

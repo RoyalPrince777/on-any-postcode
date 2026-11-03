@@ -31,6 +31,7 @@ class _Response:
 
 @pytest.fixture
 def provider_state(monkeypatch):
+    monkeypatch.setenv("OAP_WEATHER_SOURCE_MODE", "external_live_bootstrap")
     now = time.time()
     monkeypatch.setattr(locations, "_CACHE", {})
     monkeypatch.setattr(locations, "_PROVIDER_SUCCESS", {HOST: now})
