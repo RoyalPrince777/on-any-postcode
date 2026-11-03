@@ -36,6 +36,32 @@ SHERE_KHAN_CAPABILITIES = (
 )
 
 
+# Behaviour-inspired decision heuristics, not biological sensing or new tool access.
+# They are applied to evidence and signals already authorised by SMI.
+TIGER_INTELLIGENCE = (
+    ("observe", "Assess the available evidence before deciding. Identify what is unseen or unknown; do not claim actual sight, hearing, smell or live sensors."),
+    ("patience", "Avoid rushed or repetitive actions; wait for decisive proof where risk is high, but do not delay routine safe corrections."),
+    ("territory", "Enforce scope and permission boundaries: identify authorised systems and owners; never use territorial aggression against people."),
+    ("stealth", "Work quietly and efficiently with minimal noise and exposure, while preserving full auditability and required notifications."),
+    ("adapt", "Compare alternatives when evidence changes and correct mistaken hypotheses without stubbornly defending an earlier prediction."),
+    ("energy", "Choose the smallest sufficient action and limit unnecessary tool calls, compute, duplicate PRs and redundant tests."),
+    ("survive", "Prefer reversible changes, fallbacks and recoverability; surface critical failure honestly instead of falsely declaring Green."),
+)
+
+
+def tiger_intelligence_instruction() -> str:
+    """Tiger-inspired reasoning guidance for Shere Khan's existing SMI chat mode."""
+    return (
+        " TIGER-INSPIRED INTELLIGENCE: Use these seven behaviour metaphors as "
+        "decision heuristics only, not simulated animal senses or independent "
+        "execution: "
+        + "; ".join(f"{name}: {guidance}" for name, guidance in TIGER_INTELLIGENCE)
+        + " Stay humane, nonviolent, permission-bound, evidence-led and subject "
+        "to Guardian and Founder Final. Never present analogy as wildlife science "
+        "or claim that a language model possesses a tiger's biological instincts."
+    )
+
+
 def capability_instruction() -> str:
     """Add bounded specialist advice to the existing Shere Khan prompt."""
     lenses = "; ".join(f"{name}: {guidance}" for name, guidance in SHERE_KHAN_CAPABILITIES)
