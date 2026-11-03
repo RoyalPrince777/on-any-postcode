@@ -311,3 +311,20 @@ def test_render_blueprint_keeps_public_and_smi_image_services_free():
     assert "plan: starter" not in content
     assert "type: worker" not in content
     assert "name: oap-routing" not in content
+
+
+def test_selfhost_defines_two_first_party_https_ingresses_without_host_exposed_smi():
+    compose = Path("deploy/selfhost/compose.yaml").read_text()
+    caddy = Path("deploy/selfhost/Caddyfile").read_text()
+    assert "OAP_RUNTIME_TARGET: app:app" in compose
+    assert "OAP_RUNTIME_TARGET: smi_gateway:app" in compose
+    assert 'OAP_SMI_LOCAL_DISPATCH: "1"' in compose
+    assert "OAP_PRIVATE_SMI_ORIGIN: https://" in compose
+    assert "OAP_SMI_GATEWAY_SECRET:" in compose
+    assert "OAP_SMI_DOMAIN:" in compose
+    assert "{$OAP_DOMAIN}" in caddy
+    assert "{$OAP_SMI_DOMAIN}" in caddy
+    assert "reverse_proxy smi:10000" in caddy
+    assert "reverse_proxy world:10000" in caddy
+    assert '      - "10000:10000"' not in compose
+    assert "onrender.com" not in compose + caddy
