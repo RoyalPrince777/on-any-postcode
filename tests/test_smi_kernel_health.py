@@ -44,3 +44,25 @@ def test_smi_health_rejects_invalid_or_failed_status_probes():
     ).check()
     assert report["status"] == "degraded"
     assert report["brain"]["reason"] == "status_unavailable"
+
+
+def test_smi_health_identifies_each_unready_component_without_guessing():
+    cases = (
+        (True, True, ()),
+        (False, True, ("brain",)),
+        (True, False, ("living_kernel",)),
+        (False, False, ("brain", "living_kernel")),
+    )
+    for brain_ready, kernel_ready, blockers in cases:
+        report = SMIHealthService(
+            _Status({"ready": brain_ready}), _Status({"ready": kernel_ready})
+        ).check()
+        assert report["readiness_blockers"] == blockers
+        assert report["status"] == ("degraded" if blockers else "healthy")
+
+
+def test_smi_health_unwired_kernel_reports_explicit_blocker():
+    report = SMIHealthService(_Status({"ready": True})).check()
+    assert report["readiness_blockers"] == ("living_kernel",)
+    assert report["independent_execute"] is False
+    assert report["human_approval_final"] is True
