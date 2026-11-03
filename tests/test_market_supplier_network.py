@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 import app as app_module
 from mission_control import market_supplier_network
 
@@ -346,3 +348,51 @@ def test_my_market_has_private_pod_workspace_without_public_launch_control():
     assert "Save product" in template
     assert "Publish listing" not in template
     assert "public-launch" not in template
+
+
+def test_pod_manufacturer_choice_keeps_label_and_provider_key_in_sync():
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert 'id="market-supplier-slug" name="supplier_slug"' in template
+    assert '<option value="printful">Printful</option>' in template
+    assert '<option value="prodigi">Prodigi</option>' in template
+    assert 'id="market-supplier-label" name="supplier_label" type="hidden"' in template
+    assert "podSupplierLabel.value = names[podSupplier.value] || ''" in template
+
+
+def test_pod_manufacturer_mismatch_rejected_before_database_connection(monkeypatch):
+    def unexpected_connection(*args, **kwargs):
+        raise AssertionError("Database must not open for mismatched supplier")
+
+    monkeypatch.setattr(market_supplier_network.postgres_db, "connect", unexpected_connection)
+    with pytest.raises(ValueError, match="supplier_identity_mismatch"):
+        market_supplier_network.STORE.create_made_to_order_product(
+            seller_identity_id="00000000-0000-0000-0000-000000000001",
+            name="OAP hoodie",
+            description="",
+            price="30.00",
+            garment_type="hoodie",
+            artwork_reference="oap://artwork/1",
+            placements=["front"],
+            colors=["black"],
+            sizes=["M"],
+            supplier_slug="printful",
+            supplier_label="Prodigi",
+            supplier_product_ref="hoodie-123",
+        )
+
+
+def test_pod_local_artwork_preview_is_bounded_and_never_submitted():
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+    assert 'id="market-local-artwork" type="file"' in template
+    assert 'accept="image/png,image/jpeg,image/webp"' in template
+    assert "file.size > 5 * 1024 * 1024" in template
+    assert "URL.createObjectURL(file)" in template
+    assert "URL.revokeObjectURL(localArtworkUrl)" in template
+    assert "image bytes are not uploaded" in template
+    assert 'name="artwork_reference"' in template
+    assert 'id="market-local-artwork" name=' not in template

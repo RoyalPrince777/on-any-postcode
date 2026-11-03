@@ -30,6 +30,7 @@ from . import (
     open_cinema,
     open_cinema_evidence,
     open_music_intake,
+    pod_artwork,
     pod_provider_registry,
     printful_pod_adapter,
     prodigi_pod_adapter,
@@ -46,6 +47,51 @@ from . import (
 )
 
 bp = Blueprint("product_core_organs", __name__)
+
+
+@bp.post("/market/pod/artwork")
+@web_security.login_required(api=True)
+def upload_pod_artwork():
+    """Authenticated owner-only artwork storage; never calls a manufacturer."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_invalid", "Invalid request token.", 403)
+    identity = _identity(sync=True)
+    upload = request.files.get("artwork")
+    if upload is None or not upload.filename:
+        return _error("pod_artwork_required", "Choose an artwork image.", 400)
+    media = upload.read(pod_artwork.MAX_ARTWORK_BYTES + 1)
+    try:
+        reference = pod_artwork.save(
+            owner_identity_id=identity,
+            filename=upload.filename,
+            mime_type=upload.mimetype or "",
+            media=media,
+        )
+    except (ValueError, TypeError):
+        return _error("pod_artwork_invalid", "Invalid image format, name or size.", 400)
+    except Exception:
+        return _error("pod_artwork_unavailable", "Artwork storage unavailable.", 503)
+    return _no_store(make_response(jsonify(artwork_reference=reference), 201))
+
+
+@bp.get("/market/pod/artwork/<asset_id>")
+@web_security.login_required(api=True)
+def read_pod_artwork(asset_id: str):
+    """Private image access; no cross-owner media exposure."""
+    try:
+        row = pod_artwork.load(owner_identity_id=_identity(), asset_id=asset_id)
+    except (ValueError, TypeError):
+        return _error("pod_artwork_not_found", "Artwork not found.", 404)
+    except Exception:
+        return _error("pod_artwork_unavailable", "Artwork storage unavailable.", 503)
+    if row is None:
+        return _error("pod_artwork_not_found", "Artwork not found.", 404)
+    response = make_response(row[1], 200)
+    response.headers["Content-Type"] = row[0]
+    return _no_store(response)
+
+
+
 _store = product_cores.PostgresProductCoreStore()
 _music_evidence_store = music_evidence.MusicEvidenceStore()
 _music_market_purchase_store = music_market_purchase.MusicMarketPurchaseStore()

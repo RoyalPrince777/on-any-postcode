@@ -10,6 +10,7 @@ from . import (
     distribution_runtime,
     founder_private_pod_orders,
     market_supplier_network,
+    pod_artwork,
     sika_payment_orchestrator,
     sika_payment_submission_evidence,
     sika_secure_provider_runtime,
@@ -17,6 +18,7 @@ from . import (
 
 COMPONENTS = (
     ("supplier_network", market_supplier_network.init_schema),
+    ("pod_artwork", pod_artwork.init_schema),
     ("payment_orchestrator", sika_payment_orchestrator.init_schema),
     ("payment_submission_evidence", sika_payment_submission_evidence.init_schema),
     ("distribution_runtime", distribution_runtime.init_schema),
