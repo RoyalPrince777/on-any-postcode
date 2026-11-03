@@ -1,0 +1,14 @@
+const assert=require("node:assert/strict");
+const lens=require("../mission_control/static/smi_bagheera_lens.js");
+assert.equal(lens.displayState({state:"thinking",live:true}).text,"Considering");
+assert.equal(lens.displayState({state:"speaking",live:true}).movementAllowed,true);
+assert.equal(lens.displayState({state:"speaking",live:true},true,true).movementAllowed,false);
+assert.equal(lens.displayState({state:"speaking",live:true},false).movementAllowed,false);
+assert.equal(lens.displayState({state:"stopped",live:true,stopped:true}).movementAllowed,false);
+assert.equal(lens.displayState({state:"bogus",live:true}).state,"stopped");
+assert.equal(lens.displayState({state:"ready",live:false}).runtimeProof,false);
+const fs=require("node:fs");
+const template=fs.readFileSync("mission_control/templates/ollama_chat.html","utf8");
+assert.ok(template.includes("smi_bagheera_lens.js"));
+assert.ok(template.indexOf("smi_canonical_controller.js")<template.indexOf("smi_bagheera_lens.js"));
+console.log("Bagheera lens state contract OK");
