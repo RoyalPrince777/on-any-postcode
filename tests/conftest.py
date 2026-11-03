@@ -39,6 +39,7 @@ def _configure_test_app(tmp_path, monkeypatch):
 
     app_module.app.config.update(TESTING=True, SESSION_COOKIE_SECURE=False)
     web_security.CHAT_BURST_LIMITER.reset()
+    web_security.VISION_FACE_BURST_LIMITER.reset()
     web_security.PUBLIC_WRITE_LIMITER.reset()
     web_security.AUTH_BURST_LIMITER.reset()
     app_module.signal_posts.clear()
@@ -53,6 +54,7 @@ def _cleanup_test_app():
     app_module.flag_counts.clear()
     app_module.profiles.clear()
     web_security.CHAT_BURST_LIMITER.reset()
+    web_security.VISION_FACE_BURST_LIMITER.reset()
     web_security.PUBLIC_WRITE_LIMITER.reset()
     web_security.AUTH_BURST_LIMITER.reset()
 

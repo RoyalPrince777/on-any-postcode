@@ -11,6 +11,7 @@ on:
       - "mission_control/all_in_ai_views.py"
       - "tests/all_in_ai_chromium_proof.py"
       - "tests/smi_chromium_recovery_proof.py"
+      - "tests/smi_vision_face_browser_proof.py"
       - ".github/workflows/smi-chromium-proof.yml"
 
 permissions:
@@ -32,5 +33,7 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Prove authenticated SMI Live no-flash and failure recovery
         run: python tests/smi_chromium_recovery_proof.py
+      - name: Prove explicit Founder-only Studio face-detection button in Chromium
+        run: python tests/smi_vision_face_browser_proof.py
       - name: Prove authenticated ALL IN Mission Keeper browser controls
         run: python tests/all_in_ai_chromium_proof.py

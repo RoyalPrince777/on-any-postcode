@@ -20,6 +20,7 @@ def test_public_studio_does_not_expose_private_smi_controls():
     page = PUBLIC.read_text(encoding="utf-8")
     for forbidden in (
         "/mission/studio/generate",
+        "/mission/studio/vision/faces",
         "/mission/studio/status",
         "/mission/ollama",
         "Sovereign Megaverse Intelligence",

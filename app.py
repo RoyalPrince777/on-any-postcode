@@ -234,11 +234,14 @@ def _security_headers(response):
             separators=(",", ":"),
         )
     )
-    telemetry.record_http_request(
-        path=str(request.url_rule.rule) if request.url_rule else "unmatched",
-        status_code=response.status_code,
-        duration_ms=duration_ms,
-    )
+    # Do not export even path/status metadata for Founder-private face images
+    # to optional external observability services. Local request audit remains.
+    if request.path != "/mission/studio/vision/faces":
+        telemetry.record_http_request(
+            path=str(request.url_rule.rule) if request.url_rule else "unmatched",
+            status_code=response.status_code,
+            duration_ms=duration_ms,
+        )
     if (
         request.path == "/healthz"
         and 200 <= response.status_code < 300
