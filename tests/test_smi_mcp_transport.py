@@ -82,3 +82,48 @@ def test_invalid_token_and_unknown_method(transport):
     client, token, _ = transport
     assert call(client, "invalid-token", "tools/list").status_code == 401
     assert call(client, token, "tools/delete").status_code == 404
+
+
+def test_browser_origin_is_rejected_by_default(transport):
+    client, token, _ = transport
+    response = client.post(
+        "/mission/smi/mcp",
+        headers={"Authorization": f"Bearer {token}", "Origin": "https://attacker.example"},
+        json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+    )
+    assert response.status_code == 403
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_trusted_browser_origin_must_be_explicitly_configured():
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public = key.public_key().public_bytes(
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+    ).decode()
+    policy = TrustedTokenPolicy(
+        issuer="https://auth.example.test",
+        audience="https://oap.example.test/mission/smi/mcp",
+        founder_subject="founder-test-id",
+        public_key_pem=public,
+    )
+    with pytest.raises(ValueError, match="trusted_browser_origin_required"):
+        create_smi_mcp_blueprint(
+            policy=policy, token_active=lambda _: True,
+            allowed_browser_origin="http://untrusted.example",
+        )
+    app = Flask("trusted_browser_origin_test")
+    app.register_blueprint(create_smi_mcp_blueprint(
+        policy=policy, token_active=lambda _: True,
+        allowed_browser_origin="https://trusted.example",
+    ))
+    now = datetime.now(UTC)
+    token = jwt.encode({
+        "iss": policy.issuer, "aud": policy.audience, "sub": policy.founder_subject,
+        "iat": now, "exp": now + timedelta(minutes=5), "scope": "oap.smi.status.read",
+    }, key, algorithm="RS256")
+    response = app.test_client().post(
+        "/mission/smi/mcp",
+        headers={"Authorization": f"Bearer {token}", "Origin": "https://trusted.example"},
+        json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+    )
+    assert response.status_code == 200

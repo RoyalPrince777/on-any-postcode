@@ -24,14 +24,28 @@ def create_smi_mcp_blueprint(
     *,
     policy: TrustedTokenPolicy,
     token_active: Callable[[str], bool],
+    allowed_browser_origin: str | None = None,
 ) -> Blueprint:
     """Construct ONLY; never implicitly register an accessible route."""
     if not isinstance(policy, TrustedTokenPolicy) or not callable(token_active):
         raise TypeError("trusted_mcp_authentication_required")
+    if allowed_browser_origin is not None and (
+        not isinstance(allowed_browser_origin, str)
+        or not allowed_browser_origin.startswith("https://")
+        or "/" in allowed_browser_origin.removeprefix("https://")
+    ):
+        raise ValueError("trusted_browser_origin_required")
     bp = Blueprint("oap_smi_mcp", __name__)
 
     @bp.route("/mission/smi/mcp", methods=["POST"])
     def mcp():
+        # MCP browser origin is a separate trust boundary from bearer authentication.
+        # No configured origin means reject all browser-originated requests.
+        browser_origin = request.headers.get("Origin")
+        if browser_origin is not None and browser_origin != allowed_browser_origin:
+            response = jsonify(error="forbidden_origin")
+            response.headers["Cache-Control"] = "no-store"
+            return response, 403
         if request.content_length is None or request.content_length > MAX_REQUEST_BYTES:
             return jsonify(error="invalid_request"), 400
         auth = request.headers.get("Authorization", "")
