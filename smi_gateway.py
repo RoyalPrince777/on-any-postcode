@@ -244,6 +244,7 @@ def _allowed(path: str) -> bool:
         "/static/oap/smi_live_chat_dashboard.jpg",
         "/healthz",
         "/api/smi/thinking-certification",
+        "/api/smi/investigation-case",
     }
 
 
