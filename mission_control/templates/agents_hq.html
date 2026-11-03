@@ -44,7 +44,7 @@ small{color:#b9cce1}
 </section>
 <section aria-labelledby="selected-room">
 <h2 id="selected-room">Select a room</h2>
-<p id="room-status" role="status" aria-live="polite">Select a room to verify its registered members.</p>
+<p id="room-status" role="status" aria-live="polite">Select a room to verify its registered members and home systems.</p>
 <ul id="room-members" aria-label="Verified registered members"></ul>
 </section>
 <script>
@@ -62,7 +62,7 @@ function clearSelection() {
   selectionVersion += 1;
   roomButtons.forEach(button => button.setAttribute("aria-pressed", "false"));
   heading.textContent = "Select a room";
-  status.textContent = "Select a room to verify its registered members.";
+  status.textContent = "Select a room to verify its registered members and home systems.";
   members.replaceChildren();
 }
 function filterRooms(kind) {
@@ -93,7 +93,13 @@ async function selectRoom(id) {
       payload.members.length !== room.agent_ids.length ||
       !payload.members.every((member, index) =>
         member && typeof member.name === "string" &&
-        member.agent_id === room.agent_ids[index])
+        typeof member.family_id === "string" &&
+        typeof member.family_name === "string" &&
+        typeof member.world_id === "string" &&
+        typeof member.home_system === "string" &&
+        member.agent_id === room.agent_ids[index] &&
+        (room.kind === "all_agents" || member.family_id === room.family_id) &&
+        (room.kind === "all_agents" || member.home_system === room.home_system))
     ) {
       throw new Error("Room response mismatch");
     }
@@ -105,7 +111,17 @@ async function selectRoom(id) {
       name.textContent = member.name;
       const passport = document.createElement("small");
       passport.textContent = member.agent_id;
-      item.append(name, passport);
+      const home = document.createElement("small");
+      home.textContent = "Family: " + member.family_name + " · Home: " +
+        member.home_system + " · World: " + member.world_id;
+      item.append(name, passport, home);
+      if (member.home_group && typeof member.home_group.group_name === "string" &&
+          member.family_id === "matrix") {
+        const affiliation = document.createElement("small");
+        affiliation.textContent = "Matrix film-home reference: " +
+          member.home_group.group_name + " (advisory only)";
+        item.appendChild(affiliation);
+      }
       fragment.appendChild(item);
     });
     members.replaceChildren(fragment);
