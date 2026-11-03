@@ -79,3 +79,40 @@ def review_bagheera_action(
         "founder_final": True,
         "advisory_only": True,
     }
+
+
+# Reuse the existing SMI renderer's state vocabulary. This is a translation
+# contract only; it does not dispatch character-state events or start motion.
+_RENDERER_STATE = {
+    "idle": "ready",
+    "listen": "listening",
+    "consider": "thinking",
+    "speak": "speaking",
+    "alert": "paused",
+}
+
+
+def bagheera_renderer_state(
+    profile: BagheeraCompanion, *, session_approved: bool = False,
+    reduce_motion: bool = False, visible: bool = True,
+) -> dict[str, object]:
+    """Make a bounded state proposal to the existing single renderer.
+
+    No replacement artwork, fabricated frames, lip sync, or runtime proof.
+    """
+    if not isinstance(profile, BagheeraCompanion):
+        raise TypeError("Expected Bagheera companion")
+    allowed = session_approved is True and visible is True
+    state = (
+        "paused" if not allowed or reduce_motion is True
+        else _RENDERER_STATE[profile.movement]
+    )
+    return {
+        "state": state,
+        "renderer_owner": "smi_source_pixel_motion",
+        "profile_id": profile.agent_id,
+        "dispatch": False,
+        "asset_authorized": False,
+        "runtime_verified": False,
+        "founder_final": True,
+    }
