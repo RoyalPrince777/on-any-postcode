@@ -76,3 +76,46 @@ def test_founder_permission_denial_propagates(
         oap_mind_kernel.assess_kernel_evidence(
             identity_id="not-founder", request_id="request"
         )
+
+
+def test_cross_request_audit_readback_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        oap_mind_kernel,
+        "readback_kernel_audit",
+        lambda **kwargs: KernelAuditReadback(
+            "different-request", True, True, "CANONICAL_AUDIT_ROW_READ_BACK",
+            "event-other",
+        ),
+    )
+    result = oap_mind_kernel.assess_kernel_evidence(
+        identity_id="founder", request_id="requested-id"
+    )
+    assert result.request_id == "requested-id"
+    assert result.octopus_assessment == "HOLD"
+    assert not result.audit_verified
+    assert not result.execution_observed
+    assert result.audit_event_id is None
+    assert result.next_evidence == "AUDIT_REQUEST_BINDING_MISMATCH"
+    assert not result.durable_hrm_receipt_proven
+
+
+def test_missing_event_id_cannot_prove_canonical_audit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        oap_mind_kernel,
+        "readback_kernel_audit",
+        lambda **kwargs: KernelAuditReadback(
+            kwargs["request_id"], True, True,
+            "CANONICAL_AUDIT_ROW_READ_BACK", None,
+        ),
+    )
+    result = oap_mind_kernel.assess_kernel_evidence(
+        identity_id="founder", request_id="requested-id"
+    )
+    assert result.octopus_assessment == "HOLD"
+    assert not result.audit_verified
+    assert not result.execution_observed
+    assert result.next_evidence == "AUDIT_EVENT_ID_REQUIRED"
