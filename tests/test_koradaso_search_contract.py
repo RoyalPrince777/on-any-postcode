@@ -12,6 +12,9 @@ def test_koradaso_omnibox_routes_queries_to_existing_oap_search(client):
     assert 'const explicitScheme=' in source
     assert 'const hostLike=' in source
     assert 'raw.length>500' in source
+    assert 'allowedRoutes.has(firstParty.pathname)' in source
+    assert 'firstParty.origin===window.location.origin' in source
+    assert 'raw.startsWith("/")&&!raw.startsWith("//")' in source
     assert client.get("/search?q=KORADASO%20Internet").status_code == 200
 
 
