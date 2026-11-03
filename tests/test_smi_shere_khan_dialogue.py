@@ -2,8 +2,10 @@
 from mission_control.smi_shere_khan_dialogue import (
     SHERE_KHAN_CAPABILITIES,
     SHERE_KHAN_INSTRUCTION,
+    TIGER_INTELLIGENCE,
     capability_instruction,
     shere_khan_requested,
+    tiger_intelligence_instruction,
 )
 
 
@@ -31,3 +33,13 @@ def test_seven_bounded_capabilities_are_unique_and_advisory_only():
     for boundary in ("no autonomous", "Guardian", "Founder Final",
                      "never invent completion percentages", "execution evidence"):
         assert boundary in instructions
+
+
+def test_tiger_intelligence_has_seven_distinct_bounded_heuristics():
+    names = [name for name, _ in TIGER_INTELLIGENCE]
+    assert names == ["observe", "patience", "territory", "stealth", "adapt", "energy", "survive"]
+    instruction = tiger_intelligence_instruction()
+    for name in names:
+        assert name in instruction
+    for boundary in ("no independent", "Guardian", "Founder Final", "auditability", "nonviolent", "biological instincts"):
+        assert boundary in instruction
