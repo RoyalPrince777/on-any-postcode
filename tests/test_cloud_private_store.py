@@ -1,0 +1,144 @@
+from __future__ import annotations
+
+import pytest
+
+from oap.cloud_private_store import MAX_BYTES, CloudAccessError, PrivateObjectStore
+
+
+def test_private_roundtrip(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    object_id = store.put(owner_id="alice", authenticated_owner_id="alice", data=b"private")
+    assert store.get(owner_id="alice", authenticated_owner_id="alice", object_id=object_id) == b"private"
+
+
+def test_cross_owner_denied(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    object_id = store.put(owner_id="alice", authenticated_owner_id="alice", data=b"private")
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="alice", authenticated_owner_id="bob", object_id=object_id)
+    with pytest.raises(CloudAccessError):
+        store.put(owner_id="alice", authenticated_owner_id="bob", data=b"forbidden")
+
+
+def test_path_traversal_rejected(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    with pytest.raises(ValueError):
+        store.get(owner_id="alice", authenticated_owner_id="alice", object_id="../../secrets")
+
+
+def test_size_limit(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    with pytest.raises(ValueError):
+        store.put(owner_id="alice", authenticated_owner_id="alice", data=b"x" * (MAX_BYTES + 1))
+
+
+def test_symlink_is_denied(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    path = tmp_path / "personal"
+    owner_key = __import__("hashlib").sha256(b"alice").hexdigest()
+    directory = path / owner_key
+    directory.mkdir(parents=True)
+    object_id = "a" * 32
+    (directory / object_id).symlink_to(tmp_path / "target")
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="alice", authenticated_owner_id="alice", object_id=object_id)
+
+
+def test_binary_integrity_and_distinct_objects(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    payload = bytes(range(256)) * 256
+    first = store.put(owner_id="alice", authenticated_owner_id="alice", data=payload)
+    second = store.put(owner_id="alice", authenticated_owner_id="alice", data=payload)
+    assert first != second
+    assert store.get(owner_id="alice", authenticated_owner_id="alice", object_id=first) == payload
+    assert store.get(owner_id="alice", authenticated_owner_id="alice", object_id=second) == payload
+
+
+def test_unknown_object_cannot_be_read(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="alice", authenticated_owner_id="alice", object_id="a" * 32)
+
+
+def test_oversized_object_on_disk_denied(tmp_path):
+    import hashlib
+
+    store = PrivateObjectStore(tmp_path)
+    owner_key = hashlib.sha256(b"alice").hexdigest()
+    directory = tmp_path / "personal" / owner_key
+    directory.mkdir(parents=True)
+    object_id = "b" * 32
+    (directory / object_id).write_bytes(b"x" * (MAX_BYTES + 1))
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="alice", authenticated_owner_id="alice", object_id=object_id)
+
+
+def test_other_owner_cannot_read_known_object_id(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    object_id = store.put(owner_id="alice", authenticated_owner_id="alice", data=b"alice secret")
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="alice", authenticated_owner_id="bob", object_id=object_id)
+    with pytest.raises(CloudAccessError):
+        store.get(owner_id="bob", authenticated_owner_id="bob", object_id=object_id)
+
+
+def test_owner_directory_symlink_is_denied(tmp_path):
+    import hashlib
+
+    store = PrivateObjectStore(tmp_path)
+    owner_key = hashlib.sha256(b"alice").hexdigest()
+    (tmp_path / "personal").mkdir()
+    (tmp_path / "personal" / owner_key).symlink_to(tmp_path)
+    with pytest.raises(OSError):
+        store.put(owner_id="alice", authenticated_owner_id="alice", data=b"secret")
+
+
+def test_no_public_storage_api(tmp_path):
+    store = PrivateObjectStore(tmp_path)
+    assert not hasattr(store, "publish")
+    assert not hasattr(store, "public_get")
+
+
+def test_existing_owner_directory_with_broad_permissions_rejected(tmp_path):
+    import hashlib
+    import os
+
+    owner_key = hashlib.sha256(b"alice").hexdigest()
+    directory = tmp_path / "personal" / owner_key
+    directory.mkdir(parents=True)
+    os.chmod(tmp_path / "personal", 0o700)
+    os.chmod(directory, 0o755)
+    store = PrivateObjectStore(tmp_path)
+    with pytest.raises(CloudAccessError):
+        store.put(owner_id="alice", authenticated_owner_id="alice", data=b"secret")
+
+
+def test_failed_write_cleans_incomplete_object(tmp_path, monkeypatch):
+    import hashlib
+
+    import oap.cloud_private_store as cloud
+
+    store = PrivateObjectStore(tmp_path)
+    original_fdopen = cloud.os.fdopen
+
+    class BrokenWriter:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def write(self, _data):
+            raise OSError("disk write failed")
+
+    def fail_write(fd, mode):
+        if mode == "wb":
+            cloud.os.close(fd)
+            return BrokenWriter()
+        return original_fdopen(fd, mode)
+
+    monkeypatch.setattr(cloud.os, "fdopen", fail_write)
+    with pytest.raises(OSError, match="disk write failed"):
+        store.put(owner_id="alice", authenticated_owner_id="alice", data=b"secret")
+    owner_key = hashlib.sha256(b"alice").hexdigest()
+    assert list((tmp_path / "personal" / owner_key).iterdir()) == []
