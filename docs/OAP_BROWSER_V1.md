@@ -19,7 +19,9 @@ into trusted OAP surfaces.
 The Android OAP World host now provides:
 
 - an OAP-first omnibox;
-- Back, Forward, OAP Home and Reload controls;
+- Back and OAP World controls in the Founder-approved minimal shell;
+- one omnibox and an explicit OAP WORLD / OPEN WEB trust label;
+- Forward, Reload and Go are not primary visible controls in the approved minimal shell;
 - direct HTTP/HTTPS navigation;
 - automatic HTTPS for host-like input such as `example.com`;
 - first-party OAP Search routing for ordinary words and questions;
@@ -78,3 +80,19 @@ engine.
 
 Those remain separate evidence gates. No feature above is Green merely because
 the browser shell exists.
+
+## Founder-first browser acceptance (2026-10-14 review)
+
+The latest Founder-approved visible controls are **Back · OAP World · one omnibox · trust label**. Existing implementation may differ; this section is a requirement, not a claim of completed UI work.
+
+The initial view must open `/world` directly, without a Market-first flash, old shell, or redundant loading stages. Open-web pages remain visibly distinct from OAP-owned pages. Preserve the existing Android WebView security fallback while the bounded first-party HTML/DOM/CSS renderer matures.
+
+Release sequence: Founder-private install and real-device browsing evidence -> Founder acceptance -> separately authorised public deployment after security and recovery checks. No automatic public release.
+
+### Alliance review gates
+
+- **Gyata:** mission alignment; **Architect:** browser architecture; **Neo:** engineering lead; **Spider:** existing-code dependency review; **Octopus:** integration; **Fox:** progressive first-party independence; **Captain ALL IN:** evidence-based mission register.
+- **Bagheera + Seraph:** trust and security; **Shere Khan:** adversarial review; **Tigress:** precision; **Falcon:** performance; **Owl:** independent review; **Elephant:** evidence recovery. **Queen Bee:** only for genuine distributed worker coordination.
+- Agent selection is advisory, not proof that workers are running. SMI remains the intelligence brain; Guardian and HRM are systems, not agents; Founder Final controls activation.
+- Reconcile the `Tigress` versus `Tygress` passport naming mismatch and Mouse's later Founder-approved restoration before asserting their runtime registration. Do not silently overwrite historical audit entries.
+- A passing code test does not establish signed APK installation, real-device compatibility, production readiness or complete first-party rendering.
