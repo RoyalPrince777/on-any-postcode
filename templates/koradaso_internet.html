@@ -124,6 +124,14 @@ showBookmarks();
 form.addEventListener("submit",function(e){
 e.preventDefault();const raw=field.value.trim();if(!raw){note.textContent="Enter a website address.";return;}
 // Keep the same OAP-first routing as the native Android omnibox.
+// Approved OAP paths stay first-party; never interpret arbitrary // URLs as OAP routes.
+if(raw.startsWith("/")&&!raw.startsWith("//")){
+  const firstParty=new URL(raw,window.location.origin);
+  if(firstParty.origin===window.location.origin&&allowedRoutes.has(firstParty.pathname)){
+    window.location.assign(firstParty.pathname+firstParty.search+firstParty.hash);
+  }else{note.textContent="Unknown OAP route. Use an approved destination or search.";}
+  return;
+}
 const explicitScheme=/^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
 const hostLike=/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:[/?#][^\s]*)?$/i.test(raw);
 if(!explicitScheme&&!hostLike){
