@@ -73,14 +73,24 @@ def _validate_authorization(
     if policy.get("authority_change") is not False:
         raise ExecutionBlocked("authority_change_forbidden")
     request_id = _uuid(authorization.get("request_id"), "request_id")
-    _ = request_id
     approval = _uuid(
         authorization.get("approval_receipt_id"),
         "approval_receipt_id",
     )
-    _ = approval
     owner = _uuid(identity_id, "identity_id")
-    _ = owner
+    # A caller-supplied authorization mapping is not proof of approval.
+    # Re-read the canonical signed receipt at the mutation boundary.
+    try:
+        row = governed_action_pipeline._approval_row(request_id)
+        valid = governed_action_pipeline._approval_valid(row, identity_id=owner)
+    except Exception as exc:
+        raise ExecutionBlocked("human_authority_approval_unverifiable") from exc
+    if (
+        str(row[0]) != approval
+        or str(row[1]) != request_id
+        or not valid
+    ):
+        raise ExecutionBlocked("human_authority_approval_invalid")
 
 
 def _governance_checks(

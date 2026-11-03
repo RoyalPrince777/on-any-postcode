@@ -10,8 +10,8 @@ from uuid import uuid4
 
 import pytest
 
+from mission_control import governed_action_pipeline, postgres_db
 from mission_control import internal_record_executor as executor
-from mission_control import postgres_db
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("OAP_REAL_POSTGRES_PROOF") != "1",
@@ -19,7 +19,12 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+_TEST_APPROVALS: dict[str, str] = {}
+
+
 def _authorization(request_id: str, signal_id: str) -> dict[str, object]:
+    receipt_id = str(uuid4())
+    _TEST_APPROVALS[request_id] = receipt_id
     return {
         "signal_id": signal_id,
         "request_id": request_id,
@@ -27,7 +32,7 @@ def _authorization(request_id: str, signal_id: str) -> dict[str, object]:
         "action_policy": {
             "external": False, "reversible": True, "authority_change": False,
         },
-        "approval_receipt_id": str(uuid4()),
+        "approval_receipt_id": receipt_id,
         "execution_authorized": True,
         "execution_performed": False,
         "authority_transferred": False,
@@ -56,7 +61,25 @@ def test_real_postgres_atomic_rollback_forged_token_and_hrm_receipts(monkeypatch
         connection.commit()
     monkeypatch.setenv("OAP_HRM_DURABLE_WRITES_ENABLED", "1")
 
+    # Approval verification is separately tested against signed receipts.
+    # This isolated PostgreSQL test proves transactional record/HRM behaviour
+    # with a deterministic, owner-bound approval stand-in.
+    _TEST_APPROVALS.clear()
     owner, record = str(uuid4()), str(uuid4())
+
+    def _approval_row(request_id):
+        receipt_id = _TEST_APPROVALS.get(request_id)
+        if receipt_id is None:
+            raise governed_action_pipeline.ActionBlocked("human_authority_approval_missing")
+        return (receipt_id, request_id, owner)
+
+    monkeypatch.setattr(governed_action_pipeline, "_approval_row", _approval_row)
+    monkeypatch.setattr(
+        governed_action_pipeline, "_approval_valid",
+        lambda row, *, identity_id: row[2] == identity_id,
+    )
+
+
     execution_request, recovery_request = str(uuid4()), str(uuid4())
     signal = f"all-in-ai:postgres-proof:{owner}"
     title, body = "Owner-scoped CI note", "Preserve this exact note body."
