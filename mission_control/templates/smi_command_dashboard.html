@@ -132,6 +132,16 @@
   </aside>
 
   <main class="main">
+    <section class="panel" aria-labelledby="first-class-data-title" style="padding:16px 18px;margin-bottom:14px">
+      <div class="section-title"><strong id="first-class-data-title">🔐 First-Class Data Intelligence</strong><span>Founder-only · read-only evidence</span></div>
+      <div class="statgrid">
+        <div class="stat"><b>{{ command.first_class_data.canonical_memory.record_count }}</b><span>Canonical memory records · manifest only</span></div>
+        <div class="stat"><b>{{ command.first_class_data.memory_orchestrator.context_cap }}</b><span>Maximum composed context items</span></div>
+        <div class="stat"><b>{{ 'READY' if command.first_class_data.canonical_memory.ready else 'REVIEW' }}</b><span>Canonical manifest integrity</span></div>
+        <div class="stat"><b>{{ 'READY' if command.first_class_data.memory_orchestrator.ready else 'REVIEW' }}</b><span>Memory source composition</span></div>
+      </div>
+      <div class="truth">Data access enforcement: NOT VERIFIED · Independent production: NOT VERIFIED. These manifest and composition indicators are not permission, deployment or live-security proof. Guardian and Human Authority remain mandatory.</div>
+    </section>
     <header class="topbar">
       <div class="brand">
         <div class="eyebrow">Founder Private · SMI</div>
