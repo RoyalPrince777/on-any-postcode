@@ -77,6 +77,52 @@ SYSTEM_RECIPIENTS: tuple[str, ...] = (
     "Human Authority",
 )
 
+# Neo's seven approved companion lanes reuse the canonical Matrix registry and
+# signal topology. This is a readable capability contract, not an execution
+# engine, animated avatar, model connection, or a production-readiness claim.
+NEO_COMPANION_LANES: tuple[tuple[str, str, str], ...] = (
+    ("intelligence", "Evidence-led technical reasoning", "advisory"),
+    ("engineering", "Code review and bounded implementation proposals", "advisory"),
+    ("dialogue", "Natural conversational Neo persona", "not_runtime_verified"),
+    ("avatar", "Realistic 3D and animated character presentation", "not_runtime_verified"),
+    ("movement", "Mobile-friendly avatar gestures and animation", "not_runtime_verified"),
+    ("communication", "Matrix Signal Bus review envelopes", "source_implemented"),
+    ("defence", "Anomaly, permission and recovery review", "advisory"),
+)
+
+
+def neo_companion_profile() -> dict[str, Any]:
+    """Expose Neo's approved presentation and review contract without activation."""
+    return {
+        "name": "Neo",
+        "family": "matrix",
+        "home": agents.matrix_home_for("Neo"),
+        "role": "technical_lead_and_recovery_witness",
+        "persona": {
+            "tone": ("calm", "precise", "thoughtful", "constructively_challenging"),
+            "principle": "Listen first; distinguish evidence from inference.",
+            "dialogue_model_connected": False,
+            "voice_runtime_verified": False,
+        },
+        "presentation": {
+            "modes": ("realistic_3d", "animated_cartoon", "static_fallback"),
+            "prefer_mobile_fallback": True,
+            "avatar_runtime_verified": False,
+            "movement_runtime_verified": False,
+        },
+        "capabilities": tuple(
+            {"id": key, "description": description, "evidence_state": state}
+            for key, description, state in NEO_COMPANION_LANES
+        ),
+        "matrix_signal_bus_available": True,
+        "real_agent_message_delivery_verified": False,
+        "independent_execution_granted": False,
+        "guardian_required": True,
+        "green_gate_required": True,
+        "founder_final_required": True,
+        "certified": False,
+    }
+
 ALLOWED_URGENCY: tuple[str, ...] = ("low", "normal", "high", "critical")
 
 
@@ -136,6 +182,7 @@ def topology() -> dict[str, Any]:
 
     return {
         "name": "Matrix Signal Bus",
+        "neo_companion": neo_companion_profile(),
         "system": "Matrix System",
         "mode": "founder_governed_signal_routing",
         "communication_law": MATRIX_COMMUNICATION_LAW,
