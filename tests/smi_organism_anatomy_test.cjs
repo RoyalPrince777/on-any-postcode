@@ -19,7 +19,7 @@ assert.equal(m.stateFor("brain","thalamus").state,"healthy");
 assert.equal(m.observe({system:"brain",part:"thalamus",state:"critical",source:"runtime-receipt",observedAt:now}),true);
 assert.equal(m.stateFor("brain","thalamus").state,"critical");
 assert.equal(m.observe({system:"brain",part:"thalamus",state:"healthy",source:"runtime-receipt",observedAt:now-999999999}),true);
-assert.equal(m.stateFor("brain","thalamus").state,"healthy"); // stale source requires separate freshness policy
+assert.equal(m.stateFor("brain","thalamus").state,"unknown","stale evidence must be unknown");
 assert.equal(m.observe({system:"brain",part:"thalamus",state:"invented",source:"runtime-receipt",observedAt:now}),false);
 assert.equal(m.setForm("xray"),true);
 assert.equal(m.setForm("invalid"),false);
