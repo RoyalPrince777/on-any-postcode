@@ -128,6 +128,9 @@ def main() -> None:
                     assert page.locator("[data-room-id='" + individual["id"] + "']").get_attribute(
                         "aria-pressed"
                     ) == "true"
+                    individual_home = agents_hq.room_context(individual["id"])["members"][0]
+                    assert individual_home["family_name"] in page.locator("#room-members li").first.inner_text()
+                    assert individual_home["home_system"] in page.locator("#room-members li").first.inner_text()
 
                     page.locator("[data-kind='family']").click()
                     expect(page.locator("#room-members li")).to_have_count(0)
@@ -140,6 +143,10 @@ def main() -> None:
                     assert page.locator("#room-members li strong").all_text_contents() == [
                         member["name"] for member in expected
                     ]
+                    rendered_members = page.locator("#room-members li").all_inner_texts()
+                    for rendered, member in zip(rendered_members, expected):
+                        assert member["family_name"] in rendered
+                        assert member["home_system"] in rendered
 
                     unknown = founder.request.get(
                         url + "/mission/smi/agents-hq/rooms/guest:unregistered"
@@ -163,6 +170,7 @@ def main() -> None:
     print("AGENTS_HQ_CHROMIUM=PASS")
     print("FOUNDER_AUTH=MOCKED_CI_ONLY")
     print("REGISTERED_MEMBERS_API=PASS")
+    print("CANONICAL_FAMILY_HOMES_VISIBLE=PASS")
     print("ANONYMOUS_AND_UNKNOWN_ROOM_REJECTED=PASS")
     print("READ_ONLY_POST_BOUNDARY=PASS")
     print("LIVE_AGENT_CHAT=NOT_IMPLEMENTED")
