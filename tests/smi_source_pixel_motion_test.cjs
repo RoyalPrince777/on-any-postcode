@@ -72,3 +72,9 @@ assert.ok(source.includes("userReducedMotionPreference:userReducedMotion"),
 assert.ok(source.includes('win.addEventListener("oap-smi-gaze-target"'),"gaze must use explicit event only");
 assert.ok(source.includes("if(stoppedLatched)return;"),"STOP must latch against late state events");
 assert.ok(source.includes("if(stoppedLatched||!live||userReducedMotion)return;"),"gaze respects STOP, live and reduced-motion state");
+
+const uiController=fs.readFileSync("mission_control/static/smi_canonical_controller.js","utf8");
+assert.ok(uiController.includes("oap-smi-human-motion-reset"),"controller must signal explicit resume");
+assert.ok(source.includes("oap-smi-human-motion-reset"),"pixel renderer must allow explicit reset");
+assert.ok(source.includes('["message",{x:0.3,y:0.75}]'),"composer focus supplies bounded gaze");
+assert.ok(source.includes("if(stoppedLatched||!live||userReducedMotion)return;"),"STOP and reduced-motion gate gaze");
