@@ -29,3 +29,15 @@ test("STOP latches selection until explicit human action",()=>{
  control.resetAfterHumanAction(true);
  assert.equal(control.select("animated_cartoon").mode,"animated_cartoon");
 });
+
+test("canonical chat loads preference without replacing the original rig",()=>{
+ const fs=require("node:fs");
+ const path=require("node:path");
+ const html=fs.readFileSync(path.join(__dirname,"../../mission_control/templates/ollama_chat.html"),"utf8");
+ const rig=html.indexOf("smi_exact_character_rig.js");
+ const presentationIndex=html.indexOf("smi_hybrid_presentation.js");
+ const source=html.indexOf("smi_source_pixel_motion.js");
+ assert.ok(rig>=0 && presentationIndex>rig && source>presentationIndex);
+ assert.ok(html.includes("OAP_SMI_HYBRID_PRESENTATION.create()"));
+ assert.ok(html.includes("OAP_SMI_SOURCE_PIXEL_MOTION.attach()"));
+});
