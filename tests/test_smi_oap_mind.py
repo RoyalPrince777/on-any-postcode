@@ -10,6 +10,7 @@ def test_missing_proof_investigates_instead_of_inventing_green() -> None:
     assert result.verdict == "INVESTIGATE"
     assert result.missing_proof == ("source",)
     assert result.confidence == "UNVERIFIED"
+    assert result.next_evidence_action == "RETRIEVE_AND_AUTHENTICATE_OAP_PROOF"
     assert result.advisory_only and result.founder_final
     assert not result.runtime_certified
 
@@ -34,6 +35,7 @@ def test_contradiction_holds_even_with_claimed_receipts() -> None:
     result = assess_oap_evidence("CI passed", evidence, required_kinds=("ci",))
     assert result.verdict == "HOLD"
     assert result.confidence == "CONFLICTED_UNVERIFIED"
+    assert result.next_evidence_action == "RESOLVE_CONTRADICTORY_OAP_RECORDS"
     assert result.contradicting_references == ("ci:fail",)
 
 
