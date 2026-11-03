@@ -139,7 +139,8 @@ def _provider(
     if smi_shere_khan_dialogue.shere_khan_requested(message, brain):
         system += (smi_shere_khan_dialogue.SHERE_KHAN_INSTRUCTION
                    + smi_shere_khan_dialogue.capability_instruction()
-                   + smi_shere_khan_dialogue.tiger_intelligence_instruction())
+                   + smi_shere_khan_dialogue.tiger_intelligence_instruction()
+                   + smi_shere_khan_dialogue.working_protocol_instruction())
     if code_mode:
         system += (
             " CODE PROPOSAL MODE: provide a reviewable proposal, a unified diff when "
