@@ -1,0 +1,23 @@
+name: OAP PTT live Store installation route proof
+
+on:
+  pull_request:
+    paths:
+      - "scripts/prove_ptt_live_install.py"
+      - ".github/workflows/ptt-live-store-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe-public-ptt-installer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Read-only external public PTT installer proof
+        run: python scripts/prove_ptt_live_install.py
