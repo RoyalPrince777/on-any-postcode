@@ -71,7 +71,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <input id="address" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Website address" placeholder="Search or type a website address…" required>
 <button type="submit">GO</button>
 </form>
-<p class="note" id="address-note" role="status">Website addresses open outside OAP only with your confirmation. Search results are not connected.</p>
+<p class="note" id="address-note" role="status">Search OAP first. External web searches are optional and require confirmation.</p>
 <h2>EXPLORE YOUR WORLD</h2>
 <div class="grid">
 <a class="tile" href="/world"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>Discover OAP World</span></a>
@@ -86,14 +86,14 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <a href="/koradaso">KORADASO</a><a href="/world">OAP World</a><a href="/library">Library</a>
 </div>
 <p class="note" id="bookmark-note" role="status">Saved bookmarks stay in this browser only. Nothing is uploaded to OAP.</p>
-<details class="browser-settings" id="browser-settings"><summary>⚙ Browser settings</summary><p>OPEN WEB: External HTTPS addresses require confirmation before leaving the first-party OAP browser. Web search is not connected. No private pages are saved offline here.</p><label for="reduce-motion"><input type="checkbox" id="reduce-motion"> Reduce visual motion for this page</label></details><nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button><a href="/koradaso">⌂ Home</a><a href="/world">🌍 World</a><a href="/">↩ OAP</a></nav>
+<details class="browser-settings" id="browser-settings"><summary>⚙ Browser settings</summary><p>Searches stay within OAP by default. Optional OPEN WEB search sends your query to an external provider only after confirmation. External HTTPS addresses also require confirmation. OAP does not operate a global web index. No private pages are saved offline here.</p><label for="open-web-search"><input type="checkbox" id="open-web-search"> Use external web search for search queries (confirm each time)</label><label for="reduce-motion"><input type="checkbox" id="reduce-motion"> Reduce visual motion for this page</label></details><nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button><a href="/koradaso">⌂ Home</a><a href="/world">🌍 World</a><a href="/">↩ OAP</a></nav>
 </main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
 </div>
 <script>
 (function(){
 "use strict";
 const form=document.getElementById("address-form"),field=document.getElementById("address"),note=document.getElementById("address-note");
-const back=document.getElementById("browser-back"),reduceMotion=document.getElementById("reduce-motion");
+const back=document.getElementById("browser-back"),reduceMotion=document.getElementById("reduce-motion"),openWebSearch=document.getElementById("open-web-search");
 back.addEventListener("click",function(){if(window.history.length>1&&document.referrer){try{const previous=new URL(document.referrer);if(previous.origin===window.location.origin){window.history.back();return;}}catch(_){/* fallback home */}}window.location.assign("/koradaso");});
 reduceMotion.addEventListener("change",function(){document.body.classList.toggle("reduce-motion",reduceMotion.checked);});
 // Bookmarks are user-initiated, browser-local and limited to OAP routes.
@@ -123,8 +123,19 @@ showBookmarks();
 
 form.addEventListener("submit",function(e){
 e.preventDefault();const raw=field.value.trim();if(!raw){note.textContent="Enter a website address.";return;}
-if(/\s/.test(raw)){if(window.confirm("Search using an external provider? Your query will leave OAP.")){window.location.assign("https://duckduckgo.com/?q="+encodeURIComponent(raw));}else{note.textContent="Search cancelled.";};return;}
-let url;try{url=new URL(/^https?:\/\//i.test(raw)?raw:"https://"+raw);}catch(_){note.textContent="Invalid address.";return;}
+// Keep the same OAP-first routing as the native Android omnibox.
+const explicitScheme=/^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
+const hostLike=/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:[/?#][^\s]*)?$/i.test(raw);
+if(!explicitScheme&&!hostLike){
+  if(raw.length>500){note.textContent="Search query is too long.";return;}
+  if(openWebSearch.checked){
+    if(window.confirm("OPEN WEB SEARCH — Your query will be sent to DuckDuckGo outside OAP. Continue?")){
+      window.location.assign("https://duckduckgo.com/?q="+encodeURIComponent(raw));
+    }else{note.textContent="External search cancelled. No query was sent.";}
+  }else{window.location.assign("/search?q="+encodeURIComponent(raw));}
+  return;
+}
+let url;try{url=new URL(explicitScheme?raw:"https://"+raw);}catch(_){note.textContent="Invalid website address.";return;}
 if(url.protocol!=="https:"||!url.hostname.includes(".")||url.username||url.password||url.hostname==="localhost"||/^(?:\d{1,3}\.){3}\d{1,3}$/.test(url.hostname)||url.hostname.startsWith("[")){note.textContent="External addresses must be valid HTTPS domains.";return;}
 if(window.confirm("OPEN WEB — "+url.hostname+" is outside OAP. Continue?")){window.location.assign(url.href)}else{note.textContent="Stayed in KORADASO Internet."}
 });
