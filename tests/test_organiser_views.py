@@ -85,3 +85,91 @@ def test_connectivity_brief_import_is_audited_draft_not_approval(monkeypatch):
     assert brief.source == "chatgpt_automation"
     assert brief.decision == "watch"
     assert brief.evidence_links == ("https://www.itu.int/imt-2030",)
+
+def test_film_evidence_api_is_founder_only_and_read_only(monkeypatch):
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser/research/film-evidence").status_code == 403
+
+    client = _client(monkeypatch, founder=True)
+    result = client.get("/mission/organiser/research/film-evidence")
+    assert result.status_code == 200
+    assert result.headers["Cache-Control"] == "no-store"
+    assert result.headers["X-Content-Type-Options"] == "nosniff"
+    research = result.get_json()
+    assert len(research["entries"]) == 3
+    assert len(research["source_receipts"]) == 4
+    assert research["private_communication_ingestion_enabled"] is False
+    assert research["execution_enabled"] is False
+
+
+def test_founder_archive_shows_all_three_film_research_identities_under_existing_council(
+    monkeypatch,
+):
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser").status_code == 403
+
+    response = _client(monkeypatch, founder=True).get("/mission/organiser")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert page.count('data-film-reference="m3gan"') == 1
+    assert page.count('data-film-reference="amelia"') == 1
+    assert page.count('data-film-reference="black_box"') == 1
+    assert "M3GAN · AMELIA · BLACK BOX" in page
+    assert "Captain ALL IN" in page
+    assert "Bagheera" in page and "Shere Khan" in page
+    assert "Founder Final remains final" in page
+    assert "no live crawler" in page
+    assert "no verified character runtime" in page
+    assert "Read Founder-only source receipts" in page
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_founder_technology_evidence_is_source_linked_and_not_on_public_brain(
+    monkeypatch,
+):
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser").status_code == 403
+    assert blocked.get("/mission/organiser/research/film-evidence").status_code == 403
+
+    page_response = _client(monkeypatch, founder=True).get("/mission/organiser")
+    page = page_response.get_data(as_text=True)
+    assert page_response.status_code == 200
+    assert page.count('data-real-technology="m3gan"') == 3
+    assert page.count('data-real-technology="amelia"') == 2
+    assert page.count('data-real-technology="black_box"') == 2
+    assert "Amelia 7 (SoundHound AI)" in page
+    assert "BLACKBOX AI coding agents" in page
+    assert "no provider connected" in page
+    assert "no physical robot proof" in page
+    api = _client(monkeypatch, founder=True).get(
+        "/mission/organiser/research/film-evidence"
+    )
+    assert api.status_code == 200
+    assert len(api.get_json()["real_world_technology_evidence"]) == 7
+    assert api.headers["Cache-Control"] == "no-store"
+
+
+def test_founder_original_film_powers_view_links_real_film_references(monkeypatch):
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser").status_code == 403
+
+    founder = _client(monkeypatch, founder=True)
+    response = founder.get("/mission/organiser")
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    page = response.get_data(as_text=True)
+    assert page.count('data-film-ability="m3gan:') == 6
+    assert page.count('data-film-ability="amelia:') == 5
+    assert page.count('data-film-ability="black_box:') == 4
+    assert "Full film-canon ability evidence" in page
+    assert "Film source</a>" in page
+    assert "fictional; real OAP implementation requires independent proof" in page
+    assert "Founder Final remains final" in page
+
+    research_response = founder.get("/mission/organiser/research/film-evidence")
+    assert research_response.status_code == 200
+    research = research_response.get_json()
+    assert len(research["film_canon_abilities"]) == 15
+    assert len(research["source_receipts"]) == 4
+    assert research["film_canon_runtime_proven"] is False
+    assert research_response.headers["Cache-Control"] == "no-store"
