@@ -77,6 +77,102 @@ SYSTEM_RECIPIENTS: tuple[str, ...] = (
     "Human Authority",
 )
 
+# Neo's seven approved companion lanes reuse the canonical Matrix registry and
+# signal topology. This is a readable capability contract, not an execution
+# engine, animated avatar, model connection, or a production-readiness claim.
+NEO_COMPANION_LANES: tuple[tuple[str, str, str], ...] = (
+    ("intelligence", "Evidence-led technical reasoning", "advisory"),
+    ("engineering", "Code review and bounded implementation proposals", "advisory"),
+    ("dialogue", "Natural conversational Neo persona", "not_runtime_verified"),
+    ("avatar", "Realistic 3D and animated character presentation", "not_runtime_verified"),
+    ("movement", "Mobile-friendly avatar gestures and animation", "not_runtime_verified"),
+    ("communication", "Matrix Signal Bus review envelopes", "source_implemented"),
+    ("defence", "Anomaly, permission and recovery review", "advisory"),
+)
+
+
+def neo_companion_profile() -> dict[str, Any]:
+    """Expose Neo's approved presentation and review contract without activation."""
+    return {
+        "name": "Neo",
+        "family": "matrix",
+        "home": agents.matrix_home_for("Neo"),
+        "role": "technical_lead_and_recovery_witness",
+        "persona": {
+            "tone": ("calm", "precise", "thoughtful", "constructively_challenging"),
+            "principle": "Listen first; distinguish evidence from inference.",
+            "dialogue_model_connected": False,
+            "voice_runtime_verified": False,
+        },
+        "presentation": {
+            "modes": ("realistic_3d", "animated_cartoon", "static_fallback"),
+            "prefer_mobile_fallback": True,
+            "avatar_runtime_verified": False,
+            "movement_runtime_verified": False,
+        },
+        "capabilities": tuple(
+            {"id": key, "description": description, "evidence_state": state}
+            for key, description, state in NEO_COMPANION_LANES
+        ),
+        "matrix_signal_bus_available": True,
+        "real_agent_message_delivery_verified": False,
+        "independent_execution_granted": False,
+        "guardian_required": True,
+        "green_gate_required": True,
+        "founder_final_required": True,
+        "certified": False,
+    }
+
+def neo_review_response(
+    *, topic: str, evidence: Iterable[str] = (), blocked: bool = False
+) -> dict[str, Any]:
+    """Render bounded, evidence-attributed Neo dialogue without a model or tool call.
+
+    This is a deterministic review response, not an independently speaking agent.
+    Unverified observations cannot become runtime or production success claims.
+    """
+    if not isinstance(topic, str):
+        raise TypeError("Neo review topic must be text")
+    topic = topic.strip()
+    if not topic or len(topic) > 240:
+        raise ValueError("Neo review topic must be 1-240 characters")
+    if not isinstance(blocked, bool):
+        raise TypeError("Neo blocked flag must be boolean")
+    if isinstance(evidence, (str, bytes)) or not isinstance(evidence, (tuple, list)):
+        raise TypeError("Neo evidence must be a bounded sequence")
+    if len(evidence) > 7 or any(
+        not isinstance(item, str) or not item.strip() or len(item) > 500
+        for item in evidence
+    ):
+        raise ValueError("Neo evidence must contain at most seven short nonempty entries")
+    items = tuple(item.strip() for item in evidence)
+    conclusion = (
+        "HOLD. The review is blocked; do not promote this to Green."
+        if blocked
+        else "Review only. Release and execution remain unverified."
+    )
+    evidence_line = (
+        "Observed evidence: " + "; ".join(items)
+        if items
+        else "No verified evidence supplied."
+    )
+    return {
+        "speaker": "Neo",
+        "home": agents.matrix_home_for("Neo"),
+        "topic": topic,
+        "message": f"I hear the mission: {topic}. {evidence_line} {conclusion}",
+        "evidence": items,
+        "source": "deterministic_matrix_review",
+        "model_generated": False,
+        "voice_generated": False,
+        "avatar_animation_triggered": False,
+        "real_agent_delivery_verified": False,
+        "execution_granted": False,
+        "founder_final_required": True,
+        "guardian_required": True,
+    }
+
+
 ALLOWED_URGENCY: tuple[str, ...] = ("low", "normal", "high", "critical")
 
 
@@ -136,6 +232,7 @@ def topology() -> dict[str, Any]:
 
     return {
         "name": "Matrix Signal Bus",
+        "neo_companion": neo_companion_profile(),
         "system": "Matrix System",
         "mode": "founder_governed_signal_routing",
         "communication_law": MATRIX_COMMUNICATION_LAW,
@@ -186,7 +283,7 @@ def route_signal(
     """Create a bounded Matrix Signal envelope without taking external action."""
 
     if not isinstance(sender, str):
-        raise ValueError("Signal sender must be text")
+        raise ValueError("Signal sender must be text")  # noqa: TRY004 - preserve existing public API
     if not isinstance(topic, str) or not topic.strip() or len(topic) > 2000:
         raise ValueError("Signal topic must be 1-2000 characters")
     if not isinstance(kind, str) or len(kind) > 64:
