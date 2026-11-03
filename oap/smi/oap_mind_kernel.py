@@ -35,6 +35,30 @@ def assess_kernel_evidence(*, identity_id: str, request_id: str) -> KernelMindRe
     deliberately propagates; missing or inconsistent audit rows fail closed.
     """
     audit = readback_kernel_audit(identity_id=identity_id, request_id=request_id)
+    # Defend the OAP MIND boundary against cross-request or incomplete readbacks.
+    # The canonical readback remains responsible for human-authority validation.
+    if audit.request_id != request_id:
+        return KernelMindReview(
+            request_id=request_id,
+            audit_event_id=None,
+            octopus_assessment="HOLD",
+            audit_verified=False,
+            execution_observed=False,
+            durable_hrm_receipt_proven=False,
+            confidence="PROVENANCE_MISMATCH",
+            next_evidence="AUDIT_REQUEST_BINDING_MISMATCH",
+        )
+    if audit.verified and not audit.event_id:
+        return KernelMindReview(
+            request_id=request_id,
+            audit_event_id=None,
+            octopus_assessment="HOLD",
+            audit_verified=False,
+            execution_observed=False,
+            durable_hrm_receipt_proven=False,
+            confidence="INSUFFICIENT",
+            next_evidence="AUDIT_EVENT_ID_REQUIRED",
+        )
     if not audit.verified:
         return KernelMindReview(
             request_id=audit.request_id,
