@@ -19,9 +19,18 @@ def test_all_agents_uses_canonical_registry_without_new_passports():
 def test_individual_room_has_one_registered_member():
     agent = agents.AGENT_REGISTRY[0]
     context = room_context(f"agent:{agent['agent_id']}")
-    assert context["members"] == (
-        {"agent_id": str(agent["agent_id"]), "name": str(agent["name"])},
+    assert len(context["members"]) == 1
+    member = context["members"][0]
+    family = next(
+        item for item in agents.INTELLIGENCE_FAMILIES
+        if item["id"] == agent["family_id"]
     )
+    assert member["agent_id"] == str(agent["agent_id"])
+    assert member["name"] == str(agent["name"])
+    assert member["family_id"] == family["id"]
+    assert member["family_name"] == family["name"]
+    assert member["world_id"] == family["world_id"]
+    assert member["home_system"] == family["home_system"]
 
 
 def test_family_rooms_match_canonical_family_membership():
@@ -127,3 +136,70 @@ def test_hq_authenticated_non_founder_access_rejected(client, monkeypatch):
         assert response.status_code == 403
         assert response.get_json()["error"]["code"] == "human_authority_required"
         assert response.headers["Cache-Control"] == "no-store"
+
+
+
+def test_every_registered_agent_keeps_its_canonical_family_world_and_home():
+    directory = room_directory()
+    individual = [room for room in directory["rooms"] if room["kind"] == "individual"]
+    families = {family["id"]: family for family in agents.INTELLIGENCE_FAMILIES}
+    registry = {agent["agent_id"]: agent for agent in agents.AGENT_REGISTRY}
+    assert len(individual) == len(registry) == directory["agent_count"]
+    assert directory["home_assignment_source"] == "canonical_family_alignment"
+    assert directory["cross_family_collaboration_active"] is False
+    for room in individual:
+        agent = registry[room["agent_ids"][0]]
+        family = families[agent["family_id"]]
+        assert room["family_id"] == agent["family_id"]
+        assert room["family_name"] == family["name"]
+        assert room["world_id"] == family["world_id"]
+        assert room["home_system"] == family["home_system"]
+        member = room_context(room["id"])["members"][0]
+        assert member["family_id"] == room["family_id"]
+        assert member["home_system"] == room["home_system"]
+
+
+def test_all_agents_directory_does_not_rehome_members_to_a_new_family():
+    context = room_context("all_agents")
+    families = {family["id"]: family for family in agents.INTELLIGENCE_FAMILIES}
+    assert context["room"]["home_system"] is None
+    assert len(context["members"]) == len(agents.AGENT_REGISTRY)
+    for member in context["members"]:
+        assert member["home_system"] == families[member["family_id"]]["home_system"]
+
+
+def test_unregistered_family_assignment_fails_closed(monkeypatch):
+    original = agents.AGENT_REGISTRY[0]
+    tampered = {**original, "family_id": "invented_family"}
+    monkeypatch.setattr(agents, "AGENT_REGISTRY", (tampered,))
+    with pytest.raises(ValueError, match="no registered canonical family"):
+        room_directory()
+
+
+def test_duplicated_family_identity_fails_closed(monkeypatch):
+    family = agents.INTELLIGENCE_FAMILIES[0]
+    monkeypatch.setattr(
+        agents, "INTELLIGENCE_FAMILIES", (family, family)
+    )
+    with pytest.raises(ValueError, match="duplicate canonical family"):
+        room_directory()
+
+
+def test_matrix_film_homes_are_only_canonical_advisory_references():
+    # The canonical Matrix home resolver was added on newer main. This older
+    # draft branch must not invent film-home groups or passports to emulate it.
+    resolver = getattr(agents, "matrix_home_for", None)
+    if not callable(resolver):
+        assert all(
+            room["home_group"] is None for room in room_directory()["rooms"]
+            if room["kind"] == "individual"
+        )
+        return
+    for agent in agents.AGENT_REGISTRY:
+        if agent["family_id"] != "matrix":
+            assert room_context(f"agent:{agent['agent_id']}")["members"][0]["home_group"] is None
+            continue
+        member = room_context(f"agent:{agent['agent_id']}")["members"][0]
+        assert member["home_group"] == resolver(agent["name"])
+        assert member["family_id"] == "matrix"
+        assert member["home_system"] == "Matrix System"
