@@ -9,6 +9,7 @@ remain fail-closed until real sources exist.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 COMPONENTS = (
@@ -89,6 +90,28 @@ def _place_model() -> dict[str, Any]:
     }
 
 
+
+def from_owned_sensor(reading: Mapping[str, Any], *, now: datetime | None = None) -> dict[str, Any]:
+    """Strict first-party Earth entry point; never accepts external observations.
+
+    An unverified sensor reading stays unverified. Existing legacy weather and
+    NASA adapters remain isolated and do not feed this entry point.
+    """
+    from mission_control import earth_first_party
+
+    record = earth_first_party.intake(reading, now=now)
+    return {
+        "world_id": "earth",
+        "source_policy": "oap_owned_sensors_only",
+        "observation": record,
+        "trusted_observations": 0,
+        "live_environment_ready": False,
+        "full_earth_runtime_ready": False,
+        "can_execute": False,
+        "human_authority_final": True,
+    }
+
+
 def from_weather(weather: Mapping[str, Any]) -> dict[str, Any]:
     """Project verified Weather Intelligence into bounded Earth context."""
 
@@ -143,6 +166,26 @@ def from_weather(weather: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+
+def first_party_status() -> dict[str, Any]:
+    """Founder-governed Earth readiness independent of legacy weather adapters."""
+    from mission_control import earth_first_party
+
+    return {
+        "name": "OAP First-Party Earth Intelligence",
+        "world_id": "earth",
+        "source_policy": "oap_owned_sensors_only",
+        "legacy_weather_is_authoritative": False,
+        "nasa_adapter_enabled": False,
+        "sensor_intake": earth_first_party.status(),
+        "verified_sensor_nodes": 0,
+        "verified_owned_physical_servers": 0,
+        "full_earth_runtime_ready": False,
+        "can_execute": False,
+        "human_authority_final": True,
+    }
+
+
 def status(*, weather_ready: bool) -> dict[str, Any]:
     """Return architecture/readiness without making network calls."""
 
@@ -166,3 +209,71 @@ def status(*, weather_ready: bool) -> dict[str, Any]:
             "Weather is the first live sensing connection; broader Earth and place observations remain gated."
         ),
     }
+
+# NASA Earth-observation evidence is deliberately read-only. This adapter
+# accepts externally retrieved metadata; it does not fetch, execute, or grant
+# authority from external sources.
+def validate_earth_observation(item: Mapping[str, Any]) -> dict[str, Any]:
+    """Fail closed on incomplete NASA Earthdata observation metadata."""
+    from datetime import datetime
+    from hashlib import sha256
+    from urllib.parse import urlsplit
+
+    required = ("observation_id", "dataset", "captured_at", "source_url", "checksum_sha256")
+    values = {key: _text(item.get(key)) for key in required}
+    if any(not value for value in values.values()):
+        return {"valid": False, "reason": "missing_required_metadata", "can_execute": False}
+    try:
+        parsed = datetime.fromisoformat(values["captured_at"])
+        if parsed.tzinfo is None:
+            raise ValueError("timezone_required")
+    except ValueError:
+        return {"valid": False, "reason": "invalid_capture_time", "can_execute": False}
+    url = urlsplit(values["source_url"])
+    if (url.scheme != "https" or not url.hostname or url.username or url.password
+            or url.hostname.lower() not in {"earthdata.nasa.gov", "data.nasa.gov", "cmr.earthdata.nasa.gov"}):
+        return {"valid": False, "reason": "untrusted_source", "can_execute": False}
+    digest = values["checksum_sha256"].lower()
+    if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+        return {"valid": False, "reason": "invalid_checksum", "can_execute": False}
+    return {
+        "valid": True,
+        "observation_id": values["observation_id"][:200],
+        "dataset": values["dataset"][:200],
+        "captured_at": parsed.isoformat(),
+        "source_url": values["source_url"],
+        "checksum_sha256": digest,
+        "metadata_fingerprint": sha256(
+            ("|".join(values[key] for key in required)).encode("utf-8")
+        ).hexdigest(),
+        "source_verified": False,
+        "payload_integrity_verified": False,
+        "can_execute": False,
+        "full_earth_runtime_ready": False,
+    }
+
+
+def nasa_observation_envelope(item: Mapping[str, Any], *, received_at: str) -> dict[str, Any]:
+    """Project validated metadata into the existing governed World Observation model.
+
+    Metadata alone is unverified: it cannot assert a live observation, prove
+    downloaded bytes, or grant any execution permission.
+    """
+    from mission_control import world_observation
+
+    checked = validate_earth_observation(item)
+    if not checked["valid"]:
+        raise ValueError(str(checked["reason"]))
+    if not _text(received_at):
+        raise ValueError("received_at_required")
+    return world_observation.normalise({
+        "object_id": checked["observation_id"],
+        "object_type": "nasa_earth_observation_metadata",
+        "evidence_class": "unverified",
+        "source": checked["source_url"],
+        "source_ownership": "external_public",
+        "observed_at": checked["captured_at"],
+        "received_at": received_at,
+        "evidence": (),
+        "first_party": {"software": True, "processing": True, "observation": False},
+    })
