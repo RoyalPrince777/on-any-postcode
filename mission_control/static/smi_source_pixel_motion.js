@@ -53,12 +53,15 @@
   const eyeScale=Math.max(.2,1-(blink*.78));
   const gaze=boundedGaze(gazeTarget);
   const gx=gaze?gaze.x:0,gy=gaze?gaze.y:0;
+  // Coordinate small gestures with permitted audible viseme pulses; no inferred emotion.
+  const audible=state==="speaking"&&Number.isFinite(speechPulse)?Math.max(0,Math.min(1,speechPulse)):0;
+  const emphasis=audible*audible;
   return Object.freeze({
-   head:[a*1.35*focus+gx*.55,b*.72*focus+gy*.35,1],
+   head:[a*1.35*focus+gx*.55,b*.72*focus+gy*.35+emphasis*.35,1],
    eyes:[a*1.9*focus+gx*2.2,b*.58*focus+gy*1.15,eyeScale],
-   mouth:state==="speaking"?[speechPulse*1.15,speechPulse*1.45,1+speechPulse*.32]:[0,0,1],
+   mouth:state==="speaking"?[audible*1.15,audible*1.45,1+audible*.32]:[0,0,1],
    chest:[0,b*.78,1+b*.0045],
-   hands:[a*.48,-b*.42,1]
+   hands:[a*.48+emphasis*.32,-b*.42-emphasis*.27,1]
   });
  }
  async function attach(win=typeof window!=="undefined"?window:null,doc=win?.document){
