@@ -3,6 +3,7 @@ import pytest
 
 from oap.smi.bagheera_companion import (
     bagheera_companion,
+    bagheera_renderer_state,
     review_bagheera_action,
 )
 
@@ -50,3 +51,29 @@ def test_no_self_authorized_action():
         assert (verdict["recommendation"] == "reviewable") == (
             permission and founder and evidence
         )
+
+
+@pytest.mark.parametrize("movement,state", [
+    ("idle", "ready"), ("listen", "listening"),
+    ("consider", "thinking"), ("speak", "speaking"),
+    ("alert", "paused"),
+])
+def test_existing_renderer_state_mapping(movement, state):
+    profile = bagheera_companion(movement=movement)
+    proposal = bagheera_renderer_state(profile, session_approved=True)
+    assert proposal["state"] == state
+    assert proposal["renderer_owner"] == "smi_source_pixel_motion"
+    assert proposal["dispatch"] is False
+    assert proposal["runtime_verified"] is False
+    assert proposal["asset_authorized"] is False
+
+
+def test_no_session_visibility_and_reduced_motion_fail_safe():
+    profile = bagheera_companion(movement="speak")
+    assert bagheera_renderer_state(profile)["state"] == "paused"
+    assert bagheera_renderer_state(
+        profile, session_approved=True, visible=False
+    )["state"] == "paused"
+    assert bagheera_renderer_state(
+        profile, session_approved=True, reduce_motion=True
+    )["state"] == "paused"
