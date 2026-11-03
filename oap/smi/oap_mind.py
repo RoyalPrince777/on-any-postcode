@@ -1,7 +1,8 @@
-"""OAP MIND: bounded metacognitive evidence review for the existing Octopus role.
+"""OAP Metacognitive Intelligence: bounded Octopus evidence reasoning.
 
-This module evaluates supplied OAP evidence metadata; it does not fetch, verify,
-execute, grant permissions, learn autonomously, or certify production readiness.
+Caller-provided evidence is *always* untrusted. No boolean supplied by a caller
+can authenticate a source, CI outcome, device result or HRM receipt. The only
+existing canonical readback integration is in oap_mind_kernel.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ EVIDENCE_KINDS: frozenset[str] = frozenset(
 
 @dataclass(frozen=True)
 class OAPEvidence:
-    """An externally supplied record, not an authenticated receipt."""
+    """Untrusted observation; verified_receipt is retained for compatibility ONLY."""
 
     reference: str
     kind: EvidenceKind
@@ -50,48 +51,50 @@ def assess_oap_evidence(
     *,
     required_kinds: tuple[EvidenceKind, ...] = ("source",),
 ) -> MindAssessment:
-    """Review provenance and contradictions without manufacturing confidence.
+    """Assess claims without promoting caller assertions into authenticated proof.
 
-    `verified_receipt` is a caller assertion and MUST be authenticated by the
-    existing OAP receipt/HRM layer before calling this function. In particular,
-    REVIEW_READY does not mean the claim is true or that execution is allowed.
+    This is an informational analysis of untrusted metadata, not Green Gate.
+    A claimed verified receipt is deliberately ignored. An independent OAP
+    source/CI/device or HRM readback is needed to certify actual evidence.
     """
     if not isinstance(claim, str) or not claim.strip():
         raise ValueError("An explicit claim is required")
-    if not required_kinds or any(kind not in EVIDENCE_KINDS for kind in required_kinds):
+    if not isinstance(required_kinds, tuple) or not required_kinds or any(
+        kind not in EVIDENCE_KINDS for kind in required_kinds
+    ):
         raise ValueError("Required evidence kinds must be recognised and nonempty")
-    if any(kind not in EVIDENCE_KINDS for kind in (item.kind for item in evidence)):
+    if not isinstance(evidence, tuple) or any(
+        not isinstance(item, OAPEvidence) for item in evidence
+    ):
+        raise ValueError("Evidence must be a tuple of OAPEvidence")
+    if any(item.kind not in EVIDENCE_KINDS for item in evidence):
         raise ValueError("Unrecognised evidence kind")
-    if any(not item.reference.strip() or not item.claim.strip() for item in evidence):
+    if any(
+        not isinstance(item.reference, str)
+        or not item.reference.strip()
+        or not isinstance(item.claim, str)
+        or not item.claim.strip()
+        for item in evidence
+    ):
         raise ValueError("Evidence needs a reference and an explicit claim")
     if len({item.reference for item in evidence}) != len(evidence):
         raise ValueError("Duplicate evidence references")
+    if any(type(item.supports_claim) is not bool for item in evidence):
+        raise ValueError("Evidence support must be an explicit boolean")
 
-    matching = tuple(item for item in evidence if item.claim == claim.strip())
+    normalized_claim = claim.strip()
+    matching = tuple(item for item in evidence if item.claim == normalized_claim)
     supports = tuple(item.reference for item in matching if item.supports_claim)
     contradicts = tuple(item.reference for item in matching if not item.supports_claim)
-    unverified = tuple(item.reference for item in matching if not item.verified_receipt)
-    verified_support = tuple(
-        item for item in matching if item.supports_claim and item.verified_receipt
-    )
-    missing = tuple(
-        kind for kind in dict.fromkeys(required_kinds)
-        if not any(item.kind == kind for item in verified_support)
-    )
 
-    if contradicts:
-        verdict: Verdict = "HOLD"
-    elif missing or unverified:
-        verdict = "INVESTIGATE"
-    else:
-        verdict = "REVIEW_READY"
-    confidence = (
-        "CONFLICTED" if contradicts else
-        "INSUFFICIENT" if missing or unverified else
-        "RECEIPTS_PRESENT_NOT_INDEPENDENTLY_VERIFIED"
-    )
+    # There is no trusted readback in this function: all metadata remains
+    # unverified even when a caller sets verified_receipt=True.
+    unverified = tuple(item.reference for item in evidence)
+    missing = tuple(dict.fromkeys(required_kinds))
+    verdict: Verdict = "HOLD" if contradicts else "INVESTIGATE"
+    confidence = "CONFLICTED_UNVERIFIED" if contradicts else "UNVERIFIED"
     return MindAssessment(
-        claim=claim.strip(),
+        claim=normalized_claim,
         specialist="Octopus",
         verdict=verdict,
         supporting_references=supports,
@@ -99,5 +102,5 @@ def assess_oap_evidence(
         unverified_references=unverified,
         missing_proof=missing,
         confidence=confidence,
-        further_research_needed=verdict != "REVIEW_READY",
+        further_research_needed=True,
     )
