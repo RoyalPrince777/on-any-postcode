@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from . import bank_distribution_intelligence as distribution
-from . import oap_bank
+from . import oap_bank, sika_cash_service_point
 from . import prince_sovereign_bank as bank
 
 POST_OFFICE_CONTRACT = "docs/SIKA_POST_OFFICE_CASH_ACCESS_GAPS.md"
@@ -37,6 +37,7 @@ def status() -> dict[str, Any]:
         "post_office": {
             "contract": POST_OFFICE_CONTRACT,
             "post_core_preserved": True,
+            "cash_intent_validation_available": sika_cash_service_point.status()["cash_intent_validation_available"],
             "cash_in_enabled": False,
             "cash_out_enabled": False,
             "physical_location_verified": False,
