@@ -2,8 +2,8 @@
 from mission_control.smi_shere_khan_dialogue import (
     SHERE_KHAN_CAPABILITIES,
     SHERE_KHAN_INSTRUCTION,
-    TIGER_INTELLIGENCE,
     SHERE_KHAN_WORKING_PROTOCOL,
+    TIGER_INTELLIGENCE,
     capability_instruction,
     shere_khan_requested,
     tiger_intelligence_instruction,
