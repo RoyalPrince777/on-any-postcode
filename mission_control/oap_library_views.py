@@ -5,6 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    black_history_catalogue,
     essential_life_systems,
     oap_book_entitlements,
     oap_ebook_creator_store,
@@ -79,6 +80,13 @@ def library_home():
             )
         )
     )
+
+
+@bp.get("/library/black-history/review")
+@web_security.login_required(api=True, founder_only=True)
+def black_history_review():
+    """Founder-private, off-by-default Chronicle review projection."""
+    return _library_page(make_response(jsonify(black_history_catalogue.catalogue_status())))
 
 
 @bp.get("/library/my-library")
