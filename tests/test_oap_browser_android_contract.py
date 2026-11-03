@@ -5,7 +5,7 @@ SOURCE = Path("android/oapworld/src/main/java/com/onanypostcode/oapworld/MainAct
 
 def test_oap_browser_keeps_oap_as_home_and_routes_search_first_party():
     source = SOURCE.read_text(encoding="utf-8")
-    assert 'private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com"' in source
+    assert 'private static final String OAP_ORIGIN = "https://onanypostcode.global"' in source
     assert 'openFirstPartyPath("/world")' in source
     assert 'openFirstPartyPath("/search?q=" + Uri.encode(input))' in source
 
@@ -140,3 +140,9 @@ def test_koradaso_android_consent_dialogs_use_scoped_first_party_boundaries():
     assert 'message.startsWith("OPEN WEB SEARCH — ")' in source
     assert 'if (!sameTrustedOrigin || !(worldConsent || koradasoConsent))' in source
     assert 'result.cancel();' in source
+
+
+def test_koradaso_android_rejects_legacy_render_origin():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'private static final String OAP_ORIGIN = "https://onanypostcode.global"' in source
+    assert "onrender.com" not in source
