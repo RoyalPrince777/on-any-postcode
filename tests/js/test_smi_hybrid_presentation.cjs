@@ -2,20 +2,28 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
 const presentation=require("../../mission_control/static/smi_hybrid_presentation.js");
-test("hybrid presentation selection preserves canonical owners",()=>{
+test("original Founder avatar is the fail-closed default",()=>{
  const control=presentation.create();
- assert.equal(control.snapshot().mode,"realistic3d");
- assert.equal(control.select("animated_cartoon").mode,"animated_cartoon");
- assert.equal(control.snapshot().brainOwner,"smi");
+ assert.equal(control.snapshot().mode,"original_avatar");
+ assert.equal(control.snapshot().sevenLayerRigPreserved,true);
  assert.equal(control.snapshot().rendererOwner,"smi_source_pixel_motion");
- assert.equal(control.select("unknown").mode,"animated_cartoon");
+ assert.equal(control.snapshot().brainOwner,"smi");
+ assert.equal(control.select("animated_cartoon").mode,"original_avatar");
+ assert.equal(control.select("realistic3d").mode,"original_avatar");
+ assert.equal(control.select("unknown").mode,"original_avatar");
  assert.equal(control.snapshot().productionApproved,false);
  assert.equal(control.snapshot().visualRuntimeVerified,false);
 });
-test("STOP latches mode and only explicit human reset reopens it",()=>{
- const control=presentation.create();
+test("experimental selection requires explicit opt-in and remains unverified",()=>{
+ const control=presentation.create({allowExperimentalStyles:true});
+ assert.equal(control.select("animated_cartoon").mode,"animated_cartoon");
+ assert.equal(control.snapshot().optionalStylesImplemented,false);
+ assert.equal(control.select("original_avatar").mode,"original_avatar");
+});
+test("STOP latches selection until explicit human action",()=>{
+ const control=presentation.create({allowExperimentalStyles:true});
  control.stop();
- assert.equal(control.select("animated_cartoon").mode,"realistic3d");
+ assert.equal(control.select("animated_cartoon").mode,"original_avatar");
  control.resetAfterHumanAction(false);
  assert.equal(control.snapshot().stopped,true);
  control.resetAfterHumanAction(true);
