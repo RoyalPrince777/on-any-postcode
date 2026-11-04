@@ -170,3 +170,13 @@ def test_koradaso_android_termux_loopback_is_explicit_and_scoped():
     assert '<base-config cleartextTrafficPermitted="false" />' in policy
     assert '<domain>127.0.0.1</domain>' in policy
     assert "onrender.com" not in source
+
+
+def test_koradaso_android_opens_branded_home_with_legacy_local_fallback():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'if (state == null) {\n            openFirstPartyPath("/koradaso");' in source
+    assert 'modeButton.setText(LOCAL_ORIGIN.equals(activeOrigin) ? "Local" : "Online");\n        openFirstPartyPath("/koradaso");' in source
+    assert 'request.isForMainFrame()' in source
+    assert 'response.getStatusCode() == 404' in source
+    assert '(activeOrigin + "/koradaso").equals(request.getUrl().toString())' in source
+    assert 'loadWebViewUrl(activeOrigin + "/world");' in source
