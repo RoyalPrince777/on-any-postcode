@@ -109,6 +109,21 @@ def test_oap_world_menu_keeps_marketplace_as_a_destination(client):
     assert "MARKETPLACE." in market_html
 
 
+def test_koradaso_shortcuts_keep_ready_world_market_search_and_settings(client):
+    page = client.get("/koradaso")
+    assert page.status_code == 200
+    source = SOURCE.read_text(encoding="utf-8")
+    assert '<a class="tile" href="/world"><span class="ico"' in source
+    assert '<strong>Market</strong><span>OAP Marketplace</span>' in source
+    assert 'href="/world?source=oap-os"' in source
+    assert 'href="/search"' in source
+    assert 'href="#browser-settings"' in source
+    for label in ("Maps", "Mail", "AI", "Downloads"):
+        assert f"<strong>{label}</strong><span>Reserved · Not ready</span>" in source
+    assert client.get("/world").status_code == 200
+    assert client.get("/world?source=oap-os").status_code == 200
+
+
 def test_koradaso_mobile_layout_keeps_omnibox_and_controls_accessible():
     source = SOURCE.read_text(encoding="utf-8")
     assert "Redmi A5 responsive polish" in source
