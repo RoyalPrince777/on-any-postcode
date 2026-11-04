@@ -31,7 +31,7 @@ def tile_lines(*, x: object, y: object, zoom: object, profile: object = "driving
         import mapbox_vector_tile
 
         decoded = mapbox_vector_tile.decode(body, default_options={"y_coord_down": True})
-    except (ImportError, Exception) as exc:  # decoder boundary: fail closed
+    except Exception as exc:  # decoder boundary: fail closed
         raise routing.RoutingUnavailable("road_tile_decode_failed") from exc
 
     lines: list[dict[str, object]] = []
