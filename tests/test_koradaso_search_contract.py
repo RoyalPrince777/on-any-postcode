@@ -107,3 +107,16 @@ def test_oap_world_menu_keeps_marketplace_as_a_destination(client):
     assert "One World. One Front Door." in menu_html
     assert "YOUR LOCAL" in market_html
     assert "MARKETPLACE." in market_html
+
+
+def test_koradaso_mobile_layout_keeps_omnibox_and_controls_accessible():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "Redmi A5 responsive polish" in source
+    assert "@media(max-width:520px)" in source
+    assert ".search input{min-width:0;width:0;flex:1 1 0;" in source
+    assert ".search button{flex:0 0 auto;min-height:46px;" in source
+    assert ".royal-tab{min-height:42px;" in source
+    assert 'id="address-form"' in source
+    assert 'name="search-mode" value="oap"' in source
+    assert 'name="search-mode" value="web"' in source
+    assert 'href="/world?source=oap-os"' in source
