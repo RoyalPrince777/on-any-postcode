@@ -342,6 +342,13 @@ def test_smi_local_flask_launcher_is_loopback_only_and_preserves_auth():
     assert "auto-login" in script
     assert "OAP_SURFACE_ROLE=public" not in script
     assert 'home_env="$HOME/.config/oap/home-node.env"' in script
+    assert 'founder_env="$HOME/.config/oap/smi-founder.env"' in script
+    assert 'SMI_FLASK_FOUNDER_CONFIG_PERMISSIONS' in script
+    assert 'SMI NEXT ACTION:' in script
+    assert 'chmod 600' in script
+    assert 'NEON_AUTH_BASE_URL=' not in script
+    assert 'OAP_HUMAN_AUTHORITY_EMAIL=' not in script
+
     assert 'SMI_FLASK_AUTH_NOT_CONFIGURED' in script
     assert 'SMI Founder verifier prerequisites:' in script
     assert 'connection unverified' in script
