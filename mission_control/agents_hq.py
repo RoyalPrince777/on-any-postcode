@@ -213,6 +213,50 @@ _AUTOMATION_PATTERNS = (
 )
 
 
+
+# Canonical first-party watch contracts. These define review inputs only:
+# they register no tasks, schedules, listeners, credentials, agents or writes.
+_WATCH_CONTRACTS = (
+    ("ci_failure", "CI Failure Watch", "workflow_failure", "exact_commit_and_failed_job"),
+    ("release_gate", "Release Gate Watch", "proof_gate_change", "gate_status_and_evidence_refs"),
+    ("recovery", "Recovery Watch", "authenticated_health_failure", "incident_and_recovery_evidence"),
+    ("mission_dependency", "Mission Dependency Watch", "dependency_change", "dependency_and_affected_missions"),
+    ("evidence_freshness", "Evidence Freshness Watch", "evidence_invalidation", "proof_revision_and_change"),
+    ("founder_decision", "Founder Decision Watch", "pending_human_decision", "decision_request_and_options"),
+    ("lessons_learned", "Lessons Learned Review", "verified_mission_closure", "verified_outcome_and_corrections"),
+)
+
+
+def automation_watch_catalog() -> dict[str, Any]:
+    """Publish immutable, fail-closed definitions without scheduling or execution."""
+    watches = tuple({
+        "id": watch_id,
+        "name": name,
+        "event_kind": event_kind,
+        "required_evidence": evidence_kind,
+        "status": "disabled",
+        "runtime_connected": False,
+        "agent_selected": False,
+        "authenticated_events": 0,
+        "jobs_created": 0,
+        "runs_completed": 0,
+        "last_hrm_receipt": None,
+        "guardian_required": True,
+        "founder_final": True,
+        "may_execute": False,
+    } for watch_id, name, event_kind, evidence_kind in _WATCH_CONTRACTS)
+    if len({watch["id"] for watch in watches}) != 7:
+        raise ValueError("Invalid canonical automation watch registry")
+    return {
+        "mode": "watch_contracts_only",
+        "watches": watches,
+        "enabled_count": 0,
+        "runtime_connected": False,
+        "execution_authorised": False,
+        "founder_final": True,
+    }
+
+
 def _automation_review_template(mission: str) -> dict[str, Any]:
     text = mission.casefold()
     candidates = tuple({
@@ -230,6 +274,7 @@ def _automation_review_template(mission: str) -> dict[str, Any]:
     return {
         "mode": "automation_advisory_only",
         "trigger_candidates": candidates,
+        "watch_catalog": automation_watch_catalog(),
         "jobs_created": 0,
         "jobs_enabled": 0,
         "notifications_sent": 0,
