@@ -156,3 +156,17 @@ def test_termux_ride_launcher_targets_existing_https_oap_pages():
     assert 'curl --fail' in script
     assert 'OAP_RIDE_ORIGIN' in script
     assert "dispatch server" in script
+
+
+
+def test_rider_retry_key_is_scoped_to_unchanged_journey_details():
+    """A corrected pickup/destination must never reuse a prior journey key."""
+    from mission_control import oap_ride_dashboards
+
+    page = oap_ride_dashboards.RIDE_BOOK_PAGE
+    assert 'const fingerprint=JSON.stringify([pickupValue,destinationValue])' in page
+    assert 'if(requestFingerprint!==fingerprint)' in page
+    assert 'requestKey="ride-"+crypto.randomUUID();requestFingerprint=fingerprint' in page
+    assert 'pickup_query:pickupValue,destination_query:destinationValue' in page
+    assert 'requestKey=null;requestFingerprint=null' in page
+    assert 'if(pending)return' in page
