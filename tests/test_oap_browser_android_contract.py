@@ -12,9 +12,9 @@ def test_oap_browser_keeps_oap_as_home_and_routes_search_first_party():
 
 def test_oap_browser_opens_direct_web_addresses_without_accepting_arbitrary_schemes():
     source = SOURCE.read_text(encoding="utf-8")
-    assert '"https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)' in source
+    assert '"https".equalsIgnoreCase(scheme) || isLocalLoopback(parsed)' in source
     assert 'loadWebViewUrl("https://" + input)' in source
-    assert 'return !("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme));' in source
+    assert 'return !("https".equalsIgnoreCase(scheme) || isLocalLoopback(uri));' in source
 
 
 def test_oap_browser_retains_host_security_controls():
@@ -134,7 +134,7 @@ def test_koradaso_android_consent_dialogs_use_scoped_first_party_boundaries():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'boolean sameTrustedOrigin = certified.getScheme() != null' in source
     assert 'certified.getHost().equalsIgnoreCase(origin.getHost())' in source
-    assert 'origin.getPort() == -1' in source
+    assert 'origin.getPort() == certified.getPort()' in source
     assert 'boolean koradasoConsent = "/koradaso".equals(origin.getPath())' in source
     assert 'message.startsWith("OPEN WEB — ")' in source
     assert 'message.startsWith("OPEN WEB SEARCH — ")' in source
