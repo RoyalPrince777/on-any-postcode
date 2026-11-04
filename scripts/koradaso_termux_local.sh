@@ -10,7 +10,10 @@ if [[ "$PORT" != "5052" && "$PORT" != "5050" ]]; then
 fi
 cd "$ROOT"
 export OAP_LOCAL_MODE=true
-export OAP_SURFACE_ROLE=""
+if [[ "${OAP_SURFACE_ROLE:-}" == "public" ]]; then
+  echo "KORADASO refused: public surface role cannot be repurposed as a local private runtime." >&2
+  exit 2
+fi
 export FLASK_DEBUG=0
 
 # The runtime route and free port must both be real before starting Flask.
