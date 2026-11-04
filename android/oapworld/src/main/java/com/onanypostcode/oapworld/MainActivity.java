@@ -232,7 +232,7 @@ public final class MainActivity extends ComponentActivity {
                 if (request.isForMainFrame()
                         && response.getStatusCode() == 404
                         && (activeOrigin + "/koradaso").equals(request.getUrl().toString())) {
-                    loadWebViewUrl(activeOrigin + "/world");
+                    loadWebViewUrl(activeOrigin + "/world?source=oap-os");
                 }
             }
 
