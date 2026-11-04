@@ -13,6 +13,7 @@ import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.JsResult;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -223,6 +224,19 @@ public final class MainActivity extends ComponentActivity {
             }
 
             @Override
+            public void onReceivedHttpError(
+                    WebView view,
+                    WebResourceRequest request,
+                    WebResourceResponse response
+            ) {
+                if (request.isForMainFrame()
+                        && response.getStatusCode() == 404
+                        && (activeOrigin + "/koradaso").equals(request.getUrl().toString())) {
+                    loadWebViewUrl(activeOrigin + "/world");
+                }
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 omnibox.setText(url);
                 refreshNavigationState();
@@ -256,7 +270,7 @@ public final class MainActivity extends ComponentActivity {
         });
 
         if (state == null) {
-            openFirstPartyPath("/world");
+            openFirstPartyPath("/koradaso");
         }
         refreshNavigationState();
     }
@@ -276,7 +290,7 @@ public final class MainActivity extends ComponentActivity {
         engineHistory.clear();
         engineHistoryIndex = -1;
         modeButton.setText(LOCAL_ORIGIN.equals(activeOrigin) ? "Local" : "Online");
-        openFirstPartyPath("/world");
+        openFirstPartyPath("/koradaso");
     }
 
     private Button navButton(String label) {
