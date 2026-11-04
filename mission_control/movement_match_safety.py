@@ -191,6 +191,16 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                     raise PermissionError("worker_availability_expired")
             if not _certified(connection, worker, role):
                 raise PermissionError("certified_movement_role_required")
+            if role == "driver":
+                try:
+                    eligibility = oap_ride_driver_accessibility.eligible(
+                        booking_id=booking,
+                        driver_identity_id=worker,
+                    )
+                except Exception as exc:
+                    raise PermissionError("ride_accessibility_unavailable") from exc
+                if eligibility.get("eligible") is not True:
+                    raise PermissionError("ride_accessibility_not_verified")
 
             accepted = connection.execute(
                 """SELECT proposal_id FROM oap_movement_match_proposals
