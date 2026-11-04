@@ -156,8 +156,8 @@ def test_mission_navigation_links_to_war_room(client):
 def test_seven_star_gate_rejects_unverified_receipt_references():
     from mission_control.war_room import _rating, _stages
     stages = _stages(True, True, True, True, True, ("a", "b", "c", "d", "e"))
-    args = dict(item_id="proof", name="Proof", category="SMI", summary="test",
-                stages=stages, next_gate="audit", impact=1)
+    args = {"item_id": "proof", "name": "Proof", "category": "SMI", "summary": "test",
+            "stages": stages, "next_gate": "audit", "impact": 1}
     base = _rating(**args)
     assert base["stars"] == 5
     assert base["stars_max"] == 7
