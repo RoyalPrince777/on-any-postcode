@@ -65,8 +65,10 @@ assert.deepEqual(submit("/unknown").visits, []);
 assert.deepEqual(submit("example.com").visits, ["https://example.com/"]);
 assert.equal(submit("example.com", false, false).visits.length, 0);
 assert.deepEqual(submit("music", true, true).visits,
-  ["https://duckduckgo.com/?q=music"]);
-assert.equal(submit("music", true, false).visits.length, 0);
+  ["/koradaso/web-search?q=music"]);
+assert.deepEqual(submit("music", true, false).visits,
+  ["/koradaso/web-search?q=music"]);
+assert.equal(submit("music", true, true).prompts.length, 0);
 assert.equal(submit("javascript://attack").visits.length, 0);
 assert.equal(submit("//evil.example").visits.length, 0);
 console.log("KORADASO omnibox: 13 runtime cases passed");
