@@ -361,3 +361,43 @@ def test_seven_round_council_template_never_fabricates_votes_or_stars(client):
     assert 'id="mission-council-rounds"' in client.get(
         "/mission/smi/agents-hq"
     ).get_data(as_text=True)
+
+
+def test_automation_candidates_are_unconfigured_and_never_schedule_or_execute(client):
+    from mission_control.agents_hq import mission_step_skill_review
+
+    result = mission_step_skill_review(
+        "Every morning check a failure and recover when the status changes"
+    )
+    automation = result["automation_review"]
+    assert automation["mode"] == "automation_advisory_only"
+    assert {candidate["trigger_kind"] for candidate in automation["trigger_candidates"]} == {
+        "schedule", "event", "recovery",
+    }
+    assert automation["jobs_created"] == 0
+    assert automation["jobs_enabled"] == 0
+    assert automation["notifications_sent"] == 0
+    assert automation["scheduler_connected"] is False
+    assert automation["event_subscriptions_connected"] is False
+    assert automation["agent_execution_authorised"] is False
+    assert automation["founder_final"] is True
+    for candidate in automation["trigger_candidates"]:
+        assert candidate["state"] == "not_configured"
+        assert candidate["registered_job_id"] is None
+        assert candidate["schedule"] is None
+        assert candidate["event_source"] is None
+        assert candidate["executions"] == 0
+        assert candidate["guardian_passed"] is False
+        assert candidate["hrm_receipt"] is None
+
+    plain = mission_step_skill_review("Review registered agent skills")
+    assert plain["automation_review"]["trigger_candidates"] == ()
+    response = client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": result["mission"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["automation_review"]["jobs_created"] == 0
+    assert 'id="mission-automation-candidates"' in client.get(
+        "/mission/smi/agents-hq"
+    ).get_data(as_text=True)
