@@ -22,7 +22,7 @@ def test_external_search_is_opt_in_and_site_navigation_preserves_consent():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'id="open-web-search"' in source
     assert 'if(currentSearchMode()==="web")' in source
-    assert 'window.confirm("OPEN WEB SEARCH' in source
+    assert 'window.location.assign("/koradaso/web-search?q="+encodeURIComponent(raw))' in source
     assert 'encodeURIComponent(raw)' in source
     assert 'url.protocol!=="https:"' in source
     assert 'url.username||url.password' in source
@@ -120,3 +120,43 @@ def test_koradaso_mobile_layout_keeps_omnibox_and_controls_accessible():
     assert 'name="search-mode" value="oap"' in source
     assert 'name="search-mode" value="web"' in source
     assert 'href="/world?source=oap-os"' in source
+
+
+def test_koradaso_uses_only_first_party_www_search(client):
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "DuckDuckGo" not in source
+    assert "duckduckgo.com" not in source
+    assert 'window.location.assign("/koradaso/web-search?q="+encodeURIComponent(raw))' in source
+    missing = client.get("/koradaso/web-search?q=test")
+    assert missing.status_code == 503
+    assert b"First-party index not configured" in missing.data
+
+
+def test_koradaso_sqlite_index_real_results_without_external_provider(tmp_path, monkeypatch, client):
+    from mission_control import koradaso_web_index
+
+    db_path = tmp_path / "public_index.sqlite3"
+    monkeypatch.setenv("OAP_KORADASO_WEB_INDEX", str(db_path))
+    koradaso_web_index.ingest_public_page(
+        db_path, url="https://example.org/announcements",
+        title="Community announcements",
+        description="Public events and activities",
+    )
+    response = client.get("/koradaso/web-search?q=community")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Community announcements" in html
+    assert "https://example.org/announcements" in html
+    assert "DuckDuckGo" not in html
+    assert client.get("/koradaso/web-search?q=unmatched").status_code == 200
+
+
+def test_koradaso_index_rejects_unsafe_public_urls(tmp_path):
+    import pytest
+    from mission_control.koradaso_web_index import ingest_public_page
+
+    for url in ("http://example.com", "https://127.0.0.1/",
+                "https://localhost/", "https://user:secret@example.org",
+                "javascript://example.com"):
+        with pytest.raises(ValueError, match="invalid_public_page_metadata"):
+            ingest_public_page(tmp_path / "index.db", url=url, title="Unsafe")
