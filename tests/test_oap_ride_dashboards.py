@@ -141,12 +141,14 @@ def test_ride_pages_have_separate_pwa_install_identities():
         path = f"/transport/ride/{role}"
         body = app.test_client().get(path).get_data(as_text=True)
         assert f'rel="manifest" href="{path}/manifest.webmanifest"' in body
-        assert f'href="{path}?source=oap-install"' in body
+        assert f'data-oap-install hidden>Install {role.title()}' in body
+        assert 'data-oap-install-status role="status"' in body
+        assert 'src="/assets/oap-os.js"' in body
         assert "Install app" in body
         assert "not a signed Android APK" in body
     my_page = app.test_client().get("/transport/my").get_data(as_text=True)
     assert 'rel="manifest" href="/transport/manifest.webmanifest"' in my_page
-    assert 'href="/transport"' in my_page
+    assert 'data-oap-install' not in my_page
 
 
 def test_termux_ride_launcher_targets_existing_https_oap_pages():
