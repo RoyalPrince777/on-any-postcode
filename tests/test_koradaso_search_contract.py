@@ -35,7 +35,7 @@ def test_unready_oap_tiles_do_not_navigate_and_settings_are_functional():
         assert f'href="{route}"' not in source
     assert 'class="tile is-reserved"' in source
     assert 'aria-disabled="true"' in source
-    assert 'href="/world"' in source
+    assert 'href="/world?source=oap-os"' in source
     assert 'href="/search"' in source
     assert 'name="search-mode" value="web"' in source
     assert 'id="clear-browser-preferences"' in source
@@ -84,3 +84,12 @@ def test_koradaso_startup_does_not_require_optional_map_tile_decoder():
     assert '    try:\n        # The optional vector decoder' in source
     assert '        import mapbox_vector_tile' in source
     assert 'raise routing.RoutingUnavailable("road_tile_decode_failed")' in source
+
+
+def test_koradaso_oap_world_opens_menu_not_marketplace(client):
+    menu = client.get("/world?source=oap-os")
+    assert menu.status_code == 200
+    assert "One World. One Front Door." in menu.get_data(as_text=True)
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'href="/world?source=oap-os"' in source
+    assert 'href="/"\u00a0' not in source
