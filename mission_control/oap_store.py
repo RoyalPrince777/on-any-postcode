@@ -395,6 +395,63 @@ def transport_manifest():
     return response
 
 
+def _ride_role_manifest(role: str) -> dict[str, object]:
+    """Separate install identities; one existing OAP Movement backend."""
+    if role not in {"rider", "driver"}:
+        raise ValueError("invalid_ride_role")
+    name = "OAP Rider" if role == "rider" else "OAP Driver"
+    path = f"/transport/ride/{role}"
+    return {
+        "name": f"{name} · ON ANY POSTCODE",
+        "short_name": name,
+        "description": (
+            "Request and manage OAP Ride journeys."
+            if role == "rider"
+            else "Manage certified driver availability and journey proposals."
+        ),
+        "id": path,
+        "start_url": f"{path}?source=oap-install",
+        "scope": "/",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
+        "orientation": "any",
+        "background_color": "#090b0d",
+        "theme_color": "#090b0d",
+        "prefer_related_applications": False,
+        "categories": ["travel", "navigation"],
+        "icons": [
+            {
+                "src": "/assets/oap-os-icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable",
+            },
+            {
+                "src": "/assets/oap-os-icon-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable",
+            },
+        ],
+    }
+
+
+@bp.get("/transport/ride/rider/manifest.webmanifest")
+def rider_manifest():
+    response = make_response(jsonify(_ride_role_manifest("rider")), 200)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@bp.get("/transport/ride/driver/manifest.webmanifest")
+def driver_manifest():
+    response = make_response(jsonify(_ride_role_manifest("driver")), 200)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
 @bp.get("/oap-store/apps/oap.transport")
 def transport_store_entry():
     response = make_response(jsonify(dict(OAP_TRANSPORT)), 200)
