@@ -36,4 +36,20 @@ with socket.socket() as sock:
 print(f"KORADASO routes registered; starting isolated loopback server on 127.0.0.1:{port}", flush=True)
 PY
 
+# Open the real route only after an actual HTTP 200 response with KORADASO branding.
+# The browser remains optional; HEAD-only 200 checks are insufficient.
+if [[ "${OAP_KORADASO_OPEN_BROWSER:-1}" == "1" ]] && command -v termux-open-url >/dev/null 2>&1; then
+  (
+    for attempt in 1 2 3 4 5 6 7 8 9 10; do
+      page="$(curl --noproxy '*' -fsS --max-time 2 "http://127.0.0.1:$PORT/koradaso" 2>/dev/null || true)"
+      if [[ "$page" == *'KORADASO Internet · ON ANY POSTCODE'* && "$page" == *'id="address-form"'* ]]; then
+        termux-open-url "http://127.0.0.1:$PORT/koradaso" >/dev/null 2>&1 || true
+        exit 0
+      fi
+      sleep 1
+    done
+    echo "KORADASO browser not opened: live branded /koradaso page not verified." >&2
+  ) &
+fi
+
 exec python -m flask --app app run --host 127.0.0.1 --port "$PORT" --no-debugger --no-reload
