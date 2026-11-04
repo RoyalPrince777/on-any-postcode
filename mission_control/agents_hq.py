@@ -7,8 +7,8 @@ Collaboration never transfers an agent's identity or grants execution.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from . import agents, ai_behaviour_protocol
