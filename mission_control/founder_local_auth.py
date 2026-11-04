@@ -16,6 +16,7 @@ import os
 import secrets
 import time
 from http.cookies import SimpleCookie
+from contextlib import contextmanager
 from typing import Final
 
 from . import authority, postgres_db
@@ -30,7 +31,28 @@ _ADVISORY_LOCK: Final = 24680271
 
 
 class FounderLocalAuthUnavailable(RuntimeError):
-    """Raised when the Render-local Founder verifier cannot be used safely."""
+    """Raised when the existing Founder verifier cannot be used safely."""
+
+
+@contextmanager
+def _verifier_readonly():
+    """Use an explicitly approved Founder verifier store without changing OAP's writer.
+
+    The optional connection is read-only and scoped to Founder verification.
+    It never promotes a platform fallback or performs credential migration.
+    """
+    url = os.environ.get("OAP_FOUNDER_VERIFIER_DATABASE_URL", "").strip()
+    if not url:
+        with _verifier_readonly() as connection:
+            yield connection
+        return
+    driver = postgres_db._driver()
+    with driver.connect(
+        url, connect_timeout=5,
+        application_name="oap-founder-verifier-readonly", autocommit=False,
+    ) as connection:
+        connection.execute("SET TRANSACTION READ ONLY")
+        yield connection
 
 
 def _session_secret() -> bytes:
@@ -55,10 +77,10 @@ def _identity() -> str:
     configured = authority.configured_identity()
     if configured:
         return configured
-    if not postgres_db.configured():
+    if not (postgres_db.configured() or os.environ.get("OAP_FOUNDER_VERIFIER_DATABASE_URL", "").strip()):
         raise FounderLocalAuthUnavailable("human_authority_identity_not_configured")
     try:
-        with postgres_db.connect(readonly=True) as connection:
+        with _verifier_readonly() as connection:
             rows = connection.execute(
                 """SELECT DISTINCT i.identity_id::text
                    FROM oap_identities i
@@ -111,11 +133,11 @@ def _table_exists(connection) -> bool:
 def bound() -> bool:
     """Return whether one verifier is bound to the sole proven Human Authority."""
 
-    if not postgres_db.configured():
+    if not (postgres_db.configured() or os.environ.get("OAP_FOUNDER_VERIFIER_DATABASE_URL", "").strip()):
         return False
     try:
         identity_id = _identity()
-        with postgres_db.connect(readonly=True) as connection:
+        with _verifier_readonly() as connection:
             if not _table_exists(connection):
                 return False
             row = connection.execute(
@@ -201,7 +223,7 @@ def verify(password: str) -> bool:
     if not isinstance(password, str) or len(password) > 128:
         return False
     try:
-        with postgres_db.connect(readonly=True) as connection:
+        with _verifier_readonly() as connection:
             if not _table_exists(connection):
                 return False
             row = connection.execute(
