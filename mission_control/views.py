@@ -319,6 +319,17 @@ def smi_agents_hq_page():
     return _no_store(make_response(render_template("agents_hq.html", directory=agents_hq.room_directory())))
 
 
+@bp.get("/smi/agents-hq/mission-step-skills")
+@web_security.login_required(api=True, founder_only=True)
+def smi_agents_hq_mission_step_skills():
+    """Founder-only skill-first review; no agents are activated."""
+    try:
+        result = agents_hq.mission_step_skill_review(request.args.get("mission", ""))
+    except ValueError:
+        return _no_store(make_response(jsonify({"error": "invalid_mission_or_registry"}), 400))
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.get("/smi/agents-hq/rooms")
 @web_security.login_required(api=True, founder_only=True)
 def smi_agents_hq_rooms():
