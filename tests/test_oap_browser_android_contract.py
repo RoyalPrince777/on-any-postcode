@@ -159,11 +159,13 @@ def test_koradaso_android_termux_loopback_is_explicit_and_scoped():
 
     assert 'private static final String LOCAL_ORIGIN = "http://127.0.0.1:5050"' in source
     assert "private String activeOrigin = LOCAL_ORIGIN;" in source
-    assert 'modeButton = navButton("Local");' in source
-    assert 'activeOrigin = LOCAL_ORIGIN.equals(activeOrigin) ? OAP_ORIGIN : LOCAL_ORIGIN;' in source
+    assert 'modeButton = navButton("Local 5050");' in source
+    assert 'activeOrigin = KORADASO_TEST_ORIGIN;' in source
+    assert 'activeOrigin = OAP_ORIGIN;' in source
+    assert 'activeOrigin = LOCAL_ORIGIN;' in source
     assert 'engineClient = new EngineDocumentClient(activeOrigin);' in source
     assert '"127.0.0.1".equals(uri.getHost())' in source
-    assert 'uri.getPort() == 5050' in source
+    assert 'uri.getPort() == 5050 || uri.getPort() == 5052' in source
     assert 'uri.getUserInfo() == null' in source
     assert '&& !isLocalLoopback(destination)' in source
     assert 'android:networkSecurityConfig="@xml/koradaso_network_security"' in manifest
@@ -175,8 +177,21 @@ def test_koradaso_android_termux_loopback_is_explicit_and_scoped():
 def test_koradaso_android_opens_branded_home_with_legacy_local_fallback():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'if (state == null) {\n            openFirstPartyPath("/koradaso");' in source
-    assert 'modeButton.setText(LOCAL_ORIGIN.equals(activeOrigin) ? "Local" : "Online");\n        openFirstPartyPath("/koradaso");' in source
+    assert 'modeButton.setText(LOCAL_ORIGIN.equals(activeOrigin) ? "Local 5050"' in source
+    assert 'openFirstPartyPath("/koradaso");' in source
     assert 'request.isForMainFrame()' in source
     assert 'response.getStatusCode() == 404' in source
     assert '(activeOrigin + "/koradaso").equals(request.getUrl().toString())' in source
     assert 'loadWebViewUrl(activeOrigin + "/world?source=oap-os");' in source
+
+
+def test_koradaso_android_can_use_isolated_termux_5052_without_remote_cleartext():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'private static final String KORADASO_TEST_ORIGIN = "http://127.0.0.1:5052"' in source
+    assert 'KORADASO_TEST_ORIGIN.equals(activeOrigin)' in source
+    assert 'modeButton = navButton("Local 5050");' in source
+    assert '"Local 5052" : "Online"' in source
+    assert '&& (uri.getPort() == 5050 || uri.getPort() == 5052)' in source
+    assert '"127.0.0.1".equals(uri.getHost())' in source
+    assert 'uri.getUserInfo() == null' in source
+    assert 'engineClient = new EngineDocumentClient(activeOrigin);' in source
