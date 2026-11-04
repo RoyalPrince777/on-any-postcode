@@ -138,6 +138,12 @@ def test_accept_rejects_role_revoked_after_proposal(monkeypatch):
 
 
 def test_accept_locks_revalidates_expires_competing_proposals_and_marks_busy(monkeypatch):
+    monkeypatch.setattr(
+        movement_match_safety.oap_ride_driver_accessibility,
+        "eligible",
+        lambda **kwargs: {"eligible": True, "reason": "no_accessibility_preferences"},
+    )
+
     now = datetime.now(UTC)
     available_until = now + timedelta(minutes=15)
     connection = _Connection(
@@ -172,3 +178,115 @@ def test_accept_locks_revalidates_expires_competing_proposals_and_marks_busy(mon
     assert connection.committed is True
     locking_reads = [query for query in connection.queries[:3] if "FOR UPDATE" in query]
     assert len(locking_reads) == 3
+
+
+def test_proposal_skips_driver_when_accessibility_check_unavailable(monkeypatch):
+    connection = _Connection(
+        [
+            ("SELECT service_type,pickup,state", ("ride", {"zone": "CR4"}, "REQUESTED")),
+            ("oap_identity_roles", (WORKER, "driver", "CR4")),
+        ]
+    )
+    monkeypatch.setattr(
+        movement_match_safety.postgres_db,
+        "connect",
+        _connect(connection),
+    )
+
+    def unavailable(**kwargs):
+        raise RuntimeError("accessibility service unavailable")
+
+    monkeypatch.setattr(
+        movement_match_safety.oap_ride_driver_accessibility,
+        "eligible",
+        unavailable,
+    )
+
+    result = movement_match_safety.SafePostgresMovementStore().propose_match(
+        booking_id=BOOKING,
+        member_identity_id=MEMBER,
+    )
+
+    assert result is None
+    assert connection.committed is False
+    assert not any("INSERT INTO oap_movement_match_proposals" in sql for sql in connection.queries)
+
+
+def test_accept_rejects_driver_if_accessibility_is_no_longer_eligible(monkeypatch):
+    available_until = datetime.now(UTC) + timedelta(minutes=15)
+    connection = _Connection(
+        [
+            ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
+            ("FROM oap_movement_bookings", ("MATCH_PROPOSED",)),
+            ("FROM oap_movement_availability", ("ONLINE", available_until)),
+            ("FROM oap_identity_roles", (1,)),
+        ]
+    )
+    monkeypatch.setattr(movement_match_safety.postgres_db, "connect", _connect(connection))
+    monkeypatch.setattr(
+        movement_match_safety.oap_ride_driver_accessibility,
+        "eligible",
+        lambda **kwargs: {"eligible": False, "reason": "missing_capability"},
+    )
+    with pytest.raises(PermissionError, match="ride_accessibility_not_verified"):
+        movement_match_safety.SafePostgresMovementStore().accept_match(
+            proposal_id=PROPOSAL, worker_identity_id=WORKER,
+        )
+    assert connection.committed is False
+    assert not any("SET state='ACCEPTED'" in sql for sql in connection.queries)
+
+
+def test_accept_rejects_driver_if_accessibility_service_fails(monkeypatch):
+    available_until = datetime.now(UTC) + timedelta(minutes=15)
+    connection = _Connection(
+        [
+            ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
+            ("FROM oap_movement_bookings", ("MATCH_PROPOSED",)),
+            ("FROM oap_movement_availability", ("ONLINE", available_until)),
+            ("FROM oap_identity_roles", (1,)),
+        ]
+    )
+    monkeypatch.setattr(movement_match_safety.postgres_db, "connect", _connect(connection))
+
+    def unavailable(**kwargs):
+        raise RuntimeError("accessibility unavailable")
+
+    monkeypatch.setattr(
+        movement_match_safety.oap_ride_driver_accessibility, "eligible", unavailable,
+    )
+    with pytest.raises(PermissionError, match="ride_accessibility_unavailable"):
+        movement_match_safety.SafePostgresMovementStore().accept_match(
+            proposal_id=PROPOSAL, worker_identity_id=WORKER,
+        )
+    assert connection.committed is False
+    assert not any("SET state='ACCEPTED'" in sql for sql in connection.queries)
+
+
+def test_ride_match_never_assigns_the_booking_owner_as_driver(monkeypatch):
+    """Even an incorrectly returned certified candidate cannot self-match."""
+    class CapturingConnection(_Connection):
+        candidate_params = None
+
+        def execute(self, sql, params=()):
+            if "FROM oap_movement_availability a" in sql:
+                self.candidate_params = params
+                assert "a.identity_id<>%s" in sql
+            return super().execute(sql, params)
+
+    connection = CapturingConnection(
+        [
+            ("SELECT service_type,pickup,state", ("ride", {"zone": "CR4"}, "REQUESTED")),
+            ("oap_identity_roles", (MEMBER, "driver", "CR4")),
+        ]
+    )
+    monkeypatch.setattr(
+        movement_match_safety.postgres_db, "connect", _connect(connection)
+    )
+
+    result = movement_match_safety.SafePostgresMovementStore().propose_match(
+        booking_id=BOOKING, member_identity_id=MEMBER
+    )
+    assert result is None
+    assert connection.candidate_params[0] == MEMBER
+    assert connection.committed is False
+    assert not any("INSERT INTO oap_movement_match_proposals" in q for q in connection.queries)

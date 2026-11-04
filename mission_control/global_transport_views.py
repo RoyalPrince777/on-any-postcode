@@ -376,27 +376,14 @@ body{min-height:100vh}.app{max-width:760px;margin:auto;padding:env(safe-area-ins
 <h1>Move through<br>your world.</h1>
 <p>One ride door powered by OAP Movement, OAP World, Guardian and SIKA.</p>
 </section>
-<section class="routebox">
-<div class="route-line"><span class="dot"></span><a href="/oap-map">Choose pickup</a><span>OAP World</span></div>
-<div class="route-line"><span class="dot to"></span><a href="/oap-map">Choose destination</a><span>Route</span></div>
-<a class="go" href="/movement/workspace#book-title">Request a journey</a>
-</section>
-<div class="section-head"><h2>Journey tools</h2><a href="/transport/ride/current">Current journey</a></div>
-<section class="grid">
-<a class="card" href="/movement/workspace#book-title"><span class="emoji">🚗</span><div><strong>Request ride</strong><span>Create a governed journey request.</span></div></a>
-<a class="card" href="/oap-map"><span class="emoji">🗺️</span><div><strong>Open map</strong><span>Plan pickup, destination and route.</span></div></a>
-<a class="card" href="/transport/ride/current"><span class="emoji">🧭</span><div><strong>Current journey</strong><span>Journey state, code, receipt and feedback.</span></div></a>
-<a class="card" href="/transport/ride/guardian/status"><span class="emoji">🛡️</span><div><strong>Guardian</strong><span>Safety controls and protected journey state.</span></div></a>
-<a class="card" href="/pay/bank"><span class="emoji">🪙</span><div><strong>SIKA</strong><span>Open payment and value controls.</span></div></a>
-<a class="card" href="/movement/workspace#bookings-title"><span class="emoji">🧾</span><div><strong>My journeys</strong><span>Review your movement history.</span></div></a>
-<a class="card" href="/transport/ride/driver/earnings"><span class="emoji">📊</span><div><strong>Earnings</strong><span>Driver earnings software view.</span></div></a>
-<a class="card" href="/eats"><span class="emoji">🍲</span><div><strong>Eats</strong><span>Switch to food and delivery.</span></div></a>
-</section>
-<div class="section-head"><h2>Choose mode</h2></div>
+<section aria-label="Choose your OAP Ride role" class="routebox">
+<h2>How are you travelling?</h2>
+<p>Choose one experience. Passenger and driver actions stay in their own menus.</p>
 <div class="mode">
-<a href="/transport/ride/rider">Rider<small>Request, match, journey, receipt</small></a>
-<a href="/transport/ride/driver">Driver<small>Availability, jobs, drive, earnings</small></a>
+<a href="/transport/ride/rider">Rider<small>Request a ride · journeys · receipts</small></a>
+<a href="/transport/ride/driver">Driver<small>Availability · assigned journeys · earnings</small></a>
 </div>
+</section>
 <div class="status"><b>● Software surface active.</b> Journey requests, matching, Guardian and payment bindings are software capabilities. Physical vehicle operation and external dispatch remain outside this build.</div>
 </main>
 <nav class="bottom" aria-label="OAP Rides navigation">
