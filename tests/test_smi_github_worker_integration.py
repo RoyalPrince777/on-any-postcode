@@ -1,6 +1,6 @@
 """Boundary checks for SMI GitHub intake integration in the existing worker."""
-from pathlib import Path
 
+from pathlib import Path
 
 WORKER = Path("mission_control/organism_worker.py").read_text()
 
