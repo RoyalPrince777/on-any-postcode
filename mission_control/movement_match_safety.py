@@ -76,6 +76,7 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
             query = f"""SELECT a.identity_id,a.role_type,a.zone
                          FROM oap_movement_availability a
                          WHERE a.availability_state='ONLINE'
+                           AND a.identity_id<>%s
                            AND a.role_type IN ({role_placeholders})
                            AND (a.available_until IS NULL
                                 OR a.available_until > CURRENT_TIMESTAMP)
@@ -88,7 +89,7 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                            CASE WHEN a.zone=%s AND %s<>'' THEN 0 ELSE 1 END,
                            a.updated_at DESC
                          LIMIT 20"""
-            result = connection.execute(query, (*roles, zone, zone))
+            result = connection.execute(query, (member, *roles, zone, zone))
             if hasattr(result, "fetchall"):
                 candidates = result.fetchall()
             else:
@@ -97,6 +98,9 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
             candidate = None
             accessibility_result = None
             for item in candidates:
+                # A passenger must never match to their own driver identity.
+                if str(item[0]) == member:
+                    continue
                 try:
                     accessibility_result = oap_ride_driver_accessibility.eligible(
                         booking_id=booking,
