@@ -52,6 +52,8 @@ small{color:#b9cce1}
 </form>
 <p id="mission-team-status" role="status" aria-live="polite">No recommendation requested.</p>
 <ul id="mission-team-results" aria-label="Advisory team recommendation"></ul>
+<h3>Skill-first protocol assignments</h3>
+<ol id="mission-step-results" aria-label="Per-step registered skill matches"></ol>
 </section>
 <section aria-labelledby="selected-room">
 <h2 id="selected-room">Select a room</h2>
@@ -149,10 +151,12 @@ const missionForm = document.getElementById("mission-team-form");
 const missionText = document.getElementById("mission-text");
 const missionStatus = document.getElementById("mission-team-status");
 const missionResults = document.getElementById("mission-team-results");
+const missionStepResults = document.getElementById("mission-step-results");
 let missionRequest = 0;
 missionText.addEventListener("input", () => {
   missionRequest += 1;
   missionResults.replaceChildren();
+  missionStepResults.replaceChildren();
   missionStatus.textContent = "Mission changed. Request a new recommendation.";
 });
 missionForm.addEventListener("submit", async event => {
@@ -161,6 +165,7 @@ missionForm.addEventListener("submit", async event => {
   if (!mission) return;
   const version = ++missionRequest;
   missionResults.replaceChildren();
+  missionStepResults.replaceChildren();
   missionStatus.textContent = "Requesting existing SMI advisory recommendation…";
   try {
     const response = await fetch("/mission/smi/agent-team/recommend?mission=" + encodeURIComponent(mission), {
@@ -185,12 +190,43 @@ missionForm.addEventListener("submit", async event => {
       fragment.appendChild(item);
     }
     missionResults.replaceChildren(fragment);
+    // Separate existing-registry capability check; never infer actual availability.
+    const skillsResponse = await fetch(
+      "/mission/smi/agents-hq/mission-step-skills?mission=" + encodeURIComponent(mission),
+      {credentials: "same-origin", cache: "no-store", headers: {Accept: "application/json"}}
+    );
+    if (!skillsResponse.ok) throw new Error("Step skill review unavailable");
+    const skills = await skillsResponse.json();
+    if (!skills || skills.mission !== mission || skills.can_execute !== false ||
+        skills.runtime_skills_proven !== false || !Array.isArray(skills.steps) ||
+        skills.steps.length !== 13) throw new Error("Invalid step review");
+    const stepFragment = document.createDocumentFragment();
+    for (const step of skills.steps) {
+      if (!step || typeof step.label !== "string" ||
+          !["declared_skill_match_unverified","no_declared_skill_match"].includes(step.match_status)) {
+        throw new Error("Invalid step result");
+      }
+      const item = document.createElement("li");
+      const choice = step.recommendation;
+      if (choice && (choice.execution_authorised !== false ||
+          choice.runtime_skill_verified !== false ||
+          typeof choice.name !== "string" || typeof choice.home_system !== "string")) {
+        throw new Error("Invalid skill assignment");
+      }
+      item.textContent = step.label + ": " +
+        (choice ? choice.name + " · " + choice.home_system +
+          " · declared skill only, runtime unverified" : "No matching declared skill");
+      stepFragment.appendChild(item);
+    }
+    if (version !== missionRequest) return;
+    missionStepResults.replaceChildren(stepFragment);
     missionStatus.textContent = data.active_team.length +
       " reviewers recommended · Founder Final · No agents activated · Runtime availability unknown" +
       (data.coverage_warnings.length ? " · Review coverage warnings" : "");
   } catch (_error) {
     if (version !== missionRequest) return;
     missionResults.replaceChildren();
+    missionStepResults.replaceChildren();
     missionStatus.textContent = "Recommendation unavailable or invalid. No team activated.";
   }
 });
