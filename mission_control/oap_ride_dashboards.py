@@ -30,17 +30,12 @@ DRIVER = (
 MY = (
     ("Rider", "/transport/ride/rider"),
     ("Driver", "/transport/ride/driver"),
-    ("Current Journey", "/transport/ride/current"),
-    ("My Journeys", "/movement/workspace#bookings-title"),
-    ("My Drive", "/movement/workspace#work-title"),
-    ("Payments", "/pay"),
-    ("Guardian", "/transport/ride/runtime"),
 )
 
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{{ title }} · OAP Ride</title>
-<link rel="manifest" href="/transport/manifest.webmanifest">
+<link rel="manifest" href="{{ manifest_url }}">
 <meta name="theme-color" content="#090b0d">
 <style>
 :root{color-scheme:dark;--bg:#090b0d;--panel:#151b20;--line:#303a42;--gold:#e9c66a;--muted:#b8c3ca}
@@ -69,15 +64,18 @@ a{color:inherit}.back{text-decoration:none;color:var(--muted)}h1{font-size:clamp
 <nav class="grid" aria-label="{{ title }} actions">{% for label, href in buttons %}<a class="btn" href="{{ href }}">{{ label }}</a>{% endfor %}</nav>
 <section aria-label="Install OAP Ride" class="install">
 <h2>OAP Ride on your phone</h2>
-<p class="lead">Rider and Driver are included in the existing OAP Transport app. On Android Chrome, use the browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong> when offered.</p>
-<a class="btn" href="/transport?source=oap-ride">Open OAP Transport installer</a>
-<p class="note">This installs a web app shortcut, not a signed Android APK. Online booking still requires the authorised OAP service.</p>
+<p class="lead">On Android Chrome, use the browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong> when offered. Rider and Driver have different install identities but share the existing OAP Movement backend.</p>
+<a class="btn" href="{{ install_url }}">Open {{ title }} install page</a>
+<p class="note">This is a role-specific web app, not a signed Android APK. Driver actions still require server-side certification. Online booking requires the authorised OAP service.</p>
 </section>
 <p class="note">Booking requests and match proposals do not constitute physical dispatch. Live rides and payments remain subject to operational approval.</p>
 </main></body></html>"""
 
 def _page(title, buttons):
-    response = make_response(render_template_string(PAGE, title=title, buttons=buttons))
+    role = title.lower() if title in {"Rider", "Driver"} else None
+    manifest_url = f"/transport/ride/{role}/manifest.webmanifest" if role else "/transport/manifest.webmanifest"
+    install_url = f"/transport/ride/{role}?source=oap-install" if role else "/transport"
+    response = make_response(render_template_string(PAGE, title=title, buttons=buttons, manifest_url=manifest_url, install_url=install_url))
     response.headers["Cache-Control"] = "no-store, private"
     return response
 
