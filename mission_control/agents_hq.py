@@ -217,7 +217,9 @@ def mission_step_skill_review(mission: str) -> dict[str, Any]:
             "required_skill_terms": requirements,
             "recommendation": selection,
             "qualified_runtime_agent": None,
-            "match_status": "declared_skill_match_unverified" if best else "no_declared_skill_match",
+            "match_status": (
+                "declared_skill_match_unverified" if best else "no_declared_skill_match"
+            ),
             "matched_candidate_count": len(matches),
             "authority_gates_remain": _AUTHORITY_GATES,
         })
