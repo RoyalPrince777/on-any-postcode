@@ -219,6 +219,43 @@ def status() -> dict[str, object]:
         ),
     }
     ready = all(a7_checks.values())
+    # Readiness is measurable only when the production proof store was read.
+    # A7 uses eleven A6 controls plus five additional assurances, not
+    # an average of certification flags or an invented organism percentage.
+    a5_names = tuple(autonomy_levels.A5_REQUIREMENTS)
+    a5_keys = (
+        "independent_proof_runner", "guardian_pass", "green_gate",
+        "hrm_receipts", "founder_approval", "rollback_path",
+        "live_observability", "strict_capability_allowlist",
+    )
+    assert len(a5_names) == len(a5_keys)
+    a5_passed = sum(a6_checks[key] for key in a5_keys)
+    a6_passed = sum(a6_checks.values())
+    a7_passed = a6_passed + sum(
+        value for key, value in a7_checks.items() if key != "all_a6_proof"
+    )
+    readiness = {
+        "evidence_available": store_reachable,
+        "a5": {
+            "passed": a5_passed if store_reachable else None,
+            "total": len(a5_keys),
+            "percent": round(100 * a5_passed / len(a5_keys), 1)
+            if store_reachable else None,
+        },
+        "a6": {
+            "passed": a6_passed if store_reachable else None,
+            "total": len(a6_checks),
+            "percent": round(100 * a6_passed / len(a6_checks), 1)
+            if store_reachable else None,
+        },
+        "a7": {
+            "passed": a7_passed if store_reachable else None,
+            "total": len(a6_checks) + len(a7_checks) - 1,
+            "percent": round(
+                100 * a7_passed / (len(a6_checks) + len(a7_checks) - 1), 1
+            ) if store_reachable else None,
+        },
+    }
     missing_a6 = tuple(name for name, proven in a6_checks.items() if not proven)
     missing_a7 = tuple(name for name, proven in a7_checks.items() if not proven)
     return {
@@ -231,6 +268,7 @@ def status() -> dict[str, object]:
         "a6_missing": missing_a6,
         "a7_checks": a7_checks,
         "a7_missing": missing_a7,
+        "readiness": readiness,
         "ready_for_founder_certification": ready,
         "certification_granted": False,
         "a7_enabled": False,
