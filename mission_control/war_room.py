@@ -17,8 +17,8 @@ from oap.war_room import WarRoomEngine
 
 from . import (
     agent_achievements,
-    ai_behaviour,
     agents,
+    ai_behaviour,
     authority,
     brain,
     infrastructure,
