@@ -204,6 +204,50 @@ def _council_review_template() -> dict[str, Any]:
 
 
 
+# Candidate automation triggers are evidence-review suggestions, not jobs.
+# Scheduling, event subscriptions, execution and delivery remain disabled.
+_AUTOMATION_PATTERNS = (
+    ("schedule", ("daily", "weekly", "hourly", "every morning", "each week", "scheduled", "recurring")),
+    ("event", ("when ", "whenever ", "on failure", "on change", "on update", "on merge")),
+    ("recovery", ("recover", "rollback", "outage", "failure", "retry", "incident")),
+)
+
+
+def _automation_review_template(mission: str) -> dict[str, Any]:
+    text = mission.casefold()
+    candidates = tuple({
+        "trigger_kind": kind,
+        "selection_basis": "mission_keyword_advisory_only",
+        "state": "not_configured",
+        "schedule": None,
+        "event_source": None,
+        "registered_job_id": None,
+        "sender_verified": False,
+        "guardian_passed": False,
+        "hrm_receipt": None,
+        "executions": 0,
+    } for kind, words in _AUTOMATION_PATTERNS if any(word in text for word in words))
+    return {
+        "mode": "automation_advisory_only",
+        "trigger_candidates": candidates,
+        "jobs_created": 0,
+        "jobs_enabled": 0,
+        "notifications_sent": 0,
+        "scheduler_connected": False,
+        "event_subscriptions_connected": False,
+        "agent_execution_authorised": False,
+        "needs": (
+            "explicit_trigger_and_cadence",
+            "verified_first_party_runtime",
+            "guardian_permission_review",
+            "hrm_receipts_and_idempotency",
+            "failure_recovery_and_stop_control",
+            "Founder Final",
+        ),
+        "founder_final": True,
+    }
+
+
 def mission_step_skill_review(mission: str) -> dict[str, Any]:
     """Skill-first, fail-closed advisory routing per canonical protocol step.
 
@@ -311,6 +355,7 @@ def mission_step_skill_review(mission: str) -> dict[str, Any]:
         "steps": tuple(steps),
         "proposed_handoffs": tuple(handoffs),
         "council_review": _council_review_template(),
+        "automation_review": _automation_review_template(brief),
         "handoff_messages_sent": 0,
         "founder_final": True,
         "can_execute": False,
