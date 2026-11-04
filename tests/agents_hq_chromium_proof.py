@@ -148,6 +148,30 @@ def main() -> None:
                         assert member["family_name"] in rendered
                         assert member["home_system"] in rendered
 
+                    # Exercise the actual skill-first mission UI, not just room labels.
+                    mission = "Assess security and recovery evidence"
+                    page.locator("#mission-text").fill(mission)
+                    page.locator("#mission-team-form button[type='submit']").click()
+                    expect(page.locator("#mission-team-status")).to_contain_text(
+                        "reviewers recommended"
+                    )
+                    expect(page.locator("#mission-step-results li")).to_have_count(13)
+                    expect(page.locator("#mission-handoffs li")).to_have_count(12)
+                    expect(page.locator("#mission-handoffs li").first).to_contain_text(
+                        "no message sent"
+                    )
+                    assert "No agents activated" in page.locator(
+                        "#mission-team-status"
+                    ).inner_text()
+                    page.locator("#mission-text").fill("changed mission")
+                    expect(page.locator("#mission-step-results li")).to_have_count(0)
+                    expect(page.locator("#mission-handoffs li")).to_have_count(0)
+                    denied_skill_review = anonymous.request.get(
+                        url + "/mission/smi/agents-hq/mission-step-skills?mission=review"
+                    )
+                    assert denied_skill_review.status == 401
+                    assert denied_skill_review.headers["cache-control"] == "no-store"
+
                     unknown = founder.request.get(
                         url + "/mission/smi/agents-hq/rooms/guest:unregistered"
                     )
@@ -173,6 +197,8 @@ def main() -> None:
     print("CANONICAL_FAMILY_HOMES_VISIBLE=PASS")
     print("ANONYMOUS_AND_UNKNOWN_ROOM_REJECTED=PASS")
     print("READ_ONLY_POST_BOUNDARY=PASS")
+    print("SKILL_FIRST_MISSION_UI=PASS")
+    print("HANDOFF_MESSAGES_SENT=NONE")
     print("LIVE_AGENT_CHAT=NOT_IMPLEMENTED")
     print("PRODUCTION_FOUNDER_AUTH=NOT_VERIFIED")
 
