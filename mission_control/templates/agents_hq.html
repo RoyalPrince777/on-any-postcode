@@ -60,6 +60,9 @@ small{color:#b9cce1}
 <h3>Seven-round council · Not conducted</h3>
 <p><small>Review structure only. No agent dialogue, ballots, earned stars or independent approval.</small></p>
 <ol id="mission-council-rounds" aria-label="Seven evidence-based council review rounds"></ol>
+<h3>Automation readiness · Disabled</h3>
+<p><small>Candidate triggers only. No schedule, event subscription, notification or agent action created.</small></p>
+<ul id="mission-automation-candidates" aria-label="Unconfigured mission automation candidates"></ul>
 </section>
 <section aria-labelledby="selected-room">
 <h2 id="selected-room">Select a room</h2>
@@ -160,6 +163,7 @@ const missionResults = document.getElementById("mission-team-results");
 const missionStepResults = document.getElementById("mission-step-results");
 const missionHandoffs = document.getElementById("mission-handoffs");
 const councilRounds = document.getElementById("mission-council-rounds");
+const automationCandidates = document.getElementById("mission-automation-candidates");
 let missionRequest = 0;
 missionText.addEventListener("input", () => {
   missionRequest += 1;
@@ -167,6 +171,7 @@ missionText.addEventListener("input", () => {
   missionStepResults.replaceChildren();
   missionHandoffs.replaceChildren();
   councilRounds.replaceChildren();
+  automationCandidates.replaceChildren();
   missionStatus.textContent = "Mission changed. Request a new recommendation.";
 });
 missionForm.addEventListener("submit", async event => {
@@ -216,7 +221,14 @@ missionForm.addEventListener("submit", async event => {
         skills.council_review.authenticated_ballots !== 0 ||
         skills.council_review.can_execute !== false ||
         !Array.isArray(skills.council_review.rounds) ||
-        skills.council_review.rounds.length !== 7) {
+        skills.council_review.rounds.length !== 7 ||
+        !skills.automation_review || skills.automation_review.jobs_created !== 0 ||
+        skills.automation_review.jobs_enabled !== 0 ||
+        skills.automation_review.notifications_sent !== 0 ||
+        skills.automation_review.scheduler_connected !== false ||
+        skills.automation_review.event_subscriptions_connected !== false ||
+        skills.automation_review.agent_execution_authorised !== false ||
+        !Array.isArray(skills.automation_review.trigger_candidates)) {
       throw new Error("Invalid step review");
     }
     const stepFragment = document.createDocumentFragment();
@@ -270,6 +282,24 @@ missionForm.addEventListener("submit", async event => {
     if (version !== missionRequest) return;
     missionStepResults.replaceChildren(stepFragment);
     councilRounds.replaceChildren(councilFragment);
+    const automationFragment = document.createDocumentFragment();
+    for (const candidate of skills.automation_review.trigger_candidates) {
+      if (!candidate || !["schedule", "event", "recovery"].includes(candidate.trigger_kind) ||
+          candidate.state !== "not_configured" || candidate.executions !== 0 ||
+          candidate.registered_job_id !== null ||
+          candidate.guardian_passed !== false) {
+        throw new Error("Unverified automation candidate");
+      }
+      const item = document.createElement("li");
+      item.textContent = candidate.trigger_kind + " · unconfigured · no jobs created";
+      automationFragment.appendChild(item);
+    }
+    if (automationFragment.childNodes.length === 0) {
+      const item = document.createElement("li");
+      item.textContent = "No automation trigger proposed for this mission";
+      automationFragment.appendChild(item);
+    }
+    automationCandidates.replaceChildren(automationFragment);
     missionHandoffs.replaceChildren(handoffFragment);
     missionStatus.textContent = data.active_team.length +
       " reviewers recommended · Founder Final · No agents activated · Runtime availability unknown" +
@@ -280,6 +310,7 @@ missionForm.addEventListener("submit", async event => {
     missionStepResults.replaceChildren();
     missionHandoffs.replaceChildren();
   councilRounds.replaceChildren();
+  automationCandidates.replaceChildren();
     missionStatus.textContent = "Recommendation unavailable or invalid. No team activated.";
   }
 });
