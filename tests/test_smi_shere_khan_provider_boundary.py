@@ -1,10 +1,10 @@
 """Exercise Shere Khan selection at the actual governed provider payload boundary.
 
-No real credentials, provider network, persistence, or deployment are involved.
+No real credentials, provider network, persistence, or deployment are involved.\nThe facade preserves _COMPATIBILITY_ENGINE as the original core provider;\n_core._provider itself is replaced by the live local-first gateway at import.
 """
 import json
 
-from mission_control import smi_chat_runtime_core
+from mission_control import smi_chat_runtime, smi_chat_runtime_core
 
 
 class _Stream:
@@ -31,7 +31,7 @@ def test_shere_khan_provider_payload_is_selected_only_when_addressed(monkeypatch
 
     monkeypatch.setattr(smi_chat_runtime_core.urlrequest, "urlopen", fake_open)
 
-    assert smi_chat_runtime_core._provider("Shere Khan, advise me") == "Acknowledged."
+    assert smi_chat_runtime._COMPATIBILITY_ENGINE("Shere Khan, advise me") == "Acknowledged."
     assert smi_chat_runtime_core._provider("Please advise me") == "Acknowledged."
     assert smi_chat_runtime_core._provider(
         "Please advise me", brain={"conversation_persona": "shere_khan"}
