@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SMI Agents HQ · ON ANY POSTCODE</title>
+<style>
+body{margin:0;background:#07101e;color:#f5f7ff;font:16px system-ui,sans-serif}
+main{max-width:1000px;margin:auto;padding:24px}
+a{color:#9bd5ff}
+header{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+nav{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
+button{background:#172942;color:white;border:1px solid #526d91;border-radius:10px;padding:12px;cursor:pointer}
+button:focus-visible{outline:3px solid #e2bd69}
+button[aria-pressed="true"]{border-color:#e2bd69;background:#273a52}
+section{border:1px solid #365171;border-radius:14px;padding:20px;margin:16px 0}
+small{color:#b9cce1}
+#room-members{padding-left:20px;display:grid;gap:8px}
+#room-members li{overflow-wrap:anywhere}
+#room-members small{display:block}
+#rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+#rooms [data-room-kind]{display:flex;align-items:center;gap:9px;min-width:0}
+#rooms button{text-align:left;overflow-wrap:anywhere}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<header><h1>🏛 SMI Agents HQ</h1><a href="/mission/smi">← Command Centre</a></header>
+<p>Founder-only · Canonical read-only room directory · Founder Final</p>
+<p><small>No message history or autonomous agent chat is available. This directory never sends or executes agent instructions.</small></p>
+<nav aria-label="Room types">
+<button type="button" data-kind="all_agents" aria-pressed="true">All Agents</button>
+<button type="button" data-kind="individual" aria-pressed="false">Individual</button>
+<button type="button" data-kind="family" aria-pressed="false">Families</button>
+</nav>
+<section aria-labelledby="rooms-title">
+<h2 id="rooms-title">Rooms</h2>
+<div id="rooms">
+{% for room in directory.rooms %}
+<div data-room-kind="{{ room.kind }}"><button type="button" data-room-id="{{ room.id }}" aria-pressed="false">{{ room.name }}</button> <small>{{ room.agent_ids|length }} members</small></div>
+{% endfor %}
+</div>
+</section>
+<section aria-labelledby="mission-team-title">
+<h2 id="mission-team-title">🧠 Dynamic mission team · advisory only</h2>
+<p><small>Uses the existing Founder-only SMI mission-team recommender. A recommendation does not activate agents, send messages, prove availability or grant approval.</small></p>
+<form id="mission-team-form">
+<label for="mission-text">Mission brief</label>
+<input id="mission-text" name="mission" maxlength="800" required autocomplete="off" style="width:min(100%,650px);box-sizing:border-box;padding:12px;background:#172942;color:white;border:1px solid #526d91;border-radius:10px" placeholder="Describe the task for SMI review">
+<button type="submit">Recommend review team</button>
+</form>
+<p id="mission-team-status" role="status" aria-live="polite">No recommendation requested.</p>
+<ul id="mission-team-results" aria-label="Advisory team recommendation"></ul>
+<h3>Skill-first protocol assignments</h3>
+<ol id="mission-step-results" aria-label="Per-step registered skill matches"></ol>
+<h3>Cross-family handoff readiness</h3>
+<p><small>Proposed evidence routes only; no agent messages have been sent.</small></p>
+<ul id="mission-handoffs" aria-label="Unverified evidence handoff proposals"></ul>
+<h3>Seven-round council · Not conducted</h3>
+<p><small>Review structure only. No agent dialogue, ballots, earned stars or independent approval.</small></p>
+<ol id="mission-council-rounds" aria-label="Seven evidence-based council review rounds"></ol>
+<h3>Automation readiness · Disabled</h3>
+<p><small>Candidate triggers only. No schedule, event subscription, notification or agent action created.</small></p>
+<ul id="mission-automation-candidates" aria-label="Unconfigured mission automation candidates"></ul>
+<h4>Seven first-party watch contracts · All disabled</h4>
+<ul id="mission-watch-contracts" aria-label="Disabled first-party automation watch contracts"></ul>
+</section>
+<section aria-labelledby="selected-room">
+<h2 id="selected-room">Select a room</h2>
+<p id="room-status" role="status" aria-live="polite">Select a room to verify its registered members and home systems.</p>
+<ul id="room-members" aria-label="Verified registered members"></ul>
+</section>
+<script>
+"use strict";
+const directory = {{ directory|tojson }};
+const rooms = Array.isArray(directory.rooms) ? directory.rooms : [];
+const kinds = document.querySelectorAll("[data-kind]");
+const roomButtons = document.querySelectorAll("[data-room-id]");
+const heading = document.getElementById("selected-room");
+const status = document.getElementById("room-status");
+const members = document.getElementById("room-members");
+let selectionVersion = 0;
+
+function clearSelection() {
+  selectionVersion += 1;
+  roomButtons.forEach(button => button.setAttribute("aria-pressed", "false"));
+  heading.textContent = "Select a room";
+  status.textContent = "Select a room to verify its registered members and home systems.";
+  members.replaceChildren();
+}
+function filterRooms(kind) {
+  clearSelection();
+  kinds.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.kind === kind)));
+  document.querySelectorAll("[data-room-kind]").forEach(node => {
+    node.hidden = node.dataset.roomKind !== kind;
+  });
+}
+async function selectRoom(id) {
+  const room = rooms.find(item => item.id === id);
+  if (!room || !Array.isArray(room.agent_ids)) return;
+  clearSelection();
+  const version = selectionVersion;
+  heading.textContent = room.name;
+  status.textContent = "Verifying registered members…";
+  try {
+    const response = await fetch("/mission/smi/agents-hq/rooms/" + encodeURIComponent(id), {
+      credentials: "same-origin", cache: "no-store",
+      headers: {Accept: "application/json"}
+    });
+    if (!response.ok) throw new Error("Room verification unavailable");
+    const payload = await response.json();
+    if (
+      !payload || !payload.room || payload.room.id !== id ||
+      payload.can_execute !== false || payload.agent_responses_generated !== false ||
+      !Array.isArray(payload.members) ||
+      payload.members.length !== room.agent_ids.length ||
+      !payload.members.every((member, index) =>
+        member && typeof member.name === "string" &&
+        typeof member.family_id === "string" &&
+        typeof member.family_name === "string" &&
+        typeof member.world_id === "string" &&
+        typeof member.home_system === "string" &&
+        member.agent_id === room.agent_ids[index] &&
+        (room.kind === "all_agents" || member.family_id === room.family_id) &&
+        (room.kind === "all_agents" || member.home_system === room.home_system))
+    ) {
+      throw new Error("Room response mismatch");
+    }
+    if (version !== selectionVersion) return;
+    const fragment = document.createDocumentFragment();
+    payload.members.forEach(member => {
+      const item = document.createElement("li");
+      const name = document.createElement("strong");
+      name.textContent = member.name;
+      const passport = document.createElement("small");
+      passport.textContent = member.agent_id;
+      const home = document.createElement("small");
+      home.textContent = "Family: " + member.family_name + " · Home: " +
+        member.home_system + " · World: " + member.world_id;
+      item.append(name, passport, home);
+      if (member.home_group && typeof member.home_group.group_name === "string" &&
+          member.family_id === "matrix") {
+        const affiliation = document.createElement("small");
+        affiliation.textContent = "Matrix film-home reference: " +
+          member.home_group.group_name + " (advisory only)";
+        item.appendChild(affiliation);
+      }
+      fragment.appendChild(item);
+    });
+    members.replaceChildren(fragment);
+    roomButtons.forEach(button =>
+      button.setAttribute("aria-pressed", String(button.dataset.roomId === id)));
+    status.textContent = payload.members.length + " registered members verified · Read-only · No messages or agent execution";
+  } catch (_error) {
+    if (version !== selectionVersion) return;
+    members.replaceChildren();
+    status.textContent = "Unable to verify room membership. Nothing has been displayed.";
+  }
+}
+const missionForm = document.getElementById("mission-team-form");
+const missionText = document.getElementById("mission-text");
+const missionStatus = document.getElementById("mission-team-status");
+const missionResults = document.getElementById("mission-team-results");
+const missionStepResults = document.getElementById("mission-step-results");
+const missionHandoffs = document.getElementById("mission-handoffs");
+const councilRounds = document.getElementById("mission-council-rounds");
+const automationCandidates = document.getElementById("mission-automation-candidates");
+const watchContracts = document.getElementById("mission-watch-contracts");
+let missionRequest = 0;
+missionText.addEventListener("input", () => {
+  missionRequest += 1;
+  missionResults.replaceChildren();
+  missionStepResults.replaceChildren();
+  missionHandoffs.replaceChildren();
+  councilRounds.replaceChildren();
+  automationCandidates.replaceChildren();
+  watchContracts.replaceChildren();
+  missionStatus.textContent = "Mission changed. Request a new recommendation.";
+});
+missionForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const mission = missionText.value.trim();
+  if (!mission) return;
+  const version = ++missionRequest;
+  missionResults.replaceChildren();
+  missionStepResults.replaceChildren();
+  missionStatus.textContent = "Requesting existing SMI advisory recommendation…";
+  try {
+    const response = await fetch("/mission/smi/agent-team/recommend?mission=" + encodeURIComponent(mission), {
+      credentials: "same-origin", cache: "no-store", headers: {Accept: "application/json"}
+    });
+    if (!response.ok) throw new Error("Recommendation unavailable");
+    const data = await response.json();
+    if (!data || data.mission !== mission || data.founder_can_change !== true ||
+        data.smi_can_silently_override_founder !== false ||
+        !Array.isArray(data.active_team) || !Array.isArray(data.coverage_warnings)) {
+      throw new Error("Untrusted recommendation response");
+    }
+    if (version !== missionRequest) return;
+    const fragment = document.createDocumentFragment();
+    for (const agent of data.active_team) {
+      if (!agent || typeof agent.name !== "string" || typeof agent.role !== "string" ||
+          agent.authority !== "advisory_review_only") {
+        throw new Error("Invalid advisory agent");
+      }
+      const item = document.createElement("li");
+      item.textContent = agent.name + " — " + agent.role + " (advisory only)";
+      fragment.appendChild(item);
+    }
+    missionResults.replaceChildren(fragment);
+    // Separate existing-registry capability check; never infer actual availability.
+    const skillsResponse = await fetch(
+      "/mission/smi/agents-hq/mission-step-skills?mission=" + encodeURIComponent(mission),
+      {credentials: "same-origin", cache: "no-store", headers: {Accept: "application/json"}}
+    );
+    if (!skillsResponse.ok) throw new Error("Step skill review unavailable");
+    const skills = await skillsResponse.json();
+    if (!skills || skills.mission !== mission || skills.can_execute !== false ||
+        skills.runtime_skills_proven !== false || !Array.isArray(skills.steps) ||
+        skills.steps.length !== 13 || skills.handoff_messages_sent !== 0 ||
+        !Array.isArray(skills.proposed_handoffs) ||
+        skills.proposed_handoffs.length !== skills.steps.length - 1 ||
+        !skills.council_review || skills.council_review.rounds_completed !== 0 ||
+        skills.council_review.authenticated_ballots !== 0 ||
+        skills.council_review.can_execute !== false ||
+        !Array.isArray(skills.council_review.rounds) ||
+        skills.council_review.rounds.length !== 7 ||
+        !skills.automation_review || skills.automation_review.jobs_created !== 0 ||
+        skills.automation_review.jobs_enabled !== 0 ||
+        skills.automation_review.notifications_sent !== 0 ||
+        skills.automation_review.scheduler_connected !== false ||
+        skills.automation_review.event_subscriptions_connected !== false ||
+        skills.automation_review.agent_execution_authorised !== false ||
+        !Array.isArray(skills.automation_review.trigger_candidates) ||
+        !skills.automation_review.watch_catalog ||
+        skills.automation_review.watch_catalog.enabled_count !== 0 ||
+        skills.automation_review.watch_catalog.execution_authorised !== false ||
+        !Array.isArray(skills.automation_review.watch_catalog.watches) ||
+        skills.automation_review.watch_catalog.watches.length !== 7) {
+      throw new Error("Invalid step review");
+    }
+    const stepFragment = document.createDocumentFragment();
+    for (const step of skills.steps) {
+      if (!step || typeof step.label !== "string" ||
+          !["declared_skill_match_unverified","no_declared_skill_match"].includes(step.match_status)) {
+        throw new Error("Invalid step result");
+      }
+      const item = document.createElement("li");
+      const choice = step.recommendation;
+      if (choice && (choice.execution_authorised !== false ||
+          choice.runtime_skill_verified !== false ||
+          typeof choice.name !== "string" || typeof choice.home_system !== "string")) {
+        throw new Error("Invalid skill assignment");
+      }
+      item.textContent = step.label + ": " +
+        (choice ? choice.name + " · " + choice.home_system +
+          " · declared skill only, runtime unverified" : "No matching declared skill");
+      stepFragment.appendChild(item);
+    }
+    const handoffFragment = document.createDocumentFragment();
+    for (const handoff of skills.proposed_handoffs) {
+      if (!handoff || handoff.message_sent !== false ||
+          handoff.delivery_verified !== false ||
+          handoff.authority_transferred !== false ||
+          !["advisory_unverified", "blocked_missing_skill_match"].includes(handoff.state)) {
+        throw new Error("Invalid handoff proof boundary");
+      }
+      const item = document.createElement("li");
+      item.textContent = handoff.from_step + " → " + handoff.to_step +
+        " · " + handoff.state.replaceAll("_", " ") +
+        (handoff.cross_family === true ? " · across family homes" : "") +
+        " · no message sent";
+      handoffFragment.appendChild(item);
+    }
+    const councilFragment = document.createDocumentFragment();
+    for (const round of skills.council_review.rounds) {
+      if (!round || typeof round.label !== "string" ||
+          typeof round.required_evidence !== "string" ||
+          round.status !== "not_conducted" ||
+          !Array.isArray(round.votes) || round.votes.length !== 0 ||
+          !Array.isArray(round.agent_statements) || round.agent_statements.length !== 0 ||
+          round.earned_stars !== null) {
+        throw new Error("Council evidence not verified");
+      }
+      const item = document.createElement("li");
+      item.textContent = round.label + " · requires " +
+        round.required_evidence.replaceAll("_", " ") + " · not conducted";
+      councilFragment.appendChild(item);
+    }
+    if (version !== missionRequest) return;
+    missionStepResults.replaceChildren(stepFragment);
+    councilRounds.replaceChildren(councilFragment);
+    const automationFragment = document.createDocumentFragment();
+    for (const candidate of skills.automation_review.trigger_candidates) {
+      if (!candidate || !["schedule", "event", "recovery"].includes(candidate.trigger_kind) ||
+          candidate.state !== "not_configured" || candidate.executions !== 0 ||
+          candidate.registered_job_id !== null ||
+          candidate.guardian_passed !== false) {
+        throw new Error("Unverified automation candidate");
+      }
+      const item = document.createElement("li");
+      item.textContent = candidate.trigger_kind + " · unconfigured · no jobs created";
+      automationFragment.appendChild(item);
+    }
+    if (automationFragment.childNodes.length === 0) {
+      const item = document.createElement("li");
+      item.textContent = "No automation trigger proposed for this mission";
+      automationFragment.appendChild(item);
+    }
+    const watchFragment = document.createDocumentFragment();
+    for (const watch of skills.automation_review.watch_catalog.watches) {
+      if (!watch || typeof watch.name !== "string" ||
+          typeof watch.required_evidence !== "string" ||
+          watch.status !== "disabled" || watch.jobs_created !== 0 ||
+          watch.may_execute !== false || watch.guardian_required !== true) {
+        throw new Error("Invalid disabled watch contract");
+      }
+      const item = document.createElement("li");
+      item.textContent = watch.name + " · disabled · requires " +
+        watch.required_evidence.replaceAll("_", " ");
+      watchFragment.appendChild(item);
+    }
+    watchContracts.replaceChildren(watchFragment);
+    automationCandidates.replaceChildren(automationFragment);
+    missionHandoffs.replaceChildren(handoffFragment);
+    missionStatus.textContent = data.active_team.length +
+      " reviewers recommended · Founder Final · No agents activated · Runtime availability unknown" +
+      (data.coverage_warnings.length ? " · Review coverage warnings" : "");
+  } catch (_error) {
+    if (version !== missionRequest) return;
+    missionResults.replaceChildren();
+    missionStepResults.replaceChildren();
+    missionHandoffs.replaceChildren();
+  councilRounds.replaceChildren();
+  automationCandidates.replaceChildren();
+  watchContracts.replaceChildren();
+    missionStatus.textContent = "Recommendation unavailable or invalid. No team activated.";
+  }
+});
+kinds.forEach(button => button.addEventListener("click", () => filterRooms(button.dataset.kind)));
+roomButtons.forEach(button => button.addEventListener("click", () => selectRoom(button.dataset.roomId)));
+filterRooms("all_agents");
+</script>
+</main>
+</body>
+</html>

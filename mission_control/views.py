@@ -19,6 +19,7 @@ from flask import (
 
 from . import agents as agent_registry
 from . import (
+    agents_hq,
     approval_service,
     authority,
     brain,
@@ -312,6 +313,44 @@ def smi_command_dashboard_status():
     """Return the same read-only Founder command projection as JSON."""
 
     return _no_store(make_response(jsonify(smi_command_dashboard.status())))
+
+
+@bp.get("/smi/agents-hq")
+@web_security.login_required(founder_only=True)
+def smi_agents_hq_page():
+    """Render Founder-only canonical room selector."""
+    return _no_store(make_response(render_template(
+        "agents_hq.html", directory=agents_hq.room_directory()
+    )))
+
+
+@bp.get("/smi/agents-hq/mission-step-skills")
+@web_security.login_required(api=True, founder_only=True)
+def smi_agents_hq_mission_step_skills():
+    """Founder-only skill review; candidate agents are never activated."""
+    try:
+        result = agents_hq.mission_step_skill_review(request.args.get("mission", ""))
+    except ValueError:
+        return _no_store(make_response(jsonify({"error": "invalid_mission_or_registry"}), 400))
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/smi/agents-hq/rooms")
+@web_security.login_required(api=True, founder_only=True)
+def smi_agents_hq_rooms():
+    """Read-only canonical rooms; no agent messaging or execution."""
+    return _no_store(make_response(jsonify(agents_hq.room_directory())))
+
+
+@bp.get("/smi/agents-hq/rooms/<path:room_id>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_agents_hq_room(room_id: str):
+    """Fail closed for unknown agent or family rooms."""
+    try:
+        context = agents_hq.room_context(room_id)
+    except ValueError:
+        return _no_store(make_response(jsonify({"error": "unknown_room"}), 404))
+    return _no_store(make_response(jsonify(context)))
 
 
 @bp.get("/brain")

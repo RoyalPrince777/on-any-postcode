@@ -1,0 +1,445 @@
+"""Fail-closed tests for canonical Hybrid Agents HQ room projections."""
+
+import pytest
+
+from mission_control import agents
+from mission_control.agents_hq import room_context, room_directory
+
+
+def test_all_agents_uses_canonical_registry_without_new_passports():
+    directory = room_directory()
+    room = directory["rooms"][0]
+    assert room["id"] == "all_agents"
+    assert room["agent_ids"] == tuple(
+        str(agent["agent_id"]) for agent in agents.AGENT_REGISTRY
+    )
+    assert directory["agent_count"] == len(agents.AGENT_REGISTRY)
+
+
+def test_individual_room_has_one_registered_member():
+    agent = agents.AGENT_REGISTRY[0]
+    context = room_context(f"agent:{agent['agent_id']}")
+    assert len(context["members"]) == 1
+    member = context["members"][0]
+    family = next(
+        item for item in agents.INTELLIGENCE_FAMILIES
+        if item["id"] == agent["family_id"]
+    )
+    assert member["agent_id"] == str(agent["agent_id"])
+    assert member["name"] == str(agent["name"])
+    assert member["family_id"] == family["id"]
+    assert member["family_name"] == family["name"]
+    assert member["world_id"] == family["world_id"]
+    assert member["home_system"] == family["home_system"]
+
+
+def test_family_rooms_match_canonical_family_membership():
+    directory = room_directory()
+    for family in agents.INTELLIGENCE_FAMILIES:
+        room = room_context(f"family:{family['id']}")["room"]
+        expected = tuple(
+            str(agent["agent_id"])
+            for agent in agents.AGENT_REGISTRY
+            if agent.get("family_id") == family["id"]
+        )
+        assert room["agent_ids"] == expected
+    assert len(directory["rooms"]) == (
+        1 + len(agents.AGENT_REGISTRY) + len(agents.INTELLIGENCE_FAMILIES)
+    )
+
+
+@pytest.mark.parametrize(
+    "room_id",
+    ["", "agent:Mouse-not-registered", "family:beetle", "guest:butterfly"],
+)
+def test_unregistered_rooms_rejected(room_id):
+    with pytest.raises(ValueError, match="Room ID required|Unknown canonical room"):
+        room_context(room_id)
+
+
+def test_no_false_chat_or_authority_claims():
+    directory = room_directory()
+    assert directory["messages"] == ()
+    assert directory["message_history_available"] is False
+    assert directory["autonomous_agent_chat"] is False
+    assert directory["permissions_changed"] is False
+    assert directory["can_execute"] is False
+    context = room_context("all_agents")
+    assert context["actual_messages"] == ()
+    assert context["agent_responses_generated"] is False
+    assert context["founder_final"] is True
+
+
+
+def test_hq_page_and_room_api_use_registered_read_only_membership(client):
+    page = client.get("/mission/smi/agents-hq")
+    assert page.status_code == 200
+    assert page.headers["Cache-Control"] == "no-store"
+    assert "SMI Agents HQ" in page.get_data(as_text=True)
+    assert "No message history or autonomous agent chat" in page.get_data(as_text=True)
+
+    directory_response = client.get("/mission/smi/agents-hq/rooms")
+    assert directory_response.status_code == 200
+    assert directory_response.headers["Cache-Control"] == "no-store"
+    directory = directory_response.get_json()
+    assert directory["scope"] == "founder_only"
+    assert directory["can_execute"] is False
+    assert directory["message_history_available"] is False
+
+    agent_id = agents.AGENT_REGISTRY[0]["agent_id"]
+    context_response = client.get(f"/mission/smi/agents-hq/rooms/agent:{agent_id}")
+    assert context_response.status_code == 200
+    assert context_response.headers["Cache-Control"] == "no-store"
+    context = context_response.get_json()
+    assert context["room"]["id"] == f"agent:{agent_id}"
+    assert context["agent_responses_generated"] is False
+    assert context["can_execute"] is False
+
+
+def test_hq_http_unknown_rooms_and_mutations_fail_closed(client):
+    unknown = client.get("/mission/smi/agents-hq/rooms/guest:unregistered")
+    assert unknown.status_code == 404
+    assert unknown.get_json()["error"] == "unknown_room"
+    assert unknown.headers["Cache-Control"] == "no-store"
+
+    for path in (
+        "/mission/smi/agents-hq",
+        "/mission/smi/agents-hq/rooms",
+        "/mission/smi/agents-hq/rooms/all_agents",
+    ):
+        assert client.post(path, json={"message": "execute"}).status_code == 405
+
+
+def test_hq_anonymous_access_rejected(anonymous_client):
+    page = anonymous_client.get("/mission/smi/agents-hq")
+    assert page.status_code in (302, 303)
+    for path in (
+        "/mission/smi/agents-hq/rooms",
+        "/mission/smi/agents-hq/rooms/all_agents",
+    ):
+        response = anonymous_client.get(path)
+        assert response.status_code == 401
+        assert response.get_json()["error"]["code"] == "authentication_required"
+        assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_hq_authenticated_non_founder_access_rejected(client, monkeypatch):
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda _user: False)
+    for path in (
+        "/mission/smi/agents-hq",
+        "/mission/smi/agents-hq/rooms",
+        "/mission/smi/agents-hq/rooms/all_agents",
+    ):
+        response = client.get(path)
+        assert response.status_code == 403
+        assert response.get_json()["error"]["code"] == "human_authority_required"
+        assert response.headers["Cache-Control"] == "no-store"
+
+
+
+def test_every_registered_agent_keeps_its_canonical_family_world_and_home():
+    directory = room_directory()
+    individual = [room for room in directory["rooms"] if room["kind"] == "individual"]
+    families = {family["id"]: family for family in agents.INTELLIGENCE_FAMILIES}
+    registry = {agent["agent_id"]: agent for agent in agents.AGENT_REGISTRY}
+    assert len(individual) == len(registry) == directory["agent_count"]
+    assert directory["home_assignment_source"] == "canonical_family_alignment"
+    assert directory["cross_family_collaboration_active"] is False
+    for room in individual:
+        agent = registry[room["agent_ids"][0]]
+        family = families[agent["family_id"]]
+        assert room["family_id"] == agent["family_id"]
+        assert room["family_name"] == family["name"]
+        assert room["world_id"] == family["world_id"]
+        assert room["home_system"] == family["home_system"]
+        member = room_context(room["id"])["members"][0]
+        assert member["family_id"] == room["family_id"]
+        assert member["home_system"] == room["home_system"]
+
+
+def test_all_agents_directory_does_not_rehome_members_to_a_new_family():
+    context = room_context("all_agents")
+    families = {family["id"]: family for family in agents.INTELLIGENCE_FAMILIES}
+    assert context["room"]["home_system"] is None
+    assert len(context["members"]) == len(agents.AGENT_REGISTRY)
+    for member in context["members"]:
+        assert member["home_system"] == families[member["family_id"]]["home_system"]
+
+
+def test_unregistered_family_assignment_fails_closed(monkeypatch):
+    original = agents.AGENT_REGISTRY[0]
+    tampered = {**original, "family_id": "invented_family"}
+    monkeypatch.setattr(agents, "AGENT_REGISTRY", (tampered,))
+    with pytest.raises(ValueError, match="no registered canonical family"):
+        room_directory()
+
+
+def test_duplicated_family_identity_fails_closed(monkeypatch):
+    family = agents.INTELLIGENCE_FAMILIES[0]
+    monkeypatch.setattr(
+        agents, "INTELLIGENCE_FAMILIES", (family, family)
+    )
+    with pytest.raises(ValueError, match="duplicate canonical family"):
+        room_directory()
+
+
+def test_matrix_film_homes_are_only_canonical_advisory_references():
+    # The canonical Matrix home resolver was added on newer main. This older
+    # draft branch must not invent film-home groups or passports to emulate it.
+    resolver = getattr(agents, "matrix_home_for", None)
+    if not callable(resolver):
+        assert all(
+            room["home_group"] is None for room in room_directory()["rooms"]
+            if room["kind"] == "individual"
+        )
+        return
+    for agent in agents.AGENT_REGISTRY:
+        if agent["family_id"] != "matrix":
+            assert room_context(f"agent:{agent['agent_id']}")["members"][0]["home_group"] is None
+            continue
+        member = room_context(f"agent:{agent['agent_id']}")["members"][0]
+        assert member["home_group"] == resolver(agent["name"])
+        assert member["family_id"] == "matrix"
+        assert member["home_system"] == "Matrix System"
+
+
+def test_hq_reuses_existing_founder_only_mission_recommender(client):
+    page = client.get("/mission/smi/agents-hq")
+    html = page.get_data(as_text=True)
+    assert 'id="mission-team-form"' in html
+    assert "/mission/smi/agent-team/recommend?mission=" in html
+    assert "No agents activated" in html
+
+    response = client.get(
+        "/mission/smi/agent-team/recommend",
+        query_string={"mission": "Review evidence and system recovery"},
+    )
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    result = response.get_json()
+    assert result["founder_can_change"] is True
+    assert result["smi_can_silently_override_founder"] is False
+    assert result["active_team"]
+    assert all(item["authority"] == "advisory_review_only"
+               for item in result["active_team"])
+
+
+def test_hq_mission_recommender_denies_anonymous_access(anonymous_client):
+    response = anonymous_client.get(
+        "/mission/smi/agent-team/recommend",
+        query_string={"mission": "review"},
+    )
+    assert response.status_code == 401
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_skill_first_protocol_matches_existing_passports_without_activation(client):
+    from mission_control import ai_behaviour_protocol
+    from mission_control.agents_hq import mission_step_skill_review
+
+    mission = "Investigate system failures and protect user information"
+    review = mission_step_skill_review(mission)
+    assert review["mission"] == mission
+    assert review["can_execute"] is False
+    assert review["agent_messages_sent"] is False
+    assert review["runtime_skills_proven"] is False
+    assert [step["step_id"] for step in review["steps"]] == [
+        item["id"] for item in ai_behaviour_protocol.AI_BEHAVIOUR_PARTS
+    ]
+    by_id = {agent["agent_id"]: agent for agent in agents.AGENT_REGISTRY}
+    for step in review["steps"]:
+        choice = step["recommendation"]
+        if choice is None:
+            assert step["match_status"] == "no_declared_skill_match"
+            continue
+        agent = by_id[choice["agent_id"]]
+        family = next(item for item in agents.INTELLIGENCE_FAMILIES
+                      if item["id"] == agent["family_id"])
+        assert choice["family_id"] == agent["family_id"]
+        assert choice["home_system"] == family["home_system"]
+        assert choice["matched_declared_skills"]
+        assert choice["runtime_skill_verified"] is False
+        assert choice["execution_authorised"] is False
+
+    response = client.get("/mission/smi/agents-hq/mission-step-skills",
+                          query_string={"mission": mission})
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert len(response.get_json()["steps"]) == len(review["steps"])
+    html = client.get("/mission/smi/agents-hq").get_data(as_text=True)
+    assert 'id="mission-step-results"' in html
+
+
+def test_skill_first_review_blocks_missing_mission(client):
+    assert client.get("/mission/smi/agents-hq/mission-step-skills").status_code == 400
+
+
+def test_skill_first_review_denies_anonymous_access(anonymous_client):
+    response = anonymous_client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": "review"},
+    )
+    assert response.status_code == 401
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_cross_family_handoffs_require_proof_and_never_send_messages(client):
+    from mission_control.agents_hq import mission_step_skill_review
+
+    plan = mission_step_skill_review("Assess a map security failure and recovery")
+    assert len(plan["proposed_handoffs"]) == len(plan["steps"]) - 1
+    assert plan["handoff_messages_sent"] == 0
+    assert plan["agent_messages_sent"] is False
+    by_id = {agent["agent_id"]: agent for agent in agents.AGENT_REGISTRY}
+    for left, right, handoff in zip(
+        plan["steps"], plan["steps"][1:], plan["proposed_handoffs"]
+    ):
+        assert handoff["from_step"] == left["step_id"]
+        assert handoff["to_step"] == right["step_id"]
+        assert handoff["message_sent"] is False
+        assert handoff["delivery_verified"] is False
+        assert handoff["authority_transferred"] is False
+        if handoff["state"] == "advisory_unverified":
+            sender = by_id[handoff["from_agent_id"]]
+            receiver = by_id[handoff["to_agent_id"]]
+            assert handoff["from_family_id"] == sender["family_id"]
+            assert handoff["to_family_id"] == receiver["family_id"]
+            assert handoff["cross_family"] == (
+                sender["family_id"] != receiver["family_id"]
+            )
+        else:
+            assert handoff["state"] == "blocked_missing_skill_match"
+
+    response = client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": plan["mission"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["handoff_messages_sent"] == 0
+    assert 'id="mission-handoffs"' in client.get(
+        "/mission/smi/agents-hq"
+    ).get_data(as_text=True)
+
+
+def test_seven_round_council_template_never_fabricates_votes_or_stars(client):
+    from mission_control.agents_hq import mission_step_skill_review
+
+    result = mission_step_skill_review("Investigate failure, protect users, recover")
+    council = result["council_review"]
+    assert council["mode"] == "council_review_template_only"
+    assert council["rounds_completed"] == 0
+    assert council["authenticated_ballots"] == 0
+    assert council["votes_are_binding"] is False
+    assert council["council_recommendation"] is None
+    assert council["earned_stars"] is None
+    assert council["guardian_passed"] is False
+    assert council["hrm_receipt"] is None
+    assert council["founder_final"] is True
+    assert council["can_execute"] is False
+    assert [round_["round"] for round_ in council["rounds"]] == list(range(1, 8))
+    assert [round_["id"] for round_ in council["rounds"]] == [
+        "brainstorm", "challenge", "defend", "counter_challenge",
+        "guardian", "green_gate", "council",
+    ]
+    for round_ in council["rounds"]:
+        assert round_["status"] == "not_conducted"
+        assert round_["authenticated_speakers"] == ()
+        assert round_["agent_statements"] == ()
+        assert round_["votes"] == ()
+        assert round_["minority_report"] is None
+        assert round_["earned_stars"] is None
+        assert round_["required_evidence"]
+
+    response = client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": result["mission"]},
+    )
+    assert response.status_code == 200
+    assert len(response.get_json()["council_review"]["rounds"]) == 7
+    assert 'id="mission-council-rounds"' in client.get(
+        "/mission/smi/agents-hq"
+    ).get_data(as_text=True)
+
+
+def test_automation_candidates_are_unconfigured_and_never_schedule_or_execute(client):
+    from mission_control.agents_hq import mission_step_skill_review
+
+    result = mission_step_skill_review(
+        "Every morning check a failure and recover when the status changes"
+    )
+    automation = result["automation_review"]
+    assert automation["mode"] == "automation_advisory_only"
+    assert {candidate["trigger_kind"] for candidate in automation["trigger_candidates"]} == {
+        "schedule", "event", "recovery",
+    }
+    assert automation["jobs_created"] == 0
+    assert automation["jobs_enabled"] == 0
+    assert automation["notifications_sent"] == 0
+    assert automation["scheduler_connected"] is False
+    assert automation["event_subscriptions_connected"] is False
+    assert automation["agent_execution_authorised"] is False
+    assert automation["founder_final"] is True
+    for candidate in automation["trigger_candidates"]:
+        assert candidate["state"] == "not_configured"
+        assert candidate["registered_job_id"] is None
+        assert candidate["schedule"] is None
+        assert candidate["event_source"] is None
+        assert candidate["executions"] == 0
+        assert candidate["guardian_passed"] is False
+        assert candidate["hrm_receipt"] is None
+
+    plain = mission_step_skill_review("Review registered agent skills")
+    assert plain["automation_review"]["trigger_candidates"] == ()
+    response = client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": result["mission"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["automation_review"]["jobs_created"] == 0
+    assert 'id="mission-automation-candidates"' in client.get(
+        "/mission/smi/agents-hq"
+    ).get_data(as_text=True)
+
+
+def test_seven_first_party_automation_contracts_default_to_disabled(client):
+    from mission_control.agents_hq import automation_watch_catalog, mission_step_skill_review
+
+    catalog = automation_watch_catalog()
+    watches = catalog["watches"]
+    assert catalog["mode"] == "watch_contracts_only"
+    assert len(watches) == 7
+    assert len({watch["id"] for watch in watches}) == 7
+    assert {watch["id"] for watch in watches} == {
+        "ci_failure", "release_gate", "recovery", "mission_dependency",
+        "evidence_freshness", "founder_decision", "lessons_learned",
+    }
+    assert catalog["enabled_count"] == 0
+    assert catalog["runtime_connected"] is False
+    assert catalog["execution_authorised"] is False
+    for watch in watches:
+        assert watch["status"] == "disabled"
+        assert watch["event_kind"]
+        assert watch["required_evidence"]
+        assert watch["runtime_connected"] is False
+        assert watch["agent_selected"] is False
+        assert watch["authenticated_events"] == 0
+        assert watch["jobs_created"] == 0
+        assert watch["runs_completed"] == 0
+        assert watch["last_hrm_receipt"] is None
+        assert watch["guardian_required"] is True
+        assert watch["founder_final"] is True
+        assert watch["may_execute"] is False
+
+    projection = mission_step_skill_review("Review scheduled CI failure checks")
+    assert projection["automation_review"]["watch_catalog"] == catalog
+    response = client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": projection["mission"]},
+    )
+    assert response.status_code == 200
+    api_catalog = response.get_json()["automation_review"]["watch_catalog"]
+    assert len(api_catalog["watches"]) == 7
+    assert api_catalog["enabled_count"] == 0
+    assert api_catalog["execution_authorised"] is False
