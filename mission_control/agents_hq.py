@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from itertools import pairwise
 from typing import Any
 
 from . import agents, ai_behaviour_protocol
@@ -230,7 +231,7 @@ def mission_step_skill_review(mission: str) -> dict[str, Any]:
             "authority_gates_remain": _AUTHORITY_GATES,
         })
     handoffs: list[dict[str, Any]] = []
-    for previous, following in zip(steps, steps[1:]):
+    for previous, following in pairwise(steps):
         sender = previous["recommendation"]
         receiver = following["recommendation"]
         # A candidate is never a verified speaker. Do not create a message or
