@@ -133,3 +133,26 @@ def test_rider_receipt_uses_canonical_movement_booking_id():
     assert "data.booking.booking_id" in page
     assert "data.booking?.id" not in page
     assert "requestKey=null" in page
+
+
+def test_ride_pages_reuse_existing_transport_pwa_install_contract():
+    app = _app()
+    for path in ("/transport/ride/rider", "/transport/ride/driver", "/transport/my"):
+        body = app.test_client().get(path).get_data(as_text=True)
+        assert 'rel="manifest" href="/transport/manifest.webmanifest"' in body
+        assert 'href="/transport?source=oap-ride"' in body
+        assert "Install app" in body
+        assert "not a signed Android APK" in body
+
+
+def test_termux_ride_launcher_targets_existing_https_oap_pages():
+    from pathlib import Path
+
+    script = Path("scripts/termux_oap_ride.sh").read_text(encoding="utf-8")
+    assert 'https://onanypostcode.global' in script
+    assert '/transport/ride/rider' in script
+    assert '/transport/ride/driver' in script
+    assert 'termux-open-url "$url"' in script
+    assert 'curl --fail' in script
+    assert 'OAP_RIDE_ORIGIN' in script
+    assert "dispatch server" in script
