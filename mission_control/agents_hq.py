@@ -229,11 +229,46 @@ def mission_step_skill_review(mission: str) -> dict[str, Any]:
             "matched_candidate_count": len(matches),
             "authority_gates_remain": _AUTHORITY_GATES,
         })
+    handoffs: list[dict[str, Any]] = []
+    for previous, following in zip(steps, steps[1:]):
+        sender = previous["recommendation"]
+        receiver = following["recommendation"]
+        # A candidate is never a verified speaker. Do not create a message or
+        # attribute a statement to an agent without an authenticated runtime.
+        handoffs.append({
+            "from_step": previous["step_id"],
+            "to_step": following["step_id"],
+            "from_agent_id": sender["agent_id"] if sender else None,
+            "to_agent_id": receiver["agent_id"] if receiver else None,
+            "from_family_id": sender["family_id"] if sender else None,
+            "to_family_id": receiver["family_id"] if receiver else None,
+            "cross_family": (
+                sender["family_id"] != receiver["family_id"]
+                if sender and receiver else None
+            ),
+            "state": (
+                "advisory_unverified" if sender and receiver
+                else "blocked_missing_skill_match"
+            ),
+            "required_proof": (
+                "authenticated_sender",
+                "registered_receiver",
+                "permission_check",
+                "attributable_evidence",
+                "HRM_receipt",
+                "Guardian_review",
+            ),
+            "message_sent": False,
+            "delivery_verified": False,
+            "authority_transferred": False,
+        })
     return {
         "mission": brief,
         "mode": "skill_first_step_review_only",
         "protocol_source": ai_behaviour_protocol.PROTOCOL_NAME,
         "steps": tuple(steps),
+        "proposed_handoffs": tuple(handoffs),
+        "handoff_messages_sent": 0,
         "founder_final": True,
         "can_execute": False,
         "agent_messages_sent": False,
