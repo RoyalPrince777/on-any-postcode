@@ -162,6 +162,47 @@ _STEP_SKILL_TERMS: dict[str, tuple[str, ...]] = {
 }
 _AUTHORITY_GATES = ("Guardian", "Green Gate", "HRM", "Founder Final")
 
+# Seven-round council is a review *template*. It contains no generated
+# conversation, agent ballots, independent approvals, or awarded stars.
+_COUNCIL_ROUNDS = (
+    ("brainstorm", "Brainstorm", "proposal_and_alternatives"),
+    ("challenge", "Adversarial challenge", "risks_and_counterarguments"),
+    ("defend", "Evidence-backed defence", "sources_and_test_receipts"),
+    ("counter_challenge", "Alternatives and protection", "reversible_options"),
+    ("guardian", "Guardian boundary review", "security_and_authority_proof"),
+    ("green_gate", "HRM and Green Gate proof", "attributable_runtime_evidence"),
+    ("council", "Council recommendation", "authenticated_positions_and_dissent"),
+)
+
+
+def _council_review_template() -> dict[str, Any]:
+    rounds = tuple({
+        "round": index,
+        "id": round_id,
+        "label": label,
+        "required_evidence": required,
+        "status": "not_conducted",
+        "authenticated_speakers": (),
+        "agent_statements": (),
+        "votes": (),
+        "minority_report": None,
+        "earned_stars": None,
+    } for index, (round_id, label, required) in enumerate(_COUNCIL_ROUNDS, 1))
+    return {
+        "mode": "council_review_template_only",
+        "rounds": rounds,
+        "rounds_completed": 0,
+        "authenticated_ballots": 0,
+        "votes_are_binding": False,
+        "council_recommendation": None,
+        "earned_stars": None,
+        "hrm_receipt": None,
+        "guardian_passed": False,
+        "founder_final": True,
+        "can_execute": False,
+    }
+
+
 
 def mission_step_skill_review(mission: str) -> dict[str, Any]:
     """Skill-first, fail-closed advisory routing per canonical protocol step.
@@ -269,6 +310,7 @@ def mission_step_skill_review(mission: str) -> dict[str, Any]:
         "protocol_source": ai_behaviour_protocol.PROTOCOL_NAME,
         "steps": tuple(steps),
         "proposed_handoffs": tuple(handoffs),
+        "council_review": _council_review_template(),
         "handoff_messages_sent": 0,
         "founder_final": True,
         "can_execute": False,
