@@ -401,3 +401,45 @@ def test_automation_candidates_are_unconfigured_and_never_schedule_or_execute(cl
     assert 'id="mission-automation-candidates"' in client.get(
         "/mission/smi/agents-hq"
     ).get_data(as_text=True)
+
+
+def test_seven_first_party_automation_contracts_default_to_disabled(client):
+    from mission_control.agents_hq import automation_watch_catalog, mission_step_skill_review
+
+    catalog = automation_watch_catalog()
+    watches = catalog["watches"]
+    assert catalog["mode"] == "watch_contracts_only"
+    assert len(watches) == 7
+    assert len({watch["id"] for watch in watches}) == 7
+    assert {watch["id"] for watch in watches} == {
+        "ci_failure", "release_gate", "recovery", "mission_dependency",
+        "evidence_freshness", "founder_decision", "lessons_learned",
+    }
+    assert catalog["enabled_count"] == 0
+    assert catalog["runtime_connected"] is False
+    assert catalog["execution_authorised"] is False
+    for watch in watches:
+        assert watch["status"] == "disabled"
+        assert watch["event_kind"]
+        assert watch["required_evidence"]
+        assert watch["runtime_connected"] is False
+        assert watch["agent_selected"] is False
+        assert watch["authenticated_events"] == 0
+        assert watch["jobs_created"] == 0
+        assert watch["runs_completed"] == 0
+        assert watch["last_hrm_receipt"] is None
+        assert watch["guardian_required"] is True
+        assert watch["founder_final"] is True
+        assert watch["may_execute"] is False
+
+    projection = mission_step_skill_review("Review scheduled CI failure checks")
+    assert projection["automation_review"]["watch_catalog"] == catalog
+    response = client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": projection["mission"]},
+    )
+    assert response.status_code == 200
+    api_catalog = response.get_json()["automation_review"]["watch_catalog"]
+    assert len(api_catalog["watches"]) == 7
+    assert api_catalog["enabled_count"] == 0
+    assert api_catalog["execution_authorised"] is False
