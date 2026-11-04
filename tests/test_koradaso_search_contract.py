@@ -75,3 +75,12 @@ def test_termux_auto_opens_only_after_real_branded_http_response():
     assert 'id="address-form"' in source
     assert 'termux-open-url "http://127.0.0.1:$PORT/koradaso"' in source
     assert 'live branded /koradaso page not verified.' in source
+
+
+
+def test_koradaso_startup_does_not_require_optional_map_tile_decoder():
+    source = Path("mission_control/road_tile_geometry.py").read_text(encoding="utf-8")
+    assert "\nimport mapbox_vector_tile\n" not in source
+    assert '    try:\n        # The optional vector decoder' in source
+    assert '        import mapbox_vector_tile' in source
+    assert 'raise routing.RoutingUnavailable("road_tile_decode_failed")' in source
