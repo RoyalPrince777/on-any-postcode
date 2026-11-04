@@ -8,6 +8,7 @@ Collaboration never transfers an agent's identity or grants execution.
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 from typing import Any
 
 from . import agents, ai_behaviour_protocol
@@ -174,13 +175,15 @@ def mission_step_skill_review(mission: str) -> dict[str, Any]:
     members = {str(item["agent_id"]): item for item in agents.AGENT_REGISTRY}
     homes = {room["agent_ids"][0]: room for room in directory["rooms"]
              if room["kind"] == "individual"}
+    mission_terms = {term for term in re.findall(r"[a-z]{4,}", brief.casefold())
+                     if term not in {"that", "this", "with", "from", "please", "mission", "review", "system"}}
     steps: list[dict[str, Any]] = []
     for protocol in ai_behaviour_protocol.AI_BEHAVIOUR_PARTS:
         step_id = str(protocol["id"])
         requirements = _STEP_SKILL_TERMS.get(step_id)
         if requirements is None:
             raise ValueError("Unmapped canonical protocol step")
-        matches: list[tuple[int, str, tuple[str, ...]]] = []
+        matches: list[tuple[int, int, str, tuple[str, ...], tuple[str, ...]]] = []
         for agent_id, agent in members.items():
             if agent.get("registry_status") != "ACTIVE":
                 continue
@@ -191,13 +194,15 @@ def mission_step_skill_review(mission: str) -> dict[str, Any]:
                           if any(term in skill for skill in capabilities)
                           or term in declared_role)
             if found:
-                # Verified registration/declared skill match only; no invented star rating.
-                matches.append((len(found), agent_id, found))
-        matches.sort(key=lambda item: (-item[0], item[1]))
+                declared = " ".join((*capabilities, declared_role))
+                mission_hits = tuple(sorted(term for term in mission_terms if term in declared))
+                # Step skills take precedence; mission relevance breaks ties only.
+                matches.append((len(found), len(mission_hits), agent_id, found, mission_hits))
+        matches.sort(key=lambda item: (-item[0], -item[1], item[2]))
         best = matches[0] if matches else None
         selection = None
         if best is not None:
-            agent_id = best[1]
+            agent_id = best[2]
             agent = members[agent_id]
             home = homes[agent_id]
             selection = {
@@ -205,8 +210,9 @@ def mission_step_skill_review(mission: str) -> dict[str, Any]:
                 "name": str(agent["name"]),
                 "family_id": home["family_id"],
                 "home_system": home["home_system"],
-                "matched_declared_skills": best[2],
-                "selection_basis": "registered_passport_skill_match_only",
+                "matched_declared_skills": best[3],
+                "matched_mission_terms": best[4],
+                "selection_basis": "passport_step_skills_then_mission_relevance",
                 "runtime_skill_verified": False,
                 "availability": "unknown",
                 "execution_authorised": False,
