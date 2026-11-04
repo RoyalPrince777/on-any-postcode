@@ -15,8 +15,8 @@ import json
 import os
 import secrets
 import time
-from http.cookies import SimpleCookie
 from contextlib import contextmanager
+from http.cookies import SimpleCookie
 from typing import Final
 
 from . import authority, postgres_db
