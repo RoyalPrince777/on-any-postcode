@@ -328,3 +328,16 @@ def test_selfhost_defines_two_first_party_https_ingresses_without_host_exposed_s
     assert "reverse_proxy world:10000" in caddy
     assert '      - "10000:10000"' not in compose
     assert "onrender.com" not in compose + caddy
+
+
+def test_smi_local_flask_launcher_is_loopback_only_and_preserves_auth():
+    script = Path("scripts/smi_local_flask.sh").read_text()
+    assert 'export OAP_SURFACE_ROLE=local' in script
+    assert 'export OAP_SMI_GATEWAY_SECRET=' in script
+    assert 'export OAP_AUTH_REQUIRED=true' in script
+    assert 'route = "/mission/ollama"' in script
+    assert 'SMI_FLASK_PREFLIGHT_404' in script
+    assert 'host="127.0.0.1", port=5051, debug=False, use_reloader=False' in script
+    assert 'app.test_client()' in script
+    assert "auto-login" in script
+    assert "OAP_SURFACE_ROLE=public" not in script
