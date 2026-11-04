@@ -32,8 +32,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 @media(max-width:490px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:118px}.hero{padding-top:24px}.hero h1{font-size:2.35rem}.crest{width:119px;height:119px}.crest span{font-size:5.5rem}}
 @media(prefers-reduced-motion:reduce){*,*:before{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
  
-/* Royal KORADASO mobile hierarchy: crowned navigation, luminous hero,
-   seven functional first-party destinations and an honest browser toolbar. */
+/* Royal KORADASO mobile hierarchy: verified OAP destinations and reserved tiles. */
 :root{--gold:#f5cd77;--violet:#a66bff}
 .top{padding:8px 2px 11px;border-bottom:1px solid #a57b46;position:relative}
 .top:before{content:"♛";color:var(--gold);font-size:1.35rem;margin-right:8px}
@@ -56,6 +55,14 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 .browser-bar a{flex:1;text-align:center;color:#f1cd8d;border:1px solid #736044;border-radius:12px;padding:9px 4px;font-size:.86rem}
 .browser-settings{border:1px solid #8b6b3a;border-radius:16px;padding:12px 14px;margin:16px 0;background:#10101b}.browser-settings summary{cursor:pointer;color:var(--gold);font-weight:700}.browser-settings p{font-size:.82rem;color:#d1c5b1}.browser-settings label{display:flex;align-items:center;gap:9px;font-size:.9rem}.browser-bar button{flex:1;color:#f1cd8d;border:1px solid #736044;border-radius:12px;padding:9px 4px;font-size:.86rem;background:transparent;cursor:pointer}.browser-bar button:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}body.reduce-motion *,body.reduce-motion *:before,body.reduce-motion *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.bookmark-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}.bookmark-heading h2{margin:14px 0}.bookmark-heading .action{font-size:.8rem;padding:8px 12px}.bookmark-remove{background:transparent;color:#ffd991;border:0;cursor:pointer;padding:3px 6px}.bookmark-saved{display:inline-flex;align-items:center;gap:5px;background:#141423;border:1px solid #65553d;border-radius:10px;padding-left:10px}.bookmark-saved a{padding:8px 0!important;border:0!important}.shortcuts{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}.shortcuts a{padding:8px 10px;background:#141423;border:1px solid #65553d;border-radius:10px;font-size:.78rem}
 @media(max-width:490px){.tile:nth-child(-n+3){min-height:118px}.tile{min-height:105px}.hero{padding-top:18px}.crest{width:139px;height:139px}.crest span{font-size:6rem}}
+.tile.is-reserved{opacity:.63;border-style:dashed;cursor:default;box-shadow:none}
+.tile.is-reserved .ico{filter:none}.tile.is-reserved span:last-child{color:#e0c590}
+.search-mode{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:13px 0 4px}
+.search-mode label{display:inline-flex;align-items:center;gap:6px;border:1px solid #7f6847;padding:8px 12px;border-radius:22px;font-size:.83rem;cursor:pointer}
+.search-mode input{accent-color:#e6be6c}.settings-actions{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+.settings-actions button{border:1px solid #977349;background:#171425;color:#f5dba8;padding:9px 13px;border-radius:12px}
+.trust-state{font-size:.78rem;color:#e4c58d;margin:9px 2px}
+@media(max-width:490px){.tile.is-reserved{min-height:105px}}
 </style>
 </head>
 <body>
@@ -69,24 +76,38 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 </section>
 <form class="search" id="address-form" role="search">
 <input id="address" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Website address" placeholder="Search or type a website address…" required>
-<button type="submit">GO</button>
+<button type="submit">Search / Go</button>
 </form>
-<p class="note" id="address-note" role="status">OAP Search currently finds public OAP apps only. For wider web results, enable external search in Settings; each query requires confirmation.</p>
+<div class="search-mode" role="group" aria-label="Search destination">
+<label><input type="radio" name="search-mode" value="oap" checked> OAP Search</label>
+<label><input type="radio" name="search-mode" value="web"> WWW Search</label>
+</div>
+<p class="trust-state" id="trust-state" role="status">OAP FIRST PARTY · Catalogue search</p>
+<p class="note" id="address-note" role="status">OAP searches public OAP apps. WWW search uses DuckDuckGo with explicit consent; typed HTTPS websites open with confirmation.</p>
 <h2>EXPLORE YOUR WORLD</h2>
 <div class="grid">
-<a class="tile" href="/world"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>Discover OAP World</span></a>
-<a class="tile" href="/maps"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Places & routes</span></a>
-<a class="tile" href="/the-link"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>The Link</span></a>
-<a class="tile" href="/the-spot/market"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>First-party market</span></a>
-<a class="tile" href="/studio"><span class="ico" aria-hidden="true">✦</span><strong>AI Studio</strong><span>Create & explore</span></a>
-<a class="tile" href="/library"><span class="ico" aria-hidden="true">⬇</span><strong>Library</strong><span>Knowledge & legacy</span></a><a class="tile" href="#browser-settings"><span class="ico" aria-hidden="true">⚙</span><strong>Settings</strong><span>Browser display & safety</span></a>
+<a class="tile" href="/world"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>OAP World</span></a>
+<a class="tile" href="/search"><span class="ico" aria-hidden="true">🔎</span><strong>OAP Search</strong><span>Public app discovery</span></a>
+<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Reserved · Not ready</span></div>
+<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>Reserved · Not ready</span></div>
+<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>Reserved · Not ready</span></div>
+<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">✦</span><strong>AI</strong><span>Reserved · Not ready</span></div>
+<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">⬇</span><strong>Downloads</strong><span>Reserved · Not ready</span></div>
+<a class="tile" href="#browser-settings"><span class="ico" aria-hidden="true">⚙</span><strong>Settings</strong><span>Privacy & search</span></a>
 </div>
 <div class="bookmark-heading"><h2>★ BOOKMARKS</h2><button type="button" class="action" id="bookmark-add">+ Save page</button></div>
 <div class="shortcuts" aria-label="Website shortcuts" id="bookmark-list">
-<a href="/koradaso">KORADASO</a><a href="/world">OAP World</a><a href="/library">Library</a>
+<a href="/koradaso">KORADASO</a><a href="/world">OAP World</a><a href="/search">OAP Search</a>
 </div>
 <p class="note" id="bookmark-note" role="status">Saved bookmarks stay in this browser only. Nothing is uploaded to OAP.</p>
-<details class="browser-settings" id="browser-settings"><summary>⚙ Browser settings</summary><p>OAP Search searches the public OAP app catalogue only, not a global web index. Optional OPEN WEB search sends your query to DuckDuckGo only after confirmation. External HTTPS addresses also require confirmation. OAP does not operate a global web index. No private pages are saved offline here.</p><label for="open-web-search"><input type="checkbox" id="open-web-search"> Search the wider web using DuckDuckGo (confirm each time)</label><label for="reduce-motion"><input type="checkbox" id="reduce-motion"> Reduce visual motion for this page</label></details><nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button><a href="/koradaso">⌂ Home</a><a href="/world">🌍 World</a><a href="/">↩ OAP</a></nav>
+<details class="browser-settings" id="browser-settings">
+<summary>⚙ Browser settings</summary>
+<p>OAP Search currently searches public OAP apps only. WWW Search sends your typed search to DuckDuckGo after confirmation. No global OAP web index is claimed. External HTTPS addresses require separate consent.</p>
+<label for="open-web-search"><input type="checkbox" id="open-web-search"> Use WWW Search as default for phrases (always confirm)</label>
+<label for="reduce-motion"><input type="checkbox" id="reduce-motion"> Reduce motion</label>
+<div class="settings-actions"><button type="button" id="clear-browser-preferences">Clear saved bookmarks and preferences</button></div>
+<p class="note" id="settings-note" role="status">Browser preferences stay on this device. Local storage may be unavailable in private browsing.</p>
+</details><nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button><a href="/koradaso">⌂ Home</a><a href="/world">🌍 World</a><a href="/">↩ OAP</a></nav>
 </main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
 </div>
 <script>
@@ -94,12 +115,23 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 "use strict";
 const form=document.getElementById("address-form"),field=document.getElementById("address"),note=document.getElementById("address-note");
 const back=document.getElementById("browser-back"),reduceMotion=document.getElementById("reduce-motion"),openWebSearch=document.getElementById("open-web-search");
+const trustState=document.getElementById("trust-state"),settingsNote=document.getElementById("settings-note");
+const searchModes=document.querySelectorAll('input[name="search-mode"]');
+const preferencesKey="koradaso.browser_prefs.v1";
+function currentSearchMode(){const selected=Array.from(searchModes).find(x=>x.checked);return selected?selected.value:"oap";}
+function updateSearchMode(mode){searchModes.forEach(x=>{x.checked=x.value===mode;});trustState.textContent=mode==="web"?"OPEN WEB · DuckDuckGo (consent required)":"OAP FIRST PARTY · Catalogue search";}
+function savePreferences(){try{localStorage.setItem(preferencesKey,JSON.stringify({webDefault:openWebSearch.checked,reduceMotion:reduceMotion.checked}));}catch(_){settingsNote.textContent="Browser storage unavailable; settings apply only for this page.";}}
+try{const p=JSON.parse(localStorage.getItem(preferencesKey)||"{}");openWebSearch.checked=p.webDefault===true;reduceMotion.checked=p.reduceMotion===true;}catch(_){/* use defaults */}
+document.body.classList.toggle("reduce-motion",reduceMotion.checked);
+updateSearchMode(openWebSearch.checked?"web":"oap");
+searchModes.forEach(x=>x.addEventListener("change",()=>{if(x.checked){updateSearchMode(x.value);openWebSearch.checked=x.value==="web";savePreferences();}}));
+openWebSearch.addEventListener("change",()=>{updateSearchMode(openWebSearch.checked?"web":"oap");savePreferences();});
 back.addEventListener("click",function(){if(window.history.length>1&&document.referrer){try{const previous=new URL(document.referrer);if(previous.origin===window.location.origin){window.history.back();return;}}catch(_){/* fallback home */}}window.location.assign("/koradaso");});
-reduceMotion.addEventListener("change",function(){document.body.classList.toggle("reduce-motion",reduceMotion.checked);});
+reduceMotion.addEventListener("change",function(){document.body.classList.toggle("reduce-motion",reduceMotion.checked);savePreferences();});
 // Bookmarks are user-initiated, browser-local and limited to OAP routes.
 const bookmarkList=document.getElementById("bookmark-list"),bookmarkNote=document.getElementById("bookmark-note");
 const bookmarkKey="koradaso.first_party_bookmarks.v1";
-const allowedRoutes=new Set(["/koradaso","/world","/maps","/the-link","/the-spot/market","/studio","/library"]);
+const allowedRoutes=new Set(["/koradaso","/world","/search"]);
 function readBookmarks(){try{const value=JSON.parse(localStorage.getItem(bookmarkKey)||"[]");return Array.isArray(value)?value.filter(x=>typeof x==="string"&&allowedRoutes.has(x)).slice(0,12):[];}catch(_){return [];}}
 function showBookmarks(){
   bookmarkList.querySelectorAll(".bookmark-saved").forEach(node=>node.remove());
@@ -120,6 +152,13 @@ document.getElementById("bookmark-add").addEventListener("click",()=>{
   try{localStorage.setItem(bookmarkKey,JSON.stringify([...saved,route]));bookmarkNote.textContent="Saved "+route+" to this browser.";showBookmarks();}catch(_){bookmarkNote.textContent="Browser storage unavailable; bookmark not saved."}
 });
 showBookmarks();
+document.getElementById("clear-browser-preferences").addEventListener("click",()=>{
+  if(!window.confirm("Clear KORADASO saved bookmarks and browser preferences on this device?"))return;
+  try{localStorage.removeItem(bookmarkKey);localStorage.removeItem(preferencesKey);}catch(_){settingsNote.textContent="Browser storage unavailable; saved data could not be cleared.";return;}
+  openWebSearch.checked=false;reduceMotion.checked=false;
+  document.body.classList.remove("reduce-motion");updateSearchMode("oap");showBookmarks();
+  settingsNote.textContent="Local bookmarks and preferences cleared.";
+});
 
 form.addEventListener("submit",function(e){
 e.preventDefault();const raw=field.value.trim();if(!raw){note.textContent="Enter a website address.";return;}
@@ -137,7 +176,7 @@ const explicitScheme=/^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
 const hostLike=/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:[/?#][^\s]*)?$/i.test(raw);
 if(!explicitScheme&&!hostLike){
   if(raw.length>120){note.textContent="OAP Search supports up to 120 characters. Shorten your query.";return;}
-  if(openWebSearch.checked){
+  if(currentSearchMode()==="web"){
     if(window.confirm("OPEN WEB SEARCH — Your query will be sent to DuckDuckGo outside OAP. Continue?")){
       window.location.assign("https://duckduckgo.com/?q="+encodeURIComponent(raw));
     }else{note.textContent="External search cancelled. No query was sent.";}
