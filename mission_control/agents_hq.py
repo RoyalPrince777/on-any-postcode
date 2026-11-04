@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from . import agents
+from . import agents, ai_behaviour_protocol
 
 
 def _family_index() -> dict[str, Mapping[str, Any]]:
@@ -138,4 +138,96 @@ def room_context(room_id: str) -> dict[str, Any]:
         "agent_responses_generated": False,
         "founder_final": True,
         "can_execute": False,
+    }
+
+
+# Advisory skill requirements for existing SMI behaviour steps, not new agent skills.
+# No evidence of deployed ability or runtime availability is inferred from passports.
+_STEP_SKILL_TERMS: dict[str, tuple[str, ...]] = {
+    "watch": ("monitoring", "observation", "signals", "surveillance"),
+    "strip_noise": ("analysis", "pattern", "duplicate", "integrity"),
+    "classify": ("analysis", "assessment", "classification", "risk"),
+    "select_intelligence": ("strategy", "systems", "coordination"),
+    "select_agent": ("coordination", "strategy", "leadership"),
+    "select_protocol": ("architecture", "systems", "planning"),
+    "helper_agents": ("collaboration", "coordination", "communication"),
+    "no_bypass": ("security", "protection", "integrity", "risk"),
+    "visible_reasoning_only": ("communication", "explanation", "analysis"),
+    "score": ("evaluation", "analysis", "performance", "assessment"),
+    "recover": ("recovery", "resilience", "repair", "restoration"),
+    "offline_or_terminate_task": ("safety", "security", "protection", "risk"),
+    "learn": ("learning", "memory", "knowledge", "research"),
+}
+_AUTHORITY_GATES = ("Guardian", "Green Gate", "HRM", "Founder Final")
+
+
+def mission_step_skill_review(mission: str) -> dict[str, Any]:
+    """Skill-first, fail-closed advisory routing per canonical protocol step.
+
+    Passport descriptions are declared skills, not execution proof. No selected
+    agent is activated, given a permission, or moved from its family home.
+    """
+    if not isinstance(mission, str) or not mission.strip():
+        raise ValueError("Mission brief required")
+    brief = " ".join(mission.split())[:800]
+    directory = room_directory()  # Enforce all existing registry and family checks.
+    members = {str(item["agent_id"]): item for item in agents.AGENT_REGISTRY}
+    homes = {room["agent_ids"][0]: room for room in directory["rooms"]
+             if room["kind"] == "individual"}
+    steps: list[dict[str, Any]] = []
+    for protocol in ai_behaviour_protocol.AI_BEHAVIOUR_PARTS:
+        step_id = str(protocol["id"])
+        requirements = _STEP_SKILL_TERMS.get(step_id)
+        if requirements is None:
+            raise ValueError("Unmapped canonical protocol step")
+        matches: list[tuple[int, str, tuple[str, ...]]] = []
+        for agent_id, agent in members.items():
+            if agent.get("registry_status") != "ACTIVE":
+                continue
+            mind = agent.get("mind") or {}
+            capabilities = tuple(str(skill).casefold() for skill in mind.get("capabilities", ()))
+            declared_role = str(agent.get("role") or "").casefold()
+            found = tuple(term for term in requirements
+                          if any(term in skill for skill in capabilities)
+                          or term in declared_role)
+            if found:
+                # Verified registration/declared skill match only; no invented star rating.
+                matches.append((len(found), agent_id, found))
+        matches.sort(key=lambda item: (-item[0], item[1]))
+        best = matches[0] if matches else None
+        selection = None
+        if best is not None:
+            agent_id = best[1]
+            agent = members[agent_id]
+            home = homes[agent_id]
+            selection = {
+                "agent_id": agent_id,
+                "name": str(agent["name"]),
+                "family_id": home["family_id"],
+                "home_system": home["home_system"],
+                "matched_declared_skills": best[2],
+                "selection_basis": "registered_passport_skill_match_only",
+                "runtime_skill_verified": False,
+                "availability": "unknown",
+                "execution_authorised": False,
+            }
+        steps.append({
+            "step_id": step_id,
+            "label": str(protocol["label"]),
+            "required_skill_terms": requirements,
+            "recommendation": selection,
+            "qualified_runtime_agent": None,
+            "match_status": "declared_skill_match_unverified" if best else "no_declared_skill_match",
+            "matched_candidate_count": len(matches),
+            "authority_gates_remain": _AUTHORITY_GATES,
+        })
+    return {
+        "mission": brief,
+        "mode": "skill_first_step_review_only",
+        "protocol_source": ai_behaviour_protocol.PROTOCOL_NAME,
+        "steps": tuple(steps),
+        "founder_final": True,
+        "can_execute": False,
+        "agent_messages_sent": False,
+        "runtime_skills_proven": False,
     }
