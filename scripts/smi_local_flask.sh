@@ -33,14 +33,19 @@ from mission_control import founder_recovery
 # backend is configured. No recovery token, identity, or password is generated.
 database_ready = postgres_db.configured()
 auth_backend = neon_auth.status()["valid"]
+auth_origin = bool(neon_auth.configured_public_origin())
+founder_selector = bool(neon_auth.configured_founder_email())
 local_verifier_candidate = (database_ready and len(os.environ.get("OAP_SESSION_SECRET", "")) >= 32 and bool(os.environ.get("OAP_HUMAN_AUTHORITY_ID", "")))
 recovery_ready = founder_recovery.configured()
+managed_ready = auth_backend and auth_origin and founder_selector
 print("SMI database configuration:", "present; connection unverified" if database_ready else "missing")
-print("SMI managed auth:", "configured" if auth_backend else "missing")
+print("SMI managed auth endpoint:", "configured" if auth_backend else "missing")
+print("SMI managed auth HTTPS origin:", "configured; trust unverified" if auth_origin else "missing")
+print("SMI Founder selector:", "configured" if founder_selector else "missing")
 print("SMI Founder verifier prerequisites:", "present; runtime unverified" if local_verifier_candidate else "missing")
 print("SMI existing recovery:", "configured" if recovery_ready else "unavailable")
-if not (auth_backend or local_verifier_candidate or recovery_ready):
-    raise SystemExit("SMI_FLASK_AUTH_NOT_CONFIGURED: restore existing Founder auth; password unchanged")
+if not (managed_ready or local_verifier_candidate or recovery_ready):
+    raise SystemExit("SMI_FLASK_AUTH_NOT_CONFIGURED: restore existing Founder auth and trusted HTTPS origin; password unchanged")
 
 route = "/mission/ollama"
 registered = any(rule.rule == route and "GET" in rule.methods for rule in app.url_map.iter_rules())
