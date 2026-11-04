@@ -42,6 +42,17 @@ small{color:#b9cce1}
 {% endfor %}
 </div>
 </section>
+<section aria-labelledby="mission-team-title">
+<h2 id="mission-team-title">🧠 Dynamic mission team · advisory only</h2>
+<p><small>Uses the existing Founder-only SMI mission-team recommender. A recommendation does not activate agents, send messages, prove availability or grant approval.</small></p>
+<form id="mission-team-form">
+<label for="mission-text">Mission brief</label>
+<input id="mission-text" name="mission" maxlength="800" required autocomplete="off" style="width:min(100%,650px);box-sizing:border-box;padding:12px;background:#172942;color:white;border:1px solid #526d91;border-radius:10px" placeholder="Describe the task for SMI review">
+<button type="submit">Recommend review team</button>
+</form>
+<p id="mission-team-status" role="status" aria-live="polite">No recommendation requested.</p>
+<ul id="mission-team-results" aria-label="Advisory team recommendation"></ul>
+</section>
 <section aria-labelledby="selected-room">
 <h2 id="selected-room">Select a room</h2>
 <p id="room-status" role="status" aria-live="polite">Select a room to verify its registered members and home systems.</p>
@@ -134,6 +145,55 @@ async function selectRoom(id) {
     status.textContent = "Unable to verify room membership. Nothing has been displayed.";
   }
 }
+const missionForm = document.getElementById("mission-team-form");
+const missionText = document.getElementById("mission-text");
+const missionStatus = document.getElementById("mission-team-status");
+const missionResults = document.getElementById("mission-team-results");
+let missionRequest = 0;
+missionText.addEventListener("input", () => {
+  missionRequest += 1;
+  missionResults.replaceChildren();
+  missionStatus.textContent = "Mission changed. Request a new recommendation.";
+});
+missionForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const mission = missionText.value.trim();
+  if (!mission) return;
+  const version = ++missionRequest;
+  missionResults.replaceChildren();
+  missionStatus.textContent = "Requesting existing SMI advisory recommendation…";
+  try {
+    const response = await fetch("/mission/smi/agent-team/recommend?mission=" + encodeURIComponent(mission), {
+      credentials: "same-origin", cache: "no-store", headers: {Accept: "application/json"}
+    });
+    if (!response.ok) throw new Error("Recommendation unavailable");
+    const data = await response.json();
+    if (!data || data.mission !== mission || data.founder_can_change !== true ||
+        data.smi_can_silently_override_founder !== false ||
+        !Array.isArray(data.active_team) || !Array.isArray(data.coverage_warnings)) {
+      throw new Error("Untrusted recommendation response");
+    }
+    if (version !== missionRequest) return;
+    const fragment = document.createDocumentFragment();
+    for (const agent of data.active_team) {
+      if (!agent || typeof agent.name !== "string" || typeof agent.role !== "string" ||
+          agent.authority !== "advisory_review_only") {
+        throw new Error("Invalid advisory agent");
+      }
+      const item = document.createElement("li");
+      item.textContent = agent.name + " — " + agent.role + " (advisory only)";
+      fragment.appendChild(item);
+    }
+    missionResults.replaceChildren(fragment);
+    missionStatus.textContent = data.active_team.length +
+      " reviewers recommended · Founder Final · No agents activated · Runtime availability unknown" +
+      (data.coverage_warnings.length ? " · Review coverage warnings" : "");
+  } catch (_error) {
+    if (version !== missionRequest) return;
+    missionResults.replaceChildren();
+    missionStatus.textContent = "Recommendation unavailable or invalid. No team activated.";
+  }
+});
 kinds.forEach(button => button.addEventListener("click", () => filterRooms(button.dataset.kind)));
 roomButtons.forEach(button => button.addEventListener("click", () => selectRoom(button.dataset.roomId)));
 filterRooms("all_agents");
