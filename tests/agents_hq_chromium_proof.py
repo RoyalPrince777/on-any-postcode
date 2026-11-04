@@ -154,7 +154,7 @@ def main() -> None:
                         assert member["home_system"] in rendered
 
                     # Exercise the actual skill-first mission UI, not just room labels.
-                    mission = "Assess security and recovery evidence"
+                    mission = "Assess security failure and recovery evidence"
                     page.locator("#mission-text").fill(mission)
                     page.locator("#mission-team-form button[type='submit']").click()
                     expect(page.locator("#mission-team-status")).to_contain_text(
@@ -163,6 +163,8 @@ def main() -> None:
                     expect(page.locator("#mission-step-results li")).to_have_count(13)
                     expect(page.locator("#mission-handoffs li")).to_have_count(12)
                     expect(page.locator("#mission-council-rounds li")).to_have_count(7)
+                    expect(page.locator("#mission-automation-candidates li")).to_have_count(1)
+                    expect(page.locator("#mission-automation-candidates li").first).to_contain_text("unconfigured")
                     expect(page.locator("#mission-council-rounds li").first).to_contain_text("not conducted")
                     expect(page.locator("#mission-handoffs li").first).to_contain_text(
                         "no message sent"
@@ -174,6 +176,7 @@ def main() -> None:
                     expect(page.locator("#mission-step-results li")).to_have_count(0)
                     expect(page.locator("#mission-handoffs li")).to_have_count(0)
                     expect(page.locator("#mission-council-rounds li")).to_have_count(0)
+                    expect(page.locator("#mission-automation-candidates li")).to_have_count(0)
 
                     unknown = founder.request.get(
                         url + "/mission/smi/agents-hq/rooms/guest:unregistered"
