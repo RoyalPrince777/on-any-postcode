@@ -35,6 +35,7 @@ import java.util.List;
 public final class MainActivity extends ComponentActivity {
     private static final String OAP_ORIGIN = "https://onanypostcode.global";
     private static final String LOCAL_ORIGIN = "http://127.0.0.1:5050";
+    private static final String KORADASO_TEST_ORIGIN = "http://127.0.0.1:5052";
     private String activeOrigin = LOCAL_ORIGIN;
     private Button modeButton;
     private WebView webView;
@@ -68,7 +69,7 @@ public final class MainActivity extends ComponentActivity {
 
         backButton = navButton("‹");
         Button homeButton = navButton("OAP");
-        modeButton = navButton("Local");
+        modeButton = navButton("Local 5050");
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
@@ -278,18 +279,25 @@ public final class MainActivity extends ComponentActivity {
     private static boolean isLocalLoopback(Uri uri) {
         return "http".equalsIgnoreCase(uri.getScheme())
                 && "127.0.0.1".equals(uri.getHost())
-                && uri.getPort() == 5050
+                && (uri.getPort() == 5050 || uri.getPort() == 5052)
                 && uri.getUserInfo() == null;
     }
 
     private void switchOrigin() {
         engineClient.cancelPending();
         engineClient.close();
-        activeOrigin = LOCAL_ORIGIN.equals(activeOrigin) ? OAP_ORIGIN : LOCAL_ORIGIN;
+        if (LOCAL_ORIGIN.equals(activeOrigin)) {
+            activeOrigin = KORADASO_TEST_ORIGIN;
+        } else if (KORADASO_TEST_ORIGIN.equals(activeOrigin)) {
+            activeOrigin = OAP_ORIGIN;
+        } else {
+            activeOrigin = LOCAL_ORIGIN;
+        }
         engineClient = new EngineDocumentClient(activeOrigin);
         engineHistory.clear();
         engineHistoryIndex = -1;
-        modeButton.setText(LOCAL_ORIGIN.equals(activeOrigin) ? "Local" : "Online");
+        modeButton.setText(LOCAL_ORIGIN.equals(activeOrigin) ? "Local 5050"
+                : KORADASO_TEST_ORIGIN.equals(activeOrigin) ? "Local 5052" : "Online");
         openFirstPartyPath("/koradaso");
     }
 
