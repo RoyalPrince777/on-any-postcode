@@ -90,6 +90,11 @@ def main() -> None:
                     assert denied.status == 401, denied.status
                     assert denied.json()["error"]["code"] == "authentication_required"
                     assert denied.headers["cache-control"] == "no-store"
+                    denied_skill_review = anonymous.request.get(
+                        url + "/mission/smi/agents-hq/mission-step-skills?mission=review"
+                    )
+                    assert denied_skill_review.status == 401
+                    assert denied_skill_review.headers["cache-control"] == "no-store"
                 finally:
                     anonymous.close()
 
@@ -166,11 +171,6 @@ def main() -> None:
                     page.locator("#mission-text").fill("changed mission")
                     expect(page.locator("#mission-step-results li")).to_have_count(0)
                     expect(page.locator("#mission-handoffs li")).to_have_count(0)
-                    denied_skill_review = anonymous.request.get(
-                        url + "/mission/smi/agents-hq/mission-step-skills?mission=review"
-                    )
-                    assert denied_skill_review.status == 401
-                    assert denied_skill_review.headers["cache-control"] == "no-store"
 
                     unknown = founder.request.get(
                         url + "/mission/smi/agents-hq/rooms/guest:unregistered"
