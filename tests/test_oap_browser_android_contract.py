@@ -179,4 +179,4 @@ def test_koradaso_android_opens_branded_home_with_legacy_local_fallback():
     assert 'request.isForMainFrame()' in source
     assert 'response.getStatusCode() == 404' in source
     assert '(activeOrigin + "/koradaso").equals(request.getUrl().toString())' in source
-    assert 'loadWebViewUrl(activeOrigin + "/world");' in source
+    assert 'loadWebViewUrl(activeOrigin + "/world?source=oap-os");' in source
