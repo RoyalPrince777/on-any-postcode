@@ -67,7 +67,8 @@ def _production_counts() -> dict[str, object]:
                     WHERE task_type='OAP_EVENT'),
                   (SELECT COUNT(*) FROM audit_events
                     WHERE action=%s AND metadata->>'passed'='true'
-                      AND metadata->>'proof_revision'=%s),
+                      AND metadata->>'proof_revision'=%s
+                      AND metadata->>'operational_rollback_verified'='true'),
                   (SELECT COUNT(*) FROM audit_events
                     WHERE action=%s AND metadata->>'passed'='true'
                       AND metadata->>'proof_revision'=%s),
