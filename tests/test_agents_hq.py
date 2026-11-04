@@ -272,7 +272,9 @@ def test_skill_first_protocol_matches_existing_passports_without_activation(clie
     assert 'id="mission-step-results"' in html
 
 
-def test_skill_first_review_blocks_missing_mission_and_unauthorised_access(client, anonymous_client):
+def test_skill_first_review_blocks_missing_mission_and_unauthorised_access(
+    client, anonymous_client
+):
     assert client.get("/mission/smi/agents-hq/mission-step-skills").status_code == 400
     response = anonymous_client.get(
         "/mission/smi/agents-hq/mission-step-skills",
