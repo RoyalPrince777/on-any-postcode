@@ -64,3 +64,14 @@ def test_termux_runner_preserves_existing_server_and_routes():
     assert '--host 127.0.0.1' in source
     assert 'OAP_SURFACE_ROLE:-' in source
     assert "reset --hard" not in source
+
+
+def test_termux_auto_opens_only_after_real_branded_http_response():
+    source = Path("scripts/koradaso_termux_local.sh").read_text(encoding="utf-8")
+    assert 'OAP_KORADASO_OPEN_BROWSER:-1' in source
+    assert 'curl --noproxy' in source
+    assert '/koradaso" 2>/dev/null || true)' in source
+    assert 'KORADASO Internet · ON ANY POSTCODE' in source
+    assert 'id="address-form"' in source
+    assert 'termux-open-url "http://127.0.0.1:$PORT/koradaso"' in source
+    assert 'live branded /koradaso page not verified.' in source
