@@ -92,6 +92,14 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                                  AND previous.worker_role=a.role_type
                                  AND previous.state='DECLINED'
                            )
+                           AND NOT EXISTS (
+                               SELECT 1 FROM oap_movement_match_proposals busy
+                               JOIN oap_movement_bookings assigned
+                                 ON assigned.booking_id=busy.booking_id
+                               WHERE busy.worker_identity_id=a.identity_id
+                                 AND busy.state='ACCEPTED'
+                                 AND assigned.state='ACCEPTED'
+                           )
                          ORDER BY
                            CASE WHEN a.zone=%s AND %s<>'' THEN 0 ELSE 1 END,
                            a.updated_at DESC
@@ -212,6 +220,21 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                     raise PermissionError("ride_accessibility_unavailable") from exc
                 if eligibility.get("eligible") is not True:
                     raise PermissionError("ride_accessibility_not_verified")
+
+            # Availability can be stale or independently set ONLINE by a worker.
+            # Prevent assignment to a second accepted booking despite that flag.
+            worker_assigned = connection.execute(
+                """SELECT 1 FROM oap_movement_match_proposals busy
+                   JOIN oap_movement_bookings assigned
+                     ON assigned.booking_id=busy.booking_id
+                   WHERE busy.worker_identity_id=%s
+                     AND busy.state='ACCEPTED'
+                     AND assigned.state='ACCEPTED'
+                   LIMIT 1""",
+                (worker,),
+            ).fetchone()
+            if worker_assigned is not None:
+                raise PermissionError("worker_already_assigned")
 
             accepted = connection.execute(
                 """SELECT proposal_id FROM oap_movement_match_proposals
