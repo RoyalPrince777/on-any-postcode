@@ -31,12 +31,12 @@ def test_driver_dashboard_buttons_are_real_links():
     assert b"/transport/ride/driver/earnings" in data
 
 
-def test_my_transport_dashboard_links_to_rider_driver_and_owned_work():
+def test_my_transport_dashboard_only_selects_role():
     data = _app().test_client().get("/transport/my").data
     assert b"/transport/ride/rider" in data
     assert b"/transport/ride/driver" in data
-    assert b"/movement/workspace#bookings-title" in data
-    assert b"/movement/workspace#work-title" in data
+    assert b"/movement/workspace#bookings-title" not in data
+    assert b"/movement/workspace#work-title" not in data
 
 
 def test_rider_primary_journey_action_is_visible_and_existing_route_reused():
@@ -135,14 +135,18 @@ def test_rider_receipt_uses_canonical_movement_booking_id():
     assert "requestKey=null" in page
 
 
-def test_ride_pages_reuse_existing_transport_pwa_install_contract():
+def test_ride_pages_have_separate_pwa_install_identities():
     app = _app()
-    for path in ("/transport/ride/rider", "/transport/ride/driver", "/transport/my"):
+    for role in ("rider", "driver"):
+        path = f"/transport/ride/{role}"
         body = app.test_client().get(path).get_data(as_text=True)
-        assert 'rel="manifest" href="/transport/manifest.webmanifest"' in body
-        assert 'href="/transport?source=oap-ride"' in body
+        assert f'rel="manifest" href="{path}/manifest.webmanifest"' in body
+        assert f'href="{path}?source=oap-install"' in body
         assert "Install app" in body
         assert "not a signed Android APK" in body
+    my_page = app.test_client().get("/transport/my").get_data(as_text=True)
+    assert 'rel="manifest" href="/transport/manifest.webmanifest"' in my_page
+    assert 'href="/transport"' in my_page
 
 
 def test_termux_ride_launcher_targets_existing_https_oap_pages():
