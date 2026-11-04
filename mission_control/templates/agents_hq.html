@@ -63,6 +63,8 @@ small{color:#b9cce1}
 <h3>Automation readiness · Disabled</h3>
 <p><small>Candidate triggers only. No schedule, event subscription, notification or agent action created.</small></p>
 <ul id="mission-automation-candidates" aria-label="Unconfigured mission automation candidates"></ul>
+<h4>Seven first-party watch contracts · All disabled</h4>
+<ul id="mission-watch-contracts" aria-label="Disabled first-party automation watch contracts"></ul>
 </section>
 <section aria-labelledby="selected-room">
 <h2 id="selected-room">Select a room</h2>
@@ -164,6 +166,7 @@ const missionStepResults = document.getElementById("mission-step-results");
 const missionHandoffs = document.getElementById("mission-handoffs");
 const councilRounds = document.getElementById("mission-council-rounds");
 const automationCandidates = document.getElementById("mission-automation-candidates");
+const watchContracts = document.getElementById("mission-watch-contracts");
 let missionRequest = 0;
 missionText.addEventListener("input", () => {
   missionRequest += 1;
@@ -172,6 +175,7 @@ missionText.addEventListener("input", () => {
   missionHandoffs.replaceChildren();
   councilRounds.replaceChildren();
   automationCandidates.replaceChildren();
+  watchContracts.replaceChildren();
   missionStatus.textContent = "Mission changed. Request a new recommendation.";
 });
 missionForm.addEventListener("submit", async event => {
@@ -228,7 +232,12 @@ missionForm.addEventListener("submit", async event => {
         skills.automation_review.scheduler_connected !== false ||
         skills.automation_review.event_subscriptions_connected !== false ||
         skills.automation_review.agent_execution_authorised !== false ||
-        !Array.isArray(skills.automation_review.trigger_candidates)) {
+        !Array.isArray(skills.automation_review.trigger_candidates) ||
+        !skills.automation_review.watch_catalog ||
+        skills.automation_review.watch_catalog.enabled_count !== 0 ||
+        skills.automation_review.watch_catalog.execution_authorised !== false ||
+        !Array.isArray(skills.automation_review.watch_catalog.watches) ||
+        skills.automation_review.watch_catalog.watches.length !== 7) {
       throw new Error("Invalid step review");
     }
     const stepFragment = document.createDocumentFragment();
@@ -299,6 +308,20 @@ missionForm.addEventListener("submit", async event => {
       item.textContent = "No automation trigger proposed for this mission";
       automationFragment.appendChild(item);
     }
+    const watchFragment = document.createDocumentFragment();
+    for (const watch of skills.automation_review.watch_catalog.watches) {
+      if (!watch || typeof watch.name !== "string" ||
+          typeof watch.required_evidence !== "string" ||
+          watch.status !== "disabled" || watch.jobs_created !== 0 ||
+          watch.may_execute !== false || watch.guardian_required !== true) {
+        throw new Error("Invalid disabled watch contract");
+      }
+      const item = document.createElement("li");
+      item.textContent = watch.name + " · disabled · requires " +
+        watch.required_evidence.replaceAll("_", " ");
+      watchFragment.appendChild(item);
+    }
+    watchContracts.replaceChildren(watchFragment);
     automationCandidates.replaceChildren(automationFragment);
     missionHandoffs.replaceChildren(handoffFragment);
     missionStatus.textContent = data.active_team.length +
@@ -311,6 +334,7 @@ missionForm.addEventListener("submit", async event => {
     missionHandoffs.replaceChildren();
   councilRounds.replaceChildren();
   automationCandidates.replaceChildren();
+  watchContracts.replaceChildren();
     missionStatus.textContent = "Recommendation unavailable or invalid. No team activated.";
   }
 });
