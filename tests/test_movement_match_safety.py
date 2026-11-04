@@ -172,3 +172,35 @@ def test_accept_locks_revalidates_expires_competing_proposals_and_marks_busy(mon
     assert connection.committed is True
     locking_reads = [query for query in connection.queries[:3] if "FOR UPDATE" in query]
     assert len(locking_reads) == 3
+
+
+def test_proposal_skips_driver_when_accessibility_check_unavailable(monkeypatch):
+    connection = _Connection(
+        [
+            ("SELECT service_type,pickup,state", ("ride", {"zone": "CR4"}, "REQUESTED")),
+            ("oap_identity_roles", (WORKER, "driver", "CR4")),
+        ]
+    )
+    monkeypatch.setattr(
+        movement_match_safety.postgres_db,
+        "connect",
+        _connect(connection),
+    )
+
+    def unavailable(**kwargs):
+        raise RuntimeError("accessibility service unavailable")
+
+    monkeypatch.setattr(
+        movement_match_safety.oap_ride_driver_accessibility,
+        "eligible",
+        unavailable,
+    )
+
+    result = movement_match_safety.SafePostgresMovementStore().propose_match(
+        booking_id=BOOKING,
+        member_identity_id=MEMBER,
+    )
+
+    assert result is None
+    assert connection.committed is False
+    assert not any("INSERT INTO oap_movement_match_proposals" in sql for sql in connection.queries)
