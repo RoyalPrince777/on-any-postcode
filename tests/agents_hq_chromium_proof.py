@@ -164,6 +164,8 @@ def main() -> None:
                     expect(page.locator("#mission-handoffs li")).to_have_count(12)
                     expect(page.locator("#mission-council-rounds li")).to_have_count(7)
                     expect(page.locator("#mission-automation-candidates li")).to_have_count(1)
+                    expect(page.locator("#mission-watch-contracts li")).to_have_count(7)
+                    expect(page.locator("#mission-watch-contracts li").first).to_contain_text("disabled")
                     expect(page.locator("#mission-automation-candidates li").first).to_contain_text("unconfigured")
                     expect(page.locator("#mission-council-rounds li").first).to_contain_text("not conducted")
                     expect(page.locator("#mission-handoffs li").first).to_contain_text(
@@ -177,6 +179,7 @@ def main() -> None:
                     expect(page.locator("#mission-handoffs li")).to_have_count(0)
                     expect(page.locator("#mission-council-rounds li")).to_have_count(0)
                     expect(page.locator("#mission-automation-candidates li")).to_have_count(0)
+                    expect(page.locator("#mission-watch-contracts li")).to_have_count(0)
 
                     unknown = founder.request.get(
                         url + "/mission/smi/agents-hq/rooms/guest:unregistered"
