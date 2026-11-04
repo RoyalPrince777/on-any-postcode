@@ -41,3 +41,26 @@ def test_unready_oap_tiles_do_not_navigate_and_settings_are_functional():
     assert 'id="clear-browser-preferences"' in source
     assert 'localStorage.removeItem(bookmarkKey)' in source
     assert 'localStorage.removeItem(preferencesKey)' in source
+
+
+def test_royal_home_keeps_search_and_navigation_functional(client):
+    page = client.get("/koradaso")
+    assert page.status_code == 200
+    body = page.get_data(as_text=True)
+    assert 'class="royal-tabs"' in body
+    assert 'href="/search"' in body
+    assert 'href="#bookmark-list"' in body
+    assert 'href="#browser-settings"' in body
+    assert 'id="address-form"' in body
+    assert 'id="trust-state"' in body
+
+
+def test_termux_runner_preserves_existing_server_and_routes():
+    source = Path("scripts/koradaso_termux_local.sh").read_text(encoding="utf-8")
+    assert 'OAP_KORADASO_PORT:-5052' in source
+    assert 'required = {"/koradaso", "/world", "/search"}' in source
+    assert 'sock.bind(("127.0.0.1", port))' in source
+    assert 'port {port} is already occupied; existing server untouched.' in source
+    assert '--host 127.0.0.1' in source
+    assert 'OAP_SURFACE_ROLE:-' in source
+    assert "reset --hard" not in source
