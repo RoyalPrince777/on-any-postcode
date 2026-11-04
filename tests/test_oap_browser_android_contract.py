@@ -132,7 +132,7 @@ def test_oap_android_external_navigation_invalidates_pending_native_response():
 
 def test_koradaso_android_consent_dialogs_use_scoped_first_party_boundaries():
     source = SOURCE.read_text(encoding="utf-8")
-    assert 'boolean sameTrustedOrigin = "https".equalsIgnoreCase(origin.getScheme())' in source
+    assert 'boolean sameTrustedOrigin = certified.getScheme() != null' in source
     assert 'certified.getHost().equalsIgnoreCase(origin.getHost())' in source
     assert 'origin.getPort() == -1' in source
     assert 'boolean koradasoConsent = "/koradaso".equals(origin.getPath())' in source
@@ -145,4 +145,28 @@ def test_koradaso_android_consent_dialogs_use_scoped_first_party_boundaries():
 def test_koradaso_android_rejects_legacy_render_origin():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'private static final String OAP_ORIGIN = "https://onanypostcode.global"' in source
+    assert "onrender.com" not in source
+
+
+def test_koradaso_android_termux_loopback_is_explicit_and_scoped():
+    source = SOURCE.read_text(encoding="utf-8")
+    manifest = Path("android/oapworld/src/main/AndroidManifest.xml").read_text(
+        encoding="utf-8"
+    )
+    policy = Path(
+        "android/oapworld/src/main/res/xml/koradaso_network_security.xml"
+    ).read_text(encoding="utf-8")
+
+    assert 'private static final String LOCAL_ORIGIN = "http://127.0.0.1:5050"' in source
+    assert "private String activeOrigin = LOCAL_ORIGIN;" in source
+    assert 'modeButton = navButton("Local");' in source
+    assert 'activeOrigin = LOCAL_ORIGIN.equals(activeOrigin) ? OAP_ORIGIN : LOCAL_ORIGIN;' in source
+    assert 'engineClient = new EngineDocumentClient(activeOrigin);' in source
+    assert '"127.0.0.1".equals(uri.getHost())' in source
+    assert 'uri.getPort() == 5050' in source
+    assert 'uri.getUserInfo() == null' in source
+    assert '&& !isLocalLoopback(destination)' in source
+    assert 'android:networkSecurityConfig="@xml/koradaso_network_security"' in manifest
+    assert '<base-config cleartextTrafficPermitted="false" />' in policy
+    assert '<domain>127.0.0.1</domain>' in policy
     assert "onrender.com" not in source
