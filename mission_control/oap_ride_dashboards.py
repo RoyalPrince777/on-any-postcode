@@ -62,20 +62,24 @@ a{color:inherit}.back{text-decoration:none;color:var(--muted)}h1{font-size:clamp
 <h1>{{ title }}</h1><p class="lead">Your transport routes and journey tools.</p>
 {% endif %}
 <nav class="grid" aria-label="{{ title }} actions">{% for label, href in buttons %}<a class="btn" href="{{ href }}">{{ label }}</a>{% endfor %}</nav>
+{% if title in ("Rider", "Driver") %}
 <section aria-label="Install OAP Ride" class="install">
-<h2>OAP Ride on your phone</h2>
-<p class="lead">On Android Chrome, use the browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong> when offered. Rider and Driver have different install identities but share the existing OAP Movement backend.</p>
-<a class="btn" href="{{ install_url }}">Open {{ title }} install page</a>
-<p class="note">This is a role-specific web app, not a signed Android APK. Driver actions still require server-side certification. Online booking requires the authorised OAP service.</p>
+<h2>{{ title }} on your phone</h2>
+<p class="lead">On Android Chrome, select Install {{ title }} or use the browser menu to choose <strong>Install app</strong> or <strong>Add to Home screen</strong> when offered.</p>
+<button class="btn" type="button" data-oap-install hidden>Install {{ title }}</button>
+<p class="note" data-oap-install-status role="status">Checking installation support</p>
+<span data-oap-install-platform hidden></span>
+<p class="note">Rider and Driver have separate install identities but share the existing Movement backend. This is not a signed Android APK. Driver operations still require certification.</p>
 </section>
+<script src="/assets/oap-os.js" defer></script>
+{% endif %}
 <p class="note">Booking requests and match proposals do not constitute physical dispatch. Live rides and payments remain subject to operational approval.</p>
 </main></body></html>"""
 
 def _page(title, buttons):
     role = title.lower() if title in {"Rider", "Driver"} else None
     manifest_url = f"/transport/ride/{role}/manifest.webmanifest" if role else "/transport/manifest.webmanifest"
-    install_url = f"/transport/ride/{role}?source=oap-install" if role else "/transport"
-    response = make_response(render_template_string(PAGE, title=title, buttons=buttons, manifest_url=manifest_url, install_url=install_url))
+    response = make_response(render_template_string(PAGE, title=title, buttons=buttons, manifest_url=manifest_url))
     response.headers["Cache-Control"] = "no-store, private"
     return response
 
