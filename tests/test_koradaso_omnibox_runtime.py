@@ -26,6 +26,7 @@ function submit(raw, externalSearch = false, approve = true) {
     });
     return elements.get(id);
   }
+  const searchModes = [{value:"oap",checked:true,addEventListener:()=>{}},{value:"web",checked:false,addEventListener:()=>{}}];
   const visits = [];
   const prompts = [];
   const location = {
@@ -39,13 +40,16 @@ function submit(raw, externalSearch = false, approve = true) {
   const document = {
     referrer: "",
     getElementById: element,
+    querySelectorAll: (selector) => selector === 'input[name="search-mode"]' ? searchModes : [],
+    body: {classList: {toggle: () => {}, remove: () => {}}},
     createElement: () => ({append: () => {}, setAttribute: () => {}})
   };
-  const localStorage = {getItem: () => null, setItem: () => {}};
+  const localStorage = {getItem: () => null, setItem: () => {}, removeItem: () => {}};
   vm.runInNewContext(match[1], {window, document, localStorage, URL,
     console}, {timeout: 1500});
   element("address").value = raw;
   element("open-web-search").checked = externalSearch;
+  searchModes.forEach(x => {x.checked = x.value === (externalSearch ? "web" : "oap");});
   assert.equal(typeof handlers["address-form:submit"], "function");
   handlers["address-form:submit"]({preventDefault: () => {}});
   return {visits, prompts, note: element("address-note").textContent};
@@ -54,6 +58,9 @@ assert.deepEqual(submit("KORADASO history").visits,
   ["/search?q=KORADASO%20history"]);
 assert.deepEqual(submit("music").visits, ["/search?q=music"]);
 assert.deepEqual(submit("/world").visits, ["/world"]);
+assert.deepEqual(submit("/search").visits, ["/search"]);
+assert.deepEqual(submit("/maps").visits, []);
+assert.deepEqual(submit("/studio").visits, []);
 assert.deepEqual(submit("/unknown").visits, []);
 assert.deepEqual(submit("example.com").visits, ["https://example.com/"]);
 assert.equal(submit("example.com", false, false).visits.length, 0);
@@ -62,7 +69,7 @@ assert.deepEqual(submit("music", true, true).visits,
 assert.equal(submit("music", true, false).visits.length, 0);
 assert.equal(submit("javascript://attack").visits.length, 0);
 assert.equal(submit("//evil.example").visits.length, 0);
-console.log("KORADASO omnibox: 10 runtime cases passed");
+console.log("KORADASO omnibox: 13 runtime cases passed");
 """
     result = subprocess.run(
         ["node", "-e", script, str(ROOT / "templates/koradaso_internet.html")],
