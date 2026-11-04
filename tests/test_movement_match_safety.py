@@ -260,3 +260,33 @@ def test_accept_rejects_driver_if_accessibility_service_fails(monkeypatch):
         )
     assert connection.committed is False
     assert not any("SET state='ACCEPTED'" in sql for sql in connection.queries)
+
+
+def test_ride_match_never_assigns_the_booking_owner_as_driver(monkeypatch):
+    """Even an incorrectly returned certified candidate cannot self-match."""
+    class CapturingConnection(_Connection):
+        candidate_params = None
+
+        def execute(self, sql, params=()):
+            if "FROM oap_movement_availability a" in sql:
+                self.candidate_params = params
+                assert "a.identity_id<>%s" in sql
+            return super().execute(sql, params)
+
+    connection = CapturingConnection(
+        [
+            ("SELECT service_type,pickup,state", ("ride", {"zone": "CR4"}, "REQUESTED")),
+            ("oap_identity_roles", (MEMBER, "driver", "CR4")),
+        ]
+    )
+    monkeypatch.setattr(
+        movement_match_safety.postgres_db, "connect", _connect(connection)
+    )
+
+    result = movement_match_safety.SafePostgresMovementStore().propose_match(
+        booking_id=BOOKING, member_identity_id=MEMBER
+    )
+    assert result is None
+    assert connection.candidate_params[0] == MEMBER
+    assert connection.committed is False
+    assert not any("INSERT INTO oap_movement_match_proposals" in q for q in connection.queries)
