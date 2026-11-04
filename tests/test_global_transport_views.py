@@ -231,23 +231,28 @@ def test_mitcham_shared_bike_route_rejects_oversized_radius():
 
 
 
-def test_oap_rides_front_door_is_mobile_app_surface():
+def test_oap_rides_front_door_is_mobile_role_chooser():
     client = _app().test_client()
     response = client.get("/transport/ride")
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     for marker in (
+        'aria-label="Choose your OAP Ride role"',
+        'href="/transport/ride/rider"',
+        'href="/transport/ride/driver"',
         'aria-label="OAP Rides navigation"',
-        'href="/movement/workspace#book-title"',
         'href="/oap-map"',
         'href="/transport/ride/current"',
         'href="/transport/ride/guardian/status"',
         'href="/pay/bank"',
-        'href="/eats"',
         "From this postcode to the next.",
         "Physical vehicle operation and external dispatch remain outside this build.",
     ):
         assert marker in body
+    assert 'href="/transport/ride/driver/earnings"' not in body
+    assert 'href="/movement/workspace#book-title"' not in body
+    assert 'href="/eats"' not in body
+
 
 
 def test_oap_rides_app_config_exposes_real_shared_routes():
