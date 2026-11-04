@@ -233,3 +233,50 @@ def test_hq_mission_recommender_denies_anonymous_access(anonymous_client):
     )
     assert response.status_code == 401
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_skill_first_protocol_matches_existing_passports_without_activation(client):
+    from mission_control import ai_behaviour_protocol
+    from mission_control.agents_hq import mission_step_skill_review
+
+    mission = "Investigate system failures and protect user information"
+    review = mission_step_skill_review(mission)
+    assert review["mission"] == mission
+    assert review["can_execute"] is False
+    assert review["agent_messages_sent"] is False
+    assert review["runtime_skills_proven"] is False
+    assert [step["step_id"] for step in review["steps"]] == [
+        item["id"] for item in ai_behaviour_protocol.AI_BEHAVIOUR_PARTS
+    ]
+    by_id = {agent["agent_id"]: agent for agent in agents.AGENT_REGISTRY}
+    for step in review["steps"]:
+        choice = step["recommendation"]
+        if choice is None:
+            assert step["match_status"] == "no_declared_skill_match"
+            continue
+        agent = by_id[choice["agent_id"]]
+        family = next(item for item in agents.INTELLIGENCE_FAMILIES
+                      if item["id"] == agent["family_id"])
+        assert choice["family_id"] == agent["family_id"]
+        assert choice["home_system"] == family["home_system"]
+        assert choice["matched_declared_skills"]
+        assert choice["runtime_skill_verified"] is False
+        assert choice["execution_authorised"] is False
+
+    response = client.get("/mission/smi/agents-hq/mission-step-skills",
+                          query_string={"mission": mission})
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert len(response.get_json()["steps"]) == len(review["steps"])
+    html = client.get("/mission/smi/agents-hq").get_data(as_text=True)
+    assert 'id="mission-step-results"' in html
+
+
+def test_skill_first_review_blocks_missing_mission_and_unauthorised_access(client, anonymous_client):
+    assert client.get("/mission/smi/agents-hq/mission-step-skills").status_code == 400
+    response = anonymous_client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": "review"},
+    )
+    assert response.status_code == 401
+    assert response.headers["Cache-Control"] == "no-store"
