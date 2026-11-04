@@ -122,7 +122,8 @@ def test_koradaso_mobile_layout_keeps_omnibox_and_controls_accessible():
     assert 'href="/world?source=oap-os"' in source
 
 
-def test_koradaso_uses_only_first_party_www_search(client):
+def test_koradaso_uses_only_first_party_www_search(client, monkeypatch):
+    monkeypatch.delenv("OAP_KORADASO_WEB_INDEX", raising=False)
     source = SOURCE.read_text(encoding="utf-8")
     assert "DuckDuckGo" not in source
     assert "duckduckgo.com" not in source
@@ -160,3 +161,27 @@ def test_koradaso_index_rejects_unsafe_public_urls(tmp_path):
                 "javascript://example.com"):
         with pytest.raises(ValueError, match="invalid_public_page_metadata"):
             ingest_public_page(tmp_path / "index.db", url=url, title="Unsafe")
+
+
+def test_koradaso_curated_import_creates_real_local_index(tmp_path, monkeypatch, client):
+    import json
+    import subprocess
+    import sys
+
+    source_file = tmp_path / "reviewed.jsonl"
+    source_file.write_text(json.dumps({
+        "url": "https://example.org/public",
+        "title": "Public historical directory",
+        "description": "Independent archives",
+    }) + "\n", encoding="utf-8")
+    db = tmp_path / "koradaso.sqlite3"
+    result = subprocess.run(
+        [sys.executable, "scripts/koradaso_index_public.py",
+         "--source", str(source_file), "--db", str(db)],
+        capture_output=True, text=True, check=False, timeout=10,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    monkeypatch.setenv("OAP_KORADASO_WEB_INDEX", str(db))
+    response = client.get("/koradaso/web-search?q=historical")
+    assert response.status_code == 200
+    assert b"Public historical directory" in response.data
