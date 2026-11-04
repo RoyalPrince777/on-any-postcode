@@ -77,6 +77,49 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 .tile:not(.is-reserved):focus-visible,.royal-tab:focus-visible{outline:3px solid #d9b0ff;outline-offset:3px}
 .search{background:linear-gradient(#171128,#080c16);border-color:#f3cd85;box-shadow:0 0 0 1px #6d329a,0 0 20px #9951f466}
 @media(max-width:490px){.crest{width:158px;height:158px}.crest span{font-size:7.5rem}.crest:before{font-size:7.5rem}.royal-tab{padding:9px 11px}}
+
+/* Redmi A5 responsive polish: preserve existing royal layout and live controls. */
+@media(max-width:520px){
+ .shell{padding:8px 12px calc(22px + env(safe-area-inset-bottom));border-inline:0}
+ .top{gap:8px;padding:4px 0 9px}
+ .top:before{font-size:1rem;margin-right:0}
+ .brand{font-size:.91rem;letter-spacing:.045em}
+ .tag{font-size:.65rem;line-height:1.25;max-width:150px;padding:7px 9px;text-align:center}
+ .royal-tabs{gap:5px;padding:7px 0 10px}
+ .royal-tab{min-height:42px;padding:10px 11px;font-size:.76rem;white-space:nowrap}
+ .hero{margin-top:5px;padding:15px 9px 17px;border-radius:19px}
+ .hero:before{height:215px;inset:-68px 13% auto}
+ .hero:after{inset:24px 16px}
+ .crown{font-size:1.7rem}
+ .crest{width:122px;height:122px}
+ .crest span{font-size:5.9rem}
+ .crest:before{font-size:5.8rem}
+ .hero h1{font-size:clamp(1.9rem,9vw,2.8rem);margin:11px 0 3px;letter-spacing:.015em}
+ .subtitle{font-size:.71rem;letter-spacing:.33em}
+ .powered{font-size:.62rem;letter-spacing:.085em;margin-top:6px}
+ .search{gap:5px;margin:14px 0 6px;padding:5px;min-width:0;border-radius:20px}
+ .search input{min-width:0;width:0;flex:1 1 0;padding:12px 8px;font-size:.91rem;text-overflow:ellipsis}
+ .search button{flex:0 0 auto;min-height:46px;padding:10px 12px;border-radius:15px;font-size:.85rem;white-space:nowrap}
+ .search-mode{gap:7px;margin-top:10px}
+ .search-mode label{flex:1 1 130px;justify-content:center;padding:8px;font-size:.79rem;min-height:42px}
+ .trust-state{margin-top:7px}
+ .note{margin-bottom:14px}
+ .grid{gap:7px}
+ .tile,.tile.is-reserved{min-height:100px;padding:11px 6px}
+ .tile:nth-child(-n+3){min-height:110px}
+ .tile .ico{font-size:1.95rem}
+ .tile strong{font-size:.87rem}
+ .tile span:last-child{font-size:.68rem}
+ .browser-bar{gap:5px;padding:6px}
+ .browser-bar a,.browser-bar button{min-width:0;padding:10px 2px;font-size:.76rem}
+}
+@media(max-width:360px){
+ .brand{font-size:.8rem}
+ .tag{max-width:124px;font-size:.6rem}
+ .royal-tab{font-size:.7rem;padding:9px 8px}
+ .search button{padding:9px 10px;font-size:.8rem}
+ .hero h1{font-size:1.85rem}
+}
 </style>
 </head>
 <body>
