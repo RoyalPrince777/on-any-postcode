@@ -33,6 +33,9 @@ import java.util.List;
 
 public final class MainActivity extends ComponentActivity {
     private static final String OAP_ORIGIN = "https://onanypostcode.global";
+    private static final String LOCAL_ORIGIN = "http://127.0.0.1:5050";
+    private String activeOrigin = LOCAL_ORIGIN;
+    private Button modeButton;
     private WebView webView;
     private OapEngineView engineView;
     private EngineDocumentClient engineClient;
@@ -64,6 +67,7 @@ public final class MainActivity extends ComponentActivity {
 
         backButton = navButton("‹");
         Button homeButton = navButton("OAP");
+        modeButton = navButton("Local");
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
@@ -80,13 +84,14 @@ public final class MainActivity extends ComponentActivity {
 
         toolbar.addView(backButton);
         toolbar.addView(homeButton);
+        toolbar.addView(modeButton);
         toolbar.addView(
                 omnibox,
                 new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         );
 
         webView = new WebView(this);
-        engineClient = new EngineDocumentClient(OAP_ORIGIN);
+        engineClient = new EngineDocumentClient(activeOrigin);
         engineView = new OapEngineView(this);
         engineView.setLinkListener(this::navigate);
         engineScrollView = new ScrollView(this);
@@ -181,11 +186,12 @@ public final class MainActivity extends ComponentActivity {
             @Override
             public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
                 Uri origin = Uri.parse(url == null ? "" : url);
-                Uri certified = Uri.parse(OAP_ORIGIN);
-                boolean sameTrustedOrigin = "https".equalsIgnoreCase(origin.getScheme())
+                Uri certified = Uri.parse(activeOrigin);
+                boolean sameTrustedOrigin = certified.getScheme() != null
+                        && certified.getScheme().equalsIgnoreCase(origin.getScheme())
                         && certified.getHost() != null
                         && certified.getHost().equalsIgnoreCase(origin.getHost())
-                        && origin.getPort() == -1;
+                        && origin.getPort() == certified.getPort();
                 boolean worldConsent = "/world".equals(origin.getPath())
                         && message != null
                         && message.startsWith("OPEN WEB — Leave OAP World and visit ");
@@ -213,7 +219,7 @@ public final class MainActivity extends ComponentActivity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 String scheme = uri.getScheme();
-                return !("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme));
+                return !("https".equalsIgnoreCase(scheme) || isLocalLoopback(uri));
             }
 
             @Override
@@ -232,6 +238,7 @@ public final class MainActivity extends ComponentActivity {
             }
         });
         homeButton.setOnClickListener(v -> openFirstPartyPath("/world"));
+        modeButton.setOnClickListener(v -> switchOrigin());
         engineSearchButton.setOnClickListener(v -> submitNativeSearch());
         engineSearchInput.setOnEditorActionListener((view, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
@@ -252,6 +259,24 @@ public final class MainActivity extends ComponentActivity {
             openFirstPartyPath("/world");
         }
         refreshNavigationState();
+    }
+
+    private static boolean isLocalLoopback(Uri uri) {
+        return "http".equalsIgnoreCase(uri.getScheme())
+                && "127.0.0.1".equals(uri.getHost())
+                && uri.getPort() == 5050
+                && uri.getUserInfo() == null;
+    }
+
+    private void switchOrigin() {
+        engineClient.cancelPending();
+        engineClient.close();
+        activeOrigin = LOCAL_ORIGIN.equals(activeOrigin) ? OAP_ORIGIN : LOCAL_ORIGIN;
+        engineClient = new EngineDocumentClient(activeOrigin);
+        engineHistory.clear();
+        engineHistoryIndex = -1;
+        modeButton.setText(LOCAL_ORIGIN.equals(activeOrigin) ? "Local" : "Online");
+        openFirstPartyPath("/world");
     }
 
     private Button navButton(String label) {
@@ -276,12 +301,13 @@ public final class MainActivity extends ComponentActivity {
 
         Uri parsed = Uri.parse(input);
         String scheme = parsed.getScheme();
-        if ("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)) {
-            Uri oapOrigin = Uri.parse(OAP_ORIGIN);
-            boolean sameOrigin = "https".equalsIgnoreCase(parsed.getScheme())
+        if ("https".equalsIgnoreCase(scheme) || isLocalLoopback(parsed)) {
+            Uri oapOrigin = Uri.parse(activeOrigin);
+            boolean sameOrigin = oapOrigin.getScheme().equalsIgnoreCase(parsed.getScheme())
                     && oapOrigin.getHost() != null
                     && oapOrigin.getHost().equalsIgnoreCase(parsed.getHost())
-                    && parsed.getPort() == -1;
+                    && parsed.getPort() == oapOrigin.getPort()
+                    && parsed.getUserInfo() == null;
             if (sameOrigin) {
                 String path = parsed.getEncodedPath();
                 if (path == null || path.isEmpty()) {
@@ -323,7 +349,7 @@ public final class MainActivity extends ComponentActivity {
 
             @Override
             public void onFallback(String resolvedPath) {
-                loadWebViewUrl(OAP_ORIGIN + resolvedPath);
+                loadWebViewUrl(activeOrigin + resolvedPath);
             }
         });
     }
@@ -331,6 +357,11 @@ public final class MainActivity extends ComponentActivity {
     private void loadWebViewUrl(String url) {
         engineClient.cancelPending();
         showWebViewFallback();
+        Uri destination = Uri.parse(url);
+        if (!"https".equalsIgnoreCase(destination.getScheme())
+                && !isLocalLoopback(destination)) {
+            return;
+        }
         webView.loadUrl(url);
     }
 
@@ -361,10 +392,10 @@ public final class MainActivity extends ComponentActivity {
                     engineHistoryIndex = engineHistory.size() - 1;
                 }
             }
-            omnibox.setText(sourcePath == null ? "OAP Engine" : OAP_ORIGIN + sourcePath);
+            omnibox.setText(sourcePath == null ? "OAP Engine" : activeOrigin + sourcePath);
             refreshNavigationState();
         } catch (org.json.JSONException error) {
-            loadWebViewUrl(OAP_ORIGIN + (sourcePath == null ? "/" : sourcePath));
+            loadWebViewUrl(activeOrigin + (sourcePath == null ? "/" : sourcePath));
         }
     }
 
@@ -385,11 +416,11 @@ public final class MainActivity extends ComponentActivity {
         }
 
         Uri action = Uri.parse(form.optString("action", ""));
-        Uri oapOrigin = Uri.parse(OAP_ORIGIN);
-        boolean certifiedAction = "https".equalsIgnoreCase(action.getScheme())
+        Uri oapOrigin = Uri.parse(activeOrigin);
+        boolean certifiedAction = oapOrigin.getScheme().equalsIgnoreCase(action.getScheme())
                 && oapOrigin.getHost() != null
                 && oapOrigin.getHost().equalsIgnoreCase(action.getHost())
-                && action.getPort() == -1
+                && action.getPort() == oapOrigin.getPort()
                 && "/search".equals(action.getPath())
                 && action.getQuery() == null
                 && action.getFragment() == null;
@@ -441,7 +472,7 @@ public final class MainActivity extends ComponentActivity {
 
             @Override
             public void onFallback(String resolvedPath) {
-                loadWebViewUrl(OAP_ORIGIN + resolvedPath);
+                loadWebViewUrl(activeOrigin + resolvedPath);
             }
         });
     }
