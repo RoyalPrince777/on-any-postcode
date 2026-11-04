@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import oap_store_registry, products
+from . import koradaso_web_index, oap_store_registry, products
 
 bp = Blueprint("oap_store", __name__, template_folder="templates")
 
@@ -516,4 +516,20 @@ def oap_search():
     )
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Robots-Tag"] = "noarchive"
+    return response
+
+
+@bp.get("/koradaso/web-search")
+def koradaso_public_web_search():
+    """First-party indexed public WWW results; no third-party query forwarding."""
+    query = str(request.args.get("q") or "").strip()[:120]
+    results, index_ready = koradaso_web_index.search_public_pages(query)
+    response = make_response(render_template(
+        "koradaso_web_search.html",
+        query=query,
+        results=results,
+        index_ready=index_ready,
+    ), 200 if index_ready else 503)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Robots-Tag"] = "noindex, noarchive"
     return response
