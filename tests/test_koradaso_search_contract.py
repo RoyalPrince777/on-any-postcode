@@ -154,6 +154,7 @@ def test_koradaso_sqlite_index_real_results_without_external_provider(tmp_path, 
 
 def test_koradaso_index_rejects_unsafe_public_urls(tmp_path):
     import pytest
+
     from mission_control.koradaso_web_index import ingest_public_page
 
     for url in ("http://example.com", "https://127.0.0.1/",
