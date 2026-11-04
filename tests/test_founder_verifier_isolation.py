@@ -38,3 +38,11 @@ def test_separate_verifier_connection_is_explicit_and_readonly(monkeypatch):
         autocommit=False,
     )
     connection.execute.assert_called_once_with("SET TRANSACTION READ ONLY")
+
+
+def test_separate_verifier_never_rebinds_password(monkeypatch):
+    import pytest
+
+    monkeypatch.setenv("OAP_FOUNDER_VERIFIER_DATABASE_URL", "postgresql://readonly-verifier.invalid/db")
+    with pytest.raises(founder_local_auth.FounderLocalAuthUnavailable, match="separate_verifier_store_read_only"):
+        founder_local_auth.bind_existing_password("not-a-real-founder-password")
