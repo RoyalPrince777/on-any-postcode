@@ -27,19 +27,19 @@ import os
 from app import app
 from mission_control import surface_security
 from mission_control import neon_auth, postgres_db
-from mission_control import founder_local_auth, founder_recovery
+from mission_control import founder_recovery
 
 # Refuse to advertise a working SMI login when neither existing identity
 # backend is configured. No recovery token, identity, or password is generated.
 database_ready = postgres_db.configured()
 auth_backend = neon_auth.status()["valid"]
-local_verifier = founder_local_auth.bound() if database_ready else False
+local_verifier_candidate = (database_ready and len(os.environ.get("OAP_SESSION_SECRET", "")) >= 32 and bool(os.environ.get("OAP_HUMAN_AUTHORITY_ID", "")))
 recovery_ready = founder_recovery.configured()
-print("SMI database configuration:", "present" if database_ready else "missing")
+print("SMI database configuration:", "present; connection unverified" if database_ready else "missing")
 print("SMI managed auth:", "configured" if auth_backend else "missing")
-print("SMI Founder verifier:", "bound" if local_verifier else "unavailable")
+print("SMI Founder verifier prerequisites:", "present; runtime unverified" if local_verifier_candidate else "missing")
 print("SMI existing recovery:", "configured" if recovery_ready else "unavailable")
-if not (auth_backend or local_verifier or recovery_ready):
+if not (auth_backend or local_verifier_candidate or recovery_ready):
     raise SystemExit("SMI_FLASK_AUTH_NOT_CONFIGURED: restore existing Founder auth; password unchanged")
 
 route = "/mission/ollama"
