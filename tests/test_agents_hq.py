@@ -321,3 +321,43 @@ def test_cross_family_handoffs_require_proof_and_never_send_messages(client):
     assert 'id="mission-handoffs"' in client.get(
         "/mission/smi/agents-hq"
     ).get_data(as_text=True)
+
+
+def test_seven_round_council_template_never_fabricates_votes_or_stars(client):
+    from mission_control.agents_hq import mission_step_skill_review
+
+    result = mission_step_skill_review("Investigate failure, protect users, recover")
+    council = result["council_review"]
+    assert council["mode"] == "council_review_template_only"
+    assert council["rounds_completed"] == 0
+    assert council["authenticated_ballots"] == 0
+    assert council["votes_are_binding"] is False
+    assert council["council_recommendation"] is None
+    assert council["earned_stars"] is None
+    assert council["guardian_passed"] is False
+    assert council["hrm_receipt"] is None
+    assert council["founder_final"] is True
+    assert council["can_execute"] is False
+    assert [round_["round"] for round_ in council["rounds"]] == list(range(1, 8))
+    assert [round_["id"] for round_ in council["rounds"]] == [
+        "brainstorm", "challenge", "defend", "counter_challenge",
+        "guardian", "green_gate", "council",
+    ]
+    for round_ in council["rounds"]:
+        assert round_["status"] == "not_conducted"
+        assert round_["authenticated_speakers"] == ()
+        assert round_["agent_statements"] == ()
+        assert round_["votes"] == ()
+        assert round_["minority_report"] is None
+        assert round_["earned_stars"] is None
+        assert round_["required_evidence"]
+
+    response = client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": result["mission"]},
+    )
+    assert response.status_code == 200
+    assert len(response.get_json()["council_review"]["rounds"]) == 7
+    assert 'id="mission-council-rounds"' in client.get(
+        "/mission/smi/agents-hq"
+    ).get_data(as_text=True)
