@@ -21,9 +21,23 @@ def test_koradaso_omnibox_routes_queries_to_existing_oap_search(client):
 def test_external_search_is_opt_in_and_site_navigation_preserves_consent():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'id="open-web-search"' in source
-    assert 'if(openWebSearch.checked)' in source
+    assert 'if(currentSearchMode()==="web")' in source
     assert 'window.confirm("OPEN WEB SEARCH' in source
     assert 'encodeURIComponent(raw)' in source
     assert 'url.protocol!=="https:"' in source
     assert 'url.username||url.password' in source
     assert 'window.confirm("OPEN WEB — "+url.hostname' in source
+
+
+def test_unready_oap_tiles_do_not_navigate_and_settings_are_functional():
+    source = SOURCE.read_text(encoding="utf-8")
+    for route in ('/maps', '/the-link', '/the-spot/market', '/studio', '/library'):
+        assert f'href="{route}"' not in source
+    assert 'class="tile is-reserved"' in source
+    assert 'aria-disabled="true"' in source
+    assert 'href="/world"' in source
+    assert 'href="/search"' in source
+    assert 'name="search-mode" value="web"' in source
+    assert 'id="clear-browser-preferences"' in source
+    assert 'localStorage.removeItem(bookmarkKey)' in source
+    assert 'localStorage.removeItem(preferencesKey)' in source
