@@ -154,6 +154,8 @@ def bound() -> bool:
 def bind_existing_password(password: str) -> str:
     """Persist or repair one salted verifier after separately proven recovery."""
 
+    if os.environ.get("OAP_FOUNDER_VERIFIER_DATABASE_URL", "").strip():
+        raise FounderLocalAuthUnavailable("separate_verifier_store_read_only")
     if len(password) < 12 or len(password) > 128 or not password.strip():
         raise ValueError("invalid_password_length")
     identity_id = _identity()
