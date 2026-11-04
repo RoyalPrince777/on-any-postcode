@@ -14,6 +14,23 @@ if [[ -f "$home_env" ]]; then
   . "$home_env"
   set +a
 fi
+# Load a separately provisioned Founder-only auth configuration when available.
+# Never generate, echo, overwrite, or transmit credentials during recovery.
+founder_env="$HOME/.config/oap/smi-founder.env"
+if [[ -e "$founder_env" ]]; then
+  if [[ ! -f "$founder_env" || ! -O "$founder_env" || ! -r "$founder_env" ]]; then
+    echo "SMI_FLASK_FOUNDER_CONFIG_INACCESSIBLE" >&2
+    exit 2
+  fi
+  founder_mode="$(stat -c '%a' "$founder_env")"
+  if [[ "$founder_mode" != "600" && "$founder_mode" != "400" ]]; then
+    echo "SMI_FLASK_FOUNDER_CONFIG_PERMISSIONS: require chmod 600" >&2
+    exit 2
+  fi
+  set -a
+  . "$founder_env"
+  set +a
+fi
 export OAP_LOCAL_MODE=true
 export OAP_SURFACE_ROLE=local
 export OAP_SMI_GATEWAY_SECRET=
@@ -45,6 +62,8 @@ print("SMI Founder selector:", "configured" if founder_selector else "missing")
 print("SMI Founder verifier prerequisites:", "present; runtime unverified" if local_verifier_candidate else "missing")
 print("SMI existing recovery:", "configured" if recovery_ready else "unavailable")
 if not (managed_ready or local_verifier_candidate or recovery_ready):
+    print("SMI NEXT ACTION: provision approved Founder settings in ~/.config/oap/smi-founder.env (chmod 600).")
+    print("SMI BLOCKER: signed-in Founder session cannot be established. Existing password unchanged.")
     raise SystemExit("SMI_FLASK_AUTH_NOT_CONFIGURED: restore existing Founder auth and trusted HTTPS origin; password unchanged")
 
 route = "/mission/ollama"
