@@ -308,3 +308,15 @@ def test_spot_apps_uses_existing_governed_store(client):
     assert 'href="/world"' in store_html
     assert 'Install OAP World' in store_html
     assert 'signed native Android APK' in store_html
+
+
+def test_arena_existing_world_install_route_is_truthful(client):
+    body = client.get("/store").get_data(as_text=True)
+    assert 'data-oap-arena-world-install-path' in body
+    assert 'href="/?source=oap-store&amp;install=1"' in body
+    assert "does not install a separate OAP Arena APK" in body
+    assert "standalone Install action stays disabled" in body
+    entry = client.get("/oap-store/apps/oap.arena").get_json()
+    assert entry["install_enabled"] is False
+    assert entry["install_url"] is None
+    assert entry["open_url"] == "/arena"

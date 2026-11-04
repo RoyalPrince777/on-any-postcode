@@ -1,5 +1,5 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="oap-csrf-token" content="{{ csrf_token }}"><title>Oware · OAP Arena</title>
-<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='oware.js') }}" defer></script></head>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="oap-csrf-token" content="{{ csrf_token }}">{% include "_oap_install_head.html" %}<title>Oware · OAP Arena</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='arena_gameplay_progress.js') }}" defer></script><script src="{{ url_for('static',filename='oware.js') }}" defer></script></head>
 <body><main class="mc-shell arena-game" data-oware-root>
 <section class="card arena-header"><nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a> · <a href="/arena/oware/room">Online Room</a></nav>
 <p class="arena-hint">OAP Arena · Ghanaian/Akan strategy game</p><h1>🌰 Oware</h1><p>Sow. Capture. Protect the game.</p>
@@ -9,6 +9,6 @@
 <p class="arena-error" role="alert" data-error></p></section>
 <section class="card" data-game hidden>
 <div class="arena-metrics" aria-live="polite"><span>Turn: <strong data-turn></strong></span><span>Status: <strong data-status></strong></span><span>Score: <strong data-score></strong></span></div>
-<h2>Board</h2><p class="arena-hint">Opponent row is shown right-to-left above your row. Select only a highlighted legal house.</p>
+<p class="arena-hint" data-gameplay-percent aria-live="polite">Gameplay: 0%</p><progress data-gameplay-bar max="100" value="0" aria-label="Observable gameplay percentage"></progress><h2>Board</h2><p class="arena-hint">Opponent row is shown right-to-left above your row. Select only a highlighted legal house.</p>
 <div class="arena-game-content" data-board></div>
 <p class="arena-feedback" role="status" aria-live="polite" data-feedback></p></section></main></body></html>

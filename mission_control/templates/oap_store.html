@@ -43,6 +43,14 @@
         <a class="install-link" href="{{ app.install_url }}">Install {{ app.name }}</a>
       {% endif %}
     </div>
+    {% if app.app_id == "oap.arena" %}
+      <p class="truth" data-oap-arena-world-install-path>
+        OAP Arena opens inside the existing OAP World app. To add OAP World to your Android home screen,
+        <a href="/?source=oap-store&amp;install=1">open OAP World in a compatible browser</a>
+        and use its installation prompt if supported. This does not install a separate OAP Arena APK or certify live multiplayer.
+        The Arena standalone Install action stays disabled until its own release evidence passes.
+      </p>
+    {% endif %}
     {% if app.app_id == "oap.ptt" %}
       <p class="truth" data-oap-store-ptt-install-help>
         From OAP Home V2, <strong>Install OAP PTT</strong> opens the standalone PTT installation page.

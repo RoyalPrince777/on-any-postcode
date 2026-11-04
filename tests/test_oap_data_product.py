@@ -126,3 +126,57 @@ def test_oap_data_real_authority_path_fails_closed_on_database_error(client, mon
     assert response.get_json() == {"error": {"code": "oap_data_unavailable"}}
     assert "private database details" not in response.get_data(as_text=True)
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_founder_intelligence_posts_summary_uses_real_readonly_aggregate(client, monkeypatch):
+    from contextlib import contextmanager
+
+    @contextmanager
+    def fake_connect(*, readonly):
+        assert readonly is True
+        class Connection:
+            def execute(self, sql):
+                assert sql == "SELECT COUNT(*) FROM posts"
+                class Result:
+                    def fetchone(self):
+                        return (17,)
+                return Result()
+        yield Connection()
+
+    monkeypatch.setattr(oap_data_views.postgres_db, "connect", fake_connect)
+    monkeypatch.setattr(
+        oap_data_views.authority, "require_human_authority",
+        lambda connection, identity_id: {"is_human_authority": True},
+    )
+    response = client.get("/mission/data/intelligence/posts-summary")
+    assert response.status_code == 200
+    assert response.get_json()["value"] == 17
+    assert response.get_json()["raw_records_exposed"] is False
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_founder_intelligence_posts_summary_fails_closed_for_nonfounder(client, monkeypatch):
+    from contextlib import contextmanager
+
+    @contextmanager
+    def fake_connect(*, readonly):
+        assert readonly is True
+        yield object()
+
+    monkeypatch.setattr(oap_data_views.postgres_db, "connect", fake_connect)
+    def deny(connection, identity_id):
+        raise authority.HumanAuthorityRequired("no_founder_access")
+    monkeypatch.setattr(oap_data_views.authority, "require_human_authority", deny)
+    response = client.get("/mission/data/intelligence/posts-summary")
+    assert response.status_code == 403
+    assert response.get_json() == {"error": {"code": "human_authority_required"}}
+
+
+def test_founder_intelligence_posts_summary_database_failure_never_leaks(client, monkeypatch):
+    def broken(*, readonly):
+        raise RuntimeError("private database password")
+    monkeypatch.setattr(oap_data_views.postgres_db, "connect", broken)
+    response = client.get("/mission/data/intelligence/posts-summary")
+    assert response.status_code == 503
+    assert response.get_json() == {"error": {"code": "oap_data_unavailable"}}
+    assert b"password" not in response.data

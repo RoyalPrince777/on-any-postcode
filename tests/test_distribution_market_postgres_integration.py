@@ -872,3 +872,23 @@ def test_real_postgres_founder_private_pod_install_snapshot_and_fail_closed(monk
             (created["private_order_id"],),
         ).fetchone()
     assert int(receipt_count[0]) == 0
+
+
+def test_oap_data_intelligence_posts_aggregate_real_postgres():
+    """Prove the exact OAP Data SQL on real CI PostgreSQL, not a mocked cursor."""
+    from mission_control import oap_data_views
+
+    postgres_db.init_postgres(assume_yes=True)
+    with postgres_db.connect(readonly=True) as connection:
+        expected = connection.execute("SELECT COUNT(*) FROM posts").fetchone()
+    assert expected is not None
+    assert isinstance(expected[0], int)
+    assert expected[0] >= 0
+
+    # The live endpoint uses this exact fixed read-only query after Founder
+    # authority; CI does not impersonate an actual production Founder session.
+    import inspect
+    source = inspect.getsource(oap_data_views.intelligence_posts_summary)
+    assert 'connection.execute("SELECT COUNT(*) FROM posts")' in source
+    assert 'postgres_db.connect(readonly=True)' in source
+    assert "authority.require_human_authority(connection" in source

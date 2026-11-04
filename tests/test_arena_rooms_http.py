@@ -361,9 +361,10 @@ def test_all_authoritative_room_games_expose_quick_match(client):
     for page_path, asset_path, game_key in cases:
         page = client.get(page_path)
         assert page.status_code == 200
-        assert "data-matchmake" in page.get_data(as_text=True)
+        assert page.get_data(as_text=True).count("data-matchmake>Quick Match</button>") == 1, page_path
         script = client.get(asset_path)
         assert script.status_code == 200
         text = script.get_data(as_text=True)
         assert "/arena/rooms/matchmake" in text
         assert f'game_key:"{game_key}"' in text
+        assert text.count('q("[data-matchmake]").onclick=') == 1, asset_path

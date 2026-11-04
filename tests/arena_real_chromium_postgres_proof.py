@@ -277,6 +277,71 @@ def play_final_room(browser, game, host_viewport, guest_viewport):
     print("ARENA_REAL_CHROMIUM_POSTGRES_PASS", game)
     host_context.close(); guest_context.close()
 
+def prove_connect4_quick_match(browser):
+    """Two real browser clicks must each send exactly one matchmaking POST."""
+    web_security.PUBLIC_WRITE_LIMITER.reset()
+    contexts = [browser.new_context(viewport={"width": 393, "height": 852}) for _ in range(2)]
+    pages = [context.new_page() for context in contexts]
+    try:
+        counts = [0, 0]
+        for index, page in enumerate(pages):
+            def observe(request, i=index):
+                if request.method == "POST" and request.url.split("?")[0].endswith("/arena/rooms/matchmake"):
+                    counts[i] += 1
+            page.on("request", observe)
+            page.goto(BASE + "/arena/connect4/room", wait_until="domcontentloaded")
+            expect(page.locator("[data-matchmake]")).to_have_count(1)
+            page.locator("[data-host]").fill("Quick Match " + str(index + 1))
+            page.locator("[data-matchmake]").click()
+            expect(page.locator("[data-room]")).to_be_visible()
+            assert counts[index] == 1, ("unexpected matchmaking POST count", counts)
+        pages[0].locator("[data-refresh]").click()
+        expect(pages[0].locator("[data-status]")).to_have_text("ACTIVE")
+        expect(pages[1].locator("[data-status]")).to_have_text("ACTIVE")
+        assert counts == [1, 1], counts
+        print("ARENA_CONNECT4_QUICK_MATCH_SINGLE_REQUEST_PASS")
+    finally:
+        for context in contexts:
+            context.close()
+
+
+def prove_local_gameplay_percentages(browser):
+    """Exercise real Flask pages and observable game percentages in Chromium."""
+    for game in ("connect4", "chess", "oware"):
+        web_security.PUBLIC_WRITE_LIMITER.reset()
+        context = browser.new_context(viewport={"width": 393, "height": 852})
+        page = context.new_page()
+        page.goto(BASE + "/arena/" + game, wait_until="domcontentloaded")
+        # Installed OAP World PWA shell must remain reachable from each game.
+        manifest = page.locator('link[rel="manifest"]')
+        expect(manifest).to_have_attribute("href", "/manifest.webmanifest")
+        manifest_response = page.request.get(BASE + "/manifest.webmanifest")
+        assert manifest_response.ok, "OAP PWA manifest unavailable from Arena game"
+        assert isinstance(manifest_response.json(), dict), "OAP PWA manifest invalid"
+        page.locator("[data-start]").click()
+        expect(page.locator("[data-game]")).to_be_visible()
+        expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 0%")
+        expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "0")
+        if game == "connect4":
+            page.locator("[data-controls] button:not([disabled])").first.click()
+            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 2%")
+            expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "2")
+        elif game == "oware":
+            page.locator("[data-board] button:not([disabled])").first.click()
+            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Seeds captured:")
+        else:
+            for source, target in (("e2", "e4"), ("d7", "d5"), ("e4", "d5")):
+                page.locator("[data-source]").fill(source)
+                page.locator("[data-target]").fill(target)
+                page.locator("[data-move]").click()
+                expect(page.locator("[data-source]")).to_have_value("")
+            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 3%")
+            expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "3")
+        assert_layout(page)
+        context.close()
+        print("ARENA_GAMEPLAY_PERCENT_CHROMIUM_PASS", game)
+
+
 def main():
     prepare()
     server = make_server("127.0.0.1", 8768, app_module.app, threaded=True)
@@ -288,11 +353,13 @@ def main():
             mobile = {"width": 393, "height": 852}
             desktop = {"width": 1280, "height": 800}
             play_two_seats(browser, "connect4", mobile, desktop)
+            prove_connect4_quick_match(browser)
             play_two_seats(browser, "dot", desktop, mobile)
             play_added_room(browser, "ludo", mobile, desktop)
             play_added_room(browser, "oware", desktop, mobile)
             play_final_room(browser, "iq", mobile, desktop)
             play_final_room(browser, "route-empire", desktop, mobile)
+            prove_local_gameplay_percentages(browser)
             browser.close()
     finally:
         server.shutdown()

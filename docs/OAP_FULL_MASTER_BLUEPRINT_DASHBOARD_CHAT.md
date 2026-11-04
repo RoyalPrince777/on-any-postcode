@@ -225,7 +225,7 @@ These headers expose operating state, not private reasoning.
 
 SMI is one brain with many intelligence lenses. Lenses are not separate autonomous agents.
 
-Canonical 26 lenses:
+Canonical 28 lenses (four groups of seven; original 26 retained, plus Causality and Verification):
 
 1. Truth Intelligence
 2. Evidence Intelligence
@@ -806,3 +806,6 @@ Intelligent does not mean authorised.
 Connected does not mean public.
 Built does not mean proven.
 Green means proven.
+
+
+SMI 4 × 7 canonical families: Truth/Investigation (Truth, Evidence, Gap, Causality, Data, Behaviour, Truth-Light); Strategy (SWOT, Risk, Opportunity, Competitive, Trend, Impact, Priority); Engineering (Architecture, Dependency, Performance, Resilience, Security, Privacy, UX); Decision (Alignment, Scenario, Readiness, Decision, Judgement, Learning, Verification). Lenses provide analysis only; no automatic execution rights.

@@ -4,6 +4,32 @@ name: OAP Home Android APK
 
 on:
   workflow_dispatch:
+    inputs:
+      use_reviewed_royal_v2:
+        description: 'Build reviewed Royal Home V2 candidate at pinned SHA; not a phone install'
+        required: true
+        default: false
+        type: boolean
+      build_koradaso_v27:
+        description: 'Build exact reviewed KORADASO v27 candidate; not installed'
+        required: true
+        default: false
+        type: boolean
+      build_home_update_v31:
+        description: 'Build pinned v31 direct Home updater candidate; no device installation'
+        required: true
+        default: false
+        type: boolean
+      build_manual_update_v30:
+        description: 'Build pinned v30 manual APK updater and KORADASO viewport candidate; no device install'
+        required: true
+        default: false
+        type: boolean
+      build_local_routes_v28:
+        description: 'Build exact compiled OAP Core v28 local route candidate; no install'
+        required: true
+        default: false
+        type: boolean
   push:
     branches: [main]
     paths:
@@ -20,17 +46,32 @@ jobs:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: oap-home-apk-master777
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_home_update_v31) && '6a540b563d840c0d2e510bb5f81d45f8b38fef2f' || (github.event_name == 'workflow_dispatch' && inputs.build_manual_update_v30) && '12f4a836e63dbd262ea74405ffdef16d2ba7f61f' || (github.event_name == 'workflow_dispatch' && inputs.build_local_routes_v28) && 'f1b96abf3c13fdcbfa368ed04805df44c042fe55' || ((github.event_name == 'workflow_dispatch' && inputs.build_koradaso_v27) && 'a691ca47826f86f2755bcdc9f2b2787bc392b599') || ((github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && '9d12ed4571802ee0ffe67459df844e99655821b8' || '6a540b563d840c0d2e510bb5f81d45f8b38fef2f') }}
       - name: Verify checked-out V2 source and record revision
         shell: bash
         run: |
           set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_koradaso_v27 }}" == "true" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            echo "::error::Select only one reviewed source candidate"
+            exit 1
+          fi
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            CHOICES=0
+            [[ "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            [[ "${{ inputs.build_koradaso_v27 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            [[ "${{ inputs.build_local_routes_v28 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            [[ "${{ inputs.build_manual_update_v30 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            [[ "${{ inputs.build_home_update_v31 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            test "$CHOICES" -le 1 || { echo "::error::Select at most one reviewed candidate"; exit 1; }
+          fi
           SOURCE_REVISION="$(git rev-parse HEAD)"
           test -n "$SOURCE_REVISION"
           grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
           grep -Fq "storeType 'pkcs12'" android/oaphome/build.gradle
           grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
-          grep -Fq 'BEGORO-KORADASO' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            grep -Fq 'new RoyalHomeArt.EarthBackdrop()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          fi
           grep -Fq 'boolean safeWebAddress(Uri uri)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'settings.setJavaScriptEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
           grep -Fq 'handler.cancel();' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
@@ -69,6 +110,24 @@ jobs:
           grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
           test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
           test "$(grep -Fc 'private final Runnable clockTick' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            test "$SOURCE_REVISION" = "9d12ed4571802ee0ffe67459df844e99655821b8"
+            grep -Fq 'versionCode 26' android/oaphome/build.gradle
+          fi
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_koradaso_v27 }}" == "true" ]]; then
+            test "$SOURCE_REVISION" = "a691ca47826f86f2755bcdc9f2b2787bc392b599"
+            grep -Fq 'versionCode 27' android/oaphome/build.gradle
+            grep -Fq 'OAP_LOCAL_ORIGIN = "http://127.0.0.1:5050"' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+            grep -Fq 'if (!host.safeWebAddress(request.getUrl()))' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+            grep -Fq '<domain>127.0.0.1</domain>' android/oaphome/src/main/res/xml/oap_network_security.xml
+          fi
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_local_routes_v28 }}" == "true" ]]; then
+            test "$SOURCE_REVISION" = "f1b96abf3c13fdcbfa368ed04805df44c042fe55"
+            grep -Fq "versionCode 28" android/oaphome/build.gradle
+            grep -Fq 'openInternetAddress(OAP_LOCAL_ORIGIN + path);' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+            grep -Fq 'case "OAP MAIL": path = "/the-link"; break;' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+            grep -Fq 'case "OAP MARKET": path = "/the-spot/market"; break;' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          fi
           echo "Compiling OAP Home V2 source revision: $SOURCE_REVISION"
       - uses: actions/setup-java@v4
         with:
@@ -98,7 +157,7 @@ jobs:
       - name: Checkout OAP Home source
         uses: actions/checkout@v4
         with:
-          ref: oap-home-apk-master777
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_home_update_v31) && '6a540b563d840c0d2e510bb5f81d45f8b38fef2f' || (github.event_name == 'workflow_dispatch' && inputs.build_manual_update_v30) && '12f4a836e63dbd262ea74405ffdef16d2ba7f61f' || (github.event_name == 'workflow_dispatch' && inputs.build_local_routes_v28) && 'f1b96abf3c13fdcbfa368ed04805df44c042fe55' || ((github.event_name == 'workflow_dispatch' && inputs.build_koradaso_v27) && 'a691ca47826f86f2755bcdc9f2b2787bc392b599') || ((github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && '9d12ed4571802ee0ffe67459df844e99655821b8' || '6a540b563d840c0d2e510bb5f81d45f8b38fef2f') }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -126,6 +185,8 @@ jobs:
           OAP_HOME_KEY_ALIAS: ${{ secrets.OAP_HOME_KEY_ALIAS }}
           OAP_HOME_KEY_PASSWORD: ${{ secrets.OAP_HOME_KEY_PASSWORD }}
           OAP_HOME_CERT_SHA256: ${{ vars.OAP_HOME_CERT_SHA256 }}
+          OAP_HOME_V2_CERT_SHA256: ${{ vars.OAP_HOME_V2_CERT_SHA256 }}
+          OAP_BUILD_REVIEWED_V2: ${{ github.event_name == 'workflow_dispatch' && (inputs.use_reviewed_royal_v2 || inputs.build_koradaso_v27 || inputs.build_local_routes_v28) }}
         run: |
           set -euo pipefail
           for name in OAP_HOME_KEYSTORE_B64 OAP_HOME_KEYSTORE_PASSWORD OAP_HOME_KEY_ALIAS OAP_HOME_KEY_PASSWORD OAP_HOME_CERT_SHA256; do
@@ -147,6 +208,13 @@ jobs:
           if [[ -z "$ACTUAL_CERT" || "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
             echo "::error::Signing keystore fingerprint does not match the pinned OAP identity."
             exit 1
+          fi
+          if [[ "$OAP_BUILD_REVIEWED_V2" == "true" ]]; then
+            INSTALLED_V2_CERT=$(printf '%s' "${OAP_HOME_V2_CERT_SHA256:-}" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+            if [[ ! "$INSTALLED_V2_CERT" =~ ^[0-9a-f]{64}$ || "$ACTUAL_CERT" != "$INSTALLED_V2_CERT" ]]; then
+              echo "::error::Installed V2 signing identity missing or different; refusing V2 candidate."
+              exit 1
+            fi
           fi
           echo "Verified pinned signing identity before build."
           echo "OAP_HOME_KEYSTORE_PATH=$RUNNER_TEMP/oap-home-signing.jks" >> "$GITHUB_ENV"
@@ -177,6 +245,16 @@ jobs:
           BUILD_TOOLS="$SDK_ROOT/build-tools/35.0.0"
           "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
           grep -q "package: name='com.onanypostcode.oaphome.v2'" /tmp/oap-apk-badging.txt
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_local_routes_v28 }}" == "true" ]]; then
+            grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='28'" /tmp/oap-apk-badging.txt
+            grep -Fq "application-label:'OAP Core'" /tmp/oap-apk-badging.txt
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_koradaso_v27 }}" == "true" ]]; then
+            grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='27'" /tmp/oap-apk-badging.txt
+            grep -Fq "application-label:'OAP Core'" /tmp/oap-apk-badging.txt
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='26'" /tmp/oap-apk-badging.txt
+            grep -Fq "application-label:'OAP Core'" /tmp/oap-apk-badging.txt
+          fi
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$APK"
           ACTUAL_CERT=$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1 | tr '[:upper:]' '[:lower:]')
           EXPECTED_CERT=$(printf '%s' "$OAP_HOME_CERT_SHA256" | tr -d ': ' | tr '[:upper:]' '[:lower:]')

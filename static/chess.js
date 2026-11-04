@@ -21,6 +21,9 @@ function render(){
  const active=state.status==="active";
  q("[data-start]").disabled=busy||active;
  q("[data-turn]").textContent=active?state.turn:"—";q("[data-status]").textContent=state.status;
+ const activity=window.OAPGameplayProgress?.measure("chess",state);
+ q("[data-gameplay-percent]").textContent=activity?"Gameplay "+activity.value+"% · "+activity.label:"Gameplay percentage unavailable";
+ q("[data-gameplay-bar]").value=activity?activity.value:0;
  q("[data-stop]").disabled=!active||busy;q("[data-resign]").disabled=!active||busy;q("[data-move]").disabled=!active||busy;
  const previous=lastBoard;const board=q("[data-board]");board.replaceChildren();
  for(let rank=8;rank>=1;rank--)for(const file of "abcdefgh"){

@@ -26,13 +26,16 @@ from . import (
     civilization,
     infrastructure,
     judgement,
+    matrix_simulation,
     ollama_chat,
     organism,
     postgres_db,
     products,
     public_store,
     smi_android_live_evidence,
+    smi_auto,
     smi_chat_runtime,
+    smi_chatgpt_connector,
     smi_command_dashboard,
     smi_founder_assets,
     smi_receipt_backend,
@@ -315,14 +318,16 @@ def smi_command_dashboard_status():
 @bp.get("/smi/agents-hq")
 @web_security.login_required(founder_only=True)
 def smi_agents_hq_page():
-    """Render read-only Founder room selector."""
-    return _no_store(make_response(render_template("agents_hq.html", directory=agents_hq.room_directory())))
+    """Render Founder-only canonical room selector."""
+    return _no_store(make_response(render_template(
+        "agents_hq.html", directory=agents_hq.room_directory()
+    )))
 
 
 @bp.get("/smi/agents-hq/mission-step-skills")
 @web_security.login_required(api=True, founder_only=True)
 def smi_agents_hq_mission_step_skills():
-    """Founder-only skill-first review; no agents are activated."""
+    """Founder-only skill review; candidate agents are never activated."""
     try:
         result = agents_hq.mission_step_skill_review(request.args.get("mission", ""))
     except ValueError:
@@ -333,16 +338,14 @@ def smi_agents_hq_mission_step_skills():
 @bp.get("/smi/agents-hq/rooms")
 @web_security.login_required(api=True, founder_only=True)
 def smi_agents_hq_rooms():
-    """Founder-only canonical room directory; no chat or writes."""
-
+    """Read-only canonical rooms; no agent messaging or execution."""
     return _no_store(make_response(jsonify(agents_hq.room_directory())))
 
 
 @bp.get("/smi/agents-hq/rooms/<path:room_id>")
 @web_security.login_required(api=True, founder_only=True)
 def smi_agents_hq_room(room_id: str):
-    """Founder-only registered room membership, fail closed on unknown IDs."""
-
+    """Fail closed for unknown agent or family rooms."""
     try:
         context = agents_hq.room_context(room_id)
     except ValueError:
@@ -372,6 +375,7 @@ def brain_status():
     return _no_store(make_response(jsonify(brain.get_public_brain_status())))
 
 
+@bp.get("/smi-cc")
 @bp.get("/war-room")
 @web_security.login_required()
 def war_room_dashboard():
@@ -392,6 +396,48 @@ def war_room_status():
     """Return the same read-only, redacted War Room evidence projection."""
 
     return _no_store(make_response(jsonify(war_room.get_war_room_dashboard())))
+
+
+@bp.post("/war-room/divisions/route")
+@web_security.login_required(api=True)
+def war_room_divisions_route():
+    """Founder-session-only advisory selection; no actions or votes executed."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh the secure session.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Expected JSON object.", 400)
+    mission = payload.get("mission", "")
+    notes = payload.get("notes", "")
+    if not isinstance(mission, str) or not isinstance(notes, str) or len(mission) > 2000 or len(notes) > 2000:
+        return _error("invalid_mission", "Mission and notes must be text within 2000 characters.", 400)
+    try:
+        result = smi_auto.route_divisions(payload.get("divisions"), thinking=payload.get("thinking", "AUTO"), mission=mission)
+    except ValueError as exc:
+        return _error("invalid_selection", str(exc), 400)
+    # Founder-supplied text is request-scoped; never log, store or treat it as authorisation.
+    return _no_store(make_response(jsonify({**result, "mission": mission.strip(), "notes": notes.strip()})))
+
+
+@bp.post("/war-room/mouse-training")
+@web_security.login_required(api=True)
+def war_room_mouse_training():
+    """Run a bounded interactive fictional exercise inside Founder War Room."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh secure session.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Expected a JSON object.", 400)
+    choice = payload.get("choice")
+    if choice is not None and not isinstance(choice, str):
+        return _error("invalid_choice", "Invalid response.", 400)
+    try:
+        result = matrix_simulation.run_mouse_attention_training(
+            payload.get("objective"), choice=choice
+        )
+    except ValueError as exc:
+        return _error("invalid_training", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.get("/war-room/actions")
@@ -1379,3 +1425,16 @@ def civilization_system_status():
     return _no_store(
         make_response(jsonify(civilization.get_civilization_status()), 200)
     )
+
+
+@bp.get("/smi/connector/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_connector_status():
+    """Founder-session-only read-only status. Not an external ChatGPT auth path."""
+    return _no_store(make_response(jsonify(
+        smi_chatgpt_connector.safe_status(
+            authorized=True,
+            studio_status=studio_intelligence.status(),
+        )
+    ), 200))
+

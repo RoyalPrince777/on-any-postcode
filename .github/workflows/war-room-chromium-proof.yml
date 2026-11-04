@@ -33,11 +33,12 @@ jobs:
         run: |
           python -m pip install -r requirements.txt 'playwright>=1.50,<2'
           python -m playwright install --with-deps chromium
-      - name: Verify Agents HQ registered family and home boundaries
+      - name: Verify Agents HQ passports and Founder-only endpoints
         run: |
           python -m pip install pytest
           python -m pytest -q tests/test_agents_hq.py
       - name: Authenticated War Room interaction proof
         run: python tests/war_room_chromium_proof.py
-      - name: Authenticated Agents HQ read-only browser proof (synthetic Founder session)
+
+      - name: Authenticated Agents HQ Chromium proof (mocked Founder)
         run: python tests/agents_hq_chromium_proof.py

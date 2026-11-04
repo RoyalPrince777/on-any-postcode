@@ -165,7 +165,21 @@
   </div>
 </section>
 
-<section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
+<section class="panel" id="smi-cc"><div class="ey">👑 SMI CC · Command Centre</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…">
+<fieldset class="panel" id="smi-division-command">
+<legend>🧠 SMI divisions · select more than one</legend>
+<div class="bar" style="margin:8px 0">
+{% for id, name in [('truth','Truth & Investigation'),('strategy','Strategy'),('engineering','Engineering'),('decision','Decision'),('awareness','Awareness'),('recovery','Execution & Recovery'),('memory','Memory & Evolution')] %}
+<label class="chip"><input type="checkbox" name="smi-division" value="{{ id }}" {% if id == 'engineering' %}checked{% endif %}> {{ name }}</label>
+{% endfor %}
+</div>
+<label for="smi-command-thinking">Thinking</label>
+<select id="smi-command-thinking" class="chip"><option>AUTO</option><option>3</option><option>7</option><option>21</option></select>
+<label for="smi-command-extra">Additional instructions (optional)</label>
+<textarea class="mission" id="smi-command-extra" rows="2" maxlength="2000" placeholder="Add your mission notes here; this only prepares a plan."></textarea>
+<div class="bar" style="margin-top:8px"><button id="smi-division-route" class="btn primary" type="button">🟣 Select SMI team</button></div>
+<p class="muted">Advisory routing only. No models, approval, release or agent actions are launched.</p>
+</fieldset><div class="bar" style="margin-top:10px">
 <button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><button class="btn js-depth" type="button" data-depth="3">MANUAL 3</button><button class="btn js-depth" type="button" data-depth="7">MANUAL 7</button><button class="btn js-depth" type="button" data-depth="21">MANUAL 21</button><button class="btn primary js-war-mode" type="button">⚔️ WAR ROOM</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔ Counter / Compare</a>
@@ -187,6 +201,12 @@
 <a class="chip" href="/mission/war-room/routes">🧭 Routes</a>
 <span class="chip" aria-disabled="true" title="Bounded reviews complete synchronously; there is no background task to stop.">■ STOP</span>
 </div>
+<section class="panel" id="mouse-training">
+<h3>🐭 Mouse + 🕶️ Morpheus · Attention Training</h3>
+<p class="muted">Interactive fictional decision exercise. No autonomous agents, production actions or HRM writes.</p>
+<button id="mouse-training-start" class="btn" type="button">Start training</button>
+<div id="mouse-training-content" role="status" aria-live="polite"></div>
+</section>
 <div id="war-action-result" class="receipt action-result" data-signal="purple" role="status" aria-live="polite">🟣 Ready. SMI AUTO runs bounded review checks only; it cannot approve, deploy, spend, dispatch or bypass Founder Final.</div>
 <p class="truth">Primary controls now separate governed actions from review/navigation. 7★ and Vote open their evidence boards; they do not manufacture scores or tallies. Founder Final remains separate Human Authority. This surface performs no production write.</p></section>
 <section class="panel review-command" id="review-21x" aria-labelledby="review-21x-title">
@@ -365,6 +385,61 @@
     result.dataset.signal = signal || 'purple';
     result.textContent = text;
   };
+  document.getElementById('smi-division-route')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const divisions = [...document.querySelectorAll('input[name="smi-division"]:checked')].map(el => el.value);
+    if (!divisions.length) { show('yellow', '🟡 Choose at least one SMI division.'); return; }
+    button.disabled = true;
+    try {
+      const response = await fetch('/mission/war-room/divisions/route', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+        body: JSON.stringify({divisions, thinking: document.getElementById('smi-command-thinking').value, mission: document.querySelector('.mission')?.value || '', notes: document.getElementById('smi-command-extra').value})
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result?.error?.message || 'Selection unavailable');
+      const teams = result.divisions.map(team => team.division + ': ' + team.lead).join(' · ');
+      const suggested = result.specialist_recommendation;
+      const specialistLine = suggested ? '\\nRecommended: ' + suggested.agent + ' · Commander: ' + suggested.commander + ' · Home: ' + suggested.home_system + ' (advisory only)' : '';
+      const mission = document.querySelector('.mission')?.value.trim() || '(no mission entered)';
+      const notes = document.getElementById('smi-command-extra').value.trim();
+      show('purple', '🟣 Advisory team selected · ' + result.thinking_depth + ' Thinking\\n' +
+        teams + specialistLine + '\\nMission: ' + mission + (notes ? '\\nNotes: ' + notes : '') +
+        '\\nNo agents executed. Guardian, Green Gate and Founder Final required.');
+    } catch (error) { show('yellow', '🟡 ' + error.message); }
+    finally { button.disabled = false; }
+  });
+  const mouseTraining = document.getElementById('mouse-training-content');
+  async function mouseExercise(choice) {
+    const objective = document.querySelector('.mission')?.value.trim() || 'Practice noticing distractions';
+    const response = await fetch('/mission/war-room/mouse-training', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: JSON.stringify({objective, choice})
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload?.error?.message || 'Training request failed');
+    mouseTraining.replaceChildren();
+    const scene = document.createElement('p');
+    scene.textContent = payload.scene + ' ' + payload.prompt;
+    mouseTraining.append(scene);
+    if (payload.feedback) {
+      const feedback = document.createElement('p');
+      feedback.textContent = 'Morpheus review: ' + payload.feedback + ' Fictional training only; no HRM receipt.';
+      mouseTraining.append(feedback);
+    } else {
+      for (const option of payload.options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn';
+        button.textContent = option.label;
+        button.addEventListener('click', () => mouseExercise(option.id).catch(error => { mouseTraining.textContent = error.message; }));
+        mouseTraining.append(button);
+      }
+    }
+  }
+  document.getElementById('mouse-training-start')?.addEventListener('click', () =>
+    mouseExercise(null).catch(error => { mouseTraining.textContent = error.message; }));
   async function run(action) {
     const response = await fetch(endpoint(action), {
       method: 'POST',
@@ -380,7 +455,21 @@
   }
   async function runAuto(button) {
     const actions = ['alignment-check','aegis-check','function-health','green-gate','hrm-receipt'];
-    const lines = ['🟣 SMI AUTO · 3 / 7 / 21 governed review'];
+    const chosen = [...document.querySelectorAll('input[name="smi-division"]:checked')].map(el => el.value);
+    if (!chosen.length) throw new Error('Choose at least one SMI division.');
+    const routeResponse = await fetch('/mission/war-room/divisions/route', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: JSON.stringify({divisions: chosen, thinking: document.getElementById('smi-command-thinking').value, mission: document.querySelector('.mission')?.value || '', notes: document.getElementById('smi-command-extra').value})
+    });
+    const selectedPlan = await routeResponse.json().catch(() => ({}));
+    if (!routeResponse.ok) throw new Error(selectedPlan?.error?.message || 'SMI routing failed');
+    const lines = ['🟣 SMI AUTO · ' + selectedPlan.thinking_depth + ' Thinking · advisory route',
+      'Divisions: ' + selectedPlan.divisions.map(x => x.division + ' (' + x.lead + ')').join(', '),
+      'Thinking plan: ' + selectedPlan.selected_checks.length + ' checks selected · 0 verified executed',
+      'Agent execution: NONE · Independent votes: NOT VERIFIED'];
+
+    if (selectedPlan.specialist_recommendation) lines.push('Suggested Matrix specialist: Mouse · Morpheus command · no family transfer');
     for (const action of actions) {
       const payload = await run(action);
       const signal = payload.signal || payload.action?.signal || 'unknown';
@@ -388,6 +477,7 @@
       const state = payload.state || payload.action?.state || 'reviewed';
       lines.push(label + ': ' + signal + ' · ' + state);
     }
+    lines.push('Proof actions queried: ' + actions.length + ' (not equivalent to Thinking checks)');
     lines.push('👑 Founder Final: unchanged · separate authority');
     show('purple', lines.join('\n'));
   }
@@ -574,7 +664,7 @@
   });
 })();
 </script>
-</main><nav class="bottom"><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav>
+</main><nav class="bottom"><a href="/mission/smi-cc#smi-cc">👑 SMI CC</a><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav>
 <script>
 (()=>{"use strict";
  const root=document.querySelector("main.w"); if(!root)return;
