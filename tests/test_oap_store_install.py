@@ -244,3 +244,34 @@ def test_spot_apps_uses_existing_governed_store(client):
     assert 'href="/world"' in store_html
     assert 'Install OAP World' in store_html
     assert 'signed native Android APK' in store_html
+
+
+
+def test_oap_ride_role_manifests_keep_distinct_install_identities(client):
+    rider = client.get("/transport/ride/rider/manifest.webmanifest")
+    driver = client.get("/transport/ride/driver/manifest.webmanifest")
+    assert rider.status_code == driver.status_code == 200
+    assert rider.content_type == driver.content_type == "application/manifest+json"
+
+    rider_data = rider.get_json()
+    driver_data = driver.get_json()
+    assert rider_data["name"] == "OAP Rider · ON ANY POSTCODE"
+    assert driver_data["name"] == "OAP Driver · ON ANY POSTCODE"
+    assert rider_data["id"] == "/transport/ride/rider"
+    assert driver_data["id"] == "/transport/ride/driver"
+    assert rider_data["id"] != driver_data["id"]
+    assert rider_data["start_url"].startswith(rider_data["id"])
+    assert driver_data["start_url"].startswith(driver_data["id"])
+    assert rider_data["scope"] == driver_data["scope"] == "/"
+    assert rider_data["display"] == driver_data["display"] == "standalone"
+    assert rider_data["icons"] and driver_data["icons"]
+    assert client.get("/transport/manifest.webmanifest").get_json()["id"] == "/transport"
+
+
+def test_ride_installer_uses_existing_shared_controller_without_new_bundle():
+    from pathlib import Path
+
+    script = Path("static/oap-os.js").read_text(encoding="utf-8")
+    assert '? "OAP Rider"' in script
+    assert '? "OAP Driver"' in script
+    assert 'navigator.serviceWorker.register("/service-worker.js", {scope: "/"})' in script
