@@ -152,6 +152,7 @@ def test_accept_locks_revalidates_expires_competing_proposals_and_marks_busy(mon
             ("FROM oap_movement_bookings", ("MATCH_PROPOSED",)),
             ("FROM oap_movement_availability", ("ONLINE", available_until)),
             ("FROM oap_identity_roles", (1,)),
+            ("FROM oap_movement_match_proposals busy", None),
             ("WHERE booking_id=%s AND state='ACCEPTED'", None),
             ("SET state='ACCEPTED'", (BOOKING, "driver", now)),
             ("SET state='EXPIRED'", None),
@@ -316,4 +317,47 @@ def test_declined_worker_is_excluded_from_repeated_match_selection(monkeypatch):
         booking_id=BOOKING, member_identity_id=MEMBER
     )
     assert result is None
+    assert not connection.committed
+
+
+def test_accept_rejects_worker_already_assigned_to_another_booking(monkeypatch):
+    """An independently stale ONLINE flag must not allow two active assignments."""
+    now = datetime.now(UTC)
+    connection = _Connection([
+        ("FROM oap_movement_match_proposals", (BOOKING, "driver", "PROPOSED")),
+        ("FROM oap_movement_bookings", ("MATCH_PROPOSED",)),
+        ("FROM oap_movement_availability", ("ONLINE", now + timedelta(minutes=15))),
+        ("FROM oap_identity_roles", (1,)),
+        ("FROM oap_movement_match_proposals busy", (1,)),
+    ])
+    monkeypatch.setattr(movement_match_safety.postgres_db, "connect", _connect(connection))
+    monkeypatch.setattr(
+        movement_match_safety.oap_ride_driver_accessibility,
+        "eligible", lambda **kwargs: {"eligible": True, "reason": "verified"}
+    )
+    with pytest.raises(PermissionError, match="worker_already_assigned"):
+        movement_match_safety.SafePostgresMovementStore().accept_match(
+            proposal_id=PROPOSAL, worker_identity_id=WORKER
+        )
+    assert not connection.committed
+    assert not any("SET state='ACCEPTED'" in q for q in connection.queries)
+
+
+def test_match_candidate_query_excludes_workers_with_accepted_bookings(monkeypatch):
+    class InspectConnection(_Connection):
+        def execute(self, sql, params=()):
+            if "FROM oap_movement_availability a" in sql:
+                assert "FROM oap_movement_match_proposals busy" in sql
+                assert "assigned.state='ACCEPTED'" in sql
+                assert "busy.worker_identity_id=a.identity_id" in sql
+            return super().execute(sql, params)
+
+    connection = InspectConnection([
+        ("SELECT service_type,pickup,state", ("ride", {"zone": "CR4"}, "REQUESTED")),
+        ("oap_identity_roles", None),
+    ])
+    monkeypatch.setattr(movement_match_safety.postgres_db, "connect", _connect(connection))
+    assert movement_match_safety.SafePostgresMovementStore().propose_match(
+        booking_id=BOOKING, member_identity_id=MEMBER
+    ) is None
     assert not connection.committed
