@@ -85,11 +85,18 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                                WHERE ir.identity_id=a.identity_id
                                  AND ir.role_id=(CASE a.role_type {role_case} END)
                            )
+                           AND NOT EXISTS (
+                               SELECT 1 FROM oap_movement_match_proposals previous
+                               WHERE previous.booking_id=%s
+                                 AND previous.worker_identity_id=a.identity_id
+                                 AND previous.worker_role=a.role_type
+                                 AND previous.state='DECLINED'
+                           )
                          ORDER BY
                            CASE WHEN a.zone=%s AND %s<>'' THEN 0 ELSE 1 END,
                            a.updated_at DESC
                          LIMIT 20"""
-            result = connection.execute(query, (member, *roles, zone, zone))
+            result = connection.execute(query, (member, *roles, booking, zone, zone))
             if hasattr(result, "fetchall"):
                 candidates = result.fetchall()
             else:
