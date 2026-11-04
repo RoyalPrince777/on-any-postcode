@@ -43,7 +43,7 @@ def _verifier_readonly():
     """
     url = os.environ.get("OAP_FOUNDER_VERIFIER_DATABASE_URL", "").strip()
     if not url:
-        with _verifier_readonly() as connection:
+        with postgres_db.connect(readonly=True) as connection:
             yield connection
         return
     driver = postgres_db._driver()
