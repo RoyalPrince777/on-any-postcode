@@ -40,6 +40,8 @@ MY = (
 PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{{ title }} · OAP Ride</title>
+<link rel="manifest" href="/transport/manifest.webmanifest">
+<meta name="theme-color" content="#090b0d">
 <style>
 :root{color-scheme:dark;--bg:#090b0d;--panel:#151b20;--line:#303a42;--gold:#e9c66a;--muted:#b8c3ca}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:white;font-family:system-ui,sans-serif}
@@ -65,6 +67,12 @@ a{color:inherit}.back{text-decoration:none;color:var(--muted)}h1{font-size:clamp
 <h1>{{ title }}</h1><p class="lead">Your transport routes and journey tools.</p>
 {% endif %}
 <nav class="grid" aria-label="{{ title }} actions">{% for label, href in buttons %}<a class="btn" href="{{ href }}">{{ label }}</a>{% endfor %}</nav>
+<section aria-label="Install OAP Ride" class="install">
+<h2>OAP Ride on your phone</h2>
+<p class="lead">Rider and Driver are included in the existing OAP Transport app. On Android Chrome, use the browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong> when offered.</p>
+<a class="btn" href="/transport?source=oap-ride">Open OAP Transport installer</a>
+<p class="note">This installs a web app shortcut, not a signed Android APK. Online booking still requires the authorised OAP service.</p>
+</section>
 <p class="note">Booking requests and match proposals do not constitute physical dispatch. Live rides and payments remain subject to operational approval.</p>
 </main></body></html>"""
 
