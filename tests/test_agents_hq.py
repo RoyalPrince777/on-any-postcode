@@ -203,3 +203,33 @@ def test_matrix_film_homes_are_only_canonical_advisory_references():
         assert member["home_group"] == resolver(agent["name"])
         assert member["family_id"] == "matrix"
         assert member["home_system"] == "Matrix System"
+
+
+def test_hq_reuses_existing_founder_only_mission_recommender(client):
+    page = client.get("/mission/smi/agents-hq")
+    html = page.get_data(as_text=True)
+    assert 'id="mission-team-form"' in html
+    assert "/mission/smi/agent-team/recommend?mission=" in html
+    assert "No agents activated" in html
+
+    response = client.get(
+        "/mission/smi/agent-team/recommend",
+        query_string={"mission": "Review evidence and system recovery"},
+    )
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    result = response.get_json()
+    assert result["founder_can_change"] is True
+    assert result["smi_can_silently_override_founder"] is False
+    assert result["active_team"]
+    assert all(item["authority"] == "advisory_review_only"
+               for item in result["active_team"])
+
+
+def test_hq_mission_recommender_denies_anonymous_access(anonymous_client):
+    response = anonymous_client.get(
+        "/mission/smi/agent-team/recommend",
+        query_string={"mission": "review"},
+    )
+    assert response.status_code == 401
+    assert response.headers["Cache-Control"] == "no-store"
