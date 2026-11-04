@@ -13,7 +13,7 @@ def test_brain_status_reports_one_brain_regions_lenses_and_canonical_levels():
     assert projection["regions"] == 14
     assert projection["families"] == 7
     assert projection["agents"] == 78
-    assert projection["intelligence_lenses"] == 26
+    assert projection["intelligence_lenses"] == 28
     assert projection["core_intelligence_lenses"] == 10
     assert projection["validation"]["checks"]["proposed_passports"] == 0
     assert projection["validation"]["checks"]["registry_ready_for_activation"] is False
