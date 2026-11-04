@@ -141,7 +141,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <label><input type="radio" name="search-mode" value="web"> WWW Search</label>
 </div>
 <p class="trust-state" id="trust-state" role="status">OAP FIRST PARTY · Catalogue search</p>
-<p class="note" id="address-note" role="status">OAP searches public OAP apps. WWW search uses DuckDuckGo with explicit consent; typed HTTPS websites open with confirmation.</p>
+<p class="note" id="address-note" role="status">OAP Search finds public OAP apps. WWW Search checks OAP’s own indexed public web pages; coverage is limited while indexing grows. Direct HTTPS sites open with confirmation.</p>
 <h2>EXPLORE YOUR WORLD</h2>
 <div class="grid">
 <a class="tile" href="/world?source=oap-os"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>OAP World menu</span></a>
@@ -160,8 +160,8 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <p class="note" id="bookmark-note" role="status">Saved bookmarks stay in this browser only. Nothing is uploaded to OAP.</p>
 <details class="browser-settings" id="browser-settings">
 <summary>⚙ Browser settings</summary>
-<p>OAP Search currently searches public OAP apps only. WWW Search sends your typed search to DuckDuckGo after confirmation. No global OAP web index is claimed. External HTTPS addresses require separate consent.</p>
-<label for="open-web-search"><input type="checkbox" id="open-web-search"> Use WWW Search as default for phrases (always confirm)</label>
+<p>OAP Search currently searches public OAP apps only. WWW Search checks the first-party KORADASO index; missing pages are not yet indexed. External HTTPS addresses require separate consent.</p>
+<label for="open-web-search"><input type="checkbox" id="open-web-search"> Use KORADASO WWW index for phrases (coverage limited)</label>
 <label for="reduce-motion"><input type="checkbox" id="reduce-motion"> Reduce motion</label>
 <div class="settings-actions"><button type="button" id="clear-browser-preferences">Clear saved bookmarks and preferences</button></div>
 <p class="note" id="settings-note" role="status">Browser preferences stay on this device. Local storage may be unavailable in private browsing.</p>
@@ -177,7 +177,7 @@ const trustState=document.getElementById("trust-state"),settingsNote=document.ge
 const searchModes=document.querySelectorAll('input[name="search-mode"]');
 const preferencesKey="koradaso.browser_prefs.v1";
 function currentSearchMode(){const selected=Array.from(searchModes).find(x=>x.checked);return selected?selected.value:"oap";}
-function updateSearchMode(mode){searchModes.forEach(x=>{x.checked=x.value===mode;});trustState.textContent=mode==="web"?"OPEN WEB · DuckDuckGo (consent required)":"OAP FIRST PARTY · Catalogue search";}
+function updateSearchMode(mode){searchModes.forEach(x=>{x.checked=x.value===mode;});trustState.textContent=mode==="web"?"KORADASO WWW INDEX · First-party results only":"OAP FIRST PARTY · Catalogue search";}
 function savePreferences(){try{localStorage.setItem(preferencesKey,JSON.stringify({webDefault:openWebSearch.checked,reduceMotion:reduceMotion.checked}));}catch(_){settingsNote.textContent="Browser storage unavailable; settings apply only for this page.";}}
 try{const p=JSON.parse(localStorage.getItem(preferencesKey)||"{}");openWebSearch.checked=p.webDefault===true;reduceMotion.checked=p.reduceMotion===true;}catch(_){/* use defaults */}
 document.body.classList.toggle("reduce-motion",reduceMotion.checked);
@@ -235,9 +235,7 @@ const hostLike=/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:[/?#][^\s]*)?$/i.test(raw
 if(!explicitScheme&&!hostLike){
   if(raw.length>120){note.textContent="OAP Search supports up to 120 characters. Shorten your query.";return;}
   if(currentSearchMode()==="web"){
-    if(window.confirm("OPEN WEB SEARCH — Your query will be sent to DuckDuckGo outside OAP. Continue?")){
-      window.location.assign("https://duckduckgo.com/?q="+encodeURIComponent(raw));
-    }else{note.textContent="External search cancelled. No query was sent.";}
+    window.location.assign("/koradaso/web-search?q="+encodeURIComponent(raw));
   }else{window.location.assign("/search?q="+encodeURIComponent(raw));}
   return;
 }
