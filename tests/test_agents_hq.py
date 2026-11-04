@@ -283,3 +283,41 @@ def test_skill_first_review_denies_anonymous_access(anonymous_client):
     )
     assert response.status_code == 401
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_cross_family_handoffs_require_proof_and_never_send_messages(client):
+    from mission_control.agents_hq import mission_step_skill_review
+
+    plan = mission_step_skill_review("Assess a map security failure and recovery")
+    assert len(plan["proposed_handoffs"]) == len(plan["steps"]) - 1
+    assert plan["handoff_messages_sent"] == 0
+    assert plan["agent_messages_sent"] is False
+    by_id = {agent["agent_id"]: agent for agent in agents.AGENT_REGISTRY}
+    for left, right, handoff in zip(
+        plan["steps"], plan["steps"][1:], plan["proposed_handoffs"]
+    ):
+        assert handoff["from_step"] == left["step_id"]
+        assert handoff["to_step"] == right["step_id"]
+        assert handoff["message_sent"] is False
+        assert handoff["delivery_verified"] is False
+        assert handoff["authority_transferred"] is False
+        if handoff["state"] == "advisory_unverified":
+            sender = by_id[handoff["from_agent_id"]]
+            receiver = by_id[handoff["to_agent_id"]]
+            assert handoff["from_family_id"] == sender["family_id"]
+            assert handoff["to_family_id"] == receiver["family_id"]
+            assert handoff["cross_family"] == (
+                sender["family_id"] != receiver["family_id"]
+            )
+        else:
+            assert handoff["state"] == "blocked_missing_skill_match"
+
+    response = client.get(
+        "/mission/smi/agents-hq/mission-step-skills",
+        query_string={"mission": plan["mission"]},
+    )
+    assert response.status_code == 200
+    assert response.get_json()["handoff_messages_sent"] == 0
+    assert 'id="mission-handoffs"' in client.get(
+        "/mission/smi/agents-hq"
+    ).get_data(as_text=True)
