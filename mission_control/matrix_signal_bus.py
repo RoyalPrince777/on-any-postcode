@@ -186,7 +186,7 @@ def route_signal(
     """Create a bounded Matrix Signal envelope without taking external action."""
 
     if not isinstance(sender, str):
-        raise ValueError("Signal sender must be text")
+        raise ValueError("Signal sender must be text")  # noqa: TRY004 - preserve public error contract
     if not isinstance(topic, str) or not topic.strip() or len(topic) > 2000:
         raise ValueError("Signal topic must be 1-2000 characters")
     if not isinstance(kind, str) or len(kind) > 64:
