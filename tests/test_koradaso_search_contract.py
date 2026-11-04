@@ -93,3 +93,17 @@ def test_koradaso_oap_world_opens_menu_not_marketplace(client):
     source = SOURCE.read_text(encoding="utf-8")
     assert 'href="/world?source=oap-os"' in source
     assert '<a href="/world?source=oap-os">🌍 World</a>' in source
+
+
+
+def test_oap_world_menu_keeps_marketplace_as_a_destination(client):
+    menu = client.get("/world?source=oap-os")
+    marketplace = client.get("/world")
+    assert menu.status_code == marketplace.status_code == 200
+    menu_html = menu.get_data(as_text=True)
+    market_html = marketplace.get_data(as_text=True)
+    assert '<strong>🛍️ Marketplace</strong>' in menu_html
+    assert 'href="/world"' in menu_html
+    assert "One World. One Front Door." in menu_html
+    assert "YOUR LOCAL" in market_html
+    assert "MARKETPLACE." in market_html
