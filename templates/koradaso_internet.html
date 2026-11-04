@@ -63,12 +63,27 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 .settings-actions button{border:1px solid #977349;background:#171425;color:#f5dba8;padding:9px 13px;border-radius:12px}
 .trust-state{font-size:.78rem;color:#e4c58d;margin:9px 2px}
 @media(max-width:490px){.tile.is-reserved{min-height:105px}}
+
+/* Crown-and-globe treatment: enhance the original screen without adding fake controls. */
+.royal-tabs{display:flex;gap:6px;align-items:center;overflow-x:auto;padding:9px 2px 12px;scrollbar-width:thin;scrollbar-color:#8d65bf #090b1b}
+.royal-tab{flex:0 0 auto;min-height:39px;padding:9px 14px;border-radius:15px 15px 5px 5px;border:1px solid #765f43;background:linear-gradient(#1b1429,#090c18);color:#ecd093;font-size:.78rem;font-weight:750}
+.royal-tab.selected{background:linear-gradient(145deg,#3e254e,#100e20);border-color:#f0c577;box-shadow:inset 0 2px #f7e2a055,0 0 12px #a349f244}
+.hero{border:1px solid #f0c66e;background:radial-gradient(ellipse at 48% 55%,#6546a6 0%,#241143 28%,#090917 75%);box-shadow:0 0 22px #f3b95b44,inset 0 0 45px #a252f155}
+.crest{width:min(55vw,218px);height:min(55vw,218px);border:3px solid #fce1a0;background:radial-gradient(circle at 42% 35%,#e4bf77 0%,#8b5425 22%,#29204c 24%,#090a19 61%),repeating-linear-gradient(90deg,transparent 0 26px,#e3bb6a66 27px 28px);box-shadow:0 0 12px #ffce76,0 0 45px #9953e7aa,inset 0 0 20px #ffebad88}
+.crest:before{content:"🌍";position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(5.2rem,22vw,10rem);opacity:.36;filter:sepia(1) saturate(3) hue-rotate(345deg)}
+.crest span{position:relative;z-index:1;font-size:clamp(7rem,31vw,11rem);line-height:1;color:#f8d888;-webkit-text-stroke:1px #fff0a9;text-shadow:2px 2px #623c20,0 0 6px #fff0b7,0 0 20px #eaac5f}
+.hero h1{font-size:clamp(2rem,9vw,3.65rem);letter-spacing:.02em}
+.tile{border:1px solid #c79b55;border-radius:15px;background:linear-gradient(155deg,#302045,#0a0b17 72%);box-shadow:inset 0 1px #ffdb9955,0 0 8px #ab60e733}
+.tile:not(.is-reserved):focus-visible,.royal-tab:focus-visible{outline:3px solid #d9b0ff;outline-offset:3px}
+.search{background:linear-gradient(#171128,#080c16);border-color:#f3cd85;box-shadow:0 0 0 1px #6d329a,0 0 20px #9951f466}
+@media(max-width:490px){.crest{width:158px;height:158px}.crest span{font-size:7.5rem}.crest:before{font-size:7.5rem}.royal-tab{padding:9px 11px}}
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="shell">
 <header class="top"><span class="brand">♛ KORADASO</span><span class="tag">OAP LOCAL · FIRST PARTY</span></header>
+<nav class="royal-tabs" aria-label="KORADASO browser destinations"><a class="royal-tab selected" aria-current="page" href="/koradaso">♛ Home</a><a class="royal-tab" href="/search">⌕ Search</a><a class="royal-tab" href="#bookmark-list">★ Bookmarks</a><a class="royal-tab" href="#browser-settings">⚙</a></nav>
 <main id="main">
 <section class="hero" aria-label="KORADASO Internet home">
 <div class="crown" aria-hidden="true">♛</div><div class="crest" aria-hidden="true"><span>K</span></div>
