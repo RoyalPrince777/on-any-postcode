@@ -32,11 +32,11 @@ def test_shere_khan_provider_payload_is_selected_only_when_addressed(monkeypatch
     monkeypatch.setattr(smi_chat_runtime_core.urlrequest, "urlopen", fake_open)
 
     assert smi_chat_runtime._COMPATIBILITY_ENGINE("Shere Khan, advise me") == "Acknowledged."
-    assert smi_chat_runtime_core._provider("Please advise me") == "Acknowledged."
-    assert smi_chat_runtime_core._provider(
+    assert smi_chat_runtime._COMPATIBILITY_ENGINE("Please advise me") == "Acknowledged."
+    assert smi_chat_runtime._COMPATIBILITY_ENGINE(
         "Please advise me", brain={"conversation_persona": "shere_khan"}
     ) == "Acknowledged."
-    assert smi_chat_runtime_core._provider(
+    assert smi_chat_runtime._COMPATIBILITY_ENGINE(
         "Shere Khan, advise me", brain={"conversation_persona": "other"}
     ) == "Acknowledged."
 
