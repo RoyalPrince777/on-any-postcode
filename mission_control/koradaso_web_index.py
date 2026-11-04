@@ -26,7 +26,9 @@ def _safe_public_url(value: str) -> bool:
         host = parts.hostname or ""
         if parts.scheme != "https" or not host or parts.username or parts.password:
             return False
-        if parts.port not in (None, 443) or not host.endswith(tuple(["." + t for t in ("com", "org", "net", "edu", "gov", "global", "uk", "gh", "info")] )) and "." not in host:
+        if parts.port not in (None, 443) or "." not in host or any(
+            c.isspace() for c in host
+        ):
             return False
         if host.lower() == "localhost" or host.endswith(".localhost"):
             return False
