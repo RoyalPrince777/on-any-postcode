@@ -57,6 +57,9 @@ small{color:#b9cce1}
 <h3>Cross-family handoff readiness</h3>
 <p><small>Proposed evidence routes only; no agent messages have been sent.</small></p>
 <ul id="mission-handoffs" aria-label="Unverified evidence handoff proposals"></ul>
+<h3>Seven-round council · Not conducted</h3>
+<p><small>Review structure only. No agent dialogue, ballots, earned stars or independent approval.</small></p>
+<ol id="mission-council-rounds" aria-label="Seven evidence-based council review rounds"></ol>
 </section>
 <section aria-labelledby="selected-room">
 <h2 id="selected-room">Select a room</h2>
@@ -156,12 +159,14 @@ const missionStatus = document.getElementById("mission-team-status");
 const missionResults = document.getElementById("mission-team-results");
 const missionStepResults = document.getElementById("mission-step-results");
 const missionHandoffs = document.getElementById("mission-handoffs");
+const councilRounds = document.getElementById("mission-council-rounds");
 let missionRequest = 0;
 missionText.addEventListener("input", () => {
   missionRequest += 1;
   missionResults.replaceChildren();
   missionStepResults.replaceChildren();
   missionHandoffs.replaceChildren();
+  councilRounds.replaceChildren();
   missionStatus.textContent = "Mission changed. Request a new recommendation.";
 });
 missionForm.addEventListener("submit", async event => {
@@ -206,7 +211,12 @@ missionForm.addEventListener("submit", async event => {
         skills.runtime_skills_proven !== false || !Array.isArray(skills.steps) ||
         skills.steps.length !== 13 || skills.handoff_messages_sent !== 0 ||
         !Array.isArray(skills.proposed_handoffs) ||
-        skills.proposed_handoffs.length !== skills.steps.length - 1) {
+        skills.proposed_handoffs.length !== skills.steps.length - 1 ||
+        !skills.council_review || skills.council_review.rounds_completed !== 0 ||
+        skills.council_review.authenticated_ballots !== 0 ||
+        skills.council_review.can_execute !== false ||
+        !Array.isArray(skills.council_review.rounds) ||
+        skills.council_review.rounds.length !== 7) {
       throw new Error("Invalid step review");
     }
     const stepFragment = document.createDocumentFragment();
@@ -242,8 +252,24 @@ missionForm.addEventListener("submit", async event => {
         " · no message sent";
       handoffFragment.appendChild(item);
     }
+    const councilFragment = document.createDocumentFragment();
+    for (const round of skills.council_review.rounds) {
+      if (!round || typeof round.label !== "string" ||
+          typeof round.required_evidence !== "string" ||
+          round.status !== "not_conducted" ||
+          !Array.isArray(round.votes) || round.votes.length !== 0 ||
+          !Array.isArray(round.agent_statements) || round.agent_statements.length !== 0 ||
+          round.earned_stars !== null) {
+        throw new Error("Council evidence not verified");
+      }
+      const item = document.createElement("li");
+      item.textContent = round.label + " · requires " +
+        round.required_evidence.replaceAll("_", " ") + " · not conducted";
+      councilFragment.appendChild(item);
+    }
     if (version !== missionRequest) return;
     missionStepResults.replaceChildren(stepFragment);
+    councilRounds.replaceChildren(councilFragment);
     missionHandoffs.replaceChildren(handoffFragment);
     missionStatus.textContent = data.active_team.length +
       " reviewers recommended · Founder Final · No agents activated · Runtime availability unknown" +
@@ -253,6 +279,7 @@ missionForm.addEventListener("submit", async event => {
     missionResults.replaceChildren();
     missionStepResults.replaceChildren();
     missionHandoffs.replaceChildren();
+  councilRounds.replaceChildren();
     missionStatus.textContent = "Recommendation unavailable or invalid. No team activated.";
   }
 });
