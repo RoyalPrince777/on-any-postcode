@@ -54,6 +54,9 @@ small{color:#b9cce1}
 <ul id="mission-team-results" aria-label="Advisory team recommendation"></ul>
 <h3>Skill-first protocol assignments</h3>
 <ol id="mission-step-results" aria-label="Per-step registered skill matches"></ol>
+<h3>Cross-family handoff readiness</h3>
+<p><small>Proposed evidence routes only; no agent messages have been sent.</small></p>
+<ul id="mission-handoffs" aria-label="Unverified evidence handoff proposals"></ul>
 </section>
 <section aria-labelledby="selected-room">
 <h2 id="selected-room">Select a room</h2>
@@ -152,11 +155,13 @@ const missionText = document.getElementById("mission-text");
 const missionStatus = document.getElementById("mission-team-status");
 const missionResults = document.getElementById("mission-team-results");
 const missionStepResults = document.getElementById("mission-step-results");
+const missionHandoffs = document.getElementById("mission-handoffs");
 let missionRequest = 0;
 missionText.addEventListener("input", () => {
   missionRequest += 1;
   missionResults.replaceChildren();
   missionStepResults.replaceChildren();
+  missionHandoffs.replaceChildren();
   missionStatus.textContent = "Mission changed. Request a new recommendation.";
 });
 missionForm.addEventListener("submit", async event => {
@@ -199,7 +204,11 @@ missionForm.addEventListener("submit", async event => {
     const skills = await skillsResponse.json();
     if (!skills || skills.mission !== mission || skills.can_execute !== false ||
         skills.runtime_skills_proven !== false || !Array.isArray(skills.steps) ||
-        skills.steps.length !== 13) throw new Error("Invalid step review");
+        skills.steps.length !== 13 || skills.handoff_messages_sent !== 0 ||
+        !Array.isArray(skills.proposed_handoffs) ||
+        skills.proposed_handoffs.length !== skills.steps.length - 1) {
+      throw new Error("Invalid step review");
+    }
     const stepFragment = document.createDocumentFragment();
     for (const step of skills.steps) {
       if (!step || typeof step.label !== "string" ||
@@ -218,8 +227,24 @@ missionForm.addEventListener("submit", async event => {
           " · declared skill only, runtime unverified" : "No matching declared skill");
       stepFragment.appendChild(item);
     }
+    const handoffFragment = document.createDocumentFragment();
+    for (const handoff of skills.proposed_handoffs) {
+      if (!handoff || handoff.message_sent !== false ||
+          handoff.delivery_verified !== false ||
+          handoff.authority_transferred !== false ||
+          !["advisory_unverified", "blocked_missing_skill_match"].includes(handoff.state)) {
+        throw new Error("Invalid handoff proof boundary");
+      }
+      const item = document.createElement("li");
+      item.textContent = handoff.from_step + " → " + handoff.to_step +
+        " · " + handoff.state.replaceAll("_", " ") +
+        (handoff.cross_family === true ? " · across family homes" : "") +
+        " · no message sent";
+      handoffFragment.appendChild(item);
+    }
     if (version !== missionRequest) return;
     missionStepResults.replaceChildren(stepFragment);
+    missionHandoffs.replaceChildren(handoffFragment);
     missionStatus.textContent = data.active_team.length +
       " reviewers recommended · Founder Final · No agents activated · Runtime availability unknown" +
       (data.coverage_warnings.length ? " · Review coverage warnings" : "");
@@ -227,6 +252,7 @@ missionForm.addEventListener("submit", async event => {
     if (version !== missionRequest) return;
     missionResults.replaceChildren();
     missionStepResults.replaceChildren();
+    missionHandoffs.replaceChildren();
     missionStatus.textContent = "Recommendation unavailable or invalid. No team activated.";
   }
 });
