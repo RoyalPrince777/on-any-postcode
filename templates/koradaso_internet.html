@@ -121,6 +121,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
  .hero h1{font-size:1.85rem}
 }
 
+.royal-menu .menu-unavailable{display:block;padding:12px 10px;color:#b4a6bc;opacity:.75;font-size:.85rem;border-top:1px solid #5d446b;cursor:default}
 /* Founder-approved KORADASO header: SMI at search, Arena in shortcuts,
    settings in menu. Existing first-party routes and search controls remain. */
 .top .royal-menu{position:relative;flex:0 0 auto}
@@ -139,7 +140,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="shell">
-<header class="top"><a class="brand" href="/koradaso" aria-label="KORADASO homepage">♛ KORADASO</a><span class="tag">OAP LOCAL · FIRST PARTY</span><details class="royal-menu"><summary aria-label="KORADASO browser menu">⋮</summary><nav aria-label="Browser menu"><a href="#browser-settings">⚙ Settings &amp; Privacy</a><a href="#bookmark-list">★ Saved bookmarks</a><a href="/koradaso/web-search">⌕ KORADASO WWW</a></nav></details></header>
+<header class="top"><a class="brand" href="/koradaso" aria-label="KORADASO homepage">♛ KORADASO</a><span class="tag">OAP LOCAL · FIRST PARTY</span><details class="royal-menu"><summary aria-label="KORADASO browser menu">⋮</summary><nav aria-label="Browser menu"><a href="#browser-settings">⚙ Settings &amp; Privacy</a><span class="menu-unavailable" aria-disabled="true">⬇ Downloads · Not ready</span><a href="#bookmark-list">★ Saved bookmarks</a><a href="/koradaso/web-search">⌕ KORADASO WWW</a></nav></details></header>
 <nav class="royal-tabs" aria-label="KORADASO browser destinations"><a class="royal-tab selected" aria-current="page" href="/koradaso">♛ Home</a><a class="royal-tab" href="/search">⌕ Search</a><a class="royal-tab" href="#bookmark-list">★ Bookmarks</a><a class="royal-tab" href="#browser-settings">⚙</a></nav>
 <main id="main">
 <section class="hero" aria-label="KORADASO Internet home">
@@ -164,7 +165,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>Reserved · Not ready</span></div>
 <a class="tile" href="/world"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>OAP Marketplace</span></a>
 <a class="tile" href="/arena"><span class="ico" aria-hidden="true">♟</span><strong>Arena</strong><span>OAP games &amp; challenges</span></a>
-<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">⬇</span><strong>Downloads</strong><span>Reserved · Not ready</span></div>
+
 <a class="tile" href="#bookmark-list"><span class="ico" aria-hidden="true">★</span><strong>Saved</strong><span>Browser bookmarks</span></a>
 </div>
 <div class="bookmark-heading"><h2>★ BOOKMARKS</h2><button type="button" class="action" id="bookmark-add">+ Save page</button></div>
