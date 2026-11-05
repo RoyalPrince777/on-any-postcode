@@ -118,7 +118,7 @@ def test_koradaso_shortcuts_keep_ready_world_market_search_and_settings(client):
     assert 'href="/world?source=oap-os"' in source
     assert 'href="/search"' in source
     assert 'href="#browser-settings"' in source
-    for label in ("Maps", "Mail", "Downloads"):
+    for label in ("Maps", "Mail"):
         assert f"<strong>{label}</strong><span>Reserved · Not ready</span>" in source
     assert client.get("/world").status_code == 200
     assert client.get("/world?source=oap-os").status_code == 200
@@ -137,6 +137,8 @@ def test_koradaso_royal_smi_arena_and_settings_menu_preserve_boundaries(client):
     assert '<strong>Settings</strong>' not in html
     assert 'class="royal-menu"' in html
     assert '<a href="#browser-settings">⚙ Settings &amp; Privacy</a>' in source
+    assert '<span class="menu-unavailable" aria-disabled="true">⬇ Downloads · Not ready</span>' in source
+    assert "<strong>Downloads</strong>" not in source
     assert 'id="browser-settings"' in source
     assert 'id="address-form"' in source
     assert client.get("/arena").status_code in (200, 302)
