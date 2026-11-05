@@ -118,10 +118,29 @@ def test_koradaso_shortcuts_keep_ready_world_market_search_and_settings(client):
     assert 'href="/world?source=oap-os"' in source
     assert 'href="/search"' in source
     assert 'href="#browser-settings"' in source
-    for label in ("Maps", "Mail", "AI", "Downloads"):
+    for label in ("Maps", "Mail", "Downloads"):
         assert f"<strong>{label}</strong><span>Reserved · Not ready</span>" in source
     assert client.get("/world").status_code == 200
     assert client.get("/world?source=oap-os").status_code == 200
+
+
+def test_koradaso_royal_smi_arena_and_settings_menu_preserve_boundaries(client):
+    source = SOURCE.read_text(encoding="utf-8")
+    response = client.get("/koradaso")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'class="smi-entry"' in html
+    assert 'href="/auth?next=/mission/ollama"' in html
+    assert 'href="/arena"' in html
+    assert '<strong>Arena</strong>' in html
+    assert '<strong>Saved</strong>' in html
+    assert '<strong>Settings</strong>' not in html
+    assert 'class="royal-menu"' in html
+    assert '<a href="#browser-settings">⚙ Settings &amp; Privacy</a>' in source
+    assert 'id="browser-settings"' in source
+    assert 'id="address-form"' in source
+    assert client.get("/arena").status_code in (200, 302)
+    assert "https://duckduckgo.com" not in source
 
 
 def test_koradaso_mobile_layout_keeps_omnibox_and_controls_accessible():
