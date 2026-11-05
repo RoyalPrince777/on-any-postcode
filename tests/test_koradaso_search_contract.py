@@ -145,6 +145,27 @@ def test_koradaso_royal_smi_arena_and_settings_menu_preserve_boundaries(client):
     assert "https://duckduckgo.com" not in source
 
 
+def test_koradaso_arena_and_discovery_tabs_are_truthful(client):
+    html = client.get("/koradaso").get_data(as_text=True)
+    assert 'class="tile arena-tile" href="/arena"' in html
+    assert "Play OAP games · Challenge hub" in html
+    assert 'class="discovery-strip"' in html
+    assert '<a href="/search">All OAP</a>' in html
+    assert '<a href="/koradaso/web-search">WWW Index</a>' in html
+    assert "Images · Soon" in html
+    assert "Videos · Soon" in html
+    assert 'title="Image indexing not yet available"' in html
+    assert 'title="Video indexing not yet available"' in html
+
+    arena = client.get("/arena")
+    assert arena.status_code == 200
+    arena_html = arena.get_data(as_text=True)
+    assert 'OAP <span class="arena-gold">ARENA</span>' in arena_html
+    for route in ("/arena/connect4/room", "/arena/chess/room",
+                  "/arena/oware/room", "/arena/ludo/room"):
+        assert f'href="{route}"' in arena_html
+
+
 def test_koradaso_mobile_layout_keeps_omnibox_and_controls_accessible():
     source = SOURCE.read_text(encoding="utf-8")
     assert "Redmi A5 responsive polish" in source
