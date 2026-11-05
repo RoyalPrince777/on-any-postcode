@@ -120,22 +120,36 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
  .search button{padding:9px 10px;font-size:.8rem}
  .hero h1{font-size:1.85rem}
 }
+
+/* Founder-approved KORADASO header: SMI at search, Arena in shortcuts,
+   settings in menu. Existing first-party routes and search controls remain. */
+.top .royal-menu{position:relative;flex:0 0 auto}
+.royal-menu summary{list-style:none;display:grid;place-items:center;width:42px;min-height:42px;border:1px solid #bb975c;border-radius:13px;color:#f5d185;font-size:1.5rem;cursor:pointer;background:#20152e}
+.royal-menu summary::-webkit-details-marker{display:none}
+.royal-menu nav{position:absolute;z-index:10;right:0;top:calc(100% + 7px);width:min(260px,83vw);display:grid;gap:4px;padding:10px;border:1px solid #b78e56;border-radius:15px;background:#131023;box-shadow:0 10px 35px #000b}
+.royal-menu nav a{padding:12px 10px;border-radius:8px;color:#f2d399}
+.royal-menu nav a:focus-visible,.royal-menu summary:focus-visible,.smi-entry:focus-visible{outline:3px solid #dbb0ff;outline-offset:3px}
+.search-row{display:flex;align-items:center;gap:8px;margin:14px 0 6px}
+.search-row .search{margin:0;flex:1 1 0;min-width:0}
+.smi-entry{flex:0 0 48px;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;border:2px solid #e4be69;background:radial-gradient(circle at 45% 28%,#664597,#281a44 62%,#0b0918);box-shadow:0 0 14px #a16bda99,inset 0 0 12px #f6ce7530;text-decoration:none}
+.smi-entry span{font:700 .74rem Georgia,serif;letter-spacing:.045em;color:#ffdf90;text-shadow:0 0 5px #deb877}
+@media(max-width:520px){.top .tag{max-width:118px}.royal-menu summary{width:42px}.search-row{gap:7px;margin:12px 0 6px}.smi-entry{flex-basis:44px;width:44px;height:44px}.search-row .search{min-width:0}.search-row .search input{font-size:.81rem;padding-inline:5px}.search-row .search button{padding-inline:8px;font-size:.77rem}}
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="shell">
-<header class="top"><span class="brand">♛ KORADASO</span><span class="tag">OAP LOCAL · FIRST PARTY</span></header>
+<header class="top"><a class="brand" href="/koradaso" aria-label="KORADASO homepage">♛ KORADASO</a><span class="tag">OAP LOCAL · FIRST PARTY</span><details class="royal-menu"><summary aria-label="KORADASO browser menu">⋮</summary><nav aria-label="Browser menu"><a href="#browser-settings">⚙ Settings &amp; Privacy</a><a href="#bookmark-list">★ Saved bookmarks</a><a href="/koradaso/web-search">⌕ KORADASO WWW</a></nav></details></header>
 <nav class="royal-tabs" aria-label="KORADASO browser destinations"><a class="royal-tab selected" aria-current="page" href="/koradaso">♛ Home</a><a class="royal-tab" href="/search">⌕ Search</a><a class="royal-tab" href="#bookmark-list">★ Bookmarks</a><a class="royal-tab" href="#browser-settings">⚙</a></nav>
 <main id="main">
 <section class="hero" aria-label="KORADASO Internet home">
 <div class="crown" aria-hidden="true">♛</div><div class="crest" aria-hidden="true"><span>K</span></div>
 <h1>KORADASO</h1><div class="subtitle">INTERNET</div><div class="powered">POWERED BY ON ANY POSTCODE</div>
 </section>
-<form class="search" id="address-form" role="search">
+<div class="search-row"><a class="smi-entry" href="/auth?next=/mission/ollama" aria-label="Open existing private SMI intelligence sign-in"><span aria-hidden="true">SMI</span></a><form class="search" id="address-form" role="search">
 <input id="address" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Website address" placeholder="Search or type a website address…" required>
 <button type="submit">Search / Go</button>
-</form>
+</form></div>
 <div class="search-mode" role="group" aria-label="Search destination">
 <label><input type="radio" name="search-mode" value="oap" checked> OAP Search</label>
 <label><input type="radio" name="search-mode" value="web"> WWW Search</label>
@@ -149,9 +163,9 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Reserved · Not ready</span></div>
 <div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>Reserved · Not ready</span></div>
 <a class="tile" href="/world"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>OAP Marketplace</span></a>
-<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">✦</span><strong>AI</strong><span>Reserved · Not ready</span></div>
+<a class="tile" href="/arena"><span class="ico" aria-hidden="true">♟</span><strong>Arena</strong><span>OAP games &amp; challenges</span></a>
 <div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">⬇</span><strong>Downloads</strong><span>Reserved · Not ready</span></div>
-<a class="tile" href="#browser-settings"><span class="ico" aria-hidden="true">⚙</span><strong>Settings</strong><span>Privacy & search</span></a>
+<a class="tile" href="#bookmark-list"><span class="ico" aria-hidden="true">★</span><strong>Saved</strong><span>Browser bookmarks</span></a>
 </div>
 <div class="bookmark-heading"><h2>★ BOOKMARKS</h2><button type="button" class="action" id="bookmark-add">+ Save page</button></div>
 <div class="shortcuts" aria-label="Website shortcuts" id="bookmark-list">
