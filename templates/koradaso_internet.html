@@ -122,6 +122,13 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 }
 
 .royal-menu .menu-unavailable{display:block;padding:12px 10px;color:#b4a6bc;opacity:.75;font-size:.85rem;border-top:1px solid #5d446b;cursor:default}
+/* Genuine search destinations versus unavailable media indexes. */
+.discovery-strip{display:flex;align-items:center;gap:7px;overflow-x:auto;scrollbar-width:thin;padding:7px 1px 10px}
+.discovery-strip a,.discovery-strip span{flex:0 0 auto;font-size:.76rem;white-space:nowrap;padding:9px 11px;border:1px solid #8b6a4e;border-radius:999px;background:#191225;color:#f1d49d}
+.discovery-strip span{border-style:dashed;color:#b2a8bd;cursor:default}
+.discovery-strip a:focus-visible{outline:3px solid #dbb0ff;outline-offset:2px}
+.arena-tile{border-color:#f7ce79;box-shadow:0 0 15px #a659ea33,inset 0 1px #f9d68b66}
+@media(max-width:520px){.discovery-strip a,.discovery-strip span{font-size:.72rem;padding:9px 10px}}
 /* Founder-approved KORADASO header: SMI at search, Arena in shortcuts,
    settings in menu. Existing first-party routes and search controls remain. */
 .top .royal-menu{position:relative;flex:0 0 auto}
@@ -155,6 +162,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <label><input type="radio" name="search-mode" value="oap" checked> OAP Search</label>
 <label><input type="radio" name="search-mode" value="web"> WWW Search</label>
 </div>
+<nav class="discovery-strip" aria-label="KORADASO discovery categories"><a href="/search">All OAP</a><a href="/koradaso/web-search">WWW Index</a><span aria-disabled="true" title="Image indexing not yet available">Images · Soon</span><span aria-disabled="true" title="Video indexing not yet available">Videos · Soon</span></nav>
 <p class="trust-state" id="trust-state" role="status">OAP FIRST PARTY · Catalogue search</p>
 <p class="note" id="address-note" role="status">OAP Search finds public OAP apps. WWW Search checks OAP’s own indexed public web pages; coverage is limited while indexing grows. Direct HTTPS sites open with confirmation.</p>
 <h2>EXPLORE YOUR WORLD</h2>
@@ -164,7 +172,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Reserved · Not ready</span></div>
 <div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>Reserved · Not ready</span></div>
 <a class="tile" href="/world"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>OAP Marketplace</span></a>
-<a class="tile" href="/arena"><span class="ico" aria-hidden="true">♟</span><strong>Arena</strong><span>OAP games &amp; challenges</span></a>
+<a class="tile arena-tile" href="/arena"><span class="ico" aria-hidden="true">♟</span><strong>Arena</strong><span>Play OAP games · Challenge hub</span></a>
 
 <a class="tile" href="#bookmark-list"><span class="ico" aria-hidden="true">★</span><strong>Saved</strong><span>Browser bookmarks</span></a>
 </div>
