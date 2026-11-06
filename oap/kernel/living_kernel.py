@@ -188,11 +188,38 @@ class LivingKernel:
         return state
 
     def status(self) -> dict[str, object]:
+        """Read-only, fail-closed component readiness; not production certification."""
+        dependencies: dict[str, dict[str, object]] = {}
+        for name, component in (
+            ("human_approval", self.authority),
+            ("builder", self.builder),
+            ("hrm", self.hrm),
+        ):
+            try:
+                snapshot = component.status()
+                dependencies[name] = (
+                    snapshot if isinstance(snapshot, dict)
+                    else {"ready": False, "reason": "invalid_status"}
+                )
+            except Exception:  # noqa: BLE001 - health reporting must fail closed.
+                dependencies[name] = {"ready": False, "reason": "status_unavailable"}
+
+        builder = dependencies["builder"]
+        registered = builder.get("registered_actions", ())
+        ready = (
+            all(item.get("ready") is True for item in dependencies.values())
+            and dependencies["hrm"].get("audit_ready") is True
+            and isinstance(registered, (tuple, list))
+            and bool(registered)
+        )
         return {
             "component": "Living Kernel",
-            "ready": True,
+            "ready": ready,
             "role": "approved_action_coordinator",
             "brain": False,
             "independent_approval": False,
-            "builder": self.builder.status(),
+            "human_approval": dependencies["human_approval"],
+            "builder": builder,
+            "hrm": dependencies["hrm"],
+            "production_certified": False,
         }

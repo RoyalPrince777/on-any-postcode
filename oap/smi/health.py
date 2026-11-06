@@ -14,15 +14,37 @@ class SMIHealthService:
         self.kernel = kernel
 
     def check(self) -> dict[str, object]:
-        brain = self.brain.status()
-        kernel = self.kernel.status() if self.kernel else {
-            "component": "Living Kernel",
-            "ready": False,
-            "reason": "Not wired",
-        }
+        """Never mark the organism healthy with an unwired or degraded heart."""
+        try:
+            brain = self.brain.status()
+            if not isinstance(brain, dict):
+                brain = {"ready": False, "reason": "invalid_status"}
+        except Exception:  # noqa: BLE001 - a health probe must fail closed.
+            brain = {"ready": False, "reason": "status_unavailable"}
+
+        if self.kernel is None:
+            kernel = {
+                "component": "Living Kernel",
+                "ready": False,
+                "reason": "Not wired",
+            }
+        else:
+            try:
+                kernel = self.kernel.status()
+                if not isinstance(kernel, dict):
+                    kernel = {"ready": False, "reason": "invalid_status"}
+            except Exception:  # noqa: BLE001 - a health probe must fail closed.
+                kernel = {"ready": False, "reason": "status_unavailable"}
+
+        blockers = tuple(
+            name
+            for name, snapshot in (("brain", brain), ("living_kernel", kernel))
+            if snapshot.get("ready") is not True
+        )
         return {
             "timestamp": utc_now().isoformat(),
-            "status": "healthy" if brain["ready"] else "degraded",
+            "status": "degraded" if blockers else "healthy",
+            "readiness_blockers": blockers,
             "brain": brain,
             "kernel": kernel,
             "human_approval_final": True,

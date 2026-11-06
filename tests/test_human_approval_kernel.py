@@ -352,3 +352,43 @@ def test_evolution_can_propose_but_never_self_apply():
     assert proposal.requires_human_approval is True
     with pytest.raises(PermissionError, match="cannot self-apply"):
         EvolutionEngine().apply(proposal)
+
+
+def test_kernel_status_fails_closed_without_registered_builder_actions():
+    _, brain, authority = _runtime()
+    status = LivingKernel(authority, BuilderRegistry(), brain.hrm).status()
+    assert status["ready"] is False
+    assert status["production_certified"] is False
+    assert status["human_approval"]["ready"] is True
+    assert status["hrm"]["ready"] is True
+    assert status["builder"]["registered_actions"] == ()
+
+
+def test_kernel_status_requires_hrm_audit_and_component_readiness(monkeypatch):
+    _, brain, authority = _runtime()
+    builder = BuilderRegistry()
+    builder.register("record_status", lambda payload, context: None)
+    kernel = LivingKernel(authority, builder, brain.hrm)
+    assert kernel.status()["ready"] is True
+
+    original = brain.hrm.status
+    monkeypatch.setattr(
+        brain.hrm, "status", lambda: {**original(), "audit_ready": False}
+    )
+    assert kernel.status()["ready"] is False
+
+
+def test_kernel_status_degrades_if_dependency_probe_raises(monkeypatch):
+    _, brain, authority = _runtime()
+    builder = BuilderRegistry()
+    builder.register("record_status", lambda payload, context: None)
+    kernel = LivingKernel(authority, builder, brain.hrm)
+
+    def unavailable():
+        raise RuntimeError("sensitive dependency failure")
+
+    monkeypatch.setattr(brain.hrm, "status", unavailable)
+    status = kernel.status()
+    assert status["ready"] is False
+    assert status["hrm"] == {"ready": False, "reason": "status_unavailable"}
+    assert "sensitive dependency failure" not in str(status)
