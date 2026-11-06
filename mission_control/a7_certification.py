@@ -108,6 +108,16 @@ def _count_independently_verified_action_sql(action: str) -> str:
     )
 
 
+def _count_runtime_halt_proof_sql(action: str) -> str:
+    """Only real halt verification can satisfy A7, never an in-memory exercise."""
+    return (
+        "(SELECT COUNT(*) FROM audit_events WHERE action='"
+        + action
+        + "' AND metadata->>'passed'='true'"
+        + " AND metadata->>'runtime_halt_verified'='true')"
+    )
+
+
 def _production_counts() -> dict[str, object]:
     evidence: dict[str, object] = {
         "store_reachable": False,
@@ -136,7 +146,7 @@ def _production_counts() -> dict[str, object]:
                 _count_action_sql(A6_CONSEQUENTIAL_CHAIN_ACTION),
                 _count_independently_verified_action_sql(A7_EXTERNAL_AUDIT_ACTION),
                 _count_independently_verified_action_sql(A7_LEGAL_COMPLIANCE_ACTION),
-                _count_action_sql(A7_EMERGENCY_HALT_ACTION),
+                _count_runtime_halt_proof_sql(A7_EMERGENCY_HALT_ACTION),
                 _count_action_sql(A7_PUBLIC_PRIVATE_ACTION),
                 _count_action_sql(A7_CONSTITUTIONAL_REVIEW_ACTION),
             )
@@ -715,6 +725,8 @@ def run_emergency_halt_proof(identity_id: object) -> dict[str, object]:
             metadata={
                 "passed": True,
                 "halt_signal_observed": True,
+                "runtime_halt_verified": False,
+                "in_memory_exercise_only": True,
                 "new_work_denied": True,
                 "safe_state_reached": True,
                 "human_resume_required": True,
