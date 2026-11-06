@@ -789,7 +789,10 @@ def chat_events(
                     except queue.Empty:
                         continue
 
-    threading.Thread(target=worker, name="oap-smi-stream-facade", daemon=True).start()
+    worker_thread = threading.Thread(
+        target=worker, name="oap-smi-stream-facade", daemon=True
+    )
+    worker_thread.start()
     finished = False
     try:
         while True:
@@ -806,3 +809,6 @@ def chat_events(
     finally:
         if not finished:
             cancellation_token.cancel("stream_closed_by_human")
+            # Bound teardown latency: cooperative workers get a brief exit
+            # window; a non-cooperative provider is NOT certified stopped.
+            worker_thread.join(timeout=0.25)
