@@ -1008,6 +1008,7 @@ def connect4_agent_move():
             agent_piece=2,
             human_piece=1,
             difficulty=payload.get("difficulty", "standard"),
+            agent_key=agent["key"],
         )
         state = connect4.drop(
             state,
