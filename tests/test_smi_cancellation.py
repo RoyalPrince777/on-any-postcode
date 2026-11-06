@@ -102,3 +102,28 @@ def test_inference_gateway_never_falls_back_after_human_stop(monkeypatch):
 
     assert bridge_called is False
     assert fallback_called is False
+
+
+def test_full_stream_queue_does_not_strand_worker_after_human_stop(monkeypatch):
+    """STOP must interrupt the producer even with more than 256 queued updates."""
+    worker_exited = threading.Event()
+    producer_started = threading.Event()
+
+    def noisy_chat(*args, on_event=None, cancellation_token=None, **kwargs):
+        assert on_event is not None and cancellation_token is not None
+        producer_started.set()
+        try:
+            for index in range(2000):
+                cancellation_token.raise_if_cancelled()
+                on_event({"type": "stage", "index": index})
+            return {"response": "completed"}
+        finally:
+            worker_exited.set()
+
+    monkeypatch.setattr(smi_chat_runtime, "chat", noisy_chat)
+    events = smi_chat_runtime.chat_events("status", "founder", "Founder")
+    assert next(events)["type"] == "stage"
+    assert producer_started.wait(timeout=1)
+
+    events.close()
+    assert worker_exited.wait(timeout=2), "stream STOP blocked behind a full event queue"
