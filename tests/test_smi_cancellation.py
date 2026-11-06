@@ -153,3 +153,27 @@ def test_human_stop_preserves_terminal_receipt_with_saturated_queue(monkeypatch)
 
     assert any(event["type"] == "cancelled" for event in remaining)
     assert not any(event["type"] == "complete" for event in remaining)
+
+
+def test_stream_stop_does_not_wait_indefinitely_for_uncooperative_provider(monkeypatch):
+    """A provider ignoring STOP cannot keep the HTTP stream teardown blocked."""
+    blocked = threading.Event()
+    release = threading.Event()
+
+    def uncooperative_chat(*args, on_event=None, cancellation_token=None, **kwargs):
+        assert cancellation_token is not None and on_event is not None
+        on_event({"type": "stage", "stage": "thinking"})
+        blocked.set()
+        release.wait(timeout=3)
+        cancellation_token.raise_if_cancelled()
+
+    monkeypatch.setattr(smi_chat_runtime, "chat", uncooperative_chat)
+    events = smi_chat_runtime.chat_events("status", "founder", "Founder")
+    try:
+        assert next(events)["type"] == "stage"
+        assert blocked.wait(timeout=1)
+        started = time.monotonic()
+        events.close()
+        assert time.monotonic() - started < 1.0
+    finally:
+        release.set()
