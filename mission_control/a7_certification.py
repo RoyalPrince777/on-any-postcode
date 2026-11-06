@@ -130,7 +130,7 @@ def _production_counts() -> dict[str, object]:
         sql = "SELECT " + ",".join(
             (
                 "(SELECT COUNT(*) FROM oap_guardian_reviews WHERE outcome='PASSED')",
-                _count_action_sql(A6_INDEPENDENT_PROOF_ACTION),
+                _count_independently_verified_action_sql(A6_INDEPENDENT_PROOF_ACTION),
                 _count_action_sql(A6_OPERATION_APPROVAL_ACTION),
                 "(SELECT COUNT(*) FROM audit_events WHERE action='" + A6_OPERATION_ROLLBACK_ACTION + "' AND metadata->>'passed'='true' AND metadata->>'operational_rollback_verified'='true')",
                 _count_action_sql(A6_CONSEQUENTIAL_CHAIN_ACTION),
@@ -1004,6 +1004,7 @@ def public_safe_status() -> dict[str, Any]:
         "a6_missing": snapshot["a6_missing"],
         "a7_checks": snapshot["a7_checks"],
         "a7_missing": snapshot["a7_missing"],
+        "readiness": snapshot["readiness"],
         "ready_for_founder_certification": snapshot["ready_for_founder_certification"],
         "certification_granted": False,
         "a7_enabled": False,
