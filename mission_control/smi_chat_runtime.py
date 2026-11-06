@@ -689,6 +689,17 @@ def chat_events(
     cancellation_token = _cancellation.new_token(identity_id)
 
     def emit(item: dict) -> None:
+        # STOP drops stale progress, but retains its terminal cancellation receipt.
+        if cancellation_token.cancelled:
+            if item.get("type") != "cancelled":
+                return
+            while True:
+                try:
+                    event_queue.get_nowait()
+                except queue.Empty:
+                    break
+            event_queue.put_nowait(item)
+            return
         # A saturated stream must not delay Human STOP for up to 60 seconds.
         while not cancellation_token.cancelled:
             try:
