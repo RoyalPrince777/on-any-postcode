@@ -94,6 +94,20 @@ def _count_action_sql(action: str) -> str:
     )
 
 
+def _count_independently_verified_action_sql(action: str) -> str:
+    """References alone never establish external A7 assurance.
+
+    Independent verification must be separately recorded in the audit metadata;
+    Founder-entered external references deliberately do not set this flag.
+    """
+    return (
+        "(SELECT COUNT(*) FROM audit_events WHERE action='"
+        + action
+        + "' AND metadata->>'passed'='true'"
+        + " AND metadata->>'independent_verification_passed'='true')"
+    )
+
+
 def _production_counts() -> dict[str, object]:
     evidence: dict[str, object] = {
         "store_reachable": False,
@@ -120,8 +134,8 @@ def _production_counts() -> dict[str, object]:
                 _count_action_sql(A6_OPERATION_APPROVAL_ACTION),
                 "(SELECT COUNT(*) FROM audit_events WHERE action='" + A6_OPERATION_ROLLBACK_ACTION + "' AND metadata->>'passed'='true' AND metadata->>'operational_rollback_verified'='true')",
                 _count_action_sql(A6_CONSEQUENTIAL_CHAIN_ACTION),
-                _count_action_sql(A7_EXTERNAL_AUDIT_ACTION),
-                _count_action_sql(A7_LEGAL_COMPLIANCE_ACTION),
+                _count_independently_verified_action_sql(A7_EXTERNAL_AUDIT_ACTION),
+                _count_independently_verified_action_sql(A7_LEGAL_COMPLIANCE_ACTION),
                 _count_action_sql(A7_EMERGENCY_HALT_ACTION),
                 _count_action_sql(A7_PUBLIC_PRIVATE_ACTION),
                 _count_action_sql(A7_CONSTITUTIONAL_REVIEW_ACTION),
@@ -963,6 +977,7 @@ def record_evidence_reference(
                 "attestor_type": attestor_value,
                 "external_required": external_required,
                 "software_verified_external_authenticity": False,
+                "independent_verification_passed": False,
                 "execution_granted": False,
                 "authority_level": 0,
             },
