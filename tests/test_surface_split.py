@@ -350,7 +350,9 @@ def test_smi_local_flask_launcher_is_loopback_only_and_preserves_auth():
     assert 'OAP_HUMAN_AUTHORITY_EMAIL=' not in script
 
     assert 'SMI_FLASK_AUTH_NOT_CONFIGURED' in script
-    assert 'SMI Founder verifier prerequisites:' in script
+    assert 'SMI Founder verifier:' in script
     assert 'connection unverified' in script
-    assert 'founder_local_auth.bound()' not in script
+    assert 'founder_local_auth.bound()' in script
+    assert 'local_verifier_bound' in script
+    assert 'if not (managed_ready or local_verifier_bound or recovery_ready):' in script
     assert 'OAP_SESSION_SECRET' in script
