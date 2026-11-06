@@ -689,9 +689,13 @@ def chat_events(
     cancellation_token = _cancellation.new_token(identity_id)
 
     def emit(item: dict) -> None:
-        if cancellation_token.cancelled and item.get("type") not in {"cancelled", "_done"}:
-            return
-        event_queue.put(item, timeout=60)
+        # A saturated stream must not delay Human STOP for up to 60 seconds.
+        while not cancellation_token.cancelled:
+            try:
+                event_queue.put(item, timeout=0.1)
+                return
+            except queue.Full:
+                continue
 
     def worker() -> None:
         try:
@@ -762,7 +766,17 @@ def chat_events(
                     "message": "The governed request did not complete safely.",
                 })
         finally:
-            event_queue.put({"type": "_done"})
+            # A closed consumer may leave the queue full. Never strand the worker
+            # while posting its terminal marker; discard only buffered UI events.
+            while True:
+                try:
+                    event_queue.put_nowait({"type": "_done"})
+                    break
+                except queue.Full:
+                    try:
+                        event_queue.get_nowait()
+                    except queue.Empty:
+                        continue
 
     threading.Thread(target=worker, name="oap-smi-stream-facade", daemon=True).start()
     finished = False
