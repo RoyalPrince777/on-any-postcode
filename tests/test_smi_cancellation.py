@@ -127,3 +127,29 @@ def test_full_stream_queue_does_not_strand_worker_after_human_stop(monkeypatch):
 
     events.close()
     assert worker_exited.wait(timeout=2), "stream STOP blocked behind a full event queue"
+
+
+def test_human_stop_preserves_terminal_receipt_with_saturated_queue(monkeypatch):
+    """Queued progress cannot hide the explicit STOP receipt or create completion."""
+    release_flood = threading.Event()
+    stop_recorded = threading.Event()
+
+    def flooding_chat(*args, on_event=None, cancellation_token=None, **kwargs):
+        assert on_event is not None and cancellation_token is not None
+        on_event({"type": "stage", "index": -1})
+        assert release_flood.wait(timeout=2)
+        for index in range(256):
+            on_event({"type": "stage", "index": index})
+        cancellation_token.cancel("human_stop")
+        stop_recorded.set()
+        cancellation_token.raise_if_cancelled()
+
+    monkeypatch.setattr(smi_chat_runtime, "chat", flooding_chat)
+    events = smi_chat_runtime.chat_events("status", "founder", "Founder")
+    assert next(events)["type"] == "stage"
+    release_flood.set()
+    assert stop_recorded.wait(timeout=2)
+    remaining = list(events)
+
+    assert any(event["type"] == "cancelled" for event in remaining)
+    assert not any(event["type"] == "complete" for event in remaining)
