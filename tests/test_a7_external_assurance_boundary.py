@@ -19,7 +19,8 @@ def test_a7_external_aggregates_require_independent_verification(monkeypatch):
 
     assert result["store_reachable"] is True
     sql = connection.execute.call_args.args[0]
-    assert sql.count("independent_verification_passed") == 2
+    assert sql.count("independent_verification_passed") == 3
+    assert result["a6_independent_proof"] == 0
     assert result["a7_external_audit"] == 0
     assert result["a7_legal_compliance"] == 0
 
