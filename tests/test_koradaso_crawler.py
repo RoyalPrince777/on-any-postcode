@@ -18,9 +18,9 @@ def test_public_seed_crawl_indexes_real_html_when_robots_allow(tmp_path, monkeyp
             return 200, "text/plain; charset=utf-8", b"User-agent: *\nAllow: /\n"
         return (
             200, "text/html; charset=utf-8",
-            b"<html><head><title>Oware club</title>"
-            b'<meta name="description" content="A real local gathering">'
-            b"</head><body><script>private data</script>Public club</body></html>",
+            (b"<html><head><title>Oware club</title>"
+             b'<meta name="description" content="A real local gathering">'
+             b"</head><body><script>private data</script>Public club</body></html>"),
         )
 
     monkeypatch.setattr(koradaso_crawler, "_fetch", fetch)
