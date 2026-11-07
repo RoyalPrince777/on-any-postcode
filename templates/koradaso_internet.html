@@ -6,6 +6,7 @@
 <meta name="color-scheme" content="dark">
 <meta name="referrer" content="no-referrer">
 <title>KORADASO Internet · ON ANY POSTCODE</title>
+<link rel="icon" type="image/jpeg" href="/static/oap/koradaso_internet_logo.jpg">
 <style>
 :root{--night:#050713;--panel:#111121;--gold:#f4cb74;--muted:#c5b5a0;--violet:#9b62e8;--line:#765b37;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 52% -13%,#302050 0%,#0d1024 41%,var(--night) 75%);color:#fff8ea;font:16px/1.45 system-ui,sans-serif}
@@ -13,12 +14,15 @@ a{color:inherit;text-decoration:none}button,input{font:inherit}
 .skip{position:absolute;left:-9999px}.skip:focus{left:12px;top:12px;background:#fff;color:#000;padding:10px;z-index:10}
 .shell{max-width:900px;margin:auto;padding:16px 15px calc(26px + env(safe-area-inset-bottom))}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 20px}.brand{font:700 1rem Georgia,serif;letter-spacing:.09em;color:var(--gold)}.tag{border:1px solid #795b4d;border-radius:20px;padding:5px 10px;font-size:.75rem;color:#e8cbaf}
-.hero{text-align:center;position:relative;isolation:isolate;padding:32px 12px 26px;border:1px solid #917043;border-radius:24px;overflow:hidden;background:radial-gradient(circle at 50% 46%,#2a2052 0,#14192d 34%,#070916 75%);box-shadow:0 0 30px #b2763426,inset 0 0 30px #9b62e80b}
-.hero:before{content:"";position:absolute;inset:-110px 12% auto;border:1px solid #a576c262;border-radius:50%;height:285px;transform:rotate(-16deg);z-index:-1}
-.crest{display:grid;place-items:center;width:142px;height:142px;margin:auto;border:2px solid var(--gold);border-radius:50%;background:radial-gradient(circle,#744eac 0,#29274d 30%,#090d20 70%);box-shadow:0 0 42px #ae79e55e,inset 0 0 22px #edc76b55;position:relative}
-.crest span{font:700 6.4rem/.9 Georgia,serif;color:var(--gold);text-shadow:0 0 12px #d49a65}
-.crown{font-size:2rem;color:var(--gold);line-height:1}.hero h1{font:700 clamp(2.3rem,8vw,4rem)/1.02 Georgia,serif;letter-spacing:.04em;margin:18px 0 4px;color:var(--gold);text-shadow:0 0 18px #bf7e6c66}
-.subtitle{font-weight:600;letter-spacing:.4em;font-size:.8rem}.powered{color:var(--muted);font-size:.75rem;letter-spacing:.16em;margin-top:9px}
+
+
+
+
+
+
+.hero{margin:6px 0 0;overflow:hidden;border:1px solid #f0c66e;border-radius:20px;background:#050306;box-shadow:0 0 18px #9951f455}
+.hero h1{margin:0}
+.hero img{display:block;width:min(100%,410px);height:auto;margin:auto}
 .search{display:flex;gap:8px;border:1px solid var(--gold);border-radius:24px;padding:7px;margin:20px 0 6px;background:#10111e;box-shadow:0 0 15px #b8894933}
 .search input{flex:1;min-width:0;background:transparent;border:0;padding:10px;color:white;outline-offset:4px}.search button,.action{background:linear-gradient(135deg,#ffe1a1,#b88736);border:0;border-radius:16px;color:#211407;font-weight:750;padding:10px 14px;cursor:pointer}
 .search button:focus-visible,.tile:focus-visible,a:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}
@@ -29,22 +33,21 @@ h2{font-size:.9rem;letter-spacing:.12em;color:#edcb83;margin:22px 0 12px}
 .tile .ico{font-size:2rem;filter:drop-shadow(0 0 7px #9162f8)}.tile strong{color:var(--gold);font:700 1.05rem Georgia,serif}.tile span:last-child{font-size:.73rem;color:#c7bbaf}
 .nav{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}.nav a{flex:1;text-align:center;min-width:135px;border:1px solid #776044;border-radius:12px;padding:11px;font-weight:600;color:#f1cf91}
 footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 0;margin-top:16px}
-@media(max-width:490px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:118px}.hero{padding-top:24px}.hero h1{font-size:2.35rem}.crest{width:119px;height:119px}.crest span{font-size:5.5rem}}
+@media(max-width:490px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:118px}}
 @media(prefers-reduced-motion:reduce){*,*:before{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
- 
 /* Royal KORADASO mobile hierarchy: verified OAP destinations and reserved tiles. */
 :root{--gold:#f5cd77;--violet:#a66bff}
 .top{padding:8px 2px 11px;border-bottom:1px solid #a57b46;position:relative}
 .top:before{content:"♛";color:var(--gold);font-size:1.35rem;margin-right:8px}
 .brand{margin-right:auto}.tag{border-color:#815bbb}
 .shell{max-width:650px;padding:9px 11px calc(35px + env(safe-area-inset-bottom));border-inline:1px solid #3e2b4e}
-.hero{margin-top:10px;padding:21px 10px 20px;border-radius:20px;background:radial-gradient(ellipse at 50% 56%,#513b82 0%,#231c49 27%,#100b23 57%,#060816 79%);box-shadow:0 0 16px #f0b65b55,inset 0 0 36px #b35afb38}
-.hero:after{content:"";position:absolute;inset:18px 8px;border:2px solid #b887eb66;border-radius:50%;transform:rotate(-27deg);pointer-events:none}
-.crest{width:166px;height:166px;background:radial-gradient(circle at 55% 40%,#f2c872 0%,#a97b22 14%,#2c1b49 16%,#332058 37%,#0f0a1e 71%);box-shadow:0 0 26px #f8c56d66,inset 0 0 20px #f7c06d66}
-.crest span{font-size:7.5rem;text-shadow:0 0 5px #fff9be,0 0 15px #ffc94e,3px 4px #693f19}
-.crown{text-shadow:0 0 18px #f6cd56;font-size:2.6rem}
-.hero h1{font-size:clamp(2.1rem,10vw,3.7rem);text-shadow:0 1px #fff4ba,0 0 20px #f3a54f99}
-.subtitle{color:#fff6dc;letter-spacing:.44em}
+
+
+
+
+
+
+
 .search{border-color:#ffe59f;box-shadow:0 0 15px #9b47ff55,0 0 10px #ffc75944;border-radius:27px}
 .grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:8px}
 .tile{grid-column:span 3;min-height:111px;border-color:#d9ad66;box-shadow:inset 0 1px #fff3,0 0 10px #6c35c044}
@@ -54,7 +57,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 .browser-bar{display:flex;justify-content:space-around;gap:7px;border:1px solid #c69a57;border-radius:18px;background:#10101b;padding:9px;margin:17px 0}
 .browser-bar a{flex:1;text-align:center;color:#f1cd8d;border:1px solid #736044;border-radius:12px;padding:9px 4px;font-size:.86rem}
 .browser-settings{border:1px solid #8b6b3a;border-radius:16px;padding:12px 14px;margin:16px 0;background:#10101b}.browser-settings summary{cursor:pointer;color:var(--gold);font-weight:700}.browser-settings p{font-size:.82rem;color:#d1c5b1}.browser-settings label{display:flex;align-items:center;gap:9px;font-size:.9rem}.browser-bar button{flex:1;color:#f1cd8d;border:1px solid #736044;border-radius:12px;padding:9px 4px;font-size:.86rem;background:transparent;cursor:pointer}.browser-bar button:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}body.reduce-motion *,body.reduce-motion *:before,body.reduce-motion *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.bookmark-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}.bookmark-heading h2{margin:14px 0}.bookmark-heading .action{font-size:.8rem;padding:8px 12px}.bookmark-remove{background:transparent;color:#ffd991;border:0;cursor:pointer;padding:3px 6px}.bookmark-saved{display:inline-flex;align-items:center;gap:5px;background:#141423;border:1px solid #65553d;border-radius:10px;padding-left:10px}.bookmark-saved a{padding:8px 0!important;border:0!important}.shortcuts{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}.shortcuts a{padding:8px 10px;background:#141423;border:1px solid #65553d;border-radius:10px;font-size:.78rem}
-@media(max-width:490px){.tile:nth-child(-n+3){min-height:118px}.tile{min-height:105px}.hero{padding-top:18px}.crest{width:139px;height:139px}.crest span{font-size:6rem}}
+@media(max-width:490px){.tile:nth-child(-n+3){min-height:118px}.tile{min-height:105px}}
 .tile.is-reserved{opacity:.63;border-style:dashed;cursor:default;box-shadow:none}
 .tile.is-reserved .ico{filter:none}.tile.is-reserved span:last-child{color:#e0c590}
 .search-mode{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:13px 0 4px}
@@ -68,15 +71,15 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 .royal-tabs{display:flex;gap:6px;align-items:center;overflow-x:auto;padding:9px 2px 12px;scrollbar-width:thin;scrollbar-color:#8d65bf #090b1b}
 .royal-tab{flex:0 0 auto;min-height:39px;padding:9px 14px;border-radius:15px 15px 5px 5px;border:1px solid #765f43;background:linear-gradient(#1b1429,#090c18);color:#ecd093;font-size:.78rem;font-weight:750}
 .royal-tab.selected{background:linear-gradient(145deg,#3e254e,#100e20);border-color:#f0c577;box-shadow:inset 0 2px #f7e2a055,0 0 12px #a349f244}
-.hero{border:1px solid #f0c66e;background:radial-gradient(ellipse at 48% 55%,#6546a6 0%,#241143 28%,#090917 75%);box-shadow:0 0 22px #f3b95b44,inset 0 0 45px #a252f155}
-.crest{width:min(55vw,218px);height:min(55vw,218px);border:3px solid #fce1a0;background:radial-gradient(circle at 42% 35%,#e4bf77 0%,#8b5425 22%,#29204c 24%,#090a19 61%),repeating-linear-gradient(90deg,transparent 0 26px,#e3bb6a66 27px 28px);box-shadow:0 0 12px #ffce76,0 0 45px #9953e7aa,inset 0 0 20px #ffebad88}
-.crest:before{content:"🌍";position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(5.2rem,22vw,10rem);opacity:.36;filter:sepia(1) saturate(3) hue-rotate(345deg)}
-.crest span{position:relative;z-index:1;font-size:clamp(7rem,31vw,11rem);line-height:1;color:#f8d888;-webkit-text-stroke:1px #fff0a9;text-shadow:2px 2px #623c20,0 0 6px #fff0b7,0 0 20px #eaac5f}
-.hero h1{font-size:clamp(2rem,9vw,3.65rem);letter-spacing:.02em}
+
+
+
+
+
 .tile{border:1px solid #c79b55;border-radius:15px;background:linear-gradient(155deg,#302045,#0a0b17 72%);box-shadow:inset 0 1px #ffdb9955,0 0 8px #ab60e733}
 .tile:not(.is-reserved):focus-visible,.royal-tab:focus-visible{outline:3px solid #d9b0ff;outline-offset:3px}
 .search{background:linear-gradient(#171128,#080c16);border-color:#f3cd85;box-shadow:0 0 0 1px #6d329a,0 0 20px #9951f466}
-@media(max-width:490px){.crest{width:158px;height:158px}.crest span{font-size:7.5rem}.crest:before{font-size:7.5rem}.royal-tab{padding:9px 11px}}
+@media(max-width:490px){.royal-tab{padding:9px 11px}}
 
 /* Redmi A5 responsive polish: preserve existing royal layout and live controls. */
 @media(max-width:520px){
@@ -87,16 +90,6 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
  .tag{font-size:.65rem;line-height:1.25;max-width:150px;padding:7px 9px;text-align:center}
  .royal-tabs{gap:5px;padding:7px 0 10px}
  .royal-tab{min-height:42px;padding:10px 11px;font-size:.76rem;white-space:nowrap}
- .hero{margin-top:5px;padding:15px 9px 17px;border-radius:19px}
- .hero:before{height:215px;inset:-68px 13% auto}
- .hero:after{inset:24px 16px}
- .crown{font-size:1.7rem}
- .crest{width:122px;height:122px}
- .crest span{font-size:5.9rem}
- .crest:before{font-size:5.8rem}
- .hero h1{font-size:clamp(1.9rem,9vw,2.8rem);margin:11px 0 3px;letter-spacing:.015em}
- .subtitle{font-size:.71rem;letter-spacing:.33em}
- .powered{font-size:.62rem;letter-spacing:.085em;margin-top:6px}
  .search{gap:5px;margin:14px 0 6px;padding:5px;min-width:0;border-radius:20px}
  .search input{min-width:0;width:0;flex:1 1 0;padding:12px 8px;font-size:.91rem;text-overflow:ellipsis}
  .search button{flex:0 0 auto;min-height:46px;padding:10px 12px;border-radius:15px;font-size:.85rem;white-space:nowrap}
@@ -118,7 +111,6 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
  .tag{max-width:124px;font-size:.6rem}
  .royal-tab{font-size:.7rem;padding:9px 8px}
  .search button{padding:9px 10px;font-size:.8rem}
- .hero h1{font-size:1.85rem}
 }
 
 .royal-menu .menu-unavailable{display:block;padding:12px 10px;color:#b4a6bc;opacity:.75;font-size:.85rem;border-top:1px solid #5d446b;cursor:default}
@@ -129,19 +121,16 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 .discovery-strip a:focus-visible{outline:3px solid #dbb0ff;outline-offset:2px}
 .arena-tile{border-color:#f7ce79;box-shadow:0 0 15px #a659ea33,inset 0 1px #f9d68b66}
 @media(max-width:520px){.discovery-strip a,.discovery-strip span{font-size:.72rem;padding:9px 10px}}
-/* Founder-approved KORADASO header: SMI at search, Arena in shortcuts,
-   settings in menu. Existing first-party routes and search controls remain. */
+/* KORADASO navigation keeps browser settings within reach of the search box. */
 .top .royal-menu{position:relative;flex:0 0 auto}
 .royal-menu summary{list-style:none;display:grid;place-items:center;width:42px;min-height:42px;border:1px solid #bb975c;border-radius:13px;color:#f5d185;font-size:1.5rem;cursor:pointer;background:#20152e}
 .royal-menu summary::-webkit-details-marker{display:none}
 .royal-menu nav{position:absolute;z-index:10;right:0;top:calc(100% + 7px);width:min(260px,83vw);display:grid;gap:4px;padding:10px;border:1px solid #b78e56;border-radius:15px;background:#131023;box-shadow:0 10px 35px #000b}
 .royal-menu nav a{padding:12px 10px;border-radius:8px;color:#f2d399}
-.royal-menu nav a:focus-visible,.royal-menu summary:focus-visible,.smi-entry:focus-visible{outline:3px solid #dbb0ff;outline-offset:3px}
+.royal-menu nav a:focus-visible,.royal-menu summary:focus-visible{outline:3px solid #dbb0ff;outline-offset:3px}
 .search-row{display:flex;align-items:center;gap:8px;margin:14px 0 6px}
 .search-row .search{margin:0;flex:1 1 0;min-width:0}
-.smi-entry{flex:0 0 48px;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;border:2px solid #e4be69;background:radial-gradient(circle at 45% 28%,#664597,#281a44 62%,#0b0918);box-shadow:0 0 14px #a16bda99,inset 0 0 12px #f6ce7530;text-decoration:none}
-.smi-entry span{font:700 .74rem Georgia,serif;letter-spacing:.045em;color:#ffdf90;text-shadow:0 0 5px #deb877}
-@media(max-width:520px){.top .tag{max-width:118px}.royal-menu summary{width:42px}.search-row{gap:7px;margin:12px 0 6px}.smi-entry{flex-basis:44px;width:44px;height:44px}.search-row .search{min-width:0}.search-row .search input{font-size:.81rem;padding-inline:5px}.search-row .search button{padding-inline:8px;font-size:.77rem}}
+@media(max-width:520px){.top .tag{max-width:118px}.royal-menu summary{width:42px}.search-row{gap:7px;margin:12px 0 6px}.search-row .search{min-width:0}.search-row .search input{font-size:.81rem;padding-inline:5px}.search-row .search button{padding-inline:8px;font-size:.77rem}}
 </style>
 </head>
 <body>
@@ -151,11 +140,10 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <nav class="royal-tabs" aria-label="KORADASO browser destinations"><a class="royal-tab selected" aria-current="page" href="/koradaso">♛ Home</a><a class="royal-tab" href="/search">⌕ Search</a><a class="royal-tab" href="#bookmark-list">★ Bookmarks</a><a class="royal-tab" href="#browser-settings">⚙</a></nav>
 <main id="main">
 <section class="hero" aria-label="KORADASO Internet home">
-<div class="crown" aria-hidden="true">♛</div><div class="crest" aria-hidden="true"><span>K</span></div>
-<h1>KORADASO</h1><div class="subtitle">INTERNET</div><div class="powered">POWERED BY ON ANY POSTCODE</div>
+<h1><img src="/static/oap/koradaso_internet_logo.jpg" width="1536" height="1536" alt="KORADASO Internet · Powered by ON ANY POSTCODE"></h1>
 </section>
-<div class="search-row"><a class="smi-entry" href="/auth?next=/mission/ollama" aria-label="Open existing private SMI intelligence sign-in"><span aria-hidden="true">SMI</span></a><form class="search" id="address-form" role="search">
-<input id="address" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Website address" placeholder="Search or type a website address…" required>
+<div class="search-row"><form class="search" id="address-form" role="search" action="/search" method="get">
+<input id="address" name="q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search or website address" placeholder="Search or type a website address…" required>
 <button type="submit">Search / Go</button>
 </form></div>
 <div class="search-mode" role="group" aria-label="Search destination">
@@ -168,13 +156,13 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <h2>EXPLORE YOUR WORLD</h2>
 <div class="grid">
 <a class="tile" href="/world?source=oap-os"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>OAP World menu</span></a>
-<a class="tile" href="/search"><span class="ico" aria-hidden="true">🔎</span><strong>OAP Search</strong><span>Public app discovery</span></a>
 <div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Reserved · Not ready</span></div>
 <div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>Reserved · Not ready</span></div>
 <a class="tile" href="/world"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>OAP Marketplace</span></a>
 <a class="tile arena-tile" href="/arena"><span class="ico" aria-hidden="true">♟</span><strong>Arena</strong><span>Play OAP games · Challenge hub</span></a>
 
-<a class="tile" href="#bookmark-list"><span class="ico" aria-hidden="true">★</span><strong>Saved</strong><span>Browser bookmarks</span></a>
+<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">⬇</span><strong>Downloads</strong><span>Reserved · Not ready</span></div>
+<a class="tile" id="settings-tile" href="#browser-settings"><span class="ico" aria-hidden="true">⚙</span><strong>Settings</strong><span>Browser preferences</span></a>
 </div>
 <div class="bookmark-heading"><h2>★ BOOKMARKS</h2><button type="button" class="action" id="bookmark-add">+ Save page</button></div>
 <div class="shortcuts" aria-label="Website shortcuts" id="bookmark-list">
@@ -208,6 +196,7 @@ updateSearchMode(openWebSearch.checked?"web":"oap");
 searchModes.forEach(x=>x.addEventListener("change",()=>{if(x.checked){updateSearchMode(x.value);openWebSearch.checked=x.value==="web";savePreferences();}}));
 openWebSearch.addEventListener("change",()=>{updateSearchMode(openWebSearch.checked?"web":"oap");savePreferences();});
 back.addEventListener("click",function(){if(window.history.length>1&&document.referrer){try{const previous=new URL(document.referrer);if(previous.origin===window.location.origin){window.history.back();return;}}catch(_){/* fallback home */}}window.location.assign("/koradaso");});
+document.getElementById("settings-tile").addEventListener("click",()=>{document.getElementById("browser-settings").open=true;});
 reduceMotion.addEventListener("change",function(){document.body.classList.toggle("reduce-motion",reduceMotion.checked);savePreferences();});
 // Bookmarks are user-initiated, browser-local and limited to OAP routes.
 const bookmarkList=document.getElementById("bookmark-list"),bookmarkNote=document.getElementById("bookmark-note");

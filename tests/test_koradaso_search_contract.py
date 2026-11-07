@@ -124,21 +124,29 @@ def test_koradaso_shortcuts_keep_ready_world_market_search_and_settings(client):
     assert client.get("/world?source=oap-os").status_code == 200
 
 
-def test_koradaso_royal_smi_arena_and_settings_menu_preserve_boundaries(client):
+def test_koradaso_original_logo_and_core_boundary(client):
     source = SOURCE.read_text(encoding="utf-8")
     response = client.get("/koradaso")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert 'class="smi-entry"' in html
-    assert 'href="/auth?next=/mission/ollama"' in html
+    logo_path = "/static/oap/koradaso_internet_logo.jpg"
+    assert f'<img src="{logo_path}"' in html
+    logo = client.get(logo_path)
+    assert logo.status_code == 200
+    assert logo.mimetype == "image/jpeg"
+    assert 'class="smi-entry"' not in html
+    for prefix in ("/auth", "/mission", "/smi"):
+        assert f'href="{prefix}' not in html
+    assert 'action="/search" method="get"' in html
+    assert 'id="address" name="q"' in html
     assert 'href="/arena"' in html
     assert '<strong>Arena</strong>' in html
-    assert '<strong>Saved</strong>' in html
-    assert '<strong>Settings</strong>' not in html
+    assert 'id="bookmark-list"' in html
+    assert 'id="settings-tile" href="#browser-settings"' in html
     assert 'class="royal-menu"' in html
     assert '<a href="#browser-settings">⚙ Settings &amp; Privacy</a>' in source
     assert '<span class="menu-unavailable" aria-disabled="true">⬇ Downloads · Not ready</span>' in source
-    assert "<strong>Downloads</strong>" not in source
+    assert "<strong>Downloads</strong><span>Reserved · Not ready</span>" in source
     assert 'id="browser-settings"' in source
     assert 'id="address-form"' in source
     assert client.get("/arena").status_code in (200, 302)
