@@ -109,3 +109,37 @@ def assess_oap_evidence(
             else "RETRIEVE_AND_AUTHENTICATE_OAP_PROOF"
         ),
     )
+
+
+@dataclass(frozen=True)
+class AgentMindReview:
+    """One advisory review of another SMI role; never an agent execution record."""
+
+    agent_name: str
+    assessment: MindAssessment
+    independent_review_required: bool = True
+    independent_review_verified: bool = False
+    permissions_granted: bool = False
+    council_vote_recorded: bool = False
+
+
+def assess_smi_agent_claim(
+    agent_name: str,
+    claim: str,
+    evidence: tuple[OAPEvidence, ...],
+    *,
+    required_kinds: tuple[EvidenceKind, ...] = ("source",),
+) -> AgentMindReview:
+    """Extend OAP MIND's existing checks to named SMI specialist claims.
+
+    Every caller record remains untrusted. Octopus may coordinate a review,
+    but may not self-certify or promote agent performance. Existing Guardian,
+    HRM, independent evidence and Founder Final gates remain outside this
+    strictly read-only evaluator.
+    """
+    if not isinstance(agent_name, str) or not agent_name.strip():
+        raise ValueError("An explicit SMI agent name is required")
+    assessment = assess_oap_evidence(
+        claim, evidence, required_kinds=required_kinds
+    )
+    return AgentMindReview(agent_name=agent_name.strip(), assessment=assessment)
