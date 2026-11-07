@@ -52,6 +52,7 @@ const html=fs.readFileSync("mission_control/templates/ollama_chat.html","utf8");
 assert.ok(source.includes("fullSceneSourcePixelMotion:played>0"));
 assert.ok(source.includes("audioCues+=1"));
 assert.ok(source.includes("fullBodyRigProven"));
+assert.match(source,/const fullBodyRigProven=false;/,"rendered pixel movement must not certify a real full-body rig");
 assert.ok(source.includes("accurateSoftwareLipSyncProven"));
 assert.ok(source.includes("rigLayerFrames"));
 assert.ok(source.includes("maxAudioClockDeltaMs"));
