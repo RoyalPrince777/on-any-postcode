@@ -92,7 +92,7 @@ def search_public_pages(query: str, *, limit: int = 20) -> tuple[list[dict[str, 
             # Keep deterministic ordering for equally relevant public records.
             title_scores = []
             for escaped in escaped_terms:
-                title_scores.append("(CASE WHEN lower(title) LIKE ? ESCAPE '\\\\' THEN 3 ELSE 0 END)")
+                title_scores.append("(CASE WHEN lower(title) LIKE ? ESCAPE '\\' THEN 3 ELSE 0 END)")
                 params.append(f"%{escaped}%")
             params.append(max(1, min(20, limit)))
             rows = db.execute(
