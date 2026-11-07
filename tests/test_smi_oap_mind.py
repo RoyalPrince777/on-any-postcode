@@ -2,7 +2,7 @@
 
 import pytest
 
-from oap.smi.oap_mind import OAPEvidence, assess_oap_evidence
+from oap.smi.oap_mind import OAPEvidence, assess_oap_evidence, assess_smi_agent_claim
 
 
 def test_missing_proof_investigates_instead_of_inventing_green() -> None:
@@ -86,3 +86,40 @@ def test_unrelated_claim_cannot_count_as_evidence() -> None:
     assert result.verdict == "INVESTIGATE"
     assert result.missing_proof == ("source",)
     assert result.supporting_references == ()
+
+
+def test_cross_agent_claim_remains_advisory_and_unverified() -> None:
+    review = assess_smi_agent_claim(
+        "Neo",
+        "Neo deployed",
+        (OAPEvidence("agent:claimed", "runtime", "Neo deployed", verified_receipt=True),),
+        required_kinds=("runtime",),
+    )
+    assert review.agent_name == "Neo"
+    assert review.assessment.verdict == "INVESTIGATE"
+    assert review.assessment.missing_proof == ("runtime",)
+    assert review.independent_review_required
+    assert not review.independent_review_verified
+    assert not review.permissions_granted
+    assert not review.council_vote_recorded
+    assert review.assessment.founder_final
+
+
+def test_octopus_cannot_self_certify() -> None:
+    review = assess_smi_agent_claim(
+        "Octopus", "OAP MIND is production ready",
+        (OAPEvidence("caller:receipt", "ci", "OAP MIND is production ready",
+                     verified_receipt=True),),
+        required_kinds=("ci",),
+    )
+    assert review.assessment.verdict != "REVIEW_READY"
+    assert not review.independent_review_verified
+    assert not review.assessment.runtime_certified
+
+
+def test_cross_agent_contradiction_holds_and_empty_agent_rejected() -> None:
+    records = (OAPEvidence("test:failure", "test", "Agent works", False),)
+    review = assess_smi_agent_claim("Owl", "Agent works", records)
+    assert review.assessment.verdict == "HOLD"
+    with pytest.raises(ValueError):
+        assess_smi_agent_claim(" ", "Agent works", records)
