@@ -24,15 +24,25 @@ candidate.resetAfterExplicitHumanAction(true);
 candidate.start({humanAction:true,reducedMotion:false});
 for(const state of ["ready","listening","thinking","speaking"]){
   candidate.transition(state);
-  const frame=candidate.frame(120,{playedAudioMs:120,viseme:"AA",amplitude:0.8});
+  const frame=candidate.frame(120,{playedAudioMs:120,viseme:"wide",amplitude:0.8,decodedAudio:true,source:"oap-first-party-pcm"});
   assert.equal(frame.state,state);
   assert.equal(frame.productionApproved,false);
   assert.equal(frame.humanFinalApproved,false);
   assert.equal(frame.externalTelemetry,false);
 }
 candidate.transition("speaking");
-assert.equal(candidate.frame(120,{playedAudioMs:400,viseme:"AA",amplitude:1}).mouth_visemes.viseme,"silence");
-assert.equal(candidate.frame(120,{playedAudioMs:120,viseme:"AA",amplitude:4}).mouth_visemes.scaleY,1.12);
+assert.equal(candidate.frame(120,{playedAudioMs:400,viseme:"wide",amplitude:1,decodedAudio:true,source:"oap-first-party-pcm"}).mouth_visemes.viseme,"silence");
+assert.equal(candidate.frame(120,{playedAudioMs:120,viseme:"wide",amplitude:4,decodedAudio:true,source:"oap-first-party-pcm"}).mouth_visemes.scaleY,1.12);
+for (const payload of [
+  {playedAudioMs:120,viseme:"AA",amplitude:1,decodedAudio:true,source:"oap-first-party-pcm"},
+  {playedAudioMs:120,viseme:"wide",amplitude:1,decodedAudio:false,source:"oap-first-party-pcm"},
+  {playedAudioMs:120,viseme:"wide",amplitude:1,decodedAudio:true,source:"unverified"},
+  {playedAudioMs:-1,viseme:"wide",amplitude:1,decodedAudio:true,source:"oap-first-party-pcm"}
+]) {
+  const frame=candidate.frame(120,payload);
+  assert.equal(frame.mouth_visemes.viseme,"silence");
+  assert.equal(frame.mouth_visemes.scaleY,1);
+}
 candidate.transition("paused");
 assert.equal(candidate.frame(120),null);
 candidate.transition("stopped");
