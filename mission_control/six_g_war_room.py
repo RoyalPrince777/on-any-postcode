@@ -257,9 +257,11 @@ def six_g_war_room_status() -> dict[str, Any]:
         "red_team": RED_TEAM_SCENARIOS,
         "blockers": tuple(dict.fromkeys(blockers)),
         "network_selection_recommendation": (
-            "Keep the current observed route and require a second independent fallback path."
+            "OAP service reachability is verified; preserve the current route and require independent fallback evidence."
+            if runtime["host"].get("oap_service_reachability_verified") is True
+            else "A network interface/default route is observed, but internet and OAP service reachability remain unverified. Do not automate failover."
             if runtime["production_software_ready"]
-            else "Do not progress network-dependent work until a routable production path is observed."
+            else "No routable host path is observed. Do not automate network-dependent work or failover."
         ),
         "build_order": (
             "1. production observation + signed telemetry",
