@@ -6,7 +6,7 @@ receipt validator, an execution action, or an independent intelligence brain.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from mission_control.smi_kernel_audit_readback import readback_kernel_audit
 
@@ -26,9 +26,11 @@ class KernelMindReview:
     advisory_only: bool = True
     founder_final: bool = True
     production_certified: bool = False
+    hrm_signal_receipt_observed: bool = False
+    hrm_signal_binding: str = "NOT_ESTABLISHED"
 
 
-def assess_kernel_evidence(*, identity_id: str, request_id: str) -> KernelMindReview:
+def assess_kernel_evidence(\n    *, identity_id: str, request_id: str, hrm_signal_id: str | None = None\n) -> KernelMindReview:
     """Require authoritative Founder-bound audit readback, never caller flags.
 
     The canonical readback enforces a human authority check. Its PermissionError
@@ -83,3 +85,26 @@ def assess_kernel_evidence(*, identity_id: str, request_id: str) -> KernelMindRe
             if audit.executed else "EXECUTION_BLOCKED"
         ),
     )
+
+    # Signal-scoped readback is diagnostic ONLY: it cannot authenticate the
+    # relationship between this audit's request ID and an HRM signal.
+    if not audit.executed or hrm_signal_id is None:
+        return review
+    if not isinstance(hrm_signal_id, str) or not hrm_signal_id.strip():
+        return replace(review, hrm_signal_binding="INVALID_SIGNAL_ID")
+
+    from mission_control.hrm_durable_receipt import latest_receipt_status
+
+    try:
+        status = latest_receipt_status(hrm_signal_id.strip())
+    except Exception:  # noqa: BLE001 - diagnostics never bypass Green Gate
+        return replace(review, hrm_signal_binding="SIGNAL_STATUS_UNAVAILABLE")
+    if not isinstance(status, dict):
+        return replace(review, hrm_signal_binding="SIGNAL_STATUS_UNAVAILABLE")
+    if status.get("read_back_verified") is True and status.get("found") is True:
+        return replace(
+            review,
+            hrm_signal_receipt_observed=True,
+            hrm_signal_binding="SIGNAL_RECEIPT_VALID_BUT_REQUEST_UNBOUND",
+        )
+    return replace(review, hrm_signal_binding="SIGNAL_RECEIPT_UNVERIFIED_OR_MISSING")
