@@ -81,17 +81,19 @@ def search_public_pages(query: str, *, limit: int = 20) -> tuple[list[dict[str, 
         with sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=2) as db:
             db.row_factory = sqlite3.Row
             clauses = []
+            escaped_terms: list[str] = []
             params: list[str | int] = []
             for term in terms:
                 escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                escaped_terms.append(escaped)
                 clauses.append("(lower(title) LIKE ? ESCAPE '\\' OR lower(description) LIKE ? ESCAPE '\\')")
                 params.extend([f"%{escaped}%", f"%{escaped}%"])
             # All terms must match; title matches rank above description-only matches.
             # Keep deterministic ordering for equally relevant public records.
             title_scores = []
-            for term in terms:
+            for escaped in escaped_terms:
                 title_scores.append("(CASE WHEN lower(title) LIKE ? ESCAPE '\\\\' THEN 3 ELSE 0 END)")
-                params.append(f"%{term.replace(chr(92), chr(92) * 2).replace('%', chr(92) + '%').replace('_', chr(92) + '_')}%")
+                params.append(f"%{escaped}%")
             params.append(max(1, min(20, limit)))
             rows = db.execute(
                 "SELECT url,title,description,indexed_at FROM public_pages WHERE "
