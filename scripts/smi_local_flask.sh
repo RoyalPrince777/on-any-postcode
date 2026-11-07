@@ -91,7 +91,7 @@ with app.test_client() as client:
 # Bind loopback only; internet access requires separate verified first-party TLS
 # ingress and a security review. Never publish this Flask development server.
 port = 5050
-print("OAP Core local route registry:", len(app.url_map._rules), "registered rules")
+print("OAP Core local route registry:", len(list(app.url_map.iter_rules())), "registered rules")
 print("Open OAP World: http://127.0.0.1:5050/world")
 print("Open SMI: http://127.0.0.1:5050/mission/ollama")
 print("Founder authentication remains enforced. No external network binding.")
