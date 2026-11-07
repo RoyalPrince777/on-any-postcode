@@ -86,10 +86,18 @@ def search_public_pages(query: str, *, limit: int = 20) -> tuple[list[dict[str, 
                 escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
                 clauses.append("(lower(title) LIKE ? ESCAPE '\\' OR lower(description) LIKE ? ESCAPE '\\')")
                 params.extend([f"%{escaped}%", f"%{escaped}%"])
+            # All terms must match; title matches rank above description-only matches.
+            # Keep deterministic ordering for equally relevant public records.
+            title_scores = []
+            for term in terms:
+                title_scores.append("(CASE WHEN lower(title) LIKE ? ESCAPE '\\\\' THEN 3 ELSE 0 END)")
+                params.append(f"%{term.replace(chr(92), chr(92) * 2).replace('%', chr(92) + '%').replace('_', chr(92) + '_')}%")
             params.append(max(1, min(20, limit)))
             rows = db.execute(
                 "SELECT url,title,description,indexed_at FROM public_pages WHERE "
-                + " AND ".join(clauses) + " ORDER BY indexed_at DESC LIMIT ?",
+                + " AND ".join(clauses)
+                + " ORDER BY (" + " + ".join(title_scores)
+                + ") DESC, indexed_at DESC, url ASC LIMIT ?",
                 params,
             ).fetchall()
             return [dict(row) for row in rows if _safe_public_url(row["url"])], True
