@@ -16,9 +16,9 @@ from . import (
     oap_core_autonomy,
     organism_autonomy,
     postgres_db,
-    smi_runtime_autonomy,
-    smi_github_failure_evidence,
     smi_auto,
+    smi_github_failure_evidence,
+    smi_runtime_autonomy,
 )
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
 
