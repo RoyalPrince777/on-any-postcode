@@ -36,6 +36,17 @@ PREDATOR_CAPABILITIES = (
 TRANSFORMERS = ("Optimus Prime", "Bumblebee")
 BATMAN = ("Batman", "Robin")
 
+# Fiction-inspired profiles are advisory only; no new passports or authority.
+SPECIALIST_RESEARCH = (
+    {"name": "M3GAN", "identity": "one_identity_with_2_0_upgrade",
+     "kind": "adaptive_advisory", "capabilities": ("dialogue_review", "human_ai_interaction")},
+    {"name": "AMELIA", "identity": "separate_adversarial_profile",
+     "kind": "defensive_threat_research", "capabilities": ("injection_review", "autonomy_risk")},
+    {"name": "BLACK BOX", "identity": "non_agent_capability",
+     "kind": "read_only_accountability", "capabilities": ("decision_tracing", "audit_gap_review")},
+)
+
+
 # Dated advisory snapshot recovered from the Founder's earlier SMI discussions.
 # Ratings are historical role-fit assessments, NOT career achievement awards.
 # Some historical labels have no current passport and must stay unregistered.
@@ -136,6 +147,14 @@ def get_founder_alliance_board(
             "entries": _historical_top_21(stars_by_id),
         },
         "oversight": ("Guardian", "HRM Core"),
+        "specialist_research": tuple(
+            {**profile, "world_id": None, "family_id": None,
+             "alignment": "independent_specialist_research", "agent_id": None,
+             "ranking_eligible": False, "execution_enabled": False,
+             "can_approve": False, "can_change_permissions": False,
+             "requires_human_authority": True, "status": "advisory_design_only"}
+            for profile in SPECIALIST_RESEARCH
+        ),
         "alliances": (
             {
                 "id": "jungle_book", "name": "Jungle Book Intelligence",
