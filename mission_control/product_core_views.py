@@ -42,6 +42,7 @@ from . import (
     sika_payment_orchestrator,
     sika_payment_submission_evidence,
     sika_secure_provider_runtime,
+    tv_founder_intake,
     web_security,
 )
 
@@ -529,6 +530,41 @@ def append_tune_release_acceptance(release_id: str):
 def music_civilization_status():
     """Single Music/Radio/Records/Live contract with no execution authority."""
     return _no_store(make_response(jsonify(music_civilization.contracts())))
+
+
+@bp.get("/entertainment/tv/founder-upload")
+@web_security.login_required(api=False, founder_only=True)
+def tv_founder_upload_page():
+    """Private Royal Cinema Founder upload form."""
+    return _no_store(make_response(render_template(
+        "tv_founder_upload.html",
+        csrf_token=web_security.csrf_token(),
+        max_video_mib=tv_founder_intake.MAX_VIDEO_BYTES // (1024 * 1024),
+    )))
+
+
+@bp.post("/entertainment/tv/founder-upload")
+@web_security.login_required(api=True, founder_only=True)
+def tv_founder_upload():
+    """Private OAP TV video intake. No publication or playback authority."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    upload = request.files.get("video")
+    if upload is None:
+        return _error("invalid_request", "Video file required.", 400)
+    try:
+        receipt = tv_founder_intake.intake(
+            upload.stream,
+            content_type=upload.mimetype,
+            title=request.form.get("title", ""),
+            owner_id=_identity(),
+            content_kind=request.form.get("content_kind", "film"),
+        )
+    except (ValueError, TypeError):
+        return _error("invalid_request", "Invalid video, title or media type.", 400)
+    except (OSError, RuntimeError):
+        return _error("tv_storage_unavailable", "Private TV storage is unavailable.", 503)
+    return _no_store(make_response(jsonify(receipt), 201))
 
 
 @bp.post("/entertainment/open-cinema/preview")
