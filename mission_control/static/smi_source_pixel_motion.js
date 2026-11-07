@@ -165,7 +165,7 @@
    playbackEpoch=event?.detail?.epoch;
    explicitLiveMotion=event?.detail?.live===true&&!event?.detail?.stopped;
    live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
-   if(!live||phase==="paused"||phase==="stopped"){localViseme="silence";draw(0);}
+   if(!live||phase==="paused"||phase==="stopped"){localAudio=false;localViseme="silence";draw(0);}
   }
   // Only the explicit Live SMI human control may clear the renderer's STOP latch.
   win.addEventListener("oap-smi-human-motion-reset",event=>{
@@ -194,12 +194,16 @@
    if(userReducedMotion){localViseme="silence";draw(0);}
   });
   win.addEventListener("oap-smi-playback-state",event=>{
-   localAudio=event?.detail?.phase==="playing"&&event?.detail?.source==="oap-first-party-pcm"&&event?.detail?.decodedAudio===true;
-   if(!localAudio){localViseme="silence";}
+   const playback=event?.detail;
+   const allowed=!stoppedLatched&&live&&phase==="speaking"&&
+     playback?.epoch===playbackEpoch;
+   localAudio=allowed&&playback?.phase==="playing"&&
+     playback?.source==="oap-first-party-pcm"&&playback?.decodedAudio===true;
+   if(!localAudio)localViseme="silence";
   });
   win.addEventListener("oap-smi-audio-cue",event=>{
    const cue=event?.detail;
-   if(!localAudio||phase!=="speaking"||!live||userReducedMotion||(!explicitLiveMotion&&reducedPreference)||
+   if(stoppedLatched||!localAudio||phase!=="speaking"||!live||userReducedMotion||(!explicitLiveMotion&&reducedPreference)||
       cue?.source!=="oap-first-party-pcm"||cue?.decodedAudio!==true||
       cue?.synthesisPhonemeTiming!==true||cue?.epoch!==playbackEpoch||
       !Number.isFinite(cue?.audioClockMs)||cue.audioClockMs<0||
