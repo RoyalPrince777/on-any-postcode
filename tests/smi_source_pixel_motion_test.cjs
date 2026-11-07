@@ -59,6 +59,7 @@ assert.ok(!source.includes('oap-smi-speech-boundary'),
 assert.ok(source.includes("fullBodyRigProven"));
 assert.match(source,/const fullBodyRigProven=false;/,"rendered pixel movement must not certify a real full-body rig");
 assert.ok(source.includes("accurateSoftwareLipSyncProven"));
+assert.match(source,/const accurateSoftwareLipSyncProven=false;/,"browser cue counters alone cannot prove accurate lip-sync");
 assert.ok(source.includes("rigLayerFrames"));
 assert.ok(source.includes("maxAudioClockDeltaMs"));
 assert.ok(html.includes("OAP_SMI_SOURCE_PIXEL_MOTION_SESSION=session"));
