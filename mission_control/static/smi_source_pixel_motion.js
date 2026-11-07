@@ -223,7 +223,7 @@
    // Pixel warps and layer hashes show rendering activity, not an independently
    // verified segmented full-body character rig or physical-device acceptance.
    const fullBodyRigProven=false;
-   const accurateSoftwareLipSyncProven=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
+   // Browser event counts and measured deltas are observations, not independent\n   // proof that visible mouth movement accurately tracks audible speech.\n   const accurateSoftwareLipSyncProven=false;
    return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,gazeTarget,stoppedLatched,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
