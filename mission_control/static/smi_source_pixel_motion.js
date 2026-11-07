@@ -117,7 +117,7 @@
   });
   const lowPower=/Android/i.test(win.navigator?.userAgent||"")||Number(win.navigator?.hardwareConcurrency||8)<=4;
   const frameBudgetMs=lowPower?50:34;
-  let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,speechUntil=0,audioCues=0,droppedFrames=0;
+  let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,audioCues=0,droppedFrames=0;
   let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0,gazeTarget=null,stoppedLatched=false;
   const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
@@ -138,7 +138,7 @@
    context.drawImage(image,0,0);
    const motionAllowed=!userReducedMotion&&(!reducedPreference||explicitLiveMotion);
    if(!live||!motionAllowed||phase==="paused"||phase==="stopped")return;
-   const pulse=phase==="speaking"?(localAudio?LOCAL_POSE[localViseme]:Math.max(0,Math.min(1,(speechUntil-ms)/170))):0;
+   const pulse=phase==="speaking"&&localAudio?LOCAL_POSE[localViseme]:0;
    const poses=motionFor(phase,ms,pulse,gazeTarget);
    for(const region of REGIONS){
     const params=region.id==="left-hand"||region.id==="right-hand"?poses.hands:region.id==="chest"?poses.chest:region.id==="eyes"?poses.eyes:region.id==="mouth"?poses.mouth:poses.head;
@@ -165,13 +165,13 @@
    playbackEpoch=event?.detail?.epoch;
    explicitLiveMotion=event?.detail?.live===true&&!event?.detail?.stopped;
    live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
-   if(!live||phase==="paused"||phase==="stopped"){speechUntil=0;localViseme="silence";draw(0);}
+   if(!live||phase==="paused"||phase==="stopped"){localViseme="silence";draw(0);}
   }
   // Only the explicit Live SMI human control may clear the renderer's STOP latch.
   win.addEventListener("oap-smi-human-motion-reset",event=>{
    if(event?.detail?.approved!==true||!stoppedLatched||epoch<0)return;
    stoppedLatched=false;gazeTarget=null;phase="ready";live=false;
-   speechUntil=0;localViseme="silence";localAudio=false;
+   localViseme="silence";localAudio=false;
    context.drawImage(image,0,0);
   });
   win.addEventListener("oap-smi-character-state",onState);
@@ -191,11 +191,11 @@
   });
   win.addEventListener("oap-smi-reduced-motion-change",event=>{
    userReducedMotion=event?.detail?.enabled===true;
-   if(userReducedMotion){speechUntil=0;localViseme="silence";draw(0);}
+   if(userReducedMotion){localViseme="silence";draw(0);}
   });
   win.addEventListener("oap-smi-playback-state",event=>{
    localAudio=event?.detail?.phase==="playing"&&event?.detail?.source==="oap-first-party-pcm"&&event?.detail?.decodedAudio===true;
-   if(!localAudio){speechUntil=0;localViseme="silence";}
+   if(!localAudio){localViseme="silence";}
   });
   win.addEventListener("oap-smi-audio-cue",event=>{
    const cue=event?.detail;
@@ -209,11 +209,9 @@
    if(Number.isFinite(cue.atMs))maxAudioClockDeltaMs=Math.max(maxAudioClockDeltaMs,Math.abs(cue.audioClockMs-cue.atMs));
    draw(win.performance.now());
   });
-  win.addEventListener("oap-smi-speech-boundary",event=>{
-   if(phase!=="speaking"||!live||event?.detail?.source!=="browser-speech-synthesis"||event?.detail?.decodedAudio!==false)return;
-   if(!Number.isFinite(event.detail.elapsedMs)||event.detail.elapsedMs<0)return;
-   speechUntil=win.performance.now()+170;
-  });
+  // Browser text/speech boundary events are not an audio-aligned proof source.
+  // Keep the mouth neutral unless decoded first-party audio supplied a viseme.
+
   win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);image.close?.();});
   frame=win.requestAnimationFrame(tick);
   shell.dataset.smiSourcePixelMotion="original_sha_verified";
