@@ -78,8 +78,11 @@ function createRealReplyBridge({source,replyId,humanStart,audioSha256,alignment}
     return null;
   }
   function playbackStart({audioClockMs=0,observedAtMs,eventType,clockSource}={}){
-    if(!admitted||stopped||eventType!=="playing"||clockSource!==expectedClock||
+    // Never let a repeated playback-start reset the clock baseline mid-stream.
+    if(!admitted||started||stopped||eventType!=="playing"||clockSource!==expectedClock||
       !finite(audioClockMs)||audioClockMs<0||audioClockMs>MAX_AUDIO_CLOCK_DELTA_MS||!finite(observedAtMs))return null;
+    // Every playback needs its own measured proof; no evidence carry-over.
+    sampleCount=0;maxObservedClockDeltaMs=0;
     started=true;startAudioClockMs=audioClockMs;startObservedAtMs=observedAtMs;
     lastAudioClockMs=audioClockMs;lastObservedAtMs=observedAtMs;events+=1;
     return Object.freeze({type:"playback-start",epoch,audioClockMs,productionApproved:false,humanFinalApproved:false});
