@@ -74,8 +74,18 @@ function createCandidate(proof){
     const audioAccepted=audioClockValid && audio.decodedAudio===true &&
       audio.source==="oap-first-party-pcm" && VISEMES.has(audio.viseme);
     const viseme=audioAccepted?audio.viseme:"silence";
-    const mouthScale=audioAccepted && viseme!=="silence" && Number.isFinite(audio.amplitude)?
-      1+Math.max(0,Math.min(1,audio.amplitude))*0.12:1;
+    // Source-backed phoneme cues are sufficient to articulate a mouth even when
+    // the audio renderer does not expose amplitude; untrusted audio stays neutral.
+    const shapes={silence:1,closed:1,wide:1.12,round:1.08,teeth:1.05,tongue:1.06};
+    const baseScale=shapes[viseme];
+    const amplitude=Number.isFinite(audio.amplitude)?
+      Math.max(0,Math.min(1,audio.amplitude)):null;
+    const mouthScale=audioAccepted&&viseme!=="silence"?
+      (amplitude===null?baseScale:1+(baseScale-1)*amplitude):1;
+    if(!audioAccepted || viseme==="silence"){
+      return frozenFrame(state,t,{...neutral,
+        mouth_visemes:{scaleY:1,viseme:"silence"}});
+    }
     return frozenFrame(state,t,{...neutral,
       head:{rotateDeg:Math.sin(t/900)*0.3,y:0},
       breathing:{scaleY:1+breathe/120},mouth_visemes:{scaleY:mouthScale,viseme},
