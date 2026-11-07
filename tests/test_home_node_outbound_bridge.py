@@ -18,7 +18,9 @@ def test_bridge_is_outbound_only_and_secret_protected():
     assert "X-OAP-Home-Node-Token" in views
     assert "/home-node/jobs/next" in views
     assert "127.0.0.1:11434/api/chat" in worker
-    assert "https://oap-smi.onrender.com/mission" in worker
+    assert "https://oap-smi.onrender.com/mission" not in worker
+    assert "first_party_home_node_bridge_not_configured" in worker
+    assert 'OAP_HOME_NODE_BRIDGE_URL", ""' in worker
 
 
 def test_bridge_fails_fast_when_configured_worker_is_offline(monkeypatch):

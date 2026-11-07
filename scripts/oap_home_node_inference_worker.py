@@ -16,7 +16,7 @@ from urllib.error import HTTPError, URLError
 
 from mission_control.organism_runtime import PostgresRuntimeStore
 
-BASE_URL = os.environ.get("OAP_HOME_NODE_BRIDGE_URL", "https://oap-smi.onrender.com/mission").strip().rstrip("/")
+BASE_URL = os.environ.get("OAP_HOME_NODE_BRIDGE_URL", "").strip().rstrip("/")
 TOKEN = os.environ.get("OAP_HOME_NODE_BRIDGE_SECRET", "").strip()
 OLLAMA_URL = os.environ.get("OAP_HOME_NODE_OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
 POLL_SECONDS = max(0.5, min(float(os.environ.get("OAP_HOME_NODE_POLL_SECONDS", "1.5")), 30.0))
@@ -67,6 +67,13 @@ def _run_local(payload: dict) -> str:
 
 
 def run() -> int:
+    # First-party endpoint must be explicitly provisioned; never fall back to Render.
+    from urllib.parse import urlsplit
+    parsed = urlsplit(BASE_URL)
+    if (parsed.scheme != "https" or not (parsed.hostname or "").endswith(".onanypostcode.global")
+            or parsed.path.rstrip("/") != "/mission" or parsed.query or parsed.fragment
+            or parsed.username or parsed.password or parsed.port not in (None, 443)):
+        raise RuntimeError("first_party_home_node_bridge_not_configured")
     _headers()
     runtime_store = PostgresRuntimeStore()
     last_heartbeat = 0.0

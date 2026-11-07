@@ -102,3 +102,78 @@ def test_inference_gateway_never_falls_back_after_human_stop(monkeypatch):
 
     assert bridge_called is False
     assert fallback_called is False
+
+
+def test_full_stream_queue_does_not_strand_worker_after_human_stop(monkeypatch):
+    """STOP must interrupt the producer even with more than 256 queued updates."""
+    worker_exited = threading.Event()
+    producer_started = threading.Event()
+
+    def noisy_chat(*args, on_event=None, cancellation_token=None, **kwargs):
+        assert on_event is not None and cancellation_token is not None
+        producer_started.set()
+        try:
+            for index in range(2000):
+                cancellation_token.raise_if_cancelled()
+                on_event({"type": "stage", "index": index})
+            return {"response": "completed"}
+        finally:
+            worker_exited.set()
+
+    monkeypatch.setattr(smi_chat_runtime, "chat", noisy_chat)
+    events = smi_chat_runtime.chat_events("status", "founder", "Founder")
+    assert next(events)["type"] == "stage"
+    assert producer_started.wait(timeout=1)
+
+    events.close()
+    assert worker_exited.wait(timeout=2), "stream STOP blocked behind a full event queue"
+
+
+def test_human_stop_preserves_terminal_receipt_with_saturated_queue(monkeypatch):
+    """Queued progress cannot hide the explicit STOP receipt or create completion."""
+    release_flood = threading.Event()
+    stop_recorded = threading.Event()
+
+    def flooding_chat(*args, on_event=None, cancellation_token=None, **kwargs):
+        assert on_event is not None and cancellation_token is not None
+        on_event({"type": "stage", "index": -1})
+        assert release_flood.wait(timeout=2)
+        for index in range(256):
+            on_event({"type": "stage", "index": index})
+        cancellation_token.cancel("human_stop")
+        stop_recorded.set()
+        cancellation_token.raise_if_cancelled()
+
+    monkeypatch.setattr(smi_chat_runtime, "chat", flooding_chat)
+    events = smi_chat_runtime.chat_events("status", "founder", "Founder")
+    assert next(events)["type"] == "stage"
+    release_flood.set()
+    assert stop_recorded.wait(timeout=2)
+    remaining = list(events)
+
+    assert any(event["type"] == "cancelled" for event in remaining)
+    assert not any(event["type"] == "complete" for event in remaining)
+
+
+def test_stream_stop_does_not_wait_indefinitely_for_uncooperative_provider(monkeypatch):
+    """A provider ignoring STOP cannot keep the HTTP stream teardown blocked."""
+    blocked = threading.Event()
+    release = threading.Event()
+
+    def uncooperative_chat(*args, on_event=None, cancellation_token=None, **kwargs):
+        assert cancellation_token is not None and on_event is not None
+        on_event({"type": "stage", "stage": "thinking"})
+        blocked.set()
+        release.wait(timeout=3)
+        cancellation_token.raise_if_cancelled()
+
+    monkeypatch.setattr(smi_chat_runtime, "chat", uncooperative_chat)
+    events = smi_chat_runtime.chat_events("status", "founder", "Founder")
+    try:
+        assert next(events)["type"] == "stage"
+        assert blocked.wait(timeout=1)
+        started = time.monotonic()
+        events.close()
+        assert time.monotonic() - started < 1.0
+    finally:
+        release.set()

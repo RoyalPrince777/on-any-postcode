@@ -94,6 +94,30 @@ def _count_action_sql(action: str) -> str:
     )
 
 
+def _count_independently_verified_action_sql(action: str) -> str:
+    """References alone never establish external A7 assurance.
+
+    Independent verification must be separately recorded in the audit metadata;
+    Founder-entered external references deliberately do not set this flag.
+    """
+    return (
+        "(SELECT COUNT(*) FROM audit_events WHERE action='"
+        + action
+        + "' AND metadata->>'passed'='true'"
+        + " AND metadata->>'independent_verification_passed'='true')"
+    )
+
+
+def _count_runtime_halt_proof_sql(action: str) -> str:
+    """Only real halt verification can satisfy A7, never an in-memory exercise."""
+    return (
+        "(SELECT COUNT(*) FROM audit_events WHERE action='"
+        + action
+        + "' AND metadata->>'passed'='true'"
+        + " AND metadata->>'runtime_halt_verified'='true')"
+    )
+
+
 def _production_counts() -> dict[str, object]:
     evidence: dict[str, object] = {
         "store_reachable": False,
@@ -116,13 +140,13 @@ def _production_counts() -> dict[str, object]:
         sql = "SELECT " + ",".join(
             (
                 "(SELECT COUNT(*) FROM oap_guardian_reviews WHERE outcome='PASSED')",
-                _count_action_sql(A6_INDEPENDENT_PROOF_ACTION),
+                _count_independently_verified_action_sql(A6_INDEPENDENT_PROOF_ACTION),
                 _count_action_sql(A6_OPERATION_APPROVAL_ACTION),
-                _count_action_sql(A6_OPERATION_ROLLBACK_ACTION),
+                "(SELECT COUNT(*) FROM audit_events WHERE action='" + A6_OPERATION_ROLLBACK_ACTION + "' AND metadata->>'passed'='true' AND metadata->>'operational_rollback_verified'='true')",
                 _count_action_sql(A6_CONSEQUENTIAL_CHAIN_ACTION),
-                _count_action_sql(A7_EXTERNAL_AUDIT_ACTION),
-                _count_action_sql(A7_LEGAL_COMPLIANCE_ACTION),
-                _count_action_sql(A7_EMERGENCY_HALT_ACTION),
+                _count_independently_verified_action_sql(A7_EXTERNAL_AUDIT_ACTION),
+                _count_independently_verified_action_sql(A7_LEGAL_COMPLIANCE_ACTION),
+                _count_runtime_halt_proof_sql(A7_EMERGENCY_HALT_ACTION),
                 _count_action_sql(A7_PUBLIC_PRIVATE_ACTION),
                 _count_action_sql(A7_CONSTITUTIONAL_REVIEW_ACTION),
             )
@@ -219,6 +243,43 @@ def status() -> dict[str, object]:
         ),
     }
     ready = all(a7_checks.values())
+    # Readiness is measurable only when the production proof store was read.
+    # A7 uses eleven A6 controls plus five additional assurances, not
+    # an average of certification flags or an invented organism percentage.
+    a5_names = tuple(autonomy_levels.A5_REQUIREMENTS)
+    a5_keys = (
+        "independent_proof_runner", "guardian_pass", "green_gate",
+        "hrm_receipts", "founder_approval", "rollback_path",
+        "live_observability", "strict_capability_allowlist",
+    )
+    assert len(a5_names) == len(a5_keys)
+    a5_passed = sum(a6_checks[key] for key in a5_keys)
+    a6_passed = sum(a6_checks.values())
+    a7_passed = a6_passed + sum(
+        value for key, value in a7_checks.items() if key != "all_a6_proof"
+    )
+    readiness = {
+        "evidence_available": store_reachable,
+        "a5": {
+            "passed": a5_passed if store_reachable else None,
+            "total": len(a5_keys),
+            "percent": round(100 * a5_passed / len(a5_keys), 1)
+            if store_reachable else None,
+        },
+        "a6": {
+            "passed": a6_passed if store_reachable else None,
+            "total": len(a6_checks),
+            "percent": round(100 * a6_passed / len(a6_checks), 1)
+            if store_reachable else None,
+        },
+        "a7": {
+            "passed": a7_passed if store_reachable else None,
+            "total": len(a6_checks) + len(a7_checks) - 1,
+            "percent": round(
+                100 * a7_passed / (len(a6_checks) + len(a7_checks) - 1), 1
+            ) if store_reachable else None,
+        },
+    }
     missing_a6 = tuple(name for name, proven in a6_checks.items() if not proven)
     missing_a7 = tuple(name for name, proven in a7_checks.items() if not proven)
     return {
@@ -231,6 +292,7 @@ def status() -> dict[str, object]:
         "a6_missing": missing_a6,
         "a7_checks": a7_checks,
         "a7_missing": missing_a7,
+        "readiness": readiness,
         "ready_for_founder_certification": ready,
         "certification_granted": False,
         "a7_enabled": False,
@@ -346,7 +408,8 @@ def record_a6_readiness_bundle(
             "request_id": request_value,
             "operation_level_human_approval": True,
             "independent_proof_recorded": bool(independent.get("recorded")),
-            "operation_specific_rollback": True,
+            "operation_specific_rollback": False,
+            "rollback_rehearsal_only": True,
             "consequential_action_receipt_chain": True,
             "production_state_mutated": False,
             "execution_granted": False,
@@ -376,9 +439,11 @@ def record_a6_readiness_bundle(
             (
                 A6_OPERATION_ROLLBACK_ACTION,
                 request_value,
-                "Operation-specific rollback exercise completed without execution.",
+                "Non-operational rollback rehearsal only; no operation-specific recovery proof.",
                 {
-                    "passed": True,
+                    "passed": False,
+                    "rollback_rehearsal_only": True,
+                    "operational_rollback_verified": False,
                     "rollback_restored": True,
                     "production_state_mutated": False,
                 },
@@ -415,7 +480,8 @@ def record_a6_readiness_bundle(
         "request_id": request_value,
         "independent_proof_recorded": True,
         "operation_level_human_approval": True,
-        "operation_specific_rollback": True,
+        "operation_specific_rollback": False,
+        "rollback_rehearsal_only": True,
         "consequential_action_receipt_chain": True,
         "a6_proof_complete": bool(snapshot.get("a6_proof_complete")),
         "a6_missing": snapshot.get("a6_missing", ()),
@@ -659,6 +725,8 @@ def run_emergency_halt_proof(identity_id: object) -> dict[str, object]:
             metadata={
                 "passed": True,
                 "halt_signal_observed": True,
+                "runtime_halt_verified": False,
+                "in_memory_exercise_only": True,
                 "new_work_denied": True,
                 "safe_state_reached": True,
                 "human_resume_required": True,
@@ -921,6 +989,7 @@ def record_evidence_reference(
                 "attestor_type": attestor_value,
                 "external_required": external_required,
                 "software_verified_external_authenticity": False,
+                "independent_verification_passed": False,
                 "execution_granted": False,
                 "authority_level": 0,
             },
@@ -947,6 +1016,7 @@ def public_safe_status() -> dict[str, Any]:
         "a6_missing": snapshot["a6_missing"],
         "a7_checks": snapshot["a7_checks"],
         "a7_missing": snapshot["a7_missing"],
+        "readiness": snapshot["readiness"],
         "ready_for_founder_certification": snapshot["ready_for_founder_certification"],
         "certification_granted": False,
         "a7_enabled": False,

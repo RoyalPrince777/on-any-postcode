@@ -29,6 +29,18 @@ def test_termux_setup_keeps_private_secrets_out_of_repository():
     assert "OAP_HOME_NODE_BRIDGE_SECRET" in SETUP
     assert "OAP_HOME_NODE_BRIDGE_URL" in SETUP
     assert "postgresql://neondb_owner:" not in SETUP
+    assert "oap-smi.onrender.com" not in SETUP
+    assert 'read -r bridge_url' in SETUP
+    assert '"$bridge_url"' in SETUP
+
+
+
+def test_inference_worker_requires_explicit_first_party_https_bridge():
+    worker = (ROOT / "scripts" / "oap_home_node_inference_worker.py").read_text()
+    assert 'OAP_HOME_NODE_BRIDGE_URL", ""' in worker
+    assert "endswith(\".onanypostcode.global\")" in worker
+    assert "first_party_home_node_bridge_not_configured" in worker
+    assert "oap-smi.onrender.com" not in worker
 
 
 def test_termux_setup_uses_minimal_android_worker_requirements():

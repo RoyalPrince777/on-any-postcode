@@ -12,6 +12,28 @@ assert.equal(api.motionFor("paused",220,1).mouth[2],1);
 assert.equal(api.motionFor("speaking",220,0).mouth[2],1);
 assert.ok(api.motionFor("speaking",220,1).mouth[2]>1);
 assert.ok(api.motionFor("thinking",220,1).mouth[2]===1);
+const silentSpeaking=api.motionFor("speaking",220,0);
+const voicedSpeaking=api.motionFor("speaking",220,1);
+assert.ok(voicedSpeaking.head[1]>silentSpeaking.head[1],"head nod coordinates with audible speech cue");
+assert.ok(voicedSpeaking.hands[0]>silentSpeaking.hands[0],"hand gesture coordinates with audible speech cue");
+assert.equal(api.motionFor("speaking",220,Infinity).mouth[2],1,"invalid cue must not animate mouth");
+assert.equal(api.motionFor("speaking",220,2).mouth[2],voicedSpeaking.mouth[2],"mouth cue amplitude is bounded");
+assert.deepEqual(api.motionFor("stopped",220,1),api.motionFor("stopped",220,0),"STOP freezes all speaking movement");
+assert.deepEqual(api.motionFor("paused",220,1),api.motionFor("paused",220,0),"PAUSE freezes all speaking movement");
+assert.equal(api.boundedGaze({x:2,y:-3}).x,1);
+assert.equal(api.boundedGaze({x:2,y:-3}).y,-1);
+assert.equal(api.boundedGaze({x:NaN,y:0}),null);
+assert.ok(api.blinkEnvelope(750)>0,"first nonuniform blink");
+assert.ok(api.blinkEnvelope(3420)>0,"second nonuniform blink");
+assert.ok(api.blinkEnvelope(3575)>0,"short follow-up blink");
+assert.equal(api.blinkEnvelope(2000),0);
+const neutral=api.motionFor("listening",1200,0);
+const directed=api.motionFor("listening",1200,0,{x:1,y:-1});
+assert.ok(directed.eyes[0]>neutral.eyes[0],"gaze moves eye pixels right");
+assert.ok(directed.eyes[1]<neutral.eyes[1],"gaze moves eye pixels up");
+assert.ok(directed.head[0]>neutral.head[0],"head coordinates with gaze");
+assert.deepEqual(api.motionFor("stopped",1200,0,{x:1,y:1}),api.motionFor("stopped",1200,0),"STOP ignores gaze");
+assert.deepEqual(api.motionFor("paused",1200,0,{x:1,y:1}),api.motionFor("paused",1200,0),"PAUSE ignores gaze");
 const region={x:0,y:0,w:11,h:11,cx:5,cy:5,rx:5,ry:5};
 const data=new Uint8ClampedArray(11*11*4);
 for(let y=0;y<11;y++)for(let x=0;x<11;x++){
@@ -29,8 +51,15 @@ const source=fs.readFileSync("mission_control/static/smi_source_pixel_motion.js"
 const html=fs.readFileSync("mission_control/templates/ollama_chat.html","utf8");
 assert.ok(source.includes("fullSceneSourcePixelMotion:played>0"));
 assert.ok(source.includes("audioCues+=1"));
+assert.ok(source.includes('const pulse=phase==="speaking"&&localAudio?LOCAL_POSE[localViseme]:0;'),
+  "lip movement requires actual decoded local audio visemes");
+assert.ok(!source.includes('oap-smi-speech-boundary'),
+  "browser speech text boundaries must not drive mouth movement");
+
 assert.ok(source.includes("fullBodyRigProven"));
+assert.match(source,/const fullBodyRigProven=false;/,"rendered pixel movement must not certify a real full-body rig");
 assert.ok(source.includes("accurateSoftwareLipSyncProven"));
+assert.match(source,/const accurateSoftwareLipSyncProven=false;/,"browser cue counters alone cannot prove accurate lip-sync");
 assert.ok(source.includes("rigLayerFrames"));
 assert.ok(source.includes("maxAudioClockDeltaMs"));
 assert.ok(html.includes("OAP_SMI_SOURCE_PIXEL_MOTION_SESSION=session"));
@@ -54,3 +83,17 @@ assert.ok(source.includes('win.addEventListener("oap-smi-reduced-motion-change"'
   "motion engine must react to Settings changes");
 assert.ok(source.includes("userReducedMotionPreference:userReducedMotion"),
   "proof snapshot must expose explicit Reduced Motion state");
+
+assert.ok(source.includes('win.addEventListener("oap-smi-gaze-target"'),"gaze must use explicit event only");
+assert.ok(source.includes("if(stoppedLatched)return;"),"STOP must latch against late state events");
+assert.ok(source.includes('playback?.epoch===playbackEpoch'),"late playback must match current speaking epoch");
+assert.ok(source.includes('const allowed=!stoppedLatched&&live&&phase==="speaking"'),"STOP and non-speaking states reject late playback");
+assert.ok(source.includes('if(stoppedLatched||!localAudio||phase!=="speaking"'),"STOP rejects stale audio cues");
+assert.ok(source.includes('{localAudio=false;localViseme="silence";draw(0);}'),"STOP and PAUSE clear playback state");
+assert.ok(source.includes("if(stoppedLatched||!live||userReducedMotion)return;"),"gaze respects STOP, live and reduced-motion state");
+
+const uiController=fs.readFileSync("mission_control/static/smi_canonical_controller.js","utf8");
+assert.ok(uiController.includes("oap-smi-human-motion-reset"),"controller must signal explicit resume");
+assert.ok(source.includes("oap-smi-human-motion-reset"),"pixel renderer must allow explicit reset");
+assert.ok(source.includes('["message",{x:0.3,y:0.75}]'),"composer focus supplies bounded gaze");
+assert.ok(source.includes("if(stoppedLatched||!live||userReducedMotion)return;"),"STOP and reduced-motion gate gaze");
