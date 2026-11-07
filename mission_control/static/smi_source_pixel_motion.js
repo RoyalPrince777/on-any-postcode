@@ -220,7 +220,7 @@
   function proofSnapshot(){
    const layerKeys=["eyes","head","breathing","mouth_visemes","face","hands","upper_body"];
    const allHashes=layerKeys.every(name=>/^[a-f0-9]{64}$/.test(String(evidenceLayerSha256[name]||"")));
-   const fullBodyRigProven=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
+   // Pixel warps and layer hashes are evidence of rendering only, not an independently\n   // verified segmented full-body character rig or physical-device acceptance.\n   const fullBodyRigProven=false;
    const accurateSoftwareLipSyncProven=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
    return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,gazeTarget,stoppedLatched,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
