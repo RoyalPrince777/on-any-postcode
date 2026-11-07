@@ -339,6 +339,9 @@ def test_smi_local_flask_launcher_is_loopback_only_and_preserves_auth():
     assert 'SMI_FLASK_PREFLIGHT_404' in script
     assert 'app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)' in script
     assert "port = 5050" in script
+    assert "OAP_CORE_PYTHON" in script
+    assert "OAP_CORE_DEPENDENCIES_MISSING" in script
+    assert "pip install" not in script
     assert '"/world"' in script
     assert '"/mission/ollama"' in script
     assert 'app.test_client()' in script
