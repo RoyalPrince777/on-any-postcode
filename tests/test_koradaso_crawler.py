@@ -15,7 +15,7 @@ def test_public_seed_crawl_indexes_real_html_when_robots_allow(tmp_path, monkeyp
     def fetch(host, target, *, limit):
         requested.append((host, target, limit))
         if target == "/robots.txt":
-            return 200, "text/plain; charset=utf-8", b"User-agent: *\\nAllow: /\\n"
+            return 200, "text/plain; charset=utf-8", b"User-agent: *\nAllow: /\n"
         return (
             200, "text/html; charset=utf-8",
             b"<html><head><title>Oware club</title>"
@@ -41,7 +41,7 @@ def test_robots_disallow_prevents_page_fetch_and_index(tmp_path, monkeypatch):
 
     def fetch(host, target, *, limit):
         requested.append(target)
-        return 200, "text/plain", b"User-agent: *\\nDisallow: /private\\n"
+        return 200, "text/plain", b"User-agent: *\nDisallow: /private\n"
 
     monkeypatch.setattr(koradaso_crawler, "_fetch", fetch)
     db = tmp_path / "pages.sqlite3"
@@ -91,7 +91,7 @@ def test_dns_rejects_any_private_answer_and_no_dns(monkeypatch):
 def test_oversized_page_is_not_indexed(tmp_path, monkeypatch):
     def fetch(host, target, *, limit):
         if target == "/robots.txt":
-            return 200, "text/plain", b"User-agent: *\\nAllow: /\\n"
+            return 200, "text/plain", b"User-agent: *\nAllow: /\n"
         raise koradaso_crawler.CrawlerRejected("response_too_large")
     monkeypatch.setattr(koradaso_crawler, "_fetch", fetch)
     db = tmp_path / "db"
