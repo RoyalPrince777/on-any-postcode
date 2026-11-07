@@ -43,6 +43,20 @@ for (const payload of [
   assert.equal(frame.mouth_visemes.viseme,"silence");
   assert.equal(frame.mouth_visemes.scaleY,1);
 }
+// Verified decoded-audio cues articulate the mouth without an amplitude field.
+const voiced=candidate.frame(120,{playedAudioMs:120,viseme:"wide",decodedAudio:true,source:"oap-first-party-pcm"});
+assert.equal(voiced.mouth_visemes.viseme,"wide");
+assert.equal(voiced.mouth_visemes.scaleY,1.12);
+assert.notEqual(voiced.head.rotateDeg,0);
+// Without valid audio, speech-shaped head/hand gestures must not pretend speech.
+const muted=candidate.frame(120,{playedAudioMs:120,viseme:"wide",decodedAudio:false,source:"oap-first-party-pcm"});
+assert.equal(muted.mouth_visemes.viseme,"silence");
+assert.equal(muted.mouth_visemes.scaleY,1);
+assert.equal(muted.head.rotateDeg,0);
+assert.equal(muted.hands.leftY,0);
+const silent=candidate.frame(120,{playedAudioMs:120,viseme:"silence",decodedAudio:true,source:"oap-first-party-pcm"});
+assert.equal(silent.head.rotateDeg,0);
+assert.equal(silent.hands.leftY,0);
 candidate.transition("paused");
 assert.equal(candidate.frame(120),null);
 candidate.transition("stopped");
