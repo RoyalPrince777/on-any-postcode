@@ -56,10 +56,37 @@ class _PinnedHTTPS(http.client.HTTPSConnection):
             raise
 
 
+def _connect_https(host: str, addresses: list[str]) -> _PinnedHTTPS:
+    first = addresses[0]
+    candidates = [first]
+    if len(addresses) > 1:
+        first_is_ipv6 = ":" in first
+        alternate = next(
+            (address for address in addresses if (":" in address) != first_is_ipv6),
+            addresses[1],
+        )
+        candidates.append(alternate)
+
+    last_error: OSError | None = None
+    for address in candidates:
+        connection = _PinnedHTTPS(host, address)
+        try:
+            connection.connect()
+        except ssl.SSLCertVerificationError as exc:
+            connection.close()
+            raise CrawlerRejected("https_fetch_failed") from exc
+        except OSError as exc:
+            connection.close()
+            last_error = exc
+        else:
+            return connection
+
+    raise CrawlerRejected("https_fetch_failed") from last_error
+
+
 def _fetch(host: str, target: str, *, limit: int) -> tuple[int, str, bytes]:
-    """No redirect following. DNS is resolved and checked on every request."""
-    address = _public_addresses(host)[0]
-    connection = _PinnedHTTPS(host, address)
+    """Resolve once per request and retry only before sending HTTP."""
+    connection = _connect_https(host, _public_addresses(host))
     try:
         connection.request(
             "GET", target,

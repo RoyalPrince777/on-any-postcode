@@ -1,5 +1,7 @@
 """No live network use: verify safe crawler contracts with controlled response stubs."""
+import ssl
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -106,3 +108,39 @@ def test_runner_requires_explicit_execute():
     assert "if not args.execute:" in script
     assert "len(urls) > 10" in script
     assert "time.sleep(2)" in script
+
+
+@pytest.mark.parametrize("certificate_error", [False, True])
+def test_https_fallback_is_bounded_and_preserves_certificate_failure(monkeypatch, certificate_error):
+    host = "example.org"
+    addresses = ["2001:4860::1", "2001:4860::2", "8.8.8.8"]
+    first, alternate = Mock(), Mock()
+    first.connect.side_effect = (
+        ssl.SSLCertVerificationError("bad certificate") if certificate_error
+        else ssl.SSLError("TLSV1_ALERT_INTERNAL_ERROR")
+    )
+    response = alternate.getresponse.return_value
+    response.status = 302
+    response.getheader.return_value = ""
+    resolve = Mock(return_value=addresses)
+    connect = Mock(side_effect=[first, alternate])
+    monkeypatch.setattr(koradaso_crawler, "_public_addresses", resolve)
+    monkeypatch.setattr(koradaso_crawler, "_PinnedHTTPS", connect)
+
+    if certificate_error:
+        with pytest.raises(koradaso_crawler.CrawlerRejected, match="https_fetch_failed") as error:
+            koradaso_crawler._fetch(host, "/robots.txt", limit=128)
+        assert error.value.__cause__ is first.connect.side_effect
+        assert connect.call_count == 1
+        alternate.request.assert_not_called()
+    else:
+        assert koradaso_crawler._fetch(host, "/robots.txt", limit=128) == (302, "", b"")
+        assert connect.call_count == 2
+        connect.assert_called_with(host, addresses[2])
+        alternate.connect.assert_called_once()
+        alternate.request.assert_called_once()
+        response.read.assert_not_called()
+        alternate.close.assert_called_once()
+    resolve.assert_called_once_with(host)
+    first.request.assert_not_called()
+    first.close.assert_called_once()
