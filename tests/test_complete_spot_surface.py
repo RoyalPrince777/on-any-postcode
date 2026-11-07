@@ -342,3 +342,29 @@ def test_oap_atlas_ui_is_search_first_source_bound_and_noise_stripped(client, mo
     assert "CR4 1AB" in live
     assert "Explicit search only" in live
     assert "no hidden tracking" in live
+
+
+def test_spot_guest_welcome_prioritises_studio_and_arena_without_forcing_my_card(anonymous_client):
+    response = anonymous_client.get("/the-spot")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert page.index('href="/pulse"') < page.index('id="spot-welcome-title"')
+    assert page.index('id="spot-welcome-title"') < page.index('aria-label="The Spot core order"')
+    assert "Arriving from WhatsApp or anywhere in the world?" in page
+    assert 'href="/studio"' in page
+    assert 'href="/arena"' in page
+    assert 'href="/my-card/create"' in page
+    assert "My Card is free and optional" in page
+    assert "Private Link Up actions require secure sign-in." in page
+    assert "Availability depends on its configured provider" in page
+    assert 'href="/mission/studio' not in page
+
+    for route, heading in (
+        ("/studio", "OAP Studio Intelligence"),
+        ("/arena", "OAP"),
+        ("/my-card/create", "Create My Card"),
+    ):
+        target = anonymous_client.get(route)
+        assert target.status_code == 200
+        assert heading in target.get_data(as_text=True)
