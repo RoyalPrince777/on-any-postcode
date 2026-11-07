@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>KORADASO WWW Search · ON ANY POSTCODE</title>
+<style>
+:root{color-scheme:dark;--gold:#f3c976;--violet:#ae78ed}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#291a44,#090b18 70%);color:#f9eedb;font:16px/1.5 system-ui,sans-serif}
+main{max-width:760px;margin:auto;padding:20px 15px 65px}h1{font:700 clamp(2rem,9vw,3rem) Georgia,serif;color:var(--gold)}
+a{color:var(--gold)}nav{display:flex;gap:18px;flex-wrap:wrap}form{display:flex;gap:7px;margin:20px 0}
+input{min-width:0;flex:1;padding:13px;border:1px solid var(--gold);border-radius:14px;background:#151326;color:white}
+button{padding:12px 16px;border:0;border-radius:14px;background:linear-gradient(#ffe6ac,#c39950);color:#251507;font-weight:800}
+article,.notice{padding:15px;border:1px solid #8666a2;border-radius:16px;background:#151327;margin:12px 0;overflow-wrap:anywhere}
+small{color:#c5b8d1}p{line-height:1.5}
+</style>
+</head>
+<body><main>
+<nav aria-label="KORADASO destinations"><a href="/koradaso">♛ KORADASO Home</a><a href="/world?source=oap-os">OAP World menu</a><a href="/search">OAP catalogue</a></nav>
+<h1>KORADASO WWW Search</h1>
+<p>First-party indexed public web pages only. Search queries stay in OAP Core and are not sent to external search providers. This is not yet a global web index.</p>
+<form method="get" action="/koradaso/web-search" role="search">
+<input name="q" aria-label="Search KORADASO public web index" maxlength="120" value="{{ query }}" placeholder="Search indexed public pages" required>
+<button type="submit">Search</button>
+</form>
+{% if not index_ready %}
+<div class="notice" role="status"><strong>First-party index not configured.</strong><p>No WWW results are available on this OAP Core node yet. Direct HTTPS website browsing still works separately.</p></div>
+{% elif query %}
+<p role="status">{{ results|length }} indexed result{{ '' if results|length == 1 else 's' }} for “{{ query }}”. Coverage is limited to pages OAP has actually indexed.</p>
+{% for result in results %}
+<article><h2><a href="{{ result.url }}" rel="noopener noreferrer" referrerpolicy="no-referrer">{{ result.title }}</a></h2><small>{{ result.url }}</small><p>{{ result.description }}</p><small>Indexed {{ result.indexed_at }}</small></article>
+{% else %}
+<div class="notice">No indexed public pages matched. KORADASO does not invent missing results.</div>
+{% endfor %}
+{% endif %}
+</main></body></html>
