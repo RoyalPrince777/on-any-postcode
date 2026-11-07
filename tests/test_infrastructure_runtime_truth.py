@@ -31,6 +31,11 @@ def test_maps_and_weather_stay_degraded_without_observed_delivery(monkeypatch):
     assert modules["connectivity"]["signal"]["id"] == "offline"
     assert projection["runtime_evidence"] == {
         "maps_runtime_verified": False,
+        "host_local_route_observed": projection["runtime_evidence"]["host_local_route_observed"],
+        "internet_reachability_verified": False,
+        "cellular_attach_verified": False,
+        "oap_private_radio_verified": False,
+        "host_connectivity_observed_at_unix": projection["runtime_evidence"]["host_connectivity_observed_at_unix"],
         "weather_runtime_verified": False,
         "spatial_contract": "POSTCODE_TO_UNIVERSE",
         "network_probe_on_get": False,

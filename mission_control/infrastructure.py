@@ -16,6 +16,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from . import (
+    connectivity_runtime,
     infrastructure_intelligence,
     live_signals,
     location_intelligence,
@@ -186,6 +187,9 @@ def _runtime_modules() -> tuple[list[dict[str, Any]], dict[str, object]]:
     """Overlay runtime delivery evidence without performing network I/O."""
 
     evidence = location_intelligence.status()
+    connectivity = connectivity_runtime.connectivity_runtime_status()
+    host = connectivity["host"]
+    local_route_observed = bool(host["runtime_connectivity_present"])
     maps_verified = bool(
         evidence.get("postcode_provider_verified")
         or evidence.get("global_provider_verified")
@@ -201,6 +205,13 @@ def _runtime_modules() -> tuple[list[dict[str, Any]], dict[str, object]]:
                 readiness="Location lookup ready",
                 data="Successful bounded location evidence observed",
             )
+        elif module["id"] == "connectivity":
+            module.update(
+                status="Not connected",
+                state="degraded",
+                readiness="Host interface and default-route evidence only" if local_route_observed else "Host connectivity evidence unavailable",
+                data="No external reachability, carrier attachment, or OAP-owned radio evidence asserted",
+            )
         elif module["id"] == "weather" and weather_verified:
             module.update(
                 status="Runtime verified",
@@ -214,6 +225,11 @@ def _runtime_modules() -> tuple[list[dict[str, Any]], dict[str, object]]:
 
     public_evidence: dict[str, object] = {
         "maps_runtime_verified": maps_verified,
+        "host_local_route_observed": local_route_observed,
+        "internet_reachability_verified": False,
+        "cellular_attach_verified": False,
+        "oap_private_radio_verified": False,
+        "host_connectivity_observed_at_unix": host["observed_at_unix"],
         "weather_runtime_verified": weather_verified,
         "spatial_contract": str(evidence.get("spatial_contract") or ""),
         "network_probe_on_get": False,
