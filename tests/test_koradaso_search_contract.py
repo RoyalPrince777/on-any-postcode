@@ -243,3 +243,33 @@ def test_koradaso_curated_import_creates_real_local_index(tmp_path, monkeypatch,
     response = client.get("/koradaso/web-search?q=historical")
     assert response.status_code == 200
     assert b"Public historical directory" in response.data
+
+
+def test_koradaso_www_ranks_title_relevance_before_newer_description(tmp_path, monkeypatch):
+    from mission_control.koradaso_web_index import (
+        ingest_public_page,
+        search_public_pages,
+    )
+
+    db = tmp_path / "ranking.sqlite3"
+    monkeypatch.setenv("OAP_KORADASO_WEB_INDEX", str(db))
+    ingest_public_page(
+        db,
+        url="https://example.org/oware-guide",
+        title="Oware strategy guide",
+        description="Board game rules",
+    )
+    ingest_public_page(
+        db,
+        url="https://example.org/community-list",
+        title="Community bulletin",
+        description="Meetup about Oware strategy",
+    )
+    results, ready = search_public_pages("oware strategy")
+    assert ready is True
+    assert [item["url"] for item in results] == [
+        "https://example.org/oware-guide",
+        "https://example.org/community-list",
+    ]
+    # Reserved SQL wildcard characters remain literal search terms.
+    assert search_public_pages("%_")[0] == []
