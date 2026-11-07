@@ -51,6 +51,11 @@ const source=fs.readFileSync("mission_control/static/smi_source_pixel_motion.js"
 const html=fs.readFileSync("mission_control/templates/ollama_chat.html","utf8");
 assert.ok(source.includes("fullSceneSourcePixelMotion:played>0"));
 assert.ok(source.includes("audioCues+=1"));
+assert.ok(source.includes('const pulse=phase==="speaking"&&localAudio?LOCAL_POSE[localViseme]:0;'),
+  "lip movement requires actual decoded local audio visemes");
+assert.ok(!source.includes('oap-smi-speech-boundary'),
+  "browser speech text boundaries must not drive mouth movement");
+
 assert.ok(source.includes("fullBodyRigProven"));
 assert.match(source,/const fullBodyRigProven=false;/,"rendered pixel movement must not certify a real full-body rig");
 assert.ok(source.includes("accurateSoftwareLipSyncProven"));
