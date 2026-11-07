@@ -154,7 +154,7 @@ def _feature_matrix(runtime: dict[str, Any]) -> tuple[dict[str, Any], ...]:
 
     readiness = {
         "runtime_observation": connected,
-        "network_selection": connected,
+        "network_selection": connected and host.get("oap_service_reachability_verified") is True,
         "resilience": connected,
         "edge_ai": connected,
         "signed_radio_evidence": signed,
@@ -164,7 +164,7 @@ def _feature_matrix(runtime: dict[str, Any]) -> tuple[dict[str, Any], ...]:
     }
     blockers = {
         "runtime_observation": "current host connectivity is not proven",
-        "network_selection": "no current routable host path is proven",
+        "network_selection": "end-to-end OAP service reachability is not verified",
         "resilience": "no current routable host path is proven",
         "edge_ai": "no current routable host path is proven",
         "signed_radio_evidence": str(radio.get("reason") or "radio evidence missing"),
