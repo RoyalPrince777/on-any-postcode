@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Founder-owned, same-device Flask entry point. This is NOT a public deployment.
+# Founder-owned, same-device full OAP Core Flask route registry. NOT a public deployment.
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
 # Reuse the already provisioned, owner-private Home Node configuration if present.
@@ -67,10 +67,14 @@ if not (managed_ready or local_verifier_bound or recovery_ready):
     print("SMI BLOCKER: no verified Founder authentication route is available. Existing password unchanged.")
     raise SystemExit("SMI_FLASK_AUTH_NOT_CONFIGURED: restore existing Founder auth and trusted HTTPS origin; password unchanged")
 
+# The canonical app owns ALL registered OAP routes: do not fork or proxy them
+# through Render or a duplicate Termux router.
+required_routes = ("/", "/world", "/mission/ollama")
+registered = {rule.rule for rule in app.url_map.iter_rules() if "GET" in rule.methods}
+missing = [path for path in required_routes if path not in registered]
+if missing:
+    raise SystemExit("OAP_CORE_LOCAL_ROUTES_MISSING: " + ", ".join(missing))
 route = "/mission/ollama"
-registered = any(rule.rule == route and "GET" in rule.methods for rule in app.url_map.iter_rules())
-if not registered:
-    raise SystemExit("SMI_FLASK_ROUTE_NOT_REGISTERED: check installed branch")
 if surface_security.public_surface_enforced() or surface_security.gateway_configured():
     raise SystemExit("SMI_FLASK_PRIVATE_BOUNDARY_NOT_LOCAL")
 if app.config.get("TESTING") or app.debug:
@@ -83,7 +87,13 @@ with app.test_client() as client:
     if response.status_code not in (302, 303, 401, 403, 503):
         raise SystemExit(f"SMI_FLASK_UNEXPECTED_AUTH_GATE_{response.status_code}")
     print(f"SMI Flask preflight: route registered; auth response {response.status_code}")
-print("Open on this device: http://127.0.0.1:5051/mission/ollama")
+# 5050 is the canonical local OAP Core entrypoint on the Founder device.
+# Bind loopback only; internet access requires separate verified first-party TLS
+# ingress and a security review. Never publish this Flask development server.
+port = 5050
+print("OAP Core local route registry:", len(app.url_map._rules), "registered rules")
+print("Open OAP World: http://127.0.0.1:5050/world")
+print("Open SMI: http://127.0.0.1:5050/mission/ollama")
 print("Founder authentication remains enforced. No external network binding.")
-app.run(host="127.0.0.1", port=5051, debug=False, use_reloader=False)
+app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
 PY
