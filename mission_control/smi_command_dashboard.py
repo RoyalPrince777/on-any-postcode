@@ -396,6 +396,22 @@ def status() -> dict[str, Any]:
             ),
         },
         "library_mission": smi_library_mission.status(),
+        # Mission review is evidence-first: model definitions are not completion
+        # percentages; unverified votes and stars remain unknown, not fabricated.
+        "mission_review": {
+            "owner": "SMI × Captain ALL IN",
+            "completion_percentage": None,
+            "percentage_basis": "no_verified_end_to_end_mission_denominator",
+            "evidence_stars_awarded": None,
+            "star_gate_count": mission_field.get("star_gate_count"),
+            "stars_state": "not_scored_from_definitions",
+            "agent_vote_result": None,
+            "vote_state": "no_verified_votes_in_this_projection",
+            "founder_final": "human_authority_required",
+            "live_device_acceptance": "unknown",
+            "green_gate": False,
+            "software_model_is_completion_proof": False,
+        },
         "mission_to_100": {
             "signal_count": mission_field.get("signal_count"),
             "major_dimension_count": mission_field.get("major_dimension_count"),
