@@ -70,7 +70,7 @@ def run() -> int:
     # First-party endpoint must be explicitly provisioned; never fall back to Render.
     from urllib.parse import urlsplit
     parsed = urlsplit(BASE_URL)
-    if (parsed.scheme != "https" or parsed.hostname != "smi.onanypostcode.global"
+    if (parsed.scheme != "https" or not (parsed.hostname or "").endswith(".onanypostcode.global")
             or parsed.path.rstrip("/") != "/mission" or parsed.query or parsed.fragment
             or parsed.username or parsed.password or parsed.port not in (None, 443)):
         raise RuntimeError("first_party_home_node_bridge_not_configured")
