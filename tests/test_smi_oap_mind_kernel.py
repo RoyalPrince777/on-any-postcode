@@ -119,3 +119,88 @@ def test_missing_event_id_cannot_prove_canonical_audit(
     assert not result.audit_verified
     assert not result.execution_observed
     assert result.next_evidence == "AUDIT_EVENT_ID_REQUIRED"
+
+
+def test_signal_receipt_is_not_request_bound_proof(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        oap_mind_kernel,
+        "readback_kernel_audit",
+        lambda **kwargs: KernelAuditReadback(
+            kwargs["request_id"], True, True,
+            "CANONICAL_AUDIT_ROW_READ_BACK", "event-1",
+        ),
+    )
+    from mission_control import hrm_durable_receipt
+
+    monkeypatch.setattr(
+        hrm_durable_receipt,
+        "latest_receipt_status",
+        lambda signal_id: {
+            "found": True,
+            "read_back_verified": True,
+            "receipt_id": "receipt-for-an-unrelated-request",
+        },
+    )
+    review = oap_mind_kernel.assess_kernel_evidence(
+        identity_id="founder", request_id="request-a",
+        hrm_signal_id="signal-b",
+    )
+    assert review.hrm_signal_receipt_observed
+    assert review.hrm_signal_binding == "SIGNAL_RECEIPT_VALID_BUT_REQUEST_UNBOUND"
+    assert not review.durable_hrm_receipt_proven
+    assert not review.production_certified
+    assert review.octopus_assessment == "INVESTIGATE"
+
+
+def test_unverified_signal_receipt_is_not_proof(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        oap_mind_kernel,
+        "readback_kernel_audit",
+        lambda **kwargs: KernelAuditReadback(
+            kwargs["request_id"], True, True,
+            "CANONICAL_AUDIT_ROW_READ_BACK", "event-1",
+        ),
+    )
+    from mission_control import hrm_durable_receipt
+
+    monkeypatch.setattr(
+        hrm_durable_receipt, "latest_receipt_status",
+        lambda signal_id: {"found": True, "read_back_verified": False},
+    )
+    review = oap_mind_kernel.assess_kernel_evidence(
+        identity_id="founder", request_id="request-a",
+        hrm_signal_id="signal-b",
+    )
+    assert not review.hrm_signal_receipt_observed
+    assert review.hrm_signal_binding == "SIGNAL_RECEIPT_UNVERIFIED_OR_MISSING"
+    assert not review.durable_hrm_receipt_proven
+
+
+def test_hrm_status_not_queried_when_audit_blocked(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        oap_mind_kernel, "readback_kernel_audit",
+        lambda **kwargs: KernelAuditReadback(
+            kwargs["request_id"], True, False,
+            "CANONICAL_AUDIT_ROW_READ_BACK", "event-2",
+        ),
+    )
+    from mission_control import hrm_durable_receipt
+
+    def should_not_query(signal_id: str) -> dict:
+        raise AssertionError("HRM signal lookup must be skipped")
+
+    monkeypatch.setattr(
+        hrm_durable_receipt, "latest_receipt_status", should_not_query,
+    )
+    review = oap_mind_kernel.assess_kernel_evidence(
+        identity_id="founder", request_id="request-a",
+        hrm_signal_id="signal-b",
+    )
+    assert review.octopus_assessment == "HOLD"
+    assert review.hrm_signal_binding == "NOT_ESTABLISHED"
