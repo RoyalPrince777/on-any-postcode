@@ -2,7 +2,6 @@
 
 No network connection is made: transports and robots policies are patched.
 """
-import ipaddress
 import socket
 
 import pytest
@@ -81,10 +80,6 @@ def test_noindex_is_not_imported(monkeypatch, tmp_path):
 
 
 def test_robots_unavailable_fails_closed(monkeypatch, tmp_path):
-    monkeypatch.setattr(crawler, "_fetch", lambda *_args, **_kwargs: (
-        "text/html", b"<html><title>robots unavailable</title></html>"
-    ))
-    # Empty robots policy is allowed by robotparser; test explicit fetch failure instead.
     def denied(*_args, **_kwargs):
         raise crawler.CrawlDenied("http_status_not_200")
     monkeypatch.setattr(crawler, "_fetch", denied)
