@@ -39,7 +39,28 @@ export OAP_AUTH_REQUIRED=true
 export FLASK_DEBUG=0
 export PYTHONUNBUFFERED=1
 
-exec python - <<'PY'
+# The existing Home Node worker venv deliberately omits Flask and web/auth
+# dependencies. Prefer a separately provisioned OAP Core environment when set;
+# otherwise use the current Python. Never pip-install or replace worker packages
+# implicitly while starting the Founder application.
+core_python="${OAP_CORE_PYTHON:-python}"
+if ! command -v "$core_python" >/dev/null 2>&1; then
+  echo "OAP_CORE_PYTHON_UNAVAILABLE: provision the full Core runtime separately" >&2
+  exit 2
+fi
+if ! "$core_python" - <<'CHECK'
+from importlib.util import find_spec
+required = ("flask", "jwt", "pyotp", "psycopg", "qrcode", "slowapi", "starlette")
+missing = [package for package in required if find_spec(package) is None]
+if missing:
+    raise SystemExit("OAP_CORE_DEPENDENCIES_MISSING: " + ", ".join(missing))
+CHECK
+then
+  echo "OAP Core local startup refused; worker-only Termux requirements are insufficient." >&2
+  exit 2
+fi
+
+exec "$core_python" - <<'PY'
 import os
 from app import app
 from mission_control import surface_security
