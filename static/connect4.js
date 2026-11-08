@@ -4,7 +4,7 @@ const root=document.querySelector("[data-c4-root]");if(!root)return;
 const q=s=>root.querySelector(s);
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
 const board=q("[data-board]");
-const colors=["empty","red","yellow"];
+const colour=q("[data-colour]");
 const cells=Array.from({length:42},(_,index)=>{
  const cell=document.createElement("div");
  cell.className="c4-cell";
@@ -41,17 +41,19 @@ function render(){
  q("[data-agent]").disabled=busy||state?.status==="active";
  q("[data-difficulty]").disabled=busy;
  const active=state?.status==="active";
- q("[data-start]").hidden=active;
+ colour.disabled=busy||active;
+ start.hidden=active;
  start.textContent=state?"New game":"Play";
  q("[data-controls]").hidden=!active;
  q("[data-stop]").hidden=!active;
  q("[data-resign]").hidden=!active;
  q("[data-stop]").disabled=busy;
  q("[data-resign]").disabled=busy;
+ const playerOneIsYellow=root.dataset.playerOneColour==="yellow";
  if(state){
   q("[data-players]").hidden=false;
-  q("[data-red-player]").textContent=state.players[0].name;
-  q("[data-yellow-player]").textContent=state.players[1].name;
+  q("[data-red-player]").textContent=state.players[playerOneIsYellow?1:0].name;
+  q("[data-yellow-player]").textContent=state.players[playerOneIsYellow?0:1].name;
   const winner=state.players.find(player=>player.id===state.winner_id);
   const turn=state.current_player_name+"’s turn";
   q("[data-turn]").textContent=active?turn:winner?winner.name+" wins":state.status==="stopped"?"Match stopped":"Draw";
@@ -62,6 +64,7 @@ function render(){
   button.setAttribute("aria-disabled",String(locked||state.board[0][column]!==0));
  });
  const pieces=state?.board.flat()||[];
+ const colors=playerOneIsYellow?["empty","yellow","red"]:["empty","red","yellow"];
  board.setAttribute("aria-label",state?"Connect 4 board. Rows top to bottom: "+state.board.map(row=>row.map(piece=>colors[piece]).join(", ")).join("; "):"Empty Connect 4 board");
  cells.forEach((cell,index)=>{
   const piece=pieces[index]||0;
@@ -83,6 +86,7 @@ async function action(path,payload,followAgent=false){
  try{
   state=await post(path,payload);
   if(path.endsWith("/start")){
+   root.dataset.playerOneColour=colour.value;
    q("[data-settings]").open=false;
    q("[data-agent-status]").textContent="";
    q("[data-retry-agent]").hidden=true;

@@ -13,8 +13,8 @@
 <section data-game aria-label="Connect 4 match">
   <div class="c4-match-info">
     <div class="c4-players" data-players hidden>
-      <span><i class="c4-p1" aria-hidden="true"></i><span data-red-player></span></span>
-      <span><i class="c4-p2" aria-hidden="true"></i><span data-yellow-player></span></span>
+      <span><i class="c4-red" role="img" aria-label="Red counters"></i><span data-red-player></span></span>
+      <span><i class="c4-yellow" role="img" aria-label="Yellow counters"></i><span data-yellow-player></span></span>
     </div>
     <p data-turn role="status">Ready to play</p>
   </div>
@@ -32,6 +32,11 @@
   <summary>Settings</summary>
   <label for="c4-player-one">Player 1</label>
   <input id="c4-player-one" data-p1 value="Player One">
+  <label for="c4-player-colour">Player 1 colour</label>
+  <select id="c4-player-colour" data-colour>
+    <option value="red">Red</option>
+    <option value="yellow">Yellow</option>
+  </select>
   <label for="c4-opponent">Opponent</label>
   <select id="c4-opponent" data-mode>
     <option value="human">Person</option>

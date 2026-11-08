@@ -99,8 +99,20 @@
   background: #10131a;
   box-shadow: inset 0 3px 5px #02050d, 0 1px 1px #5893ed;
 }
-.arena-tabletop .c4-p1 { --disc: radial-gradient(circle, #e43d37 56%, #fb6a59 60%, #a01e20 72%); }
-.arena-tabletop .c4-p2 { --disc: radial-gradient(circle, #ffd447 56%, #ffe692 60%, #b97610 72%); }
+.arena-tabletop[data-c4-root] {
+  --c4-red: radial-gradient(circle, #e43d37 56%, #fb6a59 60%, #a01e20 72%);
+  --c4-yellow: radial-gradient(circle, #ffd447 56%, #ffe692 60%, #b97610 72%);
+  --c4-player-one: var(--c4-red);
+  --c4-player-two: var(--c4-yellow);
+}
+.arena-tabletop[data-player-one-colour="yellow"] {
+  --c4-player-one: var(--c4-yellow);
+  --c4-player-two: var(--c4-red);
+}
+.arena-tabletop .c4-red { --disc: var(--c4-red); }
+.arena-tabletop .c4-yellow { --disc: var(--c4-yellow); }
+.arena-tabletop .c4-p1 { --disc: var(--c4-player-one); }
+.arena-tabletop .c4-p2 { --disc: var(--c4-player-two); }
 .c4-players i { background: var(--disc); }
 .arena-tabletop .c4-cell:is(.c4-p1, .c4-p2)::after {
   content: "";
