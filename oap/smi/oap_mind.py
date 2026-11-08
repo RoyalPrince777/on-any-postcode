@@ -255,3 +255,71 @@ def review_octopus_mission(
         selected_arms=proposal.selected_arms,
         checkpoint_verified=True,
     )
+
+
+@dataclass(frozen=True)
+class OctopusHandoffReview:
+    """Review an existing governed handoff, not an Octopus execution receipt."""
+
+    mission_id: str
+    reviewed_request_id: str
+    proposed_arm: str
+    registered_action: str
+    handoff_state: str
+    action_authorized: bool
+    arm_execution_status: str = "UNKNOWN"
+    arm_attribution_verified: bool = False
+    action_performed: bool = False
+    authority_granted_by_octopus: bool = False
+    founder_final: bool = True
+
+
+def review_octopus_action_handoff(
+    *, identity_id: str, mission_id: str, reviewed_request_id: str,
+    proposed_arm: str, action_name: str = "SYNC_INTERNAL_RECORD",
+) -> OctopusHandoffReview:
+    """Inspect the canonical handoff without confusing approval and execution.
+
+    Handoff readiness is verified by the existing action bridge and its
+    owner-scoped mission/Guardian/Judgement/approval checks. The Octopus arm
+    label is only a proposal. This function cannot execute the action, change
+    permissions, or identify which arm actually performed it.
+    """
+    review_octopus_arms((proposed_arm,))
+    if not all(
+        isinstance(value, str) and value.strip()
+        for value in (identity_id, mission_id, reviewed_request_id, action_name)
+    ):
+        raise ValueError("Complete handoff identifiers are required")
+    from mission_control.all_in_ai_action_bridge import handoff_status
+
+    status = handoff_status(
+        identity_id, mission_id,
+        reviewed_request_id=reviewed_request_id, action_name=action_name,
+    )
+    if (
+        not isinstance(status, dict)
+        or status.get("mission_id") != mission_id
+        or status.get("reviewed_request_id") != reviewed_request_id
+        or status.get("action_name") != action_name
+        or status.get("execution_performed") is not False
+        or status.get("authority_transferred") is not False
+        or status.get("human_authority_final") is not True
+    ):
+        raise ValueError("Handoff provenance or authority mismatch")
+    handoff_state = status.get("status")
+    if handoff_state not in (
+        "BLOCKED", "HUMAN_AUTHORITY_REQUIRED", "AUTHORIZED_NOT_EXECUTED"
+    ):
+        raise ValueError("Unexpected governed handoff state")
+    authorised = handoff_state == "AUTHORIZED_NOT_EXECUTED"
+    if status.get("execution_authorized") is not authorised:
+        raise ValueError("Handoff authorization state mismatch")
+    return OctopusHandoffReview(
+        mission_id=mission_id,
+        reviewed_request_id=reviewed_request_id,
+        proposed_arm=proposed_arm,
+        registered_action=action_name,
+        handoff_state=handoff_state,
+        action_authorized=authorised,
+    )
