@@ -185,3 +185,68 @@ def test_invalid_octopus_arm_proposals_fail_closed(arms, permissions) -> None:
 
     with pytest.raises(ValueError):
         review_octopus_arms(arms, permissions=permissions)
+
+
+def test_octopus_mission_checkpoint_never_proves_arm_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mission_control import all_in_ai_mission_store
+    from oap.smi.oap_mind import review_octopus_mission
+
+    monkeypatch.setattr(
+        all_in_ai_mission_store, "read",
+        lambda identity_id, mission_id: {
+            "mission_id": mission_id,
+            "state": "planned",
+            "read_back_verified": True,
+            "audit_verified": True,
+            "hrm_verified": True,
+            "execution_granted": False,
+            "approval_granted": False,
+            "human_authority_final": True,
+        },
+    )
+    review = review_octopus_mission(
+        identity_id="owner", mission_id="mission", arms=("TRACE", "VERIFY"),
+    )
+    assert review.checkpoint_verified
+    assert review.mission_state == "planned"
+    assert review.arm_execution_status == "UNKNOWN"
+    assert not review.arm_execution_proven
+    assert not review.authority_granted
+    assert review.founder_final
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"mission_id": "different"},
+        {"hrm_verified": False},
+        {"execution_granted": True},
+        {"approval_granted": True},
+        {"human_authority_final": False},
+        {"state": "executing"},
+    ],
+)
+def test_octopus_mission_rejects_untrusted_or_mismatched_readback(
+    monkeypatch: pytest.MonkeyPatch, override: dict,
+) -> None:
+    from mission_control import all_in_ai_mission_store
+    from oap.smi.oap_mind import review_octopus_mission
+
+    receipt = {
+        "mission_id": "mission",
+        "state": "planned",
+        "read_back_verified": True,
+        "audit_verified": True,
+        "hrm_verified": True,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+    receipt.update(override)
+    monkeypatch.setattr(all_in_ai_mission_store, "read", lambda *_: receipt)
+    with pytest.raises(ValueError):
+        review_octopus_mission(
+            identity_id="owner", mission_id="mission", arms=("OBSERVE",),
+        )
