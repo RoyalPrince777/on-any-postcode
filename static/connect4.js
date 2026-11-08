@@ -19,15 +19,22 @@ function render(){
  q("[data-mode]").disabled=busy||state?.status==="active";
  q("[data-agent]").disabled=busy||state?.status==="active";
  q("[data-difficulty]").disabled=busy;
- if(!state)return;
- q("[data-game]").hidden=false;
- q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
- q("[data-status]").textContent=state.status;
- const activity=window.OAPGameplayProgress?.measure("connect4",state);
- q("[data-gameplay-percent]").textContent=activity?"Gameplay "+activity.value+"% · "+activity.label:"Gameplay percentage unavailable";
- q("[data-gameplay-bar]").value=activity?activity.value:0;
- const active=state.status==="active";
- q("[data-stop]").disabled=busy||!active;q("[data-resign]").disabled=busy||!active;
+ const active=state?.status==="active";
+ q("[data-start]").hidden=active;
+ start.textContent=state?"New game":"Play";
+ q("[data-controls]").hidden=!active;
+ q("[data-stop]").hidden=!active;
+ q("[data-resign]").hidden=!active;
+ q("[data-stop]").disabled=busy;
+ q("[data-resign]").disabled=busy;
+ if(state){
+  q("[data-players]").hidden=false;
+  q("[data-red-player]").textContent=state.players[0].name;
+  q("[data-yellow-player]").textContent=state.players[1].name;
+  const winner=state.players.find(player=>player.id===state.winner_id);
+  const turn=state.current_player_name+"’s turn";
+  q("[data-turn]").textContent=active?turn:winner?winner.name+" wins":state.status==="stopped"?"Match stopped":"Draw";
+ }
  const controls=q("[data-controls]");controls.replaceChildren();
  const locked=busy||!active||(agentMode&&state.current_player_id==="p2");
  for(let column=0;column<7;column++){
@@ -38,7 +45,10 @@ function render(){
   controls.append(button);
  }
  const board=q("[data-board]");board.replaceChildren();
- state.board.flat().forEach(value=>{
+ const cells=state?state.board.flat():Array(42).fill(0);
+ const colors=["empty","red","yellow"];
+ board.setAttribute("aria-label",state?"Connect 4 board. Rows top to bottom: "+state.board.map(row=>row.map(piece=>colors[piece]).join(", ")).join("; "):"Empty Connect 4 board");
+ cells.forEach(value=>{
   const cell=document.createElement("div");
   cell.className="c4-cell"+(value===1?" c4-p1":value===2?" c4-p2":"");
   board.append(cell);
@@ -47,10 +57,9 @@ function render(){
 async function runAgent(){
  if(!agentMode||state?.status!=="active"||state.current_player_id!=="p2")return;
  const key=q("[data-agent]").value,difficulty=q("[data-difficulty]").value;
- q("[data-agent-status]").textContent="Agent turn · calculating legal move…";
  const response=await post("/arena/connect4/agent-move",{agent_key:key,difficulty,request_id:req()});
  state=response;
- q("[data-agent-status]").textContent=response.agent.name+" · "+q("[data-difficulty]").selectedOptions[0].text;
+ q("[data-agent-status]").textContent="";
  q("[data-retry-agent]").hidden=true;
  render();
 }
@@ -58,6 +67,15 @@ async function action(path,payload,followAgent=false){
  if(busy)return;busy=true;q("[data-error]").textContent="";render();
  try{
   state=await post(path,payload);
+  if(path.endsWith("/start")){
+   q("[data-settings]").open=false;
+   q("[data-agent-status]").textContent="";
+   q("[data-retry-agent]").hidden=true;
+  }
+  if(state.status!=="active"){
+   q("[data-agent-status]").textContent="";
+   q("[data-retry-agent]").hidden=true;
+  }
   render();
   if(followAgent)await runAgent();
  }catch(e){
@@ -95,4 +113,5 @@ q("[data-stop]").onclick=()=>{
  if(busy||state?.status!=="active")return;
  action("/arena/connect4/stop",{request_id:req()});
 };
+render();
 })();

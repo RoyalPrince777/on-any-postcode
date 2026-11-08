@@ -6,7 +6,6 @@
   const q = selector => root.querySelector(selector);
   const settings = q("#oware-settings");
   const csrf = document.querySelector('meta[name="oap-csrf-token"]')?.content || "";
-  const levels = {beginner: "Starter", standard: "Club", expert: "Expert"};
   const opening = {
     pits: JSON.parse(root.dataset.openingPits),
     players: [{name: "Player One", captured: 0}, {name: "Player Two", captured: 0}],
@@ -45,39 +44,32 @@
   function render() {
     const active = state?.status === "active";
     renderSettings();
-    q("[data-stop]").disabled = busy || !active;
+    q("[data-stop]").hidden = !active;
+    q("[data-stop]").disabled = busy;
     if (!state?.started) {
       window.OAPOwareBoard.render(q("[data-board]"), opening, false);
-      q("[data-feedback]").textContent = "Choose New game to play, or open Settings to pick your opponent.";
       return;
     }
 
-    q("[data-match-mode]").textContent = state.agent_level ? "Agent · " + levels[state.agent_level] : "Two players";
-    q("[data-turn]").textContent = active ? state.current_player_name : "—";
-    q("[data-status]").textContent = active ? (busy ? "Updating…" : state.ruleset) : state.draw ? "Draw" :
-      state.status === "stopped" ? "Stopped" : "Game over";
+    q("[data-status]").textContent = state.variant === "nam-nam" ? "Nam-Nam" : "Abapa";
+    const winner = state.players.find(player => player.id === state.winner_id);
+    q("[data-turn]").textContent = active ? state.current_player_name + "’s turn" :
+      state.status === "stopped" ? "Match stopped" : state.draw ? "Draw" : winner.name + " wins";
     const round = q("[data-round]");
     round.hidden = state.variant !== "nam-nam";
     round.textContent = round.hidden ? "" : "Round " + state.round;
     if (state.last_round) round.textContent += " · Previous round " + state.last_round.join("–");
     if (state.result === "round_replayed") round.textContent += " · Previous round replayed after a sowing loop";
-    const activity = window.OAPGameplayProgress?.measure("oware", state);
-    q("[data-gameplay-percent]").textContent = activity ? "Gameplay " + activity.value + "% · " + activity.label : "";
-    q("[data-gameplay-bar]").value = activity?.value ?? 0;
     window.OAPOwareBoard.render(q("[data-board]"), state, !busy && active);
 
     const playerIndex = state.current_player_id === "p1" ? 0 : 1;
     const hasOpponentSeeds = state.pits.some((count, pit) => count && (state.owners?.[pit] ?? Math.floor(pit / 6)) !== playerIndex);
-    let feedback = "Choose a highlighted house in your territory.";
+    let feedback = "";
     if (state.status === "completed") {
-      const winner = state.players.find(player => player.id === state.winner_id);
-      const reason = {no_legal_move: "No legal move. ", repetition: "Repeated position. "}[state.result] || "";
-      feedback = reason + (state.draw ? "24–24 draw." : winner.name + " wins.");
-    } else if (state.status === "stopped") {
-      feedback = "Match stopped. Choose New game to play again.";
-    } else if (state.grand_slam_forfeited) {
+      feedback = {no_legal_move: "No legal moves left.", repetition: "Position repeated."}[state.result] || "";
+    } else if (active && state.grand_slam_forfeited) {
       feedback = "Grand slam: sowing stands and the seeds stay in play.";
-    } else if (!hasOpponentSeeds) {
+    } else if (active && !hasOpponentSeeds) {
       feedback = "Your opponent’s territory is empty. Choose a highlighted house to feed it.";
     }
     q("[data-feedback]").textContent = feedback;

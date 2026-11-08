@@ -307,8 +307,8 @@ def prove_connect4_quick_match(browser):
             context.close()
 
 
-def prove_local_gameplay_percentages(browser):
-    """Exercise real Flask pages and observable game percentages in Chromium."""
+def prove_local_gameplay(browser):
+    """Exercise real Flask pages and observable moves in Chromium."""
     for game in ("connect4", "chess", "oware"):
         web_security.PUBLIC_WRITE_LIMITER.reset()
         context = browser.new_context(viewport={"width": 393, "height": 852})
@@ -325,19 +325,16 @@ def prove_local_gameplay_percentages(browser):
             expect(page.locator(".oware-score")).to_have_text(["0", "0"])
         page.locator("[data-start]").click()
         expect(page.locator("[data-game]")).to_be_visible()
-        expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 0%")
-        expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "0")
         if game == "connect4":
             page.locator("[data-controls] button:not([disabled])").first.click()
-            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 2%")
-            expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "2")
+            expect(page.locator(".c4-board .c4-p1")).to_have_count(1)
+            expect(page.locator("[data-turn]")).to_have_text("Player Two’s turn")
         elif game == "oware":
             for pit in (0, 10, 1, 7, 5):
                 page.locator(f'[data-pit="{pit}"]').click()
             expect(page.locator(".oware-score")).to_have_text(["2", "2"])
             expect(page.locator(".oware-captured-stones i")).to_have_count(4)
             expect(page.locator(".oware-stones i")).to_have_count(44)
-            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Seeds captured: 4/48")
             page.get_by_role("button", name="Settings").click()
             settings = page.get_by_role("dialog", name="Game settings")
             settings.get_by_label("Game type").select_option("nam-nam")
@@ -345,7 +342,6 @@ def prove_local_gameplay_percentages(browser):
             settings.get_by_label("Agent level").select_option("expert")
             settings.get_by_role("button", name="Start game").click()
             expect(settings).to_be_hidden()
-            expect(page.locator("[data-match-mode]")).to_have_text("Agent · Expert")
             expect(page.locator("[data-status]")).to_have_text("Nam-Nam")
             page.locator('[data-pit="0"]').click()
             expect(page.locator(".oware-last")).to_have_attribute("data-pit", re.compile(r"^(?:[6-9]|1[01])$"))
@@ -359,7 +355,7 @@ def prove_local_gameplay_percentages(browser):
             expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "3")
         assert_layout(page)
         context.close()
-        print("ARENA_GAMEPLAY_PERCENT_CHROMIUM_PASS", game)
+        print("ARENA_LOCAL_GAMEPLAY_CHROMIUM_PASS", game)
 
 
 def main():
@@ -379,7 +375,7 @@ def main():
             play_added_room(browser, "oware", desktop, mobile)
             play_final_room(browser, "iq", mobile, desktop)
             play_final_room(browser, "route-empire", desktop, mobile)
-            prove_local_gameplay_percentages(browser)
+            prove_local_gameplay(browser)
             browser.close()
     finally:
         server.shutdown()
