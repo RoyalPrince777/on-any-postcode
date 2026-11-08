@@ -9,6 +9,8 @@ def test_sika_store_entry_uses_existing_bank_identity_without_installation():
     assert item["name"] == "United States of Africa Royalty Bank"
     assert item["release_state"] == "release_pending"
     assert item["open_url"] == "/oap-store/apps/oap.usa_royalty_bank/view"
+    assert item["browser_url"] == "/pay/bank"
+    assert item["browser_account_url"] == "/pay/bank/me"
     assert item["install_enabled"] is False
     assert item["install_url"] is None
     assert item["manifest_url"] is None
@@ -32,3 +34,14 @@ def test_bank_home_offers_authenticated_account_door(client):
     assert 'href="/pay/bank/me"' in page
     assert 'href="/store"' in page
     assert "My SIKA Account" in page
+
+
+def test_bank_browser_access_without_install(client):
+    page = client.get("/store").get_data(as_text=True)
+    assert 'href="/pay/bank">Open in Browser</a>' in page
+    assert 'href="/pay/bank/me">My SIKA Account · Sign in</a>' in page
+    assert "Browser access requires no installation" in page
+    detail = client.get("/oap-store/apps/oap.usa_royalty_bank/view")
+    assert detail.status_code == 200
+    assert 'href="/pay/bank"' in detail.get_data(as_text=True)
+    assert 'href="/pay/bank/me"' in detail.get_data(as_text=True)
