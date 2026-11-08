@@ -45,3 +45,11 @@ def test_bank_browser_access_without_install(client):
     assert detail.status_code == 200
     assert 'href="/pay/bank"' in detail.get_data(as_text=True)
     assert 'href="/pay/bank/me"' in detail.get_data(as_text=True)
+
+
+def test_bank_public_page_never_claims_install_ready(client):
+    page = client.get("/pay/bank").get_data(as_text=True)
+    assert "Browser access available" in page
+    assert "Standalone installation not certified" in page
+    assert "Install OAP Bank" not in page
+    assert "data-oap-install hidden" not in page
