@@ -30,7 +30,9 @@ class KernelMindReview:
     hrm_signal_binding: str = "NOT_ESTABLISHED"
 
 
-def assess_kernel_evidence(\n    *, identity_id: str, request_id: str, hrm_signal_id: str | None = None\n) -> KernelMindReview:
+def assess_kernel_evidence(
+    *, identity_id: str, request_id: str, hrm_signal_id: str | None = None
+) -> KernelMindReview:
     """Require authoritative Founder-bound audit readback, never caller flags.
 
     The canonical readback enforces a human authority check. Its PermissionError
@@ -72,7 +74,7 @@ def assess_kernel_evidence(\n    *, identity_id: str, request_id: str, hrm_signa
             confidence="INSUFFICIENT",
             next_evidence=audit.reason,
         )
-    return KernelMindReview(
+    review = KernelMindReview(
         request_id=audit.request_id,
         audit_event_id=audit.event_id,
         octopus_assessment="INVESTIGATE" if audit.executed else "HOLD",
