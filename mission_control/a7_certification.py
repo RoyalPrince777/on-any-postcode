@@ -243,9 +243,18 @@ def status() -> dict[str, object]:
         ),
     }
     ready = all(a7_checks.values())
-    # Readiness is measurable only when the production proof store was read.
-    # A7 uses eleven A6 controls plus five additional assurances, not
-    # an average of certification flags or an invented organism percentage.
+    # Founder-facing A7 is five grouped decisions, not a 16-item progress ladder.
+    # Preserve all underlying A6 and A7 proof requirements without counting
+    # them as interchangeable progress points.
+    a7_review = {
+        "a6_foundation": a7_checks["all_a6_proof"],
+        "independent_assurance": (
+            a7_checks["external_audit"] and a7_checks["legal_compliance"]
+        ),
+        "operational_stop": a7_checks["emergency_halt"],
+        "privacy_boundary": a7_checks["public_private_boundary"],
+        "constitutional_founder": a7_checks["constitutional_review"],
+    }
     a5_names = tuple(autonomy_levels.A5_REQUIREMENTS)
     a5_keys = (
         "independent_proof_runner", "guardian_pass", "green_gate",
@@ -255,9 +264,6 @@ def status() -> dict[str, object]:
     assert len(a5_names) == len(a5_keys)
     a5_passed = sum(a6_checks[key] for key in a5_keys)
     a6_passed = sum(a6_checks.values())
-    a7_passed = a6_passed + sum(
-        value for key, value in a7_checks.items() if key != "all_a6_proof"
-    )
     readiness = {
         "evidence_available": store_reachable,
         "a5": {
@@ -273,11 +279,13 @@ def status() -> dict[str, object]:
             if store_reachable else None,
         },
         "a7": {
-            "passed": a7_passed if store_reachable else None,
-            "total": len(a6_checks) + len(a7_checks) - 1,
-            "percent": round(
-                100 * a7_passed / (len(a6_checks) + len(a7_checks) - 1), 1
-            ) if store_reachable else None,
+            "review": "five_grouped_gates",
+            "gates": {
+                key: (passed if store_reachable else None)
+                for key, passed in a7_review.items()
+            },
+            "ready": bool(store_reachable and all(a7_review.values())),
+            "percent": None,
         },
     }
     missing_a6 = tuple(name for name, proven in a6_checks.items() if not proven)
