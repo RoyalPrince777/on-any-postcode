@@ -177,3 +177,34 @@ def test_stream_stop_does_not_wait_indefinitely_for_uncooperative_provider(monke
         assert time.monotonic() - started < 1.0
     finally:
         release.set()
+
+
+def test_stop_closes_registered_resource_once():
+    token = smi_cancellation.new_token("founder")
+    closed = []
+    token.on_cancel(lambda: closed.append("provider_stream_closed"))
+    assert token.cancel("human_stop") is True
+    assert token.cancel("human_stop_repeat") is False
+    assert closed == ["provider_stream_closed"]
+
+
+def test_late_cancel_resource_registration_closes_immediately():
+    token = smi_cancellation.new_token("founder")
+    assert token.cancel("human_stop")
+    closed = []
+    token.on_cancel(lambda: closed.append("closed"))
+    assert closed == ["closed"]
+
+
+def test_cleanup_error_does_not_block_human_stop():
+    token = smi_cancellation.new_token("founder")
+    closed = []
+
+    def failing_cleanup():
+        raise OSError("closed elsewhere")
+
+    token.on_cancel(failing_cleanup)
+    token.on_cancel(lambda: closed.append("second_cleanup"))
+    assert token.cancel("human_stop")
+    assert token.cancelled
+    assert closed == ["second_cleanup"]
