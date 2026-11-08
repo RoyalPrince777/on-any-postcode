@@ -270,3 +270,42 @@ def test_matrix_home_groups_preserve_character_home_and_external_smi_boundary():
     assert agents.matrix_home_for('Niobe')['group_id'] == 'logos'
     assert agents.matrix_home_for('Nirmata') is None
     assert agents.matrix_home_for('Mouse')['execution_granted'] is False
+
+
+def test_dynamic_autofix_requires_verified_failure_logs_and_no_execution():
+    missing = smi_auto.classify_dynamic_autofix({})
+    assert missing["decision"] == "EVIDENCE_REQUIRED"
+    assert missing["auto_edit_granted"] is False
+
+    proof = {
+        "ready": True,
+        "log_analysis": {
+            "ready": True,
+            "log_categories": [
+                {"categories": ["source_verification", "gradle_compile"]}
+            ],
+        },
+    }
+    review = smi_auto.classify_dynamic_autofix(proof)
+    assert review["decision"] == "BOUNDED_REPAIR_REVIEW"
+    assert review["repair_scope"] == ("gradle_compile", "source_verification")
+    assert review["source_evidence_verified"] is True
+    assert review["auto_edit_granted"] is False
+    assert review["execution_granted"] is False
+    assert review["merge_granted"] is False
+    assert review["deploy_granted"] is False
+    assert review["a7_enabled"] is False
+    assert review["human_authority_final"] is True
+
+
+def test_dynamic_autofix_holds_signing_and_unknown_evidence():
+    proof = {
+        "ready": True,
+        "log_analysis": {
+            "ready": True,
+            "log_categories": [{"categories": ["signing_configuration", "gradle_compile"]}],
+        },
+    }
+    assert smi_auto.classify_dynamic_autofix(proof)["decision"] == "FOUNDER_REVIEW"
+    proof["log_analysis"]["log_categories"] = [{"categories": ["unrecognised_failure"]}]
+    assert smi_auto.classify_dynamic_autofix(proof)["decision"] == "EVIDENCE_REQUIRED"
