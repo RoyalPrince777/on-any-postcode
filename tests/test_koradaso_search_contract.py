@@ -15,7 +15,13 @@ def test_koradaso_omnibox_routes_queries_to_existing_oap_search(client):
     assert 'allowedRoutes.has(firstParty.pathname)' in source
     assert 'firstParty.origin===window.location.origin' in source
     assert 'raw.startsWith("/")&&!raw.startsWith("//")' in source
-    assert client.get("/search?q=KORADASO%20Internet").status_code == 200
+    catalogue = client.get("/search?q=music")
+    assert catalogue.status_code == 200
+    assert "OAP Music" in catalogue.get_data(as_text=True)
+    assert 'href="/koradaso/web-search?q=music"' in catalogue.get_data(as_text=True)
+    www = client.get("/koradaso/web-search?q=music")
+    assert www.status_code == 200
+    assert 'href="/search?q=music"' in www.get_data(as_text=True)
 
 
 def test_external_search_is_opt_in_and_site_navigation_preserves_consent():

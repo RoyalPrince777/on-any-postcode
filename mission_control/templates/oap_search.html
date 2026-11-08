@@ -14,20 +14,29 @@
     input{flex:1;min-width:0;border:1px solid #245f38;background:#0b1710;color:#fff;border-radius:12px;padding:13px}
     button,.open{border:0;border-radius:12px;padding:12px 16px;background:#27c267;color:#021;font-weight:900;text-decoration:none}
     .grid{display:grid;gap:12px}.card{border:1px solid #244832;background:#09140d;border-radius:16px;padding:16px}
+    .search-nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .search-nav a,.search-nav [aria-current]{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;border:1px solid #245f38;border-radius:12px;color:#d7f5df}
+    .search-nav [aria-current]{background:#123421}
+    .search-nav a:focus-visible,button:focus-visible{outline:2px solid #7ef0a3;outline-offset:3px}
     .meta{color:#9fb5a8;font-size:.86rem}.quiet{color:#9fb5a8}
   </style>
 </head>
 <body>
 <main>
+  <nav class="search-nav" aria-label="Search destinations">
+    <a href="/koradaso">KORADASO Home</a>
+    <span aria-current="page">OAP Catalogue</span>
+    <a href="/koradaso/web-search{% if query %}?q={{ query|urlencode }}{% endif %}">WWW Index</a>
+  </nav>
   <p class="eyebrow">🔎 OAP SEARCH · FIRST-PARTY</p>
   <h1>Search OAP</h1>
-  <p class="quiet">Searches the current public OAP app catalogue only. Private Link Up messages, private identity data and Founder surfaces are not indexed here.</p>
+  <p class="quiet">Find apps and destinations in OAP’s public catalogue.</p>
   <form method="get" action="/search">
     <input type="search" name="q" value="{{ query }}" maxlength="120" placeholder="Search apps, Market, Library, places, music…" aria-label="Search OAP">
     <button type="submit">Search</button>
   </form>
   {% if query %}
-    <p class="meta">{{ results|length }} result{{ '' if results|length == 1 else 's' }} for “{{ query }}”</p>
+    <p class="meta" role="status">{{ results|length }} result{{ '' if results|length == 1 else 's' }} for “{{ query }}”</p>
     <div class="grid">
       {% for app in results %}
       <article class="card">

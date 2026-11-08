@@ -10,6 +10,14 @@
   <script src="{{ url_for('static', filename='arena_intelligence.js') }}" defer></script>
   <style>
     .arena-hero{background:radial-gradient(circle at 85% 5%,rgba(163,109,255,.22),transparent 32%),linear-gradient(135deg,rgba(15,20,34,.98),rgba(32,18,53,.98));overflow:hidden}.arena-title{font-size:clamp(2.5rem,8vw,5.8rem);line-height:.9;margin:.18em 0}.arena-gold{color:#f5c451}.arena-tagline{max-width:760px;font-size:1.08rem}.arena-route{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:18px 0 0}.arena-route span{border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;background:rgba(255,255,255,.04)}.arena-route b{color:#a36dff}.arena-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.arena-layer{border:1px solid var(--mc-line);border-radius:16px;padding:15px;background:var(--mc-panel-soft)}.arena-layer h3{margin:.25rem 0 .5rem}.arena-console{border:1px solid rgba(163,109,255,.7);box-shadow:0 18px 50px rgba(0,0,0,.25)}.arena-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.arena-state{display:inline-flex;border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;font-weight:800}.arena-score{display:grid;grid-template-columns:repeat(3,minmax(84px,1fr));gap:8px;margin:14px 0}.arena-score div{border:1px solid var(--mc-line);border-radius:12px;padding:11px;background:rgba(255,255,255,.03)}.arena-score strong{display:block;font-size:1.35rem}.arena-question{margin:18px 0}.arena-choices{display:grid;gap:9px}.arena-choice,.arena-control{border:1px solid var(--mc-line);border-radius:13px;padding:12px 14px;background:var(--mc-panel-soft);color:var(--mc-text);text-align:left;font:inherit;cursor:pointer}.arena-choice:hover,.arena-choice:focus-visible,.arena-control:hover,.arena-control:focus-visible{border-color:#a36dff;outline:none}.arena-control-primary{background:#6f3ec3;border-color:#a36dff;font-weight:800}.arena-control-stop{border-color:#d45b68;color:#ffb7bf}.arena-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.arena-feedback{border-left:3px solid #a36dff;padding:10px 12px;margin:14px 0;background:rgba(163,109,255,.08)}.arena-feedback[data-tone="correct"]{border-color:#43d17d}.arena-feedback[data-tone="wrong"]{border-color:#f5c451}.arena-error{color:#ffb7bf}.arena-truth{border-left:3px solid #f5c451;padding-left:12px}.arena-boundary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.arena-lock{border:1px solid var(--mc-line);border-radius:12px;padding:10px}.arena-lock strong{color:#f5c451}.arena-receipt{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;overflow-wrap:anywhere;color:var(--mc-muted)}[hidden]{display:none!important}@media(max-width:560px){.arena-score{grid-template-columns:1fr}.arena-controls button{flex:1 1 44%}}
+    .arena-lobby-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .arena-game-card{display:flex;flex-direction:column;min-width:0;overflow-wrap:anywhere}
+    .arena-game-card p{margin:.35rem 0}
+    .arena-game-card .arena-control{display:flex;align-items:center;min-height:44px;text-decoration:none}
+    .arena-game-card .arena-control:focus-visible,.arena-opponents summary:focus-visible{outline:2px solid #f5c451;outline-offset:3px}
+    .arena-opponents summary{padding:10px 0;cursor:pointer;font-weight:750}
+    @media(max-width:750px){.arena-lobby-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:450px){.arena-lobby-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -23,6 +31,7 @@
       </div>
     </div>
     <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="/koradaso">KORADASO</a>
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
       <a class="mc-secondary-link" href="/my-card">My Card</a>
       <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
@@ -30,9 +39,82 @@
   </header>
 
   <main class="mc-workspace">
-    <section class="mc-panel">
+    <section class="mc-panel arena-lobby" aria-labelledby="arena-games">
+      <h2 id="arena-games">Play Arena</h2>
+      <p>Choose a game to play, or open its room to create or join a match.</p>
+      <div class="arena-lobby-grid">
+        <article class="arena-layer arena-game-card">
+          <p class="mc-eyebrow">Turn-based race · bounded first-party game</p>
+          <h3>🎲 Ludo</h3>
+          <p>Race. Move. Finish.</p>
+          <p><a class="arena-control arena-control-primary" href="/arena/ludo">Open Ludo</a></p>
+          <p><a class="arena-control" href="/arena/ludo/room">Create / Join Ludo Room</a></p>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <p class="mc-eyebrow">Akan strategy · bounded Abapa core</p>
+          <h3>🌰 Oware</h3>
+          <p>Sow. Capture. Protect the game.</p>
+          <p><a class="arena-control arena-control-primary" href="/arena/oware">Open Oware</a></p>
+          <p><a class="arena-control" href="/arena/oware/room">Create / Join Oware Room</a></p>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <p class="mc-eyebrow">Strategy board · bounded legal-move engine</p>
+          <h3>♟️ Chess</h3>
+          <p>Think. Move. Control.</p>
+          <p><a class="arena-control arena-control-primary" href="/arena/chess">Open Chess</a></p>
+          <p><a class="arena-control" href="/arena/chess/room">Create / Join Chess Room</a></p>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <p class="mc-eyebrow">Dots and boxes · first-party match</p>
+          <h3>⚫ Dot</h3>
+          <p>Draw. Box. Score.</p>
+          <p><a class="arena-control arena-control-primary" href="/arena/dot">Open Dot</a></p>
+          <p><a class="arena-control" href="/arena/dot/room">Create / Join Dot Room</a></p>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <p class="mc-eyebrow">Classic strategy · server-authoritative match</p>
+          <h3>🔴 Connect 4</h3>
+          <p>Drop. Connect. Win.</p>
+          <p>Two-player first-party match with authoritative turns, win detection, duplicate protection and STOP.</p>
+          <p><a class="arena-control arena-control-primary" href="/arena/connect4">Open Connect 4</a></p>
+          <p><a class="arena-control" href="/arena/connect4/room">Create / Join Online Room</a></p>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <p class="mc-eyebrow">Mind challenge · seven-domain skill profile</p>
+          <h3>🧠 IQ Arena</h3>
+          <p><strong>Think. Solve. Adapt.</strong></p>
+          <p>Logic, Patterns, Memory, Spatial, Numbers, Language and Strategy. In-game skill profile only; not a clinical IQ score.</p>
+          <p><a class="arena-control arena-control-primary" href="/arena/iq">Open IQ Arena</a></p>
+          <p><a class="arena-control" href="/arena/iq/room">Create / Join IQ Duel Room</a></p>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <p class="mc-eyebrow">Living world · Mitcham / CR4 first playable district</p>
+          <h3>🌍 EARTH IS OUR TURF</h3>
+          <p><strong>Born Local. Built Global.</strong></p>
+          <p>Do something in the postcode → the postcode remembers → the world changes. Explore the first Mitcham living-world slice with time, routes, businesses and persistent session consequences.</p>
+          <p><a class="arena-control arena-control-primary" href="/arena/earth-is-our-turf">Enter Mitcham</a></p>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <p class="mc-eyebrow">Royal Arena Empire · first strategy slice</p>
+          <h3>🌍 Route Empire</h3>
+          <p><strong>Born Local. Built Global.</strong></p>
+          <p>Start local, build routes and expand your world using game-only points. No real property ownership or payment execution.</p>
+          <p><a class="arena-control arena-control-primary" href="/arena/route-empire">Open Route Empire v1</a></p>
+          <p><a class="arena-control" href="/arena/route-empire/room">Create / Join Route Empire Room</a></p>
+        </article>
+      </div>
+    </section>
+
+    <details class="mc-panel arena-opponents">
+      <summary>Arena opponents and difficulty</summary>
       <p class="mc-eyebrow">First-party opponents · same visible state as people</p>
-      <h2>🤖 Play an Agent</h2>
       <p>Choose an OAP Arena agent by game fit. Agents never receive hidden board information and never control payments or human authority.</p>
       <div class="arena-grid" role="list">
         <article class="arena-layer" role="listitem"><h3>🐆 Bagheera (Panther) · ⭐⭐⭐⭐⭐⭐⭐</h3><p>Default adaptive opponent. Best overall fit; Connect 4 and Dot specialist.</p></article>
@@ -44,70 +126,7 @@
         <article class="arena-layer" role="listitem"><h3>🦍 Gorilla · ⭐⭐⭐⭐⭐☆☆</h3><p>Defensive strategy specialist.</p></article>
       </div>
       <p class="arena-truth"><strong>Difficulty:</strong> Easy → Standard → Strong → A7. Agent identity and difficulty stay separate.</p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Turn-based race · bounded first-party game</p>
-      <h2>🎲 Ludo</h2>
-      <p>Race. Move. Finish.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/ludo">Open Ludo</a></p>\n      <p><a class="arena-control" href="/arena/ludo/room">Create / Join Ludo Room</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Akan strategy · bounded Abapa core</p>
-      <h2>🌰 Oware</h2>
-      <p>Sow. Capture. Protect the game.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/oware">Open Oware</a></p>\n      <p><a class="arena-control" href="/arena/oware/room">Create / Join Oware Room</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Strategy board · bounded legal-move engine</p>
-      <h2>♟️ Chess</h2>
-      <p>Think. Move. Control.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/chess">Open Chess</a></p>
-      <p><a class="arena-control" href="/arena/chess/room">Create / Join Chess Room</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Dots and boxes · first-party match</p>
-      <h2>⚫ Dot</h2>
-      <p>Draw. Box. Score.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/dot">Open Dot</a></p>
-      <p><a class="arena-control" href="/arena/dot/room">Create / Join Dot Room</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Classic strategy · server-authoritative match</p>
-      <h2>🔴 Connect 4</h2>
-      <p>Drop. Connect. Win.</p>
-      <p>Two-player first-party match with authoritative turns, win detection, duplicate protection and STOP.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/connect4">Open Connect 4</a></p>
-      <p><a class="arena-control" href="/arena/connect4/room">Create / Join Online Room</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Mind challenge · seven-domain skill profile</p>
-      <h2>🧠 IQ Arena</h2>
-      <p><strong>Think. Solve. Adapt.</strong></p>
-      <p>Logic, Patterns, Memory, Spatial, Numbers, Language and Strategy. In-game skill profile only; not a clinical IQ score.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/iq">Open IQ Arena</a></p>\n      <p><a class="arena-control" href="/arena/iq/room">Create / Join IQ Duel Room</a></p>
-    </section>
-
-    <section class="mc-panel arena-console">
-      <p class="mc-eyebrow">Living world · Mitcham / CR4 first playable district</p>
-      <h2>🌍 EARTH IS OUR TURF</h2>
-      <p><strong>Born Local. Built Global.</strong></p>
-      <p>Do something in the postcode → the postcode remembers → the world changes. Explore the first Mitcham living-world slice with time, routes, businesses and persistent session consequences.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/earth-is-our-turf">Enter Mitcham</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Royal Arena Empire · first strategy slice</p>
-      <h2>🌍 Route Empire</h2>
-      <p><strong>Born Local. Built Global.</strong></p>
-      <p>Start local, build routes and expand your world using game-only points. No real property ownership or payment execution.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/route-empire">Open Route Empire v1</a></p>\n      <p><a class="arena-control" href="/arena/route-empire/room">Create / Join Route Empire Room</a></p>
-    </section>
+    </details>
 
     <section class="mc-panel arena-console" aria-labelledby="arena-console-title" data-arena-console>
       <div class="arena-head">

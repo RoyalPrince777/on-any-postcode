@@ -8,6 +8,9 @@ def test_arena_hub_surfaces_my_card_and_all_proven_room_modes(anonymous_client):
     assert response.status_code == 200
     assert 'href="/my-card"' in page
     assert "My Card" in page
+    assert 'href="/koradaso"' in page
+    assert page.index('id="arena-games"') < page.index('class="mc-panel arena-opponents"')
+    assert r"</p>\n" not in page
     for room_path in (
         "/arena/connect4/room",
         "/arena/dot/room",
