@@ -1960,16 +1960,10 @@ def _auth_page_response(
     next_path: str = "/my-world",
 ):
     founder_only = _founder_only_path(next_path)
-    local_founder_ready = founder_only and neon_auth.local_founder_ready()
     auth_ready = (
-        local_founder_ready
-        or (
-            neon_auth.status()["valid"]
-            and (
-                not founder_only
-                or bool(neon_auth.configured_founder_email())
-            )
-        )
+        neon_auth.founder_sign_in_ready()
+        if founder_only
+        else neon_auth.status()["valid"]
     )
     response = make_response(
         render_template(

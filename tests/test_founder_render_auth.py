@@ -462,3 +462,22 @@ def test_missing_all_session_keys_fails_closed_not_500(monkeypatch):
         assert str(exc) == "founder_local_auth_unavailable"
     else:
         raise AssertionError("Missing session signing key must fail closed")
+
+
+def test_founder_sign_in_readiness_follows_selected_verifier(monkeypatch):
+    monkeypatch.setenv("NEON_AUTH_BASE_URL", "https://auth.example.test/auth")
+    monkeypatch.setenv("OAP_HUMAN_AUTHORITY_EMAIL", "founder@example.test")
+    monkeypatch.setenv("OAP_PUBLIC_ORIGIN", "https://core.example.test")
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+    monkeypatch.delenv("OAP_SESSION_SECRET", raising=False)
+    monkeypatch.delenv("OAP_SMI_GATEWAY_SECRET", raising=False)
+
+    monkeypatch.setattr(founder_local_auth, "bound", lambda: True)
+    assert not neon_auth.founder_sign_in_ready()
+    monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "x" * 32)
+    assert neon_auth.founder_sign_in_ready()
+
+    monkeypatch.setattr(founder_local_auth, "bound", lambda: False)
+    assert neon_auth.founder_sign_in_ready()
+    monkeypatch.delenv("OAP_PUBLIC_ORIGIN")
+    assert not neon_auth.founder_sign_in_ready()
