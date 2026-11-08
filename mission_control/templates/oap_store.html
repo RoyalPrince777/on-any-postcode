@@ -38,11 +38,16 @@
     <p>{{ app.description }}</p>
     <p><strong>Publisher:</strong> {{ app.publisher }}</p>
     <div class="actions">
-      {% if app.open_url %}<a class="open-link" href="{{ app.open_url }}">Open {{ app.name }}</a>{% endif %}
+      {% if app.browser_url %}<a class="open-link" href="{{ app.browser_url }}">Open in Browser</a>{% endif %}
+      {% if app.browser_account_url %}<a class="open-link" href="{{ app.browser_account_url }}">My SIKA Account · Sign in</a>{% endif %}
+      {% if app.open_url and not app.browser_url %}<a class="open-link" href="{{ app.open_url }}">Open {{ app.name }}</a>{% endif %}
       {% if app.install_enabled and app.install_url %}
         <a class="install-link" href="{{ app.install_url }}">Install {{ app.name }}</a>
       {% endif %}
     </div>
+    {% if app.app_id == "oap.usa_royalty_bank" %}
+      <p class="truth">Browser access requires no installation. My SIKA Account is private and requires sign-in. Bank authorisation and live financial services remain evidence-gated.</p>
+    {% endif %}
     {% if app.app_id == "oap.arena" %}
       <p class="truth" data-oap-arena-world-install-path>
         OAP Arena opens inside the existing OAP World app. To add OAP World to your Android home screen,
