@@ -246,12 +246,14 @@ def video_content(video_id: str) -> tuple[bytes, str]:
         raise RuntimeError("studio_generation_provider_unavailable") from exc
     if not body or len(body) > MAX_VIDEO_BYTES:
         raise RuntimeError("studio_video_content_invalid")
-    mime_type = (
-        content_type.split(";", 1)[0].strip()
-        if content_type.startswith("video/")
-        else "video/mp4"
-    )
-    return body, mime_type
+    # An HTTP success, provider completion, or MIME header does not prove a video.
+    # MP4-family files must contain an ISO Base Media File Format ftyp box.
+    if len(body) < 16 or body[4:8] != b"ftyp":
+        raise RuntimeError("studio_video_content_invalid")
+    declared_mime = content_type.split(";", 1)[0].strip().lower()
+    if declared_mime not in {"video/mp4", "application/octet-stream"}:
+        raise RuntimeError("studio_video_content_type_unsupported")
+    return body, "video/mp4"
 
 
 def video_status(video_id: str) -> dict[str, Any]:
