@@ -10,6 +10,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+# Octopus is the existing SMI systems-coordination specialist, not OAP MIND
+# itself. These are design responsibilities, not independently running workers.
+OCTOPUS_OPERATIONAL_ARMS: tuple[str, ...] = (
+    "OBSERVE", "TRACE", "PLAN", "COORDINATE",
+    "EXECUTE", "ADAPT", "RECOVER", "VERIFY",
+)
+OCTOPUS_PERMISSION_BOUNDARIES: tuple[str, ...] = (
+    "SENSE", "READ", "ANALYSE", "INFER",
+    "REMEMBER", "LEARN", "SHARE", "ACT",
+)
+OAP_MIND_OWNER = "SMI"
+OAP_MIND_COORDINATOR = "Octopus"
+OAP_MIND_SUPPORTING_ARMS: tuple[str, ...] = ("TRACE", "ADAPT", "VERIFY")
+
 EvidenceKind = Literal["source", "test", "ci", "runtime", "device", "proposal"]
 Verdict = Literal["INVESTIGATE", "HOLD", "REVIEW_READY"]
 
