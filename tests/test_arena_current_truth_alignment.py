@@ -21,7 +21,7 @@ def test_arena_hub_surfaces_my_card_and_all_proven_room_modes(anonymous_client):
         "/arena/route-empire/room",
     ):
         assert f'href="{room_path}"' in page
-    assert "Create / Join Chess Room" in page
+    assert "Online room for Chess" in page
     assert "My Card history" in page
 
 

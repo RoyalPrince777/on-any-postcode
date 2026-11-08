@@ -40,7 +40,7 @@ def test_arena_front_door_lists_oware(client):
     page = client.get("/arena")
     assert page.status_code == 200
     text = page.get_data(as_text=True)
-    assert "🌰 Oware" in text
+    assert "<h3>Oware</h3>" in text
     assert 'href="/arena/oware"' in text
 
 

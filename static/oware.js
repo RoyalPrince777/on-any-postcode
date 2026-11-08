@@ -48,7 +48,7 @@
     q("[data-stop]").disabled = busy || !active;
     if (!state?.started) {
       window.OAPOwareBoard.render(q("[data-board]"), opening, false);
-      q("[data-feedback]").textContent = "Choose New Game to play, or open Settings to pick your opponent.";
+      q("[data-feedback]").textContent = "Choose New game to play, or open Settings to pick your opponent.";
       return;
     }
 
@@ -74,7 +74,7 @@
       const reason = {no_legal_move: "No legal move. ", repetition: "Repeated position. "}[state.result] || "";
       feedback = reason + (state.draw ? "24–24 draw." : winner.name + " wins.");
     } else if (state.status === "stopped") {
-      feedback = "Match stopped. Choose New Game to play again.";
+      feedback = "Match stopped. Choose New game to play again.";
     } else if (state.grand_slam_forfeited) {
       feedback = "Grand slam: sowing stands and the seeds stay in play.";
     } else if (!hasOpponentSeeds) {

@@ -16,8 +16,7 @@
 <header class="oware-header">
 <nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← Arena</a><a href="/arena/oware/room">Online room</a></nav>
 <button class="oware-settings-button" type="button" data-settings-open aria-haspopup="dialog" aria-controls="oware-settings" disabled>Settings</button>
-<div><p class="oware-kicker">OAP ARENA · GHANAIAN STRATEGY</p><h1>Oware</h1></div>
-<p class="oware-board-spec">12 houses · 48 seeds</p>
+<div class="oware-heading"><h1>Oware</h1><p>12 houses · 48 seeds</p></div>
 </header>
 <dialog class="oware-settings" id="oware-settings" aria-labelledby="oware-settings-title">
 <form id="oware-setup" data-setup>
@@ -30,7 +29,7 @@
 <select data-variant><option value="abapa">Abapa</option><option value="nam-nam">Nam-Nam</option></select>
 </label>
 <label class="arena-field">Play against
-<select data-mode><option value="local">Two players · same device</option><option value="agent">Play vs Oware Agent</option></select>
+<select data-mode><option value="local">Two players</option><option value="agent">Oware Agent</option></select>
 </label>
 <label class="arena-field" data-level-field hidden>Agent level
 <select data-level><option value="beginner">Beginner</option><option value="standard" selected>Standard</option><option value="expert">Expert</option></select>
@@ -52,8 +51,8 @@
 <p class="arena-hint" data-round hidden></p>
 <div data-board aria-label="Oware board"></div>
 <div class="oware-actions">
-<button class="oware-primary" type="submit" form="oware-setup" data-start disabled>New Game</button>
-<button class="arena-stop" type="button" data-stop disabled>STOP</button>
+<button class="oware-primary" type="submit" form="oware-setup" data-start disabled>New game</button>
+<button class="arena-stop" type="button" data-stop disabled>Stop</button>
 </div>
 <p class="arena-error" role="alert" data-error></p>
 <p class="arena-feedback" role="status" data-feedback></p>
