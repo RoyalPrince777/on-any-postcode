@@ -285,6 +285,8 @@ def _bank_information_entry() -> dict[str, object]:
         "service_worker_url": None,
         "start_url": None,
         "open_url": "/oap-store/apps/oap.usa_royalty_bank/view",
+        "browser_url": "/pay/bank",
+        "browser_account_url": "/pay/bank/me",
         "category": "Value",
         "install_url": None,
         "offline_url": None,
