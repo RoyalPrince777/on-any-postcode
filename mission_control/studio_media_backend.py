@@ -214,7 +214,8 @@ def create_video(prompt: str, *, source_image_data: str = "", seconds: str = "4"
         "model": str(payload.get("model") or VIDEO_MODEL),
         "status": state,
         "progress": int(payload.get("progress") or 0),
-        "artifact_proven": state == "completed",
+        "provider_completed": state == "completed",
+        "artifact_proven": False,
         "provider_is_authority": False,
     }
 
@@ -265,7 +266,8 @@ def video_status(video_id: str) -> dict[str, Any]:
         "model": str(payload.get("model") or VIDEO_MODEL),
         "status": state,
         "progress": int(payload.get("progress") or 0),
-        "artifact_proven": state == "completed",
+        "provider_completed": state == "completed",
+        "artifact_proven": False,
         "content_path": f"/videos/{clean_id}/content" if state == "completed" else None,
         "provider_is_authority": False,
     }
