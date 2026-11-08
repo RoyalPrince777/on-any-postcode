@@ -50,7 +50,10 @@ def test_royal_home_keeps_search_and_navigation_functional(client):
     page = client.get("/koradaso")
     assert page.status_code == 200
     body = page.get_data(as_text=True)
-    assert 'class="royal-tabs"' in body
+    tabs = body.split('<nav class="royal-tabs"', 1)[1].split("</nav>", 1)[0]
+    assert 'href="/koradaso" target="_blank" rel="noopener noreferrer"' in tabs
+    assert "New tab" in tabs
+    assert "/arena" not in tabs
     assert 'href="/search"' in body
     assert 'href="#bookmark-list"' in body
     assert 'href="#browser-settings"' in body
@@ -147,10 +150,12 @@ def test_koradaso_original_logo_and_core_boundary(client):
     assert 'id="bookmark-list"' in html
     assert 'id="settings-tile" href="#browser-settings"' in html
     assert 'class="royal-menu"' in html
-    assert '<a href="#browser-settings">⚙ Settings &amp; Privacy</a>' in source
-    assert '<span class="menu-unavailable" aria-disabled="true">⬇ Downloads · Not ready</span>' in source
-    assert "<strong>Downloads</strong><span>Reserved · Not ready</span>" in source
-    assert 'id="browser-settings"' in source
+    header = html.split('<header class="top">', 1)[1].split("</header>", 1)[0]
+    assert 'id="browser-settings"' in header
+    assert '<summary aria-label="Settings"' in header
+    assert 'id="settings-downloads"' in header
+    assert 'id="settings-smi"' in header
+    assert "Use your authenticated OAP Core workspace to access SMI." in header
     assert 'id="address-form"' in source
     assert client.get("/arena").status_code in (200, 302)
     assert "https://duckduckgo.com" not in source
