@@ -22,7 +22,8 @@ a{color:inherit;text-decoration:none}button,input{font:inherit}
 
 .hero{margin:6px 0 0;overflow:hidden;border:1px solid #f0c66e;border-radius:20px;background:#050306;box-shadow:0 0 18px #9951f455}
 .hero h1{margin:0}
-.hero img{display:block;width:min(100%,410px);height:auto;margin:auto}
+.hero img{display:block;width:min(100%,360px);height:auto;margin:auto}
+@media(max-width:520px){.hero img{width:min(100%,290px)}}
 .search{display:flex;gap:8px;border:1px solid var(--gold);border-radius:24px;padding:7px;margin:20px 0 6px;background:#10111e;box-shadow:0 0 15px #b8894933}
 .search input{flex:1;min-width:0;background:transparent;border:0;padding:10px;color:white;outline-offset:4px}.search button,.action{background:linear-gradient(135deg,#ffe1a1,#b88736);border:0;border-radius:16px;color:#211407;font-weight:750;padding:10px 14px;cursor:pointer}
 .search button:focus-visible,.tile:focus-visible,a:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}
@@ -150,9 +151,8 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <label><input type="radio" name="search-mode" value="oap" checked> OAP Search</label>
 <label><input type="radio" name="search-mode" value="web"> WWW Search</label>
 </div>
-<nav class="discovery-strip" aria-label="KORADASO discovery categories"><a href="/search">All OAP</a><a href="/koradaso/web-search">WWW Index</a><span aria-disabled="true" title="Image indexing not yet available">Images · Soon</span><span aria-disabled="true" title="Video indexing not yet available">Videos · Soon</span></nav>
 <p class="trust-state" id="trust-state" role="status">OAP FIRST PARTY · Catalogue search</p>
-<p class="note" id="address-note" role="status">OAP Search finds public OAP apps. WWW Search checks OAP’s own indexed public web pages; coverage is limited while indexing grows. Direct HTTPS sites open with confirmation.</p>
+<p class="note" id="address-note" role="status">Search OAP apps, indexed websites, or enter a website address.</p>
 <h2>EXPLORE YOUR WORLD</h2>
 <div class="grid">
 <a class="tile" href="/world?source=oap-os"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>OAP World menu</span></a>
@@ -171,6 +171,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <p class="note" id="bookmark-note" role="status">Saved bookmarks stay in this browser only. Nothing is uploaded to OAP.</p>
 <details class="browser-settings" id="browser-settings">
 <summary>⚙ Browser settings</summary>
+<nav class="discovery-strip" aria-label="KORADASO discovery categories"><a href="/search">All OAP</a><a href="/koradaso/web-search">WWW Index</a><span aria-disabled="true" title="Image indexing not yet available">Images · Soon</span><span aria-disabled="true" title="Video indexing not yet available">Videos · Soon</span></nav>
 <p>OAP Search currently searches public OAP apps only. WWW Search checks the first-party KORADASO index; missing pages are not yet indexed. External HTTPS addresses require separate consent.</p>
 <label for="open-web-search"><input type="checkbox" id="open-web-search"> Use KORADASO WWW index for phrases (coverage limited)</label>
 <label for="reduce-motion"><input type="checkbox" id="reduce-motion"> Reduce motion</label>

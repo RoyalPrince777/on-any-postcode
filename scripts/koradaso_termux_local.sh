@@ -36,6 +36,23 @@ with socket.socket() as sock:
 print(f"KORADASO routes registered; starting isolated loopback server on 127.0.0.1:{port}", flush=True)
 PY
 
+# Seed the phone's default index once from reviewed public metadata.
+# An explicitly configured index always takes priority.
+if [[ -z "${OAP_KORADASO_WEB_INDEX:-}" ]]; then
+  index_dir="${XDG_DATA_HOME:-$HOME/.local/share}/oap/koradaso"
+  export OAP_KORADASO_WEB_INDEX="$index_dir/public-index.sqlite3"
+  if [[ ! -e "$OAP_KORADASO_WEB_INDEX" ]]; then
+    (
+      mkdir -p -- "$index_dir" || exit 1
+      index_tmp="$(mktemp "$index_dir/.public-index.XXXXXX")" || exit 1
+      trap 'rm -f -- "$index_tmp"' EXIT
+      python scripts/koradaso_index_public.py --source scripts/koradaso_starter_pages.jsonl --db "$index_tmp" || exit 1
+      # Publish the complete database without replacing an index created by a concurrent launch.
+      ln -T -- "$index_tmp" "$OAP_KORADASO_WEB_INDEX" || [[ -f "$OAP_KORADASO_WEB_INDEX" ]]
+    ) || printf '%s\n' "KORADASO starter index unavailable. OAP Catalogue remains available." >&2
+  fi
+fi
+
 # Open the real route only after an actual HTTP 200 response with KORADASO branding.
 # The browser remains optional; HEAD-only 200 checks are insufficient.
 if [[ "${OAP_KORADASO_OPEN_BROWSER:-1}" == "1" ]] && command -v termux-open-url >/dev/null 2>&1; then

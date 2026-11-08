@@ -19,9 +19,6 @@ def test_koradaso_omnibox_routes_queries_to_existing_oap_search(client):
     assert catalogue.status_code == 200
     assert "OAP Music" in catalogue.get_data(as_text=True)
     assert 'href="/koradaso/web-search?q=music"' in catalogue.get_data(as_text=True)
-    www = client.get("/koradaso/web-search?q=music")
-    assert www.status_code == 200
-    assert 'href="/search?q=music"' in www.get_data(as_text=True)
 
 
 def test_external_search_is_opt_in_and_site_navigation_preserves_consent():
@@ -202,6 +199,7 @@ def test_koradaso_uses_only_first_party_www_search(client, monkeypatch):
     missing = client.get("/koradaso/web-search?q=test")
     assert missing.status_code == 503
     assert b"First-party index not configured" in missing.data
+    assert b'href="/search?q=test"' in missing.data
 
 
 def test_koradaso_sqlite_index_real_results_without_external_provider(tmp_path, monkeypatch, client):
@@ -236,27 +234,22 @@ def test_koradaso_index_rejects_unsafe_public_urls(tmp_path):
 
 
 def test_koradaso_curated_import_creates_real_local_index(tmp_path, monkeypatch, client):
-    import json
     import subprocess
     import sys
 
-    source_file = tmp_path / "reviewed.jsonl"
-    source_file.write_text(json.dumps({
-        "url": "https://example.org/public",
-        "title": "Public historical directory",
-        "description": "Independent archives",
-    }) + "\n", encoding="utf-8")
     db = tmp_path / "koradaso.sqlite3"
     result = subprocess.run(
         [sys.executable, "scripts/koradaso_index_public.py",
-         "--source", str(source_file), "--db", str(db)],
+         "--source", "scripts/koradaso_starter_pages.jsonl", "--db", str(db)],
         capture_output=True, text=True, check=False, timeout=10,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     monkeypatch.setenv("OAP_KORADASO_WEB_INDEX", str(db))
-    response = client.get("/koradaso/web-search?q=historical")
+    response = client.get("/koradaso/web-search?q=mitcham")
     assert response.status_code == 200
-    assert b"Public historical directory" in response.data
+    for title in (b"Mitcham Library", b"Mitcham Junction Tram Stop", b"Mitcham Junction Station"):
+        assert title in response.data
+    assert b'href="/search?q=mitcham"' in response.data
 
 
 def test_koradaso_www_ranks_title_relevance_before_newer_description(tmp_path, monkeypatch):
