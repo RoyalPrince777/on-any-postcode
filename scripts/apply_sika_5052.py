@@ -106,11 +106,11 @@ def apply_detail_html(source: str) -> str:
 def apply_bank_html(source: str) -> str:
     if "{% set oap_install_script = false %}" not in source:
         source = replace_once(source, "{% set oap_app_name = 'OAP Bank' %}",
-                              "{% set oap_install_script = false %}\\n{% set oap_app_name = 'OAP Bank' %}",
+                              "{% set oap_install_script = false %}\n{% set oap_app_name = 'OAP Bank' %}",
                               name="no premature bank installer")
     if 'data-oap-install hidden' in source:
-        original = '<div class="install-row">\\n<button class="pill" type="button" data-oap-install hidden>Install OAP Bank</button>\\n<div class="meta" data-oap-install-status role="status">Checking install support</div>\\n</div>'
-        replacement = '<div class="install-row">\\n<a class="pill" href="/pay/bank/me">Open My SIKA Account</a>\\n<div class="meta">Browser access available · Standalone installation not certified</div>\\n</div>'
+        original = '<div class="install-row">\n<button class="pill" type="button" data-oap-install hidden>Install OAP Bank</button>\n<div class="meta" data-oap-install-status role="status">Checking install support</div>\n</div>'
+        replacement = '<div class="install-row">\n<a class="pill" href="/pay/bank/me">Open My SIKA Account</a>\n<div class="meta">Browser access available · Standalone installation not certified</div>\n</div>'
         source = replace_once(source, original, replacement, name="bank browser-only installer")
     if 'href="/pay/bank/me">My SIKA Account</a>' not in source:
         original = '<header class="top"><div class="brand">👑 OAP BANK</div><a class="pill" href="/pay">OAP Pay</a></header>'
