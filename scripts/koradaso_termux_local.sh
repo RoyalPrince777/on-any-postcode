@@ -16,6 +16,29 @@ if [[ "${OAP_SURFACE_ROLE:-}" == "public" ]]; then
 fi
 export FLASK_DEBUG=0
 
+index_dir="${XDG_DATA_HOME:-$HOME/.local/share}/oap/koradaso"
+index_path="${OAP_KORADASO_WEB_INDEX:-$index_dir/public-index.sqlite3}"
+
+if [[ "${1:-}" == "--crawl" && "$#" -eq 1 ]]; then
+  seeds="$(mktemp)"
+  trap 'rm -f -- "$seeds"' EXIT
+  python - scripts/koradaso_starter_pages.jsonl > "$seeds" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as source:
+    for line in source:
+        if line.strip():
+            print(json.loads(line)["url"])
+PY
+  python scripts/koradaso_crawl_seeds.py --source "$seeds" --db "$index_path" --execute
+  exit
+fi
+if (( $# )); then
+  echo "Usage: bash scripts/koradaso_termux_local.sh [--crawl]" >&2
+  exit 2
+fi
+
 # The runtime route and free port must both be real before starting Flask.
 python - "$PORT" <<'PY'
 import socket
@@ -24,7 +47,7 @@ from app import app
 
 port = int(sys.argv[1])
 routes = {rule.rule for rule in app.url_map.iter_rules()}
-required = {"/koradaso", "/world", "/search"}
+required = {"/koradaso", "/world", "/search", "/koradaso/web-search", "/arena"}
 missing = sorted(required - routes)
 if missing:
     raise SystemExit("KORADASO refused: missing routes " + ", ".join(missing))
@@ -39,8 +62,7 @@ PY
 # Seed the phone's default index once from reviewed public metadata.
 # An explicitly configured index always takes priority.
 if [[ -z "${OAP_KORADASO_WEB_INDEX:-}" ]]; then
-  index_dir="${XDG_DATA_HOME:-$HOME/.local/share}/oap/koradaso"
-  export OAP_KORADASO_WEB_INDEX="$index_dir/public-index.sqlite3"
+  export OAP_KORADASO_WEB_INDEX="$index_path"
   if [[ ! -e "$OAP_KORADASO_WEB_INDEX" ]]; then
     (
       mkdir -p -- "$index_dir" || exit 1

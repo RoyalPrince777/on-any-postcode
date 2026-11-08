@@ -27,7 +27,8 @@ def main() -> int:
     args = parser.parse_args()
     if not args.execute:
         parser.error("pass --execute to allow bounded network fetching")
-    if not args.source.is_file() or args.source.resolve() == args.db.resolve():
+    db_path = args.db.expanduser()
+    if not args.source.is_file() or args.source.resolve() == db_path.resolve():
         parser.error("source must be a separate existing seed file")
     urls = [line.strip() for line in args.source.read_text(encoding="utf-8").splitlines() if line.strip()]
     if not urls or len(urls) > 10:
@@ -37,7 +38,7 @@ def main() -> int:
         if position:
             time.sleep(2)
         try:
-            result = crawl_seed(url, args.db)
+            result = crawl_seed(url, db_path)
         except CrawlerRejected as error:
             print(f"BLOCKED seed {position + 1}: {error}", file=sys.stderr)
             continue

@@ -17,7 +17,19 @@
     .arena-game-card .arena-control:focus-visible,.arena-opponents summary:focus-visible{outline:2px solid #f5c451;outline-offset:3px}
     .arena-opponents summary{padding:10px 0;cursor:pointer;font-weight:750}
     @media(max-width:750px){.arena-lobby-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:450px){.arena-lobby-grid{grid-template-columns:1fr}}
+    .arena-game-card h3{margin:.25rem 0 .35rem}
+    .arena-game-card .arena-game-actions{display:grid;gap:6px;margin-top:auto;padding-top:8px}
+    .arena-game-card .arena-game-actions p{margin:0}
+    .arena-progression{margin-top:12px}
+    .arena-progression summary{cursor:pointer}
+    @media(max-width:520px){
+      .arena-hero .arena-title{font-size:clamp(2rem,10vw,3rem)}
+      .arena-hero .arena-tagline{margin:.55rem 0;font-size:.94rem}
+      .arena-lobby-grid{gap:8px}
+      .arena-game-card{padding:10px}
+      .arena-game-card .arena-control{padding:7px 9px;font-size:.86rem}
+    }
+    @media(max-width:350px){.arena-lobby-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -25,10 +37,8 @@
     <div>
       <p class="mc-eyebrow">👑 OAP Live + Events · First-party Challenge Engine</p>
       <h1 class="arena-title">OAP <span class="arena-gold">ARENA</span></h1>
-      <p class="arena-tagline">{{ hub.tagline }} — sports, music, gaming and creator competition can share one governed path without becoming one unfair scoring system.</p>
-      <div class="arena-route" aria-label="Arena progression">
-        {% for level in hub.progression %}<span>{{ level }}</span>{% if not loop.last %}<b aria-hidden="true">→</b>{% endif %}{% endfor %}
-      </div>
+      <p class="arena-tagline">Pick a game, start playing, or join a room.</p>
+      <a class="mc-secondary-link" href="#arena-games">Choose a game</a>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="/koradaso">KORADASO</a>
@@ -41,38 +51,46 @@
   <main class="mc-workspace">
     <section class="mc-panel arena-lobby" aria-labelledby="arena-games">
       <h2 id="arena-games">Play Arena</h2>
-      <p>Choose a game to play, or open its room to create or join a match.</p>
+      <p>Open a game to play. Choose its room to create or join a match.</p>
       <div class="arena-lobby-grid">
         <article class="arena-layer arena-game-card">
           <p class="mc-eyebrow">Turn-based race · bounded first-party game</p>
           <h3>🎲 Ludo</h3>
           <p>Race. Move. Finish.</p>
-          <p><a class="arena-control arena-control-primary" href="/arena/ludo">Open Ludo</a></p>
-          <p><a class="arena-control" href="/arena/ludo/room">Create / Join Ludo Room</a></p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/ludo">Open Ludo</a></p>
+            <p><a class="arena-control" href="/arena/ludo/room" aria-label="Create / Join Ludo Room">Create / Join Room</a></p>
+          </div>
         </article>
 
         <article class="arena-layer arena-game-card">
           <p class="mc-eyebrow">Akan strategy · bounded Abapa core</p>
           <h3>🌰 Oware</h3>
           <p>Sow. Capture. Protect the game.</p>
-          <p><a class="arena-control arena-control-primary" href="/arena/oware">Open Oware</a></p>
-          <p><a class="arena-control" href="/arena/oware/room">Create / Join Oware Room</a></p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/oware">Open Oware</a></p>
+            <p><a class="arena-control" href="/arena/oware/room" aria-label="Create / Join Oware Room">Create / Join Room</a></p>
+          </div>
         </article>
 
         <article class="arena-layer arena-game-card">
           <p class="mc-eyebrow">Strategy board · bounded legal-move engine</p>
           <h3>♟️ Chess</h3>
           <p>Think. Move. Control.</p>
-          <p><a class="arena-control arena-control-primary" href="/arena/chess">Open Chess</a></p>
-          <p><a class="arena-control" href="/arena/chess/room">Create / Join Chess Room</a></p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/chess">Open Chess</a></p>
+            <p><a class="arena-control" href="/arena/chess/room" aria-label="Create / Join Chess Room">Create / Join Room</a></p>
+          </div>
         </article>
 
         <article class="arena-layer arena-game-card">
           <p class="mc-eyebrow">Dots and boxes · first-party match</p>
           <h3>⚫ Dot</h3>
           <p>Draw. Box. Score.</p>
-          <p><a class="arena-control arena-control-primary" href="/arena/dot">Open Dot</a></p>
-          <p><a class="arena-control" href="/arena/dot/room">Create / Join Dot Room</a></p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/dot">Open Dot</a></p>
+            <p><a class="arena-control" href="/arena/dot/room" aria-label="Create / Join Dot Room">Create / Join Room</a></p>
+          </div>
         </article>
 
         <article class="arena-layer arena-game-card">
@@ -80,8 +98,10 @@
           <h3>🔴 Connect 4</h3>
           <p>Drop. Connect. Win.</p>
           <p>Two-player first-party match with authoritative turns, win detection, duplicate protection and STOP.</p>
-          <p><a class="arena-control arena-control-primary" href="/arena/connect4">Open Connect 4</a></p>
-          <p><a class="arena-control" href="/arena/connect4/room">Create / Join Online Room</a></p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/connect4">Open Connect 4</a></p>
+            <p><a class="arena-control" href="/arena/connect4/room" aria-label="Create / Join Online Room">Create / Join Room</a></p>
+          </div>
         </article>
 
         <article class="arena-layer arena-game-card">
@@ -89,8 +109,10 @@
           <h3>🧠 IQ Arena</h3>
           <p><strong>Think. Solve. Adapt.</strong></p>
           <p>Logic, Patterns, Memory, Spatial, Numbers, Language and Strategy. In-game skill profile only; not a clinical IQ score.</p>
-          <p><a class="arena-control arena-control-primary" href="/arena/iq">Open IQ Arena</a></p>
-          <p><a class="arena-control" href="/arena/iq/room">Create / Join IQ Duel Room</a></p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/iq">Open IQ Arena</a></p>
+            <p><a class="arena-control" href="/arena/iq/room" aria-label="Create / Join IQ Duel Room">Create / Join Room</a></p>
+          </div>
         </article>
 
         <article class="arena-layer arena-game-card">
@@ -98,7 +120,9 @@
           <h3>🌍 EARTH IS OUR TURF</h3>
           <p><strong>Born Local. Built Global.</strong></p>
           <p>Do something in the postcode → the postcode remembers → the world changes. Explore the first Mitcham living-world slice with time, routes, businesses and persistent session consequences.</p>
-          <p><a class="arena-control arena-control-primary" href="/arena/earth-is-our-turf">Enter Mitcham</a></p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/earth-is-our-turf">Enter Mitcham</a></p>
+          </div>
         </article>
 
         <article class="arena-layer arena-game-card">
@@ -106,11 +130,21 @@
           <h3>🌍 Route Empire</h3>
           <p><strong>Born Local. Built Global.</strong></p>
           <p>Start local, build routes and expand your world using game-only points. No real property ownership or payment execution.</p>
-          <p><a class="arena-control arena-control-primary" href="/arena/route-empire">Open Route Empire v1</a></p>
-          <p><a class="arena-control" href="/arena/route-empire/room">Create / Join Route Empire Room</a></p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/route-empire">Open Route Empire v1</a></p>
+            <p><a class="arena-control" href="/arena/route-empire/room" aria-label="Create / Join Route Empire Room">Create / Join Room</a></p>
+          </div>
         </article>
       </div>
     </section>
+
+    <details class="mc-panel arena-progression">
+      <summary>Arena progression</summary>
+      <p>{{ hub.tagline }}</p>
+      <div class="arena-route">
+        {% for level in hub.progression %}<span>{{ level }}</span>{% if not loop.last %}<b aria-hidden="true">→</b>{% endif %}{% endfor %}
+      </div>
+    </details>
 
     <details class="mc-panel arena-opponents">
       <summary>Arena opponents and difficulty</summary>

@@ -61,7 +61,7 @@ def test_royal_home_keeps_search_and_navigation_functional(client):
 def test_termux_runner_preserves_existing_server_and_routes():
     source = Path("scripts/koradaso_termux_local.sh").read_text(encoding="utf-8")
     assert 'OAP_KORADASO_PORT:-5052' in source
-    assert 'required = {"/koradaso", "/world", "/search"}' in source
+    assert 'required = {"/koradaso", "/world", "/search", "/koradaso/web-search", "/arena"}' in source
     assert 'sock.bind(("127.0.0.1", port))' in source
     assert 'port {port} is already occupied; existing server untouched.' in source
     assert '--host 127.0.0.1' in source

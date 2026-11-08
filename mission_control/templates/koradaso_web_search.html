@@ -13,8 +13,8 @@ nav a,nav [aria-current]{display:inline-flex;align-items:center;min-height:44px;
 nav [aria-current]{background:#302045}
 nav a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 form{display:flex;gap:7px;margin:20px 0}
-input{min-width:0;flex:1;padding:13px;border:1px solid var(--gold);border-radius:14px;background:#151326;color:white}
-button{padding:12px 16px;border:0;border-radius:14px;background:linear-gradient(#ffe6ac,#c39950);color:#251507;font-weight:800}
+input{font:inherit;min-width:0;flex:1;padding:13px;border:1px solid var(--gold);border-radius:14px;background:#151326;color:white}
+button{font:inherit;min-height:44px;padding:12px 16px;border:0;border-radius:14px;background:linear-gradient(#ffe6ac,#c39950);color:#251507;font-weight:800}
 article,.notice{padding:15px;border:1px solid #8666a2;border-radius:16px;background:#151327;margin:12px 0;overflow-wrap:anywhere}
 small{color:#c5b8d1}p{line-height:1.5}
 </style>
@@ -33,7 +33,7 @@ small{color:#c5b8d1}p{line-height:1.5}
 <button type="submit">Search</button>
 </form>
 {% if not index_ready %}
-<div class="notice" role="status"><strong>First-party index not configured.</strong><p>No WWW results are available on this OAP Core node yet. Direct HTTPS website browsing still works separately.</p></div>
+<div class="notice" role="status"><strong>First-party index not configured.</strong><p>On Termux, start KORADASO with its local launcher to load the WWW index. You can <a href="/search{% if query %}?q={{ query|urlencode }}{% endif %}">search the OAP Catalogue</a> while the WWW index is unavailable.</p></div>
 {% elif query %}
 <p role="status">{{ results|length }} indexed result{{ '' if results|length == 1 else 's' }} for “{{ query }}”. Coverage is limited to pages OAP has actually indexed.</p>
 {% for result in results %}

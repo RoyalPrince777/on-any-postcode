@@ -99,10 +99,13 @@ def _fetch(host: str, target: str, *, limit: int) -> tuple[int, str, bytes]:
         content_length = response.getheader("Content-Length")
         if content_length:
             try:
-                if int(content_length) > limit:
-                    raise CrawlerRejected("response_too_large")
+                size = int(content_length)
             except ValueError as exc:
                 raise CrawlerRejected("invalid_content_length") from exc
+            if size < 0:
+                raise CrawlerRejected("invalid_content_length")
+            if size > limit:
+                raise CrawlerRejected("response_too_large")
         if response.status != 200:
             return response.status, mime, b""
         data = response.read(limit + 1)

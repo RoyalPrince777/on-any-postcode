@@ -144,3 +144,21 @@ def test_https_fallback_is_bounded_and_preserves_certificate_failure(monkeypatch
     resolve.assert_called_once_with(host)
     first.request.assert_not_called()
     first.close.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("length", "error"),
+    [("11", "response_too_large"), ("-1", "invalid_content_length"), ("bad", "invalid_content_length")],
+)
+def test_fetch_rejects_invalid_or_excessive_content_length(monkeypatch, length, error):
+    connection = Mock()
+    response = connection.getresponse.return_value
+    response.status = 200
+    response.getheader.side_effect = {"Content-Type": "text/html", "Content-Length": length}.get
+    monkeypatch.setattr(koradaso_crawler, "_public_addresses", lambda _host: ["8.8.8.8"])
+    monkeypatch.setattr(koradaso_crawler, "_connect_https", lambda _host, _addresses: connection)
+
+    with pytest.raises(koradaso_crawler.CrawlerRejected, match=error):
+        koradaso_crawler._fetch("example.org", "/", limit=10)
+    response.read.assert_not_called()
+    connection.close.assert_called_once()
