@@ -397,13 +397,12 @@ def test_content_gate_allows_completed_provider_job(monkeypatch):
     monkeypatch.setattr(studio_intelligence.studio_media_backend, "video_status", lambda video_id: {
         "id": video_id, "status": "completed", "artifact_proven": False,
     })
-    monkeypatch.setattr(studio_intelligence.studio_media_backend, "video_content", lambda video_id: (b"\\x00\\x00\\x00\\x18ftypisom\\x00\\x00\\x02\\x00isom", "video/mp4"))
-    assert studio_intelligence.generation_content("video_test") == (b"\\x00\\x00\\x00\\x18ftypisom\\x00\\x00\\x02\\x00isom", "video/mp4")
+    monkeypatch.setattr(studio_intelligence.studio_media_backend, "video_content", lambda video_id: (bytes.fromhex("000000186674797069736f6d0000020069736f6d"), "video/mp4"))
+    assert studio_intelligence.generation_content("video_test") == (bytes.fromhex("000000186674797069736f6d0000020069736f6d"), "video/mp4")
 
 
 def test_video_content_rejects_provider_error_body(monkeypatch):
     from mission_control import studio_media_backend
-    from io import BytesIO
 
     class FakeResponse:
         headers = {"Content-Type": "video/mp4"}
