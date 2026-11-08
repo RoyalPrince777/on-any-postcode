@@ -221,7 +221,7 @@ def test_studio_routes_are_founder_only_and_fail_closed():
     assert "studio_generation_unavailable" in views
 
 
-def test_completed_video_status_can_promote_with_receipt(monkeypatch):
+def test_completed_video_status_does_not_promote_without_saved_asset(monkeypatch):
     monkeypatch.setattr(
         studio_intelligence.studio_media_backend,
         "video_status",
@@ -231,7 +231,7 @@ def test_completed_video_status_can_promote_with_receipt(monkeypatch):
             "model": "sora-2",
             "status": "completed",
             "progress": 100,
-            "artifact_proven": True,
+            "artifact_proven": False,
             "content_path": f"/videos/{video_id}/content",
             "provider_is_authority": False,
         },
@@ -245,11 +245,11 @@ def test_completed_video_status_can_promote_with_receipt(monkeypatch):
 
     result = studio_intelligence.generation_status("video_test")
 
-    assert result["state"] == "generated"
-    assert result["output_generated"] is True
-    assert result["artifact"]["artifact_proven"] is True
-    assert captured["receipt"]["payload"]["signal"] == "🟢"
-    assert captured["receipt"]["payload"]["green_gate"] == "artifact_proven"
+    assert result["state"] == "provider_job_completed_unverified"
+    assert result["output_generated"] is False
+    assert result["artifact"]["artifact_proven"] is False
+    assert captured["receipt"]["payload"]["signal"] == "🟣"
+    assert captured["receipt"]["payload"]["green_gate"] == "awaiting_artifact_proof"
     assert result["execution_granted"] is False
 
 
@@ -374,3 +374,28 @@ def test_studio_media_backend_has_real_edit_endpoint_contract():
     assert '"images": [{"image_url": source}]' in media
     assert '"input_fidelity": fidelity' in media
     assert '"output_format": "png"' in media
+
+
+def test_provider_completed_video_is_not_saved_artifact(monkeypatch):
+    from mission_control import studio_media_backend
+
+    monkeypatch.setattr(studio_media_backend, "_json_call", lambda *args, **kwargs: {
+        "id": "video_test", "model": "sora-2", "status": "completed", "progress": 100,
+    })
+    monkeypatch.setattr(studio_media_backend, "_multipart_call", lambda *args, **kwargs: {
+        "id": "video_test", "model": "sora-2", "status": "completed", "progress": 100,
+    })
+    created = studio_media_backend.create_video("Test cinematic scene")
+    polled = studio_media_backend.video_status("video_test")
+    assert created["provider_completed"] is True
+    assert polled["provider_completed"] is True
+    assert created["artifact_proven"] is False
+    assert polled["artifact_proven"] is False
+
+
+def test_content_gate_allows_completed_provider_job(monkeypatch):
+    monkeypatch.setattr(studio_intelligence.studio_media_backend, "video_status", lambda video_id: {
+        "id": video_id, "status": "completed", "artifact_proven": False,
+    })
+    monkeypatch.setattr(studio_intelligence.studio_media_backend, "video_content", lambda video_id: (b"video-bytes", "video/mp4"))
+    assert studio_intelligence.generation_content("video_test") == (b"video-bytes", "video/mp4")
