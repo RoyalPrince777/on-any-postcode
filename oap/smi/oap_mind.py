@@ -202,3 +202,56 @@ def review_octopus_arms(
         requested_permissions=permissions,
         action_gate_required=("EXECUTE" in arms or "ACT" in permissions),
     )
+
+
+@dataclass(frozen=True)
+class OctopusMissionReview:
+    """Owner-scoped, durable mission checkpoint; no arm execution attestation."""
+
+    mission_id: str
+    mission_state: str
+    selected_arms: tuple[str, ...]
+    checkpoint_verified: bool
+    arm_execution_status: str = "UNKNOWN"
+    arm_execution_proven: bool = False
+    authority_granted: bool = False
+    founder_final: bool = True
+
+
+def review_octopus_mission(
+    *, identity_id: str, mission_id: str, arms: tuple[str, ...]
+) -> OctopusMissionReview:
+    """Read canonical owner-scoped mission evidence without inventing arm attribution.
+
+    The existing ALL IN A.I. store independently checks workspace, audit and
+    HRM checkpoint records. That checkpoint records mission planning/state,
+    NOT which Octopus arm performed work. An unavailable or ambiguous readback
+    is rejected; no execution, permission or release rights are granted.
+    """
+    proposal = review_octopus_arms(arms)
+    if not isinstance(identity_id, str) or not identity_id.strip():
+        raise ValueError("Mission identity is required")
+    if not isinstance(mission_id, str) or not mission_id.strip():
+        raise ValueError("Mission ID is required")
+    from mission_control.all_in_ai_mission_store import read
+
+    receipt = read(identity_id, mission_id)
+    if (
+        not isinstance(receipt, dict)
+        or any(
+            receipt.get(key) is not True
+            for key in ("read_back_verified", "audit_verified", "hrm_verified")
+        )
+        or receipt.get("mission_id") != mission_id
+        or receipt.get("state") not in ("planned", "stopped", "recovered")
+        or receipt.get("execution_granted") is not False
+        or receipt.get("approval_granted") is not False
+        or receipt.get("human_authority_final") is not True
+    ):
+        raise ValueError("Canonical mission readback incomplete or mismatched")
+    return OctopusMissionReview(
+        mission_id=mission_id,
+        mission_state=receipt["state"],
+        selected_arms=proposal.selected_arms,
+        checkpoint_verified=True,
+    )
