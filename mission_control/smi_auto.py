@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-from . import ai_behaviour
+from . import ai_behaviour, autonomy_levels
 
 AUTO_VERSION = 6
 AUTO_LIGHT = "purple"
@@ -218,6 +218,11 @@ def _adaptive_level(*, lenses: tuple[str, ...], semantic_lenses: tuple[str, ...]
 
     return {
         "level": level,
+        "advisory_level": level,
+        "configured_runtime_level": autonomy_levels.configured_level(),
+        "runtime_escalation_granted": False,
+        "certification_granted": False,
+        "recommendation_only": True,
         "reason": reason,
         "stop": True,
         "stop_reason": "minimum sufficient intelligence selected; escalate only if new evidence, risk or mission complexity appears",
