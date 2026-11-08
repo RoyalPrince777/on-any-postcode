@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import ipaddress
 import os
+import re
 import sqlite3
 from pathlib import Path
+from textwrap import shorten
 from urllib.parse import urlsplit
 
 
@@ -69,6 +71,30 @@ def ingest_public_page(path: Path, *, url: str, title: str, description: str = "
         )
 
 
+def _like_pattern(term: str) -> str:
+    escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
+def _result_snippet(description: str, terms: list[str]) -> str:
+    text = " ".join(description.split())
+    # Older crawls stored page chrome before the first content sentence.
+    text = re.sub(r"^skip to (?:main )?content\b.*?(?:[.!?](?=\s|$)|$)", "", text,
+                  count=1, flags=re.IGNORECASE).strip()
+    if len(text) <= 170:
+        return text
+    phrase = re.escape(" ".join(terms))
+    alternatives = "|".join(re.escape(term) for term in terms if len(term) > 2)
+    match = re.search(rf"\b{phrase}\b", text, re.IGNORECASE)
+    if match is None and alternatives:
+        match = re.search(rf"\b(?:{alternatives})\b", text, re.IGNORECASE)
+    if match is not None and match.start() >= 110:
+        start = text.rfind(" ", 0, match.start() - 40) + 1
+        if start > 0:
+            text = "… " + text[start:]
+    return shorten(text, width=170, placeholder="…")
+
+
 def search_public_pages(query: str, *, limit: int = 20) -> tuple[list[dict[str, str]], bool]:
     """Return real indexed records, or empty and unconfigured; never simulate results."""
     path = _index_path()
@@ -81,27 +107,30 @@ def search_public_pages(query: str, *, limit: int = 20) -> tuple[list[dict[str, 
         with sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=2) as db:
             db.row_factory = sqlite3.Row
             clauses = []
-            escaped_terms: list[str] = []
+            patterns = [_like_pattern(term) for term in terms]
             params: list[str | int] = []
-            for term in terms:
-                escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-                escaped_terms.append(escaped)
+            for pattern in patterns:
                 clauses.append("(lower(title) LIKE ? ESCAPE '\\' OR lower(description) LIKE ? ESCAPE '\\')")
-                params.extend([f"%{escaped}%", f"%{escaped}%"])
-            # All terms must match; title matches rank above description-only matches.
-            # Keep deterministic ordering for equally relevant public records.
-            title_scores = []
-            for escaped in escaped_terms:
-                title_scores.append("(CASE WHEN lower(title) LIKE ? ESCAPE '\\' THEN 3 ELSE 0 END)")
-                params.append(f"%{escaped}%")
+                params.extend([pattern, pattern])
+            # Prefer the full phrase in the title, then count title term matches.
+            title_scores = ["(CASE WHEN lower(title) LIKE ? ESCAPE '\\' THEN 1 ELSE 0 END)"] * len(patterns)
+            params.extend([_like_pattern(" ".join(terms)), *patterns])
             params.append(max(1, min(20, limit)))
             rows = db.execute(
                 "SELECT url,title,description,indexed_at FROM public_pages WHERE "
                 + " AND ".join(clauses)
-                + " ORDER BY (" + " + ".join(title_scores)
+                + " ORDER BY (lower(title) LIKE ? ESCAPE '\\') DESC, ("
+                + " + ".join(title_scores)
                 + ") DESC, indexed_at DESC, url ASC LIMIT ?",
                 params,
             ).fetchall()
-            return [dict(row) for row in rows if _safe_public_url(row["url"])], True
+            results = []
+            for row in rows:
+                if _safe_public_url(row["url"]):
+                    results.append(dict(row) | {
+                        "domain": urlsplit(row["url"]).hostname or "",
+                        "snippet": _result_snippet(row["description"], terms),
+                    })
+            return results, True
     except (sqlite3.Error, OSError):
         return [], False

@@ -162,3 +162,22 @@ def test_fetch_rejects_invalid_or_excessive_content_length(monkeypatch, length, 
         koradaso_crawler._fetch("example.org", "/", limit=10)
     response.read.assert_not_called()
     connection.close.assert_called_once()
+
+
+def test_seed_crawler_extracts_main_content_instead_of_page_chrome(tmp_path, monkeypatch):
+    def fetch(host, target, *, limit):
+        if target == "/robots.txt":
+            return 200, "text/plain", b"User-agent: *\nAllow: /"
+        return 200, "text/html", (
+            b"<head><title>Mitcham Library</title></head><body>"
+            b"<header>Site title</header><p>Skip to main content</p>"
+            b"<div role='navigation'>Indoor venues</div>"
+            b"<div role='main'><div hidden><div>rgb(255,255,255)</div></div>"
+            b"<p>Visit <strong>Mitcham Library</strong> on London Road.</p></div>"
+            b"<footer>Terms and policies</footer></body>"
+        )
+
+    monkeypatch.setattr(koradaso_crawler, "_fetch", fetch)
+    record = koradaso_crawler.crawl_seed("https://example.org/library", tmp_path / "index.db")
+
+    assert record["description"] == "Visit Mitcham Library on London Road."

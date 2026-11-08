@@ -280,3 +280,43 @@ def test_koradaso_www_ranks_title_relevance_before_newer_description(tmp_path, m
     ]
     # Reserved SQL wildcard characters remain literal search terms.
     assert search_public_pages("%_")[0] == []
+
+
+def test_koradaso_www_shows_query_snippet_for_existing_crawl(tmp_path, monkeypatch, client):
+    from mission_control.koradaso_web_index import ingest_public_page
+
+    db = tmp_path / "existing-index.sqlite3"
+    monkeypatch.setenv("OAP_KORADASO_WEB_INDEX", str(db))
+    ingest_public_page(
+        db, url="https://example.org/library", title="Mitcham Library",
+        description=(
+            "Skip to main content rgb(255,255,255) Home Indoor venues "
+            "Mitcham Library can be hired out of hours for community activities. "
+            + "The library has spaces for local events and community groups. " * 4
+            + "Wheelchair access is available from London Road."
+        ),
+    )
+    response = client.get("/koradaso/web-search?q=wheelchair")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert '<small>example.org</small>' in page
+    assert 'href="https://example.org/library"' in page
+    assert "Wheelchair access is available from London Road." in page
+    assert "rgb(255,255,255)" not in page
+    snippet = page.split('<article class="result">', 1)[1].split("<p>", 1)[1].split("</p>", 1)[0]
+    assert len(snippet) <= 170
+
+
+def test_koradaso_www_prefers_full_title_phrase(tmp_path, monkeypatch):
+    from mission_control.koradaso_web_index import ingest_public_page, search_public_pages
+
+    db = tmp_path / "ranking.sqlite3"
+    monkeypatch.setenv("OAP_KORADASO_WEB_INDEX", str(db))
+    ingest_public_page(db, url="https://example.org/a", title="Library services in Mitcham")
+    ingest_public_page(db, url="https://example.org/z", title="Mitcham Library | Council")
+
+    results, ready = search_public_pages("Mitcham Library")
+    assert ready
+    assert [result["url"] for result in results] == [
+        "https://example.org/z", "https://example.org/a",
+    ]

@@ -7,7 +7,6 @@ A successful robots.txt (HTTP 200) is required (conservative first milestone).
 """
 from __future__ import annotations
 
-import html
 import http.client
 import ipaddress
 import re
@@ -119,37 +118,91 @@ def _fetch(host: str, target: str, *, limit: int) -> tuple[int, str, bytes]:
 
 
 class _PublicText(HTMLParser):
+    _IGNORED = {"aside", "footer", "form", "header", "nav", "noscript", "script",
+                "style", "svg", "template"}
+    _VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+             "meta", "param", "source", "track", "wbr"}
+    _BLOCK = {"article", "br", "div", "h1", "h2", "h3", "li", "main", "p", "section"}
+
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.title: list[str] = []
-        self.body: list[str] = []
         self.description = ""
-        self._skip = 0
+        self._body: list[str] = []
+        self._main: list[str] = []
+        self._paragraphs: list[str] = []
+        self._ignored: list[str] = []
+        self._content: list[str] = []
         self._in_title = False
+        self._in_head = False
+        self._in_paragraph = False
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in {"script", "style", "noscript", "svg"}:
-            self._skip += 1
-        if tag == "title":
+        if self._ignored:
+            if tag == self._ignored[-1]:
+                self._ignored.append(tag)
+            return
+        attributes = dict(attrs)
+        role = (attributes.get("role") or "").casefold()
+        if tag not in self._VOID and (
+            tag in self._IGNORED
+            or role in {"banner", "complementary", "contentinfo", "navigation", "search"}
+            or "hidden" in attributes
+            or (attributes.get("aria-hidden") or "").casefold() == "true"
+        ):
+            self._ignored.append(tag)
+            return
+        if tag == "head":
+            self._in_head = True
+        elif tag == "title":
             self._in_title = True
-        if tag == "meta":
-            a = dict(attrs)
-            if a.get("name", "").casefold() == "description" and a.get("content"):
-                self.description = a["content"]
+        elif tag == "meta" and (attributes.get("name") or "").casefold() == "description":
+            self.description = attributes.get("content") or ""
+        if tag in {"main", "article"} or (role == "main" and tag not in self._VOID) or (
+            self._content and tag == self._content[-1]
+        ):
+            self._content.append(tag)
+        if tag == "p":
+            self._in_paragraph = True
+        if tag in self._BLOCK:
+            self.handle_data(" ")
 
     def handle_endtag(self, tag: str) -> None:
-        if tag in {"script", "style", "noscript", "svg"}:
-            self._skip = max(0, self._skip - 1)
-        if tag == "title":
+        if self._ignored:
+            if tag == self._ignored[-1]:
+                self._ignored.pop()
+            return
+        if tag in self._BLOCK:
+            self.handle_data(" ")
+        if self._content and tag == self._content[-1]:
+            self._content.pop()
+        if tag == "p":
+            self._in_paragraph = False
+        elif tag == "title":
             self._in_title = False
+        elif tag == "head":
+            self._in_head = False
 
     def handle_data(self, data: str) -> None:
-        if self._skip:
+        if self._ignored:
             return
         if self._in_title:
             self.title.append(data)
-        else:
-            self.body.append(data)
+        elif not self._in_head:
+            self._body.append(data)
+            if self._content:
+                self._main.append(data)
+            if self._in_paragraph:
+                self._paragraphs.append(data)
+
+    def page_description(self) -> str:
+        if self.description.strip():
+            return re.sub(r"\s+", " ", self.description).strip()[:1200]
+        for chunks in (self._main, self._paragraphs, self._body):
+            text = re.sub(r"\s+", " ", "".join(chunks)).strip()
+            if text:
+                return text[:1200]
+        return ""
 
 
 def crawl_seed(url: str, db_path) -> dict[str, str]:
@@ -176,9 +229,8 @@ def crawl_seed(url: str, db_path) -> dict[str, str]:
         raise CrawlerRejected("not_public_html")
     parser = _PublicText()
     parser.feed(content.decode("utf-8", errors="replace"))
-    title = re.sub(r"\s+", " ", html.unescape(" ".join(parser.title))).strip()[:200]
-    description = parser.description or " ".join(parser.body)
-    description = re.sub(r"\s+", " ", html.unescape(description)).strip()[:1200]
+    title = re.sub(r"\s+", " ", "".join(parser.title)).strip()[:200]
+    description = parser.page_description()
     if not title:
         raise CrawlerRejected("missing_page_title")
     ingest_public_page(db_path, url=url, title=title, description=description)
