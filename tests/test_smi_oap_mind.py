@@ -382,3 +382,61 @@ def test_octopus_a7_review_rejects_unsafe_gate_readback(
     monkeypatch.setattr(a7_certification, "status", lambda: gate)
     with pytest.raises(RuntimeError):
         review_octopus_a7_readiness(("OBSERVE",))
+
+
+def test_octopus_a7_accepts_consistent_canonical_proof_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mission_control import a7_certification
+    from oap.smi.oap_mind import review_octopus_a7_readiness
+
+    monkeypatch.setattr(a7_certification, "status", lambda: {
+        "level": "A7",
+        "a6_checks": {"guardian_pass": True, "independent_proof": False},
+        "a7_checks": {"all_a6_proof": False, "external_audit": False},
+        "a6_missing": ("independent_proof",),
+        "a7_missing": ("all_a6_proof", "external_audit"),
+        "a6_proof_complete": False,
+        "ready_for_founder_certification": False,
+        "a7_enabled": False,
+        "certification_granted": False,
+        "execution_granted": False,
+        "authority_moves_with_level": False,
+        "human_authority_final": True,
+    })
+    review = review_octopus_a7_readiness(("TRACE",))
+    assert review.missing_a6_proof == ("independent_proof",)
+    assert not review.a7_enabled
+
+
+@pytest.mark.parametrize("override", [
+    {"a6_missing": ()},
+    {"a7_missing": ()},
+    {"a6_proof_complete": True},
+    {"ready_for_founder_certification": True},
+    {"a7_checks": {"all_a6_proof": "passed"}},
+])
+def test_octopus_a7_rejects_contradictory_certification_evidence(
+    monkeypatch: pytest.MonkeyPatch, override: dict,
+) -> None:
+    from mission_control import a7_certification
+    from oap.smi.oap_mind import review_octopus_a7_readiness
+
+    gate = {
+        "level": "A7",
+        "a6_checks": {"guardian_pass": False},
+        "a7_checks": {"all_a6_proof": False},
+        "a6_missing": ("guardian_pass",),
+        "a7_missing": ("all_a6_proof",),
+        "a6_proof_complete": False,
+        "ready_for_founder_certification": False,
+        "a7_enabled": False,
+        "certification_granted": False,
+        "execution_granted": False,
+        "authority_moves_with_level": False,
+        "human_authority_final": True,
+    }
+    gate.update(override)
+    monkeypatch.setattr(a7_certification, "status", lambda: gate)
+    with pytest.raises(RuntimeError):
+        review_octopus_a7_readiness(("VERIFY",))
