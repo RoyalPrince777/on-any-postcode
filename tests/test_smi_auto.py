@@ -117,6 +117,13 @@ def test_smi_intelligence_selects_minimum_sufficient_a1_to_a7_level():
     assert base["smi_intelligence"]["stop"] is True
     assert consequential["execution_granted"] is False
     assert consequential["approval_granted"] is False
+    assert consequential["smi_intelligence"]["advisory_level"] == consequential["smi_intelligence"]["level"]
+    assert consequential["smi_intelligence"]["configured_runtime_level"] in {
+        "A1", "A2", "A3", "A4", "A5", "A6", "A7"
+    }
+    assert consequential["smi_intelligence"]["runtime_escalation_granted"] is False
+    assert consequential["smi_intelligence"]["certification_granted"] is False
+    assert consequential["smi_intelligence"]["recommendation_only"] is True
 
 
 def test_smi_intelligence_does_not_escalate_depth_without_need():
