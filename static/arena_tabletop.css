@@ -40,30 +40,46 @@
 .c4-players > span { display: inline-flex; align-items: center; gap: 5px; overflow-wrap: anywhere; }
 .c4-players i { flex: none; width: 13px; height: 13px; border-radius: 50%; }
 .c4-table {
-  --rim: clamp(8px, 2.4vw, 14px);
+  --rim: clamp(10px, 3vw, 16px);
+  --base-height: 42px;
   width: min(100%, 440px);
   margin-inline: auto;
-  padding: 0 var(--rim) 16px;
+  padding-inline: var(--rim);
   position: relative;
-  isolation: isolate;
 }
-.c4-table::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: auto 0 0;
-  height: 22px;
-  border-radius: 8px 8px 4px 4px;
-  background: linear-gradient(#266ce0, #123886 55%, #0b1d4f);
-  box-shadow: 0 8px 14px #0009, inset 0 1px #84b8ff;
+.c4-base {
+  display: grid;
+  place-items: center;
+  height: var(--base-height);
+  margin-inline: calc(-1 * var(--rim));
+  border: 1px solid #8e6b37;
+  border-radius: 8px 8px 5px 5px;
+  background: url("arena_connect4_bandana.svg") center / 64px, linear-gradient(#29231a, #0b0a08 75%);
+  box-shadow: inset 0 1px #e1b874, inset 0 -3px #050403, 0 8px 14px #0009;
 }
+.c4-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border: 1px solid #a17a3b;
+  border-radius: 4px;
+  background: linear-gradient(155deg, #262016, #100e0a);
+  color: #ffdf9d;
+  font-size: clamp(.61rem, 2.8vw, .76rem);
+  font-weight: 800;
+  letter-spacing: .12em;
+  white-space: nowrap;
+  box-shadow: inset 0 1px #ffffff1c, 0 2px 4px #000a;
+}
+.c4-wordmark svg { flex: none; }
 .arena-tabletop .c4-controls,
 .arena-tabletop .c4-board { display: grid; width: 100%; }
 .c4-table:has(.c4-controls:not([hidden])) { padding-top: 44px; }
 .arena-tabletop .c4-controls {
   position: absolute;
   z-index: 1;
-  inset: 0 var(--rim) 16px;
+  inset: 0 var(--rim) var(--base-height);
   width: auto;
   padding-inline: calc(var(--rim) + 1px);
 }
@@ -74,7 +90,7 @@
   padding-top: 8px;
   margin: 0;
   background: transparent !important;
-  color: #dfecff !important;
+  color: #f8dfad !important;
   border: 1px solid transparent !important;
   box-shadow: none !important;
   font-size: 1.15rem;
@@ -82,22 +98,22 @@
 }
 .arena-tabletop .c4-controls button[aria-disabled="true"] { opacity: .5; cursor: default; }
 @media (hover: hover) {
-  .arena-tabletop .c4-controls button[aria-disabled="false"]:hover { background: #cfdefa24 !important; }
+  .arena-tabletop .c4-controls button[aria-disabled="false"]:hover { background: #ffdda525 !important; }
 }
 .arena-tabletop .c4-board {
   overflow: hidden;
   padding: var(--rim);
-  border: 1px solid #2768d8;
+  border: 1px solid #a78245;
   border-radius: 9px 9px 3px 3px;
-  background: linear-gradient(145deg, #2d78ed, #1254c5 45%, #0c3897);
-  box-shadow: inset 0 2px 1px #88baff, inset 0 -3px 2px #082762, 0 5px 0 #0b255a;
+  background: url("arena_connect4_bandana.svg") center / 76px, linear-gradient(145deg, #222019, #0e0d0b 55%, #14110b);
+  box-shadow: inset 0 2px 1px #e9c88c, inset 0 0 0 4px #171109, inset 0 0 0 5px #8a6738, 0 2px 4px #000a;
 }
 .arena-tabletop .c4-cell {
   position: relative;
   border-radius: 50%;
-  border: 1px solid #1e55a8;
-  background: #10131a;
-  box-shadow: inset 0 3px 5px #02050d, 0 1px 1px #5893ed;
+  border: 1px solid #967442;
+  background: radial-gradient(circle at 50% 68%, #211c13, #080705 76%);
+  box-shadow: inset 0 3px 5px #030201, 0 1px 1px #eac58a80;
 }
 .arena-tabletop [data-counter-colour="red"] { --disc: radial-gradient(circle, #e43d37 56%, #fb6a59 60%, #a01e20 72%); }
 .arena-tabletop [data-counter-colour="yellow"] { --disc: radial-gradient(circle, #ffd447 56%, #ffe692 60%, #b97610 72%); }

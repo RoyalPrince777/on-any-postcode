@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <defs>
+    <g id="paisley">
+      <path d="M5 29C-4 18 2 7 11 4c8-3 15 1 17 8 1 5 3 8 8 8-3 8-11 10-15 6-3-3-2-7 0-9-5-2-8 1-7 6 1 5 7 9 14 9-8 5-17 3-23-3Z"/>
+      <path d="M8 26C2 18 5 10 11 7c6-3 12 0 14 5 1 4 2 7 6 9-3 4-8 5-9 1-1-2 1-4 3-5-5-4-10-4-13 0-3 4-1 9 3 12"/>
+      <path d="M10 14l3-3 3 3-3 3zM6 19l2 2m8 8 3 2m0-21 2 1"/>
+      <circle cx="9" cy="26" r=".7"/>
+      <circle cx="17" cy="8" r=".7"/>
+    </g>
+    <g id="flower">
+      <path d="M0-6 1.5-1.5 6 0 1.5 1.5 0 6-1.5 1.5-6 0l4.5-1.5Z"/>
+      <circle r=".7"/>
+    </g>
+  </defs>
+  <g fill="none" stroke="#c29850" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".76">
+    <use href="#paisley" transform="translate(4 3) rotate(-7 18 18)"/>
+    <use href="#paisley" transform="translate(76 76) rotate(173 0 0)"/>
+    <use href="#flower" transform="translate(60 18)"/>
+    <use href="#flower" transform="translate(20 62)"/>
+    <path d="M53 8l3 4m10 16 4 3M11 51l3 4m10 16 4 3M37 37l3-4 3 4-3 4zm35 2 4 3-4 3-4-3zM4 40l3-3 3 3-3 3z"/>
+    <path d="M46 22h1m-6 36h1m-8-7h1m36-39h1M8 69h1m39-22h1m-4 24h1m25-16h1"/>
+  </g>
+</svg>
