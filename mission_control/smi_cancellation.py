@@ -7,12 +7,16 @@ private reasoning content.
 """
 from __future__ import annotations
 
+import logging
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
+
+
+_LOG = logging.getLogger(__name__)
 
 
 class SMIRequestCancelled(RuntimeError):
@@ -54,7 +58,7 @@ class CancellationToken:
             try:
                 callback()
             except Exception:  # noqa: BLE001 - STOP must remain fail-safe.
-                pass
+                _LOG.warning("smi_stop_resource_cleanup_failed")
         return first
 
     def on_cancel(self, callback: Callable[[], None]) -> None:
@@ -67,7 +71,7 @@ class CancellationToken:
             try:
                 callback()
             except Exception:  # noqa: BLE001 - STOP cannot depend on cleanup.
-                pass
+                _LOG.warning("smi_stop_resource_cleanup_failed")
 
     def raise_if_cancelled(self) -> None:
         if self._event.is_set():
