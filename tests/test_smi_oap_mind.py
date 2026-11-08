@@ -250,3 +250,71 @@ def test_octopus_mission_rejects_untrusted_or_mismatched_readback(
         review_octopus_mission(
             identity_id="owner", mission_id="mission", arms=("OBSERVE",),
         )
+
+
+def test_octopus_authorized_handoff_is_not_arm_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mission_control import all_in_ai_action_bridge
+    from oap.smi.oap_mind import review_octopus_action_handoff
+
+    monkeypatch.setattr(
+        all_in_ai_action_bridge, "handoff_status",
+        lambda identity, mission, **kwargs: {
+            "mission_id": mission,
+            "reviewed_request_id": kwargs["reviewed_request_id"],
+            "action_name": kwargs["action_name"],
+            "status": "AUTHORIZED_NOT_EXECUTED",
+            "execution_authorized": True,
+            "execution_performed": False,
+            "authority_transferred": False,
+            "human_authority_final": True,
+        },
+    )
+    review = review_octopus_action_handoff(
+        identity_id="owner", mission_id="mission", reviewed_request_id="request",
+        proposed_arm="EXECUTE",
+    )
+    assert review.action_authorized
+    assert review.handoff_state == "AUTHORIZED_NOT_EXECUTED"
+    assert review.arm_execution_status == "UNKNOWN"
+    assert not review.arm_attribution_verified
+    assert not review.action_performed
+    assert not review.authority_granted_by_octopus
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"mission_id": "another-mission"},
+        {"reviewed_request_id": "another-request"},
+        {"execution_performed": True},
+        {"authority_transferred": True},
+        {"human_authority_final": False},
+        {"status": "EXECUTED"},
+        {"status": "AUTHORIZED_NOT_EXECUTED", "execution_authorized": False},
+    ],
+)
+def test_octopus_handoff_rejects_spoofed_or_inconsistent_status(
+    monkeypatch: pytest.MonkeyPatch, override: dict,
+) -> None:
+    from mission_control import all_in_ai_action_bridge
+    from oap.smi.oap_mind import review_octopus_action_handoff
+
+    status = {
+        "mission_id": "mission",
+        "reviewed_request_id": "request",
+        "action_name": "SYNC_INTERNAL_RECORD",
+        "status": "AUTHORIZED_NOT_EXECUTED",
+        "execution_authorized": True,
+        "execution_performed": False,
+        "authority_transferred": False,
+        "human_authority_final": True,
+    }
+    status.update(override)
+    monkeypatch.setattr(all_in_ai_action_bridge, "handoff_status", lambda *a, **k: status)
+    with pytest.raises(ValueError):
+        review_octopus_action_handoff(
+            identity_id="owner", mission_id="mission",
+            reviewed_request_id="request", proposed_arm="EXECUTE",
+        )
