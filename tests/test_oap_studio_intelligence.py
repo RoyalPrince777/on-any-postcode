@@ -397,5 +397,28 @@ def test_content_gate_allows_completed_provider_job(monkeypatch):
     monkeypatch.setattr(studio_intelligence.studio_media_backend, "video_status", lambda video_id: {
         "id": video_id, "status": "completed", "artifact_proven": False,
     })
-    monkeypatch.setattr(studio_intelligence.studio_media_backend, "video_content", lambda video_id: (b"video-bytes", "video/mp4"))
-    assert studio_intelligence.generation_content("video_test") == (b"video-bytes", "video/mp4")
+    monkeypatch.setattr(studio_intelligence.studio_media_backend, "video_content", lambda video_id: (b"\\x00\\x00\\x00\\x18ftypisom\\x00\\x00\\x02\\x00isom", "video/mp4"))
+    assert studio_intelligence.generation_content("video_test") == (b"\\x00\\x00\\x00\\x18ftypisom\\x00\\x00\\x02\\x00isom", "video/mp4")
+
+
+def test_video_content_rejects_provider_error_body(monkeypatch):
+    from mission_control import studio_media_backend
+    from io import BytesIO
+
+    class FakeResponse:
+        headers = {"Content-Type": "video/mp4"}
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self, limit):
+            return b'{"error":"not a video"}'
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-only")
+    monkeypatch.setattr(studio_media_backend.urlrequest, "urlopen", lambda *args, **kwargs: FakeResponse())
+    try:
+        studio_media_backend.video_content("video_test")
+    except RuntimeError as exc:
+        assert str(exc) == "studio_video_content_invalid"
+    else:
+        raise AssertionError("Provider response body must not be treated as an MP4")
