@@ -10,6 +10,7 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from collections.abc import Callable
 from typing import Any
 from uuid import uuid4
 
@@ -31,6 +32,7 @@ class CancellationToken:
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
     _reason: str = field(default="", repr=False)
     _cancelled_at: str = field(default="", repr=False)
+    _callbacks: list[Callable[[], None]] = field(default_factory=list, repr=False)
 
     @property
     def cancelled(self) -> bool:
@@ -39,13 +41,33 @@ class CancellationToken:
     def cancel(self, reason: str = "human_stop") -> bool:
         """Cancel once; repeated STOP remains safe and idempotent."""
         clean_reason = str(reason or "human_stop").strip()[:80] or "human_stop"
+        callbacks: list[Callable[[], None]] = []
         with self._lock:
             first = not self._event.is_set()
             if first:
                 self._reason = clean_reason
                 self._cancelled_at = _now()
                 self._event.set()
-            return first
+                callbacks, self._callbacks = self._callbacks, []
+        # Never run external resource cleanup under the cancellation lock.
+        for callback in callbacks:
+            try:
+                callback()
+            except Exception:  # noqa: BLE001 - STOP must remain fail-safe.
+                pass
+        return first
+
+    def on_cancel(self, callback: Callable[[], None]) -> None:
+        """Close an active resource on STOP, including a concurrent/late STOP."""
+        with self._lock:
+            cancelled = self._event.is_set()
+            if not cancelled:
+                self._callbacks.append(callback)
+        if cancelled:
+            try:
+                callback()
+            except Exception:  # noqa: BLE001 - STOP cannot depend on cleanup.
+                pass
 
     def raise_if_cancelled(self) -> None:
         if self._event.is_set():
