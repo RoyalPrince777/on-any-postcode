@@ -118,11 +118,15 @@ def _fetch(host: str, target: str, *, limit: int) -> tuple[int, str, bytes]:
 
 
 class _PublicText(HTMLParser):
-    _IGNORED = {"aside", "footer", "form", "header", "nav", "noscript", "script",
-                "style", "svg", "template"}
-    _VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link",
-             "meta", "param", "source", "track", "wbr"}
-    _BLOCK = {"article", "br", "div", "h1", "h2", "h3", "li", "main", "p", "section"}
+    _IGNORED = frozenset({
+        "aside", "footer", "form", "header", "nav", "noscript", "script",
+        "style", "svg", "template",
+    })
+    _VOID = frozenset({
+        "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+        "meta", "param", "source", "track", "wbr",
+    })
+    _BLOCK = frozenset({"article", "br", "div", "h1", "h2", "h3", "li", "main", "p", "section"})
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)

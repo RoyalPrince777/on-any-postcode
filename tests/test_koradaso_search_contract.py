@@ -308,7 +308,10 @@ def test_koradaso_www_shows_query_snippet_for_existing_crawl(tmp_path, monkeypat
 
 
 def test_koradaso_www_prefers_full_title_phrase(tmp_path, monkeypatch):
-    from mission_control.koradaso_web_index import ingest_public_page, search_public_pages
+    from mission_control.koradaso_web_index import (
+        ingest_public_page,
+        search_public_pages,
+    )
 
     db = tmp_path / "ranking.sqlite3"
     monkeypatch.setenv("OAP_KORADASO_WEB_INDEX", str(db))
