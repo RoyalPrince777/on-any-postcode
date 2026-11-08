@@ -236,6 +236,11 @@ def _provider(
     completed_response: dict = {}
     try:
         with urlrequest.urlopen(req, timeout=55) as response:
+            if cancellation_token is not None:
+                # Close blocked provider I/O when Human STOP fires. The transport
+                # may not interrupt instantly, so keep the commit gate as well.
+                cancellation_token.on_cancel(response.close)
+                cancellation_token.raise_if_cancelled()
             for raw_line in response:
                 if cancellation_token is not None:
                     cancellation_token.raise_if_cancelled()
@@ -264,7 +269,9 @@ def _provider(
                     raise RuntimeError("provider_stream_failed")
     except HTTPError as exc:
         raise RuntimeError(f"provider_http_{exc.code}") from exc
-    except (URLError, TimeoutError) as exc:
+    except (URLError, TimeoutError, OSError, ValueError) as exc:
+        if cancellation_token is not None:
+            cancellation_token.raise_if_cancelled()
         raise RuntimeError("provider_unavailable") from exc
     if cancellation_token is not None:
         cancellation_token.raise_if_cancelled()
