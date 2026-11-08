@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+{% set oap_install_script = false %}
 {% set oap_app_name = 'OAP Bank' %}
 {% set oap_manifest_url = '/pay/bank/manifest.webmanifest' %}
 {% include "_oap_install_head.html" %}
@@ -21,8 +22,8 @@
 <h1>{{ bank.institution }}</h1>
 <p>{{ bank.parent }} · {{ bank.jurisdiction }} · {{ bank.route }}</p>
 <div class="install-row">
-<button class="pill" type="button" data-oap-install hidden>Install OAP Bank</button>
-<div class="meta" data-oap-install-status role="status">Checking install support</div>
+<a class="pill" href="/pay/bank/me">Open My SIKA Account</a>
+<div class="meta">Browser access available · Standalone installation not certified</div>
 </div>
 </section>
 
