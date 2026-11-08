@@ -323,3 +323,50 @@ def review_octopus_action_handoff(
         handoff_state=handoff_state,
         action_authorized=authorised,
     )
+
+
+@dataclass(frozen=True)
+class OctopusA7Review:
+    """A7 readiness projection, never an autonomy-level promotion."""
+
+    ceiling: str
+    proposed_arms: tuple[str, ...]
+    missing_a6_proof: tuple[str, ...]
+    missing_a7_proof: tuple[str, ...]
+    arm_execution_attribution: str = "UNKNOWN"
+    a7_enabled: bool = False
+    certification_granted: bool = False
+    execution_authority_granted: bool = False
+    founder_final: bool = True
+
+
+def review_octopus_a7_readiness(arms: tuple[str, ...]) -> OctopusA7Review:
+    """Reuse the canonical A7 gate; never derive authority from a proposal.
+
+    A8 is not a recognised SMI level. Even if the A7 evidence gate reports
+    readiness, Founder certification and real arm attribution are separate.
+    """
+    proposal = review_octopus_arms(arms)
+    from mission_control import a7_certification, autonomy_levels
+
+    if tuple(autonomy_levels.AUTONOMY_LEVELS)[-1] != "A7":
+        raise RuntimeError("Canonical autonomy ceiling changed")
+    gate = a7_certification.status()
+    if (
+        not isinstance(gate, dict)
+        or gate.get("level") != "A7"
+        or gate.get("a7_enabled") is not False
+        or gate.get("certification_granted") is not False
+        or gate.get("execution_granted") is not False
+        or gate.get("authority_moves_with_level") is not False
+        or gate.get("human_authority_final") is not True
+        or not isinstance(gate.get("a6_missing"), (tuple, list))
+        or not isinstance(gate.get("a7_missing"), (tuple, list))
+    ):
+        raise RuntimeError("A7 gate returned unsafe or incomplete evidence")
+    return OctopusA7Review(
+        ceiling="A7",
+        proposed_arms=proposal.selected_arms,
+        missing_a6_proof=tuple(gate["a6_missing"]),
+        missing_a7_proof=tuple(gate["a7_missing"]),
+    )
