@@ -104,6 +104,14 @@ def apply_detail_html(source: str) -> str:
 
 
 def apply_bank_html(source: str) -> str:
+    if "{% set oap_install_script = false %}" not in source:
+        source = replace_once(source, "{% set oap_app_name = 'OAP Bank' %}",
+                              "{% set oap_install_script = false %}\\n{% set oap_app_name = 'OAP Bank' %}",
+                              name="no premature bank installer")
+    if 'data-oap-install hidden' in source:
+        original = '<div class="install-row">\\n<button class="pill" type="button" data-oap-install hidden>Install OAP Bank</button>\\n<div class="meta" data-oap-install-status role="status">Checking install support</div>\\n</div>'
+        replacement = '<div class="install-row">\\n<a class="pill" href="/pay/bank/me">Open My SIKA Account</a>\\n<div class="meta">Browser access available · Standalone installation not certified</div>\\n</div>'
+        source = replace_once(source, original, replacement, name="bank browser-only installer")
     if 'href="/pay/bank/me">My SIKA Account</a>' not in source:
         original = '<header class="top"><div class="brand">👑 OAP BANK</div><a class="pill" href="/pay">OAP Pay</a></header>'
         replacement = '<header class="top"><div class="brand">👑 OAP BANK</div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="pill" href="/pay/bank/me">My SIKA Account</a><a class="pill" href="/store">OAP Store</a><a class="pill" href="/pay">OAP Pay</a></div></header>'
@@ -145,16 +153,34 @@ def main() -> int:
     if not args.apply:
         print("Dry-run only; to apply use --apply. No server restart performed.")
         return 0
-    backup_folder = root / ".sika-5052-backups" / datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_folder = root / ".sika-5052-backups" / datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    written = []
     try:
         if changed:
             backup_folder.mkdir(parents=True, exist_ok=False)
+            for path, _ in changed:
+                relative = path.relative_to(root)
+                backup = backup_folder / relative
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, backup)
             for path, new in changed:
-                shutil.copy2(path, backup_folder / path.name)
-            for path, new in changed:
-                path.write_text(new, encoding="utf-8")
+                # Write a temporary sibling and replace the target atomically.
+                temp = path.with_name(path.name + ".sika-write-tmp")
+                try:
+                    temp.write_text(new, encoding="utf-8")
+                    temp.replace(path)
+                    written.append(path)
+                finally:
+                    temp.unlink(missing_ok=True)
     except OSError as exc:
-        print(f"ERROR writing files: {exc}. Backups: {backup_folder}")
+        rollback_failed = []
+        for path in reversed(written):
+            try:
+                shutil.copy2(backup_folder / path.relative_to(root), path)
+            except OSError:
+                rollback_failed.append(str(path))
+        print(f"STOP: failed to write: {exc}. Backups: {backup_folder}")
+        print("Rollback: " + ("FAILED for " + ", ".join(rollback_failed) if rollback_failed else "restored written files"))
         return 3
     print(f"Applied {len(changed)} file(s). Backups: {backup_folder if changed else 'none needed'}")
     print("Not deployed. No Arena, Oware, account balances, payment or server state touched.")
