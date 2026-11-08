@@ -90,8 +90,9 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
     match_selector = "[data-room]" if game == "connect4" else "[data-match]"
     expect(host.locator(match_selector)).to_be_visible()
     expect(host.locator("[data-create]")).to_be_hidden()
-    room_code = host.locator("[data-code]").inner_text()
-    assert len(room_code) == 6
+    code = host.locator("[data-code]")
+    expect(code).to_have_text(re.compile(r"^[A-Z2-9]{6}$"))
+    room_code = code.inner_text()
     expect(host.locator("[data-token]")).not_to_be_empty()
 
     guest_code = "[data-join-code]" if game == "connect4" else "[data-code-input]"
