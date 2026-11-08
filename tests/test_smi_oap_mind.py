@@ -145,3 +145,43 @@ def test_octopus_eight_arm_identity_is_distinct_from_smi_metacognition() -> None
         "REMEMBER", "LEARN", "SHARE", "ACT",
     )
     assert set(OAP_MIND_SUPPORTING_ARMS).issubset(OCTOPUS_OPERATIONAL_ARMS)
+
+
+def test_octopus_arm_selection_is_advisory_even_when_execute_requested() -> None:
+    from oap.smi.oap_mind import review_octopus_arms
+
+    review = review_octopus_arms(
+        ("OBSERVE", "TRACE", "EXECUTE"), permissions=("READ", "ACT"),
+    )
+    assert review.selected_arms == ("OBSERVE", "TRACE", "EXECUTE")
+    assert review.action_gate_required
+    assert review.advisory_only and review.founder_final
+    assert not review.authority_granted
+    assert not review.runtime_verified
+
+
+def test_octopus_read_only_arm_selection_requires_no_execution_authority() -> None:
+    from oap.smi.oap_mind import review_octopus_arms
+
+    review = review_octopus_arms(("TRACE", "VERIFY"), permissions=("READ",))
+    assert not review.action_gate_required
+    assert not review.authority_granted
+
+
+@pytest.mark.parametrize(
+    "arms,permissions",
+    [
+        ((), ()),
+        (("OTHER",), ()),
+        (("OBSERVE", "OBSERVE"), ()),
+        (("OBSERVE",), ("ROOT",)),
+        (("OBSERVE",), ("ACT", "ACT")),
+        (["OBSERVE"], ()),
+        (("OBSERVE",), ["READ"]),
+    ],
+)
+def test_invalid_octopus_arm_proposals_fail_closed(arms, permissions) -> None:
+    from oap.smi.oap_mind import review_octopus_arms
+
+    with pytest.raises(ValueError):
+        review_octopus_arms(arms, permissions=permissions)
