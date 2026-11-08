@@ -5,6 +5,8 @@ const q=s=>root.querySelector(s);
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
 const board=q("[data-board]");
 const colour=q("[data-colour]");
+const playerLabels=root.querySelectorAll("[data-player]");
+let counterColours=["empty","red","yellow"];
 const cells=Array.from({length:42},(_,index)=>{
  const cell=document.createElement("div");
  cell.className="c4-cell";
@@ -49,11 +51,15 @@ function render(){
  q("[data-resign]").hidden=!active;
  q("[data-stop]").disabled=busy;
  q("[data-resign]").disabled=busy;
- const playerOneIsYellow=root.dataset.playerOneColour==="yellow";
  if(state){
   q("[data-players]").hidden=false;
-  q("[data-red-player]").textContent=state.players[playerOneIsYellow?1:0].name;
-  q("[data-yellow-player]").textContent=state.players[playerOneIsYellow?0:1].name;
+  playerLabels.forEach((label,index)=>{
+   const [swatch,name]=label.children;
+   const counterColour=counterColours[index+1];
+   swatch.dataset.counterColour=counterColour;
+   swatch.setAttribute("aria-label",counterColour+" counters");
+   name.textContent=state.players[index].name;
+  });
   const winner=state.players.find(player=>player.id===state.winner_id);
   const turn=state.current_player_name+"’s turn";
   q("[data-turn]").textContent=active?turn:winner?winner.name+" wins":state.status==="stopped"?"Match stopped":"Draw";
@@ -64,10 +70,10 @@ function render(){
   button.setAttribute("aria-disabled",String(locked||state.board[0][column]!==0));
  });
  const pieces=state?.board.flat()||[];
- const colors=playerOneIsYellow?["empty","yellow","red"]:["empty","red","yellow"];
- board.setAttribute("aria-label",state?"Connect 4 board. Rows top to bottom: "+state.board.map(row=>row.map(piece=>colors[piece]).join(", ")).join("; "):"Empty Connect 4 board");
+ board.setAttribute("aria-label",state?"Connect 4 board. Rows top to bottom: "+state.board.map(row=>row.map(piece=>counterColours[piece]).join(", ")).join("; "):"Empty Connect 4 board");
  cells.forEach((cell,index)=>{
   const piece=pieces[index]||0;
+  cell.dataset.counterColour=counterColours[piece];
   cell.classList.toggle("c4-p1",piece===1);
   cell.classList.toggle("c4-p2",piece===2);
  });
@@ -86,7 +92,8 @@ async function action(path,payload,followAgent=false){
  try{
   state=await post(path,payload);
   if(path.endsWith("/start")){
-   root.dataset.playerOneColour=colour.value;
+   const opponentColour={yellow:"red",orange:"blue",white:"red"}[colour.value]||"yellow";
+   counterColours=["empty",colour.value,opponentColour];
    q("[data-settings]").open=false;
    q("[data-agent-status]").textContent="";
    q("[data-retry-agent]").hidden=true;
