@@ -448,7 +448,7 @@ def generation_content(video_id: object) -> tuple[bytes, str]:
 
     clean_id = str(video_id or "").strip()
     status_payload = studio_media_backend.video_status(clean_id)
-    if not status_payload.get("artifact_proven"):
+    if status_payload.get("status") != "completed":
         raise RuntimeError("studio_video_not_completed")
     return studio_media_backend.video_content(clean_id)
 
@@ -457,7 +457,7 @@ def generation_status(video_id: object) -> dict[str, Any]:
     """Check one Studio video job and Chronicle its current proof state."""
 
     artifact = studio_media_backend.video_status(str(video_id or ""))
-    artifact_proven = bool(artifact.get("artifact_proven"))
+    artifact_proven = False  # Provider completion is not a retrieved, saved Studio asset.
     receipt = smi_receipt_backend.write_receipt(
         "studio_generation_receipt",
         {
@@ -480,7 +480,7 @@ def generation_status(video_id: object) -> dict[str, Any]:
     return {
         "studio": STUDIO_NAME,
         "smi_depth": 21,
-        "state": "generated" if artifact_proven else "provider_job_active",
+        "state": "provider_job_completed_unverified" if artifact.get("status") == "completed" else "provider_job_active",
         "output_generated": artifact_proven,
         "artifact": artifact,
         "chronicle_receipt": receipt,
