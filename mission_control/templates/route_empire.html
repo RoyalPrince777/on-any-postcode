@@ -12,24 +12,24 @@
     .re-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
     .re-node{border:1px solid var(--mc-line);border-radius:14px;padding:12px;background:var(--mc-panel-soft)}
     .re-actions{display:flex;gap:7px;flex-wrap:wrap}.re-actions button{padding:8px 10px;border-radius:10px;border:1px solid var(--mc-line);background:var(--mc-panel-soft);color:var(--mc-text)}
-    .re-hero{border-left:4px solid #f5c451}.re-status{font-family:ui-monospace,monospace;overflow-wrap:anywhere}
+    .re-status{font-family:ui-monospace,monospace;overflow-wrap:anywhere}
   </style>
 </head>
 <body>
 <main class="mc-shell arena-game" data-route-empire-root>
-  <section class="card re-hero">
-    <nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a> · <a href="/arena/route-empire/room">Online Room</a></nav><p class="arena-hint">OAP Arena · First-party game</p>
-    <h1>🌍 Route Empire</h1>
-    <p><strong>Born Local. Built Global.</strong></p>
-    <p>Start local, build routes and expand your world. Royal Arena Empire · local-board v1.</p>
+  <section class="card">
+    {% from "_arena_game_header.html" import game_header %}
+{{ game_header("Route Empire", "/arena/route-empire/room", "Online room", "Build routes on a local board.") }}
     <p><strong>Truth boundary:</strong> this v1 uses a synthetic local board keyed by your chosen place label. It does not claim live map accuracy, real property ownership, or real-money SIKA.</p>
   </section>
 
   <section class="card" data-setup>
-    <h2>Start local board</h2>
+    <details class="arena-disclosure" open>
+    <summary>Settings</summary>
     <label class="arena-field">Place <input data-location maxlength="80" value="Mitcham"></label>
     <label class="arena-field">Players (2–4, comma separated) <input data-players maxlength="180" value="Player One, Player Two"></label>
-    <div class="arena-actions"><button class="arena-primary" type="button" data-start>Start Route Empire</button></div>
+    </details>
+    <div class="arena-actions"><button class="arena-primary" type="button" data-start>Play</button></div>
     <p data-error role="alert"></p>
   </section>
 
@@ -48,7 +48,7 @@
     <p class="arena-hint">Both territories must be yours and directly connected on the board.</p>
     <div class="re-actions">
       <button type="button" data-end-turn>End turn</button>
-      <button type="button" class="arena-stop" data-stop>STOP</button>
+      <button type="button" class="arena-stop" data-stop>Stop</button>
     </div>
     <p class="arena-feedback re-status" data-status role="status" aria-live="polite"></p>
     <p class="arena-error" data-game-error role="alert"></p>

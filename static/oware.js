@@ -6,7 +6,7 @@
   const q = selector => root.querySelector(selector);
   const settings = q("#oware-settings");
   const csrf = document.querySelector('meta[name="oap-csrf-token"]')?.content || "";
-  const levels = {beginner: "Beginner", standard: "Standard", expert: "Expert"};
+  const levels = {beginner: "Starter", standard: "Club", expert: "Expert"};
   const opening = {
     pits: JSON.parse(root.dataset.openingPits),
     players: [{name: "Player One", captured: 0}, {name: "Player Two", captured: 0}],

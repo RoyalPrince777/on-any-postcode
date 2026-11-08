@@ -50,7 +50,7 @@ async function runAgent(){
  q("[data-agent-status]").textContent="Agent turn · calculating legal move…";
  const response=await post("/arena/connect4/agent-move",{agent_key:key,difficulty,request_id:req()});
  state=response;
- q("[data-agent-status]").textContent=response.agent.name+" · "+response.agent.fit_stars+"/7 stars · "+difficulty;
+ q("[data-agent-status]").textContent=response.agent.name+" · "+q("[data-difficulty]").selectedOptions[0].text;
  q("[data-retry-agent]").hidden=true;
  render();
 }

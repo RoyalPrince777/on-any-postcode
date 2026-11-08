@@ -174,3 +174,32 @@ body:has(.arena-game[data-oware-root]) {background:#100f0d!important}
 .oware-board i:nth-child(2n) {background:#dac7b2;transform:rotate(24deg)}
 .oware-board i:nth-child(3n) {background:#a97c5d;transform:rotate(-7deg)}
 .oware-captured-stones i {width:clamp(6px,1.55vw,10px)}
+
+/* Quiet Arena surfaces shared by local games and online rooms. */
+body:has(.arena-game){background:#100f0d!important}
+.arena-game{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;gap:12px}
+.arena-game .card{
+  border:1px solid #39332a!important;border-radius:10px;
+  background:#151410!important;box-shadow:none!important;
+}
+.arena-game .card::after{content:none}
+.arena-game .arena-play-header{padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #39332a}
+.arena-game .arena-nav{margin-bottom:4px}
+.arena-game .arena-nav a{text-decoration:none;font-size:.86rem}
+.arena-game .arena-nav a:hover{text-decoration:underline}
+.arena-game .arena-play-header h1{margin:0;font-size:clamp(1.65rem,6vw,2.35rem);line-height:1.14}
+.arena-game .arena-play-header p{margin:5px 0 0;color:#c6c0b4;font-size:.86rem}
+.arena-game .arena-disclosure{border-bottom:1px solid #39332a;padding:0 0 8px}
+.arena-game .arena-disclosure summary{padding:11px 0;min-height:44px;cursor:pointer;font-weight:650}
+.arena-game .arena-disclosure label{margin:6px 0}
+.arena-game .arena-disclosure .arena-hint{margin:5px 0}
+.arena-game button.arena-primary{
+  background:#d9bc87!important;border-color:#d9bc87!important;color:#211b11!important;
+  border-radius:7px;box-shadow:none!important;
+}
+.arena-game button.arena-stop{
+  background:transparent!important;border-color:#674a42!important;color:#f0c0b1!important;
+  border-radius:7px;box-shadow:none!important;
+}
+.arena-game [data-entry] h2{font-size:1.05rem;margin:14px 0 6px}
+.arena-game [data-entry] label{margin-bottom:7px}
