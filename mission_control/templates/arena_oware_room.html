@@ -3,6 +3,7 @@
 <meta name="oap-csrf-token" content="{{ csrf_token }}"><meta name="referrer" content="no-referrer">
 <title>Oware Room · OAP Arena</title>
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
+<script src="{{ url_for('static', filename='oware_board.js') }}" defer></script>
 <script src="{{ url_for('static', filename='arena_oware_room.js') }}" defer></script></head>
 <body><main class="mc-shell arena-game" data-oware-room>
 <section class="card room-panel"><nav class="arena-nav"><a href="/arena">← All games</a> · <a href="/arena/oware">Local Oware</a></nav>
@@ -17,7 +18,7 @@
 <p>Code: <strong data-code></strong> · Status: <strong data-status></strong> · Revision: <strong data-revision></strong></p>
 <details><summary>Private reconnect details</summary><p>Room ID: <span data-id></span></p><p>Token: <span data-token></span></p></details>
 <p data-players></p><p data-turn aria-live="polite"></p>
-<div data-pits class="arena-actions" role="group" aria-label="Oware pits"></div>
+<div data-pits role="group" aria-label="Oware board" hidden></div>
 <div class="arena-actions"><button data-refresh type="button">Refresh Match</button><button data-stop type="button">STOP</button></div>
 </section>
 <p data-error role="alert"></p><p>Unranked room; no chat, payment or prize execution. Server state is authoritative.</p>

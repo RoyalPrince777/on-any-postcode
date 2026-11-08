@@ -1486,7 +1486,10 @@ def ludo_stop():
 @app.get("/arena/oware")
 def oware_page():
     response = make_response(
-        render_template("oware.html", csrf_token=web_security.csrf_token())
+        render_template(
+            "oware.html", csrf_token=web_security.csrf_token(),
+            opening_pits=[oware.INITIAL_SEEDS_PER_PIT] * oware.PIT_COUNT,
+        )
     )
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -1499,12 +1502,23 @@ def oware_start():
         return denied
     try:
         payload = _arena_payload()
-        state = oware.new_game(payload.get("players"))
+        state = oware.new_game(
+            payload.get("players"), agent_level=payload.get("agent_level"),
+            variant=payload.get("variant", "abapa"),
+        )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[oware.SESSION_KEY] = state
     session.modified = True
     return _arena_json(oware.public_state(state), 201)
+
+
+@app.get("/arena/oware/state")
+def oware_state():
+    try:
+        return _arena_json(oware.public_state(session.get(oware.SESSION_KEY)))
+    except ValueError as exc:
+        return _arena_error(exc)
 
 
 @app.post("/arena/oware/move")
@@ -1514,8 +1528,11 @@ def oware_move():
         return denied
     try:
         payload = _arena_payload()
-        state = oware.move(
-            session.get(oware.SESSION_KEY),
+        state = session.get(oware.SESSION_KEY)
+        if payload.get("game_id") is not None and payload["game_id"] != (state or {}).get("game_id"):
+            raise ValueError("oware_game_changed")
+        state = oware.play_local_turn(
+            state,
             pit=payload.get("pit"),
             request_id=payload.get("request_id"),
         )
@@ -1533,8 +1550,11 @@ def oware_stop():
         return denied
     try:
         payload = _arena_payload()
+        state = session.get(oware.SESSION_KEY)
+        if payload.get("game_id") is not None and payload["game_id"] != (state or {}).get("game_id"):
+            raise ValueError("oware_game_changed")
         state = oware.stop(
-            session.get(oware.SESSION_KEY),
+            state,
             request_id=payload.get("request_id"),
         )
     except (TypeError, ValueError) as exc:

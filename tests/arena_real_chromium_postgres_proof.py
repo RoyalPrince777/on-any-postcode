@@ -7,6 +7,7 @@ Never connects to production; no game move endpoint or browser action is mocked.
 from __future__ import annotations
 
 import os
+import re
 import sys
 import threading
 from pathlib import Path
@@ -318,6 +319,9 @@ def prove_local_gameplay_percentages(browser):
         manifest_response = page.request.get(BASE + "/manifest.webmanifest")
         assert manifest_response.ok, "OAP PWA manifest unavailable from Arena game"
         assert isinstance(manifest_response.json(), dict), "OAP PWA manifest invalid"
+        if game == "oware":
+            expect(page.locator(".oware-stones i")).to_have_count(48)
+            expect(page.locator(".oware-score")).to_have_text(["0", "0"])
         page.locator("[data-start]").click()
         expect(page.locator("[data-game]")).to_be_visible()
         expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 0%")
@@ -327,8 +331,23 @@ def prove_local_gameplay_percentages(browser):
             expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 2%")
             expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "2")
         elif game == "oware":
-            page.locator("[data-board] button:not([disabled])").first.click()
-            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Seeds captured:")
+            for pit in (0, 10, 1, 7, 5):
+                page.locator(f'[data-pit="{pit}"]').click()
+            expect(page.locator(".oware-score")).to_have_text(["2", "2"])
+            expect(page.locator(".oware-captured-stones i")).to_have_count(4)
+            expect(page.locator(".oware-stones i")).to_have_count(44)
+            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Seeds captured: 4/48")
+            page.get_by_role("button", name="Settings").click()
+            settings = page.get_by_role("dialog", name="Game settings")
+            settings.get_by_label("Game type").select_option("nam-nam")
+            settings.get_by_label("Play against").select_option("agent")
+            settings.get_by_label("Agent level").select_option("expert")
+            settings.get_by_role("button", name="Start game").click()
+            expect(settings).to_be_hidden()
+            expect(page.locator("[data-match-mode]")).to_have_text("Agent · Expert")
+            expect(page.locator("[data-status]")).to_have_text("Nam-Nam")
+            page.locator('[data-pit="0"]').click()
+            expect(page.locator(".oware-last")).to_have_attribute("data-pit", re.compile(r"^(?:[6-9]|1[01])$"))
         else:
             for source, target in (("e2", "e4"), ("d7", "d5"), ("e4", "d5")):
                 page.locator("[data-source]").fill(source)

@@ -1,31 +1,153 @@
-(()=>{
-"use strict";
-const root=document.querySelector("[data-oware-root]");if(!root)return;
-const q=s=>root.querySelector(s);const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
-let state=null,busy=false;const requestId=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
-const error=e=>q("[data-error]").textContent=e?.message||String(e);
-async function post(url,payload){const r=await fetch(url,{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(payload)});const result=await r.json();if(!r.ok)throw new Error(result?.error?.code||"arena_request_failed");return result;}
-function pitButton(index){const b=document.createElement("button");b.type="button";b.className="arena-choice";b.dataset.pit=String(index);b.textContent=String(state.pits[index]);b.setAttribute("aria-label","House "+(index+1)+": "+state.pits[index]+" seeds");const legal=state.status==="active"&&state.legal_pits.includes(index);b.disabled=busy||!legal;if(legal)b.setAttribute("aria-pressed","false");return b;}
-function row(indices,label){const wrap=document.createElement("div");wrap.className="arena-choices";wrap.setAttribute("role","group");wrap.setAttribute("aria-label",label);for(const index of indices)wrap.append(pitButton(index));return wrap;}
-function render(){
- if(!state)return;
- q("[data-game]").hidden=false;
- q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
- q("[data-status]").textContent=state.draw?"Draw":state.status;
- const activity=window.OAPGameplayProgress?.measure("oware",state);
- q("[data-gameplay-percent]").textContent=activity?"Gameplay "+activity.value+"% · "+activity.label:"Gameplay percentage unavailable";
- q("[data-gameplay-bar]").value=activity?activity.value:0;
- q("[data-score]").textContent=state.players.map(p=>p.name+" "+p.captured).join(" · ");
- const board=q("[data-board]");board.replaceChildren();
- board.append(row([11,10,9,8,7,6],"Player Two houses"),row([0,1,2,3,4,5],"Player One houses"));
- const active=state.status==="active";
- q("[data-start]").disabled=busy||active;q("[data-players]").disabled=busy||active;q("[data-stop]").disabled=busy||!active;
- if(state.status==="completed"){const winner=state.players.find(p=>p.id===state.winner_id);q("[data-feedback]").textContent=state.draw?"24–24 draw.":"Winner: "+(winner?.name||"—");}
- else if(state.status==="stopped")q("[data-feedback]").textContent="Match stopped.";
- else q("[data-feedback]").textContent="Choose one of "+state.legal_pits.length+" legal houses. Captures occur only on the opponent side at 2 or 3 seeds.";
-}
-async function action(path,payload){if(busy)return;busy=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;render();}}
-q("[data-start]").onclick=()=>action("/arena/oware/start",{players:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean)});
-root.addEventListener("click",e=>{const btn=e.target.closest("[data-pit]");if(btn&&!btn.disabled)action("/arena/oware/move",{pit:Number(btn.dataset.pit),request_id:requestId()});});
-q("[data-stop]").onclick=()=>action("/arena/oware/stop",{request_id:requestId()});
+(() => {
+  "use strict";
+  const root = document.querySelector("[data-oware-root]");
+  if (!root) return;
+
+  const q = selector => root.querySelector(selector);
+  const settings = q("#oware-settings");
+  const csrf = document.querySelector('meta[name="oap-csrf-token"]')?.content || "";
+  const levels = {beginner: "Beginner", standard: "Standard", expert: "Expert"};
+  const opening = {
+    pits: JSON.parse(root.dataset.openingPits),
+    players: [{name: "Player One", captured: 0}, {name: "Player Two", captured: 0}],
+    legal_pits: [],
+  };
+  let state = null;
+  let busy = false;
+
+  function requestId() {
+    return Array.from(crypto.getRandomValues(new Uint8Array(12)), byte => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  function renderSettings() {
+    const versusAgent = q("[data-mode]").value === "agent";
+    q("[data-level-field]").hidden = !versusAgent;
+    q("[data-player-two-field]").hidden = versusAgent;
+    q("[data-settings-note]").hidden = state?.status !== "active";
+    for (const control of q("[data-setup]").elements) {
+      control.disabled = busy;
+    }
+    q("[data-settings-open]").disabled = busy;
+  }
+
+  function restoreSettings() {
+    q("[data-setup]").reset();
+    if (state?.started) {
+      q("[data-variant]").value = state.variant;
+      q("[data-mode]").value = state.agent_level ? "agent" : "local";
+      if (state.agent_level) q("[data-level]").value = state.agent_level;
+      q("[data-player-one]").value = state.players[0].name;
+      if (!state.agent_level) q("[data-player-two]").value = state.players[1].name;
+    }
+    renderSettings();
+  }
+
+  function render() {
+    const active = state?.status === "active";
+    renderSettings();
+    q("[data-stop]").disabled = busy || !active;
+    if (!state?.started) {
+      window.OAPOwareBoard.render(q("[data-board]"), opening, false);
+      q("[data-feedback]").textContent = "Choose New Game to play, or open Settings to pick your opponent.";
+      return;
+    }
+
+    q("[data-match-mode]").textContent = state.agent_level ? "Agent · " + levels[state.agent_level] : "Two players";
+    q("[data-turn]").textContent = active ? state.current_player_name : "—";
+    q("[data-status]").textContent = active ? (busy ? "Updating…" : state.ruleset) : state.draw ? "Draw" :
+      state.status === "stopped" ? "Stopped" : "Game over";
+    const round = q("[data-round]");
+    round.hidden = state.variant !== "nam-nam";
+    round.textContent = round.hidden ? "" : "Round " + state.round;
+    if (state.last_round) round.textContent += " · Previous round " + state.last_round.join("–");
+    if (state.result === "round_replayed") round.textContent += " · Previous round replayed after a sowing loop";
+    const activity = window.OAPGameplayProgress?.measure("oware", state);
+    q("[data-gameplay-percent]").textContent = activity ? "Gameplay " + activity.value + "% · " + activity.label : "";
+    q("[data-gameplay-bar]").value = activity?.value ?? 0;
+    window.OAPOwareBoard.render(q("[data-board]"), state, !busy && active);
+
+    const playerIndex = state.current_player_id === "p1" ? 0 : 1;
+    const hasOpponentSeeds = state.pits.some((count, pit) => count && (state.owners?.[pit] ?? Math.floor(pit / 6)) !== playerIndex);
+    let feedback = "Choose a highlighted house in your territory.";
+    if (state.status === "completed") {
+      const winner = state.players.find(player => player.id === state.winner_id);
+      const reason = {no_legal_move: "No legal move. ", repetition: "Repeated position. "}[state.result] || "";
+      feedback = reason + (state.draw ? "24–24 draw." : winner.name + " wins.");
+    } else if (state.status === "stopped") {
+      feedback = "Match stopped. Choose New Game to play again.";
+    } else if (state.grand_slam_forfeited) {
+      feedback = "Grand slam: sowing stands and the seeds stay in play.";
+    } else if (!hasOpponentSeeds) {
+      feedback = "Your opponent’s territory is empty. Choose a highlighted house to feed it.";
+    }
+    q("[data-feedback]").textContent = feedback;
+  }
+
+  async function action(path, payload) {
+    if (busy) return false;
+    busy = true;
+    const error = q(settings.open ? "[data-settings-error]" : "[data-error]");
+    error.textContent = "";
+    render();
+    let errorMessage;
+    try {
+      const options = payload ? {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-OAP-CSRF": csrf},
+        body: JSON.stringify(payload),
+      } : {};
+      const response = await fetch("/arena/oware/" + path, {...options, cache: "no-store"});
+      const result = await response.json();
+      if (!response.ok) {
+        errorMessage = result?.error?.message;
+        throw new Error(result?.error?.code || "request_failed");
+      }
+      state = result;
+      if (path === "state" || path === "start") {
+        restoreSettings();
+        if (settings.open) settings.close();
+      }
+    } catch (failure) {
+      const messages = {
+        oware_game_changed: "This match changed. Reload to see the current board.",
+        oware_players_invalid: "Enter two different names.",
+        oware_move_not_legal: "Choose a highlighted house in the current player’s territory.",
+      };
+      error.textContent = messages[failure.message] || errorMessage || "Oware could not update. Try again.";
+    } finally {
+      busy = false;
+      render();
+    }
+  }
+
+  q("[data-mode]").addEventListener("change", renderSettings);
+  q("[data-settings-open]").addEventListener("click", () => {
+    q("[data-settings-error]").textContent = "";
+    restoreSettings();
+    settings.showModal();
+  });
+  q("[data-settings-close]").addEventListener("click", () => settings.close());
+  settings.addEventListener("close", restoreSettings);
+  settings.addEventListener("cancel", event => {
+    if (busy) event.preventDefault();
+  });
+  q("[data-setup]").addEventListener("submit", event => {
+    event.preventDefault();
+    if (busy || (!settings.open && state?.status === "active" && !window.confirm("End this match and start a new game?"))) return;
+    const agent = q("[data-mode]").value === "agent";
+    const first = q("[data-player-one]").value.trim() || "Player One";
+    const second = agent ? (first.toLowerCase() === "oware agent" ? "Arena Agent" : "Oware Agent") :
+      q("[data-player-two]").value.trim() || "Player Two";
+    action("start", {variant: q("[data-variant]").value, players: [first, second], agent_level: agent ? q("[data-level]").value : null});
+  });
+  q("[data-board]").addEventListener("click", async event => {
+    const button = event.target.closest("[data-pit]");
+    if (!button || button.disabled) return;
+    await action("move", {pit: Number(button.dataset.pit), request_id: requestId(), game_id: state.game_id});
+    if (event.detail === 0) {
+      (q("[data-pit]:enabled") || q("[data-start]")).focus();
+    }
+  });
+  q("[data-stop]").addEventListener("click", () => action("stop", {request_id: requestId(), game_id: state.game_id}));
+  action("state");
 })();

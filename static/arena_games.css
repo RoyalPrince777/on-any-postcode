@@ -81,3 +81,100 @@ body:has(.arena-game){overflow-x:hidden}
 @media(prefers-reduced-motion:reduce){
   .arena-game .arena-chess-square.arena-chess-capture .arena-chess-character{animation:none!important}
 }
+
+/* Oware table, settings, and carved board. */
+.arena-game[data-oware-root] {
+  max-width:680px;gap:12px;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+.oware-header {display:grid;grid-template-columns:1fr auto;align-items:start;gap:8px 12px}
+.oware-header .arena-nav {margin:0;gap:6px 14px;font-size:.85rem}
+.oware-header h1 {margin:0;font:700 clamp(2.65rem,10vw,4rem)/1 Georgia,serif;color:#fff1d4}
+.oware-kicker {margin:0 0 6px;color:#d7ae65;letter-spacing:.1em;font-size:.7rem;font-weight:700}
+.oware-board-spec {grid-column:1/-1;margin:0;color:#c9ae7b;font-size:.75rem}
+.oware-header .oware-settings-button {min-height:44px;font-size:.9rem}
+.oware-match-info {
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;padding:9px 12px;margin-bottom:8px;
+  background:#15100b;border:1px solid #54401e;border-radius:12px;color:#e6c487;font-size:.8rem;
+}
+.oware-match-info [data-status] {color:#fff1d4}
+.oware-match-info [data-turn] {color:#fff1d4;overflow-wrap:anywhere}
+.oware-match-info > :last-child {margin-inline-start:auto}
+.oware-game [data-round] {margin:6px 2px}
+.oware-actions {display:flex;gap:8px;margin-top:10px}
+.oware-actions .oware-primary {flex:1}
+.arena-game button.oware-primary {
+  background:linear-gradient(150deg,#ffdf8a,#c78931)!important;
+  color:#211303!important;font-weight:800;
+}
+.oware-game .arena-feedback {margin:8px 0 0;border-color:#b7873f;background:#16100b;font-size:.85rem}
+.oware-game [data-gameplay-percent] {margin:8px 0 3px;font-size:.75rem}
+.oware-game progress {width:100%;height:6px;accent-color:#efc570;display:block}
+.oware-rules {font-size:.85rem;color:#d6bd97}
+.oware-rules summary {padding:8px 3px;cursor:pointer}
+.oware-rules summary:focus-visible {outline:2px solid #f5c451}
+.arena-game .oware-settings {
+  width:min(100% - 24px,440px);max-height:calc(100dvh - 24px);overflow:auto;margin:auto;padding:16px;
+  background:#1b120a;color:#fff1d4;border:1px solid #a4773e;border-radius:16px;
+}
+.oware-settings::backdrop {background:#090500d9}
+.oware-settings .arena-row {gap:10px;margin-top:10px}
+.oware-settings .arena-field {flex-basis:145px}
+.oware-dialog-header {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.oware-dialog-header h2 {margin:0;font-size:1.3rem}
+.oware-dialog-header button {font-size:1.25rem}
+
+.arena-game .oware-board {
+  display:grid;gap:7px;padding:clamp(7px,2vw,14px);border:1px solid #ba824e;border-radius:24px;
+  background:
+    repeating-linear-gradient(5deg,transparent 0 8px,#38170c22 9px,#ffd19b17 10px,transparent 14px),
+    linear-gradient(155deg,#9d6137,#693917 54%,#4e2818);
+  box-shadow:inset 0 2px 2px #ffcf8766,inset 0 -4px 0 #2a140d9c,0 8px 20px #0007;
+  color:#fff4dc;
+}
+.arena-game .oware-caption {
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(122px,50%);align-items:center;
+  gap:8px;padding:3px 4px;overflow-wrap:anywhere;font-size:.83rem;
+}
+.oware-caption.oware-turn > div:first-child {color:#ffe794}
+.oware-caption.oware-turn > div:first-child::before {content:"◆ ";color:#ffe794;font-size:.7em}
+.oware-territory {display:block;color:#ffe5b5;font-size:.73rem}
+.arena-game .oware-store {
+  display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:5px;min-height:41px;
+  padding:4px 8px;border:1px solid #bc8656;border-radius:15px;
+  background:radial-gradient(ellipse at 50% 82%,#4a2819,#28150d 65%,#1c0c06);
+  box-shadow:inset 0 3px 7px #180a06b0;color:#ffe6b3;font-size:.67rem;
+}
+.oware-store .oware-score {color:#fff4d9;font-size:1.45rem;line-height:1;font-variant-numeric:tabular-nums}
+.arena-game .oware-row {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:clamp(3px,1vw,9px)}
+.arena-game button.oware-house {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  min-width:0;min-height:clamp(75px,15vw,110px);padding:7px 2px;border-radius:45% / 30%;
+  background:radial-gradient(ellipse at 50% 70%,#573020,#2a160d 66%,#1c0d07)!important;
+  color:#fff4dc!important;border:2px solid #b57c4f!important;
+  box-shadow:inset 0 5px 9px #160904d9,0 1px 1px #ffb86b55!important;
+}
+.arena-game button.oware-house:disabled {opacity:1;cursor:default}
+.arena-game button.oware-house:enabled {
+  border-color:#ffda7c!important;
+  background:radial-gradient(ellipse at 50% 70%,#634025,#362013 67%,#241409)!important;
+}
+.arena-game button.oware-house.oware-last {box-shadow:inset 0 0 0 1px #ffdf9c,inset 0 5px 9px #160904d9!important}
+.arena-game .oware-count {font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.arena-game .oware-claim {font-size:.65rem;font-weight:700;color:#ffdfa1}
+.oware-stones,.oware-captured-stones {display:flex;flex-wrap:wrap;justify-content:center;gap:2px;width:100%;max-width:78px}
+.oware-captured-stones {justify-content:flex-start;max-width:none}
+.oware-board i {
+  display:block;width:clamp(11px,2.6vw,16px);aspect-ratio:1.16;border-radius:46% 54% 55% 45%;
+  background:radial-gradient(ellipse at 30% 25%,#fff1cf 0,#e9bd7a 26%,#a86a3d 73%,#6a381d);
+  box-shadow:0 1px 2px #170803cc,inset 0 0 0 1px #ffdd9c38;transform:rotate(-19deg);
+}
+.oware-board i:nth-child(2n) {
+  background:radial-gradient(ellipse at 35% 27%,#fff4de,#d9ba9b 35%,#8d6450 76%,#523429);
+  transform:rotate(24deg);
+}
+.oware-board i:nth-child(3n) {
+  background:radial-gradient(ellipse at 34% 26%,#ffdba2,#be7b4c 38%,#6e3927 75%,#452217);
+  transform:rotate(-7deg);
+}
+.oware-captured-stones i {width:clamp(6px,1.55vw,10px)}
