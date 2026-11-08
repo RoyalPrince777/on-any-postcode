@@ -157,3 +157,48 @@ def assess_smi_agent_claim(
         claim, evidence, required_kinds=required_kinds
     )
     return AgentMindReview(agent_name=agent_name.strip(), assessment=assessment)
+
+
+@dataclass(frozen=True)
+class OctopusArmReview:
+    """An arm selection proposal, never a live worker or permission grant."""
+
+    selected_arms: tuple[str, ...]
+    requested_permissions: tuple[str, ...]
+    action_gate_required: bool
+    advisory_only: bool = True
+    authority_granted: bool = False
+    runtime_verified: bool = False
+    founder_final: bool = True
+
+
+def review_octopus_arms(
+    arms: tuple[str, ...],
+    *,
+    permissions: tuple[str, ...] = (),
+) -> OctopusArmReview:
+    """Validate an eight-arm proposal without executing or authorising it.
+
+    Operational arm names and permission boundaries are separate namespaces.
+    Merely selecting EXECUTE or requesting ACT never grants either authority.
+    """
+    if not isinstance(arms, tuple) or not arms or any(
+        not isinstance(arm, str) or arm not in OCTOPUS_OPERATIONAL_ARMS
+        for arm in arms
+    ):
+        raise ValueError("Specify recognised Octopus operational arms")
+    if len(set(arms)) != len(arms):
+        raise ValueError("Duplicate Octopus operational arms")
+    if not isinstance(permissions, tuple) or any(
+        not isinstance(permission, str)
+        or permission not in OCTOPUS_PERMISSION_BOUNDARIES
+        for permission in permissions
+    ):
+        raise ValueError("Specify recognised Octopus permission boundaries")
+    if len(set(permissions)) != len(permissions):
+        raise ValueError("Duplicate Octopus permission boundaries")
+    return OctopusArmReview(
+        selected_arms=arms,
+        requested_permissions=permissions,
+        action_gate_required=("EXECUTE" in arms or "ACT" in permissions),
+    )
