@@ -41,7 +41,7 @@
     renderSettings();
   }
 
-  function render() {
+  function render(previousMove = null) {
     const active = state?.status === "active";
     renderSettings();
     q("[data-stop]").hidden = !active;
@@ -60,7 +60,7 @@
     round.textContent = round.hidden ? "" : "Round " + state.round;
     if (state.last_round) round.textContent += " · Previous round " + state.last_round.join("–");
     if (state.result === "round_replayed") round.textContent += " · Previous round replayed after a sowing loop";
-    window.OAPOwareBoard.render(q("[data-board]"), state, !busy && active);
+    window.OAPOwareBoard.render(q("[data-board]"), state, !busy && active, 0, previousMove);
 
     const playerIndex = state.current_player_id === "p1" ? 0 : 1;
     const hasOpponentSeeds = state.pits.some((count, pit) => count && (state.owners?.[pit] ?? Math.floor(pit / 6)) !== playerIndex);
@@ -81,6 +81,7 @@
     const error = q(settings.open ? "[data-settings-error]" : "[data-error]");
     error.textContent = "";
     render();
+    const previous = state;
     let errorMessage;
     try {
       const options = payload ? {
@@ -108,7 +109,7 @@
       error.textContent = messages[failure.message] || errorMessage || "Oware could not update. Try again.";
     } finally {
       busy = false;
-      render();
+      render(path === "move" && state !== previous ? previous : null);
     }
   }
 

@@ -9,7 +9,7 @@
     return pile;
   }
 
-  function render(board, state, enabled, bottomSeat = 0) {
+  function render(board, state, enabled, bottomSeat = 0, previousMove = null) {
     board.classList.add("oware-board");
     board.replaceChildren();
     if (!state.pits) return;
@@ -31,6 +31,9 @@
       }
       const store = document.createElement("div");
       store.className = "oware-store";
+      if (previousMove && player.captured > previousMove.players[seat].captured) {
+        store.classList.add("oware-capture");
+      }
       const score = document.createElement("strong");
       score.className = "oware-score";
       score.textContent = player.captured;
@@ -50,6 +53,9 @@
         const button = document.createElement("button");
         button.type = "button";
         button.className = "oware-house";
+        if (previousMove && seeds !== previousMove.pits[pit]) {
+          button.classList.add("oware-seeds-changed");
+        }
         button.dataset.pit = String(pit);
         button.disabled = !enabled || !state.legal_pits.includes(pit);
         button.classList.toggle("oware-last", state.last_pit === pit);

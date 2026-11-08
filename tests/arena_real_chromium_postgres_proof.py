@@ -326,7 +326,11 @@ def prove_local_gameplay(browser):
         page.locator("[data-start]").click()
         expect(page.locator("[data-game]")).to_be_visible()
         if game == "connect4":
-            page.locator("[data-controls] button:not([disabled])").first.click()
+            column = page.get_by_role("button", name="Drop into column 1")
+            board = page.locator(".c4-board").bounding_box()
+            target = column.bounding_box()
+            assert board and target and target["height"] > board["height"]
+            column.click(position={"x": target["width"] / 2, "y": target["height"] - 12})
             expect(page.locator(".c4-board .c4-p1")).to_have_count(1)
             expect(page.locator("[data-turn]")).to_have_text("Player Two’s turn")
         elif game == "oware":
@@ -335,6 +339,8 @@ def prove_local_gameplay(browser):
             expect(page.locator(".oware-score")).to_have_text(["2", "2"])
             expect(page.locator(".oware-captured-stones i")).to_have_count(4)
             expect(page.locator(".oware-stones i")).to_have_count(44)
+            expect(page.locator(".oware-seeds-changed").first).to_be_visible()
+            expect(page.locator(".oware-capture")).to_have_count(1)
             page.get_by_role("button", name="Settings").click()
             settings = page.get_by_role("dialog", name="Game settings")
             settings.get_by_label("Game type").select_option("nam-nam")
