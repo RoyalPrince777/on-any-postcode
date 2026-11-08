@@ -123,3 +123,25 @@ def test_cross_agent_contradiction_holds_and_empty_agent_rejected() -> None:
     assert review.assessment.verdict == "HOLD"
     with pytest.raises(ValueError):
         assess_smi_agent_claim(" ", "Agent works", records)
+
+
+def test_octopus_eight_arm_identity_is_distinct_from_smi_metacognition() -> None:
+    from oap.smi.oap_mind import (
+        OAP_MIND_COORDINATOR,
+        OAP_MIND_OWNER,
+        OAP_MIND_SUPPORTING_ARMS,
+        OCTOPUS_OPERATIONAL_ARMS,
+        OCTOPUS_PERMISSION_BOUNDARIES,
+    )
+
+    assert OAP_MIND_OWNER == "SMI"
+    assert OAP_MIND_COORDINATOR == "Octopus"
+    assert OCTOPUS_OPERATIONAL_ARMS == (
+        "OBSERVE", "TRACE", "PLAN", "COORDINATE",
+        "EXECUTE", "ADAPT", "RECOVER", "VERIFY",
+    )
+    assert OCTOPUS_PERMISSION_BOUNDARIES == (
+        "SENSE", "READ", "ANALYSE", "INFER",
+        "REMEMBER", "LEARN", "SHARE", "ACT",
+    )
+    assert set(OAP_MIND_SUPPORTING_ARMS).issubset(OCTOPUS_OPERATIONAL_ARMS)
