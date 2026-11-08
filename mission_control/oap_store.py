@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
-from . import oap_store_registry, products
+from . import bank_store_listing, oap_store_registry, products
 
 bp = Blueprint("oap_store", __name__, template_folder="templates")
 
@@ -268,6 +268,33 @@ def _spot_store_apps() -> tuple[dict[str, object], ...]:
     return tuple(result)
 
 
+def _bank_information_entry() -> dict[str, object]:
+    """Expose the existing bank listing without implying installation or licensing."""
+    bank = bank_store_listing.listing()
+    return {
+        "app_id": bank["app_id"],
+        "name": bank["name"],
+        "publisher": bank["publisher"],
+        "distribution": "OAP Store",
+        "first_party": True,
+        "description": bank["description"],
+        "release_state": "release_pending",
+        "install_enabled": False,
+        "install_mode": "Information only",
+        "manifest_url": None,
+        "service_worker_url": None,
+        "start_url": None,
+        "open_url": "/oap-store/apps/oap.usa_royalty_bank/view",
+        "category": "Value",
+        "install_url": None,
+        "offline_url": None,
+        "native_apk": False,
+        "native_package_available": False,
+        "physical_device_certified": False,
+        "human_authority_final": True,
+    }
+
+
 def catalogue() -> tuple[dict[str, object], ...]:
     items = (
         dict(OAP_WORLD),
@@ -276,6 +303,7 @@ def catalogue() -> tuple[dict[str, object], ...]:
         dict(OAP_MUSIC),
         dict(OAP_TRANSPORT),
         *PUBLIC_STORE_APPS,
+        _bank_information_entry(),
         *PLANNED_STORE_APPS,
         *_spot_store_apps(),
     )
