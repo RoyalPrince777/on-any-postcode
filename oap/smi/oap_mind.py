@@ -364,6 +364,32 @@ def review_octopus_a7_readiness(arms: tuple[str, ...]) -> OctopusA7Review:
         or not isinstance(gate.get("a7_missing"), (tuple, list))
     ):
         raise RuntimeError("A7 gate returned unsafe or incomplete evidence")
+    # The canonical A7 gate reports derived readiness in addition to the
+    # individual missing-proof list. Reject contradictory projections rather
+    # than showing a misleading Founder-ready signal.
+    a6_checks = gate.get("a6_checks")
+    a7_checks = gate.get("a7_checks")
+    if a6_checks is not None or a7_checks is not None:
+        if (
+            not isinstance(a6_checks, dict)
+            or not isinstance(a7_checks, dict)
+            or not a6_checks
+            or not a7_checks
+            or any(type(value) is not bool for value in a6_checks.values())
+            or any(type(value) is not bool for value in a7_checks.values())
+        ):
+            raise RuntimeError("A7 gate proof checks are invalid")
+        missing_a6 = tuple(name for name, passed in a6_checks.items() if not passed)
+        missing_a7 = tuple(name for name, passed in a7_checks.items() if not passed)
+        a6_complete = not missing_a6
+        a7_ready = not missing_a7 and a6_complete
+        if (
+            tuple(gate["a6_missing"]) != missing_a6
+            or tuple(gate["a7_missing"]) != missing_a7
+            or gate.get("a6_proof_complete") is not a6_complete
+            or gate.get("ready_for_founder_certification") is not a7_ready
+        ):
+            raise RuntimeError("A7 gate readiness contradicts proof checks")
     return OctopusA7Review(
         ceiling="A7",
         proposed_arms=proposal.selected_arms,
