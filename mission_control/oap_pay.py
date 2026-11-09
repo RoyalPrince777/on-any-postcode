@@ -267,6 +267,15 @@ def bank_status_api():
     return response
 
 
+@bp.get("/pay/bank/control-center")
+@web_security.login_required(founder_only=True)
+def bank_founder_control_center():
+    """Founder-only SIKA readiness and operational control navigation."""
+    response = make_response(render_template("oap_bank_founder.html", bank=bank_status()))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @bp.get("/pay/bank/me")
 @web_security.login_required()
 def bank_customer_page():
