@@ -22,26 +22,23 @@ p{max-width:70ch}
 a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .notice{border-left:3px solid var(--gold);padding:12px;background:#1c190e;border-radius:0 10px 10px 0}
 @media(max-width:480px){.actions a{flex:1 1 100%}.panel{padding:14px}}
+.panel summary{cursor:pointer;min-height:44px;font-weight:750}.panel{margin:12px 0}.actions a{font-size:.9rem}h1{margin:18px 0 8px}
 </style>
 </head>
 <body>
 <main>
 <header><div class="brand">👑 ON ANY POSTCODE · OAP STORE</div><a class="back" href="/store">OAP Store</a></header>
 <h1>{{ app.name }}</h1>
-<p class="muted">{{ app.heritage }} · heritage banking family</p>
+
 <section class="panel" aria-labelledby="release-title">
-<h2 id="release-title">App information · release pending</h2>
-<p>{{ app.description }}</p>
-<p class="notice">Installation unavailable. No verified signed package or separately installable bank PWA is registered.</p>
+<h2 id="release-title">Browser access</h2>
+<p>{{ app.description }}</p><p class="muted">Install unavailable · Browser only</p>
 <div class="actions">
 <a href="/pay/bank">Open OAP Bank in Browser</a>
 <a href="/pay/bank/me">My SIKA Account (sign-in required)</a>
 </div>
 </section>
-<section class="panel" aria-label="Financial service truth">
-<p>Banking, accounts, transfers, deposits, cash services and currency issuance are unavailable.</p>
-<p>SIKA Recognition is not money. No licence or operational banking status is claimed.</p>
-</section>
+<details class="panel" aria-label="Financial service truth"><summary>Financial service status</summary><p>Banking, accounts, transfers, deposits, cash services and currency issuance are unavailable.</p><p>SIKA Recognition is not money. No licence or operational banking status is claimed.</p><p>No verified signed package or separately installable bank PWA is registered.</p></details>
 <p><a class="back" href="/world">OAP World</a></p>
 </main>
 </body>
