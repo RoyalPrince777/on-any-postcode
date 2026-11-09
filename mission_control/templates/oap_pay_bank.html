@@ -22,41 +22,20 @@
 
 <section class="hero">
 
-<h1>{{ bank.institution }}</h1>
+<h1>My SIKA</h1>
 
 <div class="install-row">
 <a class="pill primary" href="/pay/bank/me">My SIKA Account</a>
-<span class="meta">Browser access · Install unavailable</span>
+<span class="meta">Install unavailable · Banking locked</span>
 </div>
 </section>
 
-<details class="more" id="readiness"><summary>Readiness details</summary><section class="status-grid" aria-label="Bank readiness">
-<article class="status-card"><div class="meta">SIKA software</div><div class="big {{ 'on' if bank.software_ready else 'off' }}">{{ bank.software_percent }}%</div></article>
-<article class="status-card"><div class="meta">Authorisation evidence</div><div class="big">{{ bank.evidence_proven }} / {{ bank.evidence_total }}</div></article>
-<article class="status-card"><div class="meta">Bank authorisation</div><div class="big {{ 'on' if bank.authorised_bank else 'off' }}">{{ 'PROVEN' if bank.authorised_bank else 'NOT PROVEN' }}</div></article>
-<article class="status-card"><div class="meta">Permission scope</div><div class="big {{ 'on' if bank.permission_scope_effective else 'off' }}">{{ 'EFFECTIVE' if bank.permission_scope_effective else 'LOCKED' }}</div></article>
-<article class="status-card"><div class="meta">Production gate</div><div class="big">{{ bank.production_evidence_proven }} / {{ bank.production_evidence_total }}</div></article>
-</section></details>
-
-<div class="section-title"><h2>Explore SIKA</h2></div>
-<section class="grid" aria-label="OAP Bank primary menu">
-{% for item in bank.app_primary_menu if item.id not in ("home", "accounts", "sika", "activity") %}
-<article class="card" id="{{ item.id }}">
-<h3><a href="/pay/bank/{{ item.id }}" style="color:inherit;text-decoration:none">{{ item.name }}</a></h3>
-{% if item.enabled %}<div class="state on">🟢 Available</div>{% else %}<div class="state off">🔒 Evidence-gated</div>{% endif %}
-<p class="card-description">{{ item.description }}</p>
-</article>
-{% endfor %}
-</section>
-
 <details class="more" id="more">
-<summary>Full menu</summary>
+<summary>Menu</summary>
 <div class="more-grid" aria-label="Core SIKA navigation">
-<a class="row menu-link" href="/pay/bank/me">My SIKA Account</a>
-<a class="row menu-link" href="/pay/bank/accounts">Accounts</a>
-<a class="row menu-link" href="/pay/bank/sika">SIKA Wallet &amp; value</a>
-<a class="row menu-link" href="/pay/bank/cards">Cards · release status</a>
-<a class="row menu-link" href="/pay/bank/activity">Activity</a>
+<a class="row menu-link" href="/pay/bank/accounts">Accounts · status</a>
+<a class="row menu-link" href="/pay/bank/sika">SIKA value</a>
+<a class="row menu-link" href="/pay/bank/cards">Cards</a>
 <a class="row menu-link" href="/pay">OAP Pay</a>
 <a class="row menu-link" href="/store">OAP Store</a>
 <a class="row menu-link" href="/world">OAP World</a>
@@ -67,13 +46,21 @@
 <div class="row" id="{{ item.id }}"><span><strong><a href="/pay/bank/{{ item.id }}" style="color:inherit;text-decoration:none">{{ item.name }}</a></strong><small>{{ item.description }}</small></span>{% if item.enabled %}<span class="state on">🟢 Available</span>{% else %}<span class="state off">🔒 Locked</span>{% endif %}</div>
 {% endfor %}
 </div></details>
-</details>
+<details class="more" id="readiness"><summary>Readiness details</summary><section class="status-grid" aria-label="Bank readiness">
+<article class="status-card"><div class="meta">SIKA software</div><div class="big {{ 'on' if bank.software_ready else 'off' }}">{{ bank.software_percent }}%</div></article>
+<article class="status-card"><div class="meta">Authorisation evidence</div><div class="big">{{ bank.evidence_proven }} / {{ bank.evidence_total }}</div></article>
+<article class="status-card"><div class="meta">Bank authorisation</div><div class="big {{ 'on' if bank.authorised_bank else 'off' }}">{{ 'PROVEN' if bank.authorised_bank else 'NOT PROVEN' }}</div></article>
+<article class="status-card"><div class="meta">Permission scope</div><div class="big {{ 'on' if bank.permission_scope_effective else 'off' }}">{{ 'EFFECTIVE' if bank.permission_scope_effective else 'LOCKED' }}</div></article>
+<article class="status-card"><div class="meta">Production gate</div><div class="big">{{ bank.production_evidence_proven }} / {{ bank.production_evidence_total }}</div></article>
+</section></details>
 
 <details class="more"><summary>Financial capability status</summary><section class="more-grid" id="capabilities" aria-label="Regulated bank capabilities">
 {% for capability, enabled in bank.capabilities.items() %}
 <div class="row"><span>{{ capability.replace('_',' ')|title }}</span><strong class="{{ 'on' if enabled else 'off' }}">{{ '🟢 Allowed' if enabled else '🔒 Locked' }}</strong></div>
 {% endfor %}
 </section></details>
+
+</details>
 
 <div class="truth"><strong>Truth:</strong> Financial services are not authorised here. No deposits or money transfers are available.</div>
 </main>
