@@ -658,3 +658,66 @@ body.smi-noise-strip.smi-live-fullscreen .attach-menu{position:fixed!important;l
  body.smi-noise-strip.smi-live-fullscreen .smi-character-anatomy{display:none!important}
  body.smi-noise-strip.smi-live-fullscreen #live-character-toggle{right:10px!important;bottom:12px!important;font-size:.7rem!important}
 }
+
+
+/* SMI narrow-screen alignment and motion accessibility — bounded pass. */
+@media (max-width:420px){
+  body.smi-noise-strip:not(.smi-live-fullscreen) .composer{
+    width:calc(100% - 16px)!important;
+    max-width:100%!important;
+    bottom:max(8px,env(safe-area-inset-bottom))!important;
+  }
+  body.smi-noise-strip:not(.smi-live-fullscreen) .composer-box{
+    grid-template-columns:42px 42px 42px minmax(0,1fr) 46px!important;
+    grid-template-rows:minmax(42px,auto) minmax(42px,auto)!important;
+    gap:5px!important;
+    min-width:0!important;
+    border-radius:20px!important;
+  }
+  body.smi-noise-strip:not(.smi-live-fullscreen) .attach-wrap,
+  body.smi-noise-strip:not(.smi-live-fullscreen) #plus-button{grid-column:1!important;grid-row:1!important}
+  body.smi-noise-strip:not(.smi-live-fullscreen) #mic-button{grid-column:2!important;grid-row:1!important}
+  body.smi-noise-strip:not(.smi-live-fullscreen) #speaker-button{grid-column:3!important;grid-row:1!important}
+  body.smi-noise-strip:not(.smi-live-fullscreen) #thinking-level{
+    grid-column:4/6!important;grid-row:1!important;
+    width:100%!important;min-width:0!important;
+  }
+  body.smi-noise-strip:not(.smi-live-fullscreen) .composer textarea{
+    grid-column:1/5!important;grid-row:2!important;
+    min-width:0!important;width:100%!important;
+  }
+  body.smi-noise-strip:not(.smi-live-fullscreen) #send{
+    grid-column:5!important;grid-row:2!important;
+    width:46px!important;min-width:46px!important;
+  }
+  body.smi-noise-strip:not(.smi-live-fullscreen) .messages{
+    bottom:145px!important;
+    width:100%!important;
+    max-width:100%!important;
+    padding-inline:10px!important;
+  }
+  body.smi-noise-strip:not(.smi-live-fullscreen) .msg{
+    max-width:94%!important;
+    overflow-wrap:anywhere!important;
+  }
+  body.smi-noise-strip:not(.smi-live-fullscreen) .thinking{
+    width:calc(100vw - 20px)!important;
+    max-width:100%!important;
+  }
+}
+body.smi-noise-strip .composer :is(button,select,textarea):focus-visible,
+body.smi-noise-strip .mobile-chats-toggle:focus-visible,
+body.smi-noise-strip #live-character-toggle:focus-visible{
+  outline:2px solid #d7b759!important;
+  outline-offset:2px!important;
+}
+@media (prefers-reduced-motion:reduce){
+  body.smi-noise-strip .smi-shell *,
+  body.smi-noise-strip .smi-shell *::before,
+  body.smi-noise-strip .smi-shell *::after{
+    animation-duration:0.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:0.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
