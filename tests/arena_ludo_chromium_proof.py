@@ -68,6 +68,47 @@ def prove_ludo(browser):
         context.close()
 
 
+def prove_ludo_agent(browser):
+    web_security.PUBLIC_WRITE_LIMITER.reset()
+    values = iter([0, 5, 0])
+    original_randbelow = ludo.secrets.randbelow
+    ludo.secrets.randbelow = lambda _: next(values)
+    context = browser.new_context(viewport={"width": 393, "height": 852})
+    page = context.new_page()
+    requests = []
+
+    def fail_first_agent_request(route):
+        requests.append(route.request.post_data_json["request_id"])
+        if len(requests) == 1:
+            route.fulfill(status=503, json={"error": {"code": "temporary_test_failure"}})
+        else:
+            route.continue_()
+
+    page.route("**/arena/ludo/agent-turn", fail_first_agent_request)
+    try:
+        page.goto(BASE + "/arena/ludo", wait_until="domcontentloaded")
+        page.get_by_text("Settings", exact=True).click()
+        page.get_by_label("Opponent", exact=True).select_option("agent")
+        page.locator("[data-start]").click()
+        expect(page.locator("[data-roll]")).to_be_enabled()
+        page.locator("[data-roll]").click()
+        retry = page.get_by_role("button", name="Retry agent turn")
+        expect(retry).to_be_visible()
+        expect(page.locator("[data-roll]")).to_be_disabled()
+        retry.click()
+        piece = page.locator('[data-board] [data-piece="p2-1"]')
+        expect(piece).to_have_attribute("aria-label", "Ludo Agent, piece 1, Track 15")
+        expect(page.locator("[data-turn]")).to_have_text("Player One")
+        assert len(requests) == 3 and requests[0] == requests[1] != requests[2]
+
+        page.locator("[data-stop]").click()
+        expect(page.locator("[data-status]")).to_have_text("stopped")
+        expect(page.locator("[data-roll]")).to_be_disabled()
+    finally:
+        ludo.secrets.randbelow = original_randbelow
+        context.close()
+
+
 def main():
     prepare()
     server = make_server("127.0.0.1", 8770, app_module.app, threaded=True)
@@ -77,6 +118,7 @@ def main():
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
             prove_ludo(browser)
+            prove_ludo_agent(browser)
             browser.close()
     finally:
         server.shutdown()

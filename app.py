@@ -1423,7 +1423,10 @@ def ludo_start():
         return denied
     try:
         payload = _arena_payload()
-        state = ludo.new_game(payload.get("players"))
+        mode = payload.get("opponent_mode", "human")
+        if mode not in ("human", "agent"):
+            raise ValueError("ludo_opponent_mode_invalid")
+        state = ludo.new_game(payload.get("players"), versus_agent=mode == "agent")
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[ludo.SESSION_KEY] = ludo.local_session_state(state)
@@ -1459,6 +1462,24 @@ def ludo_move():
         state = ludo.move(
             session.get(ludo.SESSION_KEY),
             piece_id=payload.get("piece_id"),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
+    session.modified = True
+    return _arena_json(ludo.public_state(state))
+
+
+@app.post("/arena/ludo/agent-turn")
+def ludo_agent_turn():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = ludo.agent_step(
+            session.get(ludo.SESSION_KEY),
             request_id=payload.get("request_id"),
         )
     except (TypeError, ValueError) as exc:
