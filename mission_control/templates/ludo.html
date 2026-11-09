@@ -14,6 +14,32 @@
 <body><main class="mc-shell arena-game arena-tabletop ludo-tabletop" data-ludo-root>
   {% from "_ludo_table.html" import colour_options, ludo_table, ludo_rules %}
   <header class="tabletop-header"><a href="/arena">← Arena</a><h1>Ludo</h1><a href="/arena/ludo/room">Online room</a></header>
+  <section class="ludo-menu" data-menu aria-labelledby="ludo-menu-title">
+    <div class="ludo-menu-content">
+      <h2 id="ludo-menu-title">Penthouse Ludo</h2>
+      <div class="arena-actions">
+        <button class="arena-primary" type="button" data-start>Play</button>
+      </div>
+      <details class="arena-disclosure" data-settings><summary>Settings</summary>
+        <label class="arena-field">Opponent
+          <select data-opponent aria-label="Opponent"><option value="human">Local players</option><option value="agent">Ludo Agent</option></select>
+        </label>
+        <label class="arena-field" data-count-label>Players
+          <select data-count aria-label="Players"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+        </label>
+        <div class="ludo-settings">
+        {% for name, colour in [('One','red'), ('Two','blue'), ('Three','green'), ('Four','yellow')] %}
+          <div class="ludo-player-settings" data-seat{% if loop.index > 2 %} hidden{% endif %}>
+            <label data-player-name-label>Player {{ loop.index }}<input data-name maxlength="40" value="Player {{ name }}" autocomplete="off"></label>
+            {% if loop.index == 2 %}<strong data-agent-name hidden>Ludo Agent</strong>{% endif %}
+            <label>Colour<select data-colour aria-label="Player {{ loop.index }} colour">{{ colour_options(colour) }}</select></label>
+          </div>
+        {% endfor %}
+        </div>
+      </details>
+    </div>
+  </section>
+  <p class="arena-error" role="alert" data-error></p>
   <section data-game aria-label="Ludo match">
     <p class="ludo-turn" data-turn aria-live="polite">Ready to play</p>
     <span class="ludo-visually-hidden" data-status>idle</span>
@@ -21,27 +47,8 @@
     <p class="ludo-feedback" role="status" data-feedback></p>
   </section>
   <div class="arena-actions">
-    <button class="arena-primary" type="button" data-start>Play</button>
     <button type="button" data-agent-retry hidden>Retry agent turn</button>
     <button class="arena-stop" type="button" data-stop disabled hidden>Stop</button>
   </div>
-  <p class="arena-error" role="alert" data-error></p>
-  <details class="arena-disclosure" data-settings><summary>Settings</summary>
-    <label class="arena-field">Opponent
-      <select data-opponent aria-label="Opponent"><option value="human">Local players</option><option value="agent">Ludo Agent</option></select>
-    </label>
-    <label class="arena-field" data-count-label>Players
-      <select data-count aria-label="Players"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
-    </label>
-    <div class="ludo-settings">
-    {% for name, colour in [('One','red'), ('Two','blue'), ('Three','green'), ('Four','yellow')] %}
-      <div class="ludo-player-settings" data-seat{% if loop.index > 2 %} hidden{% endif %}>
-        <label data-player-name-label>Player {{ loop.index }}<input data-name maxlength="40" value="Player {{ name }}" autocomplete="off"></label>
-        {% if loop.index == 2 %}<strong data-agent-name hidden>Ludo Agent</strong>{% endif %}
-        <label>Colour<select data-colour aria-label="Player {{ loop.index }} colour">{{ colour_options(colour) }}</select></label>
-      </div>
-    {% endfor %}
-    </div>
-  </details>
   {{ ludo_rules() }}
 </main></body></html>

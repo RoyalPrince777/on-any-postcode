@@ -60,6 +60,7 @@
     updateSettings(busy || active);
     const start = q("[data-start]");
     start.disabled = busy || active;
+    q("[data-menu]").hidden = active;
     start.hidden = active;
     start.textContent = state ? "New game" : "Play";
     q("[data-stop]").disabled = busy || !active;

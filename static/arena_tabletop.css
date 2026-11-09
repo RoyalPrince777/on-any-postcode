@@ -203,6 +203,38 @@
   from { color: #ffd891; transform: scale(1.22); }
 }
 
+.ludo-tabletop .ludo-menu {
+  display: grid;
+  align-content: end;
+  min-height: clamp(300px, 95vw, 430px);
+  padding: clamp(12px, 4vw, 22px);
+  border: 1px solid #a78245;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, transparent 35%, #0c0806bf 71%, #0c0806 100%),
+    url("arena_ludo_penthouse.webp") center 20% / cover no-repeat,
+    #20150e;
+  box-shadow: 0 5px 12px #0009;
+}
+.ludo-menu-content {
+  width: min(100%, 330px);
+  color: #fff4dc;
+}
+.ludo-menu-content h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.45rem, 6vw, 2rem);
+  line-height: 1.1;
+  text-shadow: 0 2px 4px #000;
+}
+.ludo-tabletop .ludo-menu [data-settings] {
+  margin-top: 8px;
+  padding: 0 12px;
+  border: 1px solid #795f39;
+  border-radius: 8px;
+  background: #100d0af2;
+}
+.ludo-tabletop .ludo-menu [data-settings][open] { padding-bottom: 10px; }
+
 .ludo-tabletop .ludo-table {
   width: min(100%, 470px);
   margin-inline: auto;
