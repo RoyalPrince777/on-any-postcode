@@ -69,19 +69,6 @@
 </div></details>
 </details>
 
-<details class="more" id="control-center">
-<summary>Technical evidence &amp; Founder controls</summary>
-<div class="more-grid">
-<div class="row"><span><strong>SIKA software readiness</strong><small>Canonical internal component evidence only; external licence/payment rails excluded.</small></span><span class="state {{ 'on' if bank.software_ready else 'off' }}">{{ bank.software_percent }}%</span></div>
-{% for check, passed in bank.software_checks.items() %}
-<div class="row"><span>{{ check.replace('_',' ')|title }}</span><strong class="{{ 'on' if passed else 'off' }}">{{ '🟢 Proven' if passed else '🟣 Gap' }}</strong></div>
-{% endfor %}
-{% for item in bank.app_admin_menu %}
-<div class="row"><span><strong><a href="/pay/bank/{{ item.id }}" style="color:inherit;text-decoration:none">{{ item.name }}</a></strong><small>{{ item.description }}</small></span><span class="state on">Founder</span></div>
-{% endfor %}
-</div>
-</details>
-
 <details class="more"><summary>Financial capability status</summary><section class="more-grid" id="capabilities" aria-label="Regulated bank capabilities">
 {% for capability, enabled in bank.capabilities.items() %}
 <div class="row"><span>{{ capability.replace('_',' ')|title }}</span><strong class="{{ 'on' if enabled else 'off' }}">{{ '🟢 Allowed' if enabled else '🔒 Locked' }}</strong></div>
