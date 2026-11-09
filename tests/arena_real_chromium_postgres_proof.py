@@ -57,6 +57,20 @@ def assert_layout(page):
     ), "Horizontal screen overflow"
 
 
+def tap_connect4_board(page, column):
+    expect(page.locator(".c4-wordmark")).to_have_text("ON ANY POSTCODE")
+    controls = page.locator("[data-controls] button")
+    expect(controls).to_have_count(7)
+    expect(controls).to_have_text([""] * 7)
+    expect(controls.nth(column)).to_be_visible()
+    expect(controls.nth(column)).to_be_enabled()
+    cell = page.locator("[data-board] .c4-cell").nth(35 + column)
+    cell.scroll_into_view_if_needed()
+    target = cell.bounding_box()
+    assert target, "Expected visible board cell"
+    page.mouse.click(target["x"] + target["width"] / 2, target["y"] + target["height"] / 2)
+
+
 def play_two_seats(browser, game, host_viewport, guest_viewport):
     web_security.PUBLIC_WRITE_LIMITER.reset()
     host_context = browser.new_context(viewport=host_viewport)
@@ -126,8 +140,10 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
         ),
         times=1,
     )
-    first_control = "[data-columns] button" if game == "connect4" else "[data-edges] button:not([disabled])"
-    host.locator(first_control).first.click()
+    if game == "connect4":
+        tap_connect4_board(host, 0)
+    else:
+        host.locator("[data-edges] button:not([disabled])").first.click()
     expect(host.locator("[data-error]")).to_contain_text("test_refresh_unavailable")
     expect(host.locator("[data-stop]")).to_be_disabled()
     if game == "connect4":
@@ -145,7 +161,7 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
         second = "[data-columns] button"
         guest.locator("[data-refresh]").click()
         expect(guest.locator("[data-revision]")).to_have_text("1")
-        guest.locator(second).nth(1).click()
+        guest.locator(second).nth(1).press("Enter")
         expect(guest.locator("[data-revision]")).to_have_text("2")
         host.locator("[data-refresh]").click()
         expect(host.locator("[data-revision]")).to_have_text("2")
@@ -338,15 +354,15 @@ def prove_local_gameplay(browser):
         if game == "oware":
             expect(page.locator(".oware-stones i")).to_have_count(48)
             expect(page.locator(".oware-score")).to_have_text(["0", "0"])
+        if game == "connect4":
+            page.locator("[data-settings] summary").click()
+            page.get_by_label("Player 1 colour").select_option("blue")
         page.locator("[data-start]").click()
         expect(page.locator("[data-game]")).to_be_visible()
         if game == "connect4":
-            column = page.get_by_role("button", name="Drop into column 1")
-            board = page.locator(".c4-board").bounding_box()
-            target = column.bounding_box()
-            assert board and target and target["height"] > board["height"]
-            column.click(position={"x": target["width"] / 2, "y": target["height"] - 12})
+            tap_connect4_board(page, 0)
             expect(page.locator(".c4-board .c4-p1")).to_have_count(1)
+            expect(page.locator(".c4-board .c4-p1")).to_have_attribute("data-counter-colour", "blue")
             expect(page.locator("[data-turn]")).to_have_text("Player Two’s turn")
         elif game == "oware":
             for pit in (0, 10, 1, 7, 5):

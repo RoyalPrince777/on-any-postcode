@@ -75,7 +75,6 @@
 .c4-wordmark svg { flex: none; }
 .arena-tabletop .c4-controls,
 .arena-tabletop .c4-board { display: grid; width: 100%; }
-.c4-table:has(.c4-controls:not([hidden])) { padding-top: 44px; }
 .arena-tabletop .c4-controls {
   position: absolute;
   z-index: 1;
@@ -84,19 +83,15 @@
   padding-inline: calc(var(--rim) + 1px);
 }
 .arena-tabletop .c4-controls button {
-  display: grid;
-  align-items: start;
-  justify-items: center;
-  padding-top: 8px;
+  padding: 0;
   margin: 0;
   background: transparent !important;
-  color: #f8dfad !important;
   border: 1px solid transparent !important;
   box-shadow: none !important;
-  font-size: 1.15rem;
   touch-action: manipulation;
 }
-.arena-tabletop .c4-controls button[aria-disabled="true"] { opacity: .5; cursor: default; }
+.arena-tabletop .c4-controls button:focus-visible { outline-offset: -3px; }
+.arena-tabletop .c4-controls button[aria-disabled="true"] { cursor: default; }
 @media (hover: hover) {
   .arena-tabletop .c4-controls button[aria-disabled="false"]:hover { background: #ffdda525 !important; }
 }

@@ -3,29 +3,11 @@
 const root=document.querySelector("[data-c4-root]");if(!root)return;
 const q=s=>root.querySelector(s);
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
-const board=q("[data-board]");
+const controls=q("[data-controls]");
+const renderBoard=window.OAPConnect4Board.mount(root);
 const colour=q("[data-colour]");
 const playerLabels=root.querySelectorAll("[data-player]");
 let counterColours=["empty","red","yellow"];
-const cells=Array.from({length:42},(_,index)=>{
- const cell=document.createElement("div");
- cell.className="c4-cell";
- cell.style.setProperty("--c4-fall", -(Math.floor(index/7)+1)*110+"%");
- board.append(cell);
- return cell;
-});
-const columns=Array.from({length:7},(_,column)=>{
- const button=document.createElement("button");
- button.type="button";
- button.dataset.col=String(column);
- button.setAttribute("aria-label","Drop into column "+(column+1));
- const arrow=document.createElement("span");
- arrow.textContent="↓";
- arrow.setAttribute("aria-hidden","true");
- button.append(arrow);
- q("[data-controls]").append(button);
- return button;
-});
 let state=null,agentMode=false,busy=false;
 const req=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
 const error=e=>q("[data-error]").textContent=e?.message||String(e);
@@ -46,7 +28,7 @@ function render(){
  colour.disabled=busy||active;
  start.hidden=active;
  start.textContent=state?"New game":"Play";
- q("[data-controls]").hidden=!active;
+ controls.hidden=!active;
  q("[data-stop]").hidden=!active;
  q("[data-resign]").hidden=!active;
  q("[data-stop]").disabled=busy;
@@ -65,18 +47,7 @@ function render(){
   q("[data-turn]").textContent=active?turn:winner?winner.name+" wins":state.status==="stopped"?"Match stopped":"Draw";
  }
  const locked=busy||!active||(agentMode&&state.current_player_id==="p2");
- columns.forEach((button,column)=>{
-  // Keep the focused column in place during network requests.
-  button.setAttribute("aria-disabled",String(locked||state.board[0][column]!==0));
- });
- const pieces=state?.board.flat()||[];
- board.setAttribute("aria-label",state?"Connect 4 board. Rows top to bottom: "+state.board.map(row=>row.map(piece=>counterColours[piece]).join(", ")).join("; "):"Empty Connect 4 board");
- cells.forEach((cell,index)=>{
-  const piece=pieces[index]||0;
-  cell.dataset.counterColour=counterColours[piece];
-  cell.classList.toggle("c4-p1",piece===1);
-  cell.classList.toggle("c4-p2",piece===2);
- });
+ renderBoard(state?.board,counterColours,locked);
 }
 async function runAgent(){
  if(!agentMode||state?.status!=="active"||state.current_player_id!=="p2")return;
@@ -124,10 +95,10 @@ q("[data-start]").onclick=()=>{
  action("/arena/connect4/start",{player_one:q("[data-p1]").value,player_two:agentName,
   opponent_mode:agentMode?"agent":"human",agent_key:agentMode?q("[data-agent]").value:null});
 };
-q("[data-controls]").onclick=e=>{
- const button=e.target.closest("[data-col]");
+controls.onclick=e=>{
+ const button=e.target.closest("[data-column]");
  if(!button||button.getAttribute("aria-disabled")==="true")return;
- action("/arena/connect4/drop",{column:Number(button.dataset.col),request_id:req()},true);
+ action("/arena/connect4/drop",{column:Number(button.dataset.column),request_id:req()},true);
 };
 q("[data-retry-agent]").onclick=()=>{
  if(busy||!agentMode||state?.status!=="active"||state.current_player_id!=="p2")return;
