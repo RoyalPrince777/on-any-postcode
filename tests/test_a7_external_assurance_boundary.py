@@ -66,3 +66,20 @@ def test_founder_reference_receipt_is_recorded_but_never_passed(monkeypatch):
     assert recorded["metadata"]["passed"] is False
     assert recorded["metadata"]["independent_verification_passed"] is False
     conn.commit.assert_called_once()
+
+
+def test_a7_legacy_evidence_reference_is_excluded_from_proof_queries():
+    expected = {
+        a7_certification.A6_OPERATION_APPROVAL_ACTION: (
+            "signed_approval_verified",),
+        a7_certification.A6_CONSEQUENTIAL_CHAIN_ACTION: (
+            "receipt_write_verified", "receipt_read_back_verified"),
+        a7_certification.A7_PUBLIC_PRIVATE_ACTION: ("software_computed",),
+        a7_certification.A7_CONSTITUTIONAL_REVIEW_ACTION: ("software_computed",),
+    }
+    for action, required_flags in expected.items():
+        sql = a7_certification._count_action_sql(action)
+        assert "metadata->>'passed'='true'" in sql
+        assert "metadata->>'evidence_ref' IS NULL" in sql
+        for flag in required_flags:
+            assert "metadata->>'" + flag + "'='true'" in sql
