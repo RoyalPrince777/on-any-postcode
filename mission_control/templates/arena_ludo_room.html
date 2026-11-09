@@ -3,22 +3,34 @@
 <meta name="oap-csrf-token" content="{{ csrf_token }}"><meta name="referrer" content="no-referrer">
 <title>Ludo Room · OAP Arena</title>
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='arena_tabletop.css') }}">
+<script src="{{ url_for('static', filename='ludo_board.js') }}" defer></script>
 <script src="{{ url_for('static', filename='arena_ludo_room.js') }}" defer></script></head>
-<body><main class="mc-shell arena-game" data-ludo-room>
+<body><main class="mc-shell arena-game arena-tabletop ludo-tabletop" data-ludo-room>
 <section class="card room-panel">{% from "_arena_game_header.html" import game_header %}
+{% from "_ludo_table.html" import colour_options, ludo_table, ludo_rules %}
 {{ game_header("Ludo online room", "/arena/ludo", "Local play") }}
-<p>Server-authoritative two-player Ludo. Share only the six-character room code; keep reconnect tokens private.</p>
+<p class="arena-hint">Share the room code. Keep reconnect details private.</p>
 <div data-entry>
 <h2>Create</h2><label>Your name <input data-host maxlength="40" autocomplete="nickname"></label><button data-create type="button">Create Room</button> <button type="button" data-matchmake>Quick Match</button>
 <h2>Join</h2><label>Room code <input data-join-code maxlength="6" autocapitalize="characters" autocomplete="off"></label><label>Your name <input data-guest maxlength="40" autocomplete="nickname"></label><button data-join type="button">Join Room</button>
-<h2>Reconnect</h2><label>Room ID <input data-reconnect-id autocomplete="off"></label><label>Private token <input data-reconnect-token type="password" autocomplete="off"></label><button data-reconnect type="button">Reconnect</button>
+<details class="arena-disclosure"><summary>Reconnect</summary><label>Room ID <input data-reconnect-id autocomplete="off"></label><label>Private token <input data-reconnect-token type="password" autocomplete="off"></label><button data-reconnect type="button">Reconnect</button></details>
 </div>
 <section data-room hidden>
-<p>Code: <strong data-code></strong> · Status: <strong data-status></strong> · Revision: <strong data-revision></strong></p>
+<p>Room code <strong data-code></strong></p>
+<span class="ludo-visually-hidden" data-status></span><span class="ludo-visually-hidden" data-revision></span>
 <details><summary>Private reconnect details</summary><p>Room ID: <span data-id></span></p><p>Token: <span data-token></span></p></details>
-<p data-players></p><p data-turn aria-live="polite"></p><p>Roll: <strong data-roll-value>—</strong></p>
-<div class="arena-actions"><button data-roll type="button">Roll die</button><button data-refresh type="button">Refresh Match</button><button data-stop type="button">STOP</button></div>
-<div data-pieces class="arena-game-content"></div>
+<p class="ludo-turn" data-turn aria-live="polite"></p>
+{{ ludo_table() }}
+<div class="arena-actions"><button type="button" data-refresh>Refresh</button><button type="button" data-stop>Stop</button></div>
+<details class="arena-disclosure">
+  <summary>Board colours on this device</summary>
+  <div class="ludo-player-settings">
+    <label>Player 1 colour<select data-room-colour>{{ colour_options('red') }}</select></label>
+    <label>Player 2 colour<select data-room-colour>{{ colour_options('blue') }}</select></label>
+  </div>
+</details>
+{{ ludo_rules() }}
 </section>
-<p data-error role="alert"></p><p>Unranked room; no chat, payment or prize execution. Server state is authoritative.</p>
+<p class="arena-error" data-error role="alert"></p>
 </section></main></body></html>

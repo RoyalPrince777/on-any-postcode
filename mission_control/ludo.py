@@ -27,6 +27,7 @@ TRACK_LENGTH = 52
 HOME_LENGTH = 6
 FINISH_PROGRESS = TRACK_LENGTH + HOME_LENGTH
 PIECES_PER_PLAYER = 4
+LOCAL_RECEIPT_LIMIT = 24
 START_OFFSETS = (0, 13, 26, 39)
 SAFE_TRACK_SQUARES = frozenset({0, 8, 13, 21, 26, 34, 39, 47})
 
@@ -44,6 +45,14 @@ def _seal(state):
     result.pop("checkpoint", None)
     result["checkpoint"] = _digest(result)
     return result
+
+
+def local_session_state(state):
+    """Keep recent retries without growing Flask’s signed cookie every turn."""
+    receipts = state["request_receipts"]
+    if len(receipts) <= LOCAL_RECEIPT_LIMIT:
+        return state
+    return _seal({**state, "request_receipts": receipts[-LOCAL_RECEIPT_LIMIT:]})
 
 
 def _req(value):
@@ -171,6 +180,7 @@ def public_state(state):
         raise ValueError(result["errors"][0])
     player = state["players"][state["turn_index"]]
     pending_roll = state.get("pending_roll")
+    last_action = next(reversed(state["request_receipts"]), None)
     players = []
     for item in state["players"]:
         players.append(
@@ -193,6 +203,7 @@ def public_state(state):
         "winner_name": next((item["name"] for item in state["players"] if item["id"] == state["winner_id"]), None),
         "result": state.get("result"),
         "pending_roll": pending_roll,
+        "last_roll": last_action["value"] if last_action and last_action["action"] == "roll" else None,
         "movable_piece_ids": (
             _movable_piece_ids(state, pending_roll)
             if state["status"] == "active" and pending_roll is not None

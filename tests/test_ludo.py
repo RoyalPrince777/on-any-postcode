@@ -109,3 +109,12 @@ def test_ludo_completed_public_state_names_winner_and_result():
     view = ludo.public_state(state)
     assert view["result"] == "all_pieces_home"
     assert view["winner_name"] == "Alpha"
+
+
+def test_local_ludo_long_match_keeps_latest_roll_and_retry():
+    state = ludo.new_game(["Alpha", "Bravo"])
+    for index in range(180):
+        state = ludo.local_session_state(_roll(state, 1, f"ludo-long-{index:04d}"))
+    assert len(state["request_receipts"]) == ludo.LOCAL_RECEIPT_LIMIT
+    assert ludo.public_state(state)["last_roll"] == 1
+    assert ludo.roll(state, request_id="ludo-long-0179") == state

@@ -1426,7 +1426,7 @@ def ludo_start():
         state = ludo.new_game(payload.get("players"))
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
-    session[ludo.SESSION_KEY] = state
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
     session.modified = True
     return _arena_json(ludo.public_state(state), 201)
 
@@ -1444,7 +1444,7 @@ def ludo_roll():
         )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
-    session[ludo.SESSION_KEY] = state
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
     session.modified = True
     return _arena_json(ludo.public_state(state))
 
@@ -1463,7 +1463,7 @@ def ludo_move():
         )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
-    session[ludo.SESSION_KEY] = state
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
     session.modified = True
     return _arena_json(ludo.public_state(state))
 
@@ -1478,7 +1478,7 @@ def ludo_stop():
         state = ludo.stop(session.get(ludo.SESSION_KEY), request_id=payload.get("request_id"))
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
-    session[ludo.SESSION_KEY] = state
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
     session.modified = True
     return _arena_json(ludo.public_state(state))
 

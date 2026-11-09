@@ -26,7 +26,7 @@ def prepare():
 
 
 def prove_ludo(browser):
-    values = iter([5, 0])
+    values = iter([5, 0, 1])
     original_randbelow = ludo.secrets.randbelow
     ludo.secrets.randbelow = lambda _: next(values)
     context = browser.new_context(viewport={"width": 393, "height": 852})
@@ -41,18 +41,23 @@ def prove_ludo(browser):
 
         page.locator("[data-roll]").click()
         expect(page.locator("[data-roll-value]")).to_have_text("6")
-        piece = page.locator('[data-piece="p1-1"]')
+        piece = page.locator('[data-board] [data-piece="p1-1"]')
         expect(piece).to_be_enabled()
         piece.click()
         expect(page.locator("[data-turn]")).to_have_text("Player One")
-        expect(page.locator('[data-piece="p1-1"]')).to_contain_text("Track 1")
+        expect(page.locator('[data-board] [data-piece="p1-1"]')).to_have_attribute("aria-label", "Player One, piece 1, Track 1")
         expect(page.locator("[data-roll]")).to_be_enabled()
 
         page.locator("[data-roll]").click()
         expect(page.locator("[data-roll-value]")).to_have_text("1")
-        page.locator('[data-piece="p1-1"]').click()
+        page.locator('[data-board] [data-piece="p1-1"]').click()
         expect(page.locator("[data-turn]")).to_have_text("Player Two")
-        expect(page.locator('[data-piece="p1-1"]')).to_contain_text("Track 2")
+        expect(page.locator('[data-board] [data-piece="p1-1"]')).to_have_attribute("aria-label", "Player One, piece 1, Track 2")
+
+        page.locator("[data-roll]").click()
+        expect(page.locator("[data-roll-value]")).to_have_text("2")
+        expect(page.locator("[data-turn]")).to_have_text("Player One")
+        expect(page.locator("[data-feedback]")).to_have_text("No legal move.")
 
         page.locator("[data-stop]").click()
         expect(page.locator("[data-status]")).to_have_text("stopped")

@@ -1,0 +1,31 @@
+{% macro colour_options(selected) -%}
+{% for name in ('Red', 'Yellow', 'Blue', 'Green', 'Purple', 'Orange', 'White') %}
+<option value="{{ name|lower }}"{% if name|lower == selected %} selected{% endif %}>{{ name }}</option>
+{% endfor %}
+{%- endmacro %}
+
+{% macro ludo_table() -%}
+<div class="ludo-table">
+  <div class="ludo-board" data-board role="group" aria-label="Ludo board">
+    <button class="ludo-die" type="button" data-roll disabled aria-label="Roll die">
+      <span data-die-face aria-hidden="true">🎲</span>
+    </button>
+  </div>
+  <div class="ludo-brand"><span aria-hidden="true">✷</span> ON ANY POSTCODE</div>
+</div>
+<span class="ludo-visually-hidden" data-roll-value>—</span>
+<div class="ludo-legal" data-legal aria-label="Legal pieces" hidden></div>
+<div class="ludo-players" data-players-view aria-label="Pieces home"></div>
+{%- endmacro %}
+
+{% macro ludo_rules() -%}
+<details class="arena-disclosure"><summary>OAP Ludo rules</summary>
+  <ol class="arena-hint">
+    <li>Two to four players, four pieces each. Player 1 starts. Turns and pieces move clockwise.</li>
+    <li>Roll to enter on 6 or move a piece already on the track by the full roll. A 6 earns another roll.</li>
+    <li>Land on opponents to send their pieces back to base and roll again. Stars and starting squares are safe. Pieces can share squares, and stacks do not block moves.</li>
+    <li>If no move is possible, pass the turn unless you rolled a 6. There is no limit on consecutive sixes.</li>
+    <li>After one lap, use your own home lane. An exact roll gets a piece home. The first player to bring all four home wins.</li>
+  </ol>
+</details>
+{%- endmacro %}

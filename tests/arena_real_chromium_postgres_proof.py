@@ -22,7 +22,7 @@ from playwright.sync_api import expect, sync_playwright
 from werkzeug.serving import make_server
 
 import app as app_module
-from mission_control import postgres_db, web_security
+from mission_control import ludo, postgres_db, web_security
 
 BASE = "http://127.0.0.1:8768"
 
@@ -199,13 +199,28 @@ def play_added_room(browser, game, host_viewport, guest_viewport):
     host.locator("[data-refresh]").click()
     expect(host.locator("[data-status]")).to_have_text("ACTIVE")
     if game == "ludo":
-        host.locator("[data-roll]").click()
+        original_randbelow = ludo.secrets.randbelow
+        ludo.secrets.randbelow = lambda _: 5
+        try:
+            host.locator("[data-roll]").click()
+            expect(host.locator("[data-revision]")).to_have_text("1")
+        finally:
+            ludo.secrets.randbelow = original_randbelow
+        piece = host.locator('[data-board] [data-piece="p1-1"]')
+        expect(piece).to_be_enabled()
+        piece.click()
+        expect(host.locator("[data-revision]")).to_have_text("2")
+        expect(piece).to_have_attribute("aria-label", "Alpha ludo, piece 1, Track 1")
     else:
         host.locator("[data-pits] button:not([disabled])").first.click()
-    expect(host.locator("[data-revision]")).to_have_text("1")
+        expect(host.locator("[data-revision]")).to_have_text("1")
 
     guest.locator("[data-refresh]").click()
-    expect(guest.locator("[data-revision]")).to_have_text("1")
+    expect(guest.locator("[data-revision]")).to_have_text("2" if game == "ludo" else "1")
+    if game == "ludo":
+        guest_piece = guest.locator('[data-board] [data-piece="p1-1"]')
+        expect(guest_piece).to_have_attribute("aria-label", "Alpha ludo, piece 1, Track 1")
+        expect(guest_piece).to_be_disabled()
     host.locator("[data-stop]").click()
     expect(host.locator("[data-status]")).to_have_text("STOPPED")
     guest.locator("[data-refresh]").click()
