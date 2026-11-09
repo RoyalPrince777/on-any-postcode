@@ -76,6 +76,8 @@ public final class MainActivity extends ComponentActivity {
         if (isSensitiveSikaUrl(url)) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         } else {
+            // Clear only after the destination has committed visibly; clearing
+            // during navigation can expose the previous financial screen.
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
         }
     }
@@ -244,9 +246,21 @@ public final class MainActivity extends ComponentActivity {
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                // Covers redirects, history and in-page navigation not initiated
+                // by the native toolbar before sensitive content can be drawn.
+                protectSikaScreen(url);
+            }
+
+            @Override
+            public void onPageCommitVisible(WebView view, String url) {
+                // The previous page can no longer be drawn at this boundary.
+                updateScreenProtection(url);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 omnibox.setText(url);
-                updateScreenProtection(url);
                 refreshNavigationState();
             }
         });
