@@ -142,7 +142,7 @@
     updateSettings(busy || state?.status === "active");
     if (!state) preview();
   });
-  q("[data-start]").onclick = () => {
+  q("[data-start]").onclick = event => {
     if (state?.status === "active") return;
     const activeSeats = configuredSeats();
     if (new Set(colours(activeSeats)).size !== activeSeats.length) {
@@ -151,7 +151,7 @@
       return;
     }
     const players = names(activeSeats);
-    action("start", {players:versusAgent() ? players.slice(0,1) : players, opponent_mode:opponent.value});
+    action("start", {players:versusAgent() ? players.slice(0,1) : players, opponent_mode:opponent.value}, event.detail === 0);
   };
   q("[data-roll]").onclick = event => action("roll", {request_id:requestId()}, event.detail === 0);
   root.addEventListener("click", event => {
@@ -160,6 +160,6 @@
       action("move", {piece_id:button.dataset.piece, request_id:requestId()}, event.detail === 0);
     }
   });
-  q("[data-stop]").onclick = () => action("stop", {request_id:requestId()});
+  q("[data-stop]").onclick = event => action("stop", {request_id:requestId()}, event.detail === 0);
   render();
 })();

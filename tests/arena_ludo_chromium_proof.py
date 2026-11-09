@@ -35,8 +35,10 @@ def prove_ludo(browser):
     page.on("pageerror", lambda exc: errors.append(str(exc)))
     try:
         page.goto(BASE + "/arena/ludo", wait_until="domcontentloaded")
-        page.locator("[data-start]").click()
+        page.locator("[data-start]").press("Enter")
+        expect(page.locator("[data-menu]")).to_be_hidden()
         expect(page.locator("[data-game]")).to_be_visible()
+        expect(page.locator("[data-roll]")).to_be_focused()
         expect(page.locator("[data-turn]")).to_have_text("Player One")
 
         page.locator("[data-roll]").click()
@@ -59,12 +61,56 @@ def prove_ludo(browser):
         expect(page.locator("[data-turn]")).to_have_text("Player One")
         expect(page.locator("[data-feedback]")).to_have_text("No legal move.")
 
-        page.locator("[data-stop]").click()
+        page.locator("[data-stop]").press("Enter")
         expect(page.locator("[data-status]")).to_have_text("stopped")
         expect(page.locator("[data-feedback]")).to_have_text("Match stopped.")
+        expect(page.locator("[data-start]")).to_be_focused()
         assert not errors, errors
     finally:
         ludo.secrets.randbelow = original_randbelow
+        context.close()
+
+
+def prove_crowded_square(browser):
+    context = browser.new_context(viewport={"width": 320, "height": 720})
+    page = context.new_page()
+    try:
+        page.goto(BASE + "/arena/ludo", wait_until="domcontentloaded")
+        page.evaluate("""() => {
+            const root = document.querySelector("[data-game]");
+            const board = root.querySelector("[data-board]");
+            board.replaceChildren(root.querySelector("[data-roll]"));
+            const renderBoard = window.OAPLudoBoard.mount(root);
+            const players = ["Player One", "Player Two"].map((name, seat) => ({
+                name,
+                finished: 0,
+                pieces: Array.from({length: 4}, (_, index) => ({
+                    id: `p${seat + 1}-${index + 1}`,
+                    zone: "track",
+                    track_square: 0,
+                })),
+            }));
+            renderBoard({
+                players,
+                pending_roll: 1,
+                movable_piece_ids: players[1].pieces.map(piece => piece.id),
+            }, undefined, true);
+        }""")
+        stack = page.get_by_role("group", name="8 pieces on this square")
+        expect(stack).to_be_visible()
+        expect(stack.get_by_role("button")).to_have_count(4)
+        expect(stack.locator("button:enabled")).to_have_count(4)
+        expect(page.locator("[data-legal] button:enabled")).to_have_count(4)
+        assert stack.evaluate("""square => {
+            const tile = square.getBoundingClientRect();
+            return Array.from(square.querySelectorAll("button")).every(button => {
+                const piece = button.getBoundingClientRect();
+                return piece.width > 0 && piece.height > 0 &&
+                    piece.left >= tile.left && piece.right <= tile.right + 1 &&
+                    piece.top >= tile.top && piece.bottom <= tile.bottom + 1;
+            });
+        }""")
+    finally:
         context.close()
 
 
@@ -118,6 +164,7 @@ def main():
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
             prove_ludo(browser)
+            prove_crowded_square(browser)
             prove_ludo_agent(browser)
             browser.close()
     finally:

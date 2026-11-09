@@ -8,6 +8,7 @@
   const lanes = defaults.map((_, seat) => Array.from({length: 6}, (_, step) => rotate([step + 1, 7], seat)));
   const yard = [[1,1],[4,1],[1,4],[4,4]];
   const faces = ["🎲", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+  const piecesPerSquare = 4;
 
   function at(node, [x, y]) {
     node.style.gridColumnStart = x + 1;
@@ -91,6 +92,15 @@
       for (const stack of positions.values()) {
         stack.className = "ludo-stack";
         stack.classList.toggle("ludo-stack-many", stack.childElementCount > 1);
+        if (stack.childElementCount > piecesPerSquare) {
+          const pieces = [...stack.children];
+          const playable = pieces.filter(piece => !piece.disabled);
+          const inactive = pieces.filter(piece => piece.disabled);
+          stack.dataset.stackCount = pieces.length;
+          stack.setAttribute("role", "group");
+          stack.setAttribute("aria-label", pieces.length + " pieces on this square");
+          stack.replaceChildren(...playable.concat(inactive).slice(0, piecesPerSquare));
+        }
       }
       stacks.replaceChildren(...positions.values());
       playersView.replaceChildren(...totals);

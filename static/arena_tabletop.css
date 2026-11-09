@@ -204,9 +204,6 @@
 }
 
 .ludo-tabletop .ludo-menu {
-  display: grid;
-  align-content: end;
-  min-height: clamp(300px, 95vw, 430px);
   padding: clamp(12px, 4vw, 22px);
   border: 1px solid #a78245;
   border-radius: 12px;
@@ -278,10 +275,25 @@
   pointer-events: none;
 }
 .ludo-stack {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+.ludo-stack-many {
+  grid-template: repeat(2, minmax(0, 1fr)) / repeat(2, minmax(0, 1fr));
+}
+.ludo-stack[data-stack-count] { position: relative; }
+.ludo-stack[data-stack-count]::after {
+  content: attr(data-stack-count);
+  position: absolute;
+  inset: auto 0 0 auto;
+  padding: 0 2px;
+  border-radius: 2px;
+  background: #18150f;
+  color: #fff0bb;
+  font-size: .55rem;
+  line-height: 1.1;
+  pointer-events: none;
 }
 .ludo-tabletop button[data-piece] {
   border: 1px solid #503920 !important;
@@ -303,8 +315,8 @@
   line-height: 1;
 }
 .ludo-tabletop .ludo-stack button:disabled { opacity: 1; cursor: default; pointer-events: none; }
-.ludo-tabletop .ludo-stack-many button { width: 49%; height: 49%; font-size: 7px; }
-.ludo-tabletop .ludo-stack button:enabled { outline: 2px solid #fff0bb; z-index: 1; }
+.ludo-tabletop .ludo-stack-many button { font-size: 7px; }
+.ludo-tabletop .ludo-stack button:enabled { outline: 2px solid #fff0bb; outline-offset: -1px; z-index: 1; }
 .ludo-tabletop .ludo-stack button:focus-visible { outline: 2px solid white; outline-offset: 2px; z-index: 2; }
 .ludo-tabletop .ludo-die {
   position: absolute;
