@@ -16,27 +16,28 @@
     button,.install-link{display:inline-block;background:#d5a33f;color:#111;border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer;text-decoration:none}
     .muted{color:#b8aa89}.truth{margin-top:12px;font-size:.9rem;color:#cfc3a6}
   .store-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:22px}.store-header .eyebrow{margin:0}.store-nav{display:flex;gap:8px;flex-wrap:wrap}.store-nav .open-link{padding:10px 12px}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:stretch}.card{min-width:0;display:flex;flex-direction:column;padding:18px}.card h2{overflow-wrap:anywhere;margin:14px 0 8px}.card>p{line-height:1.5}.card>.actions{margin-top:auto;padding-top:14px}.open-link,.install-link,button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;max-width:100%;text-align:center}.open-link:focus-visible,.install-link:focus-visible,button:focus-visible{outline:2px solid #f6d584;outline-offset:3px}.truth{line-height:1.5}@media(max-width:560px){.store-header{align-items:flex-start}.store-nav{width:100%}.store-nav .open-link{flex:1}.card{padding:16px}.actions>*{flex:1 1 100%}h1{font-size:clamp(1.9rem,8vw,2.75rem)}}
+.card{gap:0}.card h2{font-size:1.18rem;margin:10px 0 6px}.card>p:not(.truth){margin:4px 0;color:#c7bfac;font-size:.9rem}.category{font-size:.7rem}.badge{margin-top:6px;font-size:.73rem}.help{margin-top:12px;border-top:1px solid #473a22;padding-top:10px}.help summary{cursor:pointer;min-height:38px;color:#d7c296;font-size:.82rem}.actions a{font-size:.86rem}.store-header{margin-bottom:12px}
 </style>
 </head>
 <body>
 <main>
   <header class="store-header"><p class="eyebrow">👑 ON ANY POSTCODE · OAP STORE</p><nav class="store-nav" aria-label="OAP Store navigation"><a class="open-link" href="/the-spot">The Spot</a><a class="open-link" href="/world">OAP World</a></nav></header>
-  <h1>Install OAP</h1>
-  <p class="muted">First-party apps only. Install becomes available only where the release evidence supports it.</p>
+  <h1>OAP Store</h1>
+  <p class="muted">First-party apps. Install only when verified.</p>
   <div class="grid">
   {% for app in apps %}
   <section class="card" data-oap-store-app="{{ app.app_id }}">
     <span class="category">{{ app.category }}</span><br>
     {% if app.install_enabled %}
-      <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
+      <span class="badge">Install available</span>
     {% elif app.open_url or app.browser_url %}
-      <span class="badge open">BROWSER ACCESS · INSTALL NOT YET PROVEN</span>
+      <span class="badge open">Browser only</span>
     {% else %}
-      <span class="badge open">PLANNED · SURFACE NOT YET PROVEN</span>
+      <span class="badge open">Not available</span>
     {% endif %}
     <h2>{{ app.name }}</h2>
     <p>{{ app.description }}</p>
-    <p><strong>Publisher:</strong> {{ app.publisher }}</p>
+
     <div class="actions">
       {% if app.browser_url %}<a class="open-link" href="{{ app.browser_url }}">Open in Browser</a>{% endif %}
       {% if app.browser_account_url %}<a class="open-link" href="{{ app.browser_account_url }}">My SIKA Account · Sign in</a>{% endif %}
@@ -46,32 +47,30 @@
       {% endif %}
     </div>
     {% if app.app_id == "oap.usa_royalty_bank" %}
-      <p class="truth">Browser access requires no installation. My SIKA Account is private and requires sign-in. Bank authorisation and live financial services remain evidence-gated.</p>
+      <details class="help"><summary>SIKA availability</summary><p class="truth">Browser access requires no installation. My SIKA Account is private and requires sign-in. Bank authorisation and live financial services remain evidence-gated.</p></details>
     {% endif %}
     {% if app.app_id == "oap.arena" %}
-      <p class="truth" data-oap-arena-world-install-path>
+      <details class="help"><summary>Arena installation information</summary><p class="truth" data-oap-arena-world-install-path>
         OAP Arena opens inside the existing OAP World app. To add OAP World to your Android home screen,
         <a href="/?source=oap-store&amp;install=1">open OAP World in a compatible browser</a>
         and use its installation prompt if supported. This does not install a separate OAP Arena APK or certify live multiplayer.
         The Arena standalone Install action stays disabled until its own release evidence passes.
-      </p>
+      </p></details>
     {% endif %}
     {% if app.app_id == "oap.ptt" %}
-      <p class="truth" data-oap-store-ptt-install-help>
+      <details class="help"><summary>PTT installation information</summary><p class="truth" data-oap-store-ptt-install-help>
         From OAP Home V2, <strong>Install OAP PTT</strong> opens the standalone PTT installation page.
         The app installs through a compatible browser, not as a native APK from V2.
         If the install prompt does not appear in the V2 embedded view, open the same OAP PTT page in your Android browser
         and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.
         Live two-phone talking remains locked until real-device and relay verification.
-      </p>
+      </p></details>
     {% endif %}
-    {% if app.install_enabled %}
-      <p class="truth">PWA install is a browser installation. It is not a signed native Android APK and does not certify physical-device acceptance.</p>
-    {% elif app.open_url %}
-      <p class="truth">This app is listed in OAP Store, but standalone installation stays locked until its own manifest/runtime proof passes.</p>
-    {% else %}
-      <p class="truth">Architecture approved. No public Open or Install claim until a real route, runtime behaviour and regression proof exist.</p>
-    {% endif %}
+    <details class="help"><summary>Release details</summary>
+    {% if app.install_enabled %}<p class="truth">PWA installation is not a signed Android APK or device certification.</p>
+    {% elif app.open_url or app.browser_url %}<p class="truth">Standalone installation remains locked until verified.</p>
+    {% else %}<p class="truth">No public Open or Install action until route and runtime evidence exist.</p>{% endif %}
+    <p class="muted">Publisher: {{ app.publisher }}</p></details>
   </section>
   {% endfor %}
   </div>
