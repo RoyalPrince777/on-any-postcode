@@ -62,7 +62,7 @@ def test_sika_menu_has_five_clear_tabs_with_real_routes(client):
     assert 'href="/pay/bank/cards"><strong>▣</strong>Card' in page
     assert 'href="/pay/bank/activity"><strong>≡</strong>Activity' in page
     assert 'href="#more"><strong>•••</strong>More' in page
-    assert "Full menu" in page
+    assert "<summary>Menu</summary>" in page
     assert 'href="/store"' in page
     assert 'href="/world"' in page
     assert "Install OAP Bank" not in page
