@@ -49,7 +49,20 @@ def test_bank_browser_access_without_install(client):
 
 def test_bank_public_page_never_claims_install_ready(client):
     page = client.get("/pay/bank").get_data(as_text=True)
-    assert "Browser access available" in page
-    assert "Standalone installation not certified" in page
+    assert "Browser access" in page
+    assert "Install unavailable" in page
     assert "Install OAP Bank" not in page
     assert "data-oap-install hidden" not in page
+
+
+def test_sika_menu_has_five_clear_tabs_with_real_routes(client):
+    page = client.get("/pay/bank").get_data(as_text=True)
+    assert 'href="#home"><strong>⌂</strong>Home' in page
+    assert 'href="/pay/bank/me"><strong>▤</strong>Wallet' in page
+    assert 'href="/pay/bank/cards"><strong>▣</strong>Card' in page
+    assert 'href="/pay/bank/activity"><strong>≡</strong>Activity' in page
+    assert 'href="#more"><strong>•••</strong>More' in page
+    assert "Full menu" in page
+    assert 'href="/store"' in page
+    assert 'href="/world"' in page
+    assert "Install OAP Bank" not in page
