@@ -29,8 +29,8 @@
     <span class="category">{{ app.category }}</span><br>
     {% if app.install_enabled %}
       <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
-    {% elif app.open_url %}
-      <span class="badge open">OPEN READY · INSTALL NOT YET PROVEN</span>
+    {% elif app.open_url or app.browser_url %}
+      <span class="badge open">BROWSER ACCESS · INSTALL NOT YET PROVEN</span>
     {% else %}
       <span class="badge open">PLANNED · SURFACE NOT YET PROVEN</span>
     {% endif %}
