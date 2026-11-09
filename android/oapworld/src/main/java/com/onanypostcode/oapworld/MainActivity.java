@@ -63,7 +63,8 @@ public final class MainActivity extends ComponentActivity {
         if (!localPath && !trustedOrigin) return false;
         String path = uri.getPath();
         return path != null && (path.equals("/pay") || path.startsWith("/pay/")
-                || path.equals("/oap-pay"));
+                || path.equals("/oap-pay") || path.equals("/auth")
+                || path.equals("/enter-my-world"));
     }
 
     private void protectSikaScreen(String url) {
