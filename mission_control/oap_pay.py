@@ -284,11 +284,16 @@ def bank_customer_page():
             web_security.authenticated_identity()
         )
         response = make_response(
-            render_template("oap_my_bank.html", customer=customer)
+            render_template("oap_my_bank.html", customer=customer,
+                            founder_allowed=web_security.private_authority_allowed(
+                                web_security.current_authenticated_user() or {}
+                            ),
+                            sika_csrf=web_security.csrf_token())
         )
     except RuntimeError:
         response = make_response(
-            render_template("oap_my_bank.html", customer=None), 503
+            render_template("oap_my_bank.html", customer=None,
+                            founder_allowed=False, sika_csrf=None), 503
         )
     response.headers["Cache-Control"] = "no-store"
     return response
