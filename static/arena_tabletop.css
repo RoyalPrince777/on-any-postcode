@@ -210,10 +210,7 @@
   padding: clamp(12px, 4vw, 22px);
   border: 1px solid #a78245;
   border-radius: 12px;
-  background:
-    linear-gradient(180deg, transparent 35%, #0c0806bf 71%, #0c0806 100%),
-    url("arena_ludo_penthouse.webp") center 20% / cover no-repeat,
-    #20150e;
+  background: linear-gradient(180deg, #20150e 35%, #0c0806 100%);
   box-shadow: 0 5px 12px #0009;
 }
 .ludo-menu-content {
