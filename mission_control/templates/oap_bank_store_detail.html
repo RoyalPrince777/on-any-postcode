@@ -1,14 +1,48 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ app.name }} · OAP Store</title></head>
-<body style="font-family:system-ui;background:#10131b;color:#f7e1aa;max-width:720px;margin:3rem auto;padding:1rem">
-<main><p>ON ANY POSTCODE LTD · OAP STORE</p>
-<h1>{{ app.name }}</h1><p>{{ app.heritage }} · heritage banking family</p>
-<h2>App information · release pending</h2>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>{{ app.name }} · OAP Store</title>
+<style>
+:root{color-scheme:dark;--bg:#050706;--panel:#101712;--line:#35412d;--text:#fff8e8;--muted:#c1b79f;--gold:#e3c86f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,sans-serif}
+main{max-width:980px;margin:auto;padding:16px 14px calc(56px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.brand{font-weight:900;letter-spacing:.04em;color:var(--gold)}
+h1{font-size:clamp(2rem,8vw,4rem);line-height:1.1;overflow-wrap:anywhere;margin:22px 0 10px}
+h2{font-size:1.1rem;margin-top:0}
+p{max-width:70ch}
+.muted{color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin:18px 0}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions a,.back{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-decoration:none;color:var(--text);font-weight:750}
+.actions a:first-child{border-color:var(--gold);color:var(--gold)}
+a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.notice{border-left:3px solid var(--gold);padding:12px;background:#1c190e;border-radius:0 10px 10px 0}
+@media(max-width:480px){.actions a{flex:1 1 100%}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="brand">👑 ON ANY POSTCODE · OAP STORE</div><a class="back" href="/store">OAP Store</a></header>
+<h1>{{ app.name }}</h1>
+<p class="muted">{{ app.heritage }} · heritage banking family</p>
+<section class="panel" aria-labelledby="release-title">
+<h2 id="release-title">App information · release pending</h2>
 <p>{{ app.description }}</p>
-<p>Installation unavailable. No verified signed package or separately installable bank PWA is registered.</p>
+<p class="notice">Installation unavailable. No verified signed package or separately installable bank PWA is registered.</p>
+<div class="actions">
+<a href="/pay/bank">Open OAP Bank in Browser</a>
+<a href="/pay/bank/me">My SIKA Account (sign-in required)</a>
+</div>
+</section>
+<section class="panel" aria-label="Financial service truth">
 <p>Banking, accounts, transfers, deposits, cash services and currency issuance are unavailable.</p>
 <p>SIKA Recognition is not money. No licence or operational banking status is claimed.</p>
-<p><a style="color:#f7e1aa" href="/pay/bank">Open OAP Bank in Browser</a> · <a style="color:#f7e1aa" href="/pay/bank/me">My SIKA Account (sign-in required)</a></p><p><a style="color:#f7e1aa" href="/">OAP World</a></p></main>
-</body></html>
+</section>
+<p><a class="back" href="/world">OAP World</a></p>
+</main>
+</body>
+</html>
