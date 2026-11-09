@@ -9,18 +9,18 @@
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
     body{margin:0;background:#050403;color:#fff8e8;font-family:system-ui,sans-serif}
-    main{max-width:900px;margin:auto;padding:32px 20px 80px}
+    main{max-width:980px;margin:auto;padding:16px 14px calc(70px + env(safe-area-inset-bottom))}
     .eyebrow{color:#d5a33f;font-weight:800;letter-spacing:.08em}
     .card{border:1px solid #6b4c18;background:#0b0905;border-radius:18px;padding:22px;margin-top:18px}
     .badge{display:inline-block;padding:5px 9px;border:1px solid #35e77c;border-radius:999px;color:#35e77c;font-size:.82rem}.badge.open{border-color:#d5a33f;color:#d5a33f}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{margin-top:0}.category{color:#b8aa89;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.open-link{display:inline-block;border:1px solid #6b4c18;color:#fff8e8;border-radius:12px;padding:11px 16px;font-weight:800;text-decoration:none}
     button,.install-link{display:inline-block;background:#d5a33f;color:#111;border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer;text-decoration:none}
     .muted{color:#b8aa89}.truth{margin-top:12px;font-size:.9rem;color:#cfc3a6}
-  </style>
+  .store-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:22px}.store-header .eyebrow{margin:0}.store-nav{display:flex;gap:8px;flex-wrap:wrap}.store-nav .open-link{padding:10px 12px}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:stretch}.card{min-width:0;display:flex;flex-direction:column;padding:18px}.card h2{overflow-wrap:anywhere;margin:14px 0 8px}.card>p{line-height:1.5}.card>.actions{margin-top:auto;padding-top:14px}.open-link,.install-link,button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;max-width:100%;text-align:center}.open-link:focus-visible,.install-link:focus-visible,button:focus-visible{outline:2px solid #f6d584;outline-offset:3px}.truth{line-height:1.5}@media(max-width:560px){.store-header{align-items:flex-start}.store-nav{width:100%}.store-nav .open-link{flex:1}.card{padding:16px}.actions>*{flex:1 1 100%}h1{font-size:clamp(1.9rem,8vw,2.75rem)}}
+</style>
 </head>
 <body>
 <main>
-  <p class="eyebrow">👑 ON ANY POSTCODE · OAP STORE</p>
-  <nav aria-label="OAP Store navigation"><a class="open-link" href="/the-spot">← The Spot</a> <a class="open-link" href="/world">🌍 OAP World</a></nav>
+  <header class="store-header"><p class="eyebrow">👑 ON ANY POSTCODE · OAP STORE</p><nav class="store-nav" aria-label="OAP Store navigation"><a class="open-link" href="/the-spot">The Spot</a><a class="open-link" href="/world">OAP World</a></nav></header>
   <h1>Install OAP</h1>
   <p class="muted">First-party apps only. Install becomes available only where the release evidence supports it.</p>
   <div class="grid">
