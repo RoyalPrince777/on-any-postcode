@@ -76,11 +76,15 @@ def test_termux_auto_opens_only_after_real_branded_http_response():
     source = Path("scripts/koradaso_termux_local.sh").read_text(encoding="utf-8")
     assert 'OAP_KORADASO_OPEN_BROWSER:-1' in source
     assert 'curl --noproxy' in source
-    assert '/koradaso" 2>/dev/null || true)' in source
+    assert 'OPEN_PATH=/koradaso' in source
+    assert 'url="http://127.0.0.1:$PORT$OPEN_PATH"' in source
     assert 'KORADASO Internet · ON ANY POSTCODE' in source
     assert 'id="address-form"' in source
-    assert 'termux-open-url "http://127.0.0.1:$PORT/koradaso"' in source
-    assert 'live branded /koradaso page not verified.' in source
+    assert 'termux-open-url "$url"' in source
+    assert 'live branded $OPEN_PATH page not verified.' in source
+    assert 'PORT=5052\n    OPEN_PATH=/arena' in source
+    assert '<title>OAP Arena</title>' in source
+    assert 'id="arena-games"' in source
 
 
 
