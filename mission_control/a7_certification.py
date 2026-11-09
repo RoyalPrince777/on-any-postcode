@@ -87,10 +87,27 @@ _A7_PRIVATE_PREFIX = "/mission/smi-proof/a7"
 
 
 def _count_action_sql(action: str) -> str:
+    """Count only the action-specific proof, not a legacy reference marked passed."""
+    proof_fields = {
+        A6_OPERATION_APPROVAL_ACTION: ("signed_approval_verified",),
+        A6_CONSEQUENTIAL_CHAIN_ACTION: (
+            "receipt_write_verified", "receipt_read_back_verified",
+        ),
+        A7_PUBLIC_PRIVATE_ACTION: ("software_computed",),
+        A7_CONSTITUTIONAL_REVIEW_ACTION: ("software_computed",),
+    }
+    fields = proof_fields.get(action)
+    if fields is None:
+        raise ValueError("unsupported_action_proof_query")
+    conditions = "".join(
+        " AND metadata->>'" + field + "'='true'" for field in fields
+    )
     return (
         "(SELECT COUNT(*) FROM audit_events WHERE action='"
         + action
-        + "' AND metadata->>'passed'='true')"
+        + "' AND metadata->>'passed'='true'"
+        + conditions
+        + " AND metadata->>'evidence_ref' IS NULL)"
     )
 
 
