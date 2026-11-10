@@ -164,3 +164,13 @@ def test_market_order_errors_are_text_only_not_html():
     assert "notice.textContent = 'Orders unavailable: ' + error.message;" in template
     assert "ordersList.replaceChildren(notice);" in template
     assert "Orders unavailable: ' + error.message + '</div>'" not in template
+
+
+def test_market_private_workspace_survives_signin_and_product_detail():
+    """Private navigation must survive login and opening a product detail."""
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert "next=(request.path ~ '?mine=1') if request.args.get('mine') == '1' else request.path" in template
+    assert "href=\"{{ request.path }}?product={{ product.product_id }}{{ '&mine=1' if mine_view else '' }}\"" in template
