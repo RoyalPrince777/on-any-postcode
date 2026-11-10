@@ -96,3 +96,24 @@ def test_smi_cc_does_not_present_selected_21_checks_as_executed():
     assert "Thinking plan: ' + selectedPlan.selected_checks.length + ' checks selected · 0 verified executed" in PAGE
     assert 'Agent execution: NONE · Independent votes: NOT VERIFIED' in PAGE
     assert 'not equivalent to Thinking checks' in PAGE
+
+
+def test_smi_dynamic_cc_uses_existing_war_room_with_minimal_front_door():
+    assert "request.path == '/mission/smi-cc'" in PAGE
+    assert "smi-dynamic-cc" in PAGE
+    assert 'main.w>section:not(#smi-cc)' in PAGE
+    assert '<section class="panel" id="smi-cc">' in PAGE
+    assert "SMI Dynamic CC · ONE BRAIN" in PAGE
+    assert "Send SMI your mission" in PAGE
+    assert 'href="/mission/ollama"' in PAGE
+    assert 'href="/mission/smi/status"' in PAGE
+    assert 'href="/mission/war-room"' in PAGE
+    for review in (
+        "Truth Mode", "Red Team", "Devil’s Advocate", "Expose",
+        "Verification", "Guardian", "Recovery"
+    ):
+        assert review in PAGE
+    assert "not separate agents" in PAGE
+    assert "Routing prepares a governed plan" in PAGE
+    assert 'maxlength="2000" aria-label="War Room mission"' in PAGE
+    assert PAGE.count('id="smi-cc"') == 1
