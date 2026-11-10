@@ -409,11 +409,22 @@
       if (!basket.length) { status.textContent = 'Basket is empty.'; return; }
       // Persist each key before contacting the server. A lost response must not
       // generate a fresh order identifier when the buyer retries.
-      basket.forEach(item => {
-        if (!item.idempotency_key) {
-          item.idempotency_key = 'market-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2));
-        }
-      });
+      // Order retries require a stable, unpredictable key. Never fall back to
+      // Math.random or send an order without browser cryptographic randomness.
+      const secureKey = () => {
+        if (!globalThis.crypto?.getRandomValues) throw new Error('Secure order identifiers are unavailable in this browser.');
+        const bytes = new Uint8Array(16);
+        globalThis.crypto.getRandomValues(bytes);
+        return 'market-' + Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+      };
+      try {
+        basket.forEach(item => {
+          if (!item.idempotency_key) item.idempotency_key = secureKey();
+        });
+      } catch (error) {
+        status.textContent = error.message;
+        return;
+      }
       saveBasket(basket);
       checkoutInProgress = true;
       checkoutButton.disabled = true;
