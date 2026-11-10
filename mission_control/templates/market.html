@@ -308,6 +308,7 @@
     const recovery = document.getElementById('market-recovery');
     const stopButton = document.getElementById('market-stop-transaction');
     let activeTransactionId = null;
+    let orderDetailRequestId = 0;
     let checkoutInProgress = false;
 
     const loadBasket = () => {
@@ -488,19 +489,25 @@
     }
 
     async function showOrder(orderId, transactionId) {
+      // A failed or superseded detail request must never leave STOP targeting
+      // a previously selected transaction.
+      const requestId = ++orderDetailRequestId;
+      activeTransactionId = null;
+      stopButton.disabled = true;
+      summary.textContent = 'Loading order…';
+      timeline.replaceChildren();
+      recovery.textContent = '';
+      detail.classList.remove('market-hidden');
       try {
         const order = await jsonFetch('/mission/organs/market/orders/' + encodeURIComponent(orderId));
+        if (requestId !== orderDetailRequestId) return;
         summary.textContent = 'Order ' + order.order_id.slice(0,8) + ' · ' + order.state + ' · ' + order.currency + ' ' + (order.subtotal_minor / 100).toFixed(2);
-        timeline.innerHTML = '';
-        activeTransactionId = transactionId || null;
         if (!transactionId) {
           timeline.innerHTML = '<div class="market-empty">No additional order details are available.</div>';
-          recovery.textContent = '';
-          stopButton.disabled = true;
-          detail.classList.remove('market-hidden');
           return;
         }
         const tx = await jsonFetch('/mission/organs/market/transactions/' + encodeURIComponent(transactionId));
+        if (requestId !== orderDetailRequestId) return;
         (tx.events || []).forEach(event => {
           const row = document.createElement('div');
           row.className = 'market-timeline-row';
@@ -510,26 +517,32 @@
         if (!(tx.events || []).length) timeline.innerHTML = '<div class="market-empty">No transaction events recorded yet.</div>';
         const r = tx.recovery || {};
         recovery.textContent = 'Status: ' + r.state;
+        activeTransactionId = transactionId;
         stopButton.disabled = tx.transaction.stop_state === 'STOPPED';
-        detail.classList.remove('market-hidden');
       } catch (error) {
+        if (requestId !== orderDetailRequestId) return;
+        activeTransactionId = null;
+        stopButton.disabled = true;
         summary.textContent = 'Order detail unavailable: ' + error.message;
-        detail.classList.remove('market-hidden');
       }
     }
 
     stopButton?.addEventListener('click', async () => {
-      if (!activeTransactionId) return;
+      if (!activeTransactionId || stopButton.disabled) return;
+      const transactionId = activeTransactionId;
+      stopButton.disabled = true;
       try {
-        await jsonFetch('/mission/organs/market/transactions/' + encodeURIComponent(activeTransactionId) + '/stop', {
+        await jsonFetch('/mission/organs/market/transactions/' + encodeURIComponent(transactionId) + '/stop', {
           method:'POST', body:'{}'
         });
         await refreshOrders();
-        const tx = await jsonFetch('/mission/organs/market/transactions/' + encodeURIComponent(activeTransactionId));
-        recovery.textContent = 'Transaction stopped.';
-        stopButton.disabled = true;
+        if (activeTransactionId === transactionId) {
+          recovery.textContent = 'Transaction stopped.';
+        }
       } catch (error) {
-        recovery.textContent = 'Could not stop transaction: ' + error.message;
+        if (activeTransactionId === transactionId) {
+          recovery.textContent = 'Could not stop transaction. Refresh this order before retrying: ' + error.message;
+        }
       }
     });
 
