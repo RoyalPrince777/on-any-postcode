@@ -38,5 +38,7 @@ assert.equal(expiry.observe({system:"cardiovascular",part:"heart",state:"healthy
 assert.equal(expiry.stateFor("cardiovascular","heart").state,"healthy");
 tick+=60001;
 assert.equal(expiry.stateFor("cardiovascular","heart").state,"unknown","health reading must expire without another event");
+assert.equal(expiry.getSnapshot().regions["cardiovascular:heart"].state,"unknown","aggregate snapshot must never retain expired healthy state");
+assert.equal(expiry.getSnapshot().regions["cardiovascular:heart"].evidence,false,"expired aggregate evidence must be marked invalid");
 
 console.log("SMI anatomy monitor contract: passed");
