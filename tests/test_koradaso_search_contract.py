@@ -34,14 +34,14 @@ def test_external_search_is_opt_in_and_site_navigation_preserves_consent():
 
 def test_unready_oap_tiles_do_not_navigate_and_settings_are_functional():
     source = SOURCE.read_text(encoding="utf-8")
-    for route in ('/maps', '/the-link', '/the-spot/market', '/studio', '/library'):
+    for route in ('/maps', '/the-link', '/the-spot/market', '/library'):
         assert f'href="{route}"' not in source
     assert 'class="tile is-reserved"' not in source
     assert '<strong>Maps</strong>' not in source
     assert '<strong>Mail</strong>' not in source
     assert 'href="/world?source=oap-os"' in source
     assert 'href="/search"' in source
-    assert 'name="search-mode" value="web"' in source
+    assert 'name="search-mode"' not in source
     assert 'id="clear-browser-preferences"' in source
     assert 'localStorage.removeItem(bookmarkKey)' in source
     assert 'localStorage.removeItem(preferencesKey)' in source
@@ -57,7 +57,7 @@ def test_royal_home_keeps_search_and_navigation_functional(client):
     assert 'href="/arena"' in body
     assert 'href="/search"' in body
     assert 'id="bookmark-list"' in body
-    assert 'href="#browser-settings"' in body
+    assert 'aria-label="Browser menu"' in body
     assert 'id="address-form"' in body
     assert 'id="trust-state"' in body
 
@@ -128,10 +128,10 @@ def test_koradaso_shortcuts_keep_ready_world_market_search_and_settings(client):
     assert '<strong>Market</strong><span>OAP Marketplace</span>' in source
     assert 'href="/world?source=oap-os"' in source
     assert 'href="/search"' in source
-    assert 'href="#browser-settings"' in source
+    assert 'aria-label="Browser menu"' in source
     for label in ("Maps", "Mail"):
         assert f"<strong>{label}</strong>" not in source
-    assert 'href="#settings-downloads"' in source
+    assert 'id="settings-downloads"' in source
     assert client.get("/world").status_code == 200
     assert client.get("/world?source=oap-os").status_code == 200
 
@@ -146,7 +146,7 @@ def test_koradaso_original_logo_and_core_boundary(client):
     logo = client.get(logo_path)
     assert logo.status_code == 200
     assert logo.mimetype == "image/jpeg"
-    assert 'class="smi-entry"' not in html
+    assert 'class="public-smi" href="/studio"' in html
     for prefix in ("/auth", "/mission", "/smi"):
         assert f'href="{prefix}' not in html
     assert 'action="/search" method="get"' in html
@@ -154,14 +154,14 @@ def test_koradaso_original_logo_and_core_boundary(client):
     assert 'href="/arena"' in html
     assert '<strong>Arena</strong>' in html
     assert 'id="bookmark-list"' in html
-    assert 'id="settings-tile" href="#browser-settings"' in html
+    assert 'aria-label="Browser menu"' in html
     assert 'class="royal-menu"' in html
     header = html.split('<header class="top">', 1)[1].split("</header>", 1)[0]
     assert 'id="browser-settings"' in header
     assert '<summary aria-label="Settings"' in header
     assert 'id="settings-downloads"' in header
-    assert 'id="settings-smi"' in header
-    assert "Use your authenticated OAP Core workspace to access SMI." in header
+    assert 'id="drawer-bookmarks"' in header
+    assert "Use your authenticated OAP Core workspace to access SMI." not in header
     assert 'id="address-form"' in source
     assert client.get("/arena").status_code in (200, 302)
     assert "https://duckduckgo.com" not in source
@@ -194,8 +194,8 @@ def test_koradaso_mobile_layout_keeps_omnibox_and_controls_accessible():
     assert ".search button{flex:0 0 auto;min-height:46px;" in source
     assert ".royal-tab{min-height:42px;" in source
     assert 'id="address-form"' in source
-    assert 'name="search-mode" value="oap"' in source
-    assert 'name="search-mode" value="web"' in source
+    assert 'name="search-mode"' not in source
+    assert 'name="search-mode"' not in source
     assert 'href="/world?source=oap-os"' in source
 
 
