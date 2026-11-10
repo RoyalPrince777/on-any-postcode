@@ -44,16 +44,16 @@
 </section>
 
 </details>
-<div class="truth"><strong>Truth:</strong> OAP Pay is the governed front door. A visible menu item does not grant regulated permission. Cards, cash-out, FX, bank accounts and customer-fund holding remain locked unless capability evidence explicitly allows them.</div>
-<div class="meta">SIKA Pay Gateway: {{ 'present' if pay.sika_pay_gateway else 'unproven' }} · Customer payment authority: {{ 'required' if pay.customer_payment_authority_required else 'unproven' }} · Provider calling: off · Money movement: off until authorised execution is proven.</div>
+<div class="truth"><strong>Payment safety:</strong> Sending money, cards and cash services remain unavailable unless the required permissions and provider evidence are verified.</div>
+
 </main>
 
 <nav class="bottom-nav" aria-label="OAP Pay navigation">
 <a class="nav-item" href="#home"><strong>⌂</strong>Home</a>
-<a class="nav-item" href="#pay"><strong>↗</strong>Pay</a>
-<a class="nav-item" href="#request"><strong>＋</strong>Request</a>
-<a class="nav-item" href="#activity"><strong>≡</strong>Activity</a>
-<a class="nav-item" href="#sika"><strong>SIKA</strong>My SIKA</a>
+<a class="nav-item" href="#payMethods"><strong>↗</strong>Pay</a>
+<a class="nav-item" href="#payMethods"><strong>＋</strong>Request</a>
+<a class="nav-item" href="/pay/bank/me/activity"><strong>≡</strong>Activity</a>
+<a class="nav-item" href="/pay/bank/me"><strong>SIKA</strong>My SIKA</a>
 <button class="more-btn" type="button" id="moreButton" aria-expanded="false" aria-controls="moreDrawer"><strong>•••</strong>More</button>
 </nav>
 
@@ -73,14 +73,7 @@
 {% endfor %}
 </div>
 </div>
-<div class="regulated">
-<h3>Founder / Admin</h3>
-<div class="menu-list">
-{% for item in pay.admin_menu %}
-<div class="menu-row"><span><strong>{{ item.name }}</strong><br><small>{{ item.description }}</small></span><span class="ready">Founder</span></div>
-{% endfor %}
-</div>
-</div>
+
 </section>
 </div>
 
