@@ -36,8 +36,9 @@ def test_unready_oap_tiles_do_not_navigate_and_settings_are_functional():
     source = SOURCE.read_text(encoding="utf-8")
     for route in ('/maps', '/the-link', '/the-spot/market', '/studio', '/library'):
         assert f'href="{route}"' not in source
-    assert 'class="tile is-reserved"' in source
-    assert 'aria-disabled="true"' in source
+    assert 'class="tile is-reserved"' not in source
+    assert '<strong>Maps</strong>' not in source
+    assert '<strong>Mail</strong>' not in source
     assert 'href="/world?source=oap-os"' in source
     assert 'href="/search"' in source
     assert 'name="search-mode" value="web"' in source
@@ -50,10 +51,10 @@ def test_royal_home_keeps_search_and_navigation_functional(client):
     page = client.get("/koradaso")
     assert page.status_code == 200
     body = page.get_data(as_text=True)
-    tabs = body.split('<nav class="royal-tabs"', 1)[1].split("</nav>", 1)[0]
-    assert 'href="/koradaso" target="_blank" rel="noopener noreferrer"' in tabs
-    assert "New tab" in tabs
-    assert "/arena" not in tabs
+    assert '<nav class="royal-tabs"' not in body
+    assert 'target="_blank"' not in body
+    assert "New tab" not in body
+    assert 'href="/arena"' in body
     assert 'href="/search"' in body
     assert 'href="#bookmark-list"' in body
     assert 'href="#browser-settings"' in body
@@ -102,7 +103,7 @@ def test_koradaso_oap_world_opens_menu_not_marketplace(client):
     assert "One World. One Front Door." in menu.get_data(as_text=True)
     source = SOURCE.read_text(encoding="utf-8")
     assert 'href="/world?source=oap-os"' in source
-    assert '<a href="/world?source=oap-os">🌍 World</a>' in source
+    assert '<a href="/world?source=oap-os">🌍 OAP World</a>' in source
 
 
 
@@ -129,7 +130,8 @@ def test_koradaso_shortcuts_keep_ready_world_market_search_and_settings(client):
     assert 'href="/search"' in source
     assert 'href="#browser-settings"' in source
     for label in ("Maps", "Mail"):
-        assert f"<strong>{label}</strong><span>Reserved · Not ready</span>" in source
+        assert f"<strong>{label}</strong>" not in source
+    assert 'href="#settings-downloads"' in source
     assert client.get("/world").status_code == 200
     assert client.get("/world?source=oap-os").status_code == 200
 
@@ -170,12 +172,10 @@ def test_koradaso_arena_and_discovery_tabs_are_truthful(client):
     assert 'class="tile arena-tile" href="/arena"' in html
     assert "Play OAP games · Challenge hub" in html
     assert 'class="discovery-strip"' in html
-    assert '<a href="/search">All OAP</a>' in html
-    assert '<a href="/koradaso/web-search">WWW Index</a>' in html
-    assert "Images · Soon" in html
-    assert "Videos · Soon" in html
-    assert 'title="Image indexing not yet available"' in html
-    assert 'title="Video indexing not yet available"' in html
+    assert '<a href="/search">OAP Search</a>' in html
+    assert '<a href="/koradaso/web-search">Web Index</a>' in html
+    assert "Images · Soon" not in html
+    assert "Videos · Soon" not in html
 
     arena = client.get("/arena")
     assert arena.status_code == 200
@@ -207,7 +207,8 @@ def test_koradaso_uses_only_first_party_www_search(client, monkeypatch):
     assert 'window.location.assign("/koradaso/web-search?q="+encodeURIComponent(raw))' in source
     missing = client.get("/koradaso/web-search?q=test")
     assert missing.status_code == 503
-    assert b"First-party index not configured" in missing.data
+    assert b"Web index unavailable." in missing.data
+    assert b"No indexed results can be confirmed." in missing.data
     assert b'href="/search?q=test"' in missing.data
 
 
