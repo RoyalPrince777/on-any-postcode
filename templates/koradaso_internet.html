@@ -252,7 +252,7 @@ h2{letter-spacing:.03em;text-transform:none}
 "use strict";
 // Cache only the public KORADASO shell through the existing OAP public worker.
 // Private content, messages and identity data remain network-only.
-if ("serviceWorker" in navigator && window.isSecureContext) {
+if (typeof navigator !== "undefined" && "serviceWorker" in navigator && window.isSecureContext) {
   window.addEventListener("load",()=>{
     navigator.serviceWorker.register("/service-worker.js",{scope:"/"}).catch(()=>{});
   });
