@@ -309,6 +309,7 @@
     const stopButton = document.getElementById('market-stop-transaction');
     let activeTransactionId = null;
     let orderDetailRequestId = 0;
+    let ordersRequestId = 0;
     let checkoutInProgress = false;
 
     const loadBasket = () => {
@@ -463,9 +464,11 @@
 
     async function refreshOrders() {
       if (!ordersList) return;
+      const requestId = ++ordersRequestId;
       ordersList.innerHTML = '<div class="market-empty">Loading…</div>';
       try {
         const data = await jsonFetch('/mission/organs/market/orders');
+        if (requestId !== ordersRequestId) return;
         const txByOrder = new Map((data.transactions || []).map(tx => [tx.order_id, tx]));
         ordersList.innerHTML = '';
         if (!(data.orders || []).length) {
@@ -484,6 +487,7 @@
           ordersList.appendChild(row);
         });
       } catch (error) {
+        if (requestId !== ordersRequestId) return;
         // Error text may originate from a server response. Never parse it as HTML.
         const notice = document.createElement('div');
         notice.className = 'market-empty';
