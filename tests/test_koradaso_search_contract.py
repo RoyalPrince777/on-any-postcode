@@ -21,21 +21,25 @@ def test_koradaso_omnibox_routes_queries_to_existing_oap_search(client):
     assert 'href="/koradaso/web-search?q=music"' in catalogue.get_data(as_text=True)
 
 
-def test_koradaso_public_smi_update_checks_real_interface_without_deploying(client):
-    """Update button refreshes public Studio only; not a software/model updater."""
-    page = client.get("/studio")
-    assert page.status_code == 200
+def test_koradaso_intelligence_automatic_public_shell_updates_without_private_data(client):
+    """Browser updater checks public worker and never overwrites active conversations."""
+    response = client.get("/studio?source=koradaso")
+    assert response.status_code == 200
     source = Path("templates/studio_public.html").read_text(encoding="utf-8")
-    assert 'id="smi-update"' in source
-    assert 'id="smi-update-status"' in source
-    assert "fetch('/studio',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error'})" in source
-    assert "if(!response.ok)throw new Error" in source
-    assert "html.includes(" in source and "studio-send" in source
-    assert 'window.location.reload()' in source
-    assert "history.length||input.value.trim()" in source
-    assert "updateButton.disabled=false" in source
-    assert "model and server upgrades require governed release" in source
-    assert 'href="/studio?source=koradaso"' in SOURCE.read_text(encoding="utf-8")
+    homepage = SOURCE.read_text(encoding="utf-8")
+    updater = Path("static/koradaso_auto_update.js").read_text(encoding="utf-8")
+    assert '<script src="/static/koradaso_auto_update.js" defer></script>' in homepage
+    assert '{% if koradaso_mode %}<script src="/static/koradaso_auto_update.js" defer></script>{% endif %}' in source
+    assert 'id="smi-update"' not in source
+    assert 'navigator.serviceWorker.register("/service-worker.js", {scope: "/"})' in updater
+    assert 'registration.update()' in updater
+    assert '"online", check' in updater
+    assert '"visibilitychange", check' in updater
+    assert 'window.setInterval(check, periodMs)' in updater
+    assert 'messages.children.length' in updater
+    assert 'window.location.reload()' in updater
+    assert 'refreshing || !isIdle()' in updater
+    assert 'href="/studio?source=koradaso"' in homepage
 
 
 def test_koradaso_public_offline_shell_reuses_oap_worker_without_private_caching(client):
@@ -45,8 +49,10 @@ def test_koradaso_public_offline_shell_reuses_oap_worker_without_private_caching
     assert page.status_code == worker_response.status_code == 200
     source = SOURCE.read_text(encoding="utf-8")
     worker = Path("static/oap-os-sw.js").read_text(encoding="utf-8")
-    assert 'navigator.serviceWorker.register("/service-worker.js",{scope:"/"})' in source
-    assert 'typeof navigator !== "undefined"' in source
+    assert '<script src="/static/koradaso_auto_update.js" defer></script>' in source
+    assert 'navigator.serviceWorker.register("/service-worker.js", {scope: "/"})' in Path(
+        "static/koradaso_auto_update.js"
+    ).read_text(encoding="utf-8")
     assert '"/koradaso",' in worker
     assert '"/static/oap/koradaso_internet_logo.jpg",' in worker
     assert 'url.pathname === "/koradaso"' in worker
