@@ -622,7 +622,11 @@ def _load_public_snapshot():
 def public_studio():
     """Public OAP Studio Intelligence shell; no private SMI authority is exposed."""
 
-    response = make_response(render_template("studio_public.html"))
+    # KORADASO presentation only: reuse the bounded public Studio gateway.
+    response = make_response(render_template(
+        "studio_public.html",
+        koradaso_mode=request.args.get("source") == "koradaso",
+    ))
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
