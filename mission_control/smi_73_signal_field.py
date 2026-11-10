@@ -150,6 +150,60 @@ def definition_status() -> dict[str, Any]:
     }
 
 
+
+def _adversarial_review(states: Mapping[str, str]) -> dict[str, Any]:
+    """One SMI review of known evidence, not opinions from other agents."""
+    mandatory = (
+        "crown.truth_mode",
+        "crown.red_team",
+        "crown.runtime_proof",
+        "crown.recovery_proof",
+        "crown.end_to_end_proof",
+        "crown.founder_final",
+    )
+    unresolved = tuple(
+        {"signal": key, "state": states[key]}
+        for key in mandatory
+        if states[key] != "proven"
+    )
+    blockers = tuple(
+        key for key, state in states.items() if state == "blocked"
+    )
+    unknowns = tuple(
+        key for key, state in states.items() if state == "unknown"
+    )
+    active = tuple(
+        key for key, state in states.items() if state == "active"
+    )
+    return {
+        "mode": "single_smi_evidence_review",
+        "truth_mode": {
+            "claim": "No Green without exact evidence for all required signals.",
+            "proven_count": sum(state == "proven" for state in states.values()),
+            "required_count": len(SIGNAL_KEYS),
+            "unknown_count": len(unknowns),
+            "unrecognised_as_proof": True,
+        },
+        "red_team": {
+            "challenge": "What is failing, missing, or not recovered?",
+            "blocked_signals": blockers,
+            "mandatory_unresolved": unresolved,
+            "hold_green": bool(unresolved or blockers or unknowns or active),
+        },
+        "devils_advocate": {
+            "challenge": "Could a good score conceal an unverified release gate?",
+            "unverified_signals": unknowns,
+            "in_progress_signals": active,
+            "score_is_release_certification": False,
+            "test_pass_is_target_runtime_proof": False,
+            "simulation_is_completion": False,
+        },
+        "separate_agents_created": False,
+        "new_vote_engine_created": False,
+        "human_authority_final": True,
+    }
+
+
 def evaluate(evidence: Mapping[str, object] | None = None) -> dict[str, Any]:
     supplied = dict(evidence or {})
     states = {key: _state(supplied.get(key)) for key in SIGNAL_KEYS}
@@ -202,6 +256,7 @@ def evaluate(evidence: Mapping[str, object] | None = None) -> dict[str, Any]:
             "earned": sum(1 for item in stars if item["earned"]),
             "total": len(stars),
         },
+        "adversarial_review": _adversarial_review(states),
         "votes": tuple(votes),
         "vote_summary": {
             state: sum(1 for item in votes if item["evidence_vote"] == state)
