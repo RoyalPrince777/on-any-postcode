@@ -37,6 +37,16 @@ if any(marker not in html for marker in required):
         "KORADASO refused: this checkout has the older browser UI. "
         "Preserve this folder and start the isolated PR #1388 checkout instead."
     )
+logo = Path("static/oap/koradaso_internet_logo.jpg")
+if not logo.is_file() or logo.stat().st_size < 4:
+    raise SystemExit(
+        "KORADASO refused: royal logo asset is missing from this checkout "
+        "(static/oap/koradaso_internet_logo.jpg). Preserve local changes; "
+        "use the complete PR #1388 checkout before starting port 5052."
+    )
+with logo.open("rb") as image:
+    if image.read(3) != b"\\xff\\xd8\\xff":
+        raise SystemExit("KORADASO refused: royal logo is not a valid JPEG asset.")
 PY
 export OAP_LOCAL_MODE=true
 if [[ "${OAP_SURFACE_ROLE:-}" == "public" ]]; then
