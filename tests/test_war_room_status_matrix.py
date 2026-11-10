@@ -137,3 +137,10 @@ def test_governed_smi_auto_has_stop_and_no_consequential_execution():
     assert "Founder Final: required" in PAGE
     assert "Green NOT inferred" in PAGE
     assert "STOPPED · no further checks" in PAGE
+
+
+def test_dynamic_cc_auto_selects_divisions_without_granting_execution():
+    assert "const dynamic=window.location.pathname==='/mission/smi-cc'" in PAGE
+    assert "divisions: dynamic?['auto']:chosen" in PAGE
+    assert "Mission-fit selection:" in PAGE
+    assert "Agent execution: NONE · Independent votes: NOT VERIFIED" in PAGE
