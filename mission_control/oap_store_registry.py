@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
+import os
 from dataclasses import dataclass
 
 from cryptography.exceptions import InvalidSignature
@@ -86,6 +88,91 @@ def verify_package(
         "rollback_release": bool(manifest.rollback_of),
         "install_gate_passed": True,
         "physical_device_certified": False,
+    }
+
+
+
+def verify_trusted_package(
+    manifest: ReleaseManifest,
+    artifact: bytes,
+    *,
+    trusted_publisher_keys: dict[str, str],
+) -> dict[str, object]:
+    """Verify only against independently configured app-specific OAP trust roots.
+
+    The trusted mapping must come from the operator's protected release config,
+    never from a submitted manifest or client request. No keys are provisioned
+    by this module; an empty or missing trust root is a hard denial.
+    """
+    key = trusted_publisher_keys.get(manifest.app_id)
+    if not isinstance(key, str) or not key:
+        raise PackageVerificationError("trusted_publisher_key_missing")
+    return verify_package(
+        manifest, artifact, publisher_public_key_b64=key
+    )
+
+
+
+
+def load_operator_trust_roots() -> dict[str, str]:
+    """Load app-specific public roots from server-only configuration.
+
+    No manifest or browser-supplied key can establish publisher identity.
+    Absent, malformed or empty configuration denies all releases.
+    Private signing keys must never appear here.
+    """
+    raw = os.environ.get("OAP_STORE_TRUSTED_PUBLISHERS_JSON", "")
+    if not raw.strip():
+        raise PackageVerificationError("operator_trust_roots_missing")
+    try:
+        roots = json.loads(raw)
+    except (ValueError, TypeError) as exc:
+        raise PackageVerificationError("operator_trust_roots_invalid") from exc
+    if (
+        not isinstance(roots, dict)
+        or not roots
+        or any(
+            not isinstance(app_id, str)
+            or not app_id.startswith("oap.")
+            or not isinstance(public_key, str)
+            or not public_key.strip()
+            for app_id, public_key in roots.items()
+        )
+    ):
+        raise PackageVerificationError("operator_trust_roots_invalid")
+    return roots
+
+
+def assess_release_admission(
+    manifest: ReleaseManifest,
+    artifact: bytes,
+    *,
+    trusted_publisher_keys: dict[str, str],
+    approved_app_ids: frozenset[str],
+    founder_release_approved: bool,
+    physical_device_certified: bool,
+) -> dict[str, object]:
+    """Fail closed unless every release admission prerequisite is proven.
+
+    This is a pure assessment, not package registration or download activation.
+    Trust roots and release approvals must be supplied by independently
+    controlled server-side evidence, never submitted by a public client.
+    """
+    verified = verify_trusted_package(
+        manifest, artifact, trusted_publisher_keys=trusted_publisher_keys
+    )
+    if manifest.app_id not in approved_app_ids:
+        raise PackageVerificationError("release_app_not_approved")
+    if founder_release_approved is not True:
+        raise PackageVerificationError("founder_release_approval_missing")
+    if physical_device_certified is not True:
+        raise PackageVerificationError("physical_device_proof_missing")
+    return {
+        **verified,
+        "physical_device_certified": True,
+        "release_admission_passed": True,
+        "native_install_enabled": False,
+        "reason": "Admission assessment only; no artifact registered or download activated.",
     }
 
 
