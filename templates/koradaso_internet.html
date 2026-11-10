@@ -143,6 +143,26 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
  .royal-tab{flex:1 1 auto;text-align:center}
 }
 @media(max-width:360px){.top .tag{font-size:.57rem}}
+/* Quiet professional hierarchy: preserve original artwork and functional controls. */
+.shell{max-width:760px;padding:12px 16px calc(24px + env(safe-area-inset-bottom))}
+.top{padding-bottom:10px;min-height:52px}
+.hero{margin:5px auto 0;border-color:#87683e;border-radius:16px;box-shadow:none}
+.hero img{width:min(100%,220px)}
+@media(max-width:520px){.hero img{width:min(100%,174px)}}
+.search-row{margin:14px 0 5px}
+.search{border-color:#a7844e;border-radius:16px;box-shadow:none}
+.search input{font-size:1rem}
+.search-mode{margin:7px 0}
+.trust-state,.note{min-height:0}
+.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tile{min-height:98px;border-color:#594967;border-radius:13px;padding:12px 8px;box-shadow:none}
+.tile .ico{font-size:1.45rem;filter:none}
+.tile strong{font:650 .95rem system-ui,sans-serif}
+.tile span:last-child{font-size:.7rem}
+h2{letter-spacing:.03em;text-transform:none}
+.browser-bar{gap:8px}
+.browser-bar a,.browser-bar button{min-height:44px}
+@media(max-width:520px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:100px}}
 </style>
 </head>
 <body>
@@ -159,7 +179,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <h3 id="settings-search">Search</h3>
 <label for="open-web-search"><input type="checkbox" id="open-web-search"> Use WWW Search by default</label>
 <p>WWW Search covers pages in the KORADASO index. OAP Search covers public OAP apps.</p>
-<nav class="discovery-strip" aria-label="KORADASO discovery categories"><a href="/search">All OAP</a><a href="/koradaso/web-search">WWW Index</a><span aria-disabled="true" title="Image indexing not yet available">Images · Soon</span><span aria-disabled="true" title="Video indexing not yet available">Videos · Soon</span></nav>
+<nav class="discovery-strip" aria-label="Search destinations"><a href="/search">OAP Search</a><a href="/koradaso/web-search">Web Index</a></nav>
 </section>
 <section aria-labelledby="settings-accessibility">
 <h3 id="settings-accessibility">Accessibility</h3>
@@ -182,7 +202,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 </div>
 </details>
 </header>
-<nav class="royal-tabs" aria-label="KORADASO browser destinations"><a class="royal-tab selected" aria-current="page" href="/koradaso">♛ Home</a><a class="royal-tab" href="/search">⌕ Search</a><a class="royal-tab" href="/koradaso" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">＋</span> New tab</a><a class="royal-tab" href="#bookmark-list">★ Bookmarks</a></nav>
+
 <main id="main">
 <section class="hero" aria-label="KORADASO Internet home">
 <h1><img src="/static/oap/koradaso_internet_logo.jpg" width="1536" height="1536" alt="KORADASO Internet · Powered by ON ANY POSTCODE"></h1>
@@ -196,24 +216,24 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <label><input type="radio" name="search-mode" value="web"> WWW Search</label>
 </div>
 <p class="trust-state" id="trust-state" role="status">OAP FIRST PARTY · Catalogue search</p>
-<p class="note" id="address-note" role="status">Search OAP apps, indexed websites, or enter a website address.</p>
-<h2>EXPLORE YOUR WORLD</h2>
+<p class="note" id="address-note" role="status">Search OAP or public pages KORADASO has indexed. HTTPS addresses open with confirmation.</p>
+<h2>Explore ON ANY POSTCODE</h2>
 <div class="grid">
 <a class="tile" href="/world?source=oap-os"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>OAP World menu</span></a>
-<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Reserved · Not ready</span></div>
-<div class="tile is-reserved" aria-disabled="true"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>Reserved · Not ready</span></div>
+
+
 <a class="tile" href="/world"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>OAP Marketplace</span></a>
 <a class="tile arena-tile" href="/arena"><span class="ico" aria-hidden="true">♟</span><strong>Arena</strong><span>Play OAP games · Challenge hub</span></a>
 
-<a class="tile" href="#settings-downloads"><span class="ico" aria-hidden="true">⬇</span><strong>Downloads</strong><span>Browser instructions</span></a>
+
 <a class="tile" id="settings-tile" href="#browser-settings"><span class="ico" aria-hidden="true">⚙</span><strong>Settings</strong><span>Browser preferences</span></a>
 </div>
-<div class="bookmark-heading"><h2>★ BOOKMARKS</h2><button type="button" class="action" id="bookmark-add">+ Save page</button></div>
+<div class="bookmark-heading"><h2>Bookmarks</h2><button type="button" class="action" id="bookmark-add">+ Save page</button></div>
 <div class="shortcuts" aria-label="Website shortcuts" id="bookmark-list">
 <a href="/koradaso">KORADASO</a><a href="/world?source=oap-os">OAP World</a><a href="/search">OAP Search</a>
 </div>
 <p class="note" id="bookmark-note" role="status">Saved bookmarks stay in this browser only. Nothing is uploaded to OAP.</p>
-<nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button><a href="/koradaso">⌂ Home</a><a href="/world?source=oap-os">🌍 World</a><a href="/world?source=oap-os">↩ OAP</a></nav>
+<nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button><a href="/koradaso">⌂ KORADASO</a><a href="/world?source=oap-os">🌍 OAP World</a></nav>
 </main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
 </div>
 <script>
