@@ -23,7 +23,7 @@ def test_koradaso_intelligence_reuses_public_studio_without_private_authority(cl
     page = response.get_data(as_text=True)
     assert "<title>KORADASO Intelligence</title>" in page
     assert "One public SMI" in page
-    assert 'id="smi-update"' in page
+    assert 'id="smi-update"' not in page
     assert page.count('data-smi-prompt="') == 7
     assert "fetch('/studio/chat'" in page
     assert "/mission/" not in page
@@ -51,7 +51,7 @@ def test_public_studio_does_not_expose_private_smi_controls():
     ):
         assert forbidden not in page
     assert "Private operational controls remain separate and inaccessible." in page
-    assert 'id="smi-update"' in page  # Public refresh only, no Founder authority.
+    assert 'id="smi-update"' not in page  # Public refresh only, no Founder authority.
     assert "/mission/" not in page
 
 
