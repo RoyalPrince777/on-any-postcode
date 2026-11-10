@@ -88,6 +88,10 @@ def test_koradaso_stages_public_worker_while_other_oap_clients_are_active():
     assert "self.clients.claim()" not in worker
     assert "cache.addAll(PUBLIC_SHELL)" in worker
     assert 'if (registration && registration.waiting)' in updater
+    assert 'document.activeElement !== input' in updater
+    assert 'document.addEventListener("focusout", applyWhenIdle)' in updater
+    assert 'await caches.delete(CACHE_VERSION);' in worker
+    assert 'throw error;' in worker
     assert 'updateStatus("pending")' in updater
     assert "window.location.reload()" in updater
     assert 'if (isPrivatePath(url.pathname)) return;' in worker
