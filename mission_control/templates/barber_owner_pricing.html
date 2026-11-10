@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>OAP Barbers · My Services &amp; Prices</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#07120d;color:#eef7f1}
+*{box-sizing:border-box}body{margin:0}
+main{max-width:920px;margin:auto;padding:20px}
+a{color:#a1e4b8}
+h1{font-size:clamp(1.8rem,5vw,3rem);margin:8px 0}
+p,small{line-height:1.5;color:#bfd1c4}
+nav{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0 24px}
+.card{background:#0d2016;border:1px solid #326047;border-radius:16px;padding:19px;margin:13px 0}
+header{padding-bottom:10px;border-bottom:1px solid #326047}
+.tag{font-size:.78rem;color:#a1e4b8;letter-spacing:.12em;font-weight:800}
+label{display:block;margin:12px 0}
+input{display:block;width:100%;max-width:270px;padding:12px;border-radius:8px;color:white;background:#132c1c;border:1px solid #53745e;font-size:1rem;margin-top:6px}
+button{background:#37bb75;border:none;border-radius:9px;padding:12px 20px;color:#06170e;font-weight:800;cursor:pointer;min-height:44px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.price{font-size:1.6rem;color:#afffcf;font-weight:800}
+.note{padding:13px;border-left:3px solid #e1bd68;background:#281f11;border-radius:5px}
+.muted{color:#adc0b2}
+.result{margin-top:12px;white-space:pre-wrap;min-height:1.1em}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="tag">ON ANY POSTCODE · MY BUSINESS</div>
+<h1>💈 My Services &amp; Prices</h1>
+<p>You control prices for your own approved appointment slots. SIKA is the pricing unit: 1 SIKA = £1. Existing holds and booked prices cannot be changed here.</p>
+<nav><a href="{{ url_for('the_spot_front_door') }}">The Spot</a><a href="/travel/direct?category=barber">Available appointments</a><a href="/pay">SIKA Pay</a></nav>
+</header>
+{% if unavailable %}
+<section class="card"><h2>Setup required</h2><p>Owner-certified barber supply is not enabled. No listings, payments or bookings have been activated.</p></section>
+{% elif not pricing.slots %}
+<section class="card"><h2>No appointment slots yet</h2><p>Your business must first be verified and certified, with approved services and real appointment times. Only your own active listings can be managed here.</p></section>
+{% else %}
+{% for slot in pricing.slots %}
+<section class="card">
+<div class="tag">{{ slot.business }}</div><h2>{{ slot.service }}</h2>
+<p>{{ slot.starts_at }} → {{ slot.ends_at }}</p>
+<div class="price">{{ slot.amount_sika }} SIKA</div>
+{% if slot.editable %}
+<form class="price-form" data-slot="{{ slot.slot_id }}">
+<label>New price in SIKA
+<input aria-label="New SIKA price for {{ slot.service }}" type="number" name="amount_sika" inputmode="decimal" min="0.01" max="10000" step="0.01" value="{{ slot.amount_sika }}" required>
+</label>
+<button type="submit">Save my price</button><div class="result" role="status" aria-live="polite"></div>
+</form>
+{% else %}
+<p class="note">Price locked: this slot has a hold, booking or cannot be edited. Existing customer prices remain unchanged.</p>
+{% endif %}
+</section>
+{% endfor %}
+{% endif %}
+<p class="note">A saved price is not a payment. Customer booking and SIKA settlement require their own verified approvals and receipts.</p>
+</main>
+<script>
+const csrf={{ csrf_token|tojson }};
+for(const form of document.querySelectorAll('.price-form')){
+  form.addEventListener('submit',async event=>{
+    event.preventDefault();
+    const out=form.querySelector('.result'),btn=form.querySelector('button');
+    btn.disabled=true;out.textContent='Saving…';
+    try{
+      const response=await fetch('/local/barbers/manage/api/prices',{
+        method:'POST',credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-OAP-CSRF':csrf},
+        body:JSON.stringify({slot_id:form.dataset.slot,amount_sika:form.elements.amount_sika.value})
+      });
+      const result=await response.json();
+      if(!response.ok){out.textContent=result.error?.message||'Price not saved.'}
+      else{out.textContent='Price saved: '+result.amount_sika+' SIKA. No payment taken.'}
+    }catch(_){out.textContent='Price could not be saved.'}
+    finally{btn.disabled=false}
+  });
+}
+</script>
+</body></html>
