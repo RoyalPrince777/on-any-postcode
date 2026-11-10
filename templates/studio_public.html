@@ -30,7 +30,7 @@
     <div class="private-note">Public Studio contains public creation tools only. Private operational controls remain separate and inaccessible.</div>
   </aside>
   <main class="main">
-    <header class="top"><strong>{% if koradaso_mode %}KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</strong><div class="actions"><button class="btn" id="smi-update" type="button" title="Refresh the public SMI interface from this server; no model or deployment changes">↻ Update SMI</button>{% if koradaso_mode %}<a class="pill" href="/koradaso">KORADASO Home</a>{% else %}<a class="pill" href="/">OAP World</a><a class="pill" href="/the-spot">Enter My World</a>{% endif %}</div></header>
+    <header class="top"><strong>{% if koradaso_mode %}KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</strong><div class="actions">{% if koradaso_mode %}<a class="pill" href="/koradaso">KORADASO Home</a>{% else %}<a class="pill" href="/">OAP World</a><a class="pill" href="/the-spot">Enter My World</a>{% endif %}</div></header>
     <section class="chat">
       <div class="welcome">
         <h1>{% if koradaso_mode %}KORADASO Intelligence{% else %}What can OAP help you create?{% endif %}</h1>
@@ -52,7 +52,7 @@
             <div class="right"><button class="btn send" id="studio-send" type="button">Send</button></div>
           </div>
         </div>
-        <div class="truth" id="smi-update-status" role="status" aria-live="polite">Update SMI refreshes this public interface only; model and server upgrades require governed release.</div>
+        <div class="truth">Public interface updates are checked automatically when online. Open chats are never refreshed without your action.</div>
         <div class="truth">Public SMI chat availability is confirmed only when a request succeeds. Files, Voice and governed media generation remain private and owner-scoped.</div>
       </div>
     </section>
@@ -72,26 +72,6 @@ document.querySelectorAll('[data-smi-prompt]').forEach(button=>{
     input.focus();
     input.setSelectionRange(input.value.length,input.value.length);
   });
-});
-const updateButton=document.getElementById('smi-update');
-const updateStatus=document.getElementById('smi-update-status');
-updateButton.addEventListener('click',async()=>{
-  if(history.length||input.value.trim()){
-    if(!window.confirm('Refreshing SMI will clear this unsaved public chat. Continue?'))return;
-  }
-  updateButton.disabled=true;
-  updateStatus.textContent='Checking the latest public SMI interface on this server…';
-  try{
-    const response=await fetch('/studio',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error'});
-    if(!response.ok)throw new Error('Public SMI is unavailable ('+response.status+').');
-    const html=await response.text();
-    if(!html.includes('id="studio-send"'))throw new Error('Public SMI returned an unexpected page.');
-    updateStatus.textContent='Latest public SMI interface retrieved. Reloading…';
-    window.location.reload();
-  }catch(error){
-    updateStatus.textContent=(error&&error.message)||'Could not refresh SMI. Check the connection and try again.';
-    updateButton.disabled=false;
-  }
 });
 function add(role,text){
   const el=document.createElement('div');
@@ -118,5 +98,6 @@ async function submitStudio(){
 send.addEventListener('click',submitStudio);
 input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitStudio();}});
 </script>
+{% if koradaso_mode %}<script src="/static/koradaso_auto_update.js" defer></script>{% endif %}
 </body>
 </html>
