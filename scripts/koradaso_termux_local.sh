@@ -8,6 +8,10 @@ MODE="${1:-}"
 OPEN_PATH=/koradaso
 PAGE_MARKER='KORADASO Internet · ON ANY POSTCODE'
 CONTROL_MARKER='id="address-form"'
+# Identify the restored launcher, not just the legacy KORADASO search form.
+RESTORED_MAP_MARKER='href="/oap-map"'
+RESTORED_MAIL_MARKER='href="/the-link"'
+RESTORED_MARKET_MARKER='href="/the-spot/market"'
 case "$MODE" in
   --arena|--arena-update)
     PORT=5052
@@ -21,6 +25,19 @@ if [[ "$PORT" != "5052" && "$PORT" != "5050" ]]; then
   exit 2
 fi
 cd "$ROOT"
+# Stop cleanly if this checkout predates the restored KORADASO launcher.
+# Never pull, reset, clean, overwrite or disturb the user's working tree here.
+python - <<'PY'
+from pathlib import Path
+page = Path("templates/koradaso_internet.html")
+html = page.read_text(encoding="utf-8") if page.is_file() else ""
+required = ('id="address-form"', 'href="/oap-map"', 'href="/the-link"', 'href="/the-spot/market"')
+if any(marker not in html for marker in required):
+    raise SystemExit(
+        "KORADASO refused: this checkout has the older browser UI. "
+        "Preserve this folder and start the isolated PR #1388 checkout instead."
+    )
+PY
 export OAP_LOCAL_MODE=true
 if [[ "${OAP_SURFACE_ROLE:-}" == "public" ]]; then
   echo "KORADASO refused: public surface role cannot be repurposed as a local private runtime." >&2
@@ -112,13 +129,13 @@ if [[ "${OAP_KORADASO_OPEN_BROWSER:-1}" == "1" ]] && command -v termux-open-url 
     for attempt in 1 2 3 4 5 6 7 8 9 10; do
       url="http://127.0.0.1:$PORT$OPEN_PATH"
       page="$(curl --noproxy '*' -fsS --max-time 2 "$url" 2>/dev/null || true)"
-      if [[ "$page" == *"$PAGE_MARKER"* && "$page" == *"$CONTROL_MARKER"* ]]; then
+      if [[ "$page" == *"$PAGE_MARKER"* && "$page" == *"$CONTROL_MARKER"* && "$page" == *"$RESTORED_MAP_MARKER"* && "$page" == *"$RESTORED_MAIL_MARKER"* && "$page" == *"$RESTORED_MARKET_MARKER"* ]]; then
         termux-open-url "$url" >/dev/null 2>&1 || true
         exit 0
       fi
       sleep 1
     done
-    echo "Browser not opened: live branded $OPEN_PATH page not verified." >&2
+    echo "Browser not opened: the live $OPEN_PATH response lacks the restored KORADASO navigation. Check checkout, port and browser cache." >&2
   ) &
 fi
 
