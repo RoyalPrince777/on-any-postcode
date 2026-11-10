@@ -127,3 +127,19 @@ def test_market_basket_and_retry_state_are_scoped_to_signed_in_identity():
     assert '""' in anonymous
     assert "oap-market-basket-v1" not in template
     assert "Do not" in template and "unscoped basket" in template
+
+
+def test_market_checkout_disables_basket_edits_while_in_flight():
+    """Static regression contract; does not replace a browser integration test."""
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert "let checkoutInProgress = false;" in template
+    assert "checkoutInProgress = true;" in template
+    assert "checkoutInProgress = false;" in template
+    assert "qty.disabled = checkoutInProgress || Boolean(item.order_attempted);" in template
+    assert "if (checkoutInProgress || !next[index] || next[index].order_attempted) return;" in template
+    assert "if (checkoutInProgress) return;" in template
+    assert "document.getElementById('market-clear-basket').disabled = true;" in template
+    assert "document.getElementById('market-clear-basket').disabled = false;" in template
