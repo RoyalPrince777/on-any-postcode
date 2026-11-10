@@ -21,6 +21,23 @@ def test_koradaso_omnibox_routes_queries_to_existing_oap_search(client):
     assert 'href="/koradaso/web-search?q=music"' in catalogue.get_data(as_text=True)
 
 
+def test_koradaso_public_smi_update_checks_real_interface_without_deploying(client):
+    """Update button refreshes public Studio only; not a software/model updater."""
+    page = client.get("/studio")
+    assert page.status_code == 200
+    source = Path("templates/studio_public.html").read_text(encoding="utf-8")
+    assert 'id="smi-update"' in source
+    assert 'id="smi-update-status"' in source
+    assert "fetch('/studio',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error'})" in source
+    assert "if(!response.ok)throw new Error" in source
+    assert "html.includes('id=\\"studio-send\\"')" in source
+    assert 'window.location.reload()' in source
+    assert "history.length||input.value.trim()" in source
+    assert "updateButton.disabled=false" in source
+    assert "model and server upgrades require governed release" in source
+    assert 'href="/studio"' in SOURCE.read_text(encoding="utf-8")
+
+
 def test_koradaso_public_offline_shell_reuses_oap_worker_without_private_caching(client):
     """Source contract only; does not certify disconnected-host or virtual AOSP boot."""
     page = client.get("/koradaso")
