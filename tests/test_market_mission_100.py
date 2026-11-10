@@ -92,8 +92,8 @@ def test_market_checkout_preserves_ambiguous_order_retry_identity():
     assert "saveBasket(basket);" in template
     assert "const key = item.idempotency_key;" in template
     assert "active.order_attempted = true;" in template
-    assert "qty.disabled = Boolean(item.order_attempted);" in template
-    assert "row.querySelector('button').disabled = Boolean(item.order_attempted);" in template
+    assert "qty.disabled = checkoutInProgress || Boolean(item.order_attempted);" in template
+    assert "row.querySelector('button').disabled = checkoutInProgress || Boolean(item.order_attempted);" in template
     assert "if (found?.order_attempted)" in template
     assert "loadBasket().filter(item => item.order_attempted)" in template
     assert "checkoutButton.disabled = true;" in template
@@ -153,3 +153,14 @@ def test_market_private_search_retains_founder_workspace():
 
     assert '{% if mine_view %}<input type="hidden" name="mine" value="1">{% endif %}' in template
     assert """{{ '?mine=1' if mine_view else '' }}""" in template
+
+
+def test_market_order_errors_are_text_only_not_html():
+    """Server-provided error messages must not enter an HTML parsing sink."""
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert "notice.textContent = 'Orders unavailable: ' + error.message;" in template
+    assert "ordersList.replaceChildren(notice);" in template
+    assert "ordersList.innerHTML = '<div class=\\"market-empty\\">Orders unavailable: '" not in template
