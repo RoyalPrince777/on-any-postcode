@@ -496,14 +496,14 @@ def oap_os_manifest():
 def oap_os_service_worker():
     """Serve the public-only worker at the root scope with prompt updates."""
 
-    response = send_from_directory(
-        os.path.join(app.root_path, "static"),
-        "oap-os-sw.js",
-        mimetype="application/javascript",
-        max_age=0,
-    )
+    with open(os.path.join(app.root_path, "static", "oap-os-sw.js"), encoding="utf-8") as source:
+        worker = source.read()
+    worker = worker.replace("__KORADASO_RELEASE__", _koradaso_public_release_id())
+    response = make_response(worker)
+    response.mimetype = "application/javascript"
     response.headers["Cache-Control"] = "no-cache"
     response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -625,6 +625,8 @@ _KORADASO_PUBLIC_RELEASE_FILES = (
     "static/koradaso_auto_update.js",
     "static/oap-os-sw.js",
     "static/oap-os-offline.html",
+    "static/oap-os.js",
+    "static/manifest.webmanifest",
 )
 
 
