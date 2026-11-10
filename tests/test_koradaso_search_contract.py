@@ -70,8 +70,8 @@ def test_koradaso_public_offline_shell_reuses_oap_worker_without_private_caching
     assert '"/koradaso",' in worker
     assert '"/static/oap/koradaso_internet_logo.jpg",' in worker
     assert 'url.pathname === "/koradaso"' in worker
-    assert 'caches.match("/koradaso")' in worker
-    assert 'caches.match("/offline")' in worker
+    assert 'publicShellFallback("/koradaso")' in worker
+    assert 'publicShellFallback("/offline")' in worker
     assert 'if (isPrivatePath(url.pathname)) return;' in worker
     assert 'request.method !== "GET" || url.origin !== self.location.origin' in worker
     assert '"/my-world"' in worker
@@ -107,16 +107,28 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const handlers = {};
 const cached = new Map();
-const cache = {
-  addAll: async (paths) => {
-    paths.forEach(path => cached.set(path, {source: "cache", path}));
-  }
-};
+const cacheMap = new Map();
 const caches = {
-  open: async () => cache,
-  match: async path => cached.get(path),
-  keys: async () => [],
-  delete: async () => true
+  open: async key => {
+    if (!cacheMap.has(key)) cacheMap.set(key, new Map());
+    const entries = cacheMap.get(key);
+    return {
+      addAll: async paths => paths.forEach(path => {
+        const value = {source: "cache", path};
+        entries.set(path, value);
+        cached.set(path, value);
+      }),
+      match: async path => entries.get(path),
+    };
+  },
+  match: async path => {
+    for (const entries of cacheMap.values()) {
+      if (entries.has(path)) return entries.get(path);
+    }
+    return undefined;
+  },
+  keys: async () => Array.from(cacheMap.keys()),
+  delete: async key => cacheMap.delete(key)
 };
 const self = {
   location: {origin: "https://onanypostcode.global"},
@@ -159,6 +171,16 @@ async function dispatch(url, method = "GET", mode = "navigate") {
   offline = false;
   assert.equal((await dispatch("https://onanypostcode.global/koradaso")).source, "network");
   assert.equal(networkCalls, 4);
+  // Real worker implementation: when the current shell asset disappears,
+  // offline navigation falls back to the retained previous public cache.
+  const activeName = Array.from(cacheMap.keys())[0];
+  const older = await caches.open("oap-os-public-previous");
+  const current = await caches.open(activeName);
+  const olderData = cacheMap.get("oap-os-public-previous");
+  olderData.set("/koradaso", {source: "previous", path: "/koradaso"});
+  cacheMap.get(activeName).delete("/koradaso");
+  offline = true;
+  assert.equal((await dispatch("https://onanypostcode.global/koradaso")).source, "previous");
 })().catch(error => {console.error(error);process.exitCode = 1;});
 """
     result = subprocess.run(
