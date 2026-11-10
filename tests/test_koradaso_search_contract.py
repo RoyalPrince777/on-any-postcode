@@ -63,6 +63,23 @@ def test_unready_oap_tiles_do_not_navigate_and_settings_are_functional():
     assert 'localStorage.removeItem(preferencesKey)' in source
 
 
+def test_right_drawer_and_search_feedback_have_real_controls(client):
+    """Visible error feedback and accessible menu; not mobile-device proof."""
+    html = client.get("/koradaso").get_data(as_text=True)
+    header = html.split('<header class="top">', 1)[1].split("</header>", 1)[0]
+    assert 'id="drawer-close" aria-label="Close browser menu"' in header
+    assert 'id="drawer-bookmarks"' in header
+    assert 'id="settings-downloads"' in header
+    assert 'id="settings-privacy"' in header
+    assert 'id="address-note" role="status" aria-live="polite"' in html
+    assert 'class="note address-feedback"' in html
+    assert '.address-feedback:empty{display:none}' in html
+    assert 'height:100dvh' in html
+    assert 'document.getElementById("drawer-close").addEventListener("click"' in html
+    assert '<strong>Downloads</strong>' not in html
+    assert '<strong>Settings</strong>' not in html
+
+
 def test_royal_home_keeps_search_and_navigation_functional(client):
     page = client.get("/koradaso")
     assert page.status_code == 200
