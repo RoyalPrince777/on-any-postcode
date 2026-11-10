@@ -21,6 +21,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from oap.smi.capability_fabric import capability_descriptions, select_capabilities
 from oap.smi.capability_fabric import status as capability_fabric_status
+from oap.smi.sovereign_controls import SovereignControlPlane
 
 from . import home_node_bridge
 
@@ -439,7 +440,7 @@ def generate(
             first_party_error = exc
     if cancel_check is not None:
         cancel_check()
-    if not FALLBACK_ENABLED:
+    if not FALLBACK_ENABLED or SovereignControlPlane().master_mode_requested():
         raise RuntimeError("first_party_inference_required") from first_party_error
     if not os.environ.get("OPENAI_API_KEY", "").strip() and first_party_error is not None:
         raise first_party_error
@@ -492,7 +493,7 @@ def generate_public(
         )
     except RuntimeError as exc:
         first_party_error = exc
-    if not FALLBACK_ENABLED:
+    if not FALLBACK_ENABLED or SovereignControlPlane().master_mode_requested():
         raise RuntimeError("first_party_inference_required") from first_party_error
     return compatibility_engine(
         message,
@@ -535,6 +536,7 @@ def status(*, probe: bool = False) -> dict[str, Any]:
         "home_node_bridge": bridge,
         "capability_fabric": capability_fabric_status(),
         "compatibility_fallback_enabled": FALLBACK_ENABLED,
+        "compatibility_fallback_effectively_allowed": bool(FALLBACK_ENABLED and not SovereignControlPlane().master_mode_requested()),
         "compatibility_fallback_configured": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
         "first_party_inference_ready": first_party_ready,
         "sovereign_inference_ready": bool(first_party_ready and not FALLBACK_ENABLED),
