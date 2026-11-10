@@ -88,7 +88,9 @@ def test_market_checkout_preserves_ambiguous_order_retry_identity():
         _root() / "mission_control" / "templates" / "market.html"
     ).read_text(encoding="utf-8")
 
-    assert "item.idempotency_key = 'market-'" in template
+    assert "if (!item.idempotency_key) item.idempotency_key = secureKey();" in template
+    assert "globalThis.crypto.getRandomValues(bytes);" in template
+    assert "Math.random().toString" not in template
     assert "saveBasket(basket);" in template
     assert "const key = item.idempotency_key;" in template
     assert "active.order_attempted = true;" in template
