@@ -425,3 +425,37 @@ def test_video_content_rejects_provider_error_body(monkeypatch):
         assert str(exc) == "studio_video_content_invalid"
     else:
         raise AssertionError("Provider response body must not be treated as an MP4")
+
+
+def test_video_source_reference_has_hash_without_continuity_claim(monkeypatch):
+    import base64
+    import hashlib
+    from mission_control import studio_media_backend
+
+    image = b"reference-image-bytes"
+    source = "data:image/png;base64," + base64.b64encode(image).decode("ascii")
+    captured = {}
+    def fake_call(path, fields, *, file_field=None):
+        captured["file_field"] = file_field
+        return {"id": "video_test", "status": "queued", "progress": 0}
+
+    monkeypatch.setattr(studio_media_backend, "_multipart_call", fake_call)
+    job = studio_media_backend.create_video("Keep both characters", source_image_data=source)
+
+    assert captured["file_field"][3] == image
+    assert job["source_reference_sha256"] == hashlib.sha256(image).hexdigest()
+    assert job["continuity_verified"] is False
+    assert job["continuity_status"] == "unknown"
+    assert job["artifact_proven"] is False
+
+
+def test_video_without_source_does_not_invent_character_provenance(monkeypatch):
+    from mission_control import studio_media_backend
+    monkeypatch.setattr(
+        studio_media_backend, "_multipart_call",
+        lambda *args, **kwargs: {"id": "video_test", "status": "completed"},
+    )
+    job = studio_media_backend.create_video("A landscape")
+    assert job["source_reference_sha256"] is None
+    assert job["continuity_status"] == "unknown"
+    assert job["artifact_proven"] is False
