@@ -335,7 +335,7 @@ _INSIDE_DOORS = {
     "control-center": (
         "Control Center", "Transport software status and readiness.",
         (
-            ("Readiness", "Review execution requirements", "/transport/execution-readiness"),
+            ("Readiness", "Review execution requirements", "/transport/control-center/readiness"),
             ("Capabilities", "Review the 21 transport capabilities", "/transport/capabilities"),
             ("Transport status", "Read current software status", "/transport/status"),
         ),
@@ -363,6 +363,87 @@ def transport_operators_home():
 @bp.get("/transport/control-center")
 def transport_control_center_home():
     return _inside_door("control-center")
+
+
+_EXECUTION_READINESS_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>Execution Readiness · OAP Global Transport</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:800px;margin:auto;padding:20px 16px 48px}
+.back{display:inline-flex;align-items:center;min-height:44px;color:#efce68;text-decoration:none;font-weight:650}
+h1{font-size:clamp(1.8rem,7vw,2.6rem);line-height:1.1;margin:20px 0 8px}
+.intro,.muted{color:#bbb}.intro{margin:0 0 20px}
+.summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+.panel,details{border:1px solid #343434;background:#161616;border-radius:16px;padding:16px}
+.label{display:block;color:#bcbcbc;font-size:.8rem}
+.value{font-size:1rem;font-weight:700;margin-top:5px}
+section h2{font-size:1.15rem;margin:24px 0 12px}
+details{margin:10px 0;padding:0}
+summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;padding:16px;min-height:64px;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:1.3rem;color:#efce68}
+details[open] summary::after{content:"−"}
+.name{font-weight:700}.state{display:block;color:#bdbdbd;font-size:.82rem}
+.content{padding:0 16px 16px}
+ul{padding-left:20px;margin:8px 0;color:#e0e0e0}
+li{margin:7px 0}
+small{color:#bdbdbd}
+.notice{border-left:3px solid #e7c762;padding:10px 14px;background:#211c12;border-radius:6px}
+a:focus-visible,summary:focus-visible{outline:3px solid #efce68;outline-offset:3px}
+@media(max-width:350px){.summary{grid-template-columns:1fr}}
+</style></head><body><main>
+<nav><a class="back" href="/transport/control-center">← Control Center</a></nav>
+<h1>Execution Readiness</h1>
+<p class="intro">The evidence required before transport services can operate.</p>
+<div class="summary">
+<div class="panel"><span class="label">Software contracts</span>
+<div class="value">{{ "Configured" if state.software_execution_layer_ready else "Not ready" }}</div></div>
+<div class="panel"><span class="label">Live execution</span>
+<div class="value">{% if not state.evidence_store_reachable %}Unknown · blocked{% elif state.live_execution_authorised %}Evidence requirements met{% else %}Not authorised{% endif %}</div></div>
+</div>
+<div class="notice">
+{% if not state.evidence_store_reachable %}
+Evidence store not reachable. Live execution is blocked; verified coverage is unknown.
+{% elif not state.live_execution_authorised %}
+Live execution is not authorised for all areas. Missing requirements are shown below.
+{% else %}
+All required evidence references are recorded as verified. External authenticity is not independently software-verified.
+{% endif %}
+</div>
+<section aria-label="Execution evidence areas"><h2>Execution areas · {{ state.areas|length }}</h2>
+{% for key, area in state.areas.items() %}
+<details><summary><span><span class="name">{{ key.replace("_", " ").title() }}</span>
+<span class="state">{% if not state.evidence_store_reachable %}Evidence unavailable{% elif area.live_execution_authorised %}Requirements recorded{% else %}Not authorised{% endif %}</span>
+</span><span class="state">{{ area.verified|length }}/{{ area.requires|length }} recorded</span></summary>
+<div class="content">
+{% if state.evidence_store_reachable %}
+<p class="muted">Required evidence</p>
+<ul>{% for requirement in area.requires %}
+<li>{{ requirement.replace("_", " ").capitalize() }} —
+{% if requirement in area.verified %}Verified reference recorded{% else %}Missing{% endif %}</li>
+{% endfor %}</ul>
+{% else %}
+<p class="muted">Evidence coverage cannot be checked. These are required proofs, not confirmed missing records.</p>
+<ul>{% for requirement in area.requires %}
+<li>{{ requirement.replace("_", " ").capitalize() }}</li>
+{% endfor %}</ul>
+{% endif %}
+</div></details>
+{% endfor %}
+</section>
+<p class="muted">A verified reference alone does not prove external authenticity. Human Authority remains final.</p>
+</main></body></html>"""
+
+
+@bp.get("/transport/control-center/readiness")
+def transport_readiness_page():
+    return _no_store(make_response(render_template_string(
+        _EXECUTION_READINESS_PAGE, state=execution_readiness(),
+    )))
 
 
 @bp.get("/transport/execution-readiness")
