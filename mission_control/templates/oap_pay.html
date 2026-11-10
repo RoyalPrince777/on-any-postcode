@@ -9,6 +9,7 @@
 <style>
 :root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--panel2:#101712;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--green:#43e67c;--gold:#e3c86f}
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:980px;margin:auto;padding:18px 14px 110px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:950;letter-spacing:.08em}.back{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:8px 11px}.hero{padding:42px 0 22px}.eyebrow{color:var(--green);font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-size:clamp(2.7rem,9vw,5.8rem);line-height:.9;margin:8px 0 14px;letter-spacing:-.06em}.hero p{max-width:640px;color:var(--muted);line-height:1.55}.section-title{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:22px 0 10px}.section-title h2{margin:0;font-size:1rem}.section-title span{font-size:.76rem;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.card{border:1px solid var(--line);background:var(--panel);border-radius:18px;padding:17px;min-height:124px}.card h3{margin:0 0 9px;font-size:1rem}.state{font-size:.73rem;font-weight:900}.on{color:var(--green)}.off{color:var(--gold)}.card p{font-size:.76rem;color:var(--muted);line-height:1.45;margin:10px 0 0}.truth{margin-top:18px;border-left:3px solid var(--gold);background:#171407;border-radius:0 12px 12px 0;padding:12px;color:#eadca5}.meta{margin-top:18px;color:var(--muted);font-size:.79rem;line-height:1.5}.bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(980px,100%);display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:8px max(8px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom));background:rgba(5,7,6,.96);border-top:1px solid var(--line);backdrop-filter:blur(18px);z-index:20}.nav-item,.more-btn{appearance:none;border:0;background:transparent;color:var(--muted);text-decoration:none;text-align:center;font:inherit;font-size:.68rem;font-weight:800;padding:8px 3px;border-radius:12px}.nav-item strong,.more-btn strong{display:block;color:var(--text);font-size:1rem;margin-bottom:3px}.nav-item:hover,.nav-item:focus-visible,.more-btn:hover,.more-btn:focus-visible{background:var(--panel2);color:var(--text);outline:1px solid var(--line)}.drawer{position:fixed;inset:0;z-index:30;display:none;background:rgba(0,0,0,.65)}.drawer.open{display:block}.sheet{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:min(980px,100%);max-height:82vh;overflow:auto;background:#08100b;border:1px solid var(--line);border-radius:24px 24px 0 0;padding:18px 14px calc(24px + env(safe-area-inset-bottom))}.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.sheet-head h2{margin:0}.close{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;padding:8px 12px}.menu-list{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.menu-row{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);background:var(--panel);border-radius:15px;padding:13px}.menu-row span:first-child{font-weight:800}.lock{color:var(--gold);font-size:.72rem;font-weight:900}.ready{color:var(--green);font-size:.72rem;font-weight:900}.regulated{margin-top:18px}.regulated h3{margin:0 0 8px;font-size:.9rem;color:var(--gold)}@media(max-width:760px){.grid{grid-template-columns:1fr 1fr}.hero{padding-top:30px}.menu-list{grid-template-columns:1fr}.bottom-nav{grid-template-columns:repeat(6,1fr)}}@media(max-width:460px){.grid{grid-template-columns:1fr 1fr}.card{min-height:112px;padding:14px}.nav-item,.more-btn{font-size:.6rem}}
+.quick-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.quick-actions a{display:flex;align-items:center;justify-content:center;min-height:56px;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--text);text-decoration:none;text-align:center;font-weight:800;font-size:.83rem}.capability-details{margin-top:20px}.capability-details>summary{cursor:pointer;color:var(--gold);padding:12px 0;font-weight:800}.capability-details .section-title{margin-top:16px}@media(max-width:460px){.quick-actions{grid-template-columns:1fr 1fr}.quick-actions a:first-child{grid-column:span 2}}
 </style>
 </head>
 <body>
@@ -16,6 +17,12 @@
 <header class="top"><div class="brand">🌍 ON ANY POSTCODE</div><a class="back" href="/">OAP World</a></header>
 <section class="hero"><div class="eyebrow">OAP Pay · powered by SIKA controls</div><h1>Pay from your phone.</h1><p>Scan, share, request and move through one governed door. Contactless actions stay locked until real provider and regulatory evidence allows them.</p><button class="back" type="button" data-oap-install hidden>Install OAP Pay</button><div class="meta" data-oap-install-status role="status">Checking install support</div></section>
 
+<nav class="quick-actions" aria-label="OAP Pay quick actions">
+<a href="/pay/bank/me">My SIKA account</a>
+<a href="/pay/bank/me/activity">My activity</a>
+<a href="/pay/bank">Capabilities</a>
+</nav>
+<details class="capability-details" id="payMethods"><summary>Payment methods and capability details</summary>
 <div class="section-title"><h2>Phone Pay</h2><span>Phone-first payment actions</span></div>
 <section class="grid" aria-label="Phone payment methods">
 {% for method in pay.phone_payment_methods %}
@@ -36,6 +43,7 @@
 {% endfor %}
 </section>
 
+</details>
 <div class="truth"><strong>Truth:</strong> OAP Pay is the governed front door. A visible menu item does not grant regulated permission. Cards, cash-out, FX, bank accounts and customer-fund holding remain locked unless capability evidence explicitly allows them.</div>
 <div class="meta">SIKA Pay Gateway: {{ 'present' if pay.sika_pay_gateway else 'unproven' }} · Customer payment authority: {{ 'required' if pay.customer_payment_authority_required else 'unproven' }} · Provider calling: off · Money movement: off until authorised execution is proven.</div>
 </main>
@@ -77,6 +85,14 @@
 </div>
 
 <script>
+function showHashSection(){
+  const target = document.getElementById(location.hash.slice(1));
+  if (target && target.closest("#payMethods")) {
+    document.getElementById("payMethods").open = true;
+  }
+}
+window.addEventListener("hashchange", showHashSection);
+showHashSection();
 const drawer=document.getElementById('moreDrawer');
 const openButton=document.getElementById('moreButton');
 const closeButton=document.getElementById('closeMore');
