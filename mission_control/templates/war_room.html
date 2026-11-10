@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OAP SMI War Room</title>
 <style>
-:root{--b:#050806;--p:#09110c;--l:#24382b;--t:#f4fff6;--m:#93a79a;--g:#39e57f;--pu:#b795ff;--y:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--b);color:var(--t);font-family:Inter,system-ui,sans-serif}.w{max-width:1120px;margin:auto;padding:18px 13px 82px}.hero,.bar,.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hero{justify-content:space-between}.hero h1{font-size:clamp(2.3rem,7vw,4.4rem);margin:3px 0}.ey{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;font-weight:900;color:var(--g)}.muted{color:var(--m)}.pill,.btn,.chip{border:1px solid var(--l);border-radius:999px;padding:9px 12px;background:#08130d;color:inherit;text-decoration:none;font-weight:850}.btn{cursor:pointer;font:inherit}.btn[disabled]{cursor:not-allowed;opacity:.55}.action-result{margin-top:10px;white-space:pre-wrap}.action-result[data-signal="green"]{border-color:#2c8c52}.action-result[data-signal="yellow"]{border-color:#7a682b}.action-result[data-signal="purple"]{border-color:#7256aa}.pill{border-color:#7256aa;background:#151022}.btn.primary{border-color:#7256aa}.btn:focus{outline:2px solid var(--pu);outline-offset:2px}.grid{display:grid;gap:9px}.status{grid-template-columns:repeat(5,1fr);margin:14px 0}.panel,.card,details{border:1px solid var(--l);background:var(--p);border-radius:14px}.panel{padding:14px;margin-top:10px}.card{padding:11px}.card small{display:block;color:var(--m);margin-top:4px}.purple{border-color:#7256aa}.yellow{border-color:#7a682b}.green{border-color:#2c8c52}.mission{width:100%;padding:13px;border:1px solid var(--l);border-radius:12px;background:#050b07;color:var(--t);font:inherit;font-size:16px}.passes,.stars{grid-template-columns:repeat(7,1fr)}.agents{grid-template-columns:repeat(4,1fr)}.vote{grid-template-columns:2fr repeat(3,1fr)}.truth{border-left:3px solid var(--y);padding:9px 11px;background:#171409;color:#eadfae}.receipt{font-family:ui-monospace,monospace;line-height:1.6;background:#050b07;padding:12px;border-radius:12px;border:1px solid var(--l)}.protocol{grid-template-columns:repeat(5,1fr)}.protocol .card{min-height:88px}.signal-row{display:flex;gap:8px;flex-wrap:wrap}.signal{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--l);border-radius:999px;padding:7px 10px;font-weight:850;background:#071009}.meter{height:9px;border-radius:99px;background:#111c14;border:1px solid var(--l);overflow:hidden;margin-top:8px}.meter>span{display:block;height:100%;background:linear-gradient(90deg,var(--pu),var(--g));max-width:100%}.voice-grid{grid-template-columns:repeat(5,1fr)}.voice-grid blockquote{margin:8px 0 0;color:var(--m);font-size:.86rem;line-height:1.4}.review-grid{grid-template-columns:repeat(4,1fr)}.council-grid{grid-template-columns:repeat(7,1fr)}.debate-grid{grid-template-columns:repeat(4,1fr)}details{margin-top:10px}summary{cursor:pointer;padding:13px;font-weight:850}.inside{padding:0 13px 13px}.bottom{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:7px;padding:8px;background:#050806ef;border-top:1px solid var(--l)}.bottom a{color:inherit;text-decoration:none;border:1px solid var(--l);border-radius:999px;padding:8px 11px;background:#08130d;font-weight:800;font-size:.78rem}@media(max-width:850px){.status,.passes,.stars,.agents,.protocol,.voice-grid,.review-grid,.council-grid,.debate-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.status,.passes,.stars,.agents,.vote,.protocol,.voice-grid,.review-grid,.council-grid,.debate-grid{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}
+:root{--b:#050806;--p:#09110c;--l:#24382b;--t:#f4fff6;--m:#93a79a;--g:#39e57f;--pu:#b795ff;--y:#f1d36b}*{box-sizing:border-box}body{margin:0;background:var(--b);color:var(--t);font-family:Inter,system-ui,sans-serif}.w{max-width:1120px;margin:auto;padding:18px 13px 82px}.hero,.bar,.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hero{justify-content:space-between}.hero h1{font-size:clamp(2.3rem,7vw,4.4rem);margin:3px 0}.ey{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;font-weight:900;color:var(--g)}.muted{color:var(--m)}.pill,.btn,.chip{border:1px solid var(--l);border-radius:999px;padding:9px 12px;background:#08130d;color:inherit;text-decoration:none;font-weight:850}.btn{cursor:pointer;font:inherit}.btn[disabled]{cursor:not-allowed;opacity:.55}.action-result{margin-top:10px;white-space:pre-wrap}.action-result[data-signal="green"]{border-color:#2c8c52}.action-result[data-signal="yellow"]{border-color:#7a682b}.action-result[data-signal="purple"]{border-color:#7256aa}.pill{border-color:#7256aa;background:#151022}.btn.primary{border-color:#7256aa}.btn:focus{outline:2px solid var(--pu);outline-offset:2px}.grid{display:grid;gap:9px}.status{grid-template-columns:repeat(5,1fr);margin:14px 0}.panel,.card,details{border:1px solid var(--l);background:var(--p);border-radius:14px}.panel{padding:14px;margin-top:10px}.card{padding:11px}.card small{display:block;color:var(--m);margin-top:4px}.purple{border-color:#7256aa}.yellow{border-color:#7a682b}.green{border-color:#2c8c52}.mission,.smi-command-notes{width:100%;padding:13px;border:1px solid var(--l);border-radius:12px;background:#050b07;color:var(--t);font:inherit;font-size:16px}.passes,.stars{grid-template-columns:repeat(7,1fr)}.agents{grid-template-columns:repeat(4,1fr)}.vote{grid-template-columns:2fr repeat(3,1fr)}.truth{border-left:3px solid var(--y);padding:9px 11px;background:#171409;color:#eadfae}.receipt{font-family:ui-monospace,monospace;line-height:1.6;background:#050b07;padding:12px;border-radius:12px;border:1px solid var(--l)}.protocol{grid-template-columns:repeat(5,1fr)}.protocol .card{min-height:88px}.signal-row{display:flex;gap:8px;flex-wrap:wrap}.signal{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--l);border-radius:999px;padding:7px 10px;font-weight:850;background:#071009}.meter{height:9px;border-radius:99px;background:#111c14;border:1px solid var(--l);overflow:hidden;margin-top:8px}.meter>span{display:block;height:100%;background:linear-gradient(90deg,var(--pu),var(--g));max-width:100%}.voice-grid{grid-template-columns:repeat(5,1fr)}.voice-grid blockquote{margin:8px 0 0;color:var(--m);font-size:.86rem;line-height:1.4}.review-grid{grid-template-columns:repeat(4,1fr)}.council-grid{grid-template-columns:repeat(7,1fr)}.debate-grid{grid-template-columns:repeat(4,1fr)}details{margin-top:10px}summary{cursor:pointer;padding:13px;font-weight:850}.inside{padding:0 13px 13px}.bottom{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:7px;padding:8px;background:#050806ef;border-top:1px solid var(--l)}.bottom a{color:inherit;text-decoration:none;border:1px solid var(--l);border-radius:999px;padding:8px 11px;background:#08130d;font-weight:800;font-size:.78rem}@media(max-width:850px){.status,.passes,.stars,.agents,.protocol,.voice-grid,.review-grid,.council-grid,.debate-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.status,.passes,.stars,.agents,.vote,.protocol,.voice-grid,.review-grid,.council-grid,.debate-grid{grid-template-columns:1fr}.bottom{overflow-x:auto;justify-content:flex-start}.bottom a{white-space:nowrap}}
 </style><style>
 /* Additive 21x review presentation: existing War Room controls and receipts remain canonical. */
 .review-command{background:linear-gradient(140deg,#121026,#080d1b 65%,#08180e);border:1px solid #7152a5;box-shadow:0 12px 40px #0007}
@@ -65,7 +65,25 @@
 .smi-roster-status{color:#eed293}
 @media(max-width:760px){.smi-roster-command,.smi-roster-layout{grid-template-columns:1fr}.smi-roster-board{padding:12px}}
 </style>
-</head><body><main class="w">
+
+<style>
+/* The CC alias uses the original War Room controller with a mission-first view.
+   Hidden diagnostics remain available on /mission/war-room, not duplicated here. */
+body.smi-dynamic-cc main.w>section:not(#smi-cc),
+body.smi-dynamic-cc main.w>header.hero{display:none}
+body.smi-dynamic-cc main.w{max-width:850px;padding:clamp(12px,3vw,28px) 14px 92px}
+body.smi-dynamic-cc #smi-cc{margin:0;padding:clamp(14px,3vw,28px);border-color:#7256aa;background:linear-gradient(155deg,#141022,#08110e)}
+body.smi-dynamic-cc #smi-cc h2{font-size:clamp(1.45rem,4vw,2.2rem);margin:8px 0}
+body.smi-dynamic-cc #smi-cc .smi-dynamic-intro{line-height:1.6;max-width:65ch}
+.smi-dynamic-actions{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0}
+.smi-dynamic-actions .btn{display:inline-flex;align-items:center;min-height:44px}
+.smi-dynamic-review{font-size:.82rem;line-height:1.55;padding:11px 12px;border:1px solid #51436a;border-radius:10px;margin:12px 0;color:#efdda9}
+.smi-dynamic-review span{color:#aebdb3}
+body.smi-dynamic-cc #smi-cc>fieldset{margin:14px 0}
+body.smi-dynamic-cc #smi-cc .mission{min-height:44px}
+@media(max-width:520px){.smi-dynamic-actions{display:grid;grid-template-columns:1fr}.smi-dynamic-actions .btn{justify-content:center}}
+</style>
+</head><body class="{% if request.path == '/mission/smi-cc' %}smi-dynamic-cc{% endif %}"><main class="w">
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
 
@@ -165,7 +183,11 @@
   </div>
 </section>
 
-<section class="panel" id="smi-cc"><div class="ey">👑 SMI CC · Command Centre</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…">
+<section class="panel" id="smi-cc"><div class="ey">👑 SMI Dynamic CC · ONE BRAIN</div><h2>Send SMI your mission</h2>
+<p class="muted smi-dynamic-intro">SMI coordinates existing engineering, specialist reviews, evidence and recovery. Routing prepares a governed plan; it does not execute agents or approve a release.</p>
+<div class="smi-dynamic-actions"><a class="btn primary" href="/mission/ollama">🧠 Send to SMI Chat</a><a class="btn" href="/mission/smi/status">◈ Evidence status</a><a class="btn" href="/mission/war-room">⚔ Full War Room</a></div>
+<div class="smi-dynamic-review" aria-label="Seven SMI reviews">Truth Mode · Red Team · Devil’s Advocate · Expose · Verification · Guardian · Recovery <span>— all evidence-led, not separate agents</span></div>
+<input class="mission" maxlength="2000" aria-label="War Room mission" placeholder="Describe your mission…">
 <fieldset class="panel" id="smi-division-command">
 <legend>🧠 SMI divisions · select more than one</legend>
 <div class="bar" style="margin:8px 0">
@@ -176,11 +198,11 @@
 <label for="smi-command-thinking">Thinking</label>
 <select id="smi-command-thinking" class="chip"><option>AUTO</option><option>3</option><option>7</option><option>21</option></select>
 <label for="smi-command-extra">Additional instructions (optional)</label>
-<textarea class="mission" id="smi-command-extra" rows="2" maxlength="2000" placeholder="Add your mission notes here; this only prepares a plan."></textarea>
+<textarea class="smi-command-notes" id="smi-command-extra" rows="2" maxlength="2000" placeholder="Add your mission notes here; this only prepares a plan."></textarea>
 <div class="bar" style="margin-top:8px"><button id="smi-division-route" class="btn primary" type="button">🟣 Select SMI team</button></div>
 <p class="muted">Advisory routing only. No models, approval, release or agent actions are launched.</p>
 </fieldset><div class="bar" style="margin-top:10px">
-<button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><button class="btn js-depth" type="button" data-depth="3">MANUAL 3</button><button class="btn js-depth" type="button" data-depth="7">MANUAL 7</button><button class="btn js-depth" type="button" data-depth="21">MANUAL 21</button><button class="btn primary js-war-mode" type="button">⚔️ WAR ROOM</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
+<button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><button class="btn" type="button" id="smi-auto-stop" disabled aria-label="Stop SMI governed mission checks">■ STOP SMI</button><button class="btn js-depth" type="button" data-depth="3">MANUAL 3</button><button class="btn js-depth" type="button" data-depth="7">MANUAL 7</button><button class="btn js-depth" type="button" data-depth="21">MANUAL 21</button><button class="btn primary js-war-mode" type="button">⚔️ WAR ROOM</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔ Counter / Compare</a>
 <a class="btn" href="#seven-x">⭐ 7× DEEP DIVE · 7★ BOARD</a>
@@ -453,33 +475,71 @@
     }
     return payload;
   }
+  // One bounded mission cycle. STOP cancels the in-flight request and prevents
+  // any further requests. It does not grant approval or execution authority.
+  let autoMissionController=null;
+  const autoStop=document.getElementById('smi-auto-stop');
+  autoStop?.addEventListener('click',()=>{
+    if(!autoMissionController)return;
+    autoMissionController.abort();
+    autoStop.disabled=true;
+    show('yellow','SMI STOP received · remaining mission checks cancelled · Green held. No consequential work launched.');
+  });
   async function runAuto(button) {
+    if(autoMissionController)throw new Error('A governed mission cycle is already active.');
     const actions = ['alignment-check','aegis-check','function-health','green-gate','hrm-receipt'];
     const chosen = [...document.querySelectorAll('input[name="smi-division"]:checked')].map(el => el.value);
-    if (!chosen.length) throw new Error('Choose at least one SMI division.');
-    const routeResponse = await fetch('/mission/war-room/divisions/route', {
-      method: 'POST', credentials: 'same-origin',
-      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
-      body: JSON.stringify({divisions: chosen, thinking: document.getElementById('smi-command-thinking').value, mission: document.querySelector('.mission')?.value || '', notes: document.getElementById('smi-command-extra').value})
-    });
-    const selectedPlan = await routeResponse.json().catch(() => ({}));
-    if (!routeResponse.ok) throw new Error(selectedPlan?.error?.message || 'SMI routing failed');
-    const lines = ['🟣 SMI AUTO · ' + selectedPlan.thinking_depth + ' Thinking · advisory route',
-      'Divisions: ' + selectedPlan.divisions.map(x => x.division + ' (' + x.lead + ')').join(', '),
-      'Thinking plan: ' + selectedPlan.selected_checks.length + ' checks selected · 0 verified executed',
-      'Agent execution: NONE · Independent votes: NOT VERIFIED'];
-
-    if (selectedPlan.specialist_recommendation) lines.push('Suggested Matrix specialist: Mouse · Morpheus command · no family transfer');
-    for (const action of actions) {
-      const payload = await run(action);
-      const signal = payload.signal || payload.action?.signal || 'unknown';
-      const label = payload.label || payload.action?.label || action;
-      const state = payload.state || payload.action?.state || 'reviewed';
-      lines.push(label + ': ' + signal + ' · ' + state);
+    const dynamic=window.location.pathname==='/mission/smi-cc';
+    if (!chosen.length&&!dynamic) throw new Error('Choose at least one SMI division.');
+    const mission=document.querySelector('.mission')?.value.trim()||'';
+    if(!mission)throw new Error('Enter a mission before running SMI.');
+    const controller=new AbortController();
+    autoMissionController=controller;
+    if(autoStop)autoStop.disabled=false;
+    const lines=['SMI mission · governed checks only','Mission: '+mission];
+    let completed=0;
+    try {
+      const routeResponse = await fetch('/mission/war-room/divisions/route', {
+        method: 'POST', credentials: 'same-origin', signal:controller.signal,
+        headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+        body: JSON.stringify({divisions: dynamic?['auto']:chosen, thinking: document.getElementById('smi-command-thinking').value, mission, notes: document.getElementById('smi-command-extra').value})
+      });
+      const selectedPlan = await routeResponse.json().catch(() => ({}));
+      if (!routeResponse.ok) throw new Error(selectedPlan?.error?.message || 'SMI routing failed');
+      if(controller.signal.aborted)return;
+      lines.push('🟣 SMI AUTO · ' + selectedPlan.thinking_depth + ' Thinking · advisory route');
+      lines.push('Mission-fit selection: '+selectedPlan.divisions.map(item=>item.division).join(', '));
+      lines.push('Thinking plan: ' + selectedPlan.selected_checks.length + ' checks selected · 0 verified executed');
+      lines.push('Agent execution: NONE · Independent votes: NOT VERIFIED');
+      for (const action of actions) {
+        if(controller.signal.aborted)break;
+        const response=await fetch(endpoint(action),{
+          method:'POST',credentials:'same-origin',signal:controller.signal,
+          headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}
+        });
+        const payload=await response.json().catch(()=>({}));
+        if(!response.ok)throw new Error(payload?.error?.message||action+' returned HTTP '+response.status);
+        if(controller.signal.aborted)break;
+        completed++;
+        const state=payload.state||payload.action?.state||'unknown';
+        const signal=payload.signal||payload.action?.signal||'unknown';
+        lines.push(action+': '+signal+' · '+state);
+        show('purple',lines.join('\\n')+'\\nProgress: '+completed+'/'+actions.length+' evidence endpoints queried · Green NOT inferred');
+      }
+      if(!controller.signal.aborted){
+        lines.push('Checks queried: '+completed+'/'+actions.length+' · execution authority unchanged');
+        lines.push('Proof actions queried: '+completed+'/'+actions.length+' (not equivalent to Thinking checks)');
+        lines.push('Verified target runtime: UNKNOWN · Founder Final: required');
+        show('purple',lines.join('\\n'));
+      }
+    }catch(error){
+      lines.push(controller.signal.aborted?'STOPPED · no further checks':'FAILED · '+String(error?.message||'Unknown error'));
+      lines.push('Checks queried: '+completed+'/'+actions.length+' · Green held');
+      show('yellow',lines.join('\\n'));
+    }finally{
+      if(autoMissionController===controller)autoMissionController=null;
+      if(autoStop)autoStop.disabled=true;
     }
-    lines.push('Proof actions queried: ' + actions.length + ' (not equivalent to Thinking checks)');
-    lines.push('👑 Founder Final: unchanged · separate authority');
-    show('purple', lines.join('\n'));
   }
   // Evidence-backed perspectives; this never claims separate agent execution.
   const simResult=document.getElementById('simulation-result');

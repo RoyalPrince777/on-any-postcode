@@ -560,6 +560,35 @@ def oap_os_offline():
     return response
 
 
+@app.get("/offline/smi")
+def oap_smi_local_offline():
+    """Read-only local SMI Expose fallback; never a Founder login bypass.
+
+    Works without an internet connection if the local Flask server is running.
+    Does not expose private sessions, saved data, votes or live health claims.
+    """
+    if (
+        os.environ.get("OAP_LOCAL_MODE", "").strip().lower() != "true"
+        or request.remote_addr not in {"127.0.0.1", "::1"}
+        or request.host.split(":", 1)[0] not in {"127.0.0.1", "localhost", "[::1]"}
+    ):
+        response = make_response("", 404)
+    else:
+        response = send_from_directory(
+            os.path.join(app.root_path, "static"),
+            "smi-offline-expose.html",
+            mimetype="text/html",
+        )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; style-src 'unsafe-inline'; "
+        "base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+    )
+    return response
+
+
 def _csrf_failure():
     return jsonify(
         error={

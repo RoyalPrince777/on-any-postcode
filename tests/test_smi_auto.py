@@ -263,3 +263,29 @@ def test_matrix_home_groups_preserve_character_home_and_external_smi_boundary():
     assert agents.matrix_home_for('Niobe')['group_id'] == 'logos'
     assert agents.matrix_home_for('Nirmata') is None
     assert agents.matrix_home_for('Mouse')['execution_granted'] is False
+
+
+def test_mission_fit_auto_divisions_are_bounded_advisory_only():
+    from mission_control import smi_auto
+    result = smi_auto.route_divisions(
+        ["auto"],
+        thinking="AUTO",
+        mission="Fix mobile UI and recover an authentication failure",
+    )
+    chosen = {item["division"] for item in result["divisions"]}
+    assert chosen == {"truth", "engineering", "recovery"}
+    assert result["selection_only"] is True
+    assert result["agents_executed"] is False
+    assert result["execution_granted"] is False
+    assert result["approval_granted"] is False
+    assert result["human_authority_final"] is True
+
+
+def test_mission_fit_auto_requires_nonempty_bounded_mission():
+    import pytest
+
+    from mission_control import smi_auto
+    with pytest.raises(ValueError, match="invalid_mission"):
+        smi_auto.route_divisions(["auto"], mission="")
+    with pytest.raises(ValueError, match="invalid_mission"):
+        smi_auto.route_divisions(["auto"], mission="x" * 2001)
