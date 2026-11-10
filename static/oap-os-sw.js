@@ -28,10 +28,10 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then((cache) => cache.addAll(PUBLIC_SHELL))
-      .catch(async (error) => {
-        // Never leave a partially populated new shell as a valid install.
-        await caches.delete(CACHE_VERSION);
-        throw error; // The previous active worker and its cache remain usable.
+      .catch((error) => {
+        // Installation fails; do not delete a cache possibly shared with the
+        // current active worker. A fully isolated staging cache is still unproven.
+        throw error;
       })
   );
 });
