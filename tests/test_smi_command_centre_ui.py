@@ -204,5 +204,22 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn("prefers-reduced-motion:reduce", styles)
 
 
+    def test_expose_is_compact_and_uses_existing_health_request(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        styles = (STATIC / "smi_command_centre.css").read_text(encoding="utf-8")
+        noise = (STATIC / "smi_noise_strip.js").read_text(encoding="utf-8")
+        self.assertIn('const expose=document.createElement("details")', source)
+        self.assertIn('exposeHeading.textContent="Expose · not checked"', source)
+        self.assertIn('const report=review?.expose', source)
+        self.assertIn('report.evidence_only!==true', source)
+        self.assertIn('renderExpose(data.mission_to_100)', source)
+        self.assertIn('report.findings.slice(0,5)', source)
+        self.assertIn('additional unresolved signals in the canonical evidence record', source)
+        self.assertIn('release_held===true', source)
+        self.assertIn('.smi-command-evidence .smi-expose>summary:focus-visible', styles)
+        self.assertNotIn('fetch(', noise)
+        self.assertEqual(source.count('const expose=document.createElement("details")'), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
