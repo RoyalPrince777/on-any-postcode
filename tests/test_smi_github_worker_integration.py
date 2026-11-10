@@ -1,4 +1,5 @@
 """Boundary checks for SMI GitHub intake integration in the existing worker."""
+
 from pathlib import Path
 
 
