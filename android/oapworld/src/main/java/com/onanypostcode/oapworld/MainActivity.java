@@ -2,6 +2,9 @@ package com.onanypostcode.oapworld;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.DownloadManager;
+import android.content.Context;
+import android.os.Environment;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -17,6 +20,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -242,6 +246,54 @@ public final class MainActivity extends ComponentActivity {
                 omnibox.setText(url);
                 refreshNavigationState();
             }
+        });
+
+        // Explicit, user-confirmed downloads. Do not forward cookies or page credentials.
+        // Android DownloadManager owns transfers; no OAP traffic proxy or storage permission.
+        webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
+            Uri target = Uri.parse(url == null ? "" : url);
+            if (!"https".equalsIgnoreCase(target.getScheme())
+                    || target.getHost() == null
+                    || target.getHost().isEmpty()
+                    || target.getUserInfo() != null) {
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Download unavailable")
+                        .setMessage("KORADASO only accepts direct HTTPS file downloads.")
+                        .setPositiveButton("OK", (dialog, which) -> {})
+                        .show();
+                return;
+            }
+            String hostname = target.getHost();
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Download file?")
+                    .setMessage("Download from " + hostname + " to Android Downloads?")
+                    .setPositiveButton("Download", (dialog, which) -> {
+                        try {
+                            DownloadManager.Request request = new DownloadManager.Request(target);
+                            request.setTitle(URLUtil.guessFileName(url, contentDisposition, mimeType));
+                            request.setMimeType(mimeType == null || mimeType.isEmpty()
+                                    ? "application/octet-stream" : mimeType);
+                            request.setNotificationVisibility(
+                                    DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                            request.setDestinationInExternalPublicDir(
+                                    Environment.DIRECTORY_DOWNLOADS,
+                                    URLUtil.guessFileName(url, contentDisposition, mimeType));
+                            DownloadManager manager =
+                                    (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+                            if (manager == null) {
+                                throw new IllegalStateException("download_manager_unavailable");
+                            }
+                            manager.enqueue(request);
+                        } catch (RuntimeException error) {
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle("Download not started")
+                                    .setMessage("Android could not start this download.")
+                                    .setPositiveButton("OK", (closed, ignored) -> {})
+                                    .show();
+                        }
+                    })
+                    .setNegativeButton("Cancel", (dialog, which) -> {})
+                    .show();
         });
 
         backButton.setOnClickListener(v -> {
