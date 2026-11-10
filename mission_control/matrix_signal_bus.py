@@ -212,8 +212,9 @@ def neo_truth_review(
         if len(artifact) > 500 or len(timestamp) > 64:
             raise ValueError("Neo evidence provenance exceeds limits")
         seen.add(gate)
-        # 'Confirmed' is an unverified claim if no artifact/time was supplied.
-        if state == "confirmed" and (not artifact or not timestamp):
+        # Caller-supplied links and timestamps are not authenticated receipts.
+        # No supplied "confirmed" claim is promoted by this read-only review.
+        if state == "confirmed":
             state = "unknown"
         reviewed.append({
             "gate": gate,
@@ -229,7 +230,8 @@ def neo_truth_review(
         if row["status"] in {"unknown", "not_tested"}
     )
     unverified = tuple(
-        row["gate"] for row in reviewed if row["status"] == "confirmed"
+        item["gate"] for item in evidence_rows
+        if item["status"].strip().lower() == "confirmed"
     )
     return {
         "mode": "smi_neo_truth_red_team",
@@ -277,7 +279,9 @@ def neo_unlock_status() -> dict[str, Any]:
         "a3_policy_ready": bool(policy["a3_policy_ready"]),
         "a4_policy_ready": bool(policy["a4_policy_ready"]),
         "a5_preparation_configured": bool(policy["a5_enabled"]),
-        "a6_execution_configured": bool(policy["a6_enabled"]),
+        "a6_execution_configured": bool(
+            policy["a6_enabled"] and policy["a6_matrix_control"]
+        ),
         "a6_operation_evidence_verified": False,
         "a7_enabled": False,
         "can_self_approve": False,
