@@ -173,6 +173,90 @@ def neo_review_response(
     }
 
 
+# One bounded review surface, not a second voting or execution system.
+# Caller-provided evidence is an observation until independently authenticated.
+NEO_EVIDENCE_STATES = frozenset(
+    {"confirmed", "failing", "unknown", "not_tested"}
+)
+
+
+def neo_truth_review(
+    evidence_rows: tuple[dict[str, str], ...],
+) -> dict[str, Any]:
+    """Inspect supplied evidence without certifying the observations.
+
+    Real votes, HRM durable receipts, CI proofs and percentages are NOT created
+    by this projection. Use their authoritative existing systems for proof.
+    """
+    if not isinstance(evidence_rows, tuple):
+        raise TypeError("Neo evidence must be a tuple of bounded records")
+    if len(evidence_rows) > 21:
+        raise ValueError("At most 21 Neo evidence records")
+    reviewed: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in evidence_rows:
+        if not isinstance(item, dict):
+            raise TypeError("Neo evidence record must be a dictionary")
+        if set(item) != {"gate", "status", "artifact", "timestamp"}:
+            raise ValueError("Neo evidence requires gate/status/artifact/timestamp")
+        if any(not isinstance(value, str) for value in item.values()):
+            raise TypeError("Neo evidence values must be strings")
+        gate = item["gate"].strip()
+        state = item["status"].strip().lower()
+        artifact = item["artifact"].strip()
+        timestamp = item["timestamp"].strip()
+        if not gate or len(gate) > 100 or gate in seen:
+            raise ValueError("Neo evidence gate must be short and unique")
+        if state not in NEO_EVIDENCE_STATES:
+            raise ValueError("Unknown Neo evidence state")
+        if len(artifact) > 500 or len(timestamp) > 64:
+            raise ValueError("Neo evidence provenance exceeds limits")
+        seen.add(gate)
+        # 'Confirmed' is an unverified claim if no artifact/time was supplied.
+        if state == "confirmed" and (not artifact or not timestamp):
+            state = "unknown"
+        reviewed.append({
+            "gate": gate,
+            "status": state,
+            "artifact": artifact,
+            "timestamp": timestamp,
+        })
+    blockers = tuple(
+        row["gate"] for row in reviewed if row["status"] == "failing"
+    )
+    missing = tuple(
+        row["gate"] for row in reviewed
+        if row["status"] in {"unknown", "not_tested"}
+    )
+    unverified = tuple(
+        row["gate"] for row in reviewed if row["status"] == "confirmed"
+    )
+    return {
+        "mode": "smi_neo_truth_red_team",
+        "reviewer_roles": (
+            "Neo", "Shere Khan", "Bagheera", "Agent Smith"
+        ),
+        "role_output_is_independent_agent_vote": False,
+        "evidence": tuple(reviewed),
+        "failing_gates": blockers,
+        "missing_proof_gates": missing,
+        "claimed_confirmed_pending_independent_verification": unverified,
+        "next_bounded_upgrade": (
+            blockers[0] if blockers else
+            missing[0] if missing else
+            "Independent evidence verification and Founder Final"
+        ),
+        "verified_vote_count": None,
+        "star_rating": None,
+        "completion_percentage": None,
+        "certified": False,
+        "execution_granted": False,
+        "guardian_required": True,
+        "hrm_readback_required": True,
+        "founder_final_required": True,
+    }
+
+
 ALLOWED_URGENCY: tuple[str, ...] = ("low", "normal", "high", "critical")
 
 
