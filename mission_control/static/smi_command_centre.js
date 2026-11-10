@@ -792,8 +792,8 @@
    const response=await fetch(cfg.healthUrl,{cache:"no-store",credentials:"same-origin",signal:request.signal});
    if(!response.ok)throw new Error("Health endpoint unavailable");
    const data=await response.json();
-   renderExpose(data?.mission_to_100);
    if(!data||!data.checks||typeof data.checks!=="object"||Array.isArray(data.checks))throw new Error("No check evidence");
+   renderExpose(data.mission_to_100);
    proofNodes.forEach(({card,state},key)=>{
     const proven=data.checks[key]===true;
     card.dataset.proven=String(proven);
