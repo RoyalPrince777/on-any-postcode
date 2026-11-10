@@ -79,6 +79,20 @@ def test_koradaso_public_offline_shell_reuses_oap_worker_without_private_caching
     assert '"/mission"' in worker
 
 
+def test_koradaso_stages_public_worker_while_other_oap_clients_are_active():
+    """Protect existing Link Up and Studio clients; no live multi-tab claim."""
+    worker = Path("static/oap-os-sw.js").read_text(encoding="utf-8")
+    updater = Path("static/koradaso_auto_update.js").read_text(encoding="utf-8")
+    assert 'const CACHE_VERSION = "oap-os-public-v1.2-staged";' in worker
+    assert "self.skipWaiting()" not in worker
+    assert "self.clients.claim()" not in worker
+    assert "cache.addAll(PUBLIC_SHELL)" in worker
+    assert 'if (registration && registration.waiting)' in updater
+    assert 'updateStatus("pending")' in updater
+    assert "window.location.reload()" in updater
+    assert 'if (isPrivatePath(url.pathname)) return;' in worker
+
+
 def test_koradaso_offline_worker_executes_public_fallback_without_private_interception():
     """Execute the actual worker in Node: no browser/device or AOSP acceptance claim."""
     import subprocess
