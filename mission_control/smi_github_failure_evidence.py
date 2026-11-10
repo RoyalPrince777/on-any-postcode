@@ -11,8 +11,8 @@ import re
 from collections.abc import Callable
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 REPO = "RoyalPrince777/on-any-postcode"
 API = f"https://api.github.com/repos/{REPO}"
@@ -26,7 +26,7 @@ class _SafeLogRedirect(HTTPRedirectHandler):
         host = (target.hostname or "").lower()
         # Follow GitHub Actions log redirects only over HTTPS and never
         # forward the API token to a redirected download host.
-        if target.scheme != "https" or not (host == "github.com" or host.endswith(".githubusercontent.com") or host.endswith(".githubassets.com") or host.endswith(".blob.core.windows.net")):
+        if target.scheme != "https" or not (host == "github.com" or host.endswith((".githubusercontent.com", ".githubassets.com", ".blob.core.windows.net"))):
             raise ValueError("github_log_redirect_not_allowlisted")
         return Request(newurl, headers={"User-Agent": "oap-smi-evidence-reader"})
 
@@ -54,7 +54,7 @@ def _safe_log_summary(raw: str) -> tuple[str, ...]:
         ("dependency_resolution", r"Could not resolve|Could not find.*gradle|Plugin .* was not found"),
         ("android_sdk", r"SDK location not found|Failed to find Build Tools|sdkmanager: command not found"),
     )
-    return tuple(name for name, pattern in patterns if re.search(pattern, raw, flags=re.I))
+    return tuple(name for name, pattern in patterns if re.search(pattern, raw, flags=re.IGNORECASE))
 
 
 def inspect_failed_job_logs(evidence: dict[str, Any], *, token: str,
@@ -103,7 +103,7 @@ def _fetch_json(url: str, token: str) -> dict[str, Any]:
         raise ValueError("github_evidence_too_large")
     data = json.loads(payload)
     if not isinstance(data, dict):
-        raise ValueError("github_evidence_not_object")
+        raise ValueError("github_evidence_not_object")  # noqa: TRY004 - preserve proof error contract
     return data
 
 
@@ -136,7 +136,7 @@ def inspect_failed_run(run_id: object, *, token: str, fetch: Fetch = _fetch_json
             return {**result, "error": "repository_identity_mismatch"}
         jobs_data = fetch(f"{API}/actions/runs/{run_id}/jobs?per_page=100", token)
         if not isinstance(jobs_data, dict):
-            raise ValueError("jobs_not_object")
+            raise ValueError("jobs_not_object")  # noqa: TRY004 - preserve proof error contract
         jobs = jobs_data.get("jobs")
         count = jobs_data.get("total_count")
         if (not isinstance(count, int) or isinstance(count, bool)
@@ -146,7 +146,7 @@ def inspect_failed_run(run_id: object, *, token: str, fetch: Fetch = _fetch_json
         failed = []
         for job in jobs:
             if not isinstance(job, dict):
-                raise ValueError("invalid_job")
+                raise ValueError("invalid_job")  # noqa: TRY004 - preserve proof error contract
             if job.get("conclusion") != "failure":
                 continue
             jid = job.get("id")
@@ -154,7 +154,7 @@ def inspect_failed_run(run_id: object, *, token: str, fetch: Fetch = _fetch_json
                 raise ValueError("invalid_job_id")
             steps = job.get("steps")
             if not isinstance(steps, list):
-                raise ValueError("invalid_job_steps")
+                raise ValueError("invalid_job_steps")  # noqa: TRY004 - preserve proof error contract
             failed_steps = tuple(
                 {"name": str(s.get("name", ""))[:160], "number": s.get("number")}
                 for s in steps if isinstance(s, dict) and s.get("conclusion") == "failure"
@@ -187,7 +187,7 @@ def discover_recent_failed_runs(*, token: str, fetch: Fetch = _fetch_json) -> di
             token,
         )
         if not isinstance(response, dict):
-            raise ValueError("runs_not_object")
+            raise ValueError("runs_not_object")  # noqa: TRY004 - preserve proof error contract
         runs = response.get("workflow_runs")
         if not isinstance(runs, list) or len(runs) > 10:
             raise ValueError("run_list_unavailable")
@@ -197,7 +197,7 @@ def discover_recent_failed_runs(*, token: str, fetch: Fetch = _fetch_json) -> di
         ids = []
         for run in runs:
             if not isinstance(run, dict):
-                raise ValueError("invalid_run")
+                raise ValueError("invalid_run")  # noqa: TRY004 - preserve proof error contract
             if run.get("conclusion") != "failure":
                 continue
             if not isinstance(run.get("repository"), dict) or run["repository"].get("full_name") != REPO:
