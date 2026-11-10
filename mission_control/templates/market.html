@@ -64,7 +64,7 @@
       {% elif auth_user %}
       <a class="mc-secondary-link" href="{{ request.path }}?mine=1">My Market</a>
       {% else %}
-      <a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Enter My World</a>
+      <a class="mc-secondary-link" href="{{ url_for('auth_page', next=(request.path ~ '?mine=1') if request.args.get('mine') == '1' else request.path) }}">Enter My World</a>
       {% endif %}
     </div>
   </header>
@@ -125,7 +125,7 @@
             {% endif %}
             <p class="market-meta">{% if rs.get('count') %}⭐ {{ rs.get('average') }}/5 · {{ rs.get('count') }} review{{ '' if rs.get('count') == 1 else 's' }}{% else %}No reviews yet{% endif %}</p>
             <div class="market-actions">
-              <a class="mc-secondary-link" href="{{ request.path }}?product={{ product.product_id }}">View item</a>
+              <a class="mc-secondary-link" href="{{ request.path }}?product={{ product.product_id }}{{ '&mine=1' if mine_view else '' }}">View item</a>
               {% if supplier and not supplier.get('order_intent_allowed') %}
               <span class="market-notice">Ordering unavailable for this item.</span>
               {% elif auth_user %}
