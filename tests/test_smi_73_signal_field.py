@@ -86,3 +86,30 @@ def test_all_claimed_proven_does_not_imply_live_certification():
     assert review["red_team"]["hold_green"] is False
     assert review["devils_advocate"]["score_is_release_certification"] is False
     assert review["devils_advocate"]["test_pass_is_target_runtime_proof"] is False
+
+
+def test_expose_prioritises_real_release_blockers_without_new_agents():
+    evidence = {key: "proven" for key in field.SIGNAL_KEYS}
+    evidence["crown.recovery_proof"] = "blocked"
+    evidence["security.access"] = "unknown"
+    report = field.evaluate(evidence)["adversarial_review"]
+    exposed = report["expose"]
+    assert exposed["release_held"] is True
+    assert exposed["unresolved_count"] == 2
+    assert exposed["evidence_only"] is True
+    assert exposed["no_invented_success"] is True
+    assert exposed["no_new_execution_authority"] is True
+    assert exposed["findings"][0]["signal"] == "crown.recovery_proof"
+    assert exposed["findings"][0]["priority"] == "release_blocker"
+    assert exposed["findings"][0]["state"] == "blocked"
+    assert exposed["findings"][1]["signal"] == "security.access"
+    assert exposed["findings"][1]["priority"] == "missing_evidence"
+    assert report["separate_agents_created"] is False
+
+
+def test_expose_no_problems_does_not_certify_live_runtime():
+    result = field.evaluate({key: "proven" for key in field.SIGNAL_KEYS})
+    report = result["adversarial_review"]
+    assert report["expose"]["findings"] == ()
+    assert report["expose"]["release_held"] is False
+    assert report["devils_advocate"]["score_is_release_certification"] is False
