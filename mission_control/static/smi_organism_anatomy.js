@@ -301,7 +301,14 @@ function create(opts={}){
  const entries=new Map(),history=[],listeners=new Set();
  let form="original",stopped=false;
  function notify(){const snapshot=getSnapshot();for(const fn of listeners){try{fn(snapshot);}catch(_err){/* observer isolation */}}return snapshot;}
- function getSnapshot(){return Object.freeze({identity:"SMI",form,stopped,dimensions,foundations,upgrades,systems:anatomical,regions:Object.freeze(Object.fromEntries(entries)),history:Object.freeze(history.slice())});}
+ function getSnapshot(){
+  // Project through the same expiry check as stateFor: historical evidence must never remain healthy in aggregate views.
+  const regions=Object.fromEntries(Array.from(entries.keys(),id=>{
+   const separator=id.indexOf(":");
+   return [id,stateFor(id.slice(0,separator),id.slice(separator+1))];
+  }));
+  return Object.freeze({identity:"SMI",form,stopped,dimensions,foundations,upgrades,systems:anatomical,regions:Object.freeze(regions),history:Object.freeze(history.slice())});
+ }
  function observe(input){
   if(stopped)return false;
   if(!input||typeof input!=="object"||!known.has(region(input.system,input.part)))return false;
