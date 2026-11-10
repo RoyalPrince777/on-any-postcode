@@ -30,17 +30,20 @@
       const layers=Object.fromEntries(LAYERS.map(name=>[name,Boolean(
         /^[a-f0-9]{64}$/.test(String(hashes[name]||""))&&Number(frames[name]||0)>0
       )]));
-      const fullRigProven=source?.fullBodyRigProven===true&&LAYERS.every(name=>layers[name]);
+      // The source renderer only animates cropped pixels: no articulated rig proof.
+      const sourcePixelLayersObserved=source?.sourcePixelLayersObserved===true&&LAYERS.every(name=>layers[name]);
+      const fullRigProven=false;
       return Object.freeze({
         version:"1.0-live-source-pixel-proof",
         asset:APPROVED_ART.path,assetSha256:APPROVED_ART.sha256,
         enabled:Boolean(motionSession),active:Boolean(source?.live),
-        proofState:fullRigProven?"machine_proven":"awaiting_runtime_frames",
+        proofState:sourcePixelLayersObserved?"source_pixel_motion_observed":"awaiting_runtime_frames",
         state,epoch,stopped,paused,layers:Object.freeze(layers),
         acceptedEvents,rejectedEvents,emitsFrames:false,
         rendererOwner:"smi_source_pixel_motion",
-        fullRigProven,
-        accurateSoftwareLipSyncProven:source?.accurateSoftwareLipSyncProven===true,
+        sourcePixelLayersObserved,fullRigProven,
+        audioCueTimingObserved:source?.audioCueTimingObserved===true,
+        accurateSoftwareLipSyncProven:false,
         accurateHumanLipSyncProven:false,
         physicalDeviceProofExcluded:true,
         storesAudio:false,storesTranscript:false,externalTelemetry:false,
