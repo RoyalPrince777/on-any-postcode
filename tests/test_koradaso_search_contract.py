@@ -35,7 +35,7 @@ def test_koradaso_public_smi_update_checks_real_interface_without_deploying(clie
     assert "history.length||input.value.trim()" in source
     assert "updateButton.disabled=false" in source
     assert "model and server upgrades require governed release" in source
-    assert 'href="/studio"' in SOURCE.read_text(encoding="utf-8")
+    assert 'href="/studio?source=koradaso"' in SOURCE.read_text(encoding="utf-8")
 
 
 def test_koradaso_public_offline_shell_reuses_oap_worker_without_private_caching(client):
@@ -288,7 +288,7 @@ def test_koradaso_original_logo_and_core_boundary(client):
     logo = client.get(logo_path)
     assert logo.status_code == 200
     assert logo.mimetype == "image/jpeg"
-    assert 'class="public-smi" href="/studio"' in html
+    assert 'class="public-smi" href="/studio?source=koradaso"' in html
     for prefix in ("/auth", "/mission", "/smi"):
         assert f'href="{prefix}' not in html
     assert 'action="/search" method="get"' in html
