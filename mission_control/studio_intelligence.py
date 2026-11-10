@@ -350,6 +350,13 @@ def execute_generation(
         " Preserve the exact same primary character identity from the source reference: "
         "face, skin tone, apparent age, body proportions, hair/beard, signature clothing, "
         "accessories and distinctive visual markers. Do not substitute a different person. "
+        "Preserve every other identifiable person and animal separately, including facial "
+        "features, coat markings, body shape, outfit, jewellery and distinct accessories. "
+        "Keep visible logos, lettering, props, and architecture unchanged unless the user "
+        "explicitly requests a change. Permit natural acting, expressions, eye movement, "
+        "head and body motion without changing identity. If dialogue is requested, lip "
+        "movement must follow only the correct speaker and supplied audio; a covered mouth "
+        "must not be invented. These are generation instructions, not proof of continuity. "
         "Only change elements explicitly requested."
     )
     if lock_enabled and not source_data:
