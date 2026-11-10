@@ -294,7 +294,9 @@
     const authenticated = {{ 'true' if auth_user else 'false' }};
     if (!authenticated) return;
     const csrf = {{ oap_csrf_token|tojson }};
-    const keyName = 'oap-market-basket-v1';
+    // Keep basket and retry keys separate for each signed-in identity. Do not
+    // migrate the old unscoped basket: it may belong to another account.
+    const keyName = 'oap-market-basket-v2:' + {{ (auth_user['id'] if auth_user else '')|tojson }};
     const basketList = document.getElementById('market-basket-list');
     const status = document.getElementById('market-checkout-status');
     const ordersList = document.getElementById('market-order-list');
