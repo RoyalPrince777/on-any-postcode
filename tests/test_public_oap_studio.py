@@ -74,7 +74,7 @@ def test_public_smi_seven_recommendations_prefill_real_chat_not_unready_media():
 
 def test_koradaso_public_smi_local_response_preserves_public_authority(monkeypatch):
     """Mock the real public gateway, never a live or offline model claim."""
-    from mission_control import public_studio_runtime, oap_inference_gateway
+    from mission_control import oap_inference_gateway, public_studio_runtime
 
     called = {}
     monkeypatch.setattr(public_studio_runtime, "_allow", lambda key: True)
@@ -106,7 +106,8 @@ def test_koradaso_public_smi_local_response_preserves_public_authority(monkeypat
 
 def test_koradaso_public_smi_providers_unavailable_fail_closed(monkeypatch):
     import pytest
-    from mission_control import public_studio_runtime, oap_inference_gateway
+
+    from mission_control import oap_inference_gateway, public_studio_runtime
 
     monkeypatch.setattr(public_studio_runtime, "_allow", lambda key: True)
     monkeypatch.setattr(oap_inference_gateway, "FALLBACK_ENABLED", False)
