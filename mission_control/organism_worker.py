@@ -231,7 +231,9 @@ def run() -> int:
                     released_state = store.fail(
                         job, worker_id, error_code="worker_stop_before_handler"
                     )
-                except RuntimeError:
+                except RuntimeError as exc:
+                    if "job lease lost before failure recording" not in str(exc):
+                        raise
                     released_state = "LEASE_ALREADY_RELEASED"
                 _log(
                     "runtime_job_interrupted",
@@ -277,7 +279,9 @@ def run() -> int:
                         released_state = store.fail(
                             job, worker_id, error_code="worker_stop_after_handler"
                         )
-                    except RuntimeError:
+                    except RuntimeError as exc:
+                        if "job lease lost before failure recording" not in str(exc):
+                            raise
                         released_state = "LEASE_ALREADY_RELEASED"
                     _log(
                         "runtime_job_interrupted",
