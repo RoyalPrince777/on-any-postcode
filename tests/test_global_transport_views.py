@@ -357,8 +357,28 @@ def test_original_transport_truth_apis_preserved_after_ui_upgrade():
         "/transport/capabilities",
         "/transport/execution-readiness",
         "/transport/shared-bikes/status",
-        "/transport/ride/guardian/status",
     ):
         response = client.get(path)
         assert response.mimetype == "application/json"
         assert response.headers["Cache-Control"] == "no-store, private"
+
+
+def test_guardian_status_stays_protected_not_a_public_menu_api():
+    app = _app()
+    routes = {rule.rule for rule in app.url_map.iter_rules()}
+    assert "/transport/ride/guardian/status" in routes
+    assert global_transport_views.status()["public_routes"]["guardian"] == "/transport/guardian"
+
+
+def test_transport_front_menu_has_one_clear_seven_door_navigation():
+    response = _app().test_client().get("/transport")
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'aria-label="Global Transport main menu"' in html
+    assert 'href="/world"' in html
+    assert "One World → One Front Door → Many Transport Systems Inside." not in html
+    assert "Software surface ready" not in html
+    assert html.count('class="card" href=') == 7
+    for name, _, href in global_transport_views.PUBLIC_DOORS:
+        assert f"<strong>{name}</strong>" in html
+        assert f'href="{href}"' in html
