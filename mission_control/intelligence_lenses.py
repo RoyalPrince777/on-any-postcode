@@ -48,7 +48,7 @@ LENS_GROUPS = {
     "decision": ("alignment", "scenario", "readiness", "decision", "judgement", "learning", "verification"),
 }
 assert all(len(group) == 7 for group in LENS_GROUPS.values())
-assert set(item for group in LENS_GROUPS.values() for item in group) == set(FULL_LENS_IDS)
+assert {item for group in LENS_GROUPS.values() for item in group} == set(FULL_LENS_IDS)
 assert sum(map(len, LENS_GROUPS.values())) == len(FULL_LENS_IDS)
 
 CORE_LENS_IDS = (
