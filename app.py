@@ -664,6 +664,13 @@ def koradaso_internet_home():
     """First-party KORADASO browser start page; no access or release grants."""
     response = make_response(render_template("koradaso_internet.html"))
     response.headers["Cache-Control"] = "no-store"
+    # Keep KORADASO page context out of external website requests.
+    # Browser traffic remains on the user device, not an OAP proxy.
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), payment=()"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
