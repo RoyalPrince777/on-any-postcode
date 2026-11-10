@@ -85,3 +85,16 @@ def test_connectivity_brief_import_is_audited_draft_not_approval(monkeypatch):
     assert brief.source == "chatgpt_automation"
     assert brief.decision == "watch"
     assert brief.evidence_links == ("https://www.itu.int/imt-2030",)
+
+
+def test_agents_hq_composer_is_founder_private_and_non_simulated(monkeypatch):
+    blocked = _client(monkeypatch, founder=False)
+    assert blocked.get("/mission/organiser").status_code == 403
+    client = _client(monkeypatch)
+    response = client.get("/mission/organiser")
+    page = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'id="oap-agents-hq-form"' in page
+    assert "/mission/organiser/agents-hq/chat" in page
+    assert "smi_agents_hq.js" in page
+    assert "not independently authenticated specialist agents" in page
