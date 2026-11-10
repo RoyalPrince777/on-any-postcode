@@ -621,6 +621,59 @@
   card.append(labelEl,state);proofList.append(card);proofNodes.set(key,{card,state});
  });
  evidence.append(proofList);
+ // One Expose surface reuses the existing authenticated health response.
+ // Collapsed by default; no duplicate scores, agent UI or network owner.
+ const expose=document.createElement("details");
+ expose.className="smi-expose";
+ const exposeHeading=document.createElement("summary");
+ exposeHeading.textContent="Expose · not checked";
+ exposeHeading.setAttribute("aria-label","Open SMI Truth, Red Team and Devil's Advocate findings");
+ const exposeBody=document.createElement("div");
+ exposeBody.className="smi-expose-body";
+ const exposeIntro=document.createElement("p");
+ exposeIntro.textContent="Evidence unavailable · Unknown";
+ const exposeList=document.createElement("ol");
+ exposeList.className="smi-expose-findings";
+ const exposeMore=document.createElement("small");
+ exposeBody.append(exposeIntro,exposeList,exposeMore);
+ expose.append(exposeHeading,exposeBody);
+ proofList.before(expose);
+ const renderExpose=(mission)=>{
+  exposeList.replaceChildren();
+  exposeMore.textContent="";
+  const review=mission?.adversarial_review;
+  const report=review?.expose;
+  if(!report||report.evidence_only!==true||!Array.isArray(report.findings)){
+   expose.dataset.state="unknown";
+   exposeHeading.textContent="Expose · Unknown";
+   exposeIntro.textContent="Verified SMI review unavailable. No Green inferred.";
+   return;
+  }
+  const count=Number.isInteger(report.unresolved_count)?report.unresolved_count:report.findings.length;
+  const totals=mission?.counts;
+  const proven=totals&&Number.isInteger(totals.proven)?totals.proven:null;
+  const required=Number.isInteger(mission?.signal_count)?mission.signal_count:null;
+  const basis=proven!==null&&required!==null&&required>0?" · "+proven+"/"+required+" signals":"";
+  const held=report.release_held===true||count>0||mission?.green_100!==true;
+  expose.dataset.state=held?"held":"reviewed";
+  exposeHeading.textContent="Expose · "+(held?"Green held":"Evidence reviewed")+" · "+count+" unresolved";
+  exposeIntro.textContent="Truth · Red Team · Devil's Advocate"+basis+
+   " · "+(held?"Not certified":"Signal review complete; runtime certification separate");
+  const findings=report.findings.slice(0,5);
+  for(const finding of findings){
+   if(!finding||typeof finding!=="object")continue;
+   const item=document.createElement("li");
+   const name=document.createElement("strong");
+   name.textContent=String(finding.signal||"Unidentified signal").replace(/_/g," ");
+   const state=document.createElement("small");
+   state.textContent=String(finding.state||"unknown")+" · "+String(finding.priority||"unresolved").replace(/_/g," ");
+   const action=document.createElement("p");
+   action.textContent=String(finding.smallest_next_action||"Obtain evidence before release");
+   item.append(name,state,action);
+   exposeList.append(item);
+  }
+  if(count>findings.length)exposeMore.textContent=(count-findings.length)+" additional unresolved signals in the canonical evidence record.";
+ };
  const refresh=document.createElement("button");refresh.className="smi-command-toggle";refresh.type="button";refresh.textContent="↻ Refresh evidence";
  refresh.setAttribute("aria-label","Check signed-in SMI health evidence");
  evidence.append(refresh);
@@ -734,10 +787,12 @@
   request=new AbortController();
   refresh.disabled=true;refresh.textContent="Checking…";
   proofNodes.forEach(({card,state})=>{card.dataset.proven="false";state.textContent="Checking";});
+  renderExpose(null);
   try{
    const response=await fetch(cfg.healthUrl,{cache:"no-store",credentials:"same-origin",signal:request.signal});
    if(!response.ok)throw new Error("Health endpoint unavailable");
    const data=await response.json();
+   renderExpose(data?.mission_to_100);
    if(!data||!data.checks||typeof data.checks!=="object"||Array.isArray(data.checks))throw new Error("No check evidence");
    proofNodes.forEach(({card,state},key)=>{
     const proven=data.checks[key]===true;
