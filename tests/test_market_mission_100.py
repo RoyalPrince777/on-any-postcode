@@ -174,3 +174,19 @@ def test_market_private_workspace_survives_signin_and_product_detail():
 
     assert "next=(request.path ~ '?mine=1') if request.args.get('mine') == '1' else request.path" in template
     assert "href=\"{{ request.path }}?product={{ product.product_id }}{{ '&mine=1' if mine_view else '' }}\"" in template
+
+
+def test_market_stop_never_targets_stale_order_details():
+    """Client STOP remains disabled until the selected order's details load."""
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert "let orderDetailRequestId = 0;" in template
+    assert "const requestId = ++orderDetailRequestId;" in template
+    assert template.count("if (requestId !== orderDetailRequestId) return;") >= 3
+    assert "activeTransactionId = null;\n      stopButton.disabled = true;" in template
+    assert "activeTransactionId = transactionId;\n        stopButton.disabled" in template
+    assert "if (!activeTransactionId || stopButton.disabled) return;" in template
+    assert "const transactionId = activeTransactionId;" in template
+    assert "Refresh this order before retrying" in template
