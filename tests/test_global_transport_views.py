@@ -291,9 +291,9 @@ def test_transport_cards_route_to_real_app_destinations():
         "/movement/workspace",
         "/transport/ride",
         "/distribution",
-        "/transport/ride/guardian/status",
-        "/transport/shared-bikes/status",
-        "/transport/execution-readiness",
+        "/transport/guardian",
+        "/transport/operators",
+        "/transport/control-center",
     ):
         assert f'href="{href}"' in body
     assert "/transport/status#" not in body
@@ -306,9 +306,9 @@ def test_transport_status_exposes_seven_doors_and_legacy_route_compatibility():
     assert payload["public_routes"]["journey"] == "/travel"
     assert payload["public_routes"]["ride"] == "/transport/ride"
     assert payload["public_routes"]["logistics"] == "/distribution"
-    assert payload["public_routes"]["guardian"] == "/transport/ride/guardian/status"
-    assert payload["public_routes"]["operators"] == "/transport/shared-bikes/status"
-    assert payload["public_routes"]["control_center"] == "/transport/execution-readiness"
+    assert payload["public_routes"]["guardian"] == "/transport/guardian"
+    assert payload["public_routes"]["operators"] == "/transport/operators"
+    assert payload["public_routes"]["control_center"] == "/transport/control-center"
     assert payload["legacy_public_routes"]["drive"] == "/oap-map?profile=driving"
     assert payload["legacy_public_routes"]["cargo"] == "/distribution"
     assert payload["legacy_public_routes"]["deliver"] == "/movement/workspace#book-title"
@@ -330,3 +330,35 @@ def test_rider_driver_dashboards_preserved_under_seven_door_navigation():
         response = client.get(path)
         assert response.status_code == 200
         assert marker in response.data
+
+
+def test_transport_inside_doors_are_html_not_technical_json():
+    client = _app().test_client()
+    for path, title, expected_links in (
+        ("/transport/guardian", "Guardian", ("/transport/ride/current", "/transport/ride/guardian/status")),
+        ("/transport/operators", "Operators", ("/transport/shared-bikes/mitcham", "/transport/shared-bikes/status")),
+        ("/transport/control-center", "Control Center", ("/transport/execution-readiness", "/transport/capabilities")),
+    ):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.mimetype == "text/html"
+        assert response.headers["Cache-Control"] == "no-store, private"
+        html = response.get_data(as_text=True)
+        assert f"<h1>{title}</h1>" in html
+        assert 'href="/transport"' in html
+        for href in expected_links:
+            assert f'href="{href}"' in html
+
+
+def test_original_transport_truth_apis_preserved_after_ui_upgrade():
+    client = _app().test_client()
+    for path in (
+        "/transport/status",
+        "/transport/capabilities",
+        "/transport/execution-readiness",
+        "/transport/shared-bikes/status",
+        "/transport/ride/guardian/status",
+    ):
+        response = client.get(path)
+        assert response.mimetype == "application/json"
+        assert response.headers["Cache-Control"] == "no-store, private"
