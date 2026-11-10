@@ -149,13 +149,25 @@ const ready=()=>{
       left.addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});
       left.addEventListener('keydown',event=>{if(event.key==='Escape'){closeMenu();menu.focus();}});
       right.addEventListener('keydown',event=>{if(event.key==='Escape'){closeEvidence();evidenceButton.focus();}});
+      let checkingEvidence=false;
       const update=async()=>{
+        if(checkingEvidence)return;
+        checkingEvidence=true;
+        refresh.disabled=true;
         summary.textContent='Checking real runtime evidence…';
         checks.replaceChildren();
         const url=window.OAP_SMI_UI?.healthUrl;
-        if(!url){summary.textContent='Health route unavailable';checks.textContent='Unknown';return;}
+        if(!url){
+          summary.textContent='Health route unavailable';
+          checks.textContent='Unknown';
+          refresh.disabled=false;
+          checkingEvidence=false;
+          return;
+        }
+        const controller=new AbortController();
+        const timeout=setTimeout(()=>controller.abort(),8000);
         try{
-          const response=await fetch(url,{credentials:'same-origin',cache:'no-store'});
+          const response=await fetch(url,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
           if(!response.ok)throw new Error('Health route unavailable');
           const data=await response.json();
           const values=data&&typeof data.checks==='object'&&!Array.isArray(data.checks)?Object.entries(data.checks):[];
@@ -173,6 +185,10 @@ const ready=()=>{
         }catch{
           summary.textContent='Runtime evidence unavailable';
           checks.textContent='Unknown · No Green inferred';
+        }finally{
+          clearTimeout(timeout);
+          checkingEvidence=false;
+          refresh.disabled=false;
         }
       };
       refresh.addEventListener('click',update);
