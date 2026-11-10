@@ -616,3 +616,13 @@ def test_koradaso_local_launcher_rejects_old_checkout_without_changing_files():
     assert '[[ "$page" == *"$RESTORED_MAP_MARKER"*' in launcher
     assert 'git reset --hard' not in launcher
     assert 'git clean -' not in launcher
+
+
+def test_koradaso_launcher_refuses_missing_or_invalid_royal_logo():
+    """Local startup must not claim the restored browser works with a 404 logo."""
+    launcher = Path("scripts/koradaso_termux_local.sh").read_text(encoding="utf-8")
+    assert 'Path("static/oap/koradaso_internet_logo.jpg")' in launcher
+    assert 'if not logo.is_file() or logo.stat().st_size < 4:' in launcher
+    assert 'royal logo asset is missing from this checkout' in launcher
+    assert 'image.read(3) != b"\\xff\\xd8\\xff"' in launcher
+    assert "git reset --hard" not in launcher
