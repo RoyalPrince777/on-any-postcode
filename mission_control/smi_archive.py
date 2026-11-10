@@ -83,6 +83,22 @@ MISSION_TO_100_PROTOCOL: tuple[dict[str, str], ...] = (
         "rule": "Do the smallest real work that closes the measured gap; do not add stages, demos or duplicate reports.",
     },
     {
+        "id": "first-party-smi-only",
+        "rule": "Keep one first-party SMI brain and one governed evidence source; named review roles are not additional agents or execution authorities.",
+    },
+    {
+        "id": "no-duplicate-work",
+        "rule": "Reuse an existing PR, tests and signing workflows; do not duplicate proved work, re-approve bounded decisions or bump versions for small UI fixes.",
+    },
+    {
+        "id": "truth-adversarial-review",
+        "rule": "Expose Truth Mode, Red Team and Devil's Advocate as evidence-based review lenses inside SMI, not independent agents, votes or simulated success.",
+    },
+    {
+        "id": "no-cosmetic-percentages",
+        "rule": "Percentages, stars and votes must disclose their evidence basis and denominator; Unknown and failed required checks never count as Green.",
+    },
+    {
         "id": "exact-artifact-parity",
         "rule": "The artifact tested and approved must match the artifact bound to the target runtime before production Green.",
     },
