@@ -101,7 +101,7 @@ def test_certified_merchant_can_reach_existing_market_listing_store(
     )
 
     assert response.status_code == 302
-    assert response.headers["Location"].endswith("/the-spot/market")
+    assert response.headers["Location"].endswith("/the-spot/market?mine=1#sell")
     assert observed == {
         "seller_id": "11111111-1111-4111-8111-111111111111",
         "name": "OAP Tee",

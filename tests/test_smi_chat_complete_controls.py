@@ -261,7 +261,7 @@ def test_smi_interaction_layer_exposes_canonical_modes_and_capture_paths():
 
     assert "smi_interaction_layer.js" in wrapper
     assert "smi_interaction_layer.css" in wrapper
-    assert "smi-status-open" in dashboard
+    assert "smi-home-open" in dashboard
     assert "smi-dashboard-mode" not in dashboard
     assert "smi-chat-mode" not in dashboard
 

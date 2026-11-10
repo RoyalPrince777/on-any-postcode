@@ -3,25 +3,37 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-{% set oap_install_script = false %}
-{% include "_oap_install_head.html" %}
-<title>On Any Place</title>
+<meta name="theme-color" content="#0b0e12">
+<meta name="application-name" content="On Any Postcode Maps">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="On Any Postcode Maps">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" sizes="192x192" href="{{ url_for('oap_os_icon', size=192) }}">
+<link rel="apple-touch-icon" href="{{ url_for('oap_os_icon', size=192) }}">
+<title>On Any Postcode Maps</title>
 <style id="oap-map-critical">
 html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;color:#f8fafc}
 .map-app,.map-wrap{position:relative;width:100%;height:100vh;min-height:100vh;overflow:hidden}
 .map-surface{position:absolute;inset:0;background:linear-gradient(#15191f,#0e1217)}
-.oap-mark,.search-card,.map-controls,.oap-os-map-runtime{visibility:visible!important;opacity:1!important}
+.oap-mark,.search-card,.map-controls{visibility:visible!important;opacity:1!important}
 .oap-map-boot{position:absolute;left:50%;top:50%;z-index:2;transform:translate(-50%,-50%);padding:10px 14px;border:1px solid #39414b;border-radius:12px;background:#090c10d9;color:#d8dee7;font:700 13px Arial,sans-serif}
+.oap-map-boot[hidden]{display:none!important}
+.movement-actions{position:absolute;left:50%;bottom:88px;z-index:8;transform:translateX(-50%);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;width:min(94vw,680px);padding:8px;border:1px solid #303943;border-radius:18px;background:#0b0f14e8;backdrop-filter:blur(14px)}
+.movement-actions[hidden]{display:none!important}.movement-actions a{min-width:0;padding:10px 8px;border-radius:12px;text-align:center;text-decoration:none;color:#eef3f7;background:#151b22;border:1px solid #2d3742;font:800 12px system-ui}.movement-actions a.primary{background:#e7bf55;color:#17130a;border-color:#f1d477}
+@media(max-width:520px){.movement-actions{grid-template-columns:repeat(2,minmax(0,1fr));bottom:82px}}
 </style>
-<link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css') }}">
+<link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css', v='map-runtime-v4') }}">
 </head>
 <body data-map-mode="explore">
 <main class="map-app">
-  <section class="map-wrap" aria-label="On Any Place">
+  <section class="map-wrap" aria-label="On Any Postcode Maps">
     <div class="map-surface"></div>
-    <div id="oap-map-boot" class="oap-map-boot" role="status">OAP Maps · loading road view…</div>
+    <div id="oap-map-boot" class="oap-map-boot" role="status">On Any Postcode Maps · loading roads…</div>
     <svg id="roads-svg" class="road-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice"><g id="road-layer"></g></svg>
     <svg id="route-svg" class="route-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice" hidden>
+      <polyline id="route-casing"></polyline>
       <polyline id="route-line"></polyline>
       <circle id="route-start" r="10"></circle>
       <circle id="route-end" r="10"></circle>
@@ -54,12 +66,16 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
       <b id="turn-distance">—</b>
     </section>
 
+    <section id="movement-actions" class="movement-actions" aria-label="Travel and movement actions" hidden>
+      <a id="map-travel-link" href="/travel">Travel</a>
+      <a id="map-movement-link" href="/movement/workspace#book-title">Movement</a>
+      <a id="map-ride-link" class="primary" href="/movement/workspace?service=ride#book-title">Request Ride</a>
+      <a href="/transport/ride/current">Current Journey</a>
+    </section>
+
     <div id="route-state" class="map-toast" hidden></div>
     <div id="road-source-state" role="status" aria-live="polite" class="map-toast" hidden></div>
-    <div id="oap-os-map-runtime" role="status" aria-live="polite" data-oap-os-map-runtime="web" class="oap-os-map-runtime">OAP OS · Map web runtime</div>
-
     <div class="map-controls">
-      <a class="map-float-btn" href="/the-spot/market" aria-label="Manage Certified Merchant listings">🏪</a>
       <button class="map-float-btn" id="zoom-in" type="button" aria-label="Zoom in">＋</button>
       <button class="map-float-btn" id="zoom-out" type="button" aria-label="Zoom out">−</button>
       <button class="map-float-btn" id="recenter" type="button" aria-label="Recenter">⌖</button>
@@ -120,82 +136,158 @@ bind('#map-from','#from-suggestions');bind('#map-to','#to-suggestions');
 
 const form=q('#map-form'),from=q('#map-from'),to=q('#map-to'),profile=q('#map-profile');
 const state=q('#route-state'),distance=q('#distance'),eta=q('#eta'),roads=q('#roads'),directions=q('#directions'),places=q('#places'),trafficState=q('#traffic-state');
-const roadLayer=q('#road-layer'),svg=q('#route-svg'),line=q('#route-line'),start=q('#route-start'),end=q('#route-end'),coverage=q('#coverage');
+const roadLayer=q('#road-layer'),svg=q('#route-svg'),casing=q('#route-casing'),line=q('#route-line'),start=q('#route-start'),end=q('#route-end'),coverage=q('#coverage');
 const fromLabel=q('#from-label'),toLabel=q('#to-label');
-let bounds=null,roadRequest=0;
-const roadStatus=q('#road-source-state');
+const movementActions=q('#movement-actions'),travelLink=q('#map-travel-link'),movementLink=q('#map-movement-link'),rideLink=q('#map-ride-link');
+const syncMovementLinks=(a,b)=>{
+ const params=new URLSearchParams({from:a,to:b});
+ travelLink.href='/travel?'+params.toString();
+ movementLink.href='/movement/workspace?'+params.toString()+'#book-title';
+ params.set('service','ride');
+ rideLink.href='/movement/workspace?'+params.toString()+'#book-title';
+ movementActions.hidden=false;
+};
+const clearMovementLinks=()=>{movementActions.hidden=true};
+let bounds=null,roadRequest=0,routeRequest=0,routeController=null,placeRequest=0,placeController=null;
+const roadStatus=q('#road-source-state'),boot=q('#oap-map-boot');
+const setRenderState=state=>{document.body.dataset.mapRenderState=state};
+const clearBoot=()=>{if(boot)boot.hidden=true};
 const showRoadStatus=message=>{roadStatus.textContent=message;roadStatus.hidden=!message};
 const defaultBounds={minX:-.235,maxX:-.13,minY:51.37,maxY:51.43};
 const toast=(text)=>{state.textContent=text;state.hidden=!text;if(text)setTimeout(()=>{if(state.textContent===text)state.hidden=true},2600)};
 function padBounds(coords){const xs=coords.map(c=>+c[0]),ys=coords.map(c=>+c[1]);let minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);const dx=Math.max(maxX-minX,.01),dy=Math.max(maxY-minY,.01);return{minX:minX-dx*.14,maxX:maxX+dx*.14,minY:minY-dy*.18,maxY:maxY+dy*.18}}
 const project=(lon,lat,b)=>{const p=50,dx=b.maxX-b.minX||1,dy=b.maxY-b.minY||1;return[p+((lon-b.minX)/dx)*(1000-p*2),p+(1-(lat-b.minY)/dy)*(700-p*2)]};
-function draw(coords){
+async function draw(coords){
  if(!Array.isArray(coords)||coords.length<2)return false;
  bounds=padBounds(coords);const pts=coords.map(c=>project(+c[0],+c[1],bounds));
- line.setAttribute('points',pts.map(x=>x.join(',')).join(' '));
+ const routePoints=pts.map(x=>x.join(',')).join(' ');line.setAttribute('points',routePoints);casing.setAttribute('points',routePoints);
  start.setAttribute('cx',pts[0][0]);start.setAttribute('cy',pts[0][1]);
  end.setAttribute('cx',pts.at(-1)[0]);end.setAttribute('cy',pts.at(-1)[1]);
+ const retainedRoadCount=roadLayer.querySelectorAll('polyline').length;
+ svg.hidden=true;setRenderState('loading');
+ const roadCount=await loadRoadNetwork(bounds,profile.value);
  svg.hidden=false;
- if(!roadLayer.querySelector('polyline'))loadRoadNetwork(bounds,profile.value);
- return true
+ const usableRoadCount=roadCount>0?roadCount:retainedRoadCount;
+ if(usableRoadCount>0){showRoadStatus('');setRenderState('stable');return true}
+ setRenderState('degraded');return false
 }
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
 function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
 function tilePointLonLat(tx,ty,z,u,v){const n=Math.pow(2,z),wx=(tx+u)/n,wy=(ty+v)/n;return[wx*360-180,Math.atan(Math.sinh(Math.PI*(1-2*wy)))*180/Math.PI]}
-const ROAD_TILE_TIMEOUT_MS=15000;
+const ROAD_TILE_TIMEOUT_MS=6000;
 async function fetchRoadTile(z,x,y,mode){
- const controller=new AbortController();
- const timeout=setTimeout(()=>controller.abort(),ROAD_TILE_TIMEOUT_MS);
- try{
-   const url='/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode);
-   const response=await fetch(url,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
-   return response.ok?await response.json():null
- }catch{return null}
- finally{clearTimeout(timeout)}
+ const url='/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode);
+ for(let attempt=0;attempt<1;attempt++){
+   const controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),ROAD_TILE_TIMEOUT_MS);
+   try{
+     const response=await fetch(url,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+     if(response.ok)return await response.json();
+     if(response.status!==503)return null
+   }catch{}
+   finally{clearTimeout(timeout)}
+ }
+ return null
 }
-async function loadRoadNetwork(b,mode){
- const request=++roadRequest;roadLayer.innerHTML='';showRoadStatus('Loading road network…');const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;
- let x0=lon2x(b.minX,z),x1=lon2x(b.maxX,z),y0=lat2y(b.maxY,z),y1=lat2y(b.minY,z);const tiles=[];
- for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){if(tiles.length<20)tiles.push([x,y])}
- let count=0,labelCount=0;const labelled=new Set();
+async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
+ const request=requestToken===null?++roadRequest:requestToken;
+ if(batchAttempt===0){
+   setRenderState('loading');
+   if(boot)boot.hidden=false;
+ }
+ showRoadStatus('');
+ const span=Math.max(b.maxX-b.minX,b.maxY-b.minY),z=span>.22?12:span>.11?13:14;
+ let x0=lon2x(b.minX,z),x1=lon2x(b.maxX,z),y0=lat2y(b.maxY,z),y1=lat2y(b.minY,z);let tiles=[];
+ for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)tiles.push([x,y]);
+ const cx=(x0+x1)/2,cy=(y0+y1)/2;
+ tiles.sort((a,b)=>((a[0]-cx)**2+(a[1]-cy)**2)-((b[0]-cx)**2+(b[1]-cy)**2));
+ const batchSize=4,batchStart=batchAttempt*batchSize;
+ tiles=tiles.slice(batchStart,batchStart+batchSize);
+ let count=0,labelCount=0;const labelled=new Set(),staged=document.createDocumentFragment();
  const renderPayload=d=>{
    if(request!==roadRequest||!d||!Array.isArray(d.lines))return;
    const t=d.tile||{};
    for(const feature of d.lines){if(count>=900)break;
-     const pts=(feature.points||[]).map(p=>tilePointLonLat(+t.x,+t.y,+t.z,+p[0],+p[1]))
-       .filter(ll=>ll[0]>=b.minX-.02&&ll[0]<=b.maxX+.02&&ll[1]>=b.minY-.02&&ll[1]<=b.maxY+.02).map(ll=>project(ll[0],ll[1],b));
+     const pts=(feature.points||[])
+       .map(p=>tilePointLonLat(+t.x,+t.y,+t.z,+p[0],+p[1]))
+       .filter(ll=>Number.isFinite(ll[0])&&Number.isFinite(ll[1]))
+       .map(ll=>project(ll[0],ll[1],b));
      if(pts.length<2)continue;
      const rawClass=String(feature.class||feature.layer||'road').toLowerCase();
      const isMajor=feature.is_small===false||(+feature.speed||0)>=50||/(motorway|trunk|primary)/.test(rawClass);
      const isSecondary=/(secondary|tertiary)/.test(rawClass);
      const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');poly.setAttribute('points',pts.map(v=>v.join(',')).join(' '));
      poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local');
-     roadLayer.appendChild(poly);count++;
+     staged.appendChild(poly);count++;
      const name=String(feature.name||'').trim();
-     if(name&&labelCount<32&&!labelled.has(name)&&(isMajor||isSecondary)){
+     if(name&&labelCount<18&&!labelled.has(name)&&(isMajor||isSecondary)){
        const mid=pts[Math.floor(pts.length/2)];
        const text=document.createElementNS('http://www.w3.org/2000/svg','text');
        text.setAttribute('x',mid[0]);text.setAttribute('y',mid[1]);text.setAttribute('class','road-label');
-       text.textContent=name;roadLayer.appendChild(text);labelled.add(name);labelCount++
+       text.textContent=name;staged.appendChild(text);labelled.add(name);labelCount++
      }
    }
-   if(count)showRoadStatus('');
  };
  try{
-   await Promise.all(tiles.map(async([x,y])=>{const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}));
-   if(request===roadRequest&&!count)showRoadStatus('Road network unavailable — route guidance may still work.');
- }catch{if(request===roadRequest&&!count){showRoadStatus('Road network unavailable — check map source.')}}
+   const queue=[...tiles];
+   const worker=async()=>{while(queue.length&&request===roadRequest&&count<180){const [x,y]=queue.shift();const d=await fetchRoadTile(z,x,y,mode);renderPayload(d)}};
+   await Promise.all(Array.from({length:Math.min(2,tiles.length)},worker));
+   if(request!==roadRequest)return 0;
+   if(!count){
+     if(batchAttempt<1){
+       await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
+       if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
+     }
+     clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — route guidance may still work.');
+     return 0
+   }
+   roadLayer.replaceChildren(staged);
+   showRoadStatus('');clearBoot();setRenderState('stable');
+   return count
+ }catch{
+   if(request!==roadRequest)return 0;
+   if(batchAttempt<1){
+     await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
+     if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
+   }
+   clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — check map source.');
+   return 0
+ }
 }
 function renderRoads(items){roads.innerHTML='';(items||[]).forEach(name=>{const s=document.createElement('span');s.className='chip';s.textContent=name;roads.appendChild(s)})}
 function renderSteps(items){directions.innerHTML='';(items||[]).forEach(step=>{const row=document.createElement('div');row.className='step';const a=document.createElement('b');a.textContent=(step.modifier||'').includes('left')?'↰':(step.modifier||'').includes('right')?'↱':step.type==='arrive'?'●':'↑';const b=document.createElement('span');b.textContent=step.type==='arrive'?'Arrive':(step.name?'Continue on '+step.name:'Continue');const c=document.createElement('small');c.textContent=Math.round(step.distance_m||0)+' m';row.append(a,b,c);directions.appendChild(row)})}
 async function loadPlaces(term){
- if(!term||term.trim().length<2)return;
- try{const r=await fetch('/map-intelligence/places?q='+encodeURIComponent(term));const d=await r.json();places.innerHTML='';
+ const query=String(term||'').trim();
+ if(query.length<2){
+   placeRequest++;
+   if(placeController)placeController.abort();
+   places.replaceChildren();
+   return
+ }
+ const request=++placeRequest;
+ if(placeController)placeController.abort();
+ placeController=new AbortController();
+ try{
+   const r=await fetch('/map-intelligence/places?q='+encodeURIComponent(query),{credentials:'same-origin',cache:'no-store',signal:placeController.signal});
+   const d=await r.json();
+   if(request!==placeRequest)return;
+   places.replaceChildren();
    (d.results||[]).slice(0,6).forEach(item=>{const row=document.createElement('div');row.className='place';const strong=document.createElement('strong');strong.textContent=item.name||'Place';const small=document.createElement('small');small.textContent=item.category||'place';row.append(strong,small);places.appendChild(row)});
- }catch{places.textContent='Nearby places unavailable'}
+ }catch(error){
+   if(error?.name==='AbortError'||request!==placeRequest)return;
+   places.textContent='Nearby places unavailable'
+ }
 }
 async function route(options={}){
  const a=from.value.trim(),b=to.value.trim();if((!options.originCoords&&a.length<2)||b.length<2)return;
+ const request=++routeRequest;
+ if(routeController)routeController.abort();
+ routeController=new AbortController();
+ const signal=routeController.signal;
+ setRenderState('loading');
+ svg.hidden=true;
+ clearMovementLinks();
+ window.dispatchEvent(new CustomEvent('oap-map-route-clear'));
  toast(options.originCoords?'Recalculating route…':'Finding route…');
  try{
    const params=new URLSearchParams({to:b,profile:profile.value});
@@ -203,10 +295,18 @@ async function route(options={}){
     params.set('from_lat',String(options.originCoords.latitude));
     params.set('from_lon',String(options.originCoords.longitude));
    }else params.set('from',a);
-   const r=await fetch('/map-intelligence/route?'+params.toString(),{credentials:'same-origin',cache:'no-store'});
+   const r=await fetch('/map-intelligence/route?'+params.toString(),{credentials:'same-origin',cache:'no-store',signal});
    const d=await r.json();
-   if(!r.ok||!d.route){svg.hidden=true;toast(d?.error?.code==='outside_current_oap_map_coverage'?'Outside current routing coverage':'Route unavailable');return}
-   draw(d.route.geometry?.coordinates||[]);
+   if(request!==routeRequest)return;
+   if(!r.ok||!d.route){
+     svg.hidden=true;
+     toast(d?.error?.code==='outside_current_oap_map_coverage'?'Outside current routing coverage':'Route unavailable');
+     const roadCount=await loadRoadNetwork(defaultBounds,profile.value);
+     setRenderState(roadCount>0?'stable':'degraded');
+     return
+   }
+   await draw(d.route.geometry?.coordinates||[]);
+   if(request!==routeRequest)return;
    distance.textContent=(d.route.distance_m/1000).toFixed(1)+' km';
    eta.textContent=Math.max(1,Math.round(d.route.duration_s/60))+' min';
    const live=d.route.live_road_state||{};
@@ -216,24 +316,41 @@ async function route(options={}){
    fromLabel.textContent=d.origin?.label||a;toLabel.textContent=d.destination?.label||b;
    coverage.textContent=d.coverage?.selected_label||'Greater London';
    renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);
+   syncMovementLinks(d.origin?.label||a,d.destination?.label||b);
    window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}));
-   history.replaceState(null,'','/on-any-place?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
- }catch{svg.hidden=true;toast('Route temporarily unavailable')}
+   history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
+ }catch(error){
+   if(error?.name==='AbortError'||request!==routeRequest)return;
+   svg.hidden=true;toast('Route temporarily unavailable');
+   const roadCount=await loadRoadNetwork(defaultBounds,profile.value);
+   setRenderState(roadCount>0?'stable':'degraded')
+ }
 }
+window.addEventListener('pageshow',event=>{
+ if(!event.persisted)return;
+ const params=new URLSearchParams(location.search);
+ if(!params.get('to')){
+   routeRequest++;
+   if(routeController)routeController.abort();
+   svg.hidden=true;
+   window.dispatchEvent(new CustomEvent('oap-map-route-clear'));
+   clearMovementLinks();
+   setRenderState('loading');
+   loadRoadNetwork(defaultBounds,profile.value);
+ }
+});
 form.addEventListener('submit',e=>{e.preventDefault();route()});
 window.addEventListener('oap-map-reroute-request',event=>{
  const point=event.detail||{};
  if(Number.isFinite(point.latitude)&&Number.isFinite(point.longitude))route({originCoords:point});
 });
-const boot=q('#oap-map-boot');
-const initialRoadLoad=loadRoadNetwork(defaultBounds,profile.value);
-initialRoadLoad.finally(()=>{if(boot)boot.hidden=true});
+setRenderState('loading');
 profile.addEventListener('change',()=>{if(bounds)loadRoadNetwork(bounds,profile.value);else loadRoadNetwork(defaultBounds,profile.value)});
-if(from.value.trim()&&to.value.trim())route();
+if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);
 loadPlaces(from.value.trim());
 })();
 </script>
-<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.js') }}"></script>
-<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_os_map_bridge.js') }}"></script>
+<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.js', v='map-runtime-v4') }}"></script>
+<script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_os_map_bridge.js', v='map-runtime-v4') }}"></script>
 </body>
 </html>

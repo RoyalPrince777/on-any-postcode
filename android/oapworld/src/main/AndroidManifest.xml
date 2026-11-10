@@ -3,7 +3,7 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
-        android:label="OAP World"
+        android:label="KORADASO Internet"
         android:theme="@style/Theme.OAPWorld">
         <activity
             android:name=".MainActivity"

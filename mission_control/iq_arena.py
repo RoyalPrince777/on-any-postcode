@@ -55,6 +55,7 @@ def new_session() -> dict[str, Any]:
         "score": 0,
         "domain_scores": {domain: 0 for domain in DOMAINS},
         "answered": [],
+        "last_answer": None,
         "request_receipts": [],
     }
     return _seal(state)
@@ -101,6 +102,8 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
         "total": len(QUESTIONS),
         "question": q,
         "domain_scores": copy.deepcopy(state["domain_scores"]),
+        "last_answer": copy.deepcopy(state.get("last_answer")),
+        "accuracy_percent": round((state["score"] / state["index"]) * 100) if state["index"] else 0,
         "skill_profile_only": True,
         "clinical_iq_score": False,
         "diagnostic_use": False,
@@ -128,6 +131,7 @@ def answer(state: object, *, question_id: object, choice_id: object, request_id:
         current["score"] += 1
         current["domain_scores"][q["domain"]] += 1
     current["answered"].append({"question_id": q["id"], "choice_id": choice, "correct": correct})
+    current["last_answer"] = {"question_id": q["id"], "domain": q["domain"], "correct": correct}
     current["request_receipts"].append({"request_id": req, "action": "answer"})
     current["index"] += 1
     if current["index"] == len(QUESTIONS):

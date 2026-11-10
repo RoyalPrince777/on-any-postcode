@@ -10,7 +10,7 @@ suppliers, write production approvals, expose private media, or unlock A5.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -304,7 +304,7 @@ def execute_route_matrix_capture(*, identity_id: object, base_url: object, opera
         "component": "Route Matrix Live Capture",
         "operation": "ROUTE_MATRIX_CAPTURE",
         "mode": "read_only_live_capture",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "base_url": base,
         "operation_id": operation_value,
         "public_results": tuple(public_results),
@@ -339,7 +339,7 @@ def route_matrix_status() -> dict[str, object]:
     return {
         "component": "Route Matrix",
         "mode": "read_only_capture_contract",
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "public_targets": public,
         "private_targets": private,
         "target_count": len(ROUTE_MATRIX_CONTRACT),
@@ -587,7 +587,7 @@ def status() -> dict[str, Any]:
     return {
         "component": "On Any Place + Movement + Direct Proof Runner",
         "version": PROOF_RUNNER_VERSION,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "mode": "read_only_evidence_lanes",
         "public_product_name": PUBLIC_PRODUCT_NAME,
         "private_intelligence_name": PRIVATE_INTELLIGENCE_NAME,

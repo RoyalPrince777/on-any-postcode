@@ -1,3 +1,4 @@
+import hmac
 import json
 import logging
 import os
@@ -31,6 +32,7 @@ from mission_control import (
     chess,
     connect4,
     dot,
+    earth_is_our_turf,
     founder_activation,
     founder_recovery,
     iq_arena,
@@ -49,6 +51,7 @@ from mission_control import (
     location_intelligence,
     ludo,
     market_supplier_network,
+    mtown_persistence,
     neon_auth,
     oware,
     product_store,
@@ -121,6 +124,52 @@ def _form_secret(name, max_length):
 def _prepend_bounded(records, item):
     records.insert(0, item)
     del records[MAX_PUBLIC_RECORDS:]
+
+
+
+def _eiot_service_allowed():
+    expected=os.environ.get("OAP_EIOT_SERVICE_KEY","").strip()
+    supplied=request.headers.get("X-EIOT-Service-Key","")
+    return bool(expected and supplied and hmac.compare_digest(expected,supplied))
+
+
+@app.post("/internal/eiot/persistence/init")
+def eiot_persistence_init():
+    if not _eiot_service_allowed():
+        return jsonify({"error":"eiot_service_forbidden"}),403
+    mtown_persistence.ensure_schema()
+    return jsonify({"ok":True,**mtown_persistence.status()})
+
+
+@app.post("/internal/eiot/persistence/save")
+def eiot_persistence_save():
+    if not _eiot_service_allowed():
+        return jsonify({"error":"eiot_service_forbidden"}),403
+    payload=request.get_json(silent=True) or {}
+    if not isinstance(payload,dict):
+        return jsonify({"error":"invalid_request"}),400
+    try:
+        result=mtown_persistence.create_save(
+            player_ref=payload.get("player_ref"),
+            state=payload.get("state"),
+        )
+    except (TypeError,ValueError,RuntimeError) as exc:
+        return jsonify({"error":str(exc)}),400
+    return jsonify(result),201
+
+
+@app.post("/internal/eiot/persistence/reconnect")
+def eiot_persistence_reconnect():
+    if not _eiot_service_allowed():
+        return jsonify({"error":"eiot_service_forbidden"}),403
+    payload=request.get_json(silent=True) or {}
+    if not isinstance(payload,dict):
+        return jsonify({"error":"invalid_request"}),400
+    try:
+        result=mtown_persistence.load_by_token(token=payload.get("reconnect_token"))
+    except (TypeError,ValueError,RuntimeError) as exc:
+        return jsonify({"error":str(exc)}),400
+    return jsonify(result)
 
 
 @app.before_request
@@ -549,6 +598,17 @@ def _local_public_snapshot():
     }
 
 
+def _shop_slug(value):
+    text = str(value or "").strip().lower()
+    slug = "-".join(
+        part for part in "".join(
+            character if character.isalnum() else " " for character in text
+        ).split()
+        if part
+    )
+    return slug[:120] or "shop"
+
+
 def _load_public_snapshot():
     if not public_store.status()["configured"]:
         return _local_public_snapshot()
@@ -595,9 +655,52 @@ def public_studio_chat():
 
 
 @app.get("/")
+def root_front_door():
+    return redirect("/world", code=302)
+
+
+@app.get("/koradaso")
+def koradaso_internet_home():
+    """First-party KORADASO browser start page; no access or release grants."""
+    response = make_response(render_template("koradaso_internet.html"))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.get("/world")
 def home():
+    if request.args.get("source") == "oap-os":
+        return render_template("world.html")
     public = _load_public_snapshot()
+    market_products = []
+    featured_shops = []
+    if public_store.status()["configured"]:
+        try:
+            market_products = product_store.list_products()
+            for item in market_products:
+                item["shop_slug"] = _shop_slug(item.get("seller"))
+            seen = set()
+            for item in market_products:
+                seller = str(item.get("seller") or "").strip()
+                if not seller:
+                    continue
+                slug = _shop_slug(seller)
+                if slug in seen:
+                    continue
+                seen.add(slug)
+                featured_shops.append(
+                    {
+                        "name": seller,
+                        "slug": slug,
+                        "postcode": item.get("postcode") or "",
+                        "borough": item.get("borough") or "",
+                    }
+                )
+                if len(featured_shops) >= 8:
+                    break
+        except product_store.ProductStoreUnavailable:
+            market_products = []
+            featured_shops = []
     return render_template(
         "home.html",
         location_levels=LOCATION_LEVELS,
@@ -605,7 +708,97 @@ def home():
         team_messages=public["team_messages"],
         flag_counts=public["flag_counts"],
         public_persistence=public["durable"],
+        market_products=market_products[:12],
+        featured_shops=featured_shops,
     )
+
+
+@app.get("/sell")
+@web_security.login_required()
+def public_sell_front_door():
+    return redirect("/the-spot/market?mine=1#sell", code=302)
+
+
+@app.get("/basket")
+def public_basket_front_door():
+    return redirect("/the-spot/market#basket", code=302)
+
+
+@app.get("/orders")
+@web_security.login_required()
+def public_orders_front_door():
+    return redirect("/the-spot/market?mine=1#orders", code=302)
+
+
+@app.get("/shop/<shop_slug>")
+def public_shop(shop_slug):
+    products_for_shop = []
+    shop_name = ""
+    shop_location = ""
+    if public_store.status()["configured"]:
+        try:
+            for item in product_store.list_products():
+                seller = str(item.get("seller") or "").strip()
+                if _shop_slug(seller) != shop_slug:
+                    continue
+                shop_name = seller
+                shop_location = str(
+                    item.get("postcode")
+                    or item.get("borough")
+                    or item.get("country")
+                    or ""
+                )
+                products_for_shop.append(item)
+        except product_store.ProductStoreUnavailable:
+            products_for_shop = []
+    if not products_for_shop:
+        response = make_response(
+            render_template(
+                "shop.html",
+                shop_name="Shop unavailable",
+                shop_location="",
+                shop_slug=shop_slug,
+                shop_products=[],
+            ),
+            404,
+        )
+    else:
+        response = make_response(
+            render_template(
+                "shop.html",
+                shop_name=shop_name,
+                shop_location=shop_location,
+                shop_slug=shop_slug,
+                shop_products=products_for_shop,
+            )
+        )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.get("/sika")
+def legacy_sika_front_door():
+    return redirect("/pay/bank", code=302)
+
+
+@app.get("/guardian")
+def legacy_guardian_front_door():
+    return redirect("/transport/ride", code=302)
+
+
+@app.get("/settings")
+def legacy_settings_front_door():
+    return redirect("/enter-my-world?next=/my-world/settings", code=302)
+
+
+@app.get("/hrm")
+def legacy_hrm_front_door():
+    return redirect("/enter-my-world?next=/mission", code=302)
+
+
+@app.get("/status")
+def legacy_status_front_door():
+    return redirect("/healthz", code=302)
 
 
 def _world_languages_response():
@@ -744,6 +937,49 @@ def world_arena():
     return _arena_intelligence_response()
 
 
+@app.get("/arena/earth-is-our-turf")
+def earth_is_our_turf_page():
+    state = session.get(earth_is_our_turf.SESSION_KEY)
+    if state is None:
+        state = earth_is_our_turf.new_world()
+        session[earth_is_our_turf.SESSION_KEY] = state
+        session.modified = True
+    try:
+        world = earth_is_our_turf.public_state(state)
+    except ValueError:
+        state = earth_is_our_turf.new_world()
+        session[earth_is_our_turf.SESSION_KEY] = state
+        session.modified = True
+        world = earth_is_our_turf.public_state(state)
+    response = make_response(render_template("earth_is_our_turf.html", world=world))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/arena/earth-is-our-turf/action")
+def earth_is_our_turf_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = session.get(earth_is_our_turf.SESSION_KEY)
+        if state is None:
+            state = earth_is_our_turf.new_world()
+        state = earth_is_our_turf.action(
+            state,
+            command=payload.get("command"),
+            target=payload.get("target"),
+            mode=payload.get("mode"),
+            distance=payload.get("distance"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[earth_is_our_turf.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(earth_is_our_turf.public_state(state))
+
+
 @app.get("/arena/agents")
 def arena_agents_catalogue():
     return _arena_json(arena_agents.catalogue())
@@ -799,6 +1035,22 @@ def arena_room_create():
             game_key=payload.get("game_key"),
             host_name=payload.get("host_name"),
             capacity=payload.get("capacity", 2),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result, 201)
+
+
+@app.post("/arena/rooms/matchmake")
+def arena_room_matchmake():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.matchmake(
+            game_key=payload.get("game_key"),
+            display_name=payload.get("display_name"),
         )
     except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
         return _arena_error(exc)
@@ -886,6 +1138,46 @@ def arena_chess_room_page():
     return response
 
 
+@app.get("/arena/ludo/room")
+def arena_ludo_room_page():
+    response = make_response(
+        render_template("arena_ludo_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.get("/arena/oware/room")
+def arena_oware_room_page():
+    response = make_response(
+        render_template("arena_oware_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.get("/arena/iq/room")
+def arena_iq_room_page():
+    response = make_response(
+        render_template("arena_iq_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@app.get("/arena/route-empire/room")
+def arena_route_empire_room_page():
+    response = make_response(
+        render_template("arena_route_empire_room.html", csrf_token=web_security.csrf_token())
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.post("/arena/rooms/dot/action")
 def arena_room_dot_action():
     denied = _arena_write_allowed()
@@ -923,6 +1215,87 @@ def arena_room_chess_action():
             source=payload.get("source"),
             target=payload.get("target"),
             promotion=payload.get("promotion"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/ludo/action")
+def arena_room_ludo_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.ludo_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            piece_id=payload.get("piece_id"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/oware/action")
+def arena_room_oware_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.oware_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            pit=payload.get("pit"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/iq/action")
+def arena_room_iq_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.iq_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            choice_id=payload.get("choice_id"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/route-empire/action")
+def arena_room_route_empire_action():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        result = arena_rooms.route_empire_action(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            expected_revision=payload.get("expected_revision"),
+            request_id=payload.get("request_id"),
+            action=payload.get("action"),
+            node_id=payload.get("node_id"),
+            target_node_id=payload.get("target_node_id"),
         )
     except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
         return _arena_error(exc)
@@ -1214,6 +1587,24 @@ def chess_move():
     return _arena_json(chess.public_state(state))
 
 
+@app.post("/arena/chess/resign")
+def chess_resign():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = chess.resign(
+            session.get(chess.SESSION_KEY),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[chess.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(chess.public_state(state))
+
+
 @app.post("/arena/chess/stop")
 def chess_stop():
     denied = _arena_write_allowed()
@@ -1329,6 +1720,24 @@ def connect4_drop():
         state = connect4.drop(
             session.get(connect4.SESSION_KEY),
             column=payload.get("column"),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[connect4.SESSION_KEY] = state
+    session.modified = True
+    return _arena_json(connect4.public_state(state))
+
+
+@app.post("/arena/connect4/resign")
+def connect4_resign():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = connect4.resign(
+            session.get(connect4.SESSION_KEY),
             request_id=payload.get("request_id"),
         )
     except (TypeError, ValueError) as exc:
@@ -2145,6 +2554,36 @@ def oap_tv_media_front_door():
     )
 
 
+@app.get("/events")
+def oap_events_front_door():
+    """Public OAP Events door: canonical discovery surface."""
+
+    return redirect(
+        url_for("spot_capability_front_door", capability_slug="events"),
+        code=302,
+    )
+
+
+@app.get("/events/mine")
+def oap_events_mine_front_door():
+    """Personal Events door without inventing booking state."""
+
+    return redirect(
+        url_for("spot_capability_front_door", capability_slug="events", view="mine"),
+        code=302,
+    )
+
+
+@app.get("/events/organise")
+def oap_events_organise_front_door():
+    """The Plug organiser door; persistent organiser actions remain separately gated."""
+
+    return redirect(
+        url_for("spot_capability_front_door", capability_slug="events", view="organise"),
+        code=302,
+    )
+
+
 @app.get("/the-spot")
 def the_spot_front_door():
     """Render the public postcode-community product without internal details."""
@@ -2190,6 +2629,7 @@ def spot_capability_front_door(capability_slug):
             "market_products": [],
             "market_reviews": {},
             "market_supplier_projection": {},
+            "my_pod_products": [],
             "signal_posts": [],
             "room_messages": [],
             "sika": None,
@@ -2268,8 +2708,16 @@ def spot_capability_front_door(capability_slug):
                         context["merchant_certified"] = bool(
                             merchant_status.get("merchant")
                         )
+                        if context["merchant_certified"]:
+                            context["my_pod_products"] = (
+                                market_supplier_network.STORE.owner_pod_products(
+                                    seller_identity_id=str(user["id"])
+                                )
+                            )
                     except certification.CertificationUnavailable:
                         context["merchant_certification_unavailable"] = True
+                    except market_supplier_network.SupplierNetworkUnavailable:
+                        context["private_unavailable"] = True
                 if workspace_id:
                     context["workspace"] = workspaces.get(workspace_id)
                     context["workspace_records"] = workspaces.list_records(
@@ -2282,6 +2730,8 @@ def spot_capability_front_door(capability_slug):
             ):
                 context["private_unavailable"] = True
         template_name = "market.html" if capability_slug == "market" else "spot_capability.html"
+        if capability_slug == "events":
+            template_name = "events.html"
         response = make_response(
             render_template(
                 template_name,
@@ -2313,6 +2763,9 @@ def the_link_front_door():
 @app.get("/linkup")
 def linkup_front_door():
     """Open LinkUp inside The Link."""
+
+    if str(request.args.get("intent") or "").strip().casefold() == "ptt":
+        return redirect("/ptt")
 
     user = None
     dashboard = None
@@ -2532,6 +2985,9 @@ def linkup_front_door():
     link_runtime["live_gate"] = all(link_runtime.values())
     seven_star_gate = linkup.linkup_seven_star_status(link_runtime)
 
+    raw_linkup_intent = str(request.args.get("intent") or "").strip().casefold()
+    linkup_intent = raw_linkup_intent if raw_linkup_intent in {"message", "link-call"} else ""
+
     response = make_response(
         render_template(
             "linkup.html",
@@ -2543,6 +2999,7 @@ def linkup_front_door():
             relationships_ready=relationships_ready,
             seven_star_gate=seven_star_gate,
             private_unavailable=unavailable,
+            linkup_intent=linkup_intent,
         )
     )
     response.headers["Cache-Control"] = "no-store"
@@ -2702,7 +3159,7 @@ def market_listing_create():
         market_supplier_network.SupplierNetworkUnavailable,
     ):
         return jsonify(error={"code": "market_unavailable"}), 503
-    return redirect(url_for("spot_capability_front_door", capability_slug="market"))
+    return redirect("/the-spot/market?mine=1#sell", code=302)
 
 
 @app.post("/sika/contributions")

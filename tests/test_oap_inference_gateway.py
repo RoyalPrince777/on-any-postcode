@@ -129,6 +129,7 @@ def test_gateway_records_observed_success_path_and_clears_stale_evidence(monkeyp
 
     monkeypatch.setattr(gateway, "_call_bridge", unavailable)
     monkeypatch.setattr(gateway, "FALLBACK_ENABLED", True)
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     assert gateway.generate(lambda *_args, **_kw: "compat", "hello") == "compat"
     assert gateway.observed_inference_route() == "compatibility_fallback"
 

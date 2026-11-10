@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from oap.contracts import MemoryItem, OutputState
@@ -190,7 +190,7 @@ def operational_memory_items(
                 task_type="OPERATIONAL",
                 summary=text,
                 output_state=OutputState.SYSTEM_LOG_ONLY.value,
-                created_at=created_at if isinstance(created_at, datetime) else datetime.now(timezone.utc),
+                created_at=created_at if isinstance(created_at, datetime) else datetime.now(UTC),
             )
         )
         if len(items) >= safe_limit:

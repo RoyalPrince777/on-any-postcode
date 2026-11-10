@@ -441,6 +441,8 @@ def generate(
         cancel_check()
     if not FALLBACK_ENABLED:
         raise RuntimeError("first_party_inference_required") from first_party_error
+    if not os.environ.get("OPENAI_API_KEY", "").strip() and first_party_error is not None:
+        raise first_party_error
     result = compatibility_engine(
         message,
         image_data,

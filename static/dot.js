@@ -19,7 +19,7 @@ function render(){
   btn.setAttribute("aria-label","Draw edge "+a+" to "+b+(taken?" (already drawn)":""));container.append(btn);}
  q("[data-score]").textContent=state.players.map(p=>p.name+": "+p.score).join(" · ");
  q("[data-state]").textContent="Completed boxes: "+Object.keys(state.boxes||{}).length+"/4"+
-  (state.status==="completed"?" · Game finished":state.status==="stopped"?" · Match stopped":"");
+  (state.status==="completed"?(state.draw?" · Draw":" · Winner: "+(state.players.find(p=>p.id===state.winner_id)?.name||"—")):state.status==="stopped"?" · Match stopped":"");
 }
 async function act(url,payload){if(busy||(url==="/arena/dot/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(url,payload);render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();}}
 q("[data-start]").onclick=()=>act("/arena/dot/start",{});

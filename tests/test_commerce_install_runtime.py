@@ -31,6 +31,7 @@ def test_commerce_installer_covers_required_first_party_schemas(monkeypatch):
         "payment_submission_evidence",
         "distribution_runtime",
         "provider_receipts",
+        "founder_private_pod_orders",
     }
     assert all(assume_yes and not dry_run for _, assume_yes, dry_run in calls)
     assert result["secret_values_exposed"] is False
@@ -53,6 +54,13 @@ def test_provider_execution_routes_are_registered(client):
     assert rules["/mission/organs/market/payments/provider/webhook"] >= {"POST"}
     assert rules["/mission/organs/market/pod/<subject_id>/execute"] >= {"POST"}
     assert rules["/mission/organs/market/pod/provider/webhook"] >= {"POST"}
+    assert rules["/mission/organs/market/pod/private/order"] >= {"POST"}
+    assert rules[
+        "/mission/organs/market/pod/private/order/<private_order_id>/execute"
+    ] >= {"POST"}
+    assert rules[
+        "/mission/organs/market/pod/private/order/<private_order_id>/readback"
+    ] >= {"POST"}
 
 
 def test_provider_routes_never_embed_secret_values():

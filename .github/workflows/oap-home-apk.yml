@@ -1,0 +1,310 @@
+name: OAP Home Android APK
+# Master upgrade Build 21: source 82f05cf2863f707baef0fe813a969784fb9a1008
+# Build 20: compile launcher layout update 9f0e09cee51e311b53b2139e13d733123d5c9964
+
+on:
+  workflow_dispatch:
+    inputs:
+      use_reviewed_royal_v2:
+        description: 'Build reviewed Royal Home V2 candidate at pinned SHA; not a phone install'
+        required: true
+        default: false
+        type: boolean
+      build_koradaso_v27:
+        description: 'Build exact reviewed KORADASO v27 candidate; not installed'
+        required: true
+        default: false
+        type: boolean
+      build_home_update_v31:
+        description: 'Build pinned v31 direct Home updater candidate; no device installation'
+        required: true
+        default: false
+        type: boolean
+      build_manual_update_v30:
+        description: 'Build pinned v30 manual APK updater and KORADASO viewport candidate; no device install'
+        required: true
+        default: false
+        type: boolean
+      build_local_routes_v28:
+        description: 'Build exact compiled OAP Core v28 local route candidate; no install'
+        required: true
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - 'android/oaphome/**'
+      - '.github/workflows/oap-home-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OAP Home source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_home_update_v31) && '6a540b563d840c0d2e510bb5f81d45f8b38fef2f' || (github.event_name == 'workflow_dispatch' && inputs.build_manual_update_v30) && '12f4a836e63dbd262ea74405ffdef16d2ba7f61f' || (github.event_name == 'workflow_dispatch' && inputs.build_local_routes_v28) && 'f1b96abf3c13fdcbfa368ed04805df44c042fe55' || ((github.event_name == 'workflow_dispatch' && inputs.build_koradaso_v27) && 'a691ca47826f86f2755bcdc9f2b2787bc392b599') || ((github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && '9d12ed4571802ee0ffe67459df844e99655821b8' || '6a540b563d840c0d2e510bb5f81d45f8b38fef2f') }}
+      - name: Verify checked-out V2 source and record revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_koradaso_v27 }}" == "true" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            echo "::error::Select only one reviewed source candidate"
+            exit 1
+          fi
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            CHOICES=0
+            [[ "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            [[ "${{ inputs.build_koradaso_v27 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            [[ "${{ inputs.build_local_routes_v28 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            [[ "${{ inputs.build_manual_update_v30 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            [[ "${{ inputs.build_home_update_v31 }}" == "true" ]] && CHOICES=$((CHOICES+1))
+            test "$CHOICES" -le 1 || { echo "::error::Select at most one reviewed candidate"; exit 1; }
+          fi
+          SOURCE_REVISION="$(git rev-parse HEAD)"
+          test -n "$SOURCE_REVISION"
+          grep -Fq "applicationId 'com.onanypostcode.oaphome.v2'" android/oaphome/build.gradle
+          grep -Fq "storeType 'pkcs12'" android/oaphome/build.gradle
+          grep -Fq 'private void virtualAndroid()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            grep -Fq 'new RoyalHomeArt.EarthBackdrop()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          fi
+          grep -Fq 'boolean safeWebAddress(Uri uri)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'settings.setJavaScriptEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'handler.cancel();' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'settings.setAllowUniversalAccessFromFileURLs(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'settings.setGeolocationEnabled(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'activeWebView.canGoBack()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'activeWebView.goBack()' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'settings.setBlockNetworkLoads(false)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq '"PTT"' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'HOLD TO TALK' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'LOCKED · MIC OFF' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'Standalone push-to-talk · separate from The Link / Link Up' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'android.permission.RECORD_AUDIO' android/oaphome/src/main/AndroidManifest.xml
+          grep -Fq 'private boolean pttTransportReady = false' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'handlePttTouch(MotionEvent event)' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'MIC PERMISSION REQUIRED' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'private static final String PTT_CONTACTS_PATH = "/ptt/contacts"' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'authenticated native session not connected yet' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          python - <<'PY'
+          from pathlib import Path
+          source = Path("android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java").read_text()
+          ptt = 'Button pttQuick = button("🎙 PTT\\nSTANDALONE · MIC OFF", v -> openPttApp());'
+          info = 'LinearLayout info = new LinearLayout(this);'
+          assert source.count(ptt) == 1, "PTT quick action must appear exactly once"
+          assert source.index(ptt) < source.index(info), "PTT must stay above info tiles for immediate reach"
+          assert '"PTT".equals(normalized)' in source, "Home search must route PTT directly"
+          assert '"PUSH TO TALK".equals(normalized)' in source, "Home search must recognise Push to Talk"
+          assert 'private void openPttApp()' in source, "OAP Home must expose the standalone PTT launch helper"
+          assert 'new Intent(Intent.ACTION_VIEW, uri)' in source, "PTT must launch through Android app/browser routing"
+          store = 'Button storeQuick = button("▣ OAP STORE\\nINSTALL OAP APPS", v -> destination("OAP STORE"));'
+          assert source.count(store) == 1, "OAP Store quick action must appear exactly once"
+          assert 'case "OAP STORE": path = "/store"; break;' in source, "OAP Home must route directly to OAP Store"
+          PY
+          grep -Fq 'shouldInterceptRequest(android.webkit.WebView view' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          grep -Fq 'android.permission.INTERNET' android/oaphome/src/main/AndroidManifest.xml
+          test "$(grep -Fc 'private final android.os.Handler clockHandler' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
+          test "$(grep -Fc 'private final Runnable clockTick' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java)" -eq 1
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            test "$SOURCE_REVISION" = "9d12ed4571802ee0ffe67459df844e99655821b8"
+            grep -Fq 'versionCode 26' android/oaphome/build.gradle
+          fi
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_koradaso_v27 }}" == "true" ]]; then
+            test "$SOURCE_REVISION" = "a691ca47826f86f2755bcdc9f2b2787bc392b599"
+            grep -Fq 'versionCode 27' android/oaphome/build.gradle
+            grep -Fq 'OAP_LOCAL_ORIGIN = "http://127.0.0.1:5050"' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+            grep -Fq 'if (!host.safeWebAddress(request.getUrl()))' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+            grep -Fq '<domain>127.0.0.1</domain>' android/oaphome/src/main/res/xml/oap_network_security.xml
+          fi
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_local_routes_v28 }}" == "true" ]]; then
+            test "$SOURCE_REVISION" = "f1b96abf3c13fdcbfa368ed04805df44c042fe55"
+            grep -Fq "versionCode 28" android/oaphome/build.gradle
+            grep -Fq 'openInternetAddress(OAP_LOCAL_ORIGIN + path);' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+            grep -Fq 'case "OAP MAIL": path = "/the-link"; break;' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+            grep -Fq 'case "OAP MARKET": path = "/the-spot/market"; break;' android/oaphome/src/main/java/com/onanypostcode/oaphome/MainActivity.java
+          fi
+          echo "Compiling OAP Home V2 source revision: $SOURCE_REVISION"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Configure Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -maxdepth 3 -type f -name sdkmanager -print -quit)"
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          yes | "$SDKMANAGER" --licenses >/dev/null || test "${PIPESTATUS[1]}" -eq 0
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Compile Java without producing or publishing an APK
+        working-directory: android/oaphome
+        run: gradle --no-daemon compileDebugJavaWithJavac
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout OAP Home source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_home_update_v31) && '6a540b563d840c0d2e510bb5f81d45f8b38fef2f' || (github.event_name == 'workflow_dispatch' && inputs.build_manual_update_v30) && '12f4a836e63dbd262ea74405ffdef16d2ba7f61f' || (github.event_name == 'workflow_dispatch' && inputs.build_local_routes_v28) && 'f1b96abf3c13fdcbfa368ed04805df44c042fe55' || ((github.event_name == 'workflow_dispatch' && inputs.build_koradaso_v27) && 'a691ca47826f86f2755bcdc9f2b2787bc392b599') || ((github.event_name == 'workflow_dispatch' && inputs.use_reviewed_royal_v2) && '9d12ed4571802ee0ffe67459df844e99655821b8' || '6a540b563d840c0d2e510bb5f81d45f8b38fef2f') }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Configure Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -maxdepth 3 -type f -name sdkmanager -print -quit)"
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          yes | "$SDKMANAGER" --licenses >/dev/null || test "${PIPESTATUS[1]}" -eq 0
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Require persistent OAP signing identity
+        shell: bash
+        env:
+          OAP_HOME_KEYSTORE_B64: ${{ secrets.OAP_HOME_KEYSTORE_B64 }}
+          OAP_HOME_KEYSTORE_PASSWORD: ${{ secrets.OAP_HOME_KEYSTORE_PASSWORD }}
+          OAP_HOME_KEY_ALIAS: ${{ secrets.OAP_HOME_KEY_ALIAS }}
+          OAP_HOME_KEY_PASSWORD: ${{ secrets.OAP_HOME_KEY_PASSWORD }}
+          OAP_HOME_CERT_SHA256: ${{ vars.OAP_HOME_CERT_SHA256 }}
+          OAP_HOME_V2_CERT_SHA256: ${{ vars.OAP_HOME_V2_CERT_SHA256 }}
+          OAP_BUILD_REVIEWED_V2: ${{ github.event_name == 'workflow_dispatch' && (inputs.use_reviewed_royal_v2 || inputs.build_koradaso_v27 || inputs.build_local_routes_v28) }}
+        run: |
+          set -euo pipefail
+          for name in OAP_HOME_KEYSTORE_B64 OAP_HOME_KEYSTORE_PASSWORD OAP_HOME_KEY_ALIAS OAP_HOME_KEY_PASSWORD OAP_HOME_CERT_SHA256; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing $name. Refusing incompatible APK publication."
+              exit 1
+            fi
+          done
+          umask 077
+          printf '%s' "$OAP_HOME_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/oap-home-signing.jks"
+          test -s "$RUNNER_TEMP/oap-home-signing.jks"
+          # Validate the keystore certificate before Gradle can compile an APK.
+          EXPECTED_CERT=$(printf '%s' "$OAP_HOME_CERT_SHA256" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          if [[ ! "$EXPECTED_CERT" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::Expected signing certificate must be a 64-character SHA-256 hex digest."
+            exit 1
+          fi
+          ACTUAL_CERT=$(keytool -list -v -keystore "$RUNNER_TEMP/oap-home-signing.jks" -storepass "$OAP_HOME_KEYSTORE_PASSWORD" -alias "$OAP_HOME_KEY_ALIAS" 2>/dev/null | sed -n 's/^[[:space:]]*SHA256: //p' | head -n1 | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          if [[ -z "$ACTUAL_CERT" || "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
+            echo "::error::Signing keystore fingerprint does not match the pinned OAP identity."
+            exit 1
+          fi
+          if [[ "$OAP_BUILD_REVIEWED_V2" == "true" ]]; then
+            INSTALLED_V2_CERT=$(printf '%s' "${OAP_HOME_V2_CERT_SHA256:-}" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+            if [[ ! "$INSTALLED_V2_CERT" =~ ^[0-9a-f]{64}$ || "$ACTUAL_CERT" != "$INSTALLED_V2_CERT" ]]; then
+              echo "::error::Installed V2 signing identity missing or different; refusing V2 candidate."
+              exit 1
+            fi
+          fi
+          echo "Verified pinned signing identity before build."
+          echo "OAP_HOME_KEYSTORE_PATH=$RUNNER_TEMP/oap-home-signing.jks" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEYSTORE_PASSWORD=$OAP_HOME_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEY_ALIAS=$OAP_HOME_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "OAP_HOME_KEY_PASSWORD=$OAP_HOME_KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "OAP_HOME_CERT_SHA256=$OAP_HOME_CERT_SHA256" >> "$GITHUB_ENV"
+      - name: Build OAP Home
+        working-directory: android/oaphome
+        run: gradle --no-daemon assembleDebug
+      - name: Inspect actual APK outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "APK outputs:"
+          find android/oaphome/build/outputs -maxdepth 6 -type f -print | sort
+          echo "APK metadata:"
+          find android/oaphome/build/outputs -type f -name '*.apk' -exec stat -c '%n %s bytes' {} \;
+          echo "Expected APK path:"
+          test -s android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk
+      - name: Verify APK package and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
+          test -s "$APK"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          BUILD_TOOLS="$SDK_ROOT/build-tools/35.0.0"
+          "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/oap-apk-badging.txt
+          grep -q "package: name='com.onanypostcode.oaphome.v2'" /tmp/oap-apk-badging.txt
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_local_routes_v28 }}" == "true" ]]; then
+            grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='28'" /tmp/oap-apk-badging.txt
+            grep -Fq "application-label:'OAP Core'" /tmp/oap-apk-badging.txt
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.build_koradaso_v27 }}" == "true" ]]; then
+            grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='27'" /tmp/oap-apk-badging.txt
+            grep -Fq "application-label:'OAP Core'" /tmp/oap-apk-badging.txt
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.use_reviewed_royal_v2 }}" == "true" ]]; then
+            grep -q "package: name='com.onanypostcode.oaphome.v2' versionCode='26'" /tmp/oap-apk-badging.txt
+            grep -Fq "application-label:'OAP Core'" /tmp/oap-apk-badging.txt
+          fi
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs --min-sdk-version 26 "$APK"
+          ACTUAL_CERT=$("$BUILD_TOOLS/apksigner" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1 | tr '[:upper:]' '[:lower:]')
+          EXPECTED_CERT=$(printf '%s' "$OAP_HOME_CERT_SHA256" | tr -d ': ' | tr '[:upper:]' '[:lower:]')
+          test -n "$ACTUAL_CERT" && test "$ACTUAL_CERT" = "$EXPECTED_CERT" || { echo "::error::OAP signing certificate mismatch"; exit 1; }
+          "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
+          sha256sum "$APK"
+          stat -c 'APK size: %s bytes' "$APK"
+          test "$(stat -c %s "$APK")" -gt 10000
+      - name: Adversarial APK archive tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import zipfile
+          from pathlib import Path
+          apk = Path("android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk")
+          with zipfile.ZipFile(apk) as z:
+              names = z.namelist()
+              assert len(names) == len(set(names)), "Duplicate ZIP entries"
+              assert z.testzip() is None, "Corrupt APK entry"
+              for required in ("AndroidManifest.xml", "classes.dex"):
+                  assert required in names, f"Missing {required}"
+              assert all(not n.startswith("/") and ".." not in Path(n).parts for n in names), "Unsafe archive path"
+              print(f"PASS: {len(names)} unique entries, archive CRC, manifest, dex and safe paths")
+          PY
+      - name: Record adversarial evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/oaphome/build/outputs/apk/debug/OAPHome-debug.apk"
+          test -s "$APK"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          APKSIGNER="$SDK_ROOT/build-tools/35.0.0/apksigner"
+          mkdir -p adversarial-evidence
+          sha256sum "$APK" > adversarial-evidence/apk.sha256
+          stat -c 'APK bytes: %s' "$APK" > adversarial-evidence/build.txt
+          SOURCE_REVISION=$(git -C android/oaphome rev-parse HEAD)
+          test -n "$SOURCE_REVISION"
+          printf 'Source commit: %s\nWorkflow commit: %s\n' "$SOURCE_REVISION" "$GITHUB_SHA" >> adversarial-evidence/build.txt
+          printf 'Package: com.onanypostcode.oaphome.v2\n' >> adversarial-evidence/build.txt
+          "$APKSIGNER" verify --print-certs "$APK" | sed -n '/^Signer #1 certificate SHA-256 digest: /p' >> adversarial-evidence/build.txt
+          grep -q '^Signer #1 certificate SHA-256 digest: [0-9a-fA-F]\{64\}$' adversarial-evidence/build.txt
+          printf '%s\n' 'CI build and archive checks only; Android device installation NOT VERIFIED.' >> adversarial-evidence/build.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oap-home-adversarial-evidence
+          path: adversarial-evidence/
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: oap-home-debug-apk
+          path: android/oaphome/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

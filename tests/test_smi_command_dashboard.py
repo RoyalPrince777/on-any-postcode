@@ -9,7 +9,7 @@ def test_smi_command_dashboard_composes_canonical_sources():
     assert command["component"] == "SMI Founder Command Dashboard"
     assert command["brain"]["count"] == 1
     assert command["brain"]["regions"] == 14
-    assert command["brain"]["lenses"] == 26
+    assert command["brain"]["lenses"] == 28
     assert command["intelligence"]["worlds"] == 7
     assert command["intelligence"]["agents"] == 78
     assert command["bank"]["software_controls_present"] is True
@@ -53,13 +53,18 @@ def test_smi_command_dashboard_route_is_read_only(client):
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert "SMI Command Dashboard" in page
-    assert "All Intelligence" in page
+    assert "SMI Home" in page
+    assert "Sovereign Megaverse Intelligence" in page
+    assert "Your intelligence, visible without the noise." in page
+    assert "Mission to 100" in page
+    assert "Essential controls" in page
+    assert "Movement Intelligence" in page
+    assert "Learning Intelligence" in page
     assert "War Room" in page
-    assert "Bank / SIKA" in page
-    assert "direct bypass closed" in page
-    assert "regulated execution locked" in page
-    assert "DIRECT_ANSWER" in page
+    assert "Human Authority final" in page
+    assert "Telecom truth review" not in page
+    assert ">Graphs<" not in page
+    assert ">Monitors<" not in page
     assert 'method="post"' not in page.lower()
     assert client.post("/mission/smi").status_code == 405
 
@@ -98,3 +103,130 @@ def test_regulated_unlock_matrix_fails_closed_when_evidence_store_unavailable(mo
     assert unlock["unlocked_count"] == 0
     assert unlock["all_unlocked"] is False
     assert all(value is False for value in unlock["capabilities"].values())
+
+
+def test_smi_home_has_exactly_seven_unique_doors_and_truthful_mail_scope():
+    command = smi_command_dashboard.status()
+    doors = command["doors"]
+    assert len(doors) == 7
+    assert len({door["id"] for door in doors}) == 7
+    assert [door["id"] for door in doors] == [
+        "smi", "command", "interaction", "control", "lab", "studio", "recovery"
+    ]
+    assert command["interaction"]["phone"]["built"] is True
+    assert command["interaction"]["walkie_talkie"]["built"] is True
+    assert command["interaction"]["messages"]["built"] is True
+    assert command["interaction"]["my_line"]["built"] is True
+    assert command["interaction"]["oap_mail"]["built"] is True
+    assert command["interaction"]["oap_mail"]["href"] == "/mail"
+    assert command["interaction"]["oap_mail"]["mailbox_read_built"] is True
+    assert command["interaction"]["oap_mail"]["inbox_receive_built"] is False
+    assert command["interaction"]["oap_mail"]["inbound_transport_built"] is False
+    assert command["interaction"]["incoming"]["href"] == "/linkup/incoming"
+    assert command["interaction"]["recents"]["href"] == "/linkup/calls/recents"
+    assert command["telecom"]["validation_passed"] is True
+    assert command["telecom"]["software_control_plane_ready"] is True
+    assert command["telecom"]["seven_stars"]["truth"] == "PROVEN"
+    assert command["telecom"]["seven_stars"]["compliance"] in {"PROVEN", "BLOCKED"}
+
+
+def test_smi_home_cockpit_is_low_noise_and_route_backed():
+    command = smi_command_dashboard.status()
+    assert [item["id"] for item in command["cockpit"]] == [
+        "brain", "graphs", "monitors", "signals", "incoming", "nexus"
+    ]
+    assert command["interaction"]["phone"]["href"] == "/linkup?intent=link-call"
+    assert command["interaction"]["walkie_talkie"]["href"] == "/ptt"
+    assert command["interaction"]["messages"]["href"] == "/linkup?intent=message"
+    assert command["interaction"]["my_line"]["href"] == "/my-line"
+
+
+def test_smi_essential_controls_have_clear_labels_functions_owners_and_real_routes(client):
+    command = smi_command_dashboard.status()
+    controls = command["sovereign_ui"]["essential_controls"]
+
+    assert [control["id"] for control in controls] == [
+        "smi_chat",
+        "intelligence",
+        "movement",
+        "learning",
+        "memory",
+        "protection",
+        "war_room",
+        "recovery",
+        "founder_final",
+    ]
+    assert len({control["id"] for control in controls}) == len(controls)
+
+    expected = {
+        "smi_chat": ("Talk to SMI", "/mission/ollama", "SMI"),
+        "intelligence": ("Intelligence", "/mission/agents", "SMI"),
+        "movement": ("Movement", "/movement", "Movement Intelligence"),
+        "learning": ("Learning", "/mission/improvement", "HRM + SMI"),
+        "memory": ("Memory", "/mission/organism", "HRM / JOOG"),
+        "protection": ("Protection", "/mission/war-room", "Guardian"),
+        "war_room": ("War Room", "/mission/war-room", "War Room"),
+        "recovery": ("Recovery", "/mission/war-room", "Recovery"),
+        "founder_final": ("Founder Final", "/mission/war-room", "Human Authority"),
+    }
+
+    for control in controls:
+        label, href, owner = expected[control["id"]]
+        assert control["label"] == label
+        assert control["href"] == href
+        assert control["owner"] == owner
+        assert control["function"].strip()
+        assert control["route_label"].strip()
+        response = client.get(href)
+        assert response.status_code == 200, (control["id"], href, response.status_code)
+
+
+def test_smi_home_renders_clear_control_functions_and_founder_final_route(client):
+    page = client.get("/mission/smi").get_data(as_text=True)
+
+    for label in (
+        "Talk to SMI",
+        "Intelligence",
+        "Movement",
+        "Learning",
+        "Memory",
+        "Protection",
+        "War Room",
+        "Recovery",
+        "Founder Final",
+    ):
+        assert label in page
+
+    assert 'href="/mission/war-room"' in page
+    assert 'href="/mission/improvement"' in page
+    assert 'href="/mission/organism"' in page
+    assert "clear function · real route · named owner" in page
+
+
+def test_smi_command_dashboard_exposes_truthful_inference_readiness():
+    command = smi_command_dashboard.status()
+    inference = command["inference"]
+    assert set(inference) == {
+        "first_party_ready", "local_reachable", "local_model_available",
+        "local_reason", "bridge_configured", "worker_recently_seen",
+        "durable_worker_fresh", "fallback_configured", "truth",
+    }
+    assert inference["truth"] in {"FIRST_PARTY_READY", "FIRST_PARTY_BLOCKED"}
+
+
+def test_smi_command_dashboard_front_surface_has_backend_controls(client):
+    page = client.get("/mission/smi").get_data(as_text=True)
+    assert "SMI Inference" in page
+    assert "Check backend" in page
+    assert "Talk to SMI" in page
+    assert "Start the OAP Core worker" in page
+
+
+
+def test_smi_command_dashboard_puts_important_signals_first():
+    command = smi_command_dashboard.status()
+    signals = command["important_signals"]
+    assert len(signals) == 7
+    assert signals[0]["id"] == "inference"
+    assert signals[0]["label"] == "SMI Inference"
+    assert signals[-1]["id"] == "human_authority"

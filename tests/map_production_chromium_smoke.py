@@ -6,6 +6,7 @@ The target must be the deployed public /oap-map route.
 from __future__ import annotations
 
 import os
+from urllib.parse import urlsplit
 
 from playwright.sync_api import sync_playwright
 
@@ -58,6 +59,15 @@ with sync_playwright() as p:
         "oap_os_map_bridge.js",
     )
 
+    page.wait_for_function(
+        "() => document.querySelector('#oap-map-boot')?.hidden === true",
+        timeout=30000,
+    )
+    page.wait_for_function(
+        "() => document.querySelectorAll('#road-layer polyline').length > 0",
+        timeout=30000,
+    )
+
     api_line_counts = page.evaluate(
         """async () => {
           const urls = [
@@ -80,22 +90,70 @@ with sync_playwright() as p:
         }"""
     )
     assert any(count > 0 for count in api_line_counts), ("road_geometry_api_empty", api_line_counts)
-    page.wait_for_function(
-        "() => document.querySelector('#oap-map-boot')?.hidden === true",
-        timeout=30000,
-    )
-    page.wait_for_function(
-        "() => document.querySelectorAll('#road-layer polyline').length > 0",
-        timeout=30000,
-    )
 
     for asset in required_assets:
-        matches = [status for url, status in asset_status.items() if url.endswith("/" + asset)]
+        matches = [
+            status
+            for url, status in asset_status.items()
+            if urlsplit(url).path.endswith("/" + asset)
+        ]
         assert matches and all(status == 200 for status in matches), (asset, matches)
 
     road_count = page.locator("#road-layer polyline").count()
-    assert road_count > 0, "no_live_road_polylines"
+    assert road_count >= 25, ("insufficient_live_road_context", road_count)
     assert boot.is_hidden(), "map_boot_state_did_not_clear"
+
+    page.locator("#map-from").fill("Mitcham")
+    page.locator("#map-to").fill("London Bridge")
+    page.locator("#map-form button.go").click()
+    page.wait_for_function(
+        "() => document.body?.dataset?.mapRenderState === 'stable'",
+        timeout=30000,
+    )
+    page.wait_for_function(
+        "() => document.querySelector('#route-svg')?.hidden === false",
+        timeout=30000,
+    )
+    page.wait_for_function(
+        "() => document.querySelectorAll('#road-layer polyline').length >= 25",
+        timeout=30000,
+    )
+    stability_before = page.evaluate("""() => ({
+      state: document.body?.dataset?.mapRenderState,
+      roads: document.querySelectorAll('#road-layer polyline').length,
+      labels: document.querySelectorAll('#road-layer .road-label').length,
+      bootHidden: document.querySelector('#oap-map-boot')?.hidden === true,
+      roadStatusHidden: document.querySelector('#road-source-state')?.hidden === true,
+      routeHidden: document.querySelector('#route-svg')?.hidden === true,
+      routePoints: document.querySelector('#route-line')?.getAttribute('points') || ''
+    })""")
+    page.wait_for_timeout(4000)
+    stability_after = page.evaluate("""() => ({
+      state: document.body?.dataset?.mapRenderState,
+      roads: document.querySelectorAll('#road-layer polyline').length,
+      labels: document.querySelectorAll('#road-layer .road-label').length,
+      bootHidden: document.querySelector('#oap-map-boot')?.hidden === true,
+      roadStatusHidden: document.querySelector('#road-source-state')?.hidden === true,
+      routeHidden: document.querySelector('#route-svg')?.hidden === true,
+      routePoints: document.querySelector('#route-line')?.getAttribute('points') || ''
+    })""")
+    assert stability_before == stability_after, (
+        "map_changed_after_stable_render",
+        stability_before,
+        stability_after,
+    )
+    assert stability_after["state"] == "stable", stability_after
+    assert stability_after["bootHidden"] is True, stability_after
+    assert stability_after["roadStatusHidden"] is True, stability_after
+    assert stability_after["routeHidden"] is False, stability_after
+    visible_route_roads = page.evaluate("""() => [...document.querySelectorAll('#road-layer polyline')].filter(el => {
+      const r = el.getBoundingClientRect();
+      return r.width > 1 && r.height > 1 && r.bottom >= 0 && r.right >= 0
+        && r.top <= innerHeight && r.left <= innerWidth;
+    }).length""")
+    assert visible_route_roads >= 10, ("routed_screen_lacks_visible_road_context", visible_route_roads)
+    assert page.locator("#turn-card").is_visible(), "turn_guidance_not_visible_after_route"
+
     assert not page_errors, ("browser_page_errors", page_errors)
     road_request_failures = [
         url for url in failed_requests
@@ -109,6 +167,9 @@ with sync_playwright() as p:
         f"box={box['width']}x{box['height']}",
         f"road_request_failures={len(road_request_failures)}",
         f"api_line_counts={api_line_counts}",
+        f"visible_route_roads={visible_route_roads}",
+        f"stable_roads={stability_after['roads']}",
+        f"stable_labels={stability_after['labels']}",
     )
     context.close()
     browser.close()

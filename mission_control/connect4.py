@@ -47,6 +47,7 @@ def new_game(player_one: object = "Player One", player_two: object = "Player Two
         "turn_index": 0,
         "board": [[0 for _ in range(COLS)] for _ in range(ROWS)],
         "winner_id": None,
+        "result": None,
         "moves": 0,
         "request_receipts": [],
     }
@@ -99,6 +100,7 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
         "current_player_name":current["name"],
         "board":copy.deepcopy(state["board"]),
         "winner_id":state["winner_id"],
+        "result":state.get("result"),
         "moves":state["moves"],
         "payments":False,
         "server_authoritative":True,
@@ -124,11 +126,26 @@ def drop(state: object, *, column: object, request_id: object) -> dict[str, Any]
     current["moves"]+=1
     current["request_receipts"].append({"request_id":req,"action":"drop","column":column})
     if _winner(current["board"],player["piece"]):
-        current["status"]="completed"; current["winner_id"]=player["id"]
+        current["status"]="completed"; current["winner_id"]=player["id"]; current["result"]="connect_four"
     elif current["moves"] == ROWS*COLS:
-        current["status"]="completed"; current["winner_id"]=None
+        current["status"]="completed"; current["winner_id"]=None; current["result"]="draw_full_board"
     else:
         current["turn_index"] = 1-current["turn_index"]
+    return _seal(current)
+
+def resign(state: object, *, request_id: object) -> dict[str, Any]:
+    current=_validated_copy(state)
+    req=_valid_request_id(request_id)
+    if any(x["request_id"]==req for x in current["request_receipts"]):
+        return current
+    if current["status"]!="active":
+        raise ValueError("connect4_resign_denied")
+    loser=current["players"][current["turn_index"]]
+    winner=current["players"][1-current["turn_index"]]
+    current["status"]="completed"
+    current["winner_id"]=winner["id"]
+    current["result"]="resignation"
+    current["request_receipts"].append({"request_id":req,"action":"resign","player_id":loser["id"]})
     return _seal(current)
 
 def stop(state: object, *, request_id: object) -> dict[str, Any]:

@@ -12,7 +12,7 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, time, timezone
+from datetime import UTC, datetime, time
 from typing import Iterable
 from zoneinfo import ZoneInfo
 
@@ -47,7 +47,7 @@ _LAST_FETCH: dict[str, object] = {
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _enabled() -> bool:
@@ -175,8 +175,8 @@ def _freshness(fetched_at: object) -> str:
     if not fetched_at:
         return "unseen"
     try:
-        stamp = datetime.fromisoformat(str(fetched_at).replace("Z", "+00:00"))
-        age = (datetime.now(timezone.utc) - stamp).total_seconds()
+        stamp = datetime.fromisoformat(str(fetched_at))
+        age = (datetime.now(UTC) - stamp).total_seconds()
     except (TypeError, ValueError):
         return "invalid_timestamp"
     if age < 0:

@@ -74,6 +74,7 @@ def new_game(players=None):
             "turn_index": 0,
             "winner_id": None,
             "draw": False,
+            "result": None,
             "request_receipts": [],
         }
     )
@@ -192,10 +193,29 @@ def public_state(state):
         "legal_pits": legal_pits(checked),
         "winner_id": checked["winner_id"],
         "draw": checked["draw"],
+        "result": checked.get("result"),
         "total_seeds": TOTAL_SEEDS,
         "ruleset": "Abapa core",
         "payments": False,
     }
+
+
+def _finish_no_legal_move(state):
+    for player_index in (0, 1):
+        remaining = sum(state["pits"][index] for index in _side(player_index))
+        state["players"][player_index]["captured"] += remaining
+        for index in _side(player_index):
+            state["pits"][index] = 0
+    first = state["players"][0]["captured"]
+    second = state["players"][1]["captured"]
+    state["status"] = "completed"
+    state["draw"] = first == second
+    state["winner_id"] = (
+        None
+        if first == second
+        else state["players"][0]["id"] if first > second else state["players"][1]["id"]
+    )
+    state["result"] = "no_legal_move"
 
 
 def move(state, *, pit, request_id):
@@ -233,11 +253,15 @@ def move(state, *, pit, request_id):
     if score >= 25:
         current["status"] = "completed"
         current["winner_id"] = current["players"][player_index]["id"]
+        current["result"] = "score"
     elif score == 24 and other_score == 24:
         current["status"] = "completed"
         current["draw"] = True
+        current["result"] = "draw_24_24"
     else:
         current["turn_index"] = 1 - player_index
+        if not legal_pits(_seal(current)):
+            _finish_no_legal_move(current)
     return _seal(current)
 
 

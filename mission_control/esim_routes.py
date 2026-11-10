@@ -105,6 +105,25 @@ def provision(request_id: str):
     return _founder_action(request_id, "provision")
 
 
+@bp.post("/mission/esim/requests/<request_id>/confirm-network")
+@web_security.login_required(api=True, founder_only=True)
+def confirm_network(request_id: str):
+    if guard := _csrf_guard():
+        return guard
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        return _response({"error": {"code": "json_object_required"}}, 400)
+    try:
+        result = esim_provisioning.CORE.confirm_network_registration(
+            request_id,
+            evidence_id=body.get("evidence_id"),
+            session_established=body.get("session_established") is True,
+        )
+        return _response({"esim_request": result})
+    except Exception as exc:  # noqa: BLE001
+        return _error(exc)
+
+
 @bp.post("/mission/esim/requests/<request_id>/suspend")
 @web_security.login_required(api=True, founder_only=True)
 def suspend(request_id: str):

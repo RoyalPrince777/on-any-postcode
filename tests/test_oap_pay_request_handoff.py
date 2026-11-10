@@ -1,12 +1,6 @@
-from decimal import Decimal
-
 import pytest
 
-from mission_control import (
-    oap_pay_request_handoff,
-    sika_account_engine,
-    sika_payment_orchestrator,
-)
+from mission_control import oap_pay_request_handoff, sika_account_engine
 
 
 def _request():
@@ -37,26 +31,34 @@ def _account():
     )
 
 
-def test_build_handoff_binds_request_and_never_authorises(monkeypatch):
+def test_build_handoff_binds_request_atomically_and_never_authorises(monkeypatch):
     created = {}
 
-    def create_intent(**kwargs):
+    def create_atomic(**kwargs):
         created.update(kwargs)
-        return sika_payment_orchestrator.PaymentIntent(
-            payment_id=kwargs["payment_id"],
-            idempotency_key=kwargs["idempotency_key"],
-            payer_account_id=kwargs["payer_account"].account_id,
-            payee_reference=kwargs["payee_reference"],
-            amount=Decimal("12.50"),
-            currency=kwargs["currency"],
-            jurisdiction=kwargs["jurisdiction"],
-            status="DRAFT",
-        )
+        return {
+            "payment_id": kwargs["payment_id"],
+            "hold_id": kwargs["hold_id"],
+            "idempotency_key": kwargs["idempotency_key"],
+            "payer_account_id": kwargs["payer_account"].account_id,
+            "payee_reference": kwargs["payee_reference"],
+            "amount": "12.50",
+            "currency": kwargs["currency"],
+            "jurisdiction": kwargs["jurisdiction"],
+            "payment_status": "DRAFT",
+            "hold_status": "ACTIVE",
+            "customer_authority_receipt": {
+                "receipt_hash": "a" * 64,
+                "payment_id": kwargs["payment_id"],
+            },
+            "atomic": True,
+            "money_movement": False,
+        }
 
     monkeypatch.setattr(
-        oap_pay_request_handoff.sika_payment_orchestrator,
-        "create_intent",
-        create_intent,
+        oap_pay_request_handoff.sika_atomic_payment,
+        "create",
+        create_atomic,
     )
 
     result = oap_pay_request_handoff.build_handoff(
@@ -69,6 +71,8 @@ def test_build_handoff_binds_request_and_never_authorises(monkeypatch):
         expires_at="2026-10-03T09:00:00Z",
     )
     assert result["payment_intent"]["status"] == "DRAFT"
+    assert result["payment_hold"]["status"] == "ACTIVE"
+    assert result["payment_hold"]["hold_id"] == "hold:pay-1"
     assert result["request_binding"]["payee_reference"] == "merchant-1"
     assert result["request_binding"]["amount"] == "12.50"
     assert result["request_binding"]["currency"] == "GBP"
@@ -79,6 +83,7 @@ def test_build_handoff_binds_request_and_never_authorises(monkeypatch):
     assert result["provider_calling"] is False
     assert result["money_movement"] is False
     assert created["payee_reference"] == "merchant-1"
+    assert created["hold_id"] == "hold:pay-1"
 
 
 def test_build_handoff_rejects_cancelled_or_expired_request():
@@ -125,6 +130,9 @@ def test_status_truth_boundaries():
     assert status["binds_open_request_to_payer"] is True
     assert status["creates_draft_payment_intent"] is True
     assert status["creates_customer_authority_receipt"] is True
+    assert status["persists_customer_authority_receipt"] is True
+    assert status["creates_payment_hold"] is True
+    assert status["atomic_payment_creation"] is True
     assert status["direct_authorisation"] is False
     assert status["provider_calling"] is False
     assert status["money_movement"] is False

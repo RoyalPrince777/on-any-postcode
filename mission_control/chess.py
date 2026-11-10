@@ -399,6 +399,25 @@ def move(state, *, source: object, target: object, request_id: object, promotion
     return _seal(current)
 
 
+def resign(state, *, request_id: object):
+    current = _copy(state)
+    request_id = _req(request_id)
+    if any(item["request_id"] == request_id for item in current["request_receipts"]):
+        return current
+    if current["status"] != "active":
+        raise ValueError("chess_resign_denied")
+    resigning = current["turn"]
+    winner = "Black" if resigning == "w" else "White"
+    current["status"] = "completed"
+    current["result"] = "resignation"
+    current["winner"] = winner
+    current["check"] = False
+    current["request_receipts"].append(
+        {"request_id": request_id, "action": "resign", "side": resigning}
+    )
+    return _seal(current)
+
+
 def stop(state, *, request_id: object):
     current = _copy(state)
     request_id = _req(request_id)

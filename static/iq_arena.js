@@ -16,6 +16,8 @@ function render(){
  if(!state)return;
  q("[data-play]").hidden=false;q("[data-status]").textContent=state.status;
  q("[data-score]").textContent=state.score;q("[data-total]").textContent=state.total;
+ const feedback=q("[data-answer-feedback]");
+ feedback.textContent=state.last_answer?(state.last_answer.correct?"Correct · ":"Not correct · ")+state.last_answer.domain+" · Accuracy "+state.accuracy_percent+"%":"Choose an answer.";
  const profile=q("[data-profile]");profile.replaceChildren();
  for(const [domain,value] of Object.entries(state.domain_scores||{})){
   const card=document.createElement("div");card.className="iq-card";

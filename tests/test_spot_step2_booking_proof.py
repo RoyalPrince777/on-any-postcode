@@ -107,7 +107,7 @@ def test_supply_core_boot_migration_is_explicit_and_precedes_step2_proof():
 def test_supply_core_boot_migration_does_not_unlock_payments_or_dispatch():
     source = (ROOT / "mission_control" / "__init__.py").read_text(encoding="utf-8")
     block = source.split('OAP_SUPPLY_CORE_MIGRATION_ON_BOOT', 1)[1].split(
-        'OAP_SPOT_STEP2_PROOF_ON_BOOT',
+        'OAP_LINK_MESSAGE_SYNC_MIGRATION_ON_BOOT',
         1,
     )[0]
 

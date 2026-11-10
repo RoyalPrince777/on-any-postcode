@@ -29,7 +29,7 @@ function render(){
  q("[data-roll]").disabled=busy||!active||pending;
  q("[data-stop]").disabled=busy||!active;
  const feedback=q("[data-feedback]");
- if(state.status==="completed"){feedback.textContent="Winner: "+(state.players.find(p=>p.id===state.winner_id)?.name||"—");}
+ if(state.status==="completed"){feedback.textContent="Winner: "+(state.winner_name||state.players.find(p=>p.id===state.winner_id)?.name||"—")+" · All four pieces home";}
  else if(state.status==="stopped"){feedback.textContent="Match stopped.";}
  else if(pending&&state.movable_piece_ids.length){feedback.textContent="Rolled "+state.pending_roll+". Choose a highlighted piece.";}
  else if(pending){feedback.textContent="Rolled "+state.pending_roll+".";}

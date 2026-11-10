@@ -146,6 +146,7 @@ def public_state(state: dict[str, Any] | None) -> dict[str, Any]:
         "routes": copy.deepcopy(state["routes"]),
         "edges": copy.deepcopy(state["edges"]),
         "winner_id": state["winner_id"],
+        "winner_name": next((p["name"] for p in state["players"] if p["id"] == state["winner_id"]), None),
         "payments": False,
         "real_property_rights": False,
         "human_authority_final": True,

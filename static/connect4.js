@@ -23,8 +23,11 @@ function render(){
  q("[data-game]").hidden=false;
  q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
  q("[data-status]").textContent=state.status;
+ const activity=window.OAPGameplayProgress?.measure("connect4",state);
+ q("[data-gameplay-percent]").textContent=activity?"Gameplay "+activity.value+"% · "+activity.label:"Gameplay percentage unavailable";
+ q("[data-gameplay-bar]").value=activity?activity.value:0;
  const active=state.status==="active";
- q("[data-stop]").disabled=busy||!active;
+ q("[data-stop]").disabled=busy||!active;q("[data-resign]").disabled=busy||!active;
  const controls=q("[data-controls]");controls.replaceChildren();
  const locked=busy||!active||(agentMode&&state.current_player_id==="p2");
  for(let column=0;column<7;column++){
@@ -87,6 +90,7 @@ q("[data-retry-agent]").onclick=()=>{
  busy=true;q("[data-error]").textContent="";render();
  runAgent().catch(error).finally(()=>{busy=false;render();});
 };
+q("[data-resign]").onclick=()=>{if(busy||state?.status!=="active")return;action("/arena/connect4/resign",{request_id:req()});};
 q("[data-stop]").onclick=()=>{
  if(busy||state?.status!=="active")return;
  action("/arena/connect4/stop",{request_id:req()});

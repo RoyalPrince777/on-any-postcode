@@ -9,11 +9,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from . import (
-    sika_account_engine,
-    sika_customer_payment_authority,
-    sika_payment_orchestrator,
-)
+from . import sika_account_engine, sika_atomic_payment
 
 
 class PaymentRequestHandoffError(ValueError):
@@ -62,18 +58,11 @@ def build_handoff(
     surface = _request_field(request, "surface")
     request_id = _request_field(request, "request_id")
 
-    intent = sika_payment_orchestrator.create_intent(
-        payment_id=payment_id_value,
-        idempotency_key=_required(idempotency_key, "idempotency_key"),
+    atomic = sika_atomic_payment.create(
         payer_account=payer_account,
-        payee_reference=payee_reference,
-        amount=amount,
-        currency=currency,
-        jurisdiction=jurisdiction,
-    )
-    receipt = sika_customer_payment_authority.build_receipt(
         payment_id=payment_id_value,
-        payer_account_id=payer_account.account_id,
+        hold_id=f"hold:{payment_id_value}",
+        idempotency_key=_required(idempotency_key, "idempotency_key"),
         payee_reference=payee_reference,
         amount=amount,
         currency=currency,
@@ -83,11 +72,28 @@ def build_handoff(
         expires_at=_required(expires_at, "expires_at"),
     )
 
+
     return {
         "request_id": request_id,
         "surface": surface,
-        "payment_intent": intent.as_dict(),
-        "customer_authority_receipt": receipt,
+        "payment_intent": {
+            "payment_id": atomic["payment_id"],
+            "idempotency_key": atomic["idempotency_key"],
+            "payer_account_id": atomic["payer_account_id"],
+            "payee_reference": atomic["payee_reference"],
+            "amount": atomic["amount"],
+            "currency": atomic["currency"],
+            "jurisdiction": atomic["jurisdiction"],
+            "status": atomic["payment_status"],
+        },
+        "customer_authority_receipt": atomic["customer_authority_receipt"],
+        "payment_hold": {
+            "hold_id": atomic["hold_id"],
+            "payment_id": atomic["payment_id"],
+            "status": atomic["hold_status"],
+            "amount": atomic["amount"],
+            "currency": atomic["currency"],
+        },
         "request_binding": {
             "payment_id": payment_id_value,
             "payer_account_id": payer_account.account_id,
@@ -137,6 +143,9 @@ def status() -> dict[str, object]:
         "binds_open_request_to_payer": True,
         "creates_draft_payment_intent": True,
         "creates_customer_authority_receipt": True,
+        "persists_customer_authority_receipt": True,
+        "creates_payment_hold": True,
+        "atomic_payment_creation": True,
         "rights_gate_required_next": True,
         "sika_pay_gateway_required_next": True,
         "direct_authorisation": False,

@@ -1,0 +1,33 @@
+plugins {
+    id 'com.android.application' version '8.7.3'
+}
+
+android {
+    namespace 'com.onanypostcode.oapworld'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.onanypostcode.oapworld'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '0.1-founder'
+    }
+    buildTypes {
+        release { minifyEnabled false }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    sourceSets { main { manifest.srcFile 'src/main/AndroidManifest.xml'; java.srcDirs = ['src/main/java']; res.srcDirs = ['src/main/res'] } }
+}
+
+dependencies {
+    implementation 'androidx.activity:activity:1.9.3'
+}
+
+// Older transitive Kotlin JDK7/JDK8 artifacts duplicate classes bundled into stdlib 1.8+.
+configurations.configureEach {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}

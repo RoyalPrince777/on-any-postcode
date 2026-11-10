@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -214,7 +214,7 @@ def test_live_persistence_probe_writes_reads_deletes_and_rolls_back(monkeypatch)
 def test_create_learning_record_writes_private_integrity_snapshot(monkeypatch):
     identity = str(uuid.uuid4())
     record_id = str(uuid.uuid4())
-    created_at = datetime.now(timezone.utc)
+    created_at = datetime.now(UTC)
 
     def handler(query, params):
         if query.startswith("INSERT INTO users"):
@@ -276,7 +276,7 @@ def test_list_learning_records_rejects_integrity_drift(monkeypatch):
         True,
         prepared["visibility"],
         prepared["content_hash"],
-        datetime.now(timezone.utc),
+        datetime.now(UTC),
     )
     connection = _Connection(lambda _query, _params: _Result(rows=[row]))
     monkeypatch.setattr(

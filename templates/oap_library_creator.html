@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Create and Sell - OAP Library</title>
+{% include "_oap_install_head.html" %}
+<link rel="stylesheet" href="{{ url_for('static', filename='oap/oap_library.css') }}">
+</head>
+<body>
+<header class="library-topbar">
+<a class="library-brand" href="/library"><span class="library-brand-mark">OAP</span><span>LIBRARY</span></a>
+<nav aria-label="Library navigation">
+<a href="/library/books">Books</a>
+<a href="/library/my-library">My Library</a>
+<a href="/library/create" aria-current="page">Create</a>
+<a href="/library/sell">Sell</a>
+</nav>
+</header>
+<main class="library-collections">
+<div class="section-heading"><div>
+<p class="library-kicker">DIGITAL ONLY - CREATOR WORKSPACE</p>
+<h1>Create and Sell</h1>
+<p>Build ebook drafts and submit them for review.</p>
+</div></div>
+<aside class="library-boundary">
+<strong>Submission is not publication.</strong>
+<span>Rights verification, publication approval, product activation, payment capture and ownership issuance remain separately governed.</span>
+</aside>
+{% if store_state == "unavailable" %}
+<div class="library-empty">
+<h2>Creator storage is not ready.</h2>
+<p>Draft creation stays locked until the durable ebook creator schema is installed.</p>
+</div>
+{% else %}
+<section>
+<div class="section-heading"><div><p class="library-kicker">MY DIGITAL BOOKS</p><h2>Drafts and review</h2></div></div>
+{% if drafts %}
+<div class="collection-grid">
+{% for draft in drafts %}
+<article class="collection-card" data-access="{{ draft.state|lower }}">
+<div class="collection-symbol" aria-hidden="true">BOOK</div>
+<p class="collection-name">{{ draft.state }}</p>
+<h3>{{ draft.title }}</h3>
+<p>{{ draft.book_id }} - {{ draft.edition_id }} - {{ draft.language }}</p>
+<p>Manuscript {{ draft.manuscript_sha256[:12] }}...</p>
+{% if draft.state == "DRAFT" %}
+<span>Ready for rights attestation and review submission.</span>
+{% else %}
+<span>Submitted. Evidence review controls the next state.</span>
+{% endif %}
+</article>
+{% endfor %}
+</div>
+{% else %}
+<div class="library-empty">
+<h2>No ebook drafts yet.</h2>
+<p>Create your first digital manuscript through the secured creator action.</p>
+</div>
+{% endif %}
+</section>
+{% endif %}
+</main>
+<footer><span>BORN LOCAL. BUILT GLOBAL. EARTH IS OUR TURF.</span><span>ON ANY POSTCODE</span></footer>
+</body>
+</html>

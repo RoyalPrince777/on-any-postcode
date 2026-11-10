@@ -14,7 +14,7 @@ def new_game(player_one: object = "Player One", player_two: object = "Player Two
     names = [" ".join(str(v or "").split()) for v in (player_one, player_two)]
     if any(not n or len(n) > 40 for n in names) or names[0].casefold() == names[1].casefold():
         raise ValueError("dot_players_invalid")
-    return _seal({"schema":SCHEMA,"game_id":str(uuid.uuid4()),"status":"active","turn":0,"players":[{"id":"p1","name":names[0],"score":0},{"id":"p2","name":names[1],"score":0}],"edges":[],"boxes":{},"request_receipts":[]})
+    return _seal({"schema":SCHEMA,"game_id":str(uuid.uuid4()),"status":"active","turn":0,"players":[{"id":"p1","name":names[0],"score":0},{"id":"p2","name":names[1],"score":0}],"edges":[],"boxes":{},"winner_id":None,"draw":False,"result":None,"request_receipts":[]})
 def validate(s):
     if not isinstance(s,dict):return {"passed":False,"errors":["dot_state_missing"]}
     e=[];exp=copy.deepcopy(s);exp.pop("checkpoint",None)
@@ -47,7 +47,7 @@ def public_state(s):
     if s is None:return {"started":False,"status":"idle"}
     c=validate(s)
     if not c["passed"]:raise ValueError(c["errors"][0])
-    return {"started":True,"status":s["status"],"players":copy.deepcopy(s["players"]),"turn_player":s["players"][s["turn"]]["name"],"turn_player_id":s["players"][s["turn"]]["id"],"edges":copy.deepcopy(s["edges"]),"boxes":copy.deepcopy(s["boxes"]),"size":SIZE,"payments":False}
+    return {"started":True,"status":s["status"],"players":copy.deepcopy(s["players"]),"turn_player":s["players"][s["turn"]]["name"],"turn_player_id":s["players"][s["turn"]]["id"],"edges":copy.deepcopy(s["edges"]),"boxes":copy.deepcopy(s["boxes"]),"winner_id":s.get("winner_id"),"draw":bool(s.get("draw")),"result":s.get("result"),"size":SIZE,"payments":False}
 def draw(s,*,a:object,b:object,request_id:object):
     cur=_copy(s);req=_req(request_id);a=str(a);b=str(b)
     if any(x["request_id"]==req for x in cur["request_receipts"]):return cur
@@ -62,7 +62,12 @@ def draw(s,*,a:object,b:object,request_id:object):
         p["score"]+=len(new)
     else:cur["turn"]=1-cur["turn"]
     cur["request_receipts"].append({"request_id":req,"action":"draw","edge":list(edge)})
-    if len(cur["boxes"])==(SIZE-1)*(SIZE-1):cur["status"]="completed"
+    if len(cur["boxes"])==(SIZE-1)*(SIZE-1):
+        cur["status"]="completed"
+        first,second=cur["players"]
+        cur["draw"]=first["score"]==second["score"]
+        cur["winner_id"]=None if cur["draw"] else (first["id"] if first["score"]>second["score"] else second["id"])
+        cur["result"]="draw" if cur["draw"] else "boxes_win"
     return _seal(cur)
 def stop(s,*,request_id:object):
     cur=_copy(s);req=_req(request_id)

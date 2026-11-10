@@ -50,6 +50,16 @@ def test_remaining_arena_game_routes(client, csrf, monkeypatch):
     assert chess_moved.status_code == 200
     assert chess_moved.get_json()["board"]["e4"] == "wP"
 
+    chess_resigned = client.post(
+        "/arena/chess/resign",
+        json={"request_id": "http-chess-resign-0001"},
+        headers=headers,
+    )
+    assert chess_resigned.status_code == 200
+    assert chess_resigned.get_json()["status"] == "completed"
+    assert chess_resigned.get_json()["result"] == "resignation"
+    assert chess_resigned.get_json()["winner"] == "White"
+
     dot_started = client.post("/arena/dot/start", json={}, headers=headers)
     assert dot_started.status_code == 201
     dot_drawn = client.post(

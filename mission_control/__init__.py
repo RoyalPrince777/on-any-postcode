@@ -49,6 +49,8 @@ def init_app(app: Flask) -> None:
         music_civilization_migration,
         oap_lab_immutability_migration,
         oap_library_learning,
+        oap_library_ebook_schema,
+        oap_eats_store,
         oap_ride_runtime,
         oap_ride_commercial,
         oap_ride_payment_bridge,
@@ -102,8 +104,14 @@ def init_app(app: Flask) -> None:
     from .music_public_views import bp as music_public_bp
     from .oap_data_views import bp as oap_data_bp
     from .oap_library_views import bp as oap_library_bp
+    from .oap_ebook_catalogue_store import resolve_trusted_ebook
+    from .oap_ebook_http import create_ebook_blueprint
     from .oap_pay import bp as oap_pay_bp
+    from .sika_founder_routes import bp as sika_founder_bp
+    from .personal_telecom_routes import bp as personal_telecom_bp
+    from .ptt_routes import bp as ptt_bp
     from .oap_store import bp as oap_store_bp
+    from .oap_engine_android_routes import bp as oap_engine_android_bp
     from .on_any_place_routes import bp as on_any_place_bp
     from .organiser_views import bp as smi_organiser_bp
     from .product_core_views import bp as product_core_bp
@@ -113,6 +121,23 @@ def init_app(app: Flask) -> None:
 
     movement_operations.STORE = movement_match_safety.STORE
 
+
+    if os.environ.get("OAP_EATS_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        result = oap_eats_store.init_schema(assume_yes=True, dry_run=False)
+        print(
+            json.dumps(
+                {
+                    "event": "oap_eats_schema_migration",
+                    "success": bool(result.get("schema_ready")),
+                    "migration": result.get("migration"),
+                    "checksum": result.get("checksum"),
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            flush=True,
+        )
 
     if os.environ.get("OAP_RIDE_SCHEMA_AUTO_APPLY", "").strip() == "1":
         # Ride schema objects reference the durable Movement spine. Production
@@ -514,6 +539,93 @@ def init_app(app: Flask) -> None:
                         "event": "oap_link_share_migration",
                         "success": False,
                         "error": "link_share_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_LIBRARY_EBOOK_SCHEMA_PROOF_ON_BOOT", "").strip() == "1":
+        try:
+            ebook_schema_proof = oap_library_ebook_schema.readback()
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_readback",
+                        "success": True,
+                        "schema_ready": bool(
+                            ebook_schema_proof.get("schema_ready")
+                        ),
+                        "prerequisites_ready": bool(
+                            ebook_schema_proof.get("prerequisites_ready")
+                        ),
+                        "tables": ebook_schema_proof.get("tables"),
+                        "prerequisites": ebook_schema_proof.get("prerequisites"),
+                        "member_rows_read": False,
+                        "payment_rows_read": False,
+                        "payment_capture_performed": False,
+                        "ownership_created": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except oap_library_ebook_schema.LibraryEbookSchemaUnavailable:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_readback",
+                        "success": False,
+                        "schema_ready": False,
+                        "error": "library_ebook_schema_readback_failed",
+                        "member_rows_read": False,
+                        "payment_rows_read": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+
+    if os.environ.get("OAP_LIBRARY_EBOOK_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        try:
+            ebook_schema = oap_library_ebook_schema.install(
+                assume_yes=True,
+                dry_run=False,
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_migration",
+                        "success": bool(ebook_schema.get("schema_ready")),
+                        "migration": ebook_schema.get("migration"),
+                        "checksum": ebook_schema.get("checksum"),
+                        "prerequisites_ready": bool(
+                            ebook_schema.get("prerequisites_ready")
+                        ),
+                        "member_rows_read": False,
+                        "payment_rows_read": False,
+                        "payment_capture_performed": False,
+                        "ownership_created": False,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_migration",
+                        "success": False,
+                        "error": "library_ebook_schema_migration_failed",
+                        "payment_capture_performed": False,
+                        "ownership_created": False,
                     },
                     separators=(",", ":"),
                     sort_keys=True,
@@ -1395,7 +1507,11 @@ def init_app(app: Flask) -> None:
 
     surface_security.register(app)
     app.register_blueprint(oap_library_bp)
+    app.register_blueprint(create_ebook_blueprint(resolve_trusted_ebook))
     app.register_blueprint(oap_pay_bp)
+    app.register_blueprint(sika_founder_bp)
+    app.register_blueprint(personal_telecom_bp)
+    app.register_blueprint(ptt_bp)
     app.register_blueprint(all_in_ai_bp, url_prefix="/mission")
     app.register_blueprint(music_public_bp)
     app.register_blueprint(on_any_place_bp)
@@ -1415,6 +1531,7 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(mail_store_catalog_bp)
     app.register_blueprint(bank_store_catalog_bp)
     app.register_blueprint(oap_store_bp)
+    app.register_blueprint(oap_engine_android_bp)
     app.register_blueprint(travel_supply_bp)
     app.register_blueprint(global_transport_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")

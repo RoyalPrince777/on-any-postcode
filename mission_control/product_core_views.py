@@ -14,6 +14,9 @@ from . import (
     distribution_intelligence,
     distribution_runtime,
     entertainment_catalogue,
+    founder_private_commerce,
+    founder_private_pod_mapper,
+    founder_private_pod_orders,
     live_music_core,
     market_sika_pod_runtime,
     market_supplier_network,
@@ -27,6 +30,9 @@ from . import (
     open_cinema,
     open_cinema_evidence,
     open_music_intake,
+    pod_provider_registry,
+    printful_pod_adapter,
+    prodigi_pod_adapter,
     product_core_services,
     product_cores,
     product_store,
@@ -1690,6 +1696,199 @@ def market_payment_provider_webhook():
         return _error("provider_webhook_unavailable", "Provider webhook unavailable.", 503)
 
 
+@bp.get("/market/pod/private/status")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_status():
+    """Founder-only private commerce capability status."""
+
+    return _no_store(make_response(jsonify(founder_private_commerce.status())))
+
+
+@bp.get("/market/pod/private/analytics")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_analytics():
+    """Founder-only aggregate My POD catalogue intelligence."""
+
+    try:
+        products = market_supplier_network.STORE.owner_pod_products(
+            seller_identity_id=_identity()
+        )
+        return _no_store(
+            make_response(
+                jsonify(founder_private_commerce.private_catalogue_analytics(products))
+            )
+        )
+    except (ValueError, RuntimeError):
+        return _error(
+            "private_pod_analytics_unavailable",
+            "Private POD analytics are temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/market/pod/private/plan")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_plan():
+    """Build one private canonical fulfilment plan without provider execution."""
+
+    def action():
+        owner = _identity(sync=True)
+        payload = _payload()
+        product_id = str(payload.get("product_id") or "").strip()
+        products = market_supplier_network.STORE.owner_pod_products(
+            seller_identity_id=owner
+        )
+        product = next(
+            (row for row in products if str(row.get("product_id")) == product_id),
+            None,
+        )
+        if product is None:
+            raise PermissionError("private_product_not_owned")
+        return founder_private_commerce.private_fulfilment_plan(
+            product=product,
+            quantity=payload.get("quantity", 1),
+            provider_id=payload.get("provider_id"),
+            color=payload.get("color"),
+            size=payload.get("size"),
+            destination_country=payload.get("destination_country"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/private/order")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_order():
+    """Create one durable Founder-private POD order snapshot."""
+
+    def action():
+        owner = _identity(sync=True)
+        payload = _payload()
+        product_id = str(payload.get("product_id") or "").strip()
+        products = market_supplier_network.STORE.owner_pod_products(
+            seller_identity_id=owner
+        )
+        product = next(
+            (row for row in products if str(row.get("product_id")) == product_id),
+            None,
+        )
+        if product is None:
+            raise PermissionError("private_product_not_owned")
+        plan = founder_private_commerce.private_fulfilment_plan(
+            product=product,
+            quantity=payload.get("quantity", 1),
+            provider_id=payload.get("provider_id"),
+            color=payload.get("color"),
+            size=payload.get("size"),
+            destination_country=payload.get("destination_country"),
+        )
+        provider_payload = founder_private_pod_mapper.map_provider_payload(
+            provider_id=plan["provider_id"],
+            plan=plan,
+            delivery_address=payload.get("delivery_address"),
+        )
+        return founder_private_pod_orders.STORE.create_snapshot(
+            owner_identity_id=owner,
+            product_id=product_id,
+            provider_id=plan["provider_id"],
+            canonical_order=plan["canonical_order"],
+            provider_payload=provider_payload,
+            idempotency_key=payload.get("idempotency_key"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/private/order/<private_order_id>/execute")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_order_execute(private_order_id: str):
+    """Execute only the durable private snapshot through the locked provider registry."""
+
+    def action():
+        owner = _identity(sync=True)
+        private_order = founder_private_pod_orders.STORE.read_for_owner(
+            owner_identity_id=owner,
+            private_order_id=private_order_id,
+        )
+        receipt = pod_provider_registry.submit(
+            provider_id=private_order["provider_id"],
+            payload=private_order["provider_payload"],
+            idempotency_key=private_order["idempotency_key"],
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="pod",
+            subject_id=private_order_id,
+            provider_receipt=receipt,
+        )
+        updated = founder_private_pod_orders.STORE.attach_provider_receipt(
+            owner_identity_id=owner,
+            private_order_id=private_order_id,
+            provider_receipt=receipt,
+        )
+        return {
+            "private_order": updated,
+            "receipt": durable,
+            "provider_called": True,
+            "public_merchant_access": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/private/order/<private_order_id>/readback")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_order_readback(private_order_id: str):
+    """Read provider state for a private order; no confirmation or charge."""
+
+    def action():
+        owner = _identity(sync=True)
+        private_order = founder_private_pod_orders.STORE.read_for_owner(
+            owner_identity_id=owner,
+            private_order_id=private_order_id,
+        )
+        provider = private_order["provider_id"]
+        reference = private_order["provider_reference"]
+        if not reference:
+            raise ValueError("private_pod_provider_reference_missing")
+        if provider == "prodigi":
+            evidence = prodigi_pod_adapter.get_order(provider_reference=reference)
+        elif provider == "printful":
+            evidence = printful_pod_adapter.get_order(provider_reference=reference)
+        else:
+            raise ValueError("private_pod_readback_unavailable")
+        reconciled = founder_private_commerce.reconcile_provider_state(
+            provider_id=provider,
+            provider_state=evidence.get("provider_state"),
+        )
+        return founder_private_pod_orders.STORE.update_readback(
+            owner_identity_id=owner,
+            private_order_id=private_order_id,
+            provider_reference=evidence.get("provider_reference"),
+            provider_state=evidence.get("provider_state"),
+            canonical_state=reconciled["canonical_state"],
+            recovery_required=reconciled["recovery_required"],
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/private/reconcile")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_reconcile():
+    """Normalize provider evidence privately without automatic consequences."""
+
+    def action():
+        payload = _payload()
+        return founder_private_commerce.reconcile_provider_state(
+            provider_id=payload.get("provider_id"),
+            provider_state=payload.get("provider_state"),
+        )
+
+    return _handle_write(action)
+
+
 @bp.post("/market/pod/<subject_id>/execute")
 @web_security.login_required(api=True, founder_only=True)
 def execute_market_pod(subject_id: str):
@@ -1703,8 +1902,8 @@ def execute_market_pod(subject_id: str):
             raise TypeError("provider_payload_object_required")
         outbound = dict(provider_payload)
         outbound["oap_subject_id"] = subject_id
-        receipt = sika_secure_provider_runtime.submit(
-            kind="pod",
+        receipt = pod_provider_registry.submit(
+            provider_id=payload.get("provider_id"),
             payload=outbound,
             idempotency_key=payload.get("idempotency_key"),
         )

@@ -1,0 +1,35 @@
+name: OAP Arena first-party security boundary
+
+on:
+  pull_request:
+    paths:
+      - "app.py"
+      - "mission_control/arena_rooms.py"
+      - "mission_control/iq_duel.py"
+      - "mission_control/templates/arena_ludo_room.html"
+      - "mission_control/templates/arena_oware_room.html"
+      - "mission_control/templates/arena_iq_room.html"
+      - "mission_control/templates/arena_route_empire_room.html"
+      - "static/arena_ludo_room.js"
+      - "static/arena_oware_room.js"
+      - "static/arena_iq_room.js"
+      - "static/arena_route_empire_room.js"
+      - "tests/test_arena_security_boundaries.py"
+      - ".github/workflows/arena-security-proof.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  arena-security-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run first-party Arena security boundary proof
+        run: |
+          python -m pip install -r requirements.txt 'pytest>=8,<9'
+          python -m pytest -q tests/test_arena_security_boundaries.py

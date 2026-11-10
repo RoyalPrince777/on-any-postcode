@@ -7,7 +7,7 @@ production store cannot be inspected.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from . import (
     a7_certification,
@@ -19,7 +19,7 @@ from . import (
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 SMI_COMPLETION_CHECKS = (
@@ -27,7 +27,7 @@ SMI_COMPLETION_CHECKS = (
     {"check": "Personal SMI streaming chat", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "stop / mic / plus / history / code controls", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "safe visible work stages", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "26 Intelligence lenses", "status": "implemented", "light": "🟢", "proof_class": "code"},
+    {"check": "28 Intelligence lenses", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "Intelligence command router", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "War Room and evidence runner", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "Guardian / Aegis fail-closed boundary", "status": "implemented", "light": "🟢", "proof_class": "code"},

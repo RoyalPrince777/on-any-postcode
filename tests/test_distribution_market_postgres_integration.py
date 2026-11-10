@@ -9,12 +9,15 @@ import pytest
 from mission_control import (
     arena_rooms,
     bank_authorisation_store,
+    commerce_install,
     distribution_market_links,
+    founder_private_pod_orders,
     market_supplier_network,
     movement_operations,
     music_civilization_migration,
     music_evidence,
     music_market_purchase,
+    pod_provider_registry,
     postgres_db,
     product_cores,
     supplier_bridge,
@@ -408,7 +411,7 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
     )
     assert draft_gate["allowed"] is False
     assert draft_gate["supplier_managed"] is True
-    assert draft_gate["reason"] == "supplier_or_design_not_ready"
+    assert draft_gate["reason"] == "product_not_public"
 
     ready = market_supplier_network.STORE.mark_ready(
         seller_identity_id=seller,
@@ -416,14 +419,15 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
         evidence_reference="ci-review-ready-evidence",
     )
     assert ready["state"] == "READY"
-    assert ready["order_intent_allowed"] is True
+    assert ready["order_intent_allowed"] is False
+    assert ready["public_listing_active"] is False
     assert ready["provider_execution_enabled"] is False
 
     ready_gate = market_supplier_network.STORE.order_intent_allowed(
         product_id=created["product_id"]
     )
-    assert ready_gate["allowed"] is True
-    assert ready_gate["reason"] is None
+    assert ready_gate["allowed"] is False
+    assert ready_gate["reason"] == "product_not_public"
     assert ready_gate["provider_execution_enabled"] is False
     assert ready_gate["external_execution_allowed"] is False
     assert ready_gate["payment_capture_allowed"] is False
@@ -436,7 +440,29 @@ def test_real_postgres_supplier_network_migration_and_no_stock_order_lock():
     assert public["supplier_identity_public"] is False
     assert "manufacturer" not in public
     assert public["provider_execution_enabled"] is False
-    assert public["order_intent_allowed"] is True
+    assert public["public_listing_active"] is False
+    assert public["order_intent_allowed"] is False
+
+    # A later, separately approved public release may activate the product.
+    with postgres_db.connect() as connection:
+        connection.execute(
+            "UPDATE products SET active=TRUE WHERE id=%s AND seller_id=%s",
+            (created["product_id"], seller),
+        )
+        connection.commit()
+
+    launched_gate = market_supplier_network.STORE.order_intent_allowed(
+        product_id=created["product_id"]
+    )
+    assert launched_gate["allowed"] is True
+    assert launched_gate["reason"] is None
+    assert launched_gate["public_listing_active"] is True
+
+    launched_public = market_supplier_network.STORE.public_projection(
+        product_ids=[created["product_id"]]
+    )[created["product_id"]]
+    assert launched_public["public_listing_active"] is True
+    assert launched_public["order_intent_allowed"] is True
 
     product_cores.init_product_core_schema(assume_yes=True)
     buyer = str(uuid4())
@@ -694,3 +720,175 @@ def test_real_postgres_music_market_purchase_entitlement_and_splits():
             identity_id=str(uuid4()),
             entitlement_id=owned["entitlement_id"],
         )
+
+
+
+def test_real_postgres_founder_private_pod_install_snapshot_and_fail_closed(monkeypatch):
+    """Install the private POD schema and prove immutable replay + disabled execution."""
+
+    base = postgres_db.init_postgres(assume_yes=True)
+    assert base["initialized"] is True
+
+    commerce = product_cores.init_product_core_schema(assume_yes=True)
+    assert commerce["schema_ready"] is True
+
+    installed = commerce_install.install(assume_yes=True, dry_run=False)
+    private_component = installed["components"]["founder_private_pod_orders"]
+    assert private_component["schema_ready"] is True
+    assert private_component["order_table_ready"] is True
+    assert private_component["external_execution_enabled_here"] is False
+
+    owner = str(uuid4())
+    seller = str(uuid4())
+    product = str(uuid4())
+    other_product = str(uuid4())
+    key = f"pod-private-{uuid4().hex[:16]}"
+
+    with postgres_db.connect() as connection:
+        connection.execute(
+            """INSERT INTO users(id,email,username,display_name,status)
+               VALUES (%s,%s,%s,%s,'active'),(%s,%s,%s,%s,'active')""",
+            (
+                owner,
+                f"{owner}@example.invalid",
+                f"owner-{owner[:8]}",
+                "Founder POD Owner",
+                seller,
+                f"{seller}@example.invalid",
+                f"seller-{seller[:8]}",
+                "Founder POD Seller",
+            ),
+        )
+        connection.execute(
+            """INSERT INTO products(id,seller_id,name,description,price_minor,currency,active)
+               VALUES
+               (%s,%s,'Private POD A','CI private POD proof',2500,'GBP',FALSE),
+               (%s,%s,'Private POD B','CI private POD proof',2500,'GBP',FALSE)""",
+            (product, seller, other_product, seller),
+        )
+        connection.commit()
+
+    canonical = {
+        "quantity": 1,
+        "supplier_product_ref": "prodigi-sku-ci",
+        "supplier_variant_ref": "4011",
+        "artwork_reference": "https://example.invalid/artwork.png",
+        "color": "Black",
+        "size": "M",
+        "destination_country": "GB",
+    }
+    provider_payload = {
+        "recipient": {"name": "Founder"},
+        "items": [{"sku": "prodigi-sku-ci", "copies": 1}],
+    }
+
+    created = founder_private_pod_orders.STORE.create_snapshot(
+        owner_identity_id=owner,
+        product_id=product,
+        provider_id="prodigi",
+        canonical_order=canonical,
+        provider_payload=provider_payload,
+        idempotency_key=key,
+    )
+    assert created["provider_id"] == "prodigi"
+    assert created["provider_reference"] == ""
+    assert created["provider_state"] == "PLANNED"
+    assert created["public_merchant_access"] is False
+
+    replay = founder_private_pod_orders.STORE.create_snapshot(
+        owner_identity_id=owner,
+        product_id=product,
+        provider_id="prodigi",
+        canonical_order={**canonical, "quantity": 99},
+        provider_payload={"items": [{"sku": "tampered", "copies": 99}]},
+        idempotency_key=key,
+    )
+    assert replay["private_order_id"] == created["private_order_id"]
+    assert replay["canonical_order"] == canonical
+    assert replay["provider_payload"] == provider_payload
+
+    with pytest.raises(ValueError, match="private_pod_idempotency_conflict"):
+        founder_private_pod_orders.STORE.create_snapshot(
+            owner_identity_id=owner,
+            product_id=product,
+            provider_id="printful",
+            canonical_order=canonical,
+            provider_payload={"items": [{"variant_id": 4011, "quantity": 1}]},
+            idempotency_key=key,
+        )
+
+    with pytest.raises(ValueError, match="private_pod_idempotency_conflict"):
+        founder_private_pod_orders.STORE.create_snapshot(
+            owner_identity_id=owner,
+            product_id=other_product,
+            provider_id="prodigi",
+            canonical_order=canonical,
+            provider_payload=provider_payload,
+            idempotency_key=key,
+        )
+
+    for env_name in (
+        "OAP_POD_PROVIDER_ID",
+        "OAP_POD_PROVIDER_BASE_URL",
+        "OAP_POD_PROVIDER_ALLOWED_HOST",
+        "OAP_POD_PROVIDER_TOKEN",
+        "OAP_POD_PROVIDER_EXECUTION_ENABLED",
+        "OAP_POD_PRODIGI_BASE_URL",
+        "OAP_POD_PRODIGI_ALLOWED_HOST",
+        "OAP_POD_PRODIGI_TOKEN",
+        "OAP_POD_PRODIGI_EXECUTION_ENABLED",
+        "OAP_POD_PRINTFUL_BASE_URL",
+        "OAP_POD_PRINTFUL_ALLOWED_HOST",
+        "OAP_POD_PRINTFUL_TOKEN",
+        "OAP_POD_PRINTFUL_EXECUTION_ENABLED",
+    ):
+        monkeypatch.delenv(env_name, raising=False)
+
+    with pytest.raises(RuntimeError, match="prodigi_execution_disabled"):
+        pod_provider_registry.submit(
+            provider_id=created["provider_id"],
+            payload=created["provider_payload"],
+            idempotency_key=created["idempotency_key"],
+        )
+
+    with pytest.raises(RuntimeError, match="printful_execution_disabled"):
+        pod_provider_registry.submit(
+            provider_id="printful",
+            payload={"recipient": {}, "items": []},
+            idempotency_key=f"{key}-pf",
+        )
+
+    after = founder_private_pod_orders.STORE.read_for_owner(
+        owner_identity_id=owner,
+        private_order_id=created["private_order_id"],
+    )
+    assert after["provider_reference"] == ""
+    assert after["provider_state"] == "PLANNED"
+
+    with postgres_db.connect(readonly=True) as connection:
+        receipt_count = connection.execute(
+            """SELECT COUNT(*) FROM oap_commerce_provider_receipts
+               WHERE subject_id=%s""",
+            (created["private_order_id"],),
+        ).fetchone()
+    assert int(receipt_count[0]) == 0
+
+
+def test_oap_data_intelligence_posts_aggregate_real_postgres():
+    """Prove the exact OAP Data SQL on real CI PostgreSQL, not a mocked cursor."""
+    from mission_control import oap_data_views
+
+    postgres_db.init_postgres(assume_yes=True)
+    with postgres_db.connect(readonly=True) as connection:
+        expected = connection.execute("SELECT COUNT(*) FROM posts").fetchone()
+    assert expected is not None
+    assert isinstance(expected[0], int)
+    assert expected[0] >= 0
+
+    # The live endpoint uses this exact fixed read-only query after Founder
+    # authority; CI does not impersonate an actual production Founder session.
+    import inspect
+    source = inspect.getsource(oap_data_views.intelligence_posts_summary)
+    assert 'connection.execute("SELECT COUNT(*) FROM posts")' in source
+    assert 'postgres_db.connect(readonly=True)' in source
+    assert "authority.require_human_authority(connection" in source

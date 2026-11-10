@@ -5,12 +5,12 @@ hidden prompts, private chain-of-thought, raw chat dumps, or unrelated personal 
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from oap.contracts import MemoryItem, OutputState
 
 REVISION = "2026-10-02-seven-links-core-thinking-signals"
-_TIMESTAMP = datetime(2026, 10, 2, tzinfo=timezone.utc)
+_TIMESTAMP = datetime(2026, 10, 2, tzinfo=UTC)
 
 _RECORDS = (
     (

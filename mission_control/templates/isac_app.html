@@ -29,6 +29,13 @@
       </div>
     </section>
 
+    <section class="mc-panel" aria-labelledby="master-isac-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Founder-private · evidence first</p><h2 id="master-isac-title">ISAC Master · Monitor / Incoming / Intelligence</h2></div><span class="mc-lock-badge">No assumed coverage</span></div>
+      <div class="isac-app-grid" id="master-isac-cards" aria-live="polite">
+        <article class="isac-app-card"><small>Master status</small><strong>Checking…</strong></article>
+      </div>
+      <p class="isac-safe-note">Unavailable feeds remain NOT CONNECTED. No emergency response, continuous monitoring or hardware safety is implied.</p>
+    </section>
     <section class="mc-panel">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Controls</p><h2>Working ISAC app controls</h2></div><span class="mc-lock-badge">Founder-only</span></div>
       <div class="isac-actions">
@@ -137,6 +144,31 @@
   brief.addEventListener('click', () => call(briefUrl, 'GET'));
   greenGate.addEventListener('click', () => call(greenGateUrl, 'POST'));
   claimsLock.addEventListener('click', () => call(claimsLockUrl, 'POST'));
+})();
+</script>
+<script>
+(() => {
+  const endpoint = {{ url_for('isac_spatial.master_status')|tojson }};
+  const board = document.getElementById('master-isac-cards');
+  const labels = [['monitor','radio','Radio'],['monitor','surveillance','Surveillance'],['monitor','communications','Communications'],['incoming','world_crisis','World crisis'],['intelligence','human_rights','Human rights']];
+  fetch(endpoint, {credentials:'same-origin',cache:'no-store'})
+    .then(r => {if (!r.ok) throw new Error('unavailable'); return r.json();})
+    .then(data => {
+      board.replaceChildren();
+      labels.forEach(([section,key,label]) => {
+        const raw = data[section]?.[key];
+        const value = typeof raw === 'object' ? raw?.status : raw;
+        const card = document.createElement('article');
+        card.className = 'isac-app-card';
+        const small = document.createElement('small');
+        small.textContent = label;
+        const strong = document.createElement('strong');
+        strong.textContent = value || 'EVIDENCE REQUIRED';
+        card.append(small,strong);
+        board.append(card);
+      });
+    })
+    .catch(() => {board.textContent='MASTER STATUS UNAVAILABLE — monitoring not verified';});
 })();
 </script>
 </body>

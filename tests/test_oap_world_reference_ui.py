@@ -1,38 +1,48 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HOME = ROOT / "templates" / "home.html"
+WORLD = ROOT / "templates" / "world.html"
 
 
 def test_oap_world_reference_ui_contract():
-    page = HOME.read_text(encoding="utf-8")
+    page = WORLD.read_text(encoding="utf-8")
     for marker in (
-        "OAP WORLD",
-        "STRIP OF NOISE",
-        "Search the world... any postcode...",
-        "On Any Place",
+        "OAP World",
+        "One World. One Front Door. Many systems inside.",
         "The Spot",
         "The Link",
-        "Market",
-        "Media",
-        "OAP Store",
-        "SIKA",
-        "HRM",
-        "Guardian",
-        "Settings",
-        "PEOPLE",
-        "PLACES",
-        "POSSIBILITIES",
-        "WITHOUT LIMITS",
-        "Choose Place",
-        "Quick Actions",
-        "EXPLORE THE WORLD",
-        "Connect People. Power Places. Create Possibilities.",
+        "Link Up",
+        "Chess",
+        "Eats",
+        "Travel",
+        "Pay",
+        "OAP Internet",
+        "My World",
     ):
         assert marker in page
 
+    for removed in (
+        "YOUR LOCAL",
+        "MARKETPLACE.",
+        "LOCAL SHOP",
+        "Quick Actions",
+        "OAP Store",
+        "HRM",
+        "Guardian",
+    ):
+        assert removed not in page
+
 
 def test_public_oap_world_exposes_no_founder_entry():
-    page = HOME.read_text(encoding="utf-8")
+    page = WORLD.read_text(encoding="utf-8")
     assert 'href="/auth"' not in page
     assert "Founder" not in page
+
+
+def test_oap_internet_card_does_not_claim_unimplemented_launch():
+    page = WORLD.read_text(encoding="utf-8")
+    assert '<strong>🌐 OAP Internet</strong>' in page
+    assert 'href="/world/languages"' not in page
+    assert 'Use the address field above to open external websites with an OPEN WEB warning.' in page
+    assert 'The Android browser remains a separate application.' in page
+    assert 'window.confirm' in page

@@ -36,7 +36,7 @@
   <script src="{{ url_for('static', filename='linkup_network.js') }}" defer></script>
 </head>
 <body>
-<div class="linkup-app" data-linkup-app data-chat-open="false" data-network="online">
+<div class="linkup-app" data-linkup-app data-chat-open="false" data-network="online" data-linkup-intent="{{ linkup_intent or '' }}">
   <section class="linkup-install-network" aria-label="Link Up app status">
     <span data-oap-linkup-network-status role="status" aria-live="polite">Checking connection…</span>
     <button type="button" data-oap-install hidden>Install Link Up</button>

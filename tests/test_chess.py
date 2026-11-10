@@ -219,3 +219,15 @@ def test_chess_insufficient_material_draw():
     )
     assert state["status"] == "completed"
     assert state["result"] == "draw_insufficient_material"
+
+
+def test_chess_resignation_completes_with_opponent_winner_and_is_idempotent():
+    state = chess.new_game()
+    resigned = chess.resign(state, request_id="chess-resign-0001")
+    view = chess.public_state(resigned)
+    assert view["status"] == "completed"
+    assert view["result"] == "resignation"
+    assert view["winner"] == "Black"
+    assert chess.resign(resigned, request_id="chess-resign-0001") == resigned
+    with pytest.raises(ValueError, match="chess_resign_denied"):
+        chess.resign(resigned, request_id="chess-resign-0002")

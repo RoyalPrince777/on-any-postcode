@@ -15,8 +15,11 @@ AUTH_ID = "11111111-1111-4111-8111-111111111111"
 
 
 def test_public_world_and_product_surfaces_remain_anonymous(anonymous_client):
+    root = anonymous_client.get("/", follow_redirects=False)
+    assert root.status_code == 302
+    assert root.headers["Location"].endswith("/world")
+
     for path in (
-        "/",
         "/world",
         "/healthz",
         "/livez",

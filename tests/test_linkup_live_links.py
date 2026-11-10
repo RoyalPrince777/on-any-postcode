@@ -64,3 +64,30 @@ def test_linkup_sender_delete_is_owner_scoped_and_csrf_guarded():
     assert "message.direction == 'sent'" in page
     assert 'method: "DELETE"' in script
     assert "/linkup/messages/" in script
+
+
+def test_linkup_optimistic_send_renders_once_inside_message_thread():
+    script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
+
+    assert 'host = panel?.querySelector(".linkup-messages")' in script
+    assert "state.renderedMessageIds.add(messageId)" in script
+    assert 'item.className = "linkup-message outgoing"' in script
+    assert "item.dataset.linkMessageId = messageId" in script
+    assert "host.appendChild(item)" in script
+    assert "host.scrollTop = host.scrollHeight" in script
+    assert 'item.className = "oap-link-local-receipt"' not in script
+
+
+def test_linkup_live_polling_starts_when_conversation_is_opened():
+    script = Path("static/linkup_messages.js").read_text(encoding="utf-8")
+
+    assert 'window.addEventListener("oap:linkup-engaged"' in script
+    assert 'form[data-oap-link-composer]' in script
+    assert "if (form) startPolling(form)" in script
+
+
+def test_linkup_chat_surface_does_not_expose_ptt():
+    page = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+
+    assert "data-oap-ptt-control" not in page
+    assert "data-oap-ptt-stop" not in page

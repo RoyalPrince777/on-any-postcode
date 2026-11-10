@@ -21,3 +21,13 @@ def test_connect4_fail_closed_on_tamper():
         assert False
     except ValueError as exc:
         assert str(exc)=="connect4_checkpoint_invalid"
+
+
+def test_connect4_full_board_result_and_resignation():
+    state=connect4.new_game("Alpha","Bravo")
+    resigned=connect4.resign(state,request_id="connect4-resign-0001")
+    view=connect4.public_state(resigned)
+    assert view["status"]=="completed"
+    assert view["result"]=="resignation"
+    assert view["winner_id"]=="p2"
+    assert connect4.resign(resigned,request_id="connect4-resign-0001")==resigned

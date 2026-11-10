@@ -43,6 +43,7 @@ def test_global_transport_home_and_status_are_mobile_public_surfaces():
     assert b"OAP Global Transport" not in home.data or b"Global Transport" in home.data
     assert b"Journey" in home.data
     assert b"Logistics" in home.data
+    assert b"Guardian" in home.data
     assert b"Operators" in home.data
     assert b"Control Center" in home.data
     assert home.headers["Cache-Control"] == "no-store, private"
@@ -51,15 +52,6 @@ def test_global_transport_home_and_status_are_mobile_public_surfaces():
     assert payload["front_door"] == "/transport"
     assert payload["public_doors"] == [
         "journey", "move", "ride", "logistics", "guardian", "operators", "control_center"
-    ]
-    assert payload["door_groups"]["journey"] == ["maps", "park", "my_journeys"]
-    assert payload["door_groups"]["move"] == ["shared_bikes", "transit", "drive", "fly"]
-    assert payload["door_groups"]["logistics"] == ["cargo", "deliver", "fleet"]
-    assert payload["door_groups"]["operators"] == [
-        "operator_gateway", "provider_access", "connection"
-    ]
-    assert payload["door_groups"]["control_center"] == [
-        "transport_intelligence", "transport_market", "execution_readiness"
     ]
 
 
@@ -241,19 +233,100 @@ def test_mitcham_shared_bike_route_rejects_oversized_radius():
     assert response.get_json()["error"]["code"] == "invalid_radius_km"
 
 
-def test_transport_menu_is_seven_doors_without_losing_21_capabilities():
-    state = global_transport_views.status()
-    assert len(state["public_doors"]) == 7
-    assert state["capability_count"] == 21
-    assert set(state["public_doors"]) == {
-        "journey",
-        "move",
-        "ride",
-        "logistics",
-        "guardian",
-        "operators",
-        "control_center",
+
+def test_oap_rides_front_door_is_mobile_app_surface():
+    client = _app().test_client()
+    response = client.get("/transport/ride")
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    for marker in (
+        'aria-label="OAP Rides navigation"',
+        'href="/movement/workspace#book-title"',
+        'href="/oap-map"',
+        'href="/transport/ride/current"',
+        'href="/transport/ride/guardian/status"',
+        'href="/pay/bank"',
+        'href="/eats"',
+        "From this postcode to the next.",
+        "Physical vehicle operation and external dispatch remain outside this build.",
+    ):
+        assert marker in body
+
+
+def test_oap_rides_app_config_exposes_real_shared_routes():
+    client = _app().test_client()
+    response = client.get("/transport/ride/app-config")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["navigation"] == {
+        "rides": "/transport/ride",
+        "world": "/oap-map",
+        "journey": "/transport/ride/current",
+        "guardian": "/transport/ride/guardian/status",
+        "sika": "/pay/bank",
+        "eats": "/eats",
     }
-    assert "shared_bikes" in state["door_groups"]["move"]
-    assert "operator_gateway" in state["door_groups"]["operators"]
-    assert "execution_readiness" in state["door_groups"]["control_center"]
+    assert payload["rider"] == "/transport/ride/rider"
+    assert payload["driver"] == "/transport/ride/driver"
+    assert payload["movement_workspace"] == "/movement/workspace"
+    assert payload["physical_operations_in_scope"] is False
+    assert payload["human_authority_final"] is True
+
+
+def test_oap_rides_status_moved_off_front_door_without_losing_truth_api():
+    client = _app().test_client()
+    response = client.get("/transport/ride/status")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["physical_operations_in_scope"] is False
+
+
+
+def test_transport_cards_route_to_real_app_destinations():
+    client = _app().test_client()
+    response = client.get("/transport")
+    body = response.get_data(as_text=True)
+    for href in (
+        "/travel",
+        "/movement/workspace",
+        "/transport/ride",
+        "/distribution",
+        "/transport/ride/guardian/status",
+        "/transport/shared-bikes/status",
+        "/transport/execution-readiness",
+    ):
+        assert f'href="{href}"' in body
+    assert "/transport/status#" not in body
+
+
+def test_transport_status_exposes_seven_doors_and_legacy_route_compatibility():
+    payload = _app().test_client().get("/transport/status").get_json()
+    assert len(payload["public_doors"]) == 7
+    assert set(payload["public_routes"]) == set(payload["public_doors"])
+    assert payload["public_routes"]["journey"] == "/travel"
+    assert payload["public_routes"]["ride"] == "/transport/ride"
+    assert payload["public_routes"]["logistics"] == "/distribution"
+    assert payload["public_routes"]["guardian"] == "/transport/ride/guardian/status"
+    assert payload["public_routes"]["operators"] == "/transport/shared-bikes/status"
+    assert payload["public_routes"]["control_center"] == "/transport/execution-readiness"
+    assert payload["legacy_public_routes"]["drive"] == "/oap-map?profile=driving"
+    assert payload["legacy_public_routes"]["cargo"] == "/distribution"
+    assert payload["legacy_public_routes"]["deliver"] == "/movement/workspace#book-title"
+    assert payload["legacy_public_routes"]["fleet"] == "/transport/ride/driver"
+    assert set(payload["door_groups"]) == set(payload["public_doors"])
+    grouped = [cap for members in payload["door_groups"].values() for cap in members]
+    assert len(grouped) == 21
+    assert len(set(grouped)) == 21
+    assert set(grouped) == set(payload["capabilities"])
+
+
+def test_rider_driver_dashboards_preserved_under_seven_door_navigation():
+    client = _app().test_client()
+    for path, marker in (
+        ("/transport/ride/rider", b"Request Journey"),
+        ("/transport/ride/driver", b"Incoming Journey"),
+        ("/transport/my", b"Rider"),
+    ):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert marker in response.data

@@ -131,7 +131,7 @@ def create_request(
     expires_value = None
     if expires_at is not None:
         raw = _required(expires_at, "expires_at_invalid")
-        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(raw)
         if parsed.tzinfo is None:
             raise PaymentRequestError("expires_at_invalid")
         if parsed <= datetime.now(UTC):

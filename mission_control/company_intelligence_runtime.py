@@ -7,7 +7,7 @@ remain UNKNOWN/CONFLICTING rather than becoming Green.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from . import (
@@ -24,7 +24,7 @@ _COMPANY_SOURCE = (
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _evidence(

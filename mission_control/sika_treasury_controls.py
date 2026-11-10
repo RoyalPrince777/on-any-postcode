@@ -93,6 +93,7 @@ def release_gate(state: TreasurySnapshot) -> dict[str, object]:
 def status() -> dict[str, object]:
     return {
         "system": "SIKA Treasury Controls",
+        "first_party": True,
         "calculates_liquidity": True,
         "tracks_obligations": True,
         "tracks_tax_reserve": True,

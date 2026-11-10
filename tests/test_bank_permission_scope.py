@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from mission_control import bank_permission_scope
@@ -11,7 +11,7 @@ def _scope(**overrides):
         "authorisation_letter_reference": "letter-ref",
         "part4a_permission_reference": "part4a-ref",
         "financial_services_register_reference": "fsr-ref",
-        "effective_from": datetime.now(timezone.utc).date(),
+        "effective_from": datetime.now(UTC).date(),
         "mobilisation": False,
         "deposit_cap_gbp": None,
         "permitted_capabilities": frozenset({"accept_deposits", "execute_payments"}),
@@ -28,7 +28,7 @@ def test_permission_scope_allows_only_named_effective_capabilities():
 
 
 def test_future_permission_scope_is_not_effective():
-    scope = _scope(effective_from=datetime.now(timezone.utc).date() + timedelta(days=1))
+    scope = _scope(effective_from=datetime.now(UTC).date() + timedelta(days=1))
     assert scope.allows("accept_deposits") is False
 
 

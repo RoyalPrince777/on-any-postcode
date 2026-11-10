@@ -2,157 +2,130 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>OAP World · ON ANY POSTCODE</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ON ANY POSTCODE</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 {% include "_oap_install_head.html" %}
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
 <style>
-:root{--bg:#020201;--panel:#070604;--gold:#d5a33f;--gold2:#f7d376;--line:#6b4c18;--text:#fff8e8;--muted:#b8aa89;--green:#35e77c}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#000;color:var(--text);font-family:Inter,Arial,sans-serif}body{overflow-x:hidden}a{color:inherit;text-decoration:none}
-.oap-shell{min-height:100vh;display:grid;grid-template-columns:294px minmax(0,1fr);background:radial-gradient(circle at 57% 33%,#211605 0,#080502 25%,#000 60%)}
-.left-rail{position:sticky;top:0;height:100vh;border-right:1px solid #6a4a18;padding:26px 16px 18px;background:linear-gradient(180deg,#080603 0,#020201 42%,#030302 100%);box-shadow:12px 0 44px #000}
-.logo-lockup{text-align:center;padding:0 4px 20px;border-bottom:1px solid #3b2b12}.logo-mark{position:relative;margin:auto;font:900 5.3rem/.82 Georgia,serif;letter-spacing:-.06em;background:linear-gradient(#fff5bf,#d6a032 52%,#fff0a5);-webkit-background-clip:text;color:transparent;text-shadow:0 0 24px #c9902b33}.logo-mark:before{content:'♛';position:absolute;font-size:1.9rem;left:50%;top:-28px;transform:translateX(-50%);color:#f9d56e;text-shadow:0 0 8px #fff}.logo-sub{font:500 2rem/1.1 Georgia,serif;letter-spacing:.22em;color:#f2d27c}.noise{margin-top:13px;font-size:.78rem;letter-spacing:.36em;color:#d0ad61}
-.rail-nav{margin-top:18px;display:grid}.rail-nav a{display:flex;align-items:center;gap:13px;min-height:56px;padding:0 14px;border-bottom:1px solid #2c2519;color:#e7c876;font-size:1.02rem}.rail-nav a:first-child{border:1px solid #d0a03c;border-radius:8px;background:linear-gradient(180deg,#ffeaa2,#b87a14);color:#080502;font-weight:900;box-shadow:0 0 22px #d6a33a66}.rail-nav .ico{width:24px;text-align:center;font-size:1.45rem}.rail-nav .diamond{margin-left:auto;color:white;font-size:.83rem;text-shadow:0 0 10px #fff,0 0 18px #ffe17f}
-.rail-footer{position:absolute;left:18px;right:18px;bottom:24px;border:1px solid #8d6422;border-radius:10px;padding:17px 12px;text-align:center;background:#080604;color:#b7aa8b}.rail-footer .diamond{font-size:1.6rem;color:white;text-shadow:0 0 10px white,0 0 20px gold}.rail-footer strong{display:block;margin-top:8px;letter-spacing:.22em;font-size:.68rem}.rail-footer span{display:block;margin-top:18px;letter-spacing:.28em;color:#e1d2ad;font-size:.73rem}
-.main{min-width:0;padding:18px 22px 16px;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
-.topbar{display:grid;grid-template-columns:minmax(260px,1fr) 300px 58px;gap:18px;align-items:center}
-.search{height:66px;border:1px solid #9a6d25;border-radius:13px;background:#060504;display:flex;align-items:center;padding:0 22px;box-shadow:inset 0 0 18px #000,0 0 16px #6d4b1633}.search .mag{font-size:2rem;margin-right:16px;color:#f5cd61}.search input{flex:1;border:0;outline:0;background:transparent;color:#f4ead2;font:400 1.15rem Inter,Arial}.search input::placeholder{color:#c5b796}.search .diamond{font-size:1.2rem;color:white;text-shadow:0 0 12px white,0 0 18px gold}
-.public-account{height:62px;border:1px solid #6f4d18;border-radius:13px;display:flex;align-items:center;padding:0 15px;background:#060504;color:#e7c878}.public-account .person{width:42px;height:42px;border:2px solid #d6a43b;border-radius:50%;display:grid;place-items:center;font-size:1.4rem}.public-account .label{margin-left:12px;font-size:.92rem;letter-spacing:.08em}.public-account .diamond{margin-left:auto;color:white;text-shadow:0 0 8px white}.menu{position:relative;font-size:2.4rem;text-align:center;color:#f0bd51}.menu summary{list-style:none;cursor:pointer;user-select:none}.menu summary::-webkit-details-marker{display:none}.menu-panel{position:absolute;right:0;top:56px;z-index:80;width:min(290px,82vw);display:grid;padding:8px;border:1px solid #6b4c18;border-radius:12px;background:#070604;box-shadow:0 18px 40px #000}.menu-panel a{min-height:46px;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #2c2519;color:#f3d179;font-size:.9rem;text-align:left}.menu-panel a:last-child{border-bottom:0}
-.workspace{display:grid;grid-template-columns:minmax(0,1fr) 322px;gap:22px;min-height:0;padding-top:12px}
-.hero{position:relative;min-height:612px;overflow:hidden;border-radius:18px;background:radial-gradient(circle at 50% 45%,#201505 0,#060402 50%,#010101 77%);border-bottom:1px solid #4d3511}
-.globe{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:min(700px,75vw);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 36% 27%,#fff3b9 0 1%,#ddb04d 3%,#7c5513 10%,#211606 25%,#080502 53%,#030302 72%);border:1px solid #f4c959;box-shadow:0 0 22px #f4c959,0 0 74px #c1821866,inset -92px -65px 150px #000,inset 25px 18px 65px #ffd96f55}
-.globe:before{content:'';position:absolute;inset:6%;border-radius:50%;background:
-radial-gradient(circle at 24% 31%,#ffd55d 0 1.2%,transparent 1.8%),
-radial-gradient(circle at 32% 43%,#ffd55d 0 1.1%,transparent 1.7%),
-radial-gradient(circle at 51% 33%,#ffd55d 0 1.1%,transparent 1.7%),
-radial-gradient(circle at 67% 37%,#ffd55d 0 1.1%,transparent 1.7%),
-radial-gradient(circle at 74% 56%,#ffd55d 0 1.1%,transparent 1.7%),
-repeating-radial-gradient(ellipse at 50% 50%,transparent 0 43px,#efbd4d33 44px 45px,transparent 46px 82px);filter:drop-shadow(0 0 5px #e8ae36)}
-.globe:after{content:'';position:absolute;inset:14% 7%;border:1px solid #e6b74388;border-radius:50%;transform:rotate(21deg);box-shadow:0 0 0 1px #e6b74322}
-.arc{position:absolute;border:1px solid #e9bd4f88;border-left-color:transparent;border-bottom-color:transparent;border-radius:50%;transform:rotate(-18deg)}.a1{width:56%;height:27%;left:19%;top:24%}.a2{width:67%;height:35%;left:13%;top:18%}.a3{width:45%;height:20%;left:27%;top:30%}
-.hero-wordmark{position:absolute;z-index:4;left:50%;top:49%;transform:translate(-50%,-50%);width:92%;text-align:center}.hero-wordmark h1{margin:0;font:500 clamp(4rem,7.5vw,7.3rem)/.9 Georgia,serif;letter-spacing:-.05em;background:linear-gradient(#fff7cf 6%,#dda83a 48%,#fff3b9 78%);-webkit-background-clip:text;color:transparent;text-shadow:0 0 18px #000}.hero-wordmark .noise2{display:flex;align-items:center;justify-content:center;gap:20px;margin-top:22px;font-size:1.18rem;letter-spacing:.45em;color:#f6ead4}.hero-wordmark .noise2:before,.hero-wordmark .noise2:after{content:'';height:1px;width:100px;background:#907025}.tagline{position:absolute;z-index:4;left:50%;top:71%;transform:translateX(-50%);width:90%;text-align:center;font:400 1.45rem Georgia,serif;letter-spacing:.03em;color:#f3e7d0}.explore{position:absolute;z-index:4;left:50%;top:79%;transform:translateX(-50%);min-width:335px;height:58px;border:2px solid #e0ad43;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:58px;background:#0a0703;color:#f4d16f;font-weight:800;letter-spacing:.08em;box-shadow:0 0 12px #f5bd41,inset 0 0 14px #5d4215}
-.right{padding-top:12px}.motto{padding:0 70px 12px 70px;font-size:1.05rem;line-height:1.5;letter-spacing:.23em;color:#f8f0dd}.right-card{border:1px solid #8a6120;border-radius:13px;background:#070604;margin-bottom:16px;overflow:hidden}.live-location{min-height:82px;display:grid;grid-template-columns:48px 1fr 30px;align-items:center;padding:10px 15px}.live-location .pin{font-size:2.2rem;color:#efb84c}.live-location b{display:block;font-size:1rem}.live-location small{display:block;margin-top:6px;color:#ded4be}.arrow{font-size:1.65rem;color:#dfad42}.quick-title{display:flex;align-items:center;gap:12px;padding:18px 18px 12px;font-size:1.05rem}.quick-title .bolt{font-size:2rem}.quick-links a{display:grid;grid-template-columns:32px 1fr 22px;align-items:center;min-height:50px;padding:0 17px;border-top:1px solid #272117}.quick-links .ico{font-size:1.45rem;color:#efbd55}.status-card{padding:14px 16px}.status-card .row{display:grid;grid-template-columns:40px 1fr 22px;align-items:center}.status-card .bars{font-size:1.9rem;color:#f0c34f}.status-card b{display:block}.status-card small{display:block;margin-top:4px}.dot{color:var(--green)}
-.system-strip{display:grid;grid-template-columns:repeat(8,1fr);gap:10px;padding-top:16px}.sys-card{min-height:180px;border:1px solid #89611f;border-radius:10px;background:linear-gradient(180deg,#0d0904,#050403);padding:18px 10px 12px;text-align:center;position:relative}.sys-card:before{content:'◆';position:absolute;top:-11px;left:50%;transform:translateX(-50%);font-size:1.35rem;color:white;text-shadow:0 0 10px white,0 0 18px gold}.sys-card .round{width:58px;height:58px;margin:4px auto 14px;border:1px solid #d8a743;border-radius:50%;display:grid;place-items:center;font-size:1.9rem;color:#f2c557}.sys-card strong{display:block;color:#f3d179;font-size:.83rem;letter-spacing:.04em}.sys-card small{display:block;margin-top:8px;color:#ded4bd;font-size:.72rem;line-height:1.35}
-.bottomline{grid-column:1/-1;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px;margin-top:14px;padding:0 0 3px;color:#d4c39b}.bottomline .leftname{letter-spacing:.06em}.bottomline .centerline{font-size:.68rem;letter-spacing:.22em;color:#81765e}.bottomline .world{text-align:right;letter-spacing:.22em}
-.lower{grid-column:1/-1;margin-top:18px}.section{border:1px solid #3c2c12;border-radius:14px;padding:16px;background:#040302}.signal-form{display:grid;grid-template-columns:180px 1fr auto;gap:8px}.signal-form input{min-height:42px;border:1px solid #5b4218;border-radius:9px;background:#080603;color:#fff;padding:9px}.signal-form button,.section button{border:1px solid #d2a23d;border-radius:9px;background:#1a1105;color:#f0c559;padding:9px 13px;font-weight:800}.muted{color:#9f9275}.install button[hidden]{display:none}
-@media(max-width:1200px){.oap-shell{grid-template-columns:230px 1fr}.left-rail{padding-left:12px;padding-right:12px}.logo-mark{font-size:4.2rem}.logo-sub{font-size:1.5rem}.workspace{grid-template-columns:1fr}.right{display:none}.system-strip{grid-template-columns:repeat(4,1fr)}}
-.mobile-app-dock{display:none}
-@media(max-width:760px){.oap-shell{display:block}.left-rail{position:relative;height:auto;border-right:0;padding:12px}.logo-lockup{display:flex;align-items:center;gap:10px;text-align:left;padding:8px 4px}.logo-mark{font-size:2.4rem;margin:0}.logo-mark:before{display:none}.logo-sub{font-size:1rem}.noise{display:none}.rail-nav{display:flex;overflow-x:auto;margin-top:8px}.rail-nav a{min-height:44px;white-space:nowrap;border-bottom:0}.rail-nav a:first-child{border:1px solid #d0a03c}.rail-footer{display:none}.main{padding:10px;padding-bottom:calc(86px + env(safe-area-inset-bottom))}.topbar{grid-template-columns:1fr 46px}.public-account{display:none}.search{height:52px}.menu{font-size:2rem}.menu-panel{position:fixed;top:64px;right:10px;left:10px;width:auto;max-height:70vh;overflow:auto}.hero{min-height:540px}.globe{width:560px;top:40%}.hero-wordmark{top:48%}.hero-wordmark h1{font-size:3.6rem}.tagline{top:68%;font-size:1.05rem}.explore{top:77%;min-width:260px}.system-strip{grid-template-columns:repeat(2,1fr)}.bottomline{grid-template-columns:1fr}.bottomline .centerline,.bottomline .world{display:none}.signal-form{grid-template-columns:1fr}.mobile-app-dock{position:fixed;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));z-index:70;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;padding:8px;border:1px solid #6b4c18;border-radius:14px;background:#070604eF;backdrop-filter:blur(10px)}.mobile-app-dock a{min-height:54px;display:grid;place-items:center;gap:2px;padding:6px 4px;border:1px solid #6b4c18;border-radius:10px;background:#100b04;color:#f3d179;font-size:.74rem;font-weight:800;text-align:center}.mobile-app-dock .dock-ico{font-size:1.25rem}.mobile-app-dock a:focus-visible{outline:2px solid #f7d376;outline-offset:2px}}
+:root{color-scheme:dark;--bg:#080806;--panel:#13120e;--panel2:#1a1811;--line:#3a3423;--gold:#efc85d;--ticket:#ffe26d;--ticketText:#17130a;--text:#fffaf0;--muted:#aaa38e;--green:#64d98b}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}a{text-decoration:none;color:inherit}button,input{font:inherit}
+.shell{max-width:900px;margin:auto;padding:0 14px calc(92px + env(safe-area-inset-bottom))}
+.shop-sign{position:sticky;top:0;z-index:10;margin:0 -14px;padding:10px 14px;border-bottom:1px solid var(--line);background:#090907ee;backdrop-filter:blur(14px)}
+.sign-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.brand{font-weight:1000;letter-spacing:.045em;font-size:.95rem}.brand small{display:block;color:var(--muted);font-size:.66rem;font-weight:700;letter-spacing:.02em;margin-top:2px}
+.top-actions{display:flex;align-items:center;gap:7px}.account,.install{padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font-size:.74rem;font-weight:850}.install{cursor:pointer}.install[hidden]{display:none}.install-status{margin:7px 0 0;color:var(--muted);font-size:.68rem}
+.counter{padding:18px 0 13px}.counter-box{border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#1b180f,#100f0b);overflow:hidden}.counter-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px}.counter h1{font-size:clamp(2rem,8vw,4rem);line-height:.88;margin:0;letter-spacing:-.055em}.counter p{margin:8px 0 0;color:var(--muted);max-width:540px;line-height:1.4}.counter-badge{flex:0 0 auto;border:1px solid #6f5f2a;border-radius:999px;padding:8px 10px;color:var(--gold);font-size:.68rem;font-weight:900}
+.search{display:grid;grid-template-columns:1fr auto;margin:0;border-top:1px solid var(--line);background:#0b0a07}.search input{min-width:0;padding:15px 14px;border:0;background:transparent;color:var(--text);outline:none}.search button{border:0;border-left:1px solid var(--line);padding:0 18px;background:var(--ticket);color:var(--ticketText);font-weight:950}
+.aisles{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;scrollbar-width:none}.aisles::-webkit-scrollbar{display:none}.aisle{white-space:nowrap;padding:10px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:.76rem;font-weight:900}.aisle:first-child{background:var(--gold);color:#17130a;border-color:#ffe08a}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 18px}.quick a{min-height:82px;padding:11px 9px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:flex;flex-direction:column;justify-content:space-between}.quick b{font-size:1.1rem}.quick strong{font-size:.79rem}.quick span{font-size:.66rem;color:var(--muted)}
+.section{margin-top:19px}.section-head{display:flex;justify-content:space-between;align-items:end;margin:0 1px 9px}.section-head h2{font-size:1rem;margin:0}.section-head a{font-size:.74rem;color:var(--gold);font-weight:900}
+.shop-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,38%);gap:9px;overflow-x:auto;padding-bottom:3px;scroll-snap-type:x proximity}.shop-tile{scroll-snap-align:start;padding:13px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.shop-logo{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:var(--gold);color:#17130a;font-weight:1000;margin-bottom:10px}.shop-tile strong{display:block;font-size:.88rem}.shop-tile small{display:block;color:var(--muted);margin-top:4px;font-size:.7rem}
+.shelf{position:relative;border-top:5px solid #3d3520;padding-top:9px}.product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.product-card{position:relative;padding:10px;border:1px solid var(--line);border-radius:14px;background:#f0ead9;color:#16140f;min-width:0;box-shadow:inset 0 -8px 0 #d7cfb9}.product-image{aspect-ratio:1.1;border-radius:10px;background:linear-gradient(145deg,#fff,#ddd5c3);display:grid;place-items:center;font-size:2rem;margin-bottom:8px}.product-card strong{display:block;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.product-card small{display:block;color:#5d584a;margin:4px 0 8px;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.price-ticket{display:inline-block;padding:6px 8px;background:var(--ticket);color:var(--ticketText);border:1px solid #bda844;border-radius:7px;font-size:.93rem;font-weight:1000;transform:rotate(-1deg)}.empty{padding:20px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center}
+.nearby{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.nearby a{padding:13px 8px;text-align:center;border:1px solid var(--line);border-radius:13px;background:var(--panel);font-size:.77rem;font-weight:900}
+.truth{margin:20px 2px 4px;color:var(--muted);font-size:.69rem;line-height:1.4}
+.bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(900px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:7px 9px calc(7px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#0a0907f2;backdrop-filter:blur(14px);z-index:12}.bottom a{padding:7px 2px;text-align:center;border-radius:10px;color:var(--muted);font-size:.66rem}.bottom b{display:block;font-size:1.05rem;color:var(--gold);margin-bottom:2px}
+@media(min-width:700px){.product-grid{grid-template-columns:repeat(4,1fr)}.shop-row{grid-auto-columns:minmax(170px,24%)}}
 </style>
 </head>
 <body>
-<div class="oap-shell">
-  <aside class="left-rail" aria-label="OAP World navigation">
-    <div class="logo-lockup">
-      <div class="logo-mark">OAP</div>
-      <div class="logo-sub">WORLD</div>
-      <div class="noise">STRIP OF NOISE</div>
-    </div>
-    <nav class="rail-nav">
-      <a href="/" aria-current="page"><span class="ico">⌂</span>Home <span class="diamond">◆</span></a>
-      <a href="/on-any-place"><span class="ico">🌍</span>On Any Place <span class="diamond">◆</span></a>
-      <a href="/the-spot"><span class="ico">📍</span>The Spot <span class="diamond">◆</span></a>
-      <a href="/the-link"><span class="ico">🔗</span>The Link <span class="diamond">◆</span></a>
-      <a href="/studio"><span class="ico">🧠</span>OAP Studio Intelligence <span class="diamond">◆</span></a>
-      <a href="/the-spot/market"><span class="ico">🛍</span>Market <span class="diamond">◆</span></a>
-      <a href="/the-spot/tv-media"><span class="ico">▣</span>Media <span class="diamond">◆</span></a>
-      <a href="/store"><span class="ico">🛒</span>OAP Store <span class="diamond">◆</span></a>
-      <a href="/sika"><span class="ico">▥</span>SIKA <span class="diamond">◆</span></a>
-      <a href="/hrm"><span class="ico">👥</span>HRM <span class="diamond">◆</span></a>
-      <a href="/guardian"><span class="ico">🛡</span>Guardian <span class="diamond">◆</span></a>
-      <a href="/settings"><span class="ico">⚙</span>Settings <span class="diamond">◆</span></a>
-    </nav>
-    <div class="rail-footer"><div class="diamond">◆</div><strong>BUILT FOR A<br>BRIGHTER TOMORROW</strong><span>ON ANY POSTCODE</span></div>
-  </aside>
-
-  <main class="main">
-    <header class="topbar">
-      <form class="search" method="get" action="/on-any-place">
-        <span class="mag">⌕</span>
-        <input aria-label="Search OAP World" name="location" placeholder="Search the world... any postcode..." required>
-        <span class="diamond">◆</span>
-      </form>
-      <a class="public-account" href="/enter-my-world?next=/" aria-label="Enter My World"><span class="person">◯</span><span class="label">Enter My World</span><span class="diamond">◆</span></a>
-      <details class="menu">
-        <summary aria-label="Open OAP menu">☰</summary>
-        <nav class="menu-panel" aria-label="OAP menu">
-          <a href="/linkup">💬 Link Up</a>
-          <a href="/enter-my-world?next=/">👤 My World</a>
-          <a href="/on-any-place">🌍 On Any Place</a>
-          <a href="/the-spot">📍 The Spot</a>
-          <a href="/studio">🧠 OAP Studio</a>
-          <a href="/store">🛒 OAP Store</a>
-          <a href="/settings">⚙ Settings</a>
-        </nav>
-      </details>
-    </header>
-
-    <section class="workspace">
-      <div class="hero" aria-label="OAP World public front door">
-        <div class="globe"><div class="arc a1"></div><div class="arc a2"></div><div class="arc a3"></div></div>
-        <div class="hero-wordmark"><h1>OAP WORLD</h1><div class="noise2">STRIP OF NOISE</div></div>
-        <div class="tagline">Connect People. Power Places. Create Possibilities.</div>
-        <a class="explore" href="/on-any-place"><span>EXPLORE THE WORLD</span><span>›</span></a>
-      </div>
-
-      <aside class="right" aria-label="OAP World quick actions">
-        <div class="motto">PEOPLE<br>PLACES<br>POSSIBILITIES<br>WITHOUT LIMITS</div>
-        <a class="right-card live-location" href="/on-any-place"><span class="pin">●</span><span><b>Choose Place</b><small>Search explicitly</small></span><span class="arrow">›</span></a>
-        <div class="right-card">
-          <div class="quick-title"><span class="bolt">ϟ</span><b>Quick Actions</b></div>
-          <div class="quick-links">
-            <a href="/on-any-place"><span class="ico">⌕</span><span>Find a Place</span><span>›</span></a>
-            <a href="/booking"><span class="ico">➤</span><span>Plan a Route</span><span>›</span></a>
-            <a href="/linkup"><span class="ico">🔗</span><span>Link Up</span><span>›</span></a>
-            <a href="/the-spot"><span class="ico">＋</span><span>Post to The Spot</span><span>›</span></a>
-            <a href="/store"><span class="ico">🛒</span><span>Browse the Store</span><span>›</span></a>
-            <a href="/library"><span class="ico">▤</span><span>Open OAP Library</span><span>›</span></a>
-          </div>
-        </div>
-        <a class="right-card status-card" href="/status">
-          <div class="row"><span class="bars">▥</span><span><b>OAP Status</b><small><span class="dot">●</span> Public systems</small></span><span class="arrow">›</span></div>
-        </a>
-      </aside>
-    </section>
-
-    <section class="system-strip" aria-label="OAP World systems">
-      <a class="sys-card" href="/on-any-place"><div class="round">⌾</div><strong>ON ANY PLACE</strong><small>Places. Weather.<br>Movement.</small></a>
-      <a class="sys-card" href="/the-spot"><div class="round">●</div><strong>THE SPOT</strong><small>People. Places.<br>Real Life.</small></a>
-      <a class="sys-card" href="/the-link"><div class="round">🔗</div><strong>THE LINK</strong><small>Connect. Collaborate.<br>Grow.</small></a>
-      <a class="sys-card" href="/studio"><div class="round">🧠</div><strong>OAP STUDIO</strong><small>Ask. Create.<br>Research.</small></a>
-      <a class="sys-card" href="/the-spot/market"><div class="round">▢</div><strong>MARKET</strong><small>Buy. Sell.<br>Support.</small></a>
-      <a class="sys-card" href="/the-spot/tv-media"><div class="round">▣</div><strong>MEDIA</strong><small>Watch. Listen.<br>Share.</small></a>
-      <a class="sys-card" href="/store"><div class="round">🛒</div><strong>OAP STORE</strong><small>Essentials for a<br>Better Tomorrow.</small></a>
-      <a class="sys-card" href="/sika"><div class="round">▥</div><strong>SIKA</strong><small>Invest. Build.<br>Empower.</small></a>
-    </section>
-
-    <div class="bottomline"><span class="leftname">ON ANY POSTCODE</span><span class="centerline">A SOVEREIGN MEGAVERSE FOR A BRIGHTER TOMORROW</span><span class="world">OAP WORLD⌄　◆</span></div>
-
-    <div class="lower">
-      <section class="section" id="signal">
-        <p class="muted">Signal</p>
-        <form class="signal-form" method="post" action="/signal">
-          <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
-          <input aria-label="Name" name="name" maxlength="80" placeholder="Name" required>
-          <input aria-label="Signal" name="body" maxlength="500" placeholder="What is happening around you?" required>
-          <button>Drop Signal</button>
-        </form>
-        {% for post in signal_posts %}<article><strong>{{ post.name }}</strong><p class="muted">{{ post.body }}</p></article>{% endfor %}
-      </section>
-      <section class="section install">
-        <p class="muted">OAP OPERATING SYSTEM · GENERATION 0</p>
-        <button type="button" data-oap-install hidden>Install OAP</button>
-        <span class="muted" data-oap-install-status role="status">Checking install support…</span>
-      </section>
-    </div>
-
-    <nav class="mobile-app-dock" aria-label="OAP mobile app controls">
-      <a href="/linkup"><span class="dock-ico">💬</span><span>Link Up</span></a>
-      <a href="/enter-my-world?next=/"><span class="dock-ico">👤</span><span>My World</span></a>
-      <a href="/on-any-place"><span class="dock-ico">🌍</span><span>Place</span></a>
-      <a href="/the-spot"><span class="dock-ico">📍</span><span>The Spot</span></a>
-    </nav>
-  </main>
+<main class="shell">
+<header class="shop-sign">
+<div class="sign-row">
+<div class="brand">ON ANY POSTCODE<small>LOCAL SHOP · BORN LOCAL. BUILT GLOBAL.</small></div>
+<div class="top-actions">
+<button class="install" type="button" data-oap-install hidden>Install</button>
+<a class="account" href="/enter-my-world?next=/">Enter My World</a>
 </div>
+</div>
+<p class="install-status" data-oap-install-status aria-live="polite"></p>
+</header>
+
+<section class="counter">
+<div class="counter-box">
+<div class="counter-top">
+<div>
+<h1>YOUR LOCAL<br>MARKETPLACE.</h1>
+<p>Walk in, grab what you need, check the price, add to basket and go.</p>
+</div>
+<span class="counter-badge">OAP LOCAL</span>
+</div>
+<form class="search" method="get" action="/the-spot/market">
+<input name="q" aria-label="Search shops and products" placeholder="Search the shop…">
+<button type="submit">Find</button>
+</form>
+</div>
+</section>
+
+<nav class="aisles" aria-label="Shop aisles">
+<a class="aisle" href="/the-spot/market">All</a>
+<a class="aisle" href="/the-spot/market?q=drinks">🥤 Drinks</a>
+<a class="aisle" href="/the-spot/market?q=snacks">🍫 Snacks</a>
+<a class="aisle" href="/the-spot/market?q=food">🥫 Food</a>
+<a class="aisle" href="/the-spot/market?q=household">🧻 Household</a>
+<a class="aisle" href="/the-spot/market?q=toiletries">🧴 Toiletries</a>
+<a class="aisle" href="/the-spot/market?q=clothing">👕 Clothing</a>
+</nav>
+
+<section class="quick" aria-label="Customer and shop actions">
+<a href="/the-spot/market"><b>🛍️</b><div><strong>Shop</strong><span>Browse shelves</span></div></a>
+<a href="/sell"><b>🏪</b><div><strong>Sell</strong><span>Run your shop</span></div></a>
+<a href="/orders"><b>📦</b><div><strong>Orders</strong><span>Check orders</span></div></a>
+<a href="/basket"><b>🧺</b><div><strong>Basket</strong><span>Ready to go</span></div></a>
+</section>
+
+<section class="section">
+<div class="section-head"><h2>Local shops</h2><a href="/the-spot/market">See all</a></div>
+{% if featured_shops %}
+<div class="shop-row">
+{% for shop in featured_shops %}
+<a class="shop-tile" href="/shop/{{ shop.slug }}">
+<div class="shop-logo">{{ shop.name[:1]|upper }}</div>
+<strong>{{ shop.name }}</strong>
+<small>{% if shop.postcode %}{{ shop.postcode }}{% elif shop.borough %}{{ shop.borough }}{% else %}ON ANY POSTCODE{% endif %}</small>
+</a>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty">Shops will appear here when active listings are available.</div>
+{% endif %}
+</section>
+
+<section class="section">
+<div class="section-head"><h2>On the shelf</h2><a href="/the-spot/market">Shop all</a></div>
+<div class="shelf">
+{% if market_products %}
+<div class="product-grid">
+{% for product in market_products[:8] %}
+<a class="product-card" href="/shop/{{ product.shop_slug }}">
+<div class="product-image">🛍️</div>
+<strong>{{ product.name }}</strong>
+<small>{{ product.seller }}</small>
+<div class="price-ticket">{{ product.currency }} {{ product.price }}</div>
+</a>
+{% endfor %}
+</div>
+{% else %}
+<div class="empty">No active products are available right now.</div>
+{% endif %}
+</div>
+</section>
+
+<section class="section">
+<div class="section-head"><h2>More local</h2></div>
+<div class="nearby">
+<a href="/eats">🍲 Eats</a>
+<a href="/oap-map">📍 Map</a>
+<a href="/transport/ride">🚗 Ride</a>
+</div>
+</section>
+
+<p class="truth">Public browsing stays open. Buying, selling, orders and account actions may ask you to Enter My World.</p>
+</main>
+
+<nav class="bottom" aria-label="Commerce navigation">
+<a href="/the-spot/market"><b>🛍️</b>Shop</a>
+<a href="/sell"><b>🏪</b>Sell</a>
+<a href="/orders"><b>📦</b>Orders</a>
+<a href="/pay/bank"><b>🪙</b>Pay</a>
+</nav>
 </body>
 </html>

@@ -1,0 +1,130 @@
+from pathlib import Path
+
+SOURCE = Path("android/oapworld/src/main/java/com/onanypostcode/oapworld/MainActivity.java")
+
+
+def test_oap_browser_keeps_oap_as_home_and_routes_search_first_party():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com"' in source
+    assert 'openFirstPartyPath("/world")' in source
+    assert 'openFirstPartyPath("/search?q=" + Uri.encode(input))' in source
+
+
+def test_oap_browser_opens_direct_web_addresses_without_accepting_arbitrary_schemes():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert '"https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)' in source
+    assert 'loadWebViewUrl("https://" + input)' in source
+    assert 'return !("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme));' in source
+
+
+def test_oap_browser_retains_host_security_controls():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "settings.setAllowFileAccess(false)" in source
+    assert "settings.setAllowContentAccess(false)" in source
+    assert "settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)" in source
+    assert "settings.setSafeBrowsingEnabled(true)" in source
+    assert "settings.setGeolocationEnabled(false)" in source
+    assert "cookieManager.setAcceptThirdPartyCookies(webView, false)" in source
+
+
+def test_oap_browser_has_approved_minimal_navigation_controls():
+    source = SOURCE.read_text(encoding="utf-8")
+    for marker in (
+        'navButton("‹")',
+        'navButton("OAP")',
+        "webView.goBack()",
+    ):
+        assert marker in source
+    for removed in ('navButton("›")', 'navButton("↻")', 'navButton("Go")'):
+        assert removed not in source
+    for removed in ('navButton("›")', 'navButton("↻")', 'navButton("Go")'):
+        assert removed not in source
+
+
+
+def test_oap_android_has_native_engine_surface_and_explicit_webview_fallback():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "private OapEngineView engineView;" in source
+    assert "void showOapEngineDocument(String displayListJson, String sourcePath)" in source
+    assert "engineView.setDisplayListJson(displayListJson)" in source
+    assert "private void showWebViewFallback()" in source
+    assert "engineNativeHost.setVisibility(View.VISIBLE)" in source
+    assert "engineNativeHost.setVisibility(View.GONE)" in source
+    assert "webView.setVisibility(View.GONE)" in source
+    assert "webView.setVisibility(View.VISIBLE)" in source
+
+
+def test_oap_android_engine_bridge_does_not_use_javascript_interface():
+    source = SOURCE.read_text(encoding="utf-8")
+    engine_view = Path(
+        "android/oapworld/src/main/java/com/onanypostcode/oapworld/OapEngineView.java"
+    ).read_text(encoding="utf-8")
+    assert "addJavascriptInterface" not in source
+    assert "addJavascriptInterface" not in engine_view
+    assert '"https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)' in engine_view
+
+
+def test_oap_engine_display_list_contract_is_versioned_for_android():
+    from oap.browser_engine import render_html
+
+    document = render_html("<p>Native OAP Engine</p>", viewport_width=320).to_dict()
+    assert document["engine"] == "OAP_ENGINE"
+    assert document["contract_version"] == 1
+    assert document["width"] == 320
+    assert document["items"][0]["text"] == "Native OAP Engine"
+
+
+
+def test_oap_browser_routes_same_origin_pages_native_first_and_external_web_to_webview():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "private void openFirstPartyPath(String sourcePath)" in source
+    assert "engineClient.fetch(path, viewportWidth" in source
+    assert 'loadWebViewUrl("https://" + input)' in source
+    assert "if (sameOrigin)" in source
+    assert 'openFirstPartyPath(query == null ? path : path + "?" + query)' in source
+
+
+def test_oap_browser_engine_transport_is_background_bounded_and_same_origin():
+    client_source = Path(
+        "android/oapworld/src/main/java/com/onanypostcode/oapworld/EngineDocumentClient.java"
+    ).read_text(encoding="utf-8")
+    assert "Executors.newSingleThreadExecutor()" in client_source
+    assert '"/api/oap-engine/document?path="' in client_source
+    assert "setConnectTimeout(CONNECT_TIMEOUT_MS)" in client_source
+    assert "setReadTimeout(READ_TIMEOUT_MS)" in client_source
+    assert "MAX_DOCUMENT_BYTES" in client_source
+    assert '"OAP_ENGINE".equals(renderer)' in client_source
+
+
+def test_oap_android_webview_requires_explicit_world_open_web_consent():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "webView.setWebChromeClient(new WebChromeClient()" in source
+    assert '"/world".equals(origin.getPath())' in source
+    assert 'message.startsWith("OPEN WEB — Leave OAP World and visit ")' in source
+    assert 'result.cancel();' in source
+    assert 'result.confirm()' in source
+    assert 'setNegativeButton("Stay in OAP World"' in source
+    assert 'setOnCancelListener(dialog -> result.cancel())' in source
+
+
+def test_oap_android_root_back_never_reveals_blank_webview():
+    source = SOURCE.read_text(encoding="utf-8")
+    root_back = source.split("public void onBackPressed()", 1)[1].split("protected void onDestroy()", 1)[0]
+    assert "engineHistoryIndex > 0" in root_back
+    assert "super.onBackPressed();" in root_back
+    assert "showWebViewFallback();" not in root_back
+
+
+def test_oap_android_external_navigation_invalidates_pending_native_response():
+    source = SOURCE.read_text(encoding="utf-8")
+    client_source = Path(
+        "android/oapworld/src/main/java/com/onanypostcode/oapworld/EngineDocumentClient.java"
+    ).read_text(encoding="utf-8")
+    webview_load = source.split("private void loadWebViewUrl(String url)", 1)[1].split("\n    }", 1)[0]
+    assert webview_load.index("engineClient.cancelPending();") < webview_load.index(
+        "showWebViewFallback();"
+    )
+    assert "public void cancelPending()" in client_source
+    cancel_body = client_source.split("public void cancelPending()", 1)[1].split("\n    }", 1)[0]
+    assert "generation.incrementAndGet();" in cancel_body
+    assert "generation.get() == requestGeneration" in client_source

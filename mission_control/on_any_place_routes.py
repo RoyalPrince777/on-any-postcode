@@ -170,7 +170,7 @@ def map_intelligence_asset(filename: str):
     if safe_name not in _PUBLIC_MAP_ASSETS:
         return make_response("", 404)
     response = make_response(send_from_directory(_PUBLIC_MAP_ASSET_DIR, safe_name))
-    response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60"
+    response.headers["Cache-Control"] = "no-cache, max-age=0, must-revalidate"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
@@ -293,6 +293,13 @@ def map_intelligence_mobility_providers():
             "live_ready": False,
         }
     response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/map-intelligence/smi-21")
+def map_intelligence_smi_21():
+    response = jsonify(local_map_intelligence.smi_21_state())
     response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -456,7 +463,7 @@ def canonical_on_any_place():
         values.get("location") or values.get("area") or "Mitcham",
         category=values.get("category") or "all",
         start=values.get("from"),
-        end=values.get("to") or "London Bridge",
+        end=values.get("to"),
         profile=values.get("profile") or "driving",
     )
     response = _no_store(make_response(render_template("local_map.html", local_map=local_map)))
@@ -478,7 +485,6 @@ def canonical_on_any_place():
 
 @bp.get("/places")
 @bp.get("/spots")
-@bp.get("/events")
 @bp.get("/on-any-route")
 @bp.get("/routes")
 @bp.get("/on-any-ride")

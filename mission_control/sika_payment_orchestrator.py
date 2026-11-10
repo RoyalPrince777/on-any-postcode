@@ -323,6 +323,19 @@ def transition(
             ).fetchone()
             if row is None:
                 raise PaymentOrchestratorError("payment_state_changed")
+
+            if target in {"SETTLED", "FAILED", "CANCELLED"}:
+                hold_table = connection.execute(
+                    "SELECT to_regclass('public.oap_sika_payment_holds')"
+                ).fetchone()
+                if hold_table and hold_table[0] is not None:
+                    hold_status = "CONSUMED" if target == "SETTLED" else "RELEASED"
+                    connection.execute(
+                        """UPDATE oap_sika_payment_holds
+                           SET status=%s,updated_at=CURRENT_TIMESTAMP
+                           WHERE payment_id=%s AND status='ACTIVE'""",
+                        (hold_status, current.payment_id),
+                    )
             connection.commit()
     except PaymentOrchestratorError:
         raise
@@ -347,6 +360,7 @@ def status() -> dict[str, object]:
         "direct_authorisation_bypass_allowed": False,
         "gateway_authorization_bound_to_payment": True,
         "gateway_authorization_requires_rights_hashes": True,
+        "terminal_hold_lifecycle_sync": True,
         "state_machine": [
             "DRAFT",
             "REVIEW",

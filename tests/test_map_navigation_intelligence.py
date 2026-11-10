@@ -22,6 +22,8 @@ def test_map_screen_is_low_noise_and_map_first():
     assert "Live Pattern" not in page
     assert "Source intelligence" not in page
     assert "Master Map Intelligence" not in page
+    assert "Manage Certified Merchant listings" not in page
+    assert "OAP OS · Map web runtime" not in page
 
 
 def test_drive_runtime_updates_turns_and_follows_position():
@@ -31,7 +33,7 @@ def test_drive_runtime_updates_turns_and_follows_position():
         "activeStep(progress)",
         "updateTurn(progress)",
         "driveMode",
-        "viewCenter=lastProjected",
+        "viewCenter=[lastProjected[0],Math.min(610,lastProjected[1]+70)]",
         "setZoom",
         "storesPreciseLocation:false",
         "individualPeopleTracking:false",
@@ -92,7 +94,7 @@ def test_uber_provider_is_fail_closed_without_approval(monkeypatch):
 def test_first_party_renderer_has_sparse_road_hierarchy_and_labels():
     page = MAP.read_text(encoding="utf-8")
     css = CSS.read_text(encoding="utf-8")
-    assert "labelCount<32" in page
+    assert "labelCount<18" in page
     assert "feature.name" in page
     assert "poly.setAttribute('class',isMajor?'major':isSecondary?'secondary':'local')" in page
     assert ".road-svg polyline.local" in css
@@ -105,11 +107,11 @@ def test_drive_camera_is_heading_up_without_rotating_controls():
     script = NAV.read_text(encoding="utf-8")
     css = CSS.read_text(encoding="utf-8")
     assert "lastHeading" in script
-    assert "scale(1.08)" in script
+    assert "perspective(900px) rotateX(22deg)" in script
     assert "if(driveMode)applyView()" in script
     assert "roadsSvg.style.transform=mapTransform" in script
     assert "routeSvg.style.transform=mapTransform" in script
-    assert 'body[data-map-mode="drive"] .road-label{display:none}' in css
+    assert 'body[data-map-mode="drive"] .road-label{opacity:.78' in css
     assert "transform-origin:50% 50%" in css
 
 
@@ -173,6 +175,7 @@ def test_public_map_uses_allowlisted_public_navigation_assets(client):
     assert "/map-intelligence/assets/oap_map_navigation.css" in body
     assert "/map-intelligence/assets/oap_map_navigation.js" in body
     assert "/map-intelligence/assets/oap_os_map_bridge.js" in body
+    assert 'data-oap-os-map-runtime' not in body
     assert "/mission/static/oap_map_navigation.css" not in body
 
     css = client.get("/map-intelligence/assets/oap_map_navigation.css")
@@ -202,8 +205,10 @@ def test_map_page_has_server_visible_shell_without_install_service_worker(client
     body = page.get_data(as_text=True)
     assert 'id="oap-map-critical"' in body
     assert 'id="oap-map-boot"' in body
-    assert "OAP Maps · loading road view" in body
+    assert "On Any Postcode Maps · loading roads" in body
     assert "/assets/oap-os.js" not in body
+    assert "oap_luxury.css" not in body
+    assert "_oap_install_head.html" not in body
 
 
 def test_unique_oap_map_door_renders_same_real_map_shell(client):
@@ -215,3 +220,117 @@ def test_unique_oap_map_door_renders_same_real_map_shell(client):
     assert 'id="map-form"' in body
     assert 'id="oap-map-boot"' in body
     assert "/map-intelligence/assets/oap_map_navigation.css" in body
+
+
+def test_map_runtime_assets_are_versioned_and_revalidated(client):
+    page = client.get("/oap-map")
+    assert page.status_code == 200
+    body = page.get_data(as_text=True)
+    assert "oap_map_navigation.css?v=map-runtime-v4" in body
+    assert "oap_map_navigation.js?v=map-runtime-v4" in body
+    assert "oap_os_map_bridge.js?v=map-runtime-v4" in body
+
+    css = client.get("/map-intelligence/assets/oap_map_navigation.css?v=map-runtime-v4")
+    js = client.get("/map-intelligence/assets/oap_map_navigation.js?v=map-runtime-v4")
+    assert css.status_code == 200
+    assert js.status_code == 200
+    assert css.headers["Cache-Control"] == "no-cache, max-age=0, must-revalidate"
+    assert js.headers["Cache-Control"] == "no-cache, max-age=0, must-revalidate"
+
+
+def test_map_render_is_atomic_and_has_no_timeout_fake_ready():
+    page = MAP.read_text(encoding="utf-8")
+
+    assert "roadLayer.replaceChildren(staged)" in page
+    assert "document.createDocumentFragment()" in page
+    assert "setRenderState('stable')" in page
+    assert "setRenderState('degraded')" in page
+    assert "await loadRoadNetwork(bounds,profile.value)" in page
+    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value)" in page
+    assert "setTimeout(clearBoot,5000)" not in page
+    assert ".oap-map-boot[hidden]{display:none!important}" in page
+
+
+def test_route_waits_for_road_context_before_exposing_complete_map():
+    page = MAP.read_text(encoding="utf-8")
+
+    assert "svg.hidden=true;setRenderState('loading')" in page
+    assert "const roadCount=await loadRoadNetwork(bounds,profile.value)" in page
+    assert "svg.hidden=false" in page
+    assert "setRenderState(roadCount>0?'stable':'degraded')" in page
+
+
+def test_route_sets_loading_before_async_fetch_to_prevent_stale_stable_race():
+    page = MAP.read_text(encoding="utf-8")
+    route = page.split("async function route(options={}){", 1)[1].split(
+        "form.addEventListener('submit'", 1
+    )[0]
+
+    loading_index = route.index("setRenderState('loading')")
+    fetch_index = route.index("fetch('/map-intelligence/route?")
+    assert loading_index < fetch_index
+
+
+def test_clean_oap_map_opens_without_old_route(client):
+    response = client.get("/oap-map")
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert 'id="map-to" value=""' in body
+    assert "London Bridge" not in body.split('id="map-to"', 1)[1].split(">", 1)[0]
+
+
+def test_clean_map_does_not_auto_route_without_explicit_destination():
+    page = MAP.read_text(encoding="utf-8")
+    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);" in page
+
+
+def test_route_cancels_previous_fetch_and_blocks_stale_commit():
+    page = MAP.read_text(encoding="utf-8")
+    assert "routeController=new AbortController();" in page
+    assert "if(routeController)routeController.abort();" in page
+    assert "signal});" in page
+    assert "if(request!==routeRequest)return;" in page
+
+
+def test_bfcache_restore_without_destination_clears_old_route():
+    page = MAP.read_text(encoding="utf-8")
+    assert "window.addEventListener('pageshow',event=>" in page
+    assert "if(!event.persisted)return;" in page
+    assert "if(!params.get('to')){" in page
+    assert "window.dispatchEvent(new CustomEvent('oap-map-route-clear'));" in page
+
+
+def test_route_failure_falls_back_to_real_road_context_and_clears_boot():
+    page = MAP.read_text(encoding="utf-8")
+    route = page.split("async function route(options={}){", 1)[1].split(
+        "form.addEventListener('submit'", 1
+    )[0]
+    assert "const roadCount=await loadRoadNetwork(defaultBounds,profile.value);" in route
+    assert "setRenderState(roadCount>0?'stable':'degraded')" in route
+    assert route.count("loadRoadNetwork(defaultBounds,profile.value)") >= 2
+
+
+
+def test_map_exposes_travel_and_movement_actions_after_route():
+    page = MAP.read_text(encoding="utf-8")
+    for marker in (
+        'id="movement-actions"',
+        'id="map-travel-link"',
+        'id="map-movement-link"',
+        'id="map-ride-link"',
+        'href="/transport/ride/current"',
+        "syncMovementLinks",
+        "clearMovementLinks",
+        "movementActions.hidden=false",
+    ):
+        assert marker in page
+
+
+def test_map_carries_route_into_travel_and_movement_links():
+    page = MAP.read_text(encoding="utf-8")
+    assert "new URLSearchParams({from:a,to:b})" in page
+    assert "travelLink.href='/travel?'+params.toString()" in page
+    assert "movementLink.href='/movement/workspace?'+params.toString()+'#book-title'" in page
+    assert "params.set('service','ride')" in page
+    assert "rideLink.href='/movement/workspace?'+params.toString()+'#book-title'" in page
+    assert "syncMovementLinks(d.origin?.label||a,d.destination?.label||b)" in page

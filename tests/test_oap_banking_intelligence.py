@@ -80,6 +80,9 @@ def test_status_exposes_remaining_real_integration_gaps():
     assert status["duplicate_ledger_created"] is False
     assert status["payment_execution_enabled"] is False
     assert status["money_movement_enabled"] is False
+    assert status["software_readiness_integrated"] is True
+    assert status["software_scope"]["scope"] == "software_only"
+    assert status["software_scope"]["execution_gate_bypassed"] is False
     assert status["blockchain_integrity_integrated"] is True
     assert status["bank_grade_double_entry_integrated"] is True
     assert status["persistent_journal_store_integrated"] is True
