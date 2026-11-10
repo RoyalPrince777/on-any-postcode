@@ -21,6 +21,22 @@ def test_koradaso_omnibox_routes_queries_to_existing_oap_search(client):
     assert 'href="/koradaso/web-search?q=music"' in catalogue.get_data(as_text=True)
 
 
+def test_koradaso_traffic_boundary_keeps_open_web_access_without_page_leak(client):
+    """First-party response hardening, not device-wide network isolation proof."""
+    response = client.get("/koradaso")
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    assert response.headers["Referrer-Policy"] == "no-referrer"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert "geolocation=()" in response.headers["Permissions-Policy"]
+    assert "camera=()" in response.headers["Permissions-Policy"]
+    source = SOURCE.read_text(encoding="utf-8")
+    assert '<meta name="referrer" content="no-referrer">' in source
+    assert 'window.location.assign(url.href)' in source
+    assert 'window.confirm("OPEN WEB — "+url.hostname' in source
+    assert 'window.location.assign("/koradaso/web-search?q="+encodeURIComponent(raw))' in source
+
+
 def test_external_search_is_opt_in_and_site_navigation_preserves_consent():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'id="open-web-search"' in source
