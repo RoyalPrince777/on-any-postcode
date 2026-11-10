@@ -27,12 +27,20 @@ const isPrivatePath = (pathname) => PRIVATE_PREFIXES.some(
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
-      .then((cache) => cache.addAll(PUBLIC_SHELL))
-      .catch((error) => {
-        // Installation fails; do not delete a cache possibly shared with the
-        // current active worker. A fully isolated staging cache is still unproven.
-        throw error;
+      .then(async (cache) => {
+        await cache.addAll(PUBLIC_SHELL);
+        // A successful HTTP response is not sufficient to accept a release.
+        // Reject a broken HTML shell before a new worker becomes installable.
+        const page = await cache.match("/koradaso");
+        const html = page ? await page.text() : "";
+        if (!html.includes('data-koradaso-release="') ||
+            !html.includes('id="address"') ||
+            !html.includes("KORADASO Internet")) {
+          throw new Error("koradaso_public_shell_invalid");
+        }
       })
+      // Do not purge a cache potentially shared with an active worker.
+      // A failed install keeps the old active worker in control.
   );
 });
 
