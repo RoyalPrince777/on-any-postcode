@@ -337,7 +337,7 @@ def test_transport_inside_doors_are_html_not_technical_json():
     for path, title, expected_links in (
         ("/transport/guardian", "Guardian", ("/transport/ride/current", "/transport/ride/guardian/status")),
         ("/transport/operators", "Operators", ("/transport/shared-bikes/mitcham", "/transport/shared-bikes/status")),
-        ("/transport/control-center", "Control Center", ("/transport/execution-readiness", "/transport/capabilities")),
+        ("/transport/control-center", "Control Center", ("/transport/control-center/readiness", "/transport/capabilities")),
     ):
         response = client.get(path)
         assert response.status_code == 200
@@ -382,3 +382,69 @@ def test_transport_front_menu_has_one_clear_seven_door_navigation():
     for name, _, href in global_transport_views.PUBLIC_DOORS:
         assert f"<strong>{name}</strong>" in html
         assert f'href="{href}"' in html
+
+
+def test_execution_readiness_human_page_preserves_json_api_and_truth_boundaries(monkeypatch):
+    from mission_control import global_transport_views as views
+
+    sample = {
+        "product": "OAP Global Transport",
+        "software_execution_layer_ready": True,
+        "live_execution_authorised": False,
+        "evidence_store_reachable": True,
+        "software_verified_external_authenticity": False,
+        "human_authority_final": True,
+        "areas": {
+            "ride_dispatch": {
+                "software_ready": True,
+                "live_execution_authorised": False,
+                "requires": ["eligible_driver_binding", "vehicle_evidence", "dispatch_receipt"],
+                "verified": ["eligible_driver_binding"],
+                "missing": ["vehicle_evidence", "dispatch_receipt"],
+            }
+        },
+    }
+    monkeypatch.setattr(views, "execution_readiness", lambda: sample)
+    client = _app().test_client()
+    page = client.get("/transport/control-center/readiness")
+    assert page.status_code == 200
+    assert page.mimetype == "text/html"
+    assert page.headers["Cache-Control"] == "no-store, private"
+    html = page.get_data(as_text=True)
+    assert "Execution Readiness" in html
+    assert "Not authorised" in html
+    assert "1/3 recorded" in html
+    assert "Eligible driver binding" in html
+    assert "Verified reference recorded" in html
+    assert "Vehicle evidence" in html
+    assert "Missing" in html
+    assert 'href="/transport/control-center"' in html
+
+    api = client.get("/transport/execution-readiness")
+    assert api.status_code == 200
+    assert api.mimetype == "application/json"
+    assert api.get_json() == sample
+
+
+def test_execution_readiness_page_is_unknown_not_falsely_green_when_store_unreachable(monkeypatch):
+    from mission_control import global_transport_views as views
+
+    monkeypatch.setattr(views, "execution_readiness", lambda: {
+        "software_execution_layer_ready": True,
+        "live_execution_authorised": False,
+        "evidence_store_reachable": False,
+        "areas": {
+            "vehicle_control": {
+                "requires": ["vehicle_identity_binding", "device_or_oem_authority", "command_receipt"],
+                "verified": [],
+                "missing": ["vehicle_identity_binding", "device_or_oem_authority", "command_receipt"],
+                "live_execution_authorised": False,
+            },
+        },
+    })
+    html = _app().test_client().get("/transport/control-center/readiness").get_data(as_text=True)
+    assert "Unknown · blocked" in html
+    assert "Evidence store not reachable" in html
+    assert "Evidence unavailable" in html
+    assert "not confirmed missing records" in html
+    assert "Requirements recorded" not in html
