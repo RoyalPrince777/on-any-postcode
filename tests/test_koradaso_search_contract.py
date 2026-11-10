@@ -42,6 +42,77 @@ def test_koradaso_public_offline_shell_reuses_oap_worker_without_private_caching
     assert '"/mission"' in worker
 
 
+def test_koradaso_offline_worker_executes_public_fallback_without_private_interception():
+    """Execute the actual worker in Node: no browser/device or AOSP acceptance claim."""
+    import subprocess
+
+    script = r"""
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+const handlers = {};
+const cached = new Map();
+const cache = {
+  addAll: async (paths) => {
+    paths.forEach(path => cached.set(path, {source: "cache", path}));
+  }
+};
+const caches = {
+  open: async () => cache,
+  match: async path => cached.get(path),
+  keys: async () => [],
+  delete: async () => true
+};
+const self = {
+  location: {origin: "https://onanypostcode.global"},
+  addEventListener: (name, fn) => {handlers[name] = fn;},
+  skipWaiting: async () => {},
+  clients: {claim: async () => {}}
+};
+let offline = true;
+let networkCalls = 0;
+const fetch = async request => {
+  networkCalls++;
+  if (offline) throw Error("upstream_unavailable");
+  return {source: "network", path: new URL(request.url).pathname};
+};
+const worker = fs.readFileSync(process.argv[1], "utf8");
+vm.runInNewContext(worker, {self, caches, fetch, URL, Promise}, {timeout: 1500});
+async function dispatch(url, method = "GET", mode = "navigate") {
+  let response;
+  const event = {
+    request: {url, method, mode},
+    respondWith: value => {response = value;}
+  };
+  handlers.fetch(event);
+  return response ? await response : undefined;
+}
+(async () => {
+  let installation;
+  handlers.install({waitUntil: value => {installation = value;}});
+  await installation;
+  assert.equal(cached.has("/koradaso"), true);
+  assert.equal(cached.has("/static/oap/koradaso_internet_logo.jpg"), true);
+  assert.equal(cached.has("/linkup"), false);
+  assert.equal(cached.has("/my-world"), false);
+  assert.equal((await dispatch("https://onanypostcode.global/koradaso")).path, "/koradaso");
+  assert.equal((await dispatch("https://onanypostcode.global/koradaso")).source, "cache");
+  assert.equal((await dispatch("https://onanypostcode.global/linkup")).path, "/offline");
+  assert.equal(await dispatch("https://onanypostcode.global/my-world"), undefined);
+  assert.equal(await dispatch("https://other.example/koradaso"), undefined);
+  assert.equal(await dispatch("https://onanypostcode.global/koradaso", "POST"), undefined);
+  offline = false;
+  assert.equal((await dispatch("https://onanypostcode.global/koradaso")).source, "network");
+  assert.equal(networkCalls, 4);
+})().catch(error => {console.error(error);process.exitCode = 1;});
+"""
+    result = subprocess.run(
+        ["node", "-e", script, "static/oap-os-sw.js"],
+        capture_output=True, text=True, timeout=15, check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_koradaso_traffic_boundary_keeps_open_web_access_without_page_leak(client):
     """First-party response hardening, not device-wide network isolation proof."""
     response = client.get("/koradaso")
