@@ -479,7 +479,11 @@
           ordersList.appendChild(row);
         });
       } catch (error) {
-        ordersList.innerHTML = '<div class="market-empty">Orders unavailable: ' + error.message + '</div>';
+        // Error text may originate from a server response. Never parse it as HTML.
+        const notice = document.createElement('div');
+        notice.className = 'market-empty';
+        notice.textContent = 'Orders unavailable: ' + error.message;
+        ordersList.replaceChildren(notice);
       }
     }
 
