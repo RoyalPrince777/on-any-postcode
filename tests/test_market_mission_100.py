@@ -190,3 +190,15 @@ def test_market_stop_never_targets_stale_order_details():
     assert "if (!activeTransactionId || stopButton.disabled) return;" in template
     assert "const transactionId = activeTransactionId;" in template
     assert "Refresh this order before retrying" in template
+
+
+def test_market_basket_limit_does_not_silently_drop_added_products():
+    """The UI must reject the 21st distinct item before the storage cap truncates it."""
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert "basket.slice(0, 20)" in template
+    assert "if (!found && basket.length >= 20)" in template
+    assert "Basket limit reached (20 products)." in template
+    assert template.index("if (!found && basket.length >= 20)") < template.index("else basket.push({")
