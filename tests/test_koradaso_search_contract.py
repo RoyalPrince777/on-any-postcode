@@ -603,3 +603,16 @@ def test_koradaso_approved_routes_shared_across_tiles_omnibox_and_bookmarks():
         assert f'"{route}"' in source.split("const allowedRoutes=new Set(", 1)[1].split(");", 1)[0]
     assert 'allowedRoutes.has(firstParty.pathname)' in source
     assert 'allowedRoutes.has(route)' in source
+
+
+def test_koradaso_local_launcher_rejects_old_checkout_without_changing_files():
+    """Prevent an older Termux checkout being mistaken for the restored browser."""
+    launcher = Path("scripts/koradaso_termux_local.sh").read_text(encoding="utf-8")
+    assert 'RESTORED_MAP_MARKER=\'href="/oap-map"\'' in launcher
+    assert 'RESTORED_MAIL_MARKER=\'href="/the-link"\'' in launcher
+    assert 'RESTORED_MARKET_MARKER=\'href="/the-spot/market"\'' in launcher
+    assert "this checkout has the older browser UI" in launcher
+    assert '[[ "$OPEN_PATH" != "/koradaso" ]]' in launcher
+    assert '[[ "$page" == *"$RESTORED_MAP_MARKER"*' in launcher
+    assert 'git reset --hard' not in launcher
+    assert 'git clean -' not in launcher
