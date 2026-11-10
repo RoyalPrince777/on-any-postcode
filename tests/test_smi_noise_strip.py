@@ -274,20 +274,24 @@ def test_existing_world_menu_separates_public_previews_and_private_review():
     assert "smi-world-founder-link" in css
     assert "overscroll-behavior:contain" in css
 
-def test_reference_command_room_uses_real_evidence_and_mobile_drawer():
+def test_reference_command_room_reuses_canonical_evidence_owner():
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
     js = (ROOT / "mission_control" / "static" / "smi_noise_strip.js").read_text(encoding="utf-8")
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
     assert "SMI visual reference: gold command-room frame" in css
     assert "@media(max-width:760px)" in css
     assert "smi-reference-nav-open" in css
     assert "smi-reference-right" in css
     assert "smi-reference-layout" in js
     assert "document.getElementById('smi-reference-top')" in js
-    assert "window.OAP_SMI_UI?.healthUrl" in js
-    assert "value===true?'Passed'" in js
+    assert "Canonical evidence controls unavailable" in js
     assert "Unknown · No Green inferred" in js
-    assert "fetch(url,{credentials:'same-origin',cache:'no-store'})" in js
-    assert "document.addEventListener('keydown'" not in js
+    assert "canonical.click()" in js
+    assert 'async function refreshEvidence()' in command
+    assert "fetch(" not in js
+    assert "credentials:" not in js
+    assert "addEventListener('keydown'" not in js
+
 
 def test_reference_mobile_evidence_drawer_does_not_cover_live_smi():
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
@@ -299,20 +303,18 @@ def test_reference_mobile_evidence_drawer_does_not_cover_live_smi():
     assert "smi-reference-layout.smi-live-fullscreen .smi-reference-top" in css
     assert "smi-reference-layout.smi-live-fullscreen .smi-reference-side" in css
     assert "closeEvidence();" in js
-    assert "window.OAP_SMI_UI?.healthUrl" in js
-    assert "Unknown · No Green inferred" in js
+    assert "Canonical evidence controls unavailable" in js
 
 
-def test_smi_evidence_health_refresh_is_bounded_and_fail_closed():
+def test_smi_evidence_does_not_add_second_network_owner():
     js = (ROOT / "mission_control" / "static" / "smi_noise_strip.js").read_text(encoding="utf-8")
-    assert "if(checkingEvidence)return" in js
-    assert "refresh.disabled=true" in js
-    assert "const controller=new AbortController()" in js
-    assert "setTimeout(()=>controller.abort(),8000)" in js
-    assert "signal:controller.signal" in js
-    assert "clearTimeout(timeout)" in js
-    assert "Unknown · No Green inferred" in js
-    assert "refresh.disabled=false" in js
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    assert "canonical.click()" in js
+    assert "const canonical=document.querySelector" in js
+    assert "fetch(" not in js
+    assert "AbortController" not in js
+    assert 'async function refreshEvidence()' in command
+    assert "credentials:\"same-origin\"" in command
 
 
 def test_reference_mobile_closed_drawers_are_not_focusable():
