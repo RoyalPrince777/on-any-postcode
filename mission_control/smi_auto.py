@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-from . import ai_behaviour
+from . import ai_behaviour, autonomy_levels
 
 AUTO_VERSION = 6
 AUTO_LIGHT = "purple"
@@ -218,6 +218,11 @@ def _adaptive_level(*, lenses: tuple[str, ...], semantic_lenses: tuple[str, ...]
 
     return {
         "level": level,
+        "advisory_level": level,
+        "configured_runtime_level": autonomy_levels.configured_level(),
+        "runtime_escalation_granted": False,
+        "certification_granted": False,
+        "recommendation_only": True,
         "reason": reason,
         "stop": True,
         "stop_reason": "minimum sufficient intelligence selected; escalate only if new evidence, risk or mission complexity appears",
@@ -521,3 +526,40 @@ def evidence_swot_for_failed_build(evidence: object) -> dict[str, object]:
             "opportunities": ("Prepare one targeted reversible correction after exact-commit review.",),
             "threats": ("Unverified fixes, signing bypass and stale CI evidence must not grant Green.",),
             "next_action": "NIRMATA review classified failure; require exact-head CI and Founder Final for release."}
+
+
+def classify_dynamic_autofix(evidence: object) -> dict[str, object]:
+    """Choose a fail-closed repair *recommendation* from existing verified CI proof.
+
+    Source verification and build/dependency faults can enter bounded engineering
+    review. Signing, missing logs, or unproven CI never authorise modification.
+    """
+    base = {
+        "decision": "EVIDENCE_REQUIRED",
+        "repair_scope": None,
+        "source_evidence_verified": False,
+        "auto_edit_granted": False,
+        "execution_granted": False,
+        "merge_granted": False,
+        "deploy_granted": False,
+        "a7_enabled": False,
+        "human_authority_final": True,
+    }
+    proof = evidence_swot_for_failed_build(evidence)
+    if proof["ready"] is not True:
+        return base
+    categories = set(proof["weaknesses"])
+    if "signing_configuration" in categories:
+        return {**base, "decision": "FOUNDER_REVIEW", "source_evidence_verified": True}
+    safe_categories = {
+        "source_verification", "gradle_compile",
+        "dependency_resolution", "android_sdk",
+    }
+    if not categories or not categories.issubset(safe_categories):
+        return base
+    return {
+        **base,
+        "decision": "BOUNDED_REPAIR_REVIEW",
+        "repair_scope": tuple(sorted(categories)),
+        "source_evidence_verified": True,
+    }

@@ -136,3 +136,39 @@ def test_gateway_records_observed_success_path_and_clears_stale_evidence(monkeyp
     with pytest.raises(RuntimeError, match="not_available"):
         gateway.generate(unavailable, "hello")
     assert gateway.observed_inference_route() is None
+
+
+def test_master_sovereign_mode_blocks_private_and_public_external_fallback(monkeypatch):
+    import pytest
+
+    gateway = oap_inference_gateway
+    monkeypatch.setenv("OAP_MASTER_SOVEREIGN_MODE", "true")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(gateway, "FALLBACK_ENABLED", True)
+
+    def unavailable(*_args, **_kwargs):
+        raise RuntimeError("local_and_bridge_unavailable")
+
+    def must_not_use_external(*_args, **_kwargs):
+        raise AssertionError("external compatibility provider was called in Master Mode")
+
+    for name in ("_call_local", "_call_bridge", "_call_local_public", "_call_bridge_public"):
+        monkeypatch.setattr(gateway, name, unavailable)
+
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        gateway.generate(must_not_use_external, "hello")
+    assert gateway.observed_inference_route() is None
+
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        gateway.generate_public(must_not_use_external, "hello")
+
+    assert gateway.status()["compatibility_fallback_effectively_allowed"] is False
+
+
+def test_master_mode_keeps_working_local_inference(monkeypatch):
+    gateway = oap_inference_gateway
+    monkeypatch.setenv("OAP_MASTER_SOVEREIGN_MODE", "1")
+    monkeypatch.setattr(gateway, "_call_local", lambda *_args, **_kwargs: "local")
+    monkeypatch.setattr(gateway, "FALLBACK_ENABLED", True)
+    assert gateway.generate(lambda *_args, **_kwargs: "external", "hello") == "local"
+    assert gateway.observed_inference_route() == "local_direct"

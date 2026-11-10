@@ -10,7 +10,7 @@ from mission_control import surface_security
 def test_public_origin_hands_off_safe_aliases_and_hides_other_private_paths(monkeypatch):
     monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
     monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "s" * 48)
-    monkeypatch.setenv("OAP_PRIVATE_SMI_ORIGIN", "https://oap-smi.onrender.com")
+    monkeypatch.setenv("OAP_PRIVATE_SMI_ORIGIN", "https://smi.onanypostcode.global")
     app = Flask(__name__)
     surface_security.register(app)
 
@@ -46,24 +46,24 @@ def test_public_origin_hands_off_safe_aliases_and_hides_other_private_paths(monk
 
     handoff = client.get("/mission")
     assert handoff.status_code == 302
-    assert handoff.headers["Location"] == "https://oap-smi.onrender.com/mission/ollama"
+    assert handoff.headers["Location"] == "https://smi.onanypostcode.global/mission/ollama"
     assert handoff.headers["Cache-Control"] == "no-store"
     assert handoff.headers["X-OAP-Private-Handoff"] == "smi-gateway"
 
     my_world_handoff = client.get("/my-world")
     assert my_world_handoff.status_code == 302
-    assert my_world_handoff.headers["Location"] == "https://oap-smi.onrender.com/my-world"
+    assert my_world_handoff.headers["Location"] == "https://smi.onanypostcode.global/my-world"
 
     auth_handoff = client.get("/enter-my-world?next=/global-affairs")
     assert auth_handoff.status_code == 302
     assert auth_handoff.headers["Location"] == (
-        "https://oap-smi.onrender.com/enter-my-world?next=/global-affairs"
+        "https://smi.onanypostcode.global/enter-my-world?next=/global-affairs"
     )
 
     auth_alias_handoff = client.get("/auth?next=/mission/ollama")
     assert auth_alias_handoff.status_code == 302
     assert auth_alias_handoff.headers["Location"] == (
-        "https://oap-smi.onrender.com/auth?next=/mission/ollama"
+        "https://smi.onanypostcode.global/auth?next=/mission/ollama"
     )
 
     for path in (
@@ -84,6 +84,7 @@ def test_public_origin_hands_off_safe_aliases_and_hides_other_private_paths(monk
 def test_public_surface_still_fails_closed_if_gateway_secret_is_missing(monkeypatch):
     monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
     monkeypatch.delenv("OAP_SMI_GATEWAY_SECRET", raising=False)
+    monkeypatch.setenv("OAP_PRIVATE_SMI_ORIGIN", "https://smi.onanypostcode.global")
     app = Flask(__name__)
     surface_security.register(app)
 
@@ -104,12 +105,40 @@ def test_public_surface_still_fails_closed_if_gateway_secret_is_missing(monkeypa
     auth_handoff = client.get("/auth?next=/mission/ollama")
     assert auth_handoff.status_code == 302
     assert auth_handoff.headers["Location"] == (
-        "https://oap-smi.onrender.com/auth?next=/mission/ollama"
+        "https://smi.onanypostcode.global/auth?next=/mission/ollama"
     )
     assert client.get("/the-spot/my-world").status_code == 404
     forged = client.get("/mission", headers={"X-OAP-SMI-Gateway": "x" * 48})
     assert forged.status_code == 404
     assert forged.headers["Cache-Control"] == "no-store"
+
+
+@pytest.mark.parametrize("origin", [
+    None,
+    "",
+    "https://oap-smi.onrender.com",
+    "http://smi.onanypostcode.global",
+    "https://onanypostcode.global",
+    "https://user:secret@smi.onanypostcode.global",
+    "https://smi.onanypostcode.global/private",
+    "https://smi.onanypostcode.global?key=secret",
+    "https://smi.onanypostcode.global:bad",
+])
+def test_public_private_handoff_fails_closed_without_verified_first_party_origin(monkeypatch, origin):
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
+    monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "s" * 48)
+    if origin is None:
+        monkeypatch.delenv("OAP_PRIVATE_SMI_ORIGIN", raising=False)
+    else:
+        monkeypatch.setenv("OAP_PRIVATE_SMI_ORIGIN", origin)
+    app = Flask(__name__)
+    surface_security.register(app)
+    client = app.test_client()
+    for path in ("/smi", "/mission", "/mission/ollama", "/auth"):
+        response = client.get(path)
+        assert response.status_code == 404
+        assert response.headers["Cache-Control"] == "no-store"
+        assert "Location" not in response.headers
 
 
 def test_trusted_gateway_repairs_stale_private_aliases(monkeypatch):
@@ -132,7 +161,7 @@ def test_trusted_gateway_repairs_stale_private_aliases(monkeypatch):
 def test_public_aliases_handoff_to_correct_private_gateway_paths(monkeypatch):
     monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
     monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "s" * 48)
-    monkeypatch.setenv("OAP_PRIVATE_SMI_ORIGIN", "https://private.example.test")
+    monkeypatch.setenv("OAP_PRIVATE_SMI_ORIGIN", "https://smi.onanypostcode.global")
     app = Flask(__name__)
     surface_security.register(app)
     client = app.test_client()
@@ -153,11 +182,11 @@ def test_public_aliases_handoff_to_correct_private_gateway_paths(monkeypatch):
     for source, target in expected.items():
         response = client.get(source)
         assert response.status_code == 302
-        assert response.headers["Location"] == f"https://private.example.test{target}"
+        assert response.headers["Location"] == f"https://smi.onanypostcode.global{target}"
 
     auth_with_next = client.get("/enter-my-world?next=/global-affairs")
     assert auth_with_next.headers["Location"] == (
-        "https://private.example.test/enter-my-world?next=/global-affairs"
+        "https://smi.onanypostcode.global/enter-my-world?next=/global-affairs"
     )
 
 
@@ -282,3 +311,54 @@ def test_render_blueprint_keeps_public_and_smi_image_services_free():
     assert "plan: starter" not in content
     assert "type: worker" not in content
     assert "name: oap-routing" not in content
+
+
+def test_selfhost_defines_two_first_party_https_ingresses_without_host_exposed_smi():
+    compose = Path("deploy/selfhost/compose.yaml").read_text()
+    caddy = Path("deploy/selfhost/Caddyfile").read_text()
+    assert "OAP_RUNTIME_TARGET: app:app" in compose
+    assert "OAP_RUNTIME_TARGET: smi_gateway:app" in compose
+    assert 'OAP_SMI_LOCAL_DISPATCH: "1"' in compose
+    assert "OAP_PRIVATE_SMI_ORIGIN: https://" in compose
+    assert "OAP_SMI_GATEWAY_SECRET:" in compose
+    assert "OAP_SMI_DOMAIN:" in compose
+    assert "{$OAP_DOMAIN}" in caddy
+    assert "{$OAP_SMI_DOMAIN}" in caddy
+    assert "reverse_proxy smi:10000" in caddy
+    assert "reverse_proxy world:10000" in caddy
+    assert '      - "10000:10000"' not in compose
+    assert "onrender.com" not in compose + caddy
+
+
+def test_smi_local_flask_launcher_is_loopback_only_and_preserves_auth():
+    script = Path("scripts/smi_local_flask.sh").read_text()
+    assert 'export OAP_SURFACE_ROLE=local' in script
+    assert 'export OAP_SMI_GATEWAY_SECRET=' in script
+    assert 'export OAP_AUTH_REQUIRED=true' in script
+    assert 'route = "/mission/ollama"' in script
+    assert 'SMI_FLASK_PREFLIGHT_404' in script
+    assert 'app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)' in script
+    assert "port = 5050" in script
+    assert "OAP_CORE_PYTHON" in script
+    assert "OAP_CORE_DEPENDENCIES_MISSING" in script
+    assert "pip install" not in script
+    assert '"/world"' in script
+    assert '"/mission/ollama"' in script
+    assert 'app.test_client()' in script
+    assert "auto-login" in script
+    assert "OAP_SURFACE_ROLE=public" not in script
+    assert 'home_env="$HOME/.config/oap/home-node.env"' in script
+    assert 'founder_env="$HOME/.config/oap/smi-founder.env"' in script
+    assert 'SMI_FLASK_FOUNDER_CONFIG_PERMISSIONS' in script
+    assert 'SMI NEXT ACTION:' in script
+    assert 'chmod 600' in script
+    assert 'NEON_AUTH_BASE_URL=' not in script
+    assert 'OAP_HUMAN_AUTHORITY_EMAIL=' not in script
+
+    assert 'SMI_FLASK_AUTH_NOT_CONFIGURED' in script
+    assert 'SMI Founder verifier:' in script
+    assert 'connection unverified' in script
+    assert 'founder_local_auth.bound()' in script
+    assert 'local_verifier_bound' in script
+    assert 'if not (managed_ready or local_verifier_bound or recovery_ready):' in script
+    assert 'OAP_SESSION_SECRET' in script

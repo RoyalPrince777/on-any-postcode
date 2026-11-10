@@ -47,6 +47,17 @@ def test_smi_command_dashboard_composes_canonical_sources():
     assert command["human_authority_final"] is True
 
 
+def test_mission_review_never_turns_definitions_into_completion_votes_or_stars():
+    review = smi_command_dashboard.status()["mission_review"]
+    assert review["owner"] == "SMI × Captain ALL IN"
+    assert review["completion_percentage"] is None
+    assert review["evidence_stars_awarded"] is None
+    assert review["agent_vote_result"] is None
+    assert review["green_gate"] is False
+    assert review["live_device_acceptance"] == "unknown"
+    assert review["software_model_is_completion_proof"] is False
+
+
 def test_smi_command_dashboard_route_is_read_only(client):
     response = client.get("/mission/smi")
     page = response.get_data(as_text=True)

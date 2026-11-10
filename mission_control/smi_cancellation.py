@@ -7,11 +7,15 @@ private reasoning content.
 """
 from __future__ import annotations
 
+import logging
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
+
+_LOG = logging.getLogger(__name__)
 
 
 class SMIRequestCancelled(RuntimeError):
@@ -31,6 +35,7 @@ class CancellationToken:
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
     _reason: str = field(default="", repr=False)
     _cancelled_at: str = field(default="", repr=False)
+    _callbacks: list[Callable[[], None]] = field(default_factory=list, repr=False)
 
     @property
     def cancelled(self) -> bool:
@@ -39,13 +44,33 @@ class CancellationToken:
     def cancel(self, reason: str = "human_stop") -> bool:
         """Cancel once; repeated STOP remains safe and idempotent."""
         clean_reason = str(reason or "human_stop").strip()[:80] or "human_stop"
+        callbacks: list[Callable[[], None]] = []
         with self._lock:
             first = not self._event.is_set()
             if first:
                 self._reason = clean_reason
                 self._cancelled_at = _now()
                 self._event.set()
-            return first
+                callbacks, self._callbacks = self._callbacks, []
+        # Never run external resource cleanup under the cancellation lock.
+        for callback in callbacks:
+            try:
+                callback()
+            except Exception:  # noqa: BLE001 - STOP must remain fail-safe.
+                _LOG.warning("smi_stop_resource_cleanup_failed")
+        return first
+
+    def on_cancel(self, callback: Callable[[], None]) -> None:
+        """Close an active resource on STOP, including a concurrent/late STOP."""
+        with self._lock:
+            cancelled = self._event.is_set()
+            if not cancelled:
+                self._callbacks.append(callback)
+        if cancelled:
+            try:
+                callback()
+            except Exception:  # noqa: BLE001 - STOP cannot depend on cleanup.
+                _LOG.warning("smi_stop_resource_cleanup_failed")
 
     def raise_if_cancelled(self) -> None:
         if self._event.is_set():

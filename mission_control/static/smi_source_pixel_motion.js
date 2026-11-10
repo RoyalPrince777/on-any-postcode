@@ -35,19 +35,33 @@
   }
   return {width:w,height:h,data:next};
  }
- function motionFor(state,ms,speechPulse=0){
+ function boundedGaze(target){
+  if(!target||typeof target!=="object"||!Number.isFinite(target.x)||!Number.isFinite(target.y))return null;
+  return Object.freeze({x:Math.max(-1,Math.min(1,target.x)),y:Math.max(-1,Math.min(1,target.y))});
+ }
+ function blinkEnvelope(ms){
+  // Deterministic nonuniform intervals; never uses timers, microphones or camera tracking.
+  const cycle=5650,phase=((ms%cycle)+cycle)%cycle;
+  const triangular=(centre,width)=>Math.max(0,1-Math.abs(phase-centre)/width);
+  return Math.max(triangular(750,90),triangular(3420,75),triangular(3575,55));
+ }
+ function motionFor(state,ms,speechPulse=0,gazeTarget=null){
   const a=Math.sin(ms/620),b=Math.sin(ms/1110);
   if(state==="stopped"||state==="paused")return Object.freeze({head:[0,0,1],eyes:[0,0,1],mouth:[0,0,1],chest:[0,0,1],hands:[0,0,1]});
   const focus=state==="thinking"?1.35:state==="listening"?1.18:1;
-  const blinkPhase=ms%4300;
-  const blink=blinkPhase<135?Math.max(0,1-Math.abs(blinkPhase-67.5)/67.5):0;
+  const blink=blinkEnvelope(ms);
   const eyeScale=Math.max(.2,1-(blink*.78));
+  const gaze=boundedGaze(gazeTarget);
+  const gx=gaze?gaze.x:0,gy=gaze?gaze.y:0;
+  // Coordinate small gestures with permitted audible viseme pulses; no inferred emotion.
+  const audible=state==="speaking"&&Number.isFinite(speechPulse)?Math.max(0,Math.min(1,speechPulse)):0;
+  const emphasis=audible*audible;
   return Object.freeze({
-   head:[a*1.35*focus,b*.72*focus,1],
-   eyes:[a*1.9*focus,b*.58*focus,eyeScale],
-   mouth:state==="speaking"?[speechPulse*1.15,speechPulse*1.45,1+speechPulse*.32]:[0,0,1],
+   head:[a*1.35*focus+gx*.55,b*.72*focus+gy*.35+emphasis*.35,1],
+   eyes:[a*1.9*focus+gx*2.2,b*.58*focus+gy*1.15,eyeScale],
+   mouth:state==="speaking"?[audible*1.15,audible*1.45,1+audible*.32]:[0,0,1],
    chest:[0,b*.78,1+b*.0045],
-   hands:[a*.48,-b*.42,1]
+   hands:[a*.48+emphasis*.32,-b*.42-emphasis*.27,1]
   });
  }
  async function attach(win=typeof window!=="undefined"?window:null,doc=win?.document){
@@ -103,8 +117,8 @@
   });
   const lowPower=/Android/i.test(win.navigator?.userAgent||"")||Number(win.navigator?.hardwareConcurrency||8)<=4;
   const frameBudgetMs=lowPower?50:34;
-  let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,speechUntil=0,audioCues=0,droppedFrames=0;
-  let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
+  let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,audioCues=0,droppedFrames=0;
+  let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0,gazeTarget=null,stoppedLatched=false;
   const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
   function drawRegion(region,params){
@@ -124,8 +138,8 @@
    context.drawImage(image,0,0);
    const motionAllowed=!userReducedMotion&&(!reducedPreference||explicitLiveMotion);
    if(!live||!motionAllowed||phase==="paused"||phase==="stopped")return;
-   const pulse=phase==="speaking"?(localAudio?LOCAL_POSE[localViseme]:Math.max(0,Math.min(1,(speechUntil-ms)/170))):0;
-   const poses=motionFor(phase,ms,pulse);
+   const pulse=phase==="speaking"&&localAudio?LOCAL_POSE[localViseme]:0;
+   const poses=motionFor(phase,ms,pulse,gazeTarget);
    for(const region of REGIONS){
     const params=region.id==="left-hand"||region.id==="right-hand"?poses.hands:region.id==="chest"?poses.chest:region.id==="eyes"?poses.eyes:region.id==="mouth"?poses.mouth:poses.head;
     drawRegion(region,params);
@@ -145,24 +159,51 @@
   }
   function onState(event){
    const state=String(event?.detail?.state||"ready");
-   phase=STATES.has(state)?state:"stopped";
+   if(stoppedLatched)return;
+  phase=STATES.has(state)?state:"stopped";
+  if(phase==="stopped"||event?.detail?.stopped===true){stoppedLatched=true;gazeTarget=null;}
    playbackEpoch=event?.detail?.epoch;
    explicitLiveMotion=event?.detail?.live===true&&!event?.detail?.stopped;
    live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
-   if(!live||phase==="paused"||phase==="stopped"){speechUntil=0;localViseme="silence";draw(0);}
+   if(!live||phase==="paused"||phase==="stopped"){localAudio=false;localViseme="silence";draw(0);}
   }
+  // Only the explicit Live SMI human control may clear the renderer's STOP latch.
+  win.addEventListener("oap-smi-human-motion-reset",event=>{
+   if(event?.detail?.approved!==true||!stoppedLatched||epoch<0)return;
+   stoppedLatched=false;gazeTarget=null;phase="ready";live=false;
+   localViseme="silence";localAudio=false;
+   context.drawImage(image,0,0);
+  });
   win.addEventListener("oap-smi-character-state",onState);
+  // Focus changes are explicit in-page interactions, not camera or pointer tracking.
+  const focusTargets=[["message",{x:0.3,y:0.75}],["send",{x:0.65,y:0.55}],["live-character-toggle",{x:-0.65,y:-0.3}]];
+  for(const [id,target] of focusTargets){
+   const element=doc.getElementById?.(id);
+   element?.addEventListener?.("focus",()=>{
+    if(stoppedLatched||!live||userReducedMotion)return;
+    gazeTarget=boundedGaze(target);
+   });
+  }
+  // Opt-in directional gaze from explicit, bounded UI targets only; no eye/camera tracking.
+  win.addEventListener("oap-smi-gaze-target",event=>{
+   if(stoppedLatched||!live||userReducedMotion)return;
+   gazeTarget=boundedGaze(event?.detail);
+  });
   win.addEventListener("oap-smi-reduced-motion-change",event=>{
    userReducedMotion=event?.detail?.enabled===true;
-   if(userReducedMotion){speechUntil=0;localViseme="silence";draw(0);}
+   if(userReducedMotion){localViseme="silence";draw(0);}
   });
   win.addEventListener("oap-smi-playback-state",event=>{
-   localAudio=event?.detail?.phase==="playing"&&event?.detail?.source==="oap-first-party-pcm"&&event?.detail?.decodedAudio===true;
-   if(!localAudio){speechUntil=0;localViseme="silence";}
+   const playback=event?.detail;
+   const allowed=!stoppedLatched&&live&&phase==="speaking"&&
+     playback?.epoch===playbackEpoch;
+   localAudio=allowed&&playback?.phase==="playing"&&
+     playback?.source==="oap-first-party-pcm"&&playback?.decodedAudio===true;
+   if(!localAudio)localViseme="silence";
   });
   win.addEventListener("oap-smi-audio-cue",event=>{
    const cue=event?.detail;
-   if(!localAudio||phase!=="speaking"||!live||userReducedMotion||(!explicitLiveMotion&&reducedPreference)||
+   if(stoppedLatched||!localAudio||phase!=="speaking"||!live||userReducedMotion||(!explicitLiveMotion&&reducedPreference)||
       cue?.source!=="oap-first-party-pcm"||cue?.decodedAudio!==true||
       cue?.synthesisPhonemeTiming!==true||cue?.epoch!==playbackEpoch||
       !Number.isFinite(cue?.audioClockMs)||cue.audioClockMs<0||
@@ -172,20 +213,20 @@
    if(Number.isFinite(cue.atMs))maxAudioClockDeltaMs=Math.max(maxAudioClockDeltaMs,Math.abs(cue.audioClockMs-cue.atMs));
    draw(win.performance.now());
   });
-  win.addEventListener("oap-smi-speech-boundary",event=>{
-   if(phase!=="speaking"||!live||event?.detail?.source!=="browser-speech-synthesis"||event?.detail?.decodedAudio!==false)return;
-   if(!Number.isFinite(event.detail.elapsedMs)||event.detail.elapsedMs<0)return;
-   speechUntil=win.performance.now()+170;
-  });
+  // Browser text/speech boundary events are not an audio-aligned proof source.
+  // Keep the mouth neutral unless decoded first-party audio supplied a viseme.
+
   win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);image.close?.();});
   frame=win.requestAnimationFrame(tick);
   shell.dataset.smiSourcePixelMotion="original_sha_verified";
   function proofSnapshot(){
-   const layerKeys=["eyes","head","breathing","mouth_visemes","face","hands","upper_body"];
-   const allHashes=layerKeys.every(name=>/^[a-f0-9]{64}$/.test(String(evidenceLayerSha256[name]||"")));
-   const fullBodyRigProven=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
-   const accurateSoftwareLipSyncProven=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
-   return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,
+   // Pixel warps and layer hashes show rendering activity, not an independently
+   // verified segmented full-body character rig or physical-device acceptance.
+   const fullBodyRigProven=false;
+   // Browser event counts and measured deltas are observations, not independent
+   // proof that visible mouth movement accurately tracks audible speech.
+   const accurateSoftwareLipSyncProven=false;
+   return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,gazeTarget,stoppedLatched,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
     maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,fullBodyRigProven,
@@ -194,7 +235,7 @@
   }
   return Object.freeze({sourceSha256:actual,sourceOnly:true,decodedAudio:false,
    privacyNoTelemetry:true,snapshot:proofSnapshot,
-   stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);}});
+   stop:()=>{stoppedLatched=true;gazeTarget=null;live=false;phase="stopped";epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);}});
  }
- return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,attach});
+ return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,boundedGaze,blinkEnvelope,motionFor,attach});
 });

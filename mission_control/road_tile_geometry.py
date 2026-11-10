@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import mapbox_vector_tile
-
 from . import routing
 
 MAX_LINES = 600
@@ -26,6 +24,10 @@ def _line_parts(geometry: dict[str, Any]) -> list[list[list[float]]]:
 
 
 def tile_lines(*, x: object, y: object, zoom: object, profile: object = "driving") -> dict[str, object]:
+    try:
+        import mapbox_vector_tile  # Optional native mapping dependency; defer to map use.
+    except ImportError as exc:
+        raise routing.RoutingUnavailable("road_tile_decoder_unavailable") from exc
     body, _ = routing.road_tile(x=x, y=y, zoom=zoom, profile=profile)
     try:
         decoded = mapbox_vector_tile.decode(body, default_options={"y_coord_down": True})
