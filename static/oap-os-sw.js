@@ -81,6 +81,29 @@ async function publicShellFallback(pathname) {
   return caches.match("/offline");
 }
 
+// A missing public asset must not turn an offline page into a broken shell.
+// Prefer the newest release; use a previous public cache only if offline.
+// Never return an HTML offline page for an image, script or stylesheet.
+async function publicAssetResponse(request, pathname) {
+  const active = await caches.open(CACHE_VERSION);
+  const cached = await active.match(pathname);
+  if (cached) return cached;
+  try {
+    return await fetch(request);
+  } catch (error) {
+    const keys = await caches.keys();
+    const previous = keys.filter(
+      (key) => key.startsWith("oap-os-public-") && key !== CACHE_VERSION
+    );
+    if (previous.length) {
+      const lastGood = await caches.open(previous[previous.length - 1]);
+      const fallback = await lastGood.match(pathname);
+      if (fallback) return fallback;
+    }
+    throw error;
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
@@ -99,8 +122,6 @@ self.addEventListener("fetch", (event) => {
 
   if (!PUBLIC_SHELL.includes(url.pathname)) return;
   event.respondWith(
-    caches.open(CACHE_VERSION)
-      .then((cache) => cache.match(url.pathname))
-      .then((cached) => cached || fetch(request))
+    publicAssetResponse(request, url.pathname)
   );
 });
