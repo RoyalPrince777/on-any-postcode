@@ -143,3 +143,13 @@ def test_market_checkout_disables_basket_edits_while_in_flight():
     assert "if (checkoutInProgress) return;" in template
     assert "document.getElementById('market-clear-basket').disabled = true;" in template
     assert "document.getElementById('market-clear-basket').disabled = false;" in template
+
+
+def test_market_private_search_retains_founder_workspace():
+    """Searching or clearing filters must not drop the private Market view."""
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert '{% if mine_view %}<input type="hidden" name="mine" value="1">{% endif %}' in template
+    assert """{{ '?mine=1' if mine_view else '' }}""" in template
