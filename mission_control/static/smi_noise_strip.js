@@ -131,25 +131,44 @@ const ready=()=>{
       foot.className='smi-reference-foot';
       foot.textContent='OAP INTELLIGENCE · ONE SMI BRAIN · FOUNDER FINAL';
       shell.append(top,left,right,foot);
+      const mobileLayout=window.matchMedia('(max-width:760px)');
+      const syncDrawerAccess=()=>{
+        const mobile=mobileLayout.matches;
+        const navOpen=!mobile||document.body.classList.contains('smi-reference-nav-open');
+        const evidenceOpen=!mobile||document.body.classList.contains('smi-reference-evidence-open');
+        left.inert=!navOpen;
+        right.inert=!evidenceOpen;
+        left.setAttribute('aria-hidden',String(!navOpen));
+        right.setAttribute('aria-hidden',String(!evidenceOpen));
+      };
       const closeEvidence=()=>{
         document.body.classList.remove('smi-reference-evidence-open');
         evidenceButton.setAttribute('aria-expanded','false');
+        syncDrawerAccess();
       };
-      const closeMenu=()=>{document.body.classList.remove('smi-reference-nav-open');menu.setAttribute('aria-expanded','false');};
+      const closeMenu=()=>{
+        document.body.classList.remove('smi-reference-nav-open');
+        menu.setAttribute('aria-expanded','false');
+        syncDrawerAccess();
+      };
+      mobileLayout.addEventListener('change',syncDrawerAccess);
       evidenceButton.addEventListener('click',()=>{
         closeMenu();
         const open=document.body.classList.toggle('smi-reference-evidence-open');
         evidenceButton.setAttribute('aria-expanded',String(open));
+        syncDrawerAccess();
       });
       menu.addEventListener('click',()=>{
         closeEvidence();
         const open=document.body.classList.toggle('smi-reference-nav-open');
         menu.setAttribute('aria-expanded',String(open));
+        syncDrawerAccess();
       });
       left.addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});
       left.addEventListener('keydown',event=>{if(event.key==='Escape'){closeMenu();menu.focus();}});
       right.addEventListener('keydown',event=>{if(event.key==='Escape'){closeEvidence();evidenceButton.focus();}});
       let checkingEvidence=false;
+      syncDrawerAccess();
       const update=async()=>{
         if(checkingEvidence)return;
         checkingEvidence=true;
