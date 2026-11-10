@@ -129,7 +129,9 @@ if [[ "${OAP_KORADASO_OPEN_BROWSER:-1}" == "1" ]] && command -v termux-open-url 
     for attempt in 1 2 3 4 5 6 7 8 9 10; do
       url="http://127.0.0.1:$PORT$OPEN_PATH"
       page="$(curl --noproxy '*' -fsS --max-time 2 "$url" 2>/dev/null || true)"
-      if [[ "$page" == *"$PAGE_MARKER"* && "$page" == *"$CONTROL_MARKER"* && "$page" == *"$RESTORED_MAP_MARKER"* && "$page" == *"$RESTORED_MAIL_MARKER"* && "$page" == *"$RESTORED_MARKET_MARKER"* ]]; then
+      if [[ "$page" == *"$PAGE_MARKER"* && "$page" == *"$CONTROL_MARKER"* ]] &&
+         { [[ "$OPEN_PATH" != "/koradaso" ]] ||
+           [[ "$page" == *"$RESTORED_MAP_MARKER"* && "$page" == *"$RESTORED_MAIL_MARKER"* && "$page" == *"$RESTORED_MARKET_MARKER"* ]]; }; then
         termux-open-url "$url" >/dev/null 2>&1 || true
         exit 0
       fi
