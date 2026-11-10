@@ -374,15 +374,18 @@
       return payload;
     }
 
-    document.getElementById('market-checkout')?.addEventListener('click', async () => {
+    const checkoutButton = document.getElementById('market-checkout');
+    checkoutButton?.addEventListener('click', async () => {
+      if (checkoutButton.disabled) return;
       const basket = loadBasket();
       if (!basket.length) { status.textContent = 'Basket is empty.'; return; }
+      checkoutButton.disabled = true;
       status.textContent = 'Creating order…';
-      const created = [];
+      let created = 0;
       try {
         for (const item of basket) {
-          const key = 'market-' + item.product_id + '-' + Date.now() + '-' + created.length;
-          const result = await jsonFetch('/mission/organs/market/orders', {
+          const key = 'market-' + item.product_id + '-' + Date.now() + '-' + created;
+          await jsonFetch('/mission/organs/market/orders', {
             method:'POST',
             body:JSON.stringify({
               product_id:item.product_id,
@@ -390,13 +393,24 @@
               idempotency_key:key
             })
           });
-          created.push(result);
+          created += 1;
+          // An acknowledged order must not remain in the basket after a later failure.
+          const pending = loadBasket();
+          const index = pending.findIndex(line => line.product_id === item.product_id);
+          if (index !== -1) {
+            pending.splice(index, 1);
+            saveBasket(pending);
+            renderBasket();
+          }
         }
-        saveBasket([]); renderBasket();
-        status.textContent = created.length + ' order' + (created.length === 1 ? '' : 's') + ' created.';
+        status.textContent = created + ' order' + (created === 1 ? '' : 's') + ' created.';
         await refreshOrders();
       } catch (error) {
-        status.textContent = 'Order could not be created: ' + error.message;
+        status.textContent = created
+          ? created + ' order' + (created === 1 ? '' : 's') + ' created; remaining items kept in basket. Check My Orders before retrying. ' + error.message
+          : 'Order could not be created. Check My Orders before retrying: ' + error.message;
+      } finally {
+        checkoutButton.disabled = false;
       }
     });
 
