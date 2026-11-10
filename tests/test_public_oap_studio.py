@@ -71,6 +71,56 @@ def test_public_smi_seven_recommendations_prefill_real_chat_not_unready_media():
     assert '<div class="tool"><strong>Bring Alive' not in page
 
 
+
+def test_koradaso_public_smi_local_response_preserves_public_authority(monkeypatch):
+    """Mock the real public gateway, never a live or offline model claim."""
+    from mission_control import public_studio_runtime, oap_inference_gateway
+
+    called = {}
+    monkeypatch.setattr(public_studio_runtime, "_allow", lambda key: True)
+
+    def local(message, history, brain, *, code_mode=False):
+        called["brain"] = brain
+        called["message"] = message
+        return "Local first-party response"
+
+    def unused_bridge(*args, **kwargs):
+        raise AssertionError("Local success must not call the bridge")
+
+    monkeypatch.setattr(oap_inference_gateway, "_call_local_public", local)
+    monkeypatch.setattr(oap_inference_gateway, "_call_bridge_public", unused_bridge)
+
+    result = public_studio_runtime.ask(
+        "Explain this topic clearly: local search", rate_key="test-koradaso",
+    )
+    assert result["answer"] == "Local first-party response"
+    assert result["brain"] == "SMI"
+    assert result["smi_surface"] == "public"
+    assert result["private_smi_used"] is False
+    assert result["execution_authority"] is False
+    assert result["memory_saved"] is False
+    assert called["brain"]["surface"] == "public"
+    assert called["brain"]["execution_authority"] is False
+    assert called["brain"]["private_memory_allowed"] is False
+
+
+def test_koradaso_public_smi_providers_unavailable_fail_closed(monkeypatch):
+    import pytest
+    from mission_control import public_studio_runtime, oap_inference_gateway
+
+    monkeypatch.setattr(public_studio_runtime, "_allow", lambda key: True)
+    monkeypatch.setattr(oap_inference_gateway, "FALLBACK_ENABLED", False)
+
+    def offline(*args, **kwargs):
+        raise RuntimeError("provider_offline")
+
+    monkeypatch.setattr(oap_inference_gateway, "_call_local_public", offline)
+    monkeypatch.setattr(oap_inference_gateway, "_call_bridge_public", offline)
+    with pytest.raises(public_studio_runtime.PublicStudioUnavailable) as exc:
+        public_studio_runtime.ask("Truth-check the available evidence", rate_key="test-koradaso")
+    assert str(exc.value) == "public_smi_unavailable"
+
+
 def test_private_studio_generation_remains_founder_only():
     views = PRIVATE_VIEWS.read_text(encoding="utf-8")
     assert '@bp.post("/studio/generate")' in views
