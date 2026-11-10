@@ -117,3 +117,10 @@ def test_smi_dynamic_cc_uses_existing_war_room_with_minimal_front_door():
     assert "Routing prepares a governed plan" in PAGE
     assert 'maxlength="2000" aria-label="War Room mission"' in PAGE
     assert PAGE.count('id="smi-cc"') == 1
+
+
+def test_cc_mission_field_remains_unique_for_chromium():
+    assert PAGE.count('class="mission"') == 1
+    assert '<textarea class="smi-command-notes" id="smi-command-extra"' in PAGE
+    assert ".mission,.smi-command-notes{" in PAGE
+    assert "document.querySelector('.mission')?.value" in PAGE
