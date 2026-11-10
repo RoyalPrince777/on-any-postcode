@@ -131,7 +131,7 @@ const ready=()=>{
         menu.setAttribute('aria-expanded',String(open));
       });
       left.addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});
-      document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
+      left.addEventListener("keydown",event=>{if(event.key==="Escape"){closeMenu();menu.focus();}});
       const update=async()=>{
         summary.textContent='Checking real runtime evidence…';
         checks.replaceChildren();
