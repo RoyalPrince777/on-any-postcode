@@ -62,3 +62,47 @@ def test_neo_review_response_rejects_unbounded_inputs():
         matrix_signal_bus.neo_review_response(topic=" ")
     with pytest.raises(TypeError):
         matrix_signal_bus.neo_review_response(topic="Test", blocked="yes")
+
+
+def test_neo_truth_review_fails_closed_and_does_not_invent_votes():
+    review = matrix_signal_bus.neo_truth_review((
+        {"gate": "lint", "status": "failing", "artifact": "CI-123", "timestamp": "2026-11-10T07:00:00Z"},
+        {"gate": "device", "status": "not_tested", "artifact": "", "timestamp": ""},
+        {"gate": "dialogue", "status": "confirmed", "artifact": "", "timestamp": ""},
+    ))
+    assert review["failing_gates"] == ("lint",)
+    assert review["missing_proof_gates"] == ("device", "dialogue")
+    assert review["next_bounded_upgrade"] == "lint"
+    assert review["verified_vote_count"] is None
+    assert review["star_rating"] is None
+    assert review["completion_percentage"] is None
+    assert review["role_output_is_independent_agent_vote"] is False
+    assert not review["certified"]
+    assert not review["execution_granted"]
+
+
+def test_neo_truth_review_does_not_certify_unchecked_confirmed_claim():
+    review = matrix_signal_bus.neo_truth_review((
+        {"gate": "ci", "status": "confirmed", "artifact": "run/12", "timestamp": "2026-11-10"},
+    ))
+    assert review["claimed_confirmed_pending_independent_verification"] == ("ci",)
+    assert review["completion_percentage"] is None
+    assert review["founder_final_required"]
+
+
+def test_neo_truth_review_rejects_tampered_and_duplicate_records():
+    import pytest
+
+    with pytest.raises(ValueError):
+        matrix_signal_bus.neo_truth_review((
+            {"gate": "ci", "status": "green", "artifact": "", "timestamp": ""},
+        ))
+    with pytest.raises(ValueError):
+        matrix_signal_bus.neo_truth_review((
+            {"gate": "ci", "status": "failing", "artifact": "", "timestamp": ""},
+            {"gate": "ci", "status": "unknown", "artifact": "", "timestamp": ""},
+        ))
+    with pytest.raises(TypeError):
+        matrix_signal_bus.neo_truth_review([{
+            "gate": "ci", "status": "confirmed", "artifact": "x", "timestamp": "now",
+        }])
