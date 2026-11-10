@@ -42,13 +42,16 @@ def test_global_transport_home_and_status_are_mobile_public_surfaces():
     assert home.status_code == 200
     assert b"OAP Global Transport" not in home.data or b"Global Transport" in home.data
     assert b"Journey" in home.data
-    assert b"Cargo" in home.data
+    assert b"Logistics" in home.data
+    assert b"Guardian" in home.data
+    assert b"Operators" in home.data
+    assert b"Control Center" in home.data
     assert home.headers["Cache-Control"] == "no-store, private"
 
     payload = client.get("/transport/status").get_json()
     assert payload["front_door"] == "/transport"
     assert payload["public_doors"] == [
-        "journey", "move", "ride", "transit", "drive", "fly", "cargo", "deliver", "fleet"
+        "journey", "move", "ride", "logistics", "guardian", "operators", "control_center"
     ]
 
 
@@ -287,21 +290,43 @@ def test_transport_cards_route_to_real_app_destinations():
         "/travel",
         "/movement/workspace",
         "/transport/ride",
-        "/oap-map?profile=driving",
         "/distribution",
-        "/movement/workspace#book-title",
-        "/transport/ride/driver",
+        "/transport/ride/guardian/status",
+        "/transport/shared-bikes/status",
+        "/transport/execution-readiness",
     ):
         assert f'href="{href}"' in body
     assert "/transport/status#" not in body
 
 
-def test_transport_status_exposes_public_route_map():
+def test_transport_status_exposes_seven_doors_and_legacy_route_compatibility():
     payload = _app().test_client().get("/transport/status").get_json()
+    assert len(payload["public_doors"]) == 7
+    assert set(payload["public_routes"]) == set(payload["public_doors"])
     assert payload["public_routes"]["journey"] == "/travel"
-    assert payload["public_routes"]["move"] == "/movement/workspace"
     assert payload["public_routes"]["ride"] == "/transport/ride"
-    assert payload["public_routes"]["drive"] == "/oap-map?profile=driving"
-    assert payload["public_routes"]["cargo"] == "/distribution"
-    assert payload["public_routes"]["deliver"] == "/movement/workspace#book-title"
-    assert payload["public_routes"]["fleet"] == "/transport/ride/driver"
+    assert payload["public_routes"]["logistics"] == "/distribution"
+    assert payload["public_routes"]["guardian"] == "/transport/ride/guardian/status"
+    assert payload["public_routes"]["operators"] == "/transport/shared-bikes/status"
+    assert payload["public_routes"]["control_center"] == "/transport/execution-readiness"
+    assert payload["legacy_public_routes"]["drive"] == "/oap-map?profile=driving"
+    assert payload["legacy_public_routes"]["cargo"] == "/distribution"
+    assert payload["legacy_public_routes"]["deliver"] == "/movement/workspace#book-title"
+    assert payload["legacy_public_routes"]["fleet"] == "/transport/ride/driver"
+    assert set(payload["door_groups"]) == set(payload["public_doors"])
+    grouped = [cap for members in payload["door_groups"].values() for cap in members]
+    assert len(grouped) == 21
+    assert len(set(grouped)) == 21
+    assert set(grouped) == set(payload["capabilities"])
+
+
+def test_rider_driver_dashboards_preserved_under_seven_door_navigation():
+    client = _app().test_client()
+    for path, marker in (
+        ("/transport/ride/rider", b"Request Journey"),
+        ("/transport/ride/driver", b"Incoming Journey"),
+        ("/transport/my", b"Rider"),
+    ):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert marker in response.data
