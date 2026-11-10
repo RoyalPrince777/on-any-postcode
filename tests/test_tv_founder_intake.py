@@ -1,5 +1,7 @@
 """OAP TV Founder upload: private, bounded, rights-locked intake."""
 import io
+import os
+import stat
 import uuid
 
 import pytest
@@ -42,3 +44,28 @@ def test_rejects_unrecognised_content_and_oversize(monkeypatch, tmp_path):
 def test_anonymous_upload_denied(anonymous_client):
     res = anonymous_client.post("/mission/organs/entertainment/tv/founder-upload")
     assert res.status_code in (401, 403)
+
+
+def test_private_draft_created_with_restricted_permissions(monkeypatch, tmp_path):
+    monkeypatch.setenv("OAP_TV_PRIVATE_MEDIA_DIR", str(tmp_path))
+    media = b"\\x00\\x00\\x00\\x10ftypisom" + b"0" * 16
+    receipt = tv_founder_intake.intake(
+        io.BytesIO(media), content_type="video/mp4",
+        title="Private film", owner_id=str(uuid.uuid4())
+    )
+    candidate = tmp_path / (receipt["candidate_id"] + ".mp4")
+    assert stat.S_IMODE(candidate.stat().st_mode) == 0o600
+    assert receipt["published"] is False
+    assert receipt["playback_enabled"] is False
+
+
+def test_failed_disk_sync_leaves_no_partial_candidate(monkeypatch, tmp_path):
+    monkeypatch.setenv("OAP_TV_PRIVATE_MEDIA_DIR", str(tmp_path))
+    monkeypatch.setattr(os, "fsync", lambda fd: (_ for _ in ()).throw(OSError("disk sync failed")))
+    media = b"\\x00\\x00\\x00\\x10ftypisom" + b"0" * 16
+    with pytest.raises(OSError, match="disk sync failed"):
+        tv_founder_intake.intake(
+            io.BytesIO(media), content_type="video/mp4",
+            title="Private film", owner_id=str(uuid.uuid4())
+        )
+    assert list(tmp_path.iterdir()) == []
