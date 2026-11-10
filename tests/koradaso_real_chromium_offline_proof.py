@@ -136,6 +136,53 @@ def main() -> None:
                 "data-koradaso-release", before
             )
             context.set_offline(False)
+
+            # A successfully downloaded but malformed new public HTML must
+            # fail worker installation, leaving the existing worker active.
+            last_worker = app_module.app.view_functions["oap_os_service_worker"]
+            last_home = app_module.app.view_functions["koradaso_internet_home"]
+            bad_cache = "oap-os-public-" + "c" * 20
+
+            def malformed_worker():
+                response = last_worker()
+                content = response.get_data(as_text=True)
+                response.set_data(content.replace(current_cache, bad_cache))
+                return response
+
+            def malformed_home():
+                return "<html><title>Broken release</title></html>", 200
+
+            app_module.app.view_functions["oap_os_service_worker"] = malformed_worker
+            app_module.app.view_functions["koradaso_internet_home"] = malformed_home
+            try:
+                recovered.evaluate("""async () => {
+                    const registration = await navigator.serviceWorker.getRegistration("/");
+                    try { await registration.update(); } catch (_) {
+                        // A rejected install is the expected fail-closed outcome.
+                    }
+                }""")
+                recovered.wait_for_function("""async () => {
+                    const registration = await navigator.serviceWorker.getRegistration("/");
+                    return registration.active?.state === "activated" &&
+                        !registration.installing && !registration.waiting;
+                }""")
+                assert recovered.evaluate("""async () => {
+                    const registration = await navigator.serviceWorker.getRegistration("/");
+                    return registration.active?.state === "activated" &&
+                        !registration.waiting;
+                }""")
+            finally:
+                app_module.app.view_functions["koradaso_internet_home"] = last_home
+                app_module.app.view_functions["oap_os_service_worker"] = last_worker
+
+            context.set_offline(True)
+            fallback_after_rejection = recovered.reload(wait_until="domcontentloaded")
+            assert fallback_after_rejection is not None
+            assert fallback_after_rejection.status == 200
+            expect(recovered.locator("html")).to_have_attribute(
+                "data-koradaso-release", before
+            )
+            context.set_offline(False)
             recovered.close()
             context.close()
             browser.close()
