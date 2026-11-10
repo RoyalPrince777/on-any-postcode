@@ -84,10 +84,11 @@
       <p class="mc-eyebrow">{{ 'Your shop · Orders · Products' if mine_view else 'Shop independent · On Any Postcode' }}</p>
       <h2 id="market-browse-title">{{ 'Manage your Market' if mine_view else 'Discover the collection' }}</h2>
       <form class="market-toolbar" method="get" action="{{ request.path }}">
+        {% if mine_view %}<input type="hidden" name="mine" value="1">{% endif %}
         <label class="sr-only" for="market-search">Search Market</label>
         <input id="market-search" name="q" value="{{ request.args.get('q','') }}" placeholder="Search products and shops">
         <button class="mc-primary" type="submit">Search</button>
-        <a class="mc-secondary-link" href="{{ request.path }}">Clear</a>
+        <a class="mc-secondary-link" href="{{ request.path }}{{ '?mine=1' if mine_view else '' }}">Clear</a>
       </form>
       <div class="market-chip-row" aria-label="Market shortcuts">
         <span class="market-chip">Clothing</span>
