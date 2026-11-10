@@ -329,13 +329,22 @@
         row.querySelector('.market-meta').textContent = money(item.currency, item.price);
         const qty = row.querySelector('input');
         qty.value = item.quantity;
+        qty.disabled = Boolean(item.order_attempted);
+        row.querySelector('button').disabled = Boolean(item.order_attempted);
+        if (item.order_attempted) {
+          row.querySelector('.market-meta').textContent += ' · Order request sent; review My Orders or retry unchanged';
+        }
         qty.addEventListener('change', () => {
           const next = loadBasket();
+          if (!next[index] || next[index].order_attempted) return;
           next[index].quantity = Math.min(99, Math.max(1, Number(qty.value) || 1));
+          next[index].idempotency_key = null;
           saveBasket(next); renderBasket();
         });
         row.querySelector('button').addEventListener('click', () => {
-          const next = loadBasket(); next.splice(index, 1); saveBasket(next); renderBasket();
+          const next = loadBasket();
+          if (!next[index] || next[index].order_attempted) return;
+          next.splice(index, 1); saveBasket(next); renderBasket();
         });
         basketList.appendChild(row);
       });
@@ -345,7 +354,11 @@
       button.addEventListener('click', () => {
         const basket = loadBasket();
         const found = basket.find(item => item.product_id === button.dataset.productId);
-        if (found) found.quantity = Math.min(99, found.quantity + 1);
+        if (found?.order_attempted) {
+          status.textContent = 'This product has an outstanding order request. Review My Orders or retry unchanged.';
+          return;
+        }
+        if (found) { found.quantity = Math.min(99, found.quantity + 1); found.idempotency_key = null; }
         else basket.push({
           product_id: button.dataset.productId,
           name: button.dataset.name,
@@ -359,7 +372,9 @@
     });
 
     document.getElementById('market-clear-basket')?.addEventListener('click', () => {
-      saveBasket([]); renderBasket(); status.textContent = 'Basket cleared.';
+      const pending = loadBasket().filter(item => item.order_attempted);
+      saveBasket(pending); renderBasket();
+      status.textContent = pending.length ? 'Unsubmitted items cleared. Outstanding order requests retained for safe retry.' : 'Basket cleared.';
     });
 
     async function jsonFetch(url, options = {}) {
@@ -392,6 +407,12 @@
       let created = 0;
       try {
         for (const item of basket) {
+          const pendingBeforeSend = loadBasket();
+          const active = pendingBeforeSend.find(line => line.product_id === item.product_id && line.idempotency_key === item.idempotency_key);
+          if (!active) throw new Error('Basket changed while ordering; review My Orders before retrying.');
+          active.order_attempted = true;
+          saveBasket(pendingBeforeSend);
+          renderBasket();
           const key = item.idempotency_key;
           await jsonFetch('/mission/organs/market/orders', {
             method:'POST',
