@@ -31,6 +31,7 @@ picker.addEventListener('change',()=>{
  const file=picker.files[0];
  if(!file){status.textContent='Choose an MP4 or WebM to preview.';return;}
  if(!['video/mp4','video/webm'].includes(file.type)){status.textContent='Select MP4 or WebM.';return;}
+ if(!file.size||file.size> {{ max_video_mib }}*1024*1024){status.textContent='Video must be non-empty and no larger than {{ max_video_mib }} MiB.';return;}
  blobUrl=URL.createObjectURL(file);video.src=blobUrl;video.style.display='block';full.disabled=false;
  status.textContent='Private on-device preview. Not yet uploaded or published.';
 });
@@ -38,13 +39,15 @@ full.addEventListener('click',()=>{if(video.requestFullscreen)video.requestFulls
 window.addEventListener('pagehide',()=>{if(blobUrl)URL.revokeObjectURL(blobUrl);});
 form.addEventListener('submit',async e=>{
  e.preventDefault();const file=document.getElementById('video').files[0];
- if(!file)return;
- if(file.size> {{ max_video_mib }}*1024*1024){message.textContent='File too large for current private intake.';return;}
+ if(!file){message.textContent='Select a video first.';return;}
+ if(!file.size||file.size> {{ max_video_mib }}*1024*1024){message.textContent='Video must be non-empty and no larger than {{ max_video_mib }} MiB.';return;}
+ if(!navigator.onLine){message.textContent='Offline. Reconnect before saving your private draft; no video has been queued.';return;}
  btn.disabled=true;message.textContent='Saving private draft…';
  try{
    const r=await fetch(form.action||location.pathname,{method:'POST',body:new FormData(form),credentials:'same-origin'});
-   const data=await r.json();
-   if(!r.ok)throw Error(data.error?.message||'Upload failed');
+   const data=await r.json().catch(()=>null);
+   if(!r.ok)throw Error(data?.error?.message||'Upload unavailable. Check your connection and try again.');
+   if(!data||!data.candidate_id||!data.sha256)throw Error('Upload confirmation unavailable. Check private drafts before retrying to avoid duplicates.');
    message.textContent='Private '+data.content_kind+' draft saved. Candidate ID: '+data.candidate_id+'\nSHA-256: '+data.sha256+'\nNot published or playable.';
    // Keep the selected local preview available until the Founder chooses another file.
  }catch(err){message.textContent='Upload not completed: '+err.message}
