@@ -236,6 +236,8 @@ h2{letter-spacing:.03em;text-transform:none}
 <p class="note address-feedback" id="address-note" role="status" aria-live="polite"></p>
 <div class="grid">
 <a class="tile" href="/world?source=oap-os"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong></a>
+<a class="tile" href="/oap-map"><span class="ico" aria-hidden="true">🗺️</span><strong>Maps</strong></a>
+<a class="tile" href="/the-link"><span class="ico" aria-hidden="true">🔗</span><strong>Mail</strong></a>
 
 
 <a class="tile" href="/the-spot/market"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong></a>
@@ -279,7 +281,7 @@ reduceMotion.addEventListener("change",function(){document.body.classList.toggle
 // Bookmarks are user-initiated, browser-local and limited to OAP routes.
 const bookmarkList=document.getElementById("bookmark-list"),bookmarkNote=document.getElementById("bookmark-note");
 const bookmarkKey="koradaso.first_party_bookmarks.v1";
-const allowedRoutes=new Set(["/koradaso","/world","/search"]);
+const allowedRoutes=new Set(["/koradaso","/world","/search","/oap-map","/the-link","/the-spot/market","/arena","/studio","/koradaso/web-search"]);
 function readBookmarks(){try{const value=JSON.parse(localStorage.getItem(bookmarkKey)||"[]");return Array.isArray(value)?value.filter(x=>typeof x==="string"&&allowedRoutes.has(x)).slice(0,12):[];}catch(_){return [];}}
 function showBookmarks(){
   bookmarkList.querySelectorAll(".bookmark-saved").forEach(node=>node.remove());
