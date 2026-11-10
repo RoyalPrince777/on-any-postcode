@@ -257,6 +257,40 @@ def neo_truth_review(
     }
 
 
+def neo_unlock_status() -> dict[str, Any]:
+    """Expose Neo's existing SMI autonomy boundaries without unlocking anything.
+
+    The SMI policy is authoritative for configured levels. A5/A6 configuration
+    is not operational proof; A7 cannot be unlocked by this projection.
+    """
+    from . import autonomy_levels
+
+    policy = autonomy_levels.status()
+    registered = "Neo" in registered_matrix_names()
+    return {
+        "agent_id": "NEO-001",
+        "registered": registered,
+        "role": "Kernel Sentinel / True Path Recovery Witness",
+        "configured_smi_level": policy["configured_level"],
+        "autonomy_scope": "bounded_advisory",
+        "advisory_actions": ("READ", "ANALYSE", "RECOMMEND"),
+        "a3_policy_ready": bool(policy["a3_policy_ready"]),
+        "a4_policy_ready": bool(policy["a4_policy_ready"]),
+        "a5_preparation_configured": bool(policy["a5_enabled"]),
+        "a6_execution_configured": bool(policy["a6_enabled"]),
+        "a6_operation_evidence_verified": False,
+        "a7_enabled": False,
+        "can_self_approve": False,
+        "can_change_permissions": False,
+        "independent_agent_execution": False,
+        "founder_final_required": True,
+        "guardian_required": True,
+        "hrm_readback_required": True,
+        "runtime_receipts_checked": False,
+        "status": "advisory_available_runtime_unverified" if registered else "unregistered_locked",
+    }
+
+
 ALLOWED_URGENCY: tuple[str, ...] = ("low", "normal", "high", "critical")
 
 
