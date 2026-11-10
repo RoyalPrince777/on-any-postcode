@@ -129,7 +129,28 @@ def main() -> None:
                 return removed ? "new_shell_removed" : "missing_new_shell";
             }""", [next_cache, current_cache])
             assert cache_state == "new_shell_removed", cache_state
+            # Verify a missing image in the new release is recovered from the
+            # last-good public cache, not replaced by HTML or a fake response.
+            asset = "/static/oap/koradaso_internet_logo.jpg"
+            image_state = recovered.evaluate("""async ([newName, oldName, path]) => {
+                const newer = await caches.open(newName);
+                const older = await caches.open(oldName);
+                if (!(await older.match(path))) return "previous_image_missing";
+                return await newer.delete(path) ? "new_image_removed" : "new_image_missing";
+            }""", [next_cache, current_cache, asset])
+            assert image_state == "new_image_removed", image_state
             context.set_offline(True)
+            recovered_asset = recovered.evaluate("""async path => {
+                const response = await fetch(path, {cache: "reload"});
+                return {
+                    status: response.status,
+                    type: response.headers.get("content-type") || "",
+                    bytes: (await response.arrayBuffer()).byteLength
+                };
+            }""", asset)
+            assert recovered_asset["status"] == 200
+            assert recovered_asset["type"].startswith("image/jpeg")
+            assert recovered_asset["bytes"] > 100
             recovered_response = recovered.reload(wait_until="domcontentloaded")
             assert recovered_response is not None and recovered_response.status == 200
             expect(recovered.locator("html")).to_have_attribute(
