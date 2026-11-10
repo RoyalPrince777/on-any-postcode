@@ -76,18 +76,36 @@ if (( ${#bridge_secret} < 32 )); then
   exit 2
 fi
 
+printf '%s' "Enter your verified OAP-owned HTTPS SMI bridge URL (ending in /mission): "
+IFS= read -r bridge_url
+OAP_BRIDGE_CHECK_URL="$bridge_url" python - <<'PY'
+import os
+from urllib.parse import urlsplit
+
+value = os.environ.get("OAP_BRIDGE_CHECK_URL", "").strip().rstrip("/")
+try:
+    parsed = urlsplit(value)
+    _ = parsed.port
+except ValueError:
+    raise SystemExit("Refused: invalid OAP Home Node bridge URL.")
+if (parsed.scheme != "https" or not parsed.hostname or parsed.username
+        or parsed.password or parsed.path != "/mission" or parsed.query or parsed.fragment
+        or parsed.hostname == "onrender.com" or parsed.hostname.endswith(".onrender.com")):
+    raise SystemExit("Refused: explicit non-Render HTTPS /mission bridge required.")
+PY
+
 worker_id="termux-$(hostname 2>/dev/null || printf '%s' android)"
 {
   printf 'export OAP_NEON_DATABASE_URL=%q\n' "$database_url"
   printf 'export OAP_WORKER_ID=%q\n' "$worker_id"
   printf 'export OAP_HOME_NODE_BRIDGE_SECRET=%q\n' "$bridge_secret"
-  printf 'export OAP_HOME_NODE_BRIDGE_URL=%q\n' "https://oap-smi.onrender.com/mission"
+  printf 'export OAP_HOME_NODE_BRIDGE_URL=%q\n' "$bridge_url"
   printf 'export OAP_HOME_REPO=%q\n' "$REPO_DIR"
   printf 'export PSYCOPG_IMPL=python\n'
   printf 'export LD_LIBRARY_PATH=%q\n' "$termux_lib_path"
 } > "$ENV_FILE"
 chmod 600 "$ENV_FILE"
-unset database_url bridge_secret
+unset database_url bridge_secret bridge_url
 
 cat > "$BOOT_FILE" <<EOF
 #!/data/data/com.termux/files/usr/bin/bash
