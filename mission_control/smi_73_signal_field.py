@@ -175,6 +175,46 @@ def _adversarial_review(states: Mapping[str, str]) -> dict[str, Any]:
     active = tuple(
         key for key, state in states.items() if state == "active"
     )
+    # Expose is the action-oriented findings view of the same evidence.
+    # Prioritise blocked release gates, then unknown gates, then other gaps.
+    mandatory_keys = frozenset(mandatory)
+    findings = tuple(
+        {
+            "signal": key,
+            "state": states[key],
+            "priority": (
+                "release_blocker" if key in mandatory_keys
+                else "blocked" if states[key] == "blocked"
+                else "missing_evidence" if states[key] == "unknown"
+                else "in_progress"
+            ),
+            "reason": (
+                "Required release proof is not verified."
+                if key in mandatory_keys
+                else "The supplied evidence explicitly failed."
+                if states[key] == "blocked"
+                else "No valid evidence was supplied."
+                if states[key] == "unknown"
+                else "Work is not independently proven complete."
+            ),
+            "smallest_next_action": (
+                "Inspect the failing check and repair the existing implementation."
+                if states[key] == "blocked"
+                else "Obtain exact target-runtime evidence for this signal."
+                if states[key] == "unknown"
+                else "Complete and verify the existing check."
+            ),
+        }
+        for key in sorted(
+            (key for key in SIGNAL_KEYS if states[key] != "proven"),
+            key=lambda key: (
+                0 if key in mandatory_keys else 1,
+                0 if states[key] == "blocked" else
+                1 if states[key] == "unknown" else 2,
+                key,
+            ),
+        )
+    )
     return {
         "mode": "single_smi_evidence_review",
         "truth_mode": {
@@ -197,6 +237,15 @@ def _adversarial_review(states: Mapping[str, str]) -> dict[str, Any]:
             "score_is_release_certification": False,
             "test_pass_is_target_runtime_proof": False,
             "simulation_is_completion": False,
+        },
+        "expose": {
+            "purpose": "Make unresolved evidence and smallest fixes visible.",
+            "findings": findings,
+            "unresolved_count": len(findings),
+            "release_held": bool(findings),
+            "evidence_only": True,
+            "no_invented_success": True,
+            "no_new_execution_authority": True,
         },
         "separate_agents_created": False,
         "new_vote_engine_created": False,
