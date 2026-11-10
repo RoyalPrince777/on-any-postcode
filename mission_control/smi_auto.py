@@ -57,6 +57,42 @@ def _semantic_lenses(message: object) -> tuple[str, ...]:
 
 
 
+def koradaso_noise_mission(message: object, path: object = "") -> dict[str, object] | None:
+    """Route KORADASO cleanup through SMI without claiming unattended edits."""
+    request = str(message or "").casefold()
+    surface = str(path or "").casefold()
+    if not (("koradaso" in request or surface.startswith("/koradaso"))
+            and any(term in request for term in (
+                "strip noise", "noise", "declutter", "clean ui", "ui cleanup",
+                "missing features", "restore ui", "auto fix"))):
+        return None
+    return {
+        "mission": "koradaso_ui_noise_recovery",
+        "owner": "SMI",
+        "surface": "/koradaso",
+        "existing_pr": 1388,
+        "scope": (
+            "remove only duplicate navigation and unnecessary copy",
+            "preserve original royal identity and the single omnibox",
+            "restore only verified working first-party routes",
+            "preserve Android local-first 5052, offline and security controls",
+            "require evidence and affected exact-head tests before Green",
+        ),
+        "reviews": ("Truth Mode", "Red Team", "Devil's Advocate", "Expose",
+                    "Verification", "Guardian", "Recovery"),
+        "no_duplicate_pr": True,
+        "observe_only": True,
+        "automatic_github_edits_enabled": False,
+        "background_worker_proven": False,
+        "guardian_required": True,
+        "hrm_proof_required": True,
+        "green_gate_required": True,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
 def _adaptive_level(*, lenses: tuple[str, ...], semantic_lenses: tuple[str, ...], write_action: bool, consequential: bool) -> dict[str, object]:
     """Choose the minimum sufficient A1-A7 adaptive level.
 
@@ -121,7 +157,10 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
         _add(lenses, ("risk", "security", "privacy", "readiness", "decision", "judgement"))
 
     semantic_lenses = _semantic_lenses(message)
+    koradaso_route = koradaso_noise_mission(message, path_key)
     _add(lenses, semantic_lenses)
+    if koradaso_route:
+        _add(lenses, ("ux", "behaviour", "verification", "resilience"))
 
     consequential = write_action or any(
         token in path_key
@@ -155,6 +194,7 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
         "endpoint": endpoint_key,
         "lenses": tuple(lenses),
         "semantic_lenses": semantic_lenses,
+        "koradaso_noise_mission": koradaso_route,
         "selector": "surface+action+mission",
         "smi_intelligence": adaptive,
         "private_surface": private_surface,
