@@ -174,7 +174,7 @@ def test_koradaso_original_logo_and_core_boundary(client):
     assert 'class="royal-menu"' in html
     header = html.split('<header class="top">', 1)[1].split("</header>", 1)[0]
     assert 'id="browser-settings"' in header
-    assert '<summary aria-label="Settings"' in header
+    assert '<summary aria-label="Browser menu"' in header
     assert 'id="settings-downloads"' in header
     assert 'id="drawer-bookmarks"' in header
     assert "Use your authenticated OAP Core workspace to access SMI." not in header
