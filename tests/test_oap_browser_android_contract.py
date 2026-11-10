@@ -27,6 +27,25 @@ def test_oap_browser_retains_host_security_controls():
     assert "cookieManager.setAcceptThirdPartyCookies(webView, false)" in source
 
 
+def test_koradaso_android_downloads_are_user_confirmed_https_only():
+    source = SOURCE.read_text(encoding="utf-8")
+    manifest = Path("android/oapworld/src/main/AndroidManifest.xml").read_text(
+        encoding="utf-8"
+    )
+    assert "webView.setDownloadListener(" in source
+    assert '"https".equalsIgnoreCase(target.getScheme())' in source
+    assert "target.getUserInfo() != null" in source
+    assert 'setTitle("Download file?")' in source
+    assert '.setPositiveButton("Download"' in source
+    assert '.setNegativeButton("Cancel"' in source
+    assert "new DownloadManager.Request(target)" in source
+    assert "manager.enqueue(request)" in source
+    assert "Environment.DIRECTORY_DOWNLOADS" in source
+    assert "request.addRequestHeader(\"Cookie\"" not in source
+    assert "android.permission.WRITE_EXTERNAL_STORAGE" not in manifest
+    assert "android.permission.MANAGE_EXTERNAL_STORAGE" not in manifest
+
+
 def test_oap_browser_has_approved_minimal_navigation_controls():
     source = SOURCE.read_text(encoding="utf-8")
     for marker in (
