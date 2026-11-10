@@ -250,6 +250,13 @@ h2{letter-spacing:.03em;text-transform:none}
 <script>
 (function(){
 "use strict";
+// Cache only the public KORADASO shell through the existing OAP public worker.
+// Private content, messages and identity data remain network-only.
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("/service-worker.js",{scope:"/"}).catch(()=>{});
+  });
+}
 const form=document.getElementById("address-form"),field=document.getElementById("address"),note=document.getElementById("address-note");
 const back=document.getElementById("browser-back"),reduceMotion=document.getElementById("reduce-motion"),openWebSearch=document.getElementById("open-web-search");
 const trustState=document.getElementById("trust-state"),settingsNote=document.getElementById("settings-note");
