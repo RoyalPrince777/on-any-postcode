@@ -23,14 +23,17 @@ const hashes=Object.fromEntries(expected.map(name=>[name,"a".repeat(64)]));
 const frames=Object.fromEntries(expected.map(name=>[name,7]));
 const session={snapshot:()=>({
  sourceSha256:sha,evidenceLayerSha256:hashes,rigLayerFrames:frames,
+ sourcePixelLayersObserved:true,audioCueTimingObserved:true,
  fullBodyRigProven:true,accurateSoftwareLipSyncProven:true,live:true
 })};
 snap=rig.bindMotionSession(session);
 assert.equal(snap.enabled,true);
 assert.equal(snap.active,true);
-assert.equal(snap.proofState,"machine_proven");
-assert.equal(snap.fullRigProven,true);
-assert.equal(snap.accurateSoftwareLipSyncProven,true);
+assert.equal(snap.proofState,"source_pixel_motion_observed");
+assert.equal(snap.sourcePixelLayersObserved,true);
+assert.equal(snap.audioCueTimingObserved,true);
+assert.equal(snap.fullRigProven,false,"pixel frames cannot certify an articulated rig");
+assert.equal(snap.accurateSoftwareLipSyncProven,false,"cue counts cannot certify lip-sync");
 assert.equal(snap.accurateHumanLipSyncProven,false);
 for(const name of expected)assert.equal(snap.layers[name],true);
 assert.equal(snap.rendererOwner,"smi_source_pixel_motion");
