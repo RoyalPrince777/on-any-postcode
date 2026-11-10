@@ -93,6 +93,8 @@ def test_koradaso_stages_public_worker_while_other_oap_clients_are_active():
     assert "self.skipWaiting()" not in worker
     assert "self.clients.claim()" not in worker
     assert "cache.addAll(PUBLIC_SHELL)" in worker
+    assert "koradaso_public_shell_invalid" in worker
+    assert 'await cache.match("/koradaso")' in worker
     assert 'if (registration && registration.waiting)' in updater
     assert 'document.activeElement !== input' in updater
     assert 'document.addEventListener("focusout", applyWhenIdle)' in updater
@@ -120,7 +122,12 @@ const caches = {
     const entries = cacheMap.get(key);
     return {
       addAll: async paths => paths.forEach(path => {
-        const value = {source: "cache", path};
+        const value = {
+          source: "cache", path,
+          text: async () => path === "/koradaso"
+            ? '<html lang="en" data-koradaso-release="test"><title>KORADASO Internet</title><input id="address">'
+            : ""
+        };
         entries.set(path, value);
         cached.set(path, value);
       }),
