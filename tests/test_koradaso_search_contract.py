@@ -582,6 +582,20 @@ def test_koradaso_home_tiles_keep_distinct_market_and_arena_routes(client):
     assert 'href="/world?source=oap-os"' in html
     assert 'href="/the-spot/market"' in html
     assert 'href="/arena"' in html
+    assert 'href="/oap-map"' in html
+    assert 'href="/the-link"' in html
+    assert '<strong>Maps</strong>' in html
+    assert '<strong>Mail</strong>' in html
     assert '<strong>Market</strong>' in html
     assert '<strong>Arena</strong>' in html
     assert 'href="/world"><span class="ico" aria-hidden="true">🛒</span>' not in html
+
+
+def test_koradaso_approved_routes_shared_across_tiles_omnibox_and_bookmarks():
+    """Restore only existing first-party doors; arbitrary URL input stays blocked."""
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'const allowedRoutes=new Set([' in source
+    for route in ("/world", "/oap-map", "/the-link", "/the-spot/market", "/arena", "/studio", "/koradaso/web-search"):
+        assert f'"{route}"' in source.split("const allowedRoutes=new Set(", 1)[1].split(");", 1)[0]
+    assert 'allowedRoutes.has(firstParty.pathname)' in source
+    assert 'allowedRoutes.has(route)' in source
