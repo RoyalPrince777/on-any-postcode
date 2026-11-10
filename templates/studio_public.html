@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>OAP Studio Intelligence</title>
+<title>{% if koradaso_mode %}KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 {% include "_oap_install_head.html" %}
 <style>
@@ -19,22 +19,22 @@
 <body>
 <div class="shell">
   <aside class="side">
-    <div><div class="brand">OAP Studio Intelligence</div><div class="sub">Public AI experience</div></div>
-    <a class="new" href="/studio">＋ New chat</a>
+    <div><div class="brand">{% if koradaso_mode %}KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</div><div class="sub">Public AI experience · SMI</div></div>
+    <a class="new" href="{% if koradaso_mode %}/studio?source=koradaso{% else %}/studio{% endif %}">＋ New chat</a>
     <nav class="nav" aria-label="Studio navigation">
-      <a href="/studio">💬 Chats</a>
-      <a href="/studio#tools">✨ Create</a>
-      <a href="/studio#research">🔎 Research</a>
+      <a href="{% if koradaso_mode %}/studio?source=koradaso{% else %}/studio{% endif %}">💬 Chats</a>
+      <a href="{% if koradaso_mode %}/studio?source=koradaso#tools{% else %}/studio#tools{% endif %}">✨ Explore</a>
+      <a href="{% if koradaso_mode %}/studio?source=koradaso#research{% else %}/studio#research{% endif %}">🔎 Research</a>
       <a href="/">🌍 OAP World</a>
     </nav>
     <div class="private-note">Public Studio contains public creation tools only. Private operational controls remain separate and inaccessible.</div>
   </aside>
   <main class="main">
-    <header class="top"><strong>OAP Studio Intelligence</strong><div class="actions"><button class="btn" id="smi-update" type="button" title="Refresh the public SMI interface from this server; no model or deployment changes">↻ Update SMI</button><a class="pill" href="/">OAP World</a><a class="pill" href="/the-spot">Enter My World</a></div></header>
+    <header class="top"><strong>{% if koradaso_mode %}KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</strong><div class="actions"><button class="btn" id="smi-update" type="button" title="Refresh the public SMI interface from this server; no model or deployment changes">↻ Update SMI</button>{% if koradaso_mode %}<a class="pill" href="/koradaso">KORADASO Home</a>{% else %}<a class="pill" href="/">OAP World</a><a class="pill" href="/the-spot">Enter My World</a>{% endif %}</div></header>
     <section class="chat">
       <div class="welcome">
-        <h1>What can OAP help you create?</h1>
-        <p>Ask, create, research and work with media from one public OAP AI surface.</p>
+        <h1>{% if koradaso_mode %}KORADASO Intelligence{% else %}What can OAP help you create?{% endif %}</h1>
+        <p>{% if koradaso_mode %}One public SMI · Seven useful recommendations · First-party intelligence interface.{% else %}Ask, create, research and work with media from one public OAP AI surface.{% endif %}</p>
         <div class="tools" id="tools" aria-label="Seven recommended public SMI prompts">
           <button class="tool" type="button" data-smi-prompt="Explain this topic clearly, distinguishing facts from uncertainty: "><strong>Explain</strong><small>Understand a topic clearly</small></button>
           <button class="tool" type="button" id="research" data-smi-prompt="Research this question using available evidence. Distinguish verified facts, limitations and missing sources: "><strong>Research</strong><small>Evidence and limitations</small></button>
@@ -46,7 +46,7 @@
         </div>
         <div class="composer" aria-label="Studio composer">
           <div id="messages" aria-live="polite"></div>
-          <textarea id="studio-input" placeholder="Ask OAP Studio Intelligence..."></textarea>
+          <textarea id="studio-input" placeholder="{% if koradaso_mode %}Ask KORADASO Intelligence...{% else %}Ask OAP Studio Intelligence...{% endif %}"></textarea>
           <div class="bar">
             <div class="left"><button class="btn" type="button" disabled title="Files are available only in the signed-in private workspace">＋ Files</button><button class="btn" type="button" disabled title="Voice is available only in the signed-in private workspace">🎙 Voice</button></div>
             <div class="right"><button class="btn send" id="studio-send" type="button">Send</button></div>
