@@ -98,3 +98,18 @@ def test_first_paint_guard_only_prevents_flash_not_persistent_layout():
     assert "smi-booting" in guard
     assert ".composer{position:fixed" not in guard
     assert ".workspace-grid{grid-template-columns" not in guard
+
+def test_reference_command_room_uses_real_evidence_and_mobile_drawer():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    js = (ROOT / "mission_control" / "static" / "smi_noise_strip.js").read_text(encoding="utf-8")
+    assert "SMI visual reference: gold command-room frame" in css
+    assert "@media(max-width:760px)" in css
+    assert "smi-reference-nav-open" in css
+    assert "smi-reference-right" in css
+    assert "smi-reference-layout" in js
+    assert "document.getElementById('smi-reference-top')" in js
+    assert "window.OAP_SMI_UI?.healthUrl" in js
+    assert "value===true?'Passed'" in js
+    assert "Unknown · No Green inferred" in js
+    assert "fetch(url,{credentials:'same-origin',cache:'no-store'})" in js
+    assert "document.addEventListener('keydown'" not in js
