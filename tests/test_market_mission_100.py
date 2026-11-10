@@ -202,3 +202,15 @@ def test_market_basket_limit_does_not_silently_drop_added_products():
     assert "if (!found && basket.length >= 20)" in template
     assert "Basket limit reached (20 products)." in template
     assert template.index("if (!found && basket.length >= 20)") < template.index("else basket.push({")
+
+
+def test_market_orders_refresh_ignores_stale_responses():
+    """An older network response must not overwrite a newer My Orders refresh."""
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert "let ordersRequestId = 0;" in template
+    assert "const requestId = ++ordersRequestId;" in template
+    assert "const data = await jsonFetch('/mission/organs/market/orders');\n        if (requestId !== ordersRequestId) return;" in template
+    assert "} catch (error) {\n        if (requestId !== ordersRequestId) return;" in template
