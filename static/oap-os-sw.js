@@ -1,8 +1,10 @@
 "use strict";
 
-const CACHE_VERSION = "oap-os-public-v1.1";
+const CACHE_VERSION = "oap-os-public-v1.2";
 const PUBLIC_SHELL = Object.freeze([
   "/offline",
+  "/koradaso",
+  "/static/oap/koradaso_internet_logo.jpg",
   "/manifest.webmanifest",
   "/assets/oap.css",
   "/assets/oap-os.js",
@@ -49,7 +51,9 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match("/offline"))
+      fetch(request).catch(() => url.pathname === "/koradaso"
+        ? caches.match("/koradaso").then((cached) => cached || caches.match("/offline"))
+        : caches.match("/offline"))
     );
     return;
   }
