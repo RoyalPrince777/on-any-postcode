@@ -54,6 +54,13 @@ TOOL_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "read_only": True,
     },
     {
+        "id": "sika_review",
+        "name": "SIKA Capability Review",
+        "purpose": "Inspect existing SIKA and OAP Pay capability evidence; never view a personal balance or execute a payment.",
+        "triggers": ("sika", "oap pay", "wallet", "banking", "payment", "refund", "reconciliation", "cash out"),
+        "read_only": True,
+    },
+    {
         "id": "fetch_data",
         "name": "Fetch Data",
         "purpose": "Fetch authorised first-party OAP data already exposed through a bounded runtime source.",
@@ -198,12 +205,34 @@ def _fetch_data() -> dict[str, Any]:
     }
 
 
+
+def _sika_review() -> dict[str, Any]:
+    """Expose only the canonical, non-personal finance gate projection."""
+    dashboard = smi_command_dashboard.status()
+    bank = dashboard.get("bank") or {}
+    unlock = bank.get("regulated_unlock") or {}
+    evidence = bool(unlock.get("evidence_available", False))
+    allowed = unlock.get("capabilities") or {}
+    return {
+        "tool": "sika_review",
+        "state": "observed" if evidence else "unknown",
+        "source": "mission_control.smi_command_dashboard.status.bank.regulated_unlock",
+        "capabilities": {key: bool(value) for key, value in allowed.items()} if evidence else {},
+        "real_payment_execution_proven": False,
+        "personal_balance_exposed": False,
+        "provider_called": False,
+        "money_movement": False,
+        "human_authority_final": True,
+    }
+
+
 _EXECUTORS: dict[str, Callable[[], dict[str, Any]]] = {
     "movement": _movement,
     "inspect": _inspect,
     "signals_21": _signals,
     "oap_world": _world,
     "war_room": _war_room,
+    "sika_review": _sika_review,
     "fetch_data": _fetch_data,
 }
 
