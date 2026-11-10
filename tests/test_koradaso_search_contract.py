@@ -574,3 +574,14 @@ def test_public_release_digest_covers_every_cached_local_shell_asset(client):
         digest.update(relative.encode("utf-8"))
         digest.update(Path(relative).read_bytes())
     assert client.get("/koradaso/release").get_json()["release"] == digest.hexdigest()[:20]
+
+
+def test_koradaso_home_tiles_keep_distinct_market_and_arena_routes(client):
+    """Each approved launcher tile opens its own existing first-party destination."""
+    html = client.get("/koradaso").get_data(as_text=True)
+    assert 'href="/world?source=oap-os"' in html
+    assert 'href="/the-spot/market"' in html
+    assert 'href="/arena"' in html
+    assert '<strong>Market</strong>' in html
+    assert '<strong>Arena</strong>' in html
+    assert 'href="/world"><span class="ico" aria-hidden="true">🛒</span>' not in html
