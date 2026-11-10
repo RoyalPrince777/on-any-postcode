@@ -38,7 +38,21 @@ def test_koradaso_intelligence_automatic_public_shell_updates_without_private_da
     assert 'window.setInterval(check, periodMs)' in updater
     assert 'messages.children.length' in updater
     assert 'window.location.reload()' in updater
-    assert 'refreshing || !isIdle()' in updater
+    assert '!pendingRelease || refreshing || !isIdle()' in updater
+    assert 'fetch("/koradaso/release"' in updater
+    assert 'cache: "no-store"' in updater
+    assert 'currentRelease && payload.release !== currentRelease' in updater
+    assert 'document.addEventListener("input", applyWhenIdle)' in updater
+    assert 'document.documentElement.dataset.koradasoUpdate = status' in updater
+    assert 'window.setInterval(check, periodMs)' in updater
+    release = client.get("/koradaso/release")
+    assert release.status_code == 200
+    assert release.headers["Cache-Control"] == "no-store"
+    fingerprint = release.get_json()["release"]
+    assert len(fingerprint) == 20
+    assert fingerprint in client.get("/koradaso").get_data(as_text=True)
+    assert fingerprint in response.get_data(as_text=True)
+
     assert 'href="/studio?source=koradaso"' in homepage
 
 
