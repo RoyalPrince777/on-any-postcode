@@ -116,14 +116,14 @@ const ready=()=>{
       }
       const right=document.createElement('aside');
       right.id='smi-reference-right';right.className='smi-reference-side smi-reference-right';
-      right.setAttribute('aria-label','Verified SMI system evidence');
+      right.setAttribute('aria-label','SMI system evidence access');
       const rightHeading=document.createElement('h2');rightHeading.textContent='SYSTEM EVIDENCE';
       const summary=document.createElement('p');summary.id='smi-reference-evidence';
-      summary.setAttribute('role','status');summary.textContent='Runtime evidence not checked';
+      summary.setAttribute('role','status');summary.textContent='Health evidence is available through the existing SMI Command Centre.';
       const checks=document.createElement('div');checks.id='smi-reference-checks';
-      checks.textContent='Unknown until verified';
+      checks.textContent='Status: Unknown until the canonical checks run.';
       const refresh=document.createElement('button');refresh.type='button';
-      refresh.textContent='↻ Check evidence';refresh.className='smi-reference-refresh';
+      refresh.textContent='◈ Open verified evidence';refresh.className='smi-reference-refresh';
       right.append(rightHeading,summary,checks,refresh);
       const foot=document.createElement('div');
       foot.className='smi-reference-foot';
@@ -163,53 +163,20 @@ const ready=()=>{
         syncDrawerAccess();
       });
       left.addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});
-      left.addEventListener('keydown',event=>{if(event.key==='Escape'){closeMenu();menu.focus();}});
-      right.addEventListener('keydown',event=>{if(event.key==='Escape'){closeEvidence();evidenceButton.focus();}});
-      let checkingEvidence=false;
       syncDrawerAccess();
-      const update=async()=>{
-        if(checkingEvidence)return;
-        checkingEvidence=true;
-        refresh.disabled=true;
-        summary.textContent='Checking real runtime evidence…';
-        checks.replaceChildren();
-        const url=window.OAP_SMI_UI?.healthUrl;
-        if(!url){
-          summary.textContent='Health route unavailable';
-          checks.textContent='Unknown';
-          refresh.disabled=false;
-          checkingEvidence=false;
+      // Visual-only handoff: the existing Command Centre owns signed-in evidence
+      // requests, validation, timeouts and refresh. No second network owner.
+      refresh.addEventListener('click',()=>{
+        const canonical=document.querySelector('.chat-head-actions .smi-command-toggle')
+          ||document.querySelector('.chat-head .smi-command-toggle');
+        if(!canonical){
+          summary.textContent='Canonical evidence controls unavailable';
+          checks.textContent='Unknown · No Green inferred';
           return;
         }
-        const controller=new AbortController();
-        const timeout=setTimeout(()=>controller.abort(),8000);
-        try{
-          const response=await fetch(url,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
-          if(!response.ok)throw new Error('Health route unavailable');
-          const data=await response.json();
-          const values=data&&typeof data.checks==='object'&&!Array.isArray(data.checks)?Object.entries(data.checks):[];
-          summary.textContent='SMI runtime response received · evidence below';
-          if(!values.length){checks.textContent='Detailed checks unavailable · Unknown';return;}
-          const fragment=document.createDocumentFragment();
-          for(const [key,value] of values.slice(0,12)){
-            const item=document.createElement('div');item.className='smi-reference-check';
-            const label=document.createElement('span');label.textContent=key.replace(/_/g,' ');
-            const state=document.createElement('span');state.textContent=value===true?'Passed':value===false?'Not proven':'Unknown';
-            state.dataset.state=value===true?'passed':'unknown';
-            item.append(label,state);fragment.append(item);
-          }
-          checks.append(fragment);
-        }catch{
-          summary.textContent='Runtime evidence unavailable';
-          checks.textContent='Unknown · No Green inferred';
-        }finally{
-          clearTimeout(timeout);
-          checkingEvidence=false;
-          refresh.disabled=false;
-        }
-      };
-      refresh.addEventListener('click',update);
-      update();
+        closeEvidence();
+        canonical.click();
+      });
     }
   }
 
