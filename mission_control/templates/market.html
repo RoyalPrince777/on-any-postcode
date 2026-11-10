@@ -365,6 +365,10 @@
           status.textContent = 'This product has an outstanding order request. Review My Orders or retry unchanged.';
           return;
         }
+        if (!found && basket.length >= 20) {
+          status.textContent = 'Basket limit reached (20 products). Remove an item before adding another.';
+          return;
+        }
         if (found) { found.quantity = Math.min(99, found.quantity + 1); found.idempotency_key = null; }
         else basket.push({
           product_id: button.dataset.productId,
