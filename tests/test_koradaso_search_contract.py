@@ -548,3 +548,29 @@ def test_koradaso_www_prefers_full_title_phrase(tmp_path, monkeypatch):
     assert [result["url"] for result in results] == [
         "https://example.org/z", "https://example.org/a",
     ]
+
+
+
+def test_public_release_digest_covers_every_cached_local_shell_asset(client):
+    """Changing a logo, stylesheet or icon must also change the release identity."""
+    import hashlib
+
+    import app as app_module
+
+    cached = (
+        "static/oap_public.css",
+        "static/oap-os.js",
+        "static/oap-os-icon-192.png",
+        "static/oap-os-icon-512.png",
+        "static/oap/koradaso_internet_logo.jpg",
+        "static/manifest.webmanifest",
+        "static/oap-os-offline.html",
+        "templates/koradaso_internet.html",
+    )
+    files = app_module._KORADASO_PUBLIC_RELEASE_FILES
+    assert all(relative in files for relative in cached)
+    digest = hashlib.sha256()
+    for relative in files:
+        digest.update(relative.encode("utf-8"))
+        digest.update(Path(relative).read_bytes())
+    assert client.get("/koradaso/release").get_json()["release"] == digest.hexdigest()[:20]
