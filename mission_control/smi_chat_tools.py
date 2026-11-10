@@ -57,7 +57,7 @@ TOOL_DEFINITIONS: tuple[dict[str, Any], ...] = (
         "id": "sika_review",
         "name": "SIKA Capability Review",
         "purpose": "Inspect existing SIKA and OAP Pay capability evidence; never view a personal balance or execute a payment.",
-        "triggers": ("sika", "oap pay", "wallet", "banking", "payment", "refund", "reconciliation", "cash out"),
+        "triggers": ("sika", "oap pay", "wallet", "banking", "payment", "refund", "reconciliation", "cash out", "transfer money", "send money", "payment request", "dispute", "balance"),
         "read_only": True,
     },
     {
@@ -206,6 +206,30 @@ def _fetch_data() -> dict[str, Any]:
 
 
 
+def classify_financial_mission(message: object) -> dict[str, str]:
+    """Route intent for inspection only; never authorize a financial action."""
+    text = str(message or "").casefold()
+    financial_terms = ("sika", "oap pay", "wallet", "banking", "payment", "refund",
+                       "reconciliation", "cash out", "transfer money", "send money",
+                       "payment request", "dispute", "balance")
+    if not any(term in text for term in financial_terms):
+        return {"mission": "none", "capability": "none", "next_action": "none"}
+    if any(term in text for term in ("reconcile", "reconciliation", "dispute", "refund", "failed payment")):
+        return {"mission": "financial_review", "capability": "read_only_review",
+                "next_action": "inspect_governed_evidence"}
+    if any(term in text for term in ("send money", "transfer money", "make payment", "execute payment", "pay someone")):
+        return {"mission": "payment_execution_request", "capability": "execute_payments",
+                "next_action": "regulated_external_authorisation_required"}
+    if any(term in text for term in ("request", "qr", "payment link")):
+        return {"mission": "payment_request", "capability": "request_creation",
+                "next_action": "use_existing_authenticated_request_flow"}
+    if any(term in text for term in ("balance", "my wallet", "my account")):
+        return {"mission": "customer_account_view", "capability": "owner_scoped_read",
+                "next_action": "authenticated_account_route_required"}
+    return {"mission": "capability_review", "capability": "read_only_review",
+            "next_action": "inspect_governed_evidence"}
+
+
 def _sika_review() -> dict[str, Any]:
     """Expose only the canonical, non-personal finance gate projection."""
     dashboard = smi_command_dashboard.status()
@@ -247,6 +271,8 @@ def execute_selected(message: object, *, limit: int = 3) -> dict[str, Any]:
         executor = _EXECUTORS[tool_id]
         try:
             result = executor()
+            if tool_id == "sika_review":
+                result = {**result, "mission_selection": classify_financial_mission(message)}
             results.append({
                 "tool": tool_id,
                 "name": tool["name"],
