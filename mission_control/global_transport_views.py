@@ -204,39 +204,50 @@ _PAGE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="/transport/manifest.webmanifest">
-<meta name="theme-color" content="#050807">
+<meta name="theme-color" content="#090909">
 <title>OAP Global Transport</title>
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}
-body{margin:0;background:#090909;color:#f5f5f5;font-family:system-ui,-apple-system,sans-serif}
-main{max-width:920px;margin:auto;padding:24px 16px 48px}
-.hero{padding:24px;border:1px solid #7a6420;border-radius:22px;background:linear-gradient(145deg,#17130a,#0c0c0c)}
-.eyebrow{color:#d8b64b;font-weight:800;letter-spacing:.08em}.hero h1{margin:.3rem 0;font-size:clamp(2rem,7vw,4rem)}
-.hero p{color:#ccc;max-width:680px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:18px}
-.card{display:block;text-decoration:none;color:#fff;padding:18px;border-radius:18px;border:1px solid #292929;background:#111}
-.card strong{display:block;font-size:1.15rem;color:#f0cf63}.card span{display:block;color:#aaa;margin-top:7px;line-height:1.35}
-.bar{margin-top:18px;padding:14px;border-radius:14px;background:#121212;color:#bbb}.green{color:#6ee7a8}.purple{color:#c4a1ff}
-small{display:block;margin-top:18px;color:#777}
+:root{color-scheme:dark;--bg:#090909;--panel:#161616;--edge:#323232;--gold:#f0cf63;--muted:#b9b9b9}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#f7f7f7;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:800px;margin:auto;padding:20px 16px 48px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px}
+.brand{color:var(--gold);font-weight:800;font-size:.78rem;letter-spacing:.075em}
+.return{color:#dedede;text-decoration:none;font-weight:650;padding:10px 0;min-height:44px}
+h1{font-size:clamp(2rem,8vw,3.2rem);line-height:1.08;letter-spacing:-.035em;margin:0 0 10px}
+.intro{color:var(--muted);margin:0 0 24px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:108px;
+padding:18px;border-radius:18px;background:var(--panel);border:1px solid var(--edge);
+text-decoration:none;color:inherit;transition:border-color .15s}
+.card:hover,.card:focus-visible{border-color:var(--gold)}
+.card:focus-visible,.return:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.card strong{display:block;color:#f7f7f7;font-size:1.05rem}
+.card span{display:block;color:var(--muted);font-size:.83rem;line-height:1.4;margin-top:5px}
+.card .arrow{font-size:1.1rem;color:var(--gold);flex:none}
+.card:last-child{grid-column:1/-1;min-height:84px}
+footer{margin-top:28px;color:#aaa;font-size:.82rem}
+.install{margin-top:18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.install button{background:#242016;border:1px solid #7a6420;border-radius:12px;color:var(--gold);padding:12px;font:inherit;font-weight:700}
+.install [role=status]{color:var(--muted);font-size:.82rem}
+@media(max-width:390px){.card{padding:14px;min-height:100px}.card strong{font-size:.96rem}}
+@media(max-width:330px){.grid{grid-template-columns:1fr}.card:last-child{grid-column:auto}}
+@media(prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
 </head>
 <body><main>
-<section class="hero">
-<div class="eyebrow">🌍 ON ANY POSTCODE</div>
+<header><div class="brand">ON ANY POSTCODE</div><a class="return" href="/world">OAP World</a></header>
 <h1>Global Transport</h1>
-<p>One World → One Front Door → Many Transport Systems Inside.</p>
-<div class="bar"><span class="green">● Software surface ready</span> · <span class="purple">● Live execution stays evidence-gated</span></div>
-<div class="bar">
-<button type="button" data-oap-install hidden>Install OAP Transport</button>
-<span data-oap-install-status role="status">Checking install support</span>
-<span data-oap-install-platform hidden></span>
-</div>
-</section>
-<section class="grid">
+<p class="intro">Travel, ride and move through your world.</p>
+<nav class="grid" aria-label="Global Transport main menu">
 {% for name, description, href in doors %}
-<a class="card" href="{{ href }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
+<a class="card" href="{{ href }}"><div><strong>{{ name }}</strong><span>{{ description }}</span></div><b class="arrow" aria-hidden="true">›</b></a>
 {% endfor %}
-</section>
-<small>Software + digital coordination only. Physical transport operations remain evidence-gated. Human Authority remains final.</small>
+</nav>
+<div class="install"><button type="button" data-oap-install hidden>Install OAP Transport</button>
+<span data-oap-install-status role="status" aria-live="polite">Checking install support</span>
+<span data-oap-install-platform hidden></span></div>
+<footer>Transport services and external actions are available only when independently authorised and verified.</footer>
 <script src="/assets/oap-os.js" defer></script>
 </main></body></html>"""
 
