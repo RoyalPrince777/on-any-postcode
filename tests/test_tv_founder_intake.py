@@ -3,6 +3,7 @@ import io
 import os
 import stat
 import uuid
+from pathlib import Path
 
 import pytest
 
@@ -69,3 +70,13 @@ def test_failed_disk_sync_leaves_no_partial_candidate(monkeypatch, tmp_path):
             title="Private film", owner_id=str(uuid.uuid4())
         )
     assert list(tmp_path.iterdir()) == []
+
+
+def test_founder_upload_ui_bounds_preview_and_fails_closed_offline():
+    html = Path("templates/tv_founder_upload.html").read_text(encoding="utf-8")
+    assert "if(!file.size||file.size>" in html
+    assert "if(!navigator.onLine)" in html
+    assert "no video has been queued" in html
+    assert "Check private drafts before retrying to avoid duplicates" in html
+    assert "if(!data||!data.candidate_id||!data.sha256)" in html
+    assert "credentials:'same-origin'" in html
