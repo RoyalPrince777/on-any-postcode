@@ -50,6 +50,12 @@ def test_koradaso_intelligence_automatic_public_shell_updates_without_private_da
     assert release.headers["Cache-Control"] == "no-store"
     fingerprint = release.get_json()["release"]
     assert len(fingerprint) == 20
+    served_worker = client.get("/service-worker.js")
+    assert served_worker.status_code == 200
+    assert served_worker.headers["Cache-Control"] == "no-cache"
+    assert served_worker.headers["X-Content-Type-Options"] == "nosniff"
+    assert f'const CACHE_VERSION = "oap-os-public-{fingerprint}";' in served_worker.get_data(as_text=True)
+    assert "__KORADASO_RELEASE__" not in served_worker.get_data(as_text=True)
     assert fingerprint in client.get("/koradaso").get_data(as_text=True)
     assert fingerprint in response.get_data(as_text=True)
 
@@ -83,7 +89,7 @@ def test_koradaso_stages_public_worker_while_other_oap_clients_are_active():
     """Protect existing Link Up and Studio clients; no live multi-tab claim."""
     worker = Path("static/oap-os-sw.js").read_text(encoding="utf-8")
     updater = Path("static/koradaso_auto_update.js").read_text(encoding="utf-8")
-    assert 'const CACHE_VERSION = "oap-os-public-v1.2-staged";' in worker
+    assert 'const CACHE_VERSION = "oap-os-public-__KORADASO_RELEASE__";' in worker
     assert "self.skipWaiting()" not in worker
     assert "self.clients.claim()" not in worker
     assert "cache.addAll(PUBLIC_SHELL)" in worker
