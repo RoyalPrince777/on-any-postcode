@@ -36,17 +36,39 @@ bp.register_blueprint(oap_ride_ops_bp)
 bp.register_blueprint(oap_eats_bp)
 bp.register_blueprint(travel_transport_booking_bp)
 
+# Keep the routed nine-door destinations as compatibility metadata.
+# They are not the visible navigation, and no underlying routes are removed.
+LEGACY_PUBLIC_ROUTES = {
+    "journey": "/travel",
+    "move": "/movement/workspace",
+    "ride": "/transport/ride",
+    "transit": "/travel",
+    "drive": "/oap-map?profile=driving",
+    "fly": "/travel",
+    "cargo": "/distribution",
+    "deliver": "/movement/workspace#book-title",
+    "fleet": "/transport/ride/driver",
+}
+
 PUBLIC_DOORS = (
-    ("Journey", "End-to-end multimodal journey planning", "/travel"),
-    ("Move", "Movement, disruption and route state", "/movement/workspace"),
-    ("Ride", "Governed ride-request capability", "/transport/ride"),
-    ("Transit", "Bus, rail, metro, tram and ferry", "/travel"),
-    ("Drive", "Personal vehicle and road journey layer", "/oap-map?profile=driving"),
-    ("Fly", "Air journey and airport layer", "/travel"),
-    ("Cargo", "Freight and cross-border planning", "/distribution"),
-    ("Deliver", "Local and global delivery layer", "/movement/workspace#book-title"),
-    ("Fleet", "Commercial vehicle and driver operations", "/transport/ride/driver"),
+    ("Journey", "End-to-end journey planning", "/travel"),
+    ("Move", "Movement, maps and navigation", "/movement/workspace"),
+    ("Ride", "OAP Rider and Driver", "/transport/ride"),
+    ("Logistics", "Cargo, deliveries and fleet", "/distribution"),
+    ("Guardian", "Journey safety and protection", "/transport/ride/guardian/status"),
+    ("Operators", "Provider and shared-bike discovery", "/transport/shared-bikes/status"),
+    ("Control Center", "Transport execution readiness", "/transport/execution-readiness"),
 )
+
+DOOR_GROUPS = {
+    "journey": ["journey", "walk", "cycle", "parking"],
+    "move": ["move", "drive", "transit", "fly", "sail", "road", "terminal", "energy"],
+    "ride": ["ride", "accessibility"],
+    "logistics": ["cargo", "deliver", "fleet"],
+    "guardian": ["guardian_transport"],
+    "operators": ["transport_market"],
+    "control_center": ["transport_intelligence", "transport_control_center"],
+}
 
 CAPABILITIES = (
     "journey", "move", "ride", "drive", "transit", "fly", "sail",
@@ -145,8 +167,10 @@ def status() -> dict[str, object]:
         "architecture": "One World -> One Front Door -> Many Transport Systems Inside",
         "software_surface_install_ready": True,
         "first_party_surface": True,
-        "public_doors": [name.lower() for name, _, _ in PUBLIC_DOORS],
-        "public_routes": {name.lower(): href for name, _, href in PUBLIC_DOORS},
+        "public_doors": [name.lower().replace(" ", "_") for name, _, _ in PUBLIC_DOORS],
+        "public_routes": {name.lower().replace(" ", "_"): href for name, _, href in PUBLIC_DOORS},
+        "legacy_public_routes": LEGACY_PUBLIC_ROUTES,
+        "door_groups": DOOR_GROUPS,
         "capability_count": len(CAPABILITIES),
         "capabilities": list(CAPABILITIES),
         "integrations": list(INTEGRATIONS),
