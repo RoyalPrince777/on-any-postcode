@@ -62,3 +62,63 @@ def select_alliance(
         else:
             unassigned.append(capability)
     return AllianceSelection(capabilities, tuple(selected), tuple(unassigned))
+
+
+@dataclass(frozen=True)
+class PassportVerifiedSelection:
+    """An advisory mission team grounded in the canonical agent registry."""
+
+    capabilities: tuple[str, ...]
+    specialists: tuple[str, ...]
+    unassigned_capabilities: tuple[str, ...]
+    excluded_unregistered: tuple[str, ...]
+    excluded_inactive: tuple[str, ...]
+    advisory_only: bool = True
+    authority_granted: bool = False
+    founder_final: bool = True
+
+
+def select_passport_verified_alliance(
+    task_type: str,
+    query: str,
+    *,
+    high_impact: bool = False,
+    distributed_work: bool = False,
+    limit: int = 8,
+) -> PassportVerifiedSelection:
+    """Choose a task-specific advisory team; never register or activate an agent.
+
+    Legacy capability recommendations stay intact. Missing, duplicate, proposed,
+    or inactive passport entries fail closed without inventing aliases or IDs.
+    """
+    from mission_control.agents import AGENT_REGISTRY
+
+    proposed = select_alliance(
+        task_type, query, high_impact=high_impact,
+        distributed_work=distributed_work, limit=limit,
+    )
+    by_name: dict[str, list[object]] = {}
+    for entry in AGENT_REGISTRY:
+        name = str(entry.get("name", "")).casefold()
+        if name:
+            by_name.setdefault(name, []).append(entry)
+
+    selected: list[str] = []
+    unregistered: list[str] = []
+    inactive: list[str] = []
+    for name in proposed.specialists:
+        passports = by_name.get(name.casefold(), [])
+        if len(passports) != 1 or not passports[0].get("agent_id"):
+            unregistered.append(name)
+            continue
+        if passports[0].get("registry_status") != "ACTIVE":
+            inactive.append(name)
+            continue
+        selected.append(name)
+    return PassportVerifiedSelection(
+        capabilities=proposed.capabilities,
+        specialists=tuple(selected),
+        unassigned_capabilities=proposed.unassigned_capabilities,
+        excluded_unregistered=tuple(unregistered),
+        excluded_inactive=tuple(inactive),
+    )
