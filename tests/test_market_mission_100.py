@@ -163,4 +163,4 @@ def test_market_order_errors_are_text_only_not_html():
 
     assert "notice.textContent = 'Orders unavailable: ' + error.message;" in template
     assert "ordersList.replaceChildren(notice);" in template
-    assert "ordersList.innerHTML = '<div class=\\"market-empty\\">Orders unavailable: '" not in template
+    assert "Orders unavailable: ' + error.message + '</div>'" not in template
