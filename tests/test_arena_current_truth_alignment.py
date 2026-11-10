@@ -8,6 +8,9 @@ def test_arena_hub_surfaces_my_card_and_all_proven_room_modes(anonymous_client):
     assert response.status_code == 200
     assert 'href="/my-card"' in page
     assert "My Card" in page
+    assert 'href="/koradaso"' in page
+    assert page.index('id="arena-games"') < page.index('class="mc-panel arena-opponents"')
+    assert r"</p>\n" not in page
     for room_path in (
         "/arena/connect4/room",
         "/arena/dot/room",
@@ -18,7 +21,7 @@ def test_arena_hub_surfaces_my_card_and_all_proven_room_modes(anonymous_client):
         "/arena/route-empire/room",
     ):
         assert f'href="{room_path}"' in page
-    assert "Create / Join Chess Room" in page
+    assert "Online room for Chess" in page
     assert "My Card history" in page
 
 

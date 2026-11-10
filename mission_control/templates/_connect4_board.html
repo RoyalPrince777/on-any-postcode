@@ -1,0 +1,14 @@
+{% macro connect4_board(room=false) -%}
+<div class="c4-table">
+  <div class="c4-controls" data-controls{% if room %} data-columns{% endif %} role="group" aria-label="Choose column" hidden></div>
+  <div class="c4-board" data-board role="img" aria-label="Empty Connect 4 board"></div>
+  <div class="c4-base">
+    <span class="c4-wordmark">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M12 0l2 7 6.5-3.5L17 10l7 2-7 2 3.5 6.5L14 17l-2 7-2-7-6.5 3.5L7 14l-7-2 7-2-3.5-6.5L10 7z"/>
+      </svg>
+      ON ANY POSTCODE
+    </span>
+  </div>
+</div>
+{%- endmacro %}

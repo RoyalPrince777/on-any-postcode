@@ -109,3 +109,51 @@ def test_ludo_completed_public_state_names_winner_and_result():
     view = ludo.public_state(state)
     assert view["result"] == "all_pieces_home"
     assert view["winner_name"] == "Alpha"
+
+
+def test_local_ludo_long_match_keeps_latest_roll_and_retry():
+    state = ludo.new_game(["Alpha", "Bravo"])
+    for index in range(180):
+        state = ludo.local_session_state(_roll(state, 1, f"ludo-long-{index:04d}"))
+    assert len(state["request_receipts"]) == ludo.LOCAL_RECEIPT_LIMIT
+    assert ludo.public_state(state)["last_roll"] == 1
+    assert ludo.roll(state, request_id="ludo-long-0179") == state
+
+
+def test_agent_can_only_take_its_own_turn_and_preserves_six_and_retry(monkeypatch):
+    state = ludo.new_game(["Alpha"], versus_agent=True)
+    with pytest.raises(ValueError, match="ludo_wrong_opponent_turn"):
+        ludo.agent_step(state, request_id="agent-before-turn")
+
+    state = _roll(state, 1, "human-passes-turn")
+    with pytest.raises(ValueError, match="ludo_wrong_opponent_turn"):
+        ludo.roll(state, request_id="human-wrong-turn")
+
+    rolls = iter([5, 0])
+    monkeypatch.setattr(ludo.secrets, "randbelow", lambda _: next(rolls))
+    entered = ludo.agent_step(state, request_id="agent-enters-yard")
+    assert ludo.public_state(entered)["agent_turn"]
+    assert entered["players"][1]["pieces"][0]["progress"] == 0
+    assert ludo.agent_step(entered, request_id="agent-enters-yard") == entered
+
+    advanced = ludo.agent_step(entered, request_id="agent-extra-turn")
+    assert advanced["players"][1]["pieces"][0]["progress"] == 1
+    assert not ludo.public_state(advanced)["agent_turn"]
+    assert ludo.agent_step(advanced, request_id="agent-extra-turn") == advanced
+
+
+def test_agent_capture_retains_turn_and_stop_blocks_further_moves(monkeypatch):
+    state = ludo.new_game(["Alpha"], versus_agent=True)
+    state["turn_index"] = 1
+    state["players"][1]["pieces"][0]["progress"] = 1
+    state["players"][0]["pieces"][0]["progress"] = 15
+    state = ludo._seal(state)
+    monkeypatch.setattr(ludo.secrets, "randbelow", lambda _: 0)
+    captured = ludo.agent_step(state, request_id="agent-captures-piece")
+    assert captured["players"][0]["pieces"][0]["progress"] == -1
+    assert ludo.public_state(captured)["agent_turn"]
+
+    stopped = ludo.stop(captured, request_id="human-stops-agent")
+    with pytest.raises(ValueError, match="ludo_wrong_opponent_turn"):
+        ludo.agent_step(stopped, request_id="agent-after-stop")
+    assert ludo.agent_step(stopped, request_id="agent-captures-piece") == stopped

@@ -5,16 +5,16 @@ SOURCE = Path("android/oapworld/src/main/java/com/onanypostcode/oapworld/MainAct
 
 def test_oap_browser_keeps_oap_as_home_and_routes_search_first_party():
     source = SOURCE.read_text(encoding="utf-8")
-    assert 'private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com"' in source
-    assert 'openFirstPartyPath("/world")' in source
+    assert 'private static final String OAP_ORIGIN = "https://onanypostcode.global"' in source
+    assert 'loadWebViewUrl(activeOrigin + "/world?source=oap-os")' in source
     assert 'openFirstPartyPath("/search?q=" + Uri.encode(input))' in source
 
 
 def test_oap_browser_opens_direct_web_addresses_without_accepting_arbitrary_schemes():
     source = SOURCE.read_text(encoding="utf-8")
-    assert '"https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)' in source
+    assert '"https".equalsIgnoreCase(scheme) || isLocalLoopback(parsed)' in source
     assert 'loadWebViewUrl("https://" + input)' in source
-    assert 'return !("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme));' in source
+    assert 'return !("https".equalsIgnoreCase(scheme) || isLocalLoopback(uri));' in source
 
 
 def test_oap_browser_retains_host_security_controls():
@@ -25,6 +25,25 @@ def test_oap_browser_retains_host_security_controls():
     assert "settings.setSafeBrowsingEnabled(true)" in source
     assert "settings.setGeolocationEnabled(false)" in source
     assert "cookieManager.setAcceptThirdPartyCookies(webView, false)" in source
+
+
+def test_koradaso_android_downloads_are_user_confirmed_https_only():
+    source = SOURCE.read_text(encoding="utf-8")
+    manifest = Path("android/oapworld/src/main/AndroidManifest.xml").read_text(
+        encoding="utf-8"
+    )
+    assert "webView.setDownloadListener(" in source
+    assert '"https".equalsIgnoreCase(target.getScheme())' in source
+    assert "target.getUserInfo() != null" in source
+    assert 'setTitle("Download file?")' in source
+    assert '.setPositiveButton("Download"' in source
+    assert '.setNegativeButton("Cancel"' in source
+    assert "new DownloadManager.Request(target)" in source
+    assert "manager.enqueue(request)" in source
+    assert "Environment.DIRECTORY_DOWNLOADS" in source
+    assert "request.addRequestHeader(\"Cookie\"" not in source
+    assert "android.permission.WRITE_EXTERNAL_STORAGE" not in manifest
+    assert "android.permission.MANAGE_EXTERNAL_STORAGE" not in manifest
 
 
 def test_oap_browser_has_approved_minimal_navigation_controls():
@@ -128,3 +147,90 @@ def test_oap_android_external_navigation_invalidates_pending_native_response():
     cancel_body = client_source.split("public void cancelPending()", 1)[1].split("\n    }", 1)[0]
     assert "generation.incrementAndGet();" in cancel_body
     assert "generation.get() == requestGeneration" in client_source
+
+
+def test_koradaso_android_consent_dialogs_use_scoped_first_party_boundaries():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'boolean sameTrustedOrigin = certified.getScheme() != null' in source
+    assert 'certified.getHost().equalsIgnoreCase(origin.getHost())' in source
+    assert 'origin.getPort() == certified.getPort()' in source
+    assert 'boolean koradasoConsent = "/koradaso".equals(origin.getPath())' in source
+    assert 'message.startsWith("OPEN WEB — ")' in source
+    assert 'message.startsWith("OPEN WEB SEARCH — ")' in source
+    assert 'if (!sameTrustedOrigin || !(worldConsent || koradasoConsent))' in source
+    assert 'result.cancel();' in source
+
+
+def test_koradaso_android_rejects_legacy_render_origin():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'private static final String OAP_ORIGIN = "https://onanypostcode.global"' in source
+    assert "onrender.com" not in source
+
+
+def test_koradaso_android_termux_loopback_is_explicit_and_scoped():
+    source = SOURCE.read_text(encoding="utf-8")
+    manifest = Path("android/oapworld/src/main/AndroidManifest.xml").read_text(
+        encoding="utf-8"
+    )
+    policy = Path(
+        "android/oapworld/src/main/res/xml/koradaso_network_security.xml"
+    ).read_text(encoding="utf-8")
+
+    assert 'private static final String LOCAL_ORIGIN = "http://127.0.0.1:5050"' in source
+    assert "private String activeOrigin = KORADASO_TEST_ORIGIN;" in source
+    assert 'modeButton = navButton("Local 5052");' in source
+    assert 'activeOrigin = KORADASO_TEST_ORIGIN;' in source
+    assert 'activeOrigin = OAP_ORIGIN;' in source
+    assert 'activeOrigin = LOCAL_ORIGIN;' in source
+    assert 'engineClient = new EngineDocumentClient(activeOrigin);' in source
+    assert '"127.0.0.1".equals(uri.getHost())' in source
+    assert 'uri.getPort() == 5050 || uri.getPort() == 5052' in source
+    assert 'uri.getUserInfo() == null' in source
+    assert '&& !isLocalLoopback(destination)' in source
+    assert 'android:networkSecurityConfig="@xml/koradaso_network_security"' in manifest
+    assert '<base-config cleartextTrafficPermitted="false" />' in policy
+    assert '<domain>127.0.0.1</domain>' in policy
+    assert "onrender.com" not in source
+
+
+def test_koradaso_android_opens_branded_home_with_legacy_local_fallback():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'if (state == null) {\n            openFirstPartyPath("/koradaso");' in source
+    assert 'modeButton.setText(LOCAL_ORIGIN.equals(activeOrigin) ? "Local 5050"' in source
+    assert 'openFirstPartyPath("/koradaso");' in source
+    assert 'request.isForMainFrame()' in source
+    assert 'response.getStatusCode() == 404' in source
+    assert '(activeOrigin + "/koradaso").equals(request.getUrl().toString())' in source
+    assert 'loadWebViewUrl(activeOrigin + "/world?source=oap-os");' in source
+
+
+def test_koradaso_android_can_use_isolated_termux_5052_without_remote_cleartext():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'private static final String KORADASO_TEST_ORIGIN = "http://127.0.0.1:5052"' in source
+    assert 'KORADASO_TEST_ORIGIN.equals(activeOrigin)' in source
+    assert 'modeButton = navButton("Local 5052");' in source
+    assert '"Local 5052" : "Online"' in source
+    assert '&& (uri.getPort() == 5050 || uri.getPort() == 5052)' in source
+    assert '"127.0.0.1".equals(uri.getHost())' in source
+    assert 'uri.getUserInfo() == null' in source
+    assert 'engineClient = new EngineDocumentClient(activeOrigin);' in source
+
+
+def test_koradaso_android_launches_on_5052_and_preserves_manual_secure_fallback():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'private String activeOrigin = KORADASO_TEST_ORIGIN;' in source
+    assert 'modeButton = navButton("Local 5052");' in source
+    assert 'engineClient = new EngineDocumentClient(activeOrigin);' in source
+    assert 'openFirstPartyPath("/koradaso");' in source
+    cycle = source.split("private void switchOrigin()", 1)[1].split("\n    }", 1)[0]
+    assert cycle.index('if (KORADASO_TEST_ORIGIN.equals(activeOrigin))') < cycle.index(
+        'else if (LOCAL_ORIGIN.equals(activeOrigin))'
+    )
+    assert cycle.index('activeOrigin = LOCAL_ORIGIN;') < cycle.index(
+        'activeOrigin = OAP_ORIGIN;'
+    ) < cycle.index('activeOrigin = KORADASO_TEST_ORIGIN;', cycle.index('activeOrigin = OAP_ORIGIN;'))
+    assert "onrender.com" not in source
+    # A local connection failure must not automatically switch to the public host.
+    assert 'activeOrigin = OAP_ORIGIN;' not in source.split(
+        'private void openFirstPartyPath(String sourcePath, boolean recordHistory)', 1
+    )[1].split('private void loadWebViewUrl', 1)[0]

@@ -22,6 +22,9 @@ def test_connectivity_runtime_is_production_not_demo():
     assert status["simulation_success_allowed"] is False
     assert status["host"]["live_runtime_probe"] is True
     assert status["host"]["external_probe_used"] is False
+    assert status["host"]["internet_reachability_verified"] is False
+    assert status["host"]["oap_service_reachability_verified"] is False
+    assert status["host"]["reachability_state"] == "unverified"
     assert status["network_execution_authority"] is False
     assert status["human_authority_final"] is True
 

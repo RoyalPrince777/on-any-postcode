@@ -1,14 +1,84 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="oap-csrf-token" content="{{ csrf_token }}">{% include "_oap_install_head.html" %}<title>Oware · OAP Arena</title>
-<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='arena_gameplay_progress.js') }}" defer></script><script src="{{ url_for('static',filename='oware.js') }}" defer></script></head>
-<body><main class="mc-shell arena-game" data-oware-root>
-<section class="card arena-header"><nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a> · <a href="/arena/oware/room">Online Room</a></nav>
-<p class="arena-hint">OAP Arena · Ghanaian/Akan strategy game</p><h1>🌰 Oware</h1><p>Sow. Capture. Protect the game.</p>
-<p class="arena-hint">Abapa core: 12 houses, 48 seeds, four per house. Grand-slam captures are forfeited so the opponent is not starved.</p>
-<label class="arena-field">Players (2, separated by comma)<input data-players maxlength="100" value="Player One, Player Two" autocomplete="off"></label>
-<div class="arena-actions"><button class="arena-primary" type="button" data-start>Start match</button><button class="arena-stop" type="button" data-stop disabled>STOP</button></div>
-<p class="arena-error" role="alert" data-error></p></section>
-<section class="card" data-game hidden>
-<div class="arena-metrics" aria-live="polite"><span>Turn: <strong data-turn></strong></span><span>Status: <strong data-status></strong></span><span>Score: <strong data-score></strong></span></div>
-<p class="arena-hint" data-gameplay-percent aria-live="polite">Gameplay: 0%</p><progress data-gameplay-bar max="100" value="0" aria-label="Observable gameplay percentage"></progress><h2>Board</h2><p class="arena-hint">Opponent row is shown right-to-left above your row. Select only a highlighted legal house.</p>
-<div class="arena-game-content" data-board></div>
-<p class="arena-feedback" role="status" aria-live="polite" data-feedback></p></section></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="oap-csrf-token" content="{{ csrf_token }}">
+{% include "_oap_install_head.html" %}
+<title>Oware · OAP Arena</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='arena_tabletop.css') }}">
+<script src="{{ url_for('static', filename='oware_board.js') }}" defer></script>
+<script src="{{ url_for('static', filename='oware.js') }}" defer></script>
+</head>
+<body><main class="mc-shell arena-game arena-tabletop" data-oware-root data-opening-pits='{{ opening_pits | tojson }}'>
+<header class="tabletop-header">
+<a href="/arena">← Arena</a>
+<h1>Oware</h1>
+<a href="/arena/oware/room">Online room</a>
+</header>
+<dialog class="oware-settings" id="oware-settings" aria-labelledby="oware-settings-title">
+<form id="oware-setup" data-setup>
+<div class="oware-dialog-header">
+<h2 id="oware-settings-title">Game settings</h2>
+<button type="button" data-settings-close aria-label="Close settings">×</button>
+</div>
+<div class="arena-row">
+<label class="arena-field">Game type
+<select data-variant><option value="abapa">Abapa</option><option value="nam-nam">Nam-Nam</option></select>
+</label>
+<label class="arena-field">Play against
+<select data-mode><option value="local">Two players</option><option value="agent">Oware Agent</option></select>
+</label>
+<label class="arena-field" data-level-field hidden>Agent level
+<select data-level><option value="beginner">Starter</option><option value="standard" selected>Club</option><option value="expert">Expert</option></select>
+</label>
+</div>
+<div class="arena-row">
+<label class="arena-field">Player One<input data-player-one maxlength="40" placeholder="Player One" autocomplete="off"></label>
+<label class="arena-field" data-player-two-field>Player Two<input data-player-two maxlength="40" placeholder="Player Two" autocomplete="off"></label>
+</div>
+<p class="arena-hint" data-settings-note hidden>Starting a new game ends the current match.</p>
+<p class="arena-error" role="alert" data-settings-error></p>
+<div class="arena-actions">
+<button class="oware-primary" type="submit" data-settings-start>Start game</button>
+</div>
+</form>
+</dialog>
+<section class="oware-game" data-game aria-label="Oware match">
+<div class="oware-match-info"><strong data-status>Abapa</strong><span data-turn role="status">Ready to play</span></div>
+<p class="arena-hint" data-round hidden></p>
+<div data-board aria-label="Oware board"></div>
+<div class="oware-actions">
+<button class="oware-primary" type="submit" form="oware-setup" data-start disabled>New game</button>
+<button class="arena-stop" type="button" data-stop hidden>Stop</button>
+<button class="oware-settings-button" type="button" data-settings-open aria-haspopup="dialog" aria-controls="oware-settings" disabled>Settings</button>
+</div>
+<p class="arena-error" role="alert" data-error></p>
+<p class="arena-feedback" role="status" data-feedback></p>
+</section>
+<section class="oware-rules" aria-label="Oware rules">
+<details><summary>Rules</summary>
+<h2>Abapa</h2>
+<p>12 houses, 48 seeds.</p>
+<ol>
+<li>Pick a highlighted house on your row. Sow one seed in each successive house counterclockwise. Skip the starting house if you make a full lap.</li>
+<li>If the last seed leaves exactly 2 or 3 in an opponent’s house, capture those seeds. Work backward through adjacent opponent houses with 2 or 3. If that would empty their row, all the seeds stay on the board.</li>
+<li>If your opponent has no seeds, you must feed their row. If no legal move exists, each side collects the seeds still on its own row.</li>
+<li>Capture 25 or more to win. A final score of 24–24 is a draw.</li>
+<li>A loop ends when the same board and turn appear three times within 120 positions without a capture. Each side collects its remaining seeds.</li>
+</ol>
+<p><a href="https://www.oware.org/abapa.asp">Read the Abapa rules</a></p>
+<h2>Nam-Nam</h2>
+<ol>
+<li>Sow counterclockwise from a house you own. If the last seed lands in an occupied house without a capture, pick up its seeds and keep sowing. Stop on an empty house or a last-seed capture.</li>
+<li>When sowing brings a house to four, its owner captures those seeds. If it was the last seed in your hand, you capture the four.</li>
+<li>Feed an empty opponent territory if possible. If feeding is impossible, the owner of the remaining seeds collects them. The player who captures the next set when eight seeds remain also gets the last four.</li>
+<li>Use captured seeds to refill houses in groups of four. Extra groups win houses across the board. Capture all territory to win the match.</li>
+<li>The round restarts with the same territory if a relay loops or exceeds 256 pickups, or the same board and turn appear three times within 120 positions without a capture.</li>
+</ol>
+<p><a href="https://www.oware.org/nam_nam.asp">Read the Nam-Nam rules</a></p>
+</details>
+</section>
+</main></body></html>

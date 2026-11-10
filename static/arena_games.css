@@ -81,3 +81,125 @@ body:has(.arena-game){overflow-x:hidden}
 @media(prefers-reduced-motion:reduce){
   .arena-game .arena-chess-square.arena-chess-capture .arena-chess-character{animation:none!important}
 }
+
+/* Oware table and shared local / room board. */
+body:has(.arena-game[data-oware-root]) {background:#100f0d!important}
+.arena-game[data-oware-root] {
+  max-width:660px;gap:14px;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+.oware-header {
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;
+  gap:4px 12px;padding-bottom:12px;border-bottom:1px solid #3a332a;
+}
+.oware-header .arena-nav {margin:0;gap:4px 14px;font-size:.85rem}
+.oware-header .arena-nav a {text-decoration:none}
+.oware-heading {grid-column:1/-1}
+.oware-heading h1 {margin:0;font-size:clamp(1.9rem,7vw,2.65rem);line-height:1.1;color:#f8f3e8}
+.oware-heading p {margin:5px 0 0;color:#c6c0b4;font-size:.8rem}
+.arena-game .oware-settings-button {
+  background:#171511!important;box-shadow:none!important;border:1px solid #554b3b!important;
+  border-radius:7px;color:#efe2c9!important;font-size:.86rem;font-weight:650;
+}
+.oware-match-info {
+  display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:8px 10px;margin-bottom:8px;
+  background:#151410;border:1px solid #3d352a;border-radius:8px;color:#c6c0b4;font-size:.8rem;
+}
+.oware-match-info [data-status],.oware-match-info [data-turn] {color:#f8f3e8;overflow-wrap:anywhere}
+.oware-match-info > :last-child {margin-inline-start:auto}
+.oware-game [data-round] {margin:6px 2px}
+.oware-actions {display:flex;gap:8px;margin-top:10px}
+.oware-actions .oware-primary {flex:1}
+.arena-game button.oware-primary {
+  background:#d9bc87!important;border:1px solid #d9bc87!important;border-radius:7px;
+  color:#211b11!important;box-shadow:none!important;font-weight:750;
+}
+.arena-game[data-oware-root] button.arena-stop {
+  background:transparent!important;border:1px solid #674a42!important;border-radius:7px;
+  color:#f0c0b1!important;box-shadow:none!important;
+}
+.oware-game .arena-feedback {margin:8px 0 0;border-color:#736147;background:#161410;color:#e5d5b9;font-size:.83rem}
+.oware-game [data-gameplay-percent] {margin:8px 0 4px;font-size:.75rem}
+.oware-game progress {width:100%;height:5px;accent-color:#c7a66e;display:block}
+.oware-rules {display:grid;gap:0;font-size:.85rem;color:#c6c0b4;border-top:1px solid #3a332a}
+.oware-rules details {border-bottom:1px solid #3a332a}
+.oware-rules summary {min-height:44px;padding:11px 3px;cursor:pointer;color:#e5d5b9}
+.oware-rules summary:focus-visible {outline:2px solid #f5d398}
+.arena-game .oware-settings {
+  width:min(100% - 24px,440px);max-height:calc(100dvh - 24px);overflow:auto;margin:auto;padding:16px;
+  background:#191713;color:#f8f3e8;border:1px solid #554b3b;border-radius:10px;
+}
+.oware-settings::backdrop {background:#000b}
+.oware-settings .arena-row {gap:10px;margin-top:10px}
+.oware-settings .arena-field {flex-basis:145px}
+.oware-dialog-header {display:flex;align-items:center;justify-content:space-between;gap:8px}
+.oware-dialog-header h2 {margin:0;font-size:1.25rem}
+.oware-dialog-header button {font-size:1.2rem}
+
+.arena-game .oware-board {
+  display:grid;gap:7px;padding:clamp(7px,2vw,12px);border:1px solid #6c5240;border-radius:12px;
+  background:#3c2b21;color:#f8f3e8;
+}
+.arena-game .oware-caption {
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(112px,48%);align-items:center;
+  gap:8px;padding:2px 3px;overflow-wrap:anywhere;font-size:.8rem;
+}
+.oware-caption.oware-turn > div:first-child {color:#f3d59f}
+.oware-caption.oware-turn > div:first-child::before {content:"• ";font-size:.9em}
+.oware-territory {display:block;color:#e2cbb0;font-size:.72rem}
+.arena-game .oware-store {
+  display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:5px;min-height:36px;
+  padding:4px 7px;border:1px solid #6c5240;border-radius:7px;
+  background:#251b15;color:#e4cfb5;font-size:.69rem;
+}
+.oware-store .oware-score {color:#fff4de;font-size:1.15rem;line-height:1;font-variant-numeric:tabular-nums}
+.arena-game .oware-row {display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:clamp(3px,1vw,8px)}
+.arena-game button.oware-house {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  min-width:0;min-height:clamp(62px,15vw,95px);padding:6px 2px;border-radius:40% / 30%;
+  background:#241a14!important;color:#fff4dc!important;border:1px solid #745744!important;
+  box-shadow:inset 0 3px 7px #140d09b3!important;
+}
+.arena-game button.oware-house:disabled {opacity:1;cursor:default}
+.arena-game button.oware-house:enabled {border-color:#d8b47b!important;background:#332319!important}
+.arena-game button.oware-house.oware-last {box-shadow:inset 0 0 0 2px #e4bc80!important}
+.arena-game .oware-count {font-weight:750;line-height:1;font-variant-numeric:tabular-nums}
+.arena-game .oware-claim {font-size:.65rem;font-weight:700;color:#ffdfa1}
+.oware-stones,.oware-captured-stones {display:flex;flex-wrap:wrap;justify-content:center;gap:2px;width:100%;max-width:78px}
+.oware-captured-stones {justify-content:flex-start;max-width:none}
+.oware-board i {
+  display:block;width:clamp(10px,2.6vw,15px);aspect-ratio:1.16;border-radius:46% 54% 55% 45%;
+  background:#d2ae7e;box-shadow:inset 0 -2px 0 #74513375;transform:rotate(-19deg);
+}
+.oware-board i:nth-child(2n) {background:#dac7b2;transform:rotate(24deg)}
+.oware-board i:nth-child(3n) {background:#a97c5d;transform:rotate(-7deg)}
+.oware-captured-stones i {width:clamp(6px,1.55vw,10px)}
+
+/* Quiet Arena surfaces shared by local games and online rooms. */
+body:has(.arena-game){background:#100f0d!important}
+.arena-game{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;gap:12px}
+.arena-game .card{
+  border:1px solid #39332a!important;border-radius:10px;
+  background:#151410!important;box-shadow:none!important;
+}
+.arena-game .card::after{content:none}
+.arena-game .arena-play-header{padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid #39332a}
+.arena-game .arena-nav{margin-bottom:4px}
+.arena-game .arena-nav a{text-decoration:none;font-size:.86rem}
+.arena-game .arena-nav a:hover{text-decoration:underline}
+.arena-game .arena-play-header h1{margin:0;font-size:clamp(1.65rem,6vw,2.35rem);line-height:1.14}
+.arena-game .arena-play-header p{margin:5px 0 0;color:#c6c0b4;font-size:.86rem}
+.arena-game .arena-disclosure{border-bottom:1px solid #39332a;padding:0 0 8px}
+.arena-game .arena-disclosure summary{padding:11px 0;min-height:44px;cursor:pointer;font-weight:650}
+.arena-game .arena-disclosure label{margin:6px 0}
+.arena-game .arena-disclosure .arena-hint{margin:5px 0}
+.arena-game button.arena-primary{
+  background:#d9bc87!important;border-color:#d9bc87!important;color:#211b11!important;
+  border-radius:7px;box-shadow:none!important;
+}
+.arena-game button.arena-stop{
+  background:transparent!important;border-color:#674a42!important;color:#f0c0b1!important;
+  border-radius:7px;box-shadow:none!important;
+}
+.arena-game [data-entry] h2{font-size:1.05rem;margin:14px 0 6px}
+.arena-game [data-entry] label{margin-bottom:7px}

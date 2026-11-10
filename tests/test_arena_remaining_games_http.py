@@ -69,3 +69,23 @@ def test_remaining_arena_game_routes(client, csrf, monkeypatch):
     )
     assert dot_drawn.status_code == 200
     assert ["0,0", "1,0"] in dot_drawn.get_json()["edges"]
+
+
+def test_ludo_agent_turn_is_csrf_guarded_and_retry_does_not_roll_twice(client, csrf, monkeypatch):
+    headers = {"X-OAP-CSRF": csrf["csrf_token"]}
+    start = client.post("/arena/ludo/start", json={"players": ["Alpha"], "opponent_mode": "agent"}, headers=headers)
+    assert start.status_code == 201
+    assert start.get_json()["players"][1]["name"] == "Ludo Agent"
+
+    rolls = iter([0, 5])
+    monkeypatch.setattr(ludo.secrets, "randbelow", lambda _: next(rolls))
+    passed = client.post("/arena/ludo/roll", json={"request_id": "human-passes-turn"}, headers=headers)
+    assert passed.get_json()["agent_turn"]
+    payload = {"request_id": "agent-enters-on-six"}
+    assert client.post("/arena/ludo/agent-turn", json=payload).status_code == 403
+    first = client.post("/arena/ludo/agent-turn", json=payload, headers=headers)
+    assert first.status_code == 200
+    assert first.get_json()["players"][1]["pieces"][0]["zone"] == "track"
+    retry = client.post("/arena/ludo/agent-turn", json=payload, headers=headers)
+    assert retry.status_code == 200
+    assert retry.get_json() == first.get_json()

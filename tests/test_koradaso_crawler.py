@@ -1,0 +1,183 @@
+"""No live network use: verify safe crawler contracts with controlled response stubs."""
+import ssl
+from pathlib import Path
+from unittest.mock import Mock
+
+import pytest
+
+from mission_control import koradaso_crawler
+from mission_control.koradaso_web_index import search_public_pages
+
+
+def test_public_seed_crawl_indexes_real_html_when_robots_allow(tmp_path, monkeypatch):
+    db = tmp_path / "pages.sqlite3"
+    monkeypatch.setenv("OAP_KORADASO_WEB_INDEX", str(db))
+    requested = []
+
+    def fetch(host, target, *, limit):
+        requested.append((host, target, limit))
+        if target == "/robots.txt":
+            return 200, "text/plain; charset=utf-8", b"User-agent: *\nAllow: /\n"
+        return (
+            200, "text/html; charset=utf-8",
+            (b"<html><head><title>Oware club</title>"
+             b'<meta name="description" content="A real local gathering">'
+             b"</head><body><script>private data</script>Public club</body></html>"),
+        )
+
+    monkeypatch.setattr(koradaso_crawler, "_fetch", fetch)
+    record = koradaso_crawler.crawl_seed("https://example.org/oware", db)
+    assert record["title"] == "Oware club"
+    assert record["description"] == "A real local gathering"
+    assert requested == [
+        ("example.org", "/robots.txt", koradaso_crawler.MAX_ROBOTS),
+        ("example.org", "/oware", koradaso_crawler.MAX_HTML),
+    ]
+    results, configured = search_public_pages("oware")
+    assert configured is True
+    assert [result["title"] for result in results] == ["Oware club"]
+
+
+def test_robots_disallow_prevents_page_fetch_and_index(tmp_path, monkeypatch):
+    requested = []
+
+    def fetch(host, target, *, limit):
+        requested.append(target)
+        return 200, "text/plain", b"User-agent: *\nDisallow: /private\n"
+
+    monkeypatch.setattr(koradaso_crawler, "_fetch", fetch)
+    db = tmp_path / "pages.sqlite3"
+    with pytest.raises(koradaso_crawler.CrawlerRejected, match="robots_disallow"):
+        koradaso_crawler.crawl_seed("https://example.org/private", db)
+    assert requested == ["/robots.txt"]
+    assert not db.exists()
+
+
+def test_unavailable_robots_and_redirect_never_crawl_target(tmp_path, monkeypatch):
+    seen = []
+
+    def fetch(host, target, *, limit):
+        seen.append(target)
+        return 302, "text/html", b""
+
+    monkeypatch.setattr(koradaso_crawler, "_fetch", fetch)
+    with pytest.raises(koradaso_crawler.CrawlerRejected, match="robots_policy_unavailable"):
+        koradaso_crawler.crawl_seed("https://example.org/announcement", tmp_path / "db")
+    assert seen == ["/robots.txt"]
+
+
+@pytest.mark.parametrize("url", [
+    "http://example.org/", "https://127.0.0.1/private",
+    "https://localhost/admin", "https://user:secret@example.org/",
+    "https://example.org/page#fragment",
+])
+def test_unsafe_seeds_fail_before_fetch(tmp_path, monkeypatch, url):
+    def no_fetch(*args, **kwargs):
+        pytest.fail("unsafe seed reached network")
+    monkeypatch.setattr(koradaso_crawler, "_fetch", no_fetch)
+    with pytest.raises(koradaso_crawler.CrawlerRejected):
+        koradaso_crawler.crawl_seed(url, tmp_path / "db")
+
+
+def test_dns_rejects_any_private_answer_and_no_dns(monkeypatch):
+    def mixed(host, port, *, type):
+        return [
+            (2, 1, 6, "", ("8.8.8.8", 443)),
+            (2, 1, 6, "", ("127.0.0.1", 443)),
+        ]
+    monkeypatch.setattr(koradaso_crawler.socket, "getaddrinfo", mixed)
+    with pytest.raises(koradaso_crawler.CrawlerRejected, match="non_public_dns_destination"):
+        koradaso_crawler._public_addresses("example.org")
+
+
+def test_oversized_page_is_not_indexed(tmp_path, monkeypatch):
+    def fetch(host, target, *, limit):
+        if target == "/robots.txt":
+            return 200, "text/plain", b"User-agent: *\nAllow: /\n"
+        raise koradaso_crawler.CrawlerRejected("response_too_large")
+    monkeypatch.setattr(koradaso_crawler, "_fetch", fetch)
+    db = tmp_path / "db"
+    with pytest.raises(koradaso_crawler.CrawlerRejected, match="response_too_large"):
+        koradaso_crawler.crawl_seed("https://example.org/", db)
+    assert not db.exists()
+
+
+def test_runner_requires_explicit_execute():
+    script = Path("scripts/koradaso_crawl_seeds.py").read_text(encoding="utf-8")
+    assert 'parser.add_argument("--execute", action="store_true"' in script
+    assert "if not args.execute:" in script
+    assert "len(urls) > 10" in script
+    assert "time.sleep(2)" in script
+
+
+@pytest.mark.parametrize("certificate_error", [False, True])
+def test_https_fallback_is_bounded_and_preserves_certificate_failure(monkeypatch, certificate_error):
+    host = "example.org"
+    addresses = ["2001:4860::1", "2001:4860::2", "8.8.8.8"]
+    first, alternate = Mock(), Mock()
+    first.connect.side_effect = (
+        ssl.SSLCertVerificationError("bad certificate") if certificate_error
+        else ssl.SSLError("TLSV1_ALERT_INTERNAL_ERROR")
+    )
+    response = alternate.getresponse.return_value
+    response.status = 302
+    response.getheader.return_value = ""
+    resolve = Mock(return_value=addresses)
+    connect = Mock(side_effect=[first, alternate])
+    monkeypatch.setattr(koradaso_crawler, "_public_addresses", resolve)
+    monkeypatch.setattr(koradaso_crawler, "_PinnedHTTPS", connect)
+
+    if certificate_error:
+        with pytest.raises(koradaso_crawler.CrawlerRejected, match="https_fetch_failed") as error:
+            koradaso_crawler._fetch(host, "/robots.txt", limit=128)
+        assert error.value.__cause__ is first.connect.side_effect
+        assert connect.call_count == 1
+        alternate.request.assert_not_called()
+    else:
+        assert koradaso_crawler._fetch(host, "/robots.txt", limit=128) == (302, "", b"")
+        assert connect.call_count == 2
+        connect.assert_called_with(host, addresses[2])
+        alternate.connect.assert_called_once()
+        alternate.request.assert_called_once()
+        response.read.assert_not_called()
+        alternate.close.assert_called_once()
+    resolve.assert_called_once_with(host)
+    first.request.assert_not_called()
+    first.close.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("length", "error"),
+    [("11", "response_too_large"), ("-1", "invalid_content_length"), ("bad", "invalid_content_length")],
+)
+def test_fetch_rejects_invalid_or_excessive_content_length(monkeypatch, length, error):
+    connection = Mock()
+    response = connection.getresponse.return_value
+    response.status = 200
+    response.getheader.side_effect = {"Content-Type": "text/html", "Content-Length": length}.get
+    monkeypatch.setattr(koradaso_crawler, "_public_addresses", lambda _host: ["8.8.8.8"])
+    monkeypatch.setattr(koradaso_crawler, "_connect_https", lambda _host, _addresses: connection)
+
+    with pytest.raises(koradaso_crawler.CrawlerRejected, match=error):
+        koradaso_crawler._fetch("example.org", "/", limit=10)
+    response.read.assert_not_called()
+    connection.close.assert_called_once()
+
+
+def test_seed_crawler_extracts_main_content_instead_of_page_chrome(tmp_path, monkeypatch):
+    def fetch(host, target, *, limit):
+        if target == "/robots.txt":
+            return 200, "text/plain", b"User-agent: *\nAllow: /"
+        return 200, "text/html", (
+            b"<head><title>Mitcham Library</title></head><body>"
+            b"<header>Site title</header><p>Skip to main content</p>"
+            b"<div role='navigation'>Indoor venues</div>"
+            b"<div role='main'><div hidden><div>rgb(255,255,255)</div></div>"
+            b"<p>Visit <strong>Mitcham Library</strong> on London Road.</p></div>"
+            b"<footer>Terms and policies</footer></body>"
+        )
+
+    monkeypatch.setattr(koradaso_crawler, "_fetch", fetch)
+    record = koradaso_crawler.crawl_seed("https://example.org/library", tmp_path / "index.db")
+
+    assert record["description"] == "Visit Mitcham Library on London Road."

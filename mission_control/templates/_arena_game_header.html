@@ -1,0 +1,10 @@
+{% macro game_header(title, other_path, other_label, description="") -%}
+<header class="arena-play-header">
+  <nav class="arena-nav" aria-label="Arena navigation">
+    <a href="/arena">← Arena</a>
+    <a href="{{ other_path }}">{{ other_label }}</a>
+  </nav>
+  <h1>{{ title }}</h1>
+  {% if description %}<p>{{ description }}</p>{% endif %}
+</header>
+{%- endmacro %}

@@ -112,6 +112,24 @@ def test_public_surface_still_fails_closed_if_gateway_secret_is_missing(monkeypa
     assert forged.headers["Cache-Control"] == "no-store"
 
 
+def test_selfhost_public_edge_keeps_founder_and_all_in_private(monkeypatch):
+    compose = Path("deploy/selfhost/compose.yaml").read_text()
+    assert 'OAP_SURFACE_ROLE: "public"' in compose
+    assert 'OAP_PRIVATE_SMI_HANDOFF_ENABLED: "false"' in compose
+    monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
+    monkeypatch.setenv("OAP_PRIVATE_SMI_HANDOFF_ENABLED", "false")
+    monkeypatch.delenv("OAP_SMI_GATEWAY_SECRET", raising=False)
+    app = Flask(__name__)
+    surface_security.register(app)
+    client = app.test_client()
+
+    for path in ("/auth", "/mission", "/mission/ollama", "/mission/all-in-ai/app"):
+        response = client.get(path)
+        assert response.status_code == 404
+        assert response.headers["Cache-Control"] == "no-store"
+        assert "Location" not in response.headers
+
+
 def test_trusted_gateway_repairs_stale_private_aliases(monkeypatch):
     monkeypatch.setenv("OAP_SURFACE_ROLE", "public")
     monkeypatch.setenv("OAP_SMI_GATEWAY_SECRET", "s" * 48)
