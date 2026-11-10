@@ -155,26 +155,34 @@ def main() -> None:
             app_module.app.view_functions["oap_os_service_worker"] = malformed_worker
             app_module.app.view_functions["koradaso_internet_home"] = malformed_home
             try:
-                recovered.evaluate("""async () => {
+                candidate_state = recovered.evaluate("""async () => {
                     const registration = await navigator.serviceWorker.getRegistration("/");
+                    const candidateFinished = new Promise(resolve => {
+                        registration.addEventListener("updatefound", () => {
+                            const candidate = registration.installing;
+                            if (!candidate) return resolve("no_candidate");
+                            const record = () => {
+                                if (["redundant", "installed", "activated"].includes(candidate.state)) {
+                                    resolve(candidate.state);
+                                }
+                            };
+                            candidate.addEventListener("statechange", record);
+                            record();
+                        }, {once: true});
+                    });
                     try { await registration.update(); } catch (_) {
-                        // A rejected install is the expected fail-closed outcome.
+                        // An invalid shell must reject its candidate.
                     }
+                    return Promise.race([
+                        candidateFinished,
+                        new Promise(resolve => setTimeout(() => resolve("timed_out"), 12000))
+                    ]);
                 }""")
-                recovered.wait_for_function("""async (badName) => {
-                    // Wait for the rejected candidate's cache, not just the
-                    // already-active registration from before update().
-                    return (await caches.keys()).includes(badName);
-                }""", arg=bad_cache)
-                recovered.wait_for_function("""async () => {
-                    const registration = await navigator.serviceWorker.getRegistration("/");
-                    return registration.active?.state === "activated" &&
-                        !registration.installing && !registration.waiting;
-                }""")
+                assert candidate_state == "redundant", candidate_state
                 assert recovered.evaluate("""async () => {
                     const registration = await navigator.serviceWorker.getRegistration("/");
                     return registration.active?.state === "activated" &&
-                        !registration.waiting;
+                        !registration.installing && !registration.waiting;
                 }""")
             finally:
                 app_module.app.view_functions["koradaso_internet_home"] = last_home
