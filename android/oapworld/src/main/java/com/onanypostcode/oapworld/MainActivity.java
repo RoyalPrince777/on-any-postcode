@@ -40,7 +40,7 @@ public final class MainActivity extends ComponentActivity {
     private static final String OAP_ORIGIN = "https://onanypostcode.global";
     private static final String LOCAL_ORIGIN = "http://127.0.0.1:5050";
     private static final String KORADASO_TEST_ORIGIN = "http://127.0.0.1:5052";
-    private String activeOrigin = LOCAL_ORIGIN;
+    private String activeOrigin = KORADASO_TEST_ORIGIN;
     private Button modeButton;
     private WebView webView;
     private OapEngineView engineView;
@@ -73,7 +73,7 @@ public final class MainActivity extends ComponentActivity {
 
         backButton = navButton("‹");
         Button homeButton = navButton("OAP");
-        modeButton = navButton("Local 5050");
+        modeButton = navButton("Local 5052");
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
@@ -338,12 +338,12 @@ public final class MainActivity extends ComponentActivity {
     private void switchOrigin() {
         engineClient.cancelPending();
         engineClient.close();
-        if (LOCAL_ORIGIN.equals(activeOrigin)) {
-            activeOrigin = KORADASO_TEST_ORIGIN;
-        } else if (KORADASO_TEST_ORIGIN.equals(activeOrigin)) {
+        if (KORADASO_TEST_ORIGIN.equals(activeOrigin)) {
+            activeOrigin = LOCAL_ORIGIN;
+        } else if (LOCAL_ORIGIN.equals(activeOrigin)) {
             activeOrigin = OAP_ORIGIN;
         } else {
-            activeOrigin = LOCAL_ORIGIN;
+            activeOrigin = KORADASO_TEST_ORIGIN;
         }
         engineClient = new EngineDocumentClient(activeOrigin);
         engineHistory.clear();
