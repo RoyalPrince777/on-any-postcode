@@ -44,7 +44,10 @@ def _amount(value: object) -> str:
         raise SikaPayGatewayError("amount_invalid") from exc
     if not parsed.is_finite() or parsed <= 0:
         raise SikaPayGatewayError("amount_invalid")
-    return f"{parsed.quantize(Decimal('0.01')):.2f}"
+    cents = parsed.quantize(Decimal('0.01'))
+    if cents <= 0 or cents != parsed:
+        raise SikaPayGatewayError("amount_invalid")
+    return f"{cents:.2f}"
 
 
 @dataclass(frozen=True)
