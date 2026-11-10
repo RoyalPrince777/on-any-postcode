@@ -7,7 +7,7 @@ production store cannot be inspected.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from . import (
     a7_certification,
@@ -19,7 +19,7 @@ from . import (
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 SMI_COMPLETION_CHECKS = (
@@ -27,7 +27,7 @@ SMI_COMPLETION_CHECKS = (
     {"check": "Personal SMI streaming chat", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "stop / mic / plus / history / code controls", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "safe visible work stages", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "26 Intelligence lenses", "status": "implemented", "light": "🟢", "proof_class": "code"},
+    {"check": "28 Intelligence lenses", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "Intelligence command router", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "War Room and evidence runner", "status": "implemented", "light": "🟢", "proof_class": "code"},
     {"check": "Guardian / Aegis fail-closed boundary", "status": "implemented", "light": "🟢", "proof_class": "code"},
@@ -43,6 +43,22 @@ SMI_COMPLETION_CHECKS = (
     {"check": "live observability evidence", "status": "live_evidence_consumed", "light": "🟣", "proof_class": "runtime"},
     {"check": "A7 external/legal/halt/boundary/constitutional assurance", "status": "live_evidence_gate", "light": "🟣", "proof_class": "external"},
 )
+
+def _completion_checks(autonomy: dict[str, object]) -> tuple[dict[str, str], ...]:
+    """Reflect configured A5/A6 governance truth without changing execution authority."""
+
+    rows = [dict(item) for item in SMI_COMPLETION_CHECKS]
+    for row in rows:
+        if row["check"] == "A5 preparation boundary":
+            if autonomy.get("a5_enabled"):
+                row.update(status="governed_preparation_enabled", light="🟢")
+        elif row["check"] == "A6 governed execution":
+            if autonomy.get("a6_enabled") and autonomy.get("a6_matrix_control"):
+                row.update(status="matrix_governed_operation_gated", light="🟢")
+        elif row["check"] == "A7 organism-scale autonomy":
+            row.update(status="constitutional_locked", light="🔒")
+    return tuple(rows)
+
 
 CORE_PROOF_GATE_IDS = (
     "founder_chat_interaction",
@@ -224,7 +240,7 @@ def completion_status() -> dict[str, object]:
         "operating_level_model": "A1-A7",
         "configured_level": autonomy["configured_level"],
         "autonomy_levels": autonomy["canonical_levels"],
-        "completion_checks": SMI_COMPLETION_CHECKS,
+        "completion_checks": _completion_checks(autonomy),
         "intelligence": {
             "lens_count": len(intelligence_lenses.FULL_LENS_IDS),
             "core_lens_count": len(intelligence_lenses.CORE_LENS_IDS),

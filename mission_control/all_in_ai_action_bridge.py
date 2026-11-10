@@ -38,6 +38,7 @@ def _review_status(identity_id: str, request_id: str) -> dict[str, Any]:
                 """SELECT
                        m.request_id,
                        m.output_state,
+                       m.content_hash,
                        g.outcome,
                        j.sections_completed,
                        j.constitution_consistent,
@@ -60,10 +61,10 @@ def _review_status(identity_id: str, request_id: str) -> dict[str, Any]:
     if row is None:
         raise ActionHandoffBlocked("reviewed_request_not_found")
 
-    guardian_outcome = str(row[2] or "")
-    sections_completed = int(row[3] or 0)
-    constitution_consistent = bool(row[4])
-    human_decision = str(row[5]) if row[5] else None
+    guardian_outcome = str(row[3] or "")
+    sections_completed = int(row[4] or 0)
+    constitution_consistent = row[5] is True
+    human_decision = str(row[6]) if row[6] else None
     guardian_passed = guardian_outcome == "PASSED"
     judgement_consistent = bool(
         sections_completed == 5 and constitution_consistent
@@ -72,6 +73,7 @@ def _review_status(identity_id: str, request_id: str) -> dict[str, Any]:
     return {
         "request_id": str(row[0]),
         "output_state": str(row[1]),
+        "content_hash": str(row[2] or ""),
         "guardian_outcome": guardian_outcome,
         "guardian_passed": guardian_passed,
         "judgement_sections_completed": sections_completed,
@@ -108,6 +110,15 @@ def handoff_status(
         raise ActionHandoffBlocked("mission_receipt_unverified")
 
     review = _review_status(identity, request_id)
+    # A valid approval for another request is not authority for this Mission.
+    # Bind the reviewed input to the independently verified Mission text hash.
+    mission_hash = mission_receipt.get("mission_hash")
+    review_hash = review.get("content_hash")
+    if (not isinstance(mission_hash, str)
+            or len(mission_hash) != 64
+            or not isinstance(review_hash, str)
+            or review_hash != mission_hash):
+        raise ActionHandoffBlocked("mission_review_content_mismatch")
     base = {
         "component": "ALL IN A.I. Governed Action Handoff",
         "mission_id": mission,
@@ -199,6 +210,48 @@ def status() -> dict[str, Any]:
     }
 
 
+
+def _verified_executor_outcome(
+    outcome: object, authorization: Mapping[str, object], *, recovery: bool = False,
+) -> bool:
+    """Project only literal, request-bound verified executor evidence.
+
+    An incomplete response must not become Mission Green. A returned executor
+    error is handled by its caller; uncertain post-commit outcomes require
+    manual reconciliation, NEVER a blind automatic retry.
+    """
+    if not isinstance(outcome, Mapping):
+        return False
+    try:
+        request_id = _uuid(authorization.get("request_id"), "request_id")
+        approval_id = _uuid(
+            authorization.get("approval_receipt_id"), "approval_receipt_id",
+        )
+    except ValueError:
+        return False
+    receipt = outcome.get("outcome_receipt")
+    if not isinstance(receipt, Mapping):
+        return False
+    return all((
+        outcome.get("request_id") == request_id,
+        outcome.get("approval_receipt_id") == approval_id,
+        outcome.get("action_performed") is True,
+        outcome.get("evidence_proven") is True,
+        outcome.get("status_readback_verified") is True,
+        outcome.get("content_unchanged") is True,
+        outcome.get("audit_recorded") is True,
+        outcome.get("authority_transferred") is False,
+        outcome.get("external_side_effect") is False,
+        outcome.get("financial_side_effect") is False,
+        outcome.get("human_authority_final") is True,
+        receipt.get("write_verified") is True,
+        receipt.get("read_back_verified") is True,
+        receipt.get("pipeline_complete") is True,
+        receipt.get("human_authority_final") is True,
+        not recovery or outcome.get("rollback_verified") is True,
+    ))
+
+
 def execute_internal_record(
     identity_id: object,
     mission_id: object,
@@ -229,6 +282,7 @@ def execute_internal_record(
         expected_status=expected_status,
         target_status=target_status,
     )
+    outcome_verified = _verified_executor_outcome(execution, authorization)
     return {
         "component": "ALL IN A.I. Governed Internal Execution",
         "mission_id": handoff["mission_id"],
@@ -236,11 +290,12 @@ def execute_internal_record(
         "handoff_status": handoff["status"],
         "execution": execution,
         "execution_authorized": True,
-        "execution_performed": True,
-        "outcome_receipt_verified": bool(
-            execution.get("outcome_receipt", {}).get("write_verified")
-            and execution.get("outcome_receipt", {}).get("read_back_verified")
+        "execution_performed": execution.get("action_performed") is True,
+        "outcome_receipt_verified": outcome_verified,
+        "execution_evidence_state": (
+            "VERIFIED" if outcome_verified else "RECONCILIATION_REQUIRED"
         ),
+        "automatic_retry_allowed": False,
         "authority_transferred": False,
         "human_authority_final": True,
     }
@@ -273,17 +328,23 @@ def rollback_internal_record(
         identity_id=identity_id,
         rollback_token=rollback_token,
     )
+    outcome_verified = _verified_executor_outcome(
+        recovery, authorization, recovery=True,
+    )
     return {
         "component": "ALL IN A.I. Governed Internal Recovery",
         "mission_id": handoff["mission_id"],
         "reviewed_request_id": handoff["reviewed_request_id"],
         "handoff_status": handoff["status"],
         "recovery": recovery,
-        "rollback_verified": bool(recovery.get("rollback_verified")),
-        "outcome_receipt_verified": bool(
-            recovery.get("outcome_receipt", {}).get("write_verified")
-            and recovery.get("outcome_receipt", {}).get("read_back_verified")
+        "rollback_verified": (
+            outcome_verified and recovery.get("rollback_verified") is True
         ),
+        "outcome_receipt_verified": outcome_verified,
+        "execution_evidence_state": (
+            "VERIFIED" if outcome_verified else "RECONCILIATION_REQUIRED"
+        ),
+        "automatic_retry_allowed": False,
         "authority_transferred": False,
         "human_authority_final": True,
     }

@@ -19,7 +19,9 @@ from . import (
     judgement,
     live_brain,
     media_intelligence,
+    oap_inference_gateway,
     postgres_db,
+    smi_auto,
     smi_cancellation,
     smi_founder_assets,
     studio_intelligence,
@@ -120,6 +122,8 @@ def _provider(
             {
                 "task_type": (brain or {}).get("task_type"),
                 "approved_advisors": (brain or {}).get("advisor_ids", []),
+                "active_reviewers": (brain or {}).get("active_reviewers", []),
+                "active_review_lenses": (brain or {}).get("active_review_lenses", {}),
                 "signal_level": (brain or {}).get("signal_level"),
                 "war_room_triggered": (brain or {})
                 .get("war_room", {})
@@ -381,6 +385,74 @@ def _write_audit(
     )
 
 
+def record_founder_final(
+    identity_id: str,
+    conversation_id: object,
+    decision: object = "APPROVED",
+) -> dict:
+    """Record Founder Final for the latest pending Judgement in an owned chat.
+
+    This records Human Authority only. It never executes the recommendation.
+    """
+
+    identity = _validated_uuid(identity_id, "invalid_identity")
+    conversation = _validated_uuid(conversation_id, "invalid_conversation")
+    with postgres_db.connect(readonly=True) as connection:
+        row = connection.execute(
+            """SELECT m.request_id
+               FROM smi_messages m
+               JOIN smi_conversations c ON c.conversation_id=m.conversation_id
+               JOIN smi_judgement_reviews j ON j.request_id=m.request_id
+               WHERE m.conversation_id=%s AND c.identity_id=%s
+                 AND m.role='assistant' AND j.human_decision IS NULL
+               ORDER BY m.created_at DESC LIMIT 1""",
+            (conversation, identity),
+        ).fetchone()
+    if row is None:
+        raise ValueError("no_pending_founder_decision")
+
+    receipt = approval_service.record_decision(
+        request_id=str(row[0]),
+        identity_id=identity,
+        decision=decision,
+    )
+    assistant_text = (
+        "Founder Final recorded. Signed Human Authority decision receipt verified. "
+        "No execution was granted."
+    )
+    with postgres_db.connect() as connection:
+        connection.execute(
+            """INSERT INTO smi_messages
+               (conversation_id,request_id,role,content,guardian_outcome)
+               VALUES (%s,%s,'user','🟢','PASSED')""",
+            (conversation, receipt["request_id"]),
+        )
+        connection.execute(
+            """INSERT INTO smi_messages
+               (conversation_id,request_id,role,content,guardian_outcome)
+               VALUES (%s,%s,'assistant',%s,'PASSED')""",
+            (conversation, receipt["request_id"], assistant_text),
+        )
+        connection.execute(
+            """UPDATE smi_conversations SET updated_at=CURRENT_TIMESTAMP
+               WHERE conversation_id=%s AND identity_id=%s""",
+            (conversation, identity),
+        )
+        connection.commit()
+    return {
+        "status": "recorded",
+        "conversation_id": conversation,
+        "request_id": receipt["request_id"],
+        "decision": receipt["decision"],
+        "receipt_id": receipt["receipt_id"],
+        "signature_verified": receipt["signature_verified"],
+        "authority_level": receipt["authority_level"],
+        "response": assistant_text,
+        "execution_granted": False,
+        "human_authority_final": True,
+    }
+
+
 def record_feedback(
     identity_id: str,
     request_id: object,
@@ -465,6 +537,99 @@ _DEEP_AUTO_TERMS = (
 )
 
 
+_CONTINUATION_COMMANDS = frozenset({
+    "🟣",
+    "continue",
+    "continue mission",
+    "carry on",
+    "keep going",
+    "proceed",
+})
+
+
+def _is_continuation_command(value: object) -> bool:
+    """Recognise explicit continuation without guessing from ordinary prose."""
+
+    return str(value or "").strip().casefold() in _CONTINUATION_COMMANDS
+
+
+def _latest_continuation_context(
+    connection: object,
+    *,
+    identity_id: str,
+    conversation_id: str,
+) -> dict[str, object] | None:
+    """Read the latest governed request for an owned conversation."""
+
+    row = connection.execute(
+        """SELECT m.request_id,r.task_type,r.summary,r.output_state,r.signal_level
+           FROM smi_messages m
+           JOIN smi_conversations c ON c.conversation_id=m.conversation_id
+           JOIN smi_memory_records r ON r.request_id=m.request_id
+           JOIN smi_judgement_reviews j ON j.request_id=m.request_id
+           WHERE m.conversation_id=%s AND c.identity_id=%s AND m.role='assistant'
+             AND j.human_decision IS NULL
+           ORDER BY m.created_at DESC LIMIT 1""",
+        (conversation_id, identity_id),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "request_id": str(row[0]),
+        "task_type": str(row[1]),
+        "summary": str(row[2])[:300],
+        "output_state": str(row[3]),
+        "signal_level": str(row[4]),
+    }
+
+
+def _continuation_prompt(
+    *,
+    original: str,
+    history: list[dict[str, str]],
+    context: dict[str, object] | None,
+) -> tuple[str, dict[str, object]]:
+    """Resolve explicit continue into the current bounded governed mission."""
+
+    active = _is_continuation_command(original) and context is not None
+    if not active:
+        return original, {
+            "active": False,
+            "resumed_request_id": None,
+            "resumed_output_state": None,
+        }
+
+    previous_user = next(
+        (
+            str(item.get("content") or "")[:1200]
+            for item in reversed(history)
+            if item.get("role") == "user" and str(item.get("content") or "").strip()
+        ),
+        "",
+    )
+    safe_context = {
+        "request_id": context.get("request_id"),
+        "task_type": context.get("task_type"),
+        "output_state": context.get("output_state"),
+        "signal_level": context.get("signal_level"),
+        "summary": context.get("summary"),
+        "previous_user_request": previous_user,
+    }
+    prompt = (
+        "CONTINUE CURRENT BOUNDED MISSION. Resume the latest governed request in this "
+        "conversation from its last proven state. Do not restart completed stages, do not "
+        "invent progress, preserve existing Guardian/War Room/Human Authority boundaries, "
+        "and perform only the next useful bounded step. CURRENT MISSION CONTEXT: "
+        + json.dumps(safe_context, separators=(",", ":"))
+    )
+    return prompt, {
+        "active": True,
+        "resumed_request_id": context.get("request_id"),
+        "resumed_output_state": context.get("output_state"),
+        "task_type": context.get("task_type"),
+    }
+
+
 def _requested_runtime_mode(value: object) -> str:
     """Normalize the Founder-facing Auto / Manual / 3 / 7 / 21 / War Room selector."""
 
@@ -481,6 +646,30 @@ def _requested_runtime_mode(value: object) -> str:
         raise ValueError("invalid_thinking_level")
     return requested
 
+def _founder_shorthand(message: object) -> dict[str, object]:
+    """Resolve explicit Founder chat shorthand without creating a second protocol."""
+
+    text = str(message or "").casefold()
+    smi_21 = bool(re.search(r"\bsmi\s*21\b", text))
+    truth_mode = bool(re.search(r"\btruth\s+mode\b", text))
+    red_team = bool(re.search(r"\bred\s+team\b", text))
+    smi_auto = bool(re.search(r"(?<!\w)smi(?!\w)", text)) and not smi_21
+    return {
+        "deep_dive": bool(smi_21 or truth_mode or red_team),
+        "force_war_room": red_team,
+        "auto_mode": smi_auto,
+        "signals": tuple(
+            name
+            for name, active in (
+                ("SMI_AUTO", smi_auto),
+                ("SMI_21", smi_21),
+                ("TRUTH_MODE", truth_mode),
+                ("RED_TEAM", red_team),
+            )
+            if active
+        ),
+    }
+
 
 def _auto_runtime_mode(
     message: object,
@@ -495,6 +684,11 @@ def _auto_runtime_mode(
     """Resolve the canonical SMI selector without granting decision authority."""
 
     requested = _requested_runtime_mode(requested_level)
+    shorthand = _founder_shorthand(message)
+    if shorthand["auto_mode"] and not shorthand["deep_dive"]:
+        requested = "auto"
+    if requested == "auto" and shorthand["deep_dive"]:
+        requested = "deep_dive"
 
     text = str(message or "").casefold()
     auto_studio = bool(
@@ -583,11 +777,6 @@ def chat(
         if attachment:
             _emit(on_event, "stage", stage="media", label="Media preparing")
         media = media_intelligence.prepare(attachment, provider_key)
-        review_content = clean
-        if code_mode:
-            review_content = "CODE PROPOSAL REQUEST:\n" + review_content
-        if media.get("transcript"):
-            review_content += "\n\nAudio transcript: " + str(media["transcript"])
         conversation = _clean(conversation_id, 40)
         try:
             conversation = (
@@ -623,7 +812,26 @@ def chat(
             }
             for row in reversed(rows)
         ]
+        continuation_context = _latest_continuation_context(
+            connection,
+            identity_id=identity,
+            conversation_id=conversation,
+        )
+        effective_clean, continuation = _continuation_prompt(
+            original=clean,
+            history=history,
+            context=continuation_context,
+        )
+        review_content = effective_clean
+        if code_mode:
+            review_content = "CODE PROPOSAL REQUEST:\n" + review_content
+        if media.get("transcript"):
+            review_content += "\n\nAudio transcript: " + str(media["transcript"])
         requested_mode = _requested_runtime_mode(thinking_level)
+        shorthand = _founder_shorthand(effective_clean)
+        force_war_room = bool(
+            requested_mode == "war_room" or shorthand["force_war_room"]
+        )
         brain = live_brain.review(
             request_id=request_id,
             identity_id=identity,
@@ -631,10 +839,10 @@ def chat(
             history=history,
             image_attached=bool(image or media.get("kind")),
             authority_context=authority_context,
-            force_war_room=requested_mode == "war_room",
+            force_war_room=force_war_room,
         )
         level, resolved_studio_mode, resolved_depth = _auto_runtime_mode(
-            clean,
+            effective_clean,
             requested_level=thinking_level,
             studio_mode=bool(studio_mode),
             code_mode=bool(code_mode),
@@ -647,7 +855,7 @@ def chat(
         brain["resolved_depth"] = resolved_depth
         requested_workspace = str(studio_workspace or "auto").strip().lower()
         if resolved_studio_mode and requested_workspace in {"", "auto"}:
-            workspace = studio_intelligence.select_workspace(clean)
+            workspace = studio_intelligence.select_workspace(effective_clean)
         else:
             workspace = studio_intelligence.workspace(requested_workspace if resolved_studio_mode else "auto")
         brain["studio_workspace"] = workspace["id"]
@@ -661,7 +869,20 @@ def chat(
             brain["thinking_level"] = level
             brain["resolved_depth"] = {"instant": 3, "think": 7, "deep_dive": 21}.get(level, resolved_depth)
         brain["requested_mode"] = requested_mode
-        brain["auto_selected"] = requested_mode == "auto"
+        brain["auto_selected"] = bool(
+            requested_mode == "auto" or shorthand.get("auto_mode")
+        )
+        brain["founder_shorthand_signals"] = shorthand["signals"]
+        brain["founder_shorthand_war_room"] = bool(shorthand["force_war_room"])
+        active_reviewers = smi_auto.selected_review_roles(
+            clean,
+            auto_mode=bool(brain["auto_selected"]),
+        )
+        brain["active_reviewers"] = active_reviewers
+        brain["active_review_lenses"] = {
+            reviewer: smi_auto.review_lens(reviewer)
+            for reviewer in active_reviewers
+        }
         _emit(on_event, "stage", stage="guardian", label="Guardian reviewed")
         memory_rows = connection.execute(
             """SELECT summary FROM smi_memory_records
@@ -683,6 +904,7 @@ def chat(
             (request_id, identity, outcome, reason),
         )
         provider_completed = False
+        oap_inference_gateway.clear_inference_route()
         if cancellation_token is not None:
             cancellation_token.raise_if_cancelled()
         if outcome == "BLOCKED":
@@ -707,7 +929,7 @@ def chat(
             if cancellation_token is not None:
                 provider_kwargs["cancellation_token"] = cancellation_token
             response = _provider(
-                clean,
+                effective_clean,
                 image,
                 history,
                 brain,
@@ -743,6 +965,8 @@ def chat(
             hash_material += "|code_proposal"
         content_hash = hashlib.sha256(hash_material.encode()).hexdigest()
         processing_states = list(brain["processing_states"])
+        if continuation["active"]:
+            processing_states.append("MISSION_CONTINUED")
         if provider_completed:
             processing_states.append("PROVIDER_COMPLETED")
         processing_states.append("HRM_RECORDED")
@@ -762,6 +986,11 @@ def chat(
                 json.dumps(
                     {
                         "guardian": outcome,
+                        "inference_route": (
+                            oap_inference_gateway.observed_inference_route()
+                            if provider_completed else None
+                        ),
+                        "inference_route_attestation": False,
                         "provider": PROVIDER,
                         "image_attached": bool(image),
                         "media_kind": media.get("kind"),
@@ -774,6 +1003,8 @@ def chat(
                         "code_proposal": code_mode,
                         "thinking_level": level,
                         "studio_mode": bool(studio_mode),
+                        "continuation": continuation,
+                        "active_reviewers": list(brain.get("active_reviewers") or ()),
                     }
                 ),
                 json.dumps(processing_states),
@@ -785,6 +1016,13 @@ def chat(
             coherence=coherence,
             provider_completed=provider_completed,
             provider_id=PROVIDER,
+        )
+        auto_review = smi_auto.build_evidence_vote_board(
+            roles=tuple(brain.get("active_reviewers") or ()),
+            brain=brain,
+            coherence=coherence,
+            judgement=judgement_review,
+            guardian_outcome=outcome,
         )
         judgement.persist(
             connection,
@@ -835,6 +1073,11 @@ def chat(
             "founder_assets_indexed": bool(founder_assets.get("indexed")),
             "founder_asset_count": int(founder_assets.get("asset_count") or 0),
             "raw_media_retained": False,
+            "mission_continuation": bool(continuation["active"]),
+            "resumed_request_id": continuation["resumed_request_id"],
+            "resumed_output_state": continuation["resumed_output_state"],
+            "active_reviewers": list(brain.get("active_reviewers") or ()),
+            "auto_review_summary": auto_review["summary"],
         }
         _write_audit(
             connection,
@@ -869,6 +1112,9 @@ def chat(
         "studio_workspace": str(brain.get("studio_workspace") or "auto"),
         "authority": brain["authority"],
         "war_room": brain["war_room"],
+        "continuation": continuation,
+        "active_reviewers": list(brain.get("active_reviewers") or ()),
+        "auto_review": auto_review,
         "can_execute": False,
         "adaptive": {"active": True, "hrm_lessons": len(adaptive_memory)},
         "media": {

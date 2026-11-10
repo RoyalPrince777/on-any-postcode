@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import os
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from threading import Lock
 from urllib import error as urlerror
 from urllib import parse as urlparse
@@ -29,12 +29,15 @@ _TFL_CACHE_SECONDS = 300
 _TFL_MAX_BYTES = 2 * 1024 * 1024
 _TFL_TIMEOUT_SECONDS = 6
 _TFL_CACHE: tuple[float, list[dict[str, object]]] = (0.0, [])
+_TFL_ROAD_CACHE: tuple[float, list[dict[str, object]]] = (0.0, [])
 _TFL_LAST_SUCCESS: float | None = None
+_TFL_ROAD_LAST_SUCCESS: float | None = None
+_TFL_ROAD_LAST_ERROR: str | None = None
 _TFL_LAST_ERROR: str | None = None
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def _clean(value: object, limit: int) -> str:
@@ -92,10 +95,96 @@ def _normalise_tfl(item: object) -> dict[str, object] | None:
         "end_at": _clean(item.get("endDateTime"), 40),
         "updated_at": _clean(item.get("currentUpdateDateTime") or item.get("lastModifiedTime"), 40),
         "source": "Transport for London Open Data",
+        "source_role": "external_evidence_only",
+        "external_source": True,
+        "oap_decision_authority": False,
         "confidence": "authority_feed",
         "authority_verified": True,
         "routing_effect": "advisory_only",
     }
+
+
+
+def _corridor_state(severity: object, description: object) -> str:
+    text = _clean(f"{severity} {description}", 160).casefold()
+    if "closed" in text:
+        return "closed"
+    if "no exceptional delays" in text or "good" in text:
+        return "free"
+    if "serious" in text or "severe" in text:
+        return "heavy"
+    if "moderate" in text or "minor" in text or "delay" in text:
+        return "slow"
+    return "unknown"
+
+
+def _normalise_tfl_road(item: object) -> dict[str, object] | None:
+    if not isinstance(item, dict):
+        return None
+    road = _clean(item.get("displayName") or item.get("id"), 120)
+    if not road:
+        return None
+    severity = _clean(item.get("statusSeverity"), 80)
+    description = _clean(item.get("statusSeverityDescription"), 160)
+    state = _corridor_state(severity, description)
+    return {
+        "id": f"tfl-road-{_clean(item.get('id'), 80) or abs(hash(road))}",
+        "area": "Greater London",
+        "road": road,
+        "kind": "closure" if state == "closed" else "delay",
+        "road_state": state,
+        "note": description or severity or "TfL road corridor status",
+        "severity": severity,
+        "status": description,
+        "has_closures": state == "closed",
+        "updated_at": _clean(item.get("statusAggregationStartDate"), 40),
+        "source": "Transport for London Road Status",
+        "source_role": "external_evidence_only",
+        "external_source": True,
+        "oap_decision_authority": False,
+        "confidence": "authority_feed",
+        "authority_verified": True,
+        "routing_effect": "advisory_only",
+    }
+
+
+def authority_road_status(query: object = None) -> list[dict[str, object]]:
+    global _TFL_ROAD_CACHE, _TFL_ROAD_LAST_SUCCESS, _TFL_ROAD_LAST_ERROR
+    key = _tfl_key()
+    now_epoch = time.time()
+    cached_at, cached_items = _TFL_ROAD_CACHE
+    if cached_items and now_epoch - cached_at < _TFL_CACHE_SECONDS:
+        items = list(cached_items)
+    else:
+        params = urlparse.urlencode({"app_key": key}) if key else ""
+        url = f"https://{_TFL_HOST}/Road" + (f"?{params}" if params else "")
+        req = urlrequest.Request(url, headers={"Accept": "application/json", "User-Agent": "ON-ANY-POSTCODE-Map/1.0"})
+        try:
+            with urlrequest.urlopen(req, timeout=_TFL_TIMEOUT_SECONDS) as response:
+                final = urlparse.urlparse(response.geturl())
+                if final.scheme != "https" or final.hostname != _TFL_HOST:
+                    raise RuntimeError("tfl_road_redirect_rejected")
+                body = response.read(_TFL_MAX_BYTES + 1)
+            if len(body) > _TFL_MAX_BYTES:
+                raise RuntimeError("tfl_road_response_too_large")
+            payload = json.loads(body.decode("utf-8"))
+            if not isinstance(payload, list):
+                raise TypeError("tfl_road_invalid_response")
+            items = []
+            for raw in payload[:200]:
+                normalised = _normalise_tfl_road(raw)
+                if normalised:
+                    items.append(normalised)
+            _TFL_ROAD_CACHE = (now_epoch, items)
+            _TFL_ROAD_LAST_SUCCESS = now_epoch
+            _TFL_ROAD_LAST_ERROR = None
+        except (urlerror.URLError, OSError, RuntimeError, TypeError, ValueError, UnicodeError) as exc:
+            _TFL_ROAD_LAST_ERROR = type(exc).__name__
+            return []
+    term = _clean(query, 100).casefold()
+    if term:
+        items = [r for r in items if term in f"{r.get('road','')} {r.get('status','')}".casefold()]
+    return items[:80]
 
 
 def authority_reports(query: object = None) -> list[dict[str, object]]:
@@ -154,6 +243,9 @@ def add_report(*, area: object, road: object, kind: object, note: object) -> dic
         "kind": kind_v,
         "note": note_v,
         "source": "OAP community report",
+        "source_role": "first_party_observation_input",
+        "external_source": False,
+        "oap_decision_authority": False,
         "confidence": "unverified_report",
         "authority_verified": False,
         "routing_effect": "advisory_only",
@@ -180,8 +272,8 @@ def community_reports(query: object = None) -> list[dict[str, object]]:
 
 
 def reports(query: object = None) -> list[dict[str, object]]:
-    """Authority items first, then bounded community reports."""
-    return (authority_reports(query) + community_reports(query))[:80]
+    """Authority corridor/disruption items first, then bounded community reports."""
+    return (authority_road_status(query) + authority_reports(query) + community_reports(query))[:120]
 
 
 def status() -> dict[str, object]:
@@ -199,6 +291,9 @@ def status() -> dict[str, object]:
         "authority_key_configured": bool(_tfl_key()),
         "authority_anonymous_low_rate": not bool(_tfl_key()),
         "authority_verified_feed": authority_verified,
+        "road_status_verified_feed": _TFL_ROAD_LAST_SUCCESS is not None and _TFL_ROAD_LAST_ERROR is None,
+        "road_status_last_success_epoch": int(_TFL_ROAD_LAST_SUCCESS) if _TFL_ROAD_LAST_SUCCESS is not None else None,
+        "road_status_last_error": _TFL_ROAD_LAST_ERROR,
         "authority_last_success_epoch": int(_TFL_LAST_SUCCESS) if _TFL_LAST_SUCCESS is not None else None,
         "authority_last_error": _TFL_LAST_ERROR,
         "authority_cache_seconds": _TFL_CACHE_SECONDS,
@@ -207,4 +302,10 @@ def status() -> dict[str, object]:
         "hidden_tracking": False,
         "precise_device_location_stored": False,
         "automatic_rerouting": False,
+        "intelligence_owner": "ON ANY POSTCODE",
+        "normalisation_owner": "ON ANY POSTCODE",
+        "decision_owner": "ON ANY POSTCODE",
+        "presentation_owner": "ON ANY POSTCODE",
+        "external_sources_are_evidence_only": True,
+        "external_sources_can_override_oap_governance": False,
     }

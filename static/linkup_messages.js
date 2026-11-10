@@ -218,31 +218,41 @@
   };
 
   const ensureLocalReceipt = (form, payload, messageId) => {
-    const host = form.closest("article") || form.parentElement;
-    if (!host) {
+    const panel = form.closest("[data-linkup-panel]");
+    const host = panel?.querySelector(".linkup-messages");
+    if (!host || !messageId) {
       return;
     }
-    const item = document.createElement("div");
-    item.className = "oap-link-local-receipt";
 
-    const label = document.createElement("p");
-    label.className = "mc-eyebrow";
-    label.textContent = "OUT · just now";
-    item.appendChild(label);
+    // The next live-delta poll can legitimately return the message we just sent.
+    // Mark it rendered immediately so optimistic UI never duplicates a landed Link.
+    state.renderedMessageIds.add(messageId);
+
+    const item = document.createElement("div");
+    item.className = "linkup-message outgoing";
+    item.dataset.linkMessageId = messageId;
 
     const body = document.createElement("p");
     body.textContent = payload.body;
     item.appendChild(body);
 
-    const receipt = document.createElement("p");
-    receipt.className = "mc-eyebrow";
+    const meta = document.createElement("div");
+    meta.className = "linkup-meta";
+
+    const time = document.createElement("span");
+    time.textContent = "just now";
+    meta.appendChild(time);
+
+    const receipt = document.createElement("span");
     receipt.dataset.oapMessageState = "";
     receipt.dataset.messageId = messageId;
     receipt.dataset.state = "landed";
     receipt.textContent = "Landed";
-    item.appendChild(receipt);
+    meta.appendChild(receipt);
 
-    form.before(item);
+    item.appendChild(meta);
+    host.appendChild(item);
+    host.scrollTop = host.scrollHeight;
   };
 
   const showRetry = (form, payload, message) => {
@@ -353,6 +363,16 @@
     });
   });
 
+  window.addEventListener("oap:linkup-engaged", (event) => {
+    const panelId = String(event.detail?.panel || "");
+    if (!panelId) return;
+    const panel = document.querySelector(
+      `[data-linkup-panel="${CSS.escape(panelId)}"]`,
+    );
+    const form = panel?.querySelector("form[data-oap-link-composer]");
+    if (form) startPolling(form);
+  });
+
   window.addEventListener("online", () => {
     pollPeer();
     for (const [clientId, pending] of state.pendingRetries.entries()) {
@@ -367,6 +387,20 @@
     }
   });
 
+  document.querySelectorAll("[data-oap-delete-link]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const messageId = button.dataset.messageId || "";
+      if (!messageId || button.disabled) return;
+      button.disabled = true;
+      try {
+        const result = await apiJson(`/linkup/messages/${encodeURIComponent(messageId)}`, { method: "DELETE", body: "{}" });
+        if (result.deleted !== true) throw new Error("Delete unavailable");
+        document.querySelector(`[data-link-message-id="${CSS.escape(messageId)}"]`)?.remove();
+      } catch (error) {
+        button.disabled = false;
+      }
+    });
+  });
   apiJson("/linkup/messages/status")
     .then((status) => {
       state.ready = status.ready === true && status.first_party === true;

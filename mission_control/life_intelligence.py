@@ -49,15 +49,46 @@ TRADE_FAMILIES: tuple[dict[str, object], ...] = (
     {"id": "marine_air", "name": "Marine, Rail & Aviation Technical Trades", "examples": ("marine engineering", "rail maintenance", "aircraft maintenance", "avionics")},
 )
 
+ACADEMY_NAME = "OAP Academy"
+
 LEARNING_PATH: tuple[str, ...] = (
-    "discover",
-    "learn",
-    "practise_safely",
-    "prove_skills",
-    "qualify_where_required",
-    "work",
-    "build",
-    "mentor",
+    "Discover",
+    "Understand",
+    "Practise",
+    "Apply",
+    "Build",
+    "Master",
+    "Teach",
+)
+
+ACADEMY_ROOMS: tuple[dict[str, str], ...] = (
+    {"id":"life","name":"Life Lab","purpose":"Money, housing, food, paperwork and independent living."},
+    {"id":"trade","name":"Trade Lab","purpose":"Trades, tools, repair, construction and practical making."},
+    {"id":"digital","name":"Digital Lab","purpose":"Computing, AI, cybersecurity, coding and digital creation."},
+    {"id":"world","name":"World Room","purpose":"Geography, cultures, travel, languages and global systems."},
+    {"id":"rights","name":"Rights Room","purpose":"Rights, law, government, justice and anti-exploitation."},
+    {"id":"health","name":"Health Room","purpose":"Body, wellbeing, safety, first aid and health literacy."},
+    {"id":"business","name":"Business Room","purpose":"Work, careers, entrepreneurship, sales, finance and economics."},
+    {"id":"creative","name":"Creative Studio","purpose":"Music, film, design, writing, fashion and photography."},
+    {"id":"nature","name":"Nature Room","purpose":"Animals, plants, farming, environment, land and survival."},
+    {"id":"science","name":"Science Lab","purpose":"Physics, chemistry, biology, engineering, space and invention."},
+    {"id":"communication","name":"Communication Room","purpose":"Languages, writing, speaking, relationships and negotiation."},
+    {"id":"challenge","name":"Challenge Room","purpose":"Cross-subject missions, projects, teamwork and problem-solving."},
+)
+
+CLASS_MODES = ("Together", "By Age", "By Level", "Adaptive")
+
+UNIVERSAL_ADAPTATION = (
+    "age_stage",
+    "culture",
+    "language",
+    "location",
+    "ability_accessibility",
+    "belief_worldview",
+    "learning_mode",
+    "economic_context",
+    "experience_level",
+    "safety_level",
 )
 
 GOVERNANCE: dict[str, object] = {
@@ -87,11 +118,19 @@ def validate_life_intelligence() -> dict[str, Any]:
         errors.append("OAP learning must not impersonate professional licensing")
     if GOVERNANCE["unsafe_unsupervised_practice_allowed"]:
         errors.append("Unsafe unsupervised practical work must remain blocked")
+    if len(LEARNING_PATH) != 7 or LEARNING_PATH[-1] != "Teach":
+        errors.append("Academy learning path must keep seven stages ending in Teach")
+    if len(ACADEMY_ROOMS) != 12 or len({item["id"] for item in ACADEMY_ROOMS}) != 12:
+        errors.append("Academy must keep twelve unique major learning rooms")
+    if CLASS_MODES != ("Together", "By Age", "By Level", "Adaptive"):
+        errors.append("Academy class modes drifted")
     return {
         "passed": not errors,
         "errors": errors,
         "sections": len(section_ids),
         "trade_families": len(trade_ids),
+        "academy_rooms": len(ACADEMY_ROOMS),
+        "learning_stages": len(LEARNING_PATH),
     }
 
 
@@ -99,12 +138,19 @@ def life_intelligence_status() -> dict[str, Any]:
     validation = validate_life_intelligence()
     return {
         "name": "Life Intelligence",
+        "academy_name": ACADEMY_NAME,
         "tagline": "Real facts. Real skills. Real life.",
         "kind": "cross_system_capability",
         "architecture_passed": validation["passed"],
         "sections": tuple(dict(item) for item in LIFE_INTELLIGENCE_SECTIONS),
         "trade_families": tuple(dict(item) for item in TRADE_FAMILIES),
         "learning_path": LEARNING_PATH,
+        "academy_rooms": tuple(dict(item) for item in ACADEMY_ROOMS),
+        "class_modes": CLASS_MODES,
+        "default_class_mode": "Adaptive",
+        "universal_adaptation": UNIVERSAL_ADAPTATION,
+        "library_relationship": "Library=Know; Academy=Learn & Do",
+        "youth_club_relationship": "age-safe doorway into the same Academy",
         "governance": dict(GOVERNANCE),
         "community_power_connection": "education",
         "earth_intelligence_connection": "real_place_and_culture_context",

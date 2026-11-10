@@ -36,6 +36,20 @@ COLLECTIONS: tuple[dict[str, str], ...] = (
         "keywords": "food vegetables vitamins nutrition body anatomy health nature",
     },
     {
+        "id": "essential-life-systems",
+        "name": "Essential Life Systems",
+        "collection": "Human Essentials & Resilience",
+        "description": (
+            "Learn how air, water, food, shelter, health, energy, communication, "
+            "movement, sanitation and safety depend on one another."
+        ),
+        "route": "/library/essential-life-systems",
+        "access": "public",
+        "action": "Explore essential systems",
+        "symbol": "◉",
+        "keywords": "air water food shelter health energy communication movement sanitation safety resilience",
+    },
+    {
         "id": "world-languages",
         "name": "World Languages",
         "collection": "People & Language",

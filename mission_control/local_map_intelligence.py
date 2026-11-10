@@ -1,4 +1,4 @@
-"""UK-first On Any Place / Map Intelligence.
+"""UK-first On Any Postcode Maps / Map Intelligence.
 
 This layer keeps the public map focused on UK places, businesses, routes,
 spots, travel requests and Live Pattern signals. Travel and Movement sit inside
@@ -9,14 +9,14 @@ source proof.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Iterable
 
 PROGRAMS = {
     "company": "ON ANY POSTCODE",
     "map_intelligence": "Map Intelligence",
-    "places": "On Any Place",
+    "places": "On Any Postcode Maps",
     "routes": "On Any Route",
     "travel": "Travel",
     "movement": "Movement",
@@ -28,7 +28,7 @@ PROGRAMS = {
 }
 
 MAP_INTELLIGENCE_STRUCTURE = {
-    "root": "On Any Place",
+    "root": "On Any Postcode Maps",
     "private_brain": "Map Intelligence",
     "public_rule": "Places first. Travel and Movement sit inside the map, not outside it.",
     "layers": {
@@ -192,7 +192,7 @@ ALIASES = {
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _clean(value: object) -> str:
@@ -298,11 +298,15 @@ def route_proof(start: object = None, end: object = None, *, profile: object = "
         "live_traffic_claim": False,
         "live_route_geometry": False,
         "turn_by_turn_enabled": False,
+        "runtime_navigation_contract": "/map-intelligence/route",
+        "runtime_route_geometry_available": True,
+        "runtime_turn_by_turn_available": True,
+        "seed_preview_only": True,
         "can_request_movement": True,
         "payment_capture_enabled": False,
         "dispatch_enabled": False,
         "hidden_tracking_enabled": False,
-        "next_gate": "Connect OSRM/local routing geometry and traffic/disruption source proof before live route guidance.",
+        "next_gate": "Use /map-intelligence/route for runtime geometry, turn steps and truth-gated live-road evidence; this seed preview never claims live routing.",
     }
 
 
@@ -327,13 +331,15 @@ def request_preview(start: object = None, end: object = None, *, purpose: object
 
 
 def readiness_state() -> dict[str, object]:
-    """Reconcile the public On Any Place truth board with the active runtime stack."""
+    """Reconcile the public On Any Postcode Maps truth board with the active runtime stack."""
     from . import (
         atlas_live_sources,
         certification,
         listing_media,
+        live_road_intelligence,
         map_live_pattern,
         maps_movement_direct_proof_runner,
+        offline_routing,
         product_store,
         reviews,
         routing,
@@ -343,6 +349,7 @@ def readiness_state() -> dict[str, object]:
 
     route_state = routing.status()
     live_state = map_live_pattern.status()
+    live_road_state = live_road_intelligence.status()
     place_state = atlas_live_sources.status()
     federation_state = routing_federation.status()
     media_state = listing_media.status()
@@ -350,6 +357,7 @@ def readiness_state() -> dict[str, object]:
     market_state = product_store.status()
     reviews_state = reviews.status()
     route_matrix_state = maps_movement_direct_proof_runner.route_matrix_status()
+    offline_state = offline_routing.status()
     try:
         event_state = travel_marketplace.public_offers(category="event", limit=1)
     except Exception:  # noqa: BLE001
@@ -389,6 +397,9 @@ def readiness_state() -> dict[str, object]:
     wider_uk_routing_live = bool(
         federation_state.get("uk_wide_owned_graph_proven")
     )
+    offline_local_routing_package_proven = bool(
+        offline_state.get("offline_local_routing_package_proven")
+    )
 
     remaining = []
     if not road_tiles_proven:
@@ -413,12 +424,22 @@ def readiness_state() -> dict[str, object]:
         remaining.append("business owner listing tools")
     if not war_room_proof_runner_pass:
         remaining.append("combined War Room proof-runner pass")
+    if not offline_local_routing_package_proven:
+        remaining.append("offline/local road and routing package proof")
     first_party_reviews_ready = bool(reviews_state.get("ready"))
     if not first_party_reviews_ready:
         remaining.append("first-party reviews proof")
 
+    dynamic_live_eta_ready = bool(live_road_state.get("dynamic_eta_ready"))
+    traffic_layer_ready = bool(live_road_state.get("traffic_layer_ready"))
+    reroute_signal_ready = bool(live_road_state.get("reroute_signal_ready"))
     software_navigation_green = bool(
-        road_tiles_proven and route_geometry_proven and turn_by_turn_software_ready
+        road_tiles_proven
+        and route_geometry_proven
+        and turn_by_turn_software_ready
+        and dynamic_live_eta_ready
+        and traffic_layer_ready
+        and reroute_signal_ready
     )
     london_live_pattern_green = bool(live_disruption_proven)
     overall_green = bool(not remaining)
@@ -440,6 +461,14 @@ def readiness_state() -> dict[str, object]:
         "first_party_reviews_ready": first_party_reviews_ready,
         "connected_routing_shards": connected_shards,
         "wider_uk_routing_live": wider_uk_routing_live,
+        "offline_local_routing_package_proven": offline_local_routing_package_proven,
+        "offline_local_routing_package": offline_state,
+        "dynamic_live_eta_ready": dynamic_live_eta_ready,
+        "traffic_layer_ready": traffic_layer_ready,
+        "reroute_signal_ready": reroute_signal_ready,
+        "continuous_speed_coverage_proven": bool(live_road_state.get("continuous_speed_coverage_proven")),
+        "uk_wide_live_traffic_proven": bool(live_road_state.get("uk_wide_live_traffic_proven")),
+        "vehicle_telemetry_integration_proven": bool(live_road_state.get("vehicle_telemetry_integration_proven")),
         "software_navigation_green": software_navigation_green,
         "london_live_pattern_green": london_live_pattern_green,
         "overall_green": overall_green,
@@ -447,11 +476,103 @@ def readiness_state() -> dict[str, object]:
     }
 
 
+def smi_21_state() -> dict[str, object]:
+    """Return the canonical 21-gate Map Intelligence truth contract.
+
+    Green means the exact gate is proven at its claimed layer. Evidence-dependent
+    gates stay purple until their real source/coverage proof exists.
+    """
+    readiness = readiness_state()
+    software = [
+        ("public_front_door", "On Any Postcode Maps public front door", True, "software"),
+        ("routing_runtime", "First-party routing runtime", bool(readiness["route_geometry_proven"]), "software"),
+        ("road_geometry", "First-party road geometry", bool(readiness["road_vector_tiles_proven"]), "software"),
+        ("route_geometry", "Route geometry", bool(readiness["route_geometry_proven"]), "software"),
+        ("turn_by_turn", "Turn-by-turn navigation", bool(readiness["turn_by_turn_software_ready"]), "software"),
+        ("voice_guidance", "Voice turn guidance", bool(readiness["voice_turn_guidance_ready"]), "software"),
+        ("off_route_reroute", "Off-route detection and reroute", bool(readiness["off_route_reroute_ready"]), "software"),
+        ("dynamic_eta", "Dynamic ETA engine", bool(readiness["dynamic_live_eta_ready"]), "software"),
+        ("traffic_layer", "Traffic presentation layer", bool(readiness["traffic_layer_ready"]), "software"),
+        ("reroute_signal", "Reroute recommendation signal", bool(readiness["reroute_signal_ready"]), "software"),
+        ("source_backed_places", "Source-backed place lookup", bool(readiness["source_backed_places_enabled"]), "evidence"),
+        ("opening_hours", "Opening-hours source proof", bool(readiness["opening_hours_source_proven"]), "evidence"),
+        ("open_now", "Open-now evaluator", bool(readiness["open_now_evaluator_ready"]), "software"),
+        ("event_inventory", "Source-backed event inventory", bool(readiness["event_inventory_source_proven"]), "evidence"),
+        ("listing_photos", "First-party listing photo proof", bool(readiness["first_party_listing_photo_proven"]), "evidence"),
+        ("business_tools", "Business-owner listing tools", bool(readiness["business_owner_listing_tools_ready"]), "software"),
+        ("reviews", "First-party reviews", bool(readiness["first_party_reviews_ready"]), "software"),
+        ("authority_disruption", "Authority-backed disruption evidence", bool(readiness["live_disruption_authority_proven"]), "evidence"),
+        ("war_room_proof", "Combined proof runner", bool(readiness["war_room_proof_runner_pass"]), "software"),
+        ("uk_wide_routing", "UK-wide owned routing graph", bool(readiness["wider_uk_routing_live"]), "evidence"),
+        ("offline_local", "Offline/local road and routing package", bool(readiness["offline_local_routing_package_proven"]), "evidence"),
+    ]
+    gates = [
+        {
+            "number": index,
+            "id": gate_id,
+            "label": label,
+            "layer": layer,
+            "passed": passed,
+            "signal": "green" if passed else "purple",
+        }
+        for index, (gate_id, label, passed, layer) in enumerate(software, start=1)
+    ]
+    passed = sum(1 for gate in gates if gate["passed"])
+    software_gates = [gate for gate in gates if gate["layer"] == "software"]
+    software_passed = sum(1 for gate in software_gates if gate["passed"])
+    readiness_percent = round((passed / len(gates)) * 100, 1) if gates else 0.0
+    star_groups = [
+        {
+            "star": star,
+            "gate_numbers": tuple(gate["number"] for gate in group),
+            "green_votes": sum(1 for gate in group if gate["passed"]),
+            "purple_votes": sum(1 for gate in group if not gate["passed"]),
+            "signal": "green" if all(gate["passed"] for gate in group) else "purple",
+        }
+        for star, group in enumerate(
+            (gates[index:index + 3] for index in range(0, len(gates), 3)),
+            start=1,
+        )
+    ]
+    return {
+        "component": "SMI 21 · Map Intelligence",
+        "public_product": "On Any Postcode Maps",
+        "private_brain": "Map Intelligence",
+        "gate_count": 21,
+        "passed_gate_count": passed,
+        "readiness_percent": readiness_percent,
+        "truth_mode": True,
+        "green_votes": passed,
+        "purple_votes": len(gates) - passed,
+        "seven_star_review": star_groups,
+        "protocol_complete": len(gates) == 21,
+        "overall_green": passed == 21,
+        "software_gate_count": len(software_gates),
+        "software_passed_gate_count": software_passed,
+        "software_green": software_passed == len(software_gates),
+        "gates": gates,
+        "remaining_gate_ids": tuple(gate["id"] for gate in gates if not gate["passed"]),
+        "truth_rule": "Green only when the exact claimed layer has working evidence.",
+        "no_hidden_tracking": True,
+        "payment_capture": False,
+        "automatic_dispatch": False,
+    }
+
+
 def local_map(query: object = None, *, category: object = None, start: object = None, end: object = None, profile: object = "driving") -> dict[str, object]:
     generated_at = _now()
     area_key = canonical(query or start or "Mitcham")
     points = points_for(area_key, category=category)
-    route = route_proof(start or area_key, end or "London Bridge", profile=profile)
+    route = route_proof(start or area_key, end or area_key, profile=profile)
+    if not _clean(end):
+        route = dict(route)
+        route.update({
+            "to": "",
+            "distance_km": None,
+            "eta_minutes": None,
+            "proof_state": "idle",
+            "seed_preview_only": False,
+        })
     return {
         "component": PROGRAMS["places"],
         "parent": PROGRAMS["map_intelligence"],
@@ -512,7 +633,7 @@ def status() -> dict[str, object]:
         "programs": PROGRAMS,
         "country_scope": "United Kingdom",
         "public_surface": "/atlas",
-        "preferred_public_surface": "/on-any-place",
+        "preferred_public_surface": "/oap-map",
         "compatibility_surfaces": ("/atlas", "/uk-map", "/business-map", "/traffic-map"),
         "place_api": "/atlas/api/local-map",
         "route_proof_api": "/movement/route-proof",
@@ -539,10 +660,11 @@ def status() -> dict[str, object]:
         "live_disruption_authority_proven": bool(readiness["live_disruption_authority_proven"]),
         "connected_routing_shards": int(readiness["connected_routing_shards"]),
         "wider_uk_routing_live": bool(readiness["wider_uk_routing_live"]),
+        "offline_local_routing_package_proven": bool(readiness["offline_local_routing_package_proven"]),
         "overall_green": bool(readiness["overall_green"]),
         "remaining_before_green": readiness["remaining_before_green"],
         "reason_not_green": (
-            "All On Any Place Green gates are proven."
+            "All On Any Postcode Maps Green gates are proven."
             if readiness["overall_green"]
             else "Remaining proof: " + "; ".join(readiness["remaining_before_green"])
         ),

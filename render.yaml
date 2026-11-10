@@ -6,7 +6,7 @@ services:
     region: oregon
     autoDeployTrigger: "off"
     image:
-      url: ghcr.io/royalprince777/on-any-postcode-runtime@sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622
+      url: ghcr.io/royalprince777/on-any-postcode-runtime@sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a
     healthCheckPath: /healthz
     envVars:
       - key: OAP_RUNTIME_TARGET
@@ -29,7 +29,7 @@ services:
     region: oregon
     autoDeployTrigger: "off"
     image:
-      url: ghcr.io/royalprince777/on-any-postcode-runtime@sha256:22fb2967afe92eba48dfbdd261160ccf4f2a93cae5d7d11c8d807d0c4a02fb69
+      url: ghcr.io/royalprince777/on-any-postcode-runtime@sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a
     healthCheckPath: /healthz
     envVars:
       - key: OAP_RUNTIME_TARGET

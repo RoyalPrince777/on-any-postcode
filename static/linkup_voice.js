@@ -3,16 +3,22 @@
 
   const csrfToken = document.querySelector('meta[name="oap-csrf-token"]')?.content || "";
   const statusNode = document.querySelector("[data-oap-voice-status]");
+  const standalonePtt = document.body.dataset.oapPttStandalone === "true";
+  const pttEndpoint = document.body.dataset.oapPttEndpoint || "/linkup/ptt";
+  const pttStatusEndpoint = document.body.dataset.oapPttStatusEndpoint || "/linkup/ptt/status";
   const recordControls = Array.from(document.querySelectorAll("[data-oap-voice-control]"));
   const stopControls = Array.from(document.querySelectorAll("[data-oap-voice-stop]"));
+  const pttControls = Array.from(document.querySelectorAll("[data-oap-ptt-control]"));
+  const pttStopControls = Array.from(document.querySelectorAll("[data-oap-ptt-stop]"));
   const lists = Array.from(document.querySelectorAll("[data-oap-voice-list]"));
 
-  if (!recordControls.length && !lists.length) {
+  if (!recordControls.length && !pttControls.length && !lists.length) {
     return;
   }
 
   const state = {
     ready: false,
+    pttReady: false,
     maxBytes: 5 * 1024 * 1024,
     maxDurationMs: 120000,
     current: null,
@@ -82,7 +88,7 @@
     return payload;
   };
 
-  const uploadVoice = async (peerId, blob, durationMs) => {
+  const uploadVoice = async (peerId, blob, durationMs, kind = "voice") => {
     if (blob.size > state.maxBytes) {
       throw new Error("voice_too_large");
     }
@@ -90,7 +96,8 @@
     form.append("recipient_id", peerId);
     form.append("duration_ms", String(Math.min(durationMs, state.maxDurationMs)));
     form.append("voice", blob, "voice");
-    const response = await fetch("/linkup/voice", {
+    const endpoint = kind === "ptt" ? pttEndpoint : "/linkup/voice";
+    const response = await fetch(endpoint, {
       method: "POST",
       body: form,
       headers: { "X-OAP-CSRF": csrfToken, Accept: "application/json" },
@@ -113,7 +120,9 @@
   };
 
   const controlsForPeer = (peerId) =>
-    [...recordControls, ...stopControls].filter((control) => recipientFor(control) === peerId);
+    [...recordControls, ...stopControls, ...pttControls, ...pttStopControls].filter(
+      (control) => recipientFor(control) === peerId,
+    );
 
   const refreshControls = () => {
     recordControls.forEach((control) => {
@@ -126,7 +135,21 @@
     });
     stopControls.forEach((control) => {
       const peerId = recipientFor(control);
-      const active = Boolean(state.current && state.current.peerId === peerId);
+      const active = Boolean(
+        state.current && state.current.peerId === peerId && state.current.kind === "voice",
+      );
+      control.hidden = !active;
+      control.disabled = !active;
+    });
+    pttControls.forEach((control) => {
+      const peerId = recipientFor(control);
+      control.disabled = !state.pttReady || !browserReady() || !peerId || Boolean(state.current);
+    });
+    pttStopControls.forEach((control) => {
+      const peerId = recipientFor(control);
+      const active = Boolean(
+        state.current && state.current.peerId === peerId && state.current.kind === "ptt",
+      );
       control.hidden = !active;
       control.disabled = !active;
     });
@@ -152,22 +175,36 @@
       return;
     }
     try {
-      const result = await apiJson(`/linkup/voice?peer_id=${encodeURIComponent(peerId)}`);
+      const listEndpoint = standalonePtt ? "/ptt/voice" : "/linkup/voice";
+      const result = await apiJson(`${listEndpoint}?peer_id=${encodeURIComponent(peerId)}`);
+      const signature = (result.voices || []).map((voice) => voice.voice_id).join(",");
+      if (container.dataset.voiceSignature === signature) {
+        return;
+      }
+      container.dataset.voiceSignature = signature;
       container.replaceChildren();
+      let newestIncomingAudio = null;
+      let newestIncomingId = "";
       for (const voice of result.voices || []) {
         const item = document.createElement("div");
         item.className = "oap-voice-note";
 
         const label = document.createElement("p");
         label.className = "mc-eyebrow";
-        label.textContent = `${voice.direction === "sent" ? "OUT" : "IN"} · Voice · ${voice.created_at}`;
+        const kindLabel = voice.kind === "ptt" ? "PTT" : "Voice";
+        label.textContent = `${voice.direction === "sent" ? "OUT" : "IN"} · ${kindLabel} · ${voice.created_at}`;
         item.appendChild(label);
 
         const audio = document.createElement("audio");
         audio.controls = true;
         audio.preload = "none";
-        audio.src = `/linkup/voice/${encodeURIComponent(voice.voice_id)}/media?peer_id=${encodeURIComponent(peerId)}`;
+        const mediaBase = standalonePtt ? "/ptt/voice" : "/linkup/voice";
+        audio.src = `${mediaBase}/${encodeURIComponent(voice.voice_id)}/media?peer_id=${encodeURIComponent(peerId)}`;
         item.appendChild(audio);
+        if (!newestIncomingAudio && voice.direction === "received") {
+          newestIncomingAudio = audio;
+          newestIncomingId = voice.voice_id;
+        }
 
         if (voice.direction === "sent") {
           const remove = document.createElement("button");
@@ -194,8 +231,16 @@
       }
       if (!container.childNodes.length) {
         const empty = document.createElement("p");
-        empty.textContent = "No Voice yet.";
+        empty.textContent = standalonePtt ? "No PTT received yet." : "No Voice yet.";
         container.appendChild(empty);
+      } else if (
+        standalonePtt &&
+        newestIncomingAudio &&
+        newestIncomingId &&
+        container.dataset.playedVoiceId !== newestIncomingId
+      ) {
+        container.dataset.playedVoiceId = newestIncomingId;
+        newestIncomingAudio.play().catch(() => {});
       }
     } catch (_error) {
       container.replaceChildren();
@@ -215,8 +260,9 @@
     }
   };
 
-  const startRecording = async (control) => {
-    if (!state.ready || state.current || !browserReady()) {
+  const startRecording = async (control, kind = "voice") => {
+    const transportReady = kind === "ptt" ? state.pttReady : state.ready;
+    if (!transportReady || state.current || !browserReady()) {
       return;
     }
     const peerId = recipientFor(control);
@@ -256,10 +302,10 @@
           return;
         }
         try {
-          setStatus("Voice landing…");
-          await uploadVoice(peerId, blob, durationMs);
+          setStatus(kind === "ptt" ? "PTT landing…" : "Voice landing…");
+          await uploadVoice(peerId, blob, durationMs, kind);
           await renderVoiceList(peerId);
-          setStatus("Voice landed.");
+          setStatus(kind === "ptt" ? "PTT landed." : "Voice landed.");
         } catch (error) {
           setStatus(
             error.code === "voice_too_large"
@@ -269,10 +315,14 @@
         }
       });
 
-      state.current = { peerId, recorder, stream, chunks, startedAt, cancelled: false };
+      state.current = { peerId, recorder, stream, chunks, startedAt, cancelled: false, kind };
       recorder.start(1000);
       state.autoStopTimer = window.setTimeout(finishRecording, state.maxDurationMs);
-      setStatus("Voice recording… tap Stop when finished.");
+      setStatus(
+        kind === "ptt"
+          ? "PTT transmitting… release or tap Stop when finished."
+          : "Voice recording… tap Stop when finished.",
+      );
       refreshControls();
     } catch (error) {
       stopTracks(stream);
@@ -287,12 +337,55 @@
   };
 
   recordControls.forEach((control) => {
-    control.addEventListener("click", () => startRecording(control));
+    control.addEventListener("click", () => startRecording(control, "voice"));
+  });
+
+  pttControls.forEach((control) => {
+    const begin = (event) => {
+      event.preventDefault();
+      startRecording(control, "ptt");
+    };
+    control.addEventListener("pointerdown", begin);
+    control.addEventListener("keydown", (event) => {
+      if ((event.key === " " || event.key === "Enter") && !event.repeat) {
+        begin(event);
+      }
+    });
+    const finish = () => {
+      if (state.current && state.current.kind === "ptt" && state.current.peerId === recipientFor(control)) {
+        finishRecording();
+      }
+    };
+    control.addEventListener("pointerup", finish);
+    control.addEventListener("pointercancel", finish);
+    control.addEventListener("pointerleave", finish);
+    control.addEventListener("keyup", (event) => {
+      if (event.key === " " || event.key === "Enter") {
+        finish();
+      }
+    });
   });
 
   stopControls.forEach((control) => {
     control.addEventListener("click", () => {
-      if (!state.current || state.current.peerId !== recipientFor(control)) {
+      if (
+        !state.current ||
+        state.current.kind !== "voice" ||
+        state.current.peerId !== recipientFor(control)
+      ) {
+        return;
+      }
+      finishRecording();
+    });
+  });
+
+  pttStopControls.forEach((control) => {
+    control.addEventListener("click", () => {
+      if (
+        !state.current ||
+        state.current.kind !== "ptt" ||
+        state.current.peerId !== recipientFor(control)
+      ) {
         return;
       }
       finishRecording();
@@ -314,27 +407,47 @@
     }
   });
 
-  apiJson("/linkup/voice/status")
-    .then((status) => {
+  Promise.all([
+    standalonePtt ? Promise.resolve({ ready: false, first_party: true }) : apiJson("/linkup/voice/status"),
+    apiJson(pttStatusEndpoint),
+  ])
+    .then(([status, pttStatus]) => {
       state.ready = status.ready === true && status.first_party === true;
-      state.maxBytes = Number(status.max_voice_bytes) || state.maxBytes;
-      state.maxDurationMs = Number(status.max_voice_duration_ms) || state.maxDurationMs;
+      state.pttReady = pttStatus.ready === true && pttStatus.first_party === true;
+      if (standalonePtt) {
+        state.maxBytes = Number(pttStatus.max_ptt_bytes) || state.maxBytes;
+        state.maxDurationMs = Number(pttStatus.max_ptt_duration_ms) || state.maxDurationMs;
+      } else {
+        state.maxBytes = Number(status.max_voice_bytes) || state.maxBytes;
+        state.maxDurationMs = Number(status.max_voice_duration_ms) || state.maxDurationMs;
+      }
+      const activeTransport = standalonePtt ? state.pttReady : state.ready;
       setStatus(
-        state.ready && browserReady()
-          ? "Voice is ready. Microphone stays off until you tap Voice."
-          : "Voice remains locked until OAP Data Voice and browser recording are ready.",
+        activeTransport && browserReady()
+          ? standalonePtt
+            ? "PTT ready. Hold to talk; release to listen. Microphone stays off otherwise."
+            : state.pttReady
+              ? "Voice and PTT are ready. Microphone stays off until you use a control."
+              : "Voice is ready. PTT stays locked until its OAP Data schema is proven."
+          : standalonePtt && pttStatus.transport_ready === true
+            ? "PTT transport is ready; connect another phone to unlock talk."
+            : "Voice and PTT are unavailable. Microphone remains off.",
       );
       refreshControls();
       lists.forEach((node) => {
         const peerId = node.dataset.recipientId || "";
         if (peerId) {
           renderVoiceList(peerId);
+          if (standalonePtt) {
+            window.setInterval(() => renderVoiceList(peerId), 2000);
+          }
         }
       });
     })
     .catch(() => {
       state.ready = false;
-      setStatus("Voice is unavailable. Microphone remains off.");
+      state.pttReady = false;
+      setStatus("Voice and PTT are unavailable. Microphone remains off.");
       refreshControls();
     });
 })();

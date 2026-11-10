@@ -52,6 +52,7 @@ class _Connection:
         self.title = "Founder note"
         self.body = "Keep this exact content."
         self.audit = []
+        self.previous_action = None
         self.committed = False
 
     def __enter__(self):
@@ -71,6 +72,12 @@ class _Connection:
             return _Result(
                 (self.workspace_id, self.title, self.body, self.status)
             )
+        if "SELECT metadata FROM audit_events" in sql and "target=%s" in sql:
+            action, identity, target = params
+            assert action == executor._AUDIT_ACTION
+            assert identity == self.identity_id
+            assert target == f"workspace_record:{self.record_id}"
+            return _Result((self.previous_action,) if self.previous_action is not None else None)
         if "metadata->>'idempotency_key'" in sql:
             return _Result(None)
         if "UPDATE oap_workspace_records" in sql:
@@ -309,6 +316,7 @@ def test_rollback_requires_exact_post_action_hash(monkeypatch):
         authorization,
         identity_id=identity,
         rollback_token={
+            "origin_request_id": str(uuid.uuid4()),
             "record_id": record,
             "expected_status": "active",
             "target_status": "draft",
@@ -318,6 +326,7 @@ def test_rollback_requires_exact_post_action_hash(monkeypatch):
     )
 
     assert observed["expected_current_hash"] == expected_after
+    assert observed["expected_result_hash"] == expected_before
     assert observed["expected_status"] == "active"
     assert observed["target_status"] == "draft"
     assert result["rollback_verified"] is True
@@ -331,6 +340,7 @@ def test_rollback_rejects_bad_before_hash():
             _authorization(identity),
             identity_id=identity,
             rollback_token={
+                "origin_request_id": str(uuid.uuid4()),
                 "record_id": str(uuid.uuid4()),
                 "expected_status": "active",
                 "target_status": "draft",
@@ -338,3 +348,213 @@ def test_rollback_rejects_bad_before_hash():
                 "after_hash": "a" * 64,
             },
         )
+
+
+
+def test_rollback_wrong_restoration_hash_blocks_before_any_write(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    expected_after = executor._proof_hash({
+        "workspace_id": connection.workspace_id,
+        "title": connection.title,
+        "body": connection.body,
+        "status": "active",
+    })
+    expected_before = executor._proof_hash({
+        "workspace_id": connection.workspace_id,
+        "title": connection.title,
+        "body": connection.body,
+        "status": "draft",
+    })
+    # A well-formed forged before_hash used to fail only AFTER the executor
+    # had changed status, inserted audit evidence and committed its outcome.
+    forged_before = "f" * 64 if expected_before != "f" * 64 else "e" * 64
+    with pytest.raises(
+        executor.ExecutionBlocked, match="rollback_restoration_hash_mismatch",
+    ):
+        executor.rollback(
+            _authorization(identity),
+            identity_id=identity,
+            rollback_token={
+                "origin_request_id": str(uuid.uuid4()),
+                "record_id": record,
+                "expected_status": "active",
+                "target_status": "draft",
+                "before_hash": forged_before,
+                "after_hash": expected_after,
+            },
+        )
+    assert connection.status == "active"
+    assert connection.audit == []
+    assert connection.committed is False
+
+
+def test_rollback_correct_hash_changes_only_status_after_readback(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    monkeypatch.setattr(
+        executor.governed_action_pipeline, "record_action_outcome",
+        lambda authorization, **kwargs: {
+            "pipeline_complete": True,
+            "stage": "HRM_RECEIPT",
+            "write_verified": True,
+            "read_back_verified": True,
+            "human_authority_final": True,
+        },
+    )
+    expected_after = executor._proof_hash({
+        "workspace_id": connection.workspace_id,
+        "title": connection.title,
+        "body": connection.body,
+        "status": "active",
+    })
+    expected_before = executor._proof_hash({
+        "workspace_id": connection.workspace_id,
+        "title": connection.title,
+        "body": connection.body,
+        "status": "draft",
+    })
+    origin_request = str(uuid.uuid4())
+    connection.previous_action = {
+        "record_id": record,
+        "request_id": origin_request,
+        "before_hash": expected_before,
+        "after_hash": expected_after,
+        "before_status": "draft",
+        "after_status": "active",
+        "content_unchanged": True,
+        "status_readback_verified": True,
+    }
+    result = executor.rollback(
+        _authorization(identity),
+        identity_id=identity,
+        rollback_token={
+            "origin_request_id": origin_request,
+            "record_id": record,
+            "expected_status": "active",
+            "target_status": "draft",
+            "before_hash": expected_before,
+            "after_hash": expected_after,
+        },
+    )
+    assert connection.status == "draft"
+    assert connection.committed is True
+    assert len(connection.audit) == 1
+    assert connection.title == "Founder note"
+    assert connection.body == "Keep this exact content."
+    assert result["rollback_verified"] is True
+    assert result["restored_hash"] == expected_before
+
+
+
+def test_rollback_cannot_reuse_original_execution_review_even_with_valid_hash(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    authorization = _authorization(identity)
+    token = {
+        "origin_request_id": authorization["request_id"],
+        "record_id": record,
+        "expected_status": "active",
+        "target_status": "draft",
+        "after_hash": executor._proof_hash({
+            "workspace_id": connection.workspace_id,
+            "title": connection.title, "body": connection.body,
+            "status": "active",
+        }),
+        "before_hash": executor._proof_hash({
+            "workspace_id": connection.workspace_id,
+            "title": connection.title, "body": connection.body,
+            "status": "draft",
+        }),
+    }
+    with pytest.raises(executor.ExecutionBlocked, match="fresh_rollback_review_required"):
+        executor.rollback(authorization, identity_id=identity, rollback_token=token)
+    assert connection.status == "active"
+    assert connection.audit == []
+    assert connection.committed is False
+
+
+def test_rollback_missing_origin_request_fails_before_mutation(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    with pytest.raises(ValueError, match="invalid_rollback_origin_request_id"):
+        executor.rollback(_authorization(identity), identity_id=identity, rollback_token={
+            "record_id": record, "expected_status": "active",
+            "target_status": "draft", "before_hash": "a" * 64,
+            "after_hash": "b" * 64,
+        })
+    assert connection.status == "active"
+    assert connection.audit == []
+    assert connection.committed is False
+
+
+
+def test_rollback_forged_origin_rejected_against_immutable_record_audit(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    before_hash = executor._proof_hash({
+        "workspace_id": connection.workspace_id, "title": connection.title,
+        "body": connection.body, "status": "draft",
+    })
+    after_hash = executor._proof_hash({
+        "workspace_id": connection.workspace_id, "title": connection.title,
+        "body": connection.body, "status": "active",
+    })
+    true_origin = str(uuid.uuid4())
+    forged_origin = str(uuid.uuid4())
+    connection.previous_action = {
+        "request_id": true_origin, "record_id": record,
+        "before_hash": before_hash, "after_hash": after_hash,
+        "before_status": "draft", "after_status": "active",
+        "content_unchanged": True, "status_readback_verified": True,
+    }
+    authorization = _authorization(identity)
+    with pytest.raises(executor.ExecutionBlocked, match="rollback_origin_audit_mismatch"):
+        executor.rollback(authorization, identity_id=identity, rollback_token={
+            "origin_request_id": forged_origin, "record_id": record,
+            "expected_status": "active", "target_status": "draft",
+            "before_hash": before_hash, "after_hash": after_hash,
+        })
+    assert connection.status == "active"
+    assert connection.audit == []
+    assert connection.committed is False
+
+
+def test_rollback_requires_prior_record_audit_before_mutating(monkeypatch):
+    identity = str(uuid.uuid4())
+    record = str(uuid.uuid4())
+    connection = _Connection(identity_id=identity, record_id=record)
+    connection.status = "active"
+    monkeypatch.setattr(executor.postgres_db, "connect", lambda: connection)
+    before_hash = executor._proof_hash({
+        "workspace_id": connection.workspace_id, "title": connection.title,
+        "body": connection.body, "status": "draft",
+    })
+    after_hash = executor._proof_hash({
+        "workspace_id": connection.workspace_id, "title": connection.title,
+        "body": connection.body, "status": "active",
+    })
+    with pytest.raises(executor.ExecutionBlocked, match="rollback_origin_audit_missing"):
+        executor.rollback(_authorization(identity), identity_id=identity, rollback_token={
+            "origin_request_id": str(uuid.uuid4()), "record_id": record,
+            "expected_status": "active", "target_status": "draft",
+            "before_hash": before_hash, "after_hash": after_hash,
+        })
+    assert connection.status == "active"
+    assert connection.audit == []
+    assert connection.committed is False

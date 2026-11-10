@@ -72,13 +72,12 @@ def test_public_map_door_uses_visible_first_party_renderer():
 def test_road_network_loads_without_successful_route():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
 
-    assert "loadRoadNetwork(defaultBounds,profile.value);" in template
-    assert "if(from.value.trim()&&to.value.trim())route();" in template
-    assert template.index("loadRoadNetwork(defaultBounds,profile.value);") < template.index(
-        "if(from.value.trim()&&to.value.trim())route();"
-    )
+    assert "if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);" in template
     assert 'id="road-source-state"' in template
-    assert "showRoadStatus(count?'': 'Road network unavailable" in template
+    assert "if(request!==roadRequest)return 0;" in template
+    assert "if(batchAttempt<1)" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — route guidance may still work.');" in template
 
 
 def test_route_failure_preserves_independent_road_layer():
@@ -88,17 +87,17 @@ def test_route_failure_preserves_independent_road_layer():
     )[0]
 
     assert "roadLayer.innerHTML=''" not in route_section
-    assert "if(request!==roadRequest)return;" in template
-    assert "if(request===roadRequest)" in template
+    assert "if(request!==roadRequest||!d||!Array.isArray(d.lines))return;" in template
+    assert "if(request!==roadRequest)return 0;" in template
     assert "profile.addEventListener('change'" in template
 
 
-def test_oap_os_generation_zero_map_binding_is_truthful_and_consent_safe():
+def test_oap_os_generation_zero_map_binding_stays_non_visual_and_consent_safe():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
     bridge = Path("mission_control/static/oap_os_map_bridge.js").read_text(encoding="utf-8")
     documentation = Path("docs/OAP_OPERATING_SYSTEM_V0.md").read_text(encoding="utf-8")
 
-    assert 'id="oap-os-map-runtime"' in template
+    assert 'id="oap-os-map-runtime"' not in template
     assert "oap_os_map_bridge.js" in template
     assert "android-web" in bridge
     assert "installed web shell" in bridge
@@ -112,10 +111,139 @@ def test_oap_os_generation_zero_map_binding_is_truthful_and_consent_safe():
 def test_road_network_loader_reaches_a_terminal_state_when_a_tile_stalls():
     template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
 
-    assert "const ROAD_TILE_TIMEOUT_MS=4000;" in template
+    assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
     assert "const controller=new AbortController();" in template
     assert "signal:controller.signal" in template
     assert "finally{clearTimeout(timeout)}" in template
-    assert "tiles.map(([x,y])=>fetchRoadTile(z,x,y,mode))" in template
-    assert "tiles.map(async([x,y])=>{const r=await fetch(" not in template
+    assert "const renderPayload=d=>" in template
+    assert "const queue=[...tiles];" in template
+    assert "const worker=async()=>{while(queue.length&&request===roadRequest&&count<180)" in template
+    assert "Math.min(2,tiles.length)" in template
+    assert "roadLayer.replaceChildren(staged);" in template
+    assert "showRoadStatus('');clearBoot();setRenderState('stable');" in template
     assert "Road network unavailable — route guidance may still work." in template
+
+
+def test_route_draw_preserves_existing_road_layer():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    draw_section = template.split("async function draw(coords){", 1)[1].split(
+        "function lon2x", 1
+    )[0]
+
+    assert "await loadRoadNetwork(bounds,profile.value)" in draw_section
+    assert "if(!roadLayer.querySelector('polyline'))loadRoadNetwork(bounds,profile.value);" not in draw_section
+
+
+def test_map_boot_clears_only_after_terminal_road_state():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "showRoadStatus('');clearBoot();setRenderState('stable');" in template
+    assert "clearBoot();setRenderState('degraded')" in template
+    assert "setTimeout(clearBoot,5000);" not in template
+
+
+def test_road_tiles_are_prioritised_and_bounded_instead_of_flooded():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "tiles.sort((a,b)=>" in template
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+    assert "tiles=tiles.slice(batchStart,batchStart+batchSize);" in template
+    assert "Math.min(2,tiles.length)" in template
+    assert "for(let attempt=0;attempt<1;attempt++)" in template
+    assert "response.status!==503" in template
+
+
+def test_on_any_postcode_maps_public_identity_and_navigation_camera():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    css = Path("mission_control/static/oap_map_navigation.css").read_text(encoding="utf-8")
+    nav = Path("mission_control/static/oap_map_navigation.js").read_text(encoding="utf-8")
+    assert "<title>On Any Postcode Maps</title>" in template
+    assert 'aria-label="On Any Postcode Maps"' in template
+    assert 'id="route-casing"' in template
+    assert "history.replaceState(null,'','/oap-map?" in template
+    assert "perspective(900px) rotateX(22deg)" in nav
+    assert "perspectiveDriveCamera:true" in nav
+    assert "routeCasing:true" in nav
+    assert ".route-svg #route-casing" in css
+
+
+def test_road_network_has_bounded_batch_level_cold_start_recovery():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null)" in template
+    assert "request=requestToken===null?++roadRequest:requestToken" in template
+    assert "if(batchAttempt<1)" in template
+    assert "1000*(batchAttempt+1)" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "setRenderState('loading')" in template
+
+
+def test_road_network_does_not_self_cancel_slow_successful_batches():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
+    assert "recoveryTimer" not in template
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+    assert "tiles=tiles.slice(batchStart,batchStart+batchSize)" in template
+    assert "Math.min(2,tiles.length)" in template
+    assert "request===roadRequest&&count<180" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "},6000):null;" not in template
+    assert "if(recoveryTimer)clearTimeout(recoveryTimer);" not in template
+
+
+def test_nearby_place_requests_cannot_restore_stale_results():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "placeRequest=0,placeController=null" in template
+    assert "const request=++placeRequest;" in template
+    assert "if(placeController)placeController.abort();" in template
+    assert "cache:'no-store',signal:placeController.signal" in template
+    assert "if(request!==placeRequest)return;" in template
+    assert "error?.name==='AbortError'||request!==placeRequest" in template
+    assert "places.replaceChildren();" in template
+
+
+def test_map_master_visibility_contract():
+    css = Path("mission_control/static/oap_map_navigation.css").read_text(encoding="utf-8")
+    assert "--route:#ffd85a" in css
+    assert ".road-svg polyline.local{stroke:#4d5966;stroke-width:2.2;opacity:.9}" in css
+    assert ".road-svg polyline.secondary{stroke:#758290;stroke-width:3.2;opacity:.96}" in css
+    assert ".road-svg polyline.major{stroke:#a4afb9;stroke-width:4.4;opacity:1}" in css
+    assert ".road-label{fill:#f1f4f7;stroke:#07090c;stroke-width:4px;" in css
+    assert ".route-svg #route-casing{stroke:#090d12;stroke-width:16;opacity:.98}" in css
+    assert ".route-svg #route-line{stroke:var(--route);stroke-width:9}" in css
+    assert "body[data-map-mode=\"drive\"] .road-label{opacity:.78;font-size:12px}" in css
+    assert ".map-float-btn{width:48px;height:48px" in css
+    assert "outline:3px solid #ffd85a" in css
+    assert "@media(max-width:700px){.road-svg polyline.local{stroke-width:2.5}" in css
+
+
+def test_road_network_second_batch_uses_new_nearby_tiles():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+    assert "tiles=tiles.slice(batchStart,batchStart+batchSize);" in template
+    assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
+    assert "if(batchAttempt<1)" in template
+
+
+def test_selected_road_tiles_are_not_discarded_by_viewport_prefilter():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert ".filter(ll=>Number.isFinite(ll[0])&&Number.isFinite(ll[1]))" in template
+    assert "ll[0]>=b.minX-.02" not in template
+    assert "ll[1]>=b.minY-.02" not in template
+    assert ".map(ll=>project(ll[0],ll[1],b));" in template
+
+
+def test_cold_road_fetch_budget_remains_bounded():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "const ROAD_TILE_TIMEOUT_MS=6000;" in template
+    assert "if(batchAttempt<1)" in template
+    assert "const batchSize=4,batchStart=batchAttempt*batchSize;" in template
+
+
+def test_route_draw_preserves_proven_road_context_on_refresh_failure():
+    template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    draw_section = template.split("async function draw(coords){", 1)[1].split(
+        "function lon2x", 1
+    )[0]
+
+    assert "const retainedRoadCount=roadLayer.querySelectorAll('polyline').length;" in draw_section
+    assert "const usableRoadCount=roadCount>0?roadCount:retainedRoadCount;" in draw_section
+    assert "if(usableRoadCount>0){showRoadStatus('');setRenderState('stable');return true}" in draw_section
+    assert "setRenderState('degraded');return false" in draw_section

@@ -18,6 +18,7 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 from oap.registry import founder_tool_registry
+from oap.smi.capability_preflight import preflight
 
 DEFAULT_REPOSITORY = "RoyalPrince777/on-any-postcode"
 _API_BASE = "https://api.github.com"
@@ -54,6 +55,16 @@ class FounderGitHubReadAdapter:
         self._registry = founder_tool_registry()
 
     def _authorize(self, ability: str) -> None:
+        decision = preflight(
+            self._registry,
+            task_type="TECHNICAL",
+            query=f"github {ability}",
+            tool_id="github",
+            ability=ability,
+        )
+        if not decision.permitted_for_proposal:
+            raise PermissionError("SMI capability preflight denied GitHub read")
+        # Preserve the original direct registry gate as defence in depth.
         self._registry.authorize_capability("github", ability, mutation=False)
 
     def _request_json(self, path: str, *, query: dict[str, object] | None = None) -> Any:

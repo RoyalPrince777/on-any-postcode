@@ -40,7 +40,7 @@ def _components(health: dict[str, Any]) -> tuple[dict[str, object], ...]:
     return tuple(
         {
             "component": f"SMI 21 Gate: {name}",
-            "ready": bool(value),
+            "ready": value is True,
             "mode": "production_health_evidence",
             "coherence_claims": {
                 "human_authority_final": True,
@@ -93,12 +93,8 @@ def run_cycle() -> dict[str, Any]:
         "gates_green": sum(value is True for value in checks.values()),
         "gates_total": len(checks),
         "production_invariants": {
-            "execution_locked": bool(
-                health.get("invariants", {}).get("execution_locked")
-            ),
-            "human_authority_final": bool(
-                health.get("invariants", {}).get("human_authority_final")
-            ),
+            "execution_locked": health.get("invariants", {}).get("execution_locked") is True,
+            "human_authority_final": health.get("invariants", {}).get("human_authority_final") is True,
         },
         "self_model": self_model.as_dict(),
         "coherence_report": coherence.as_dict(),

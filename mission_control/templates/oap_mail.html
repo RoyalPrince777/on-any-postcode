@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OAP Mail</title>
+  <style>
+    :root{color-scheme:dark;--bg:#050706;--panel:#10130f;--line:#34452f;--text:#f6f5ed;--muted:#a9b0a2;--green:#4ee38a;--gold:#d6b85c}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    main{max-width:980px;margin:auto;padding:18px 14px 60px}a{color:inherit;text-decoration:none}
+    header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px}
+    .eyebrow{color:var(--green);font-weight:900;letter-spacing:.12em;text-transform:uppercase;font-size:.72rem}
+    h1{margin:.15em 0;font-size:clamp(2rem,7vw,4rem)}.muted{color:var(--muted)}
+    .folders{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.folders a{border:1px solid var(--line);border-radius:999px;padding:8px 11px}
+    .folders a.active{border-color:var(--green)}
+    .status,.mail{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:13px;margin:10px 0}
+    .mail h2{margin:0 0 6px;font-size:1rem}.meta{font-size:.78rem;color:var(--muted)}
+    .truth{border-left:4px solid var(--gold);padding:10px 12px;background:#171405;border-radius:0 10px 10px 0}
+    .ok{color:var(--green)}.gap{color:#f1cf70}
+  </style>
+</head>
+<body>
+<main>
+  <header><a href="/mission/smi">← SMI</a><strong>OAP MAIL</strong><a href="/my-card">My Card →</a></header>
+  <p class="eyebrow">First-party · Private mailbox</p>
+  <h1>✉️ OAP Mail</h1>
+  <p class="muted">Inbox, Sent, Draft and Review use the existing OAP Mail store. Inbound SMTP transport remains a separate gate.</p>
+
+  <section class="status">
+    <strong class="{{ 'ok' if mailbox.ready else 'gap' }}">Mailbox {{ 'ready' if mailbox.ready else 'not ready' }}</strong>
+    <p class="muted">Outbound relay {{ 'configured' if outbound.relay_configured else 'not configured' }} · final recipient delivery {{ 'proven' if outbound.recipient_delivery_proven else 'not proven' }}</p>
+    {% if error %}<p class="gap">State: {{ error }}</p>{% endif %}
+  </section>
+
+  <nav class="folders" aria-label="Mail folders">
+    {% for name in folders %}
+    <a class="{{ 'active' if folder == name else '' }}" href="/mail?folder={{ name }}">{{ name|title }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if items %}
+    {% for item in items %}
+    <article class="mail">
+      <h2>{{ item.subject or '(No subject)' }}</h2>
+      <div class="meta">{{ item.correspondent }} · {{ item.created_at }}</div>
+      <p>{{ item.body }}</p>
+    </article>
+    {% endfor %}
+  {% else %}
+    <section class="status"><span class="muted">No items in {{ folder }}.</span></section>
+  {% endif %}
+
+  <p class="truth"><strong>Truth boundary:</strong> This mailbox displays stored OAP Mail items only. It does not claim an external email was received, delivered, encrypted end-to-end or accepted by another provider unless separate evidence proves that.</p>
+</main>
+</body>
+</html>

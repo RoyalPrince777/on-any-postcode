@@ -36,7 +36,7 @@
   <script src="{{ url_for('static', filename='linkup_network.js') }}" defer></script>
 </head>
 <body>
-<div class="linkup-app" data-linkup-app data-chat-open="false" data-network="online">
+<div class="linkup-app" data-linkup-app data-chat-open="false" data-network="online" data-linkup-intent="{{ linkup_intent or '' }}">
   <section class="linkup-install-network" aria-label="Link Up app status">
     <span data-oap-linkup-network-status role="status" aria-live="polite">Checking connection…</span>
     <button type="button" data-oap-install hidden>Install Link Up</button>
@@ -56,13 +56,7 @@
           <span class="linkup-crown" aria-hidden="true">♛</span>
           <h2>LINK <span>UP</span></h2>
           <strong>OAP</strong>
-          <p>PUBLIC · CONNECT · CREATE</p>
-        </div>
-        <div class="linkup-royal-search">
-          <span aria-hidden="true">⌕</span>
-          <label class="sr-only" for="linkup-public-search">Search Link Up</label>
-          <input id="linkup-public-search" type="search" placeholder="Search people, interests, or opportunities…" disabled>
-          <a href="{{ url_for('the_link_front_door') }}" aria-label="Open discovery filters">☷</a>
+          <p>PRIVATE CHAT · SIMPLE · LINKED</p>
         </div>
         {% if my_card and not auth_user %}
         <div class="linkup-create-card" aria-label="Basic My Card active">
@@ -82,54 +76,24 @@
         {% endif %}
       </section>
 
-      <nav class="linkup-royal-tools" aria-label="Link Up features">
-        <a href="{{ url_for('linkup_front_door') }}"><span class="royal-symbol royal-purple">💬</span><strong>Link Message</strong><small>Private chat home</small></a>
-        <a href="{{ url_for('home') }}"><span class="royal-symbol royal-world">🌍</span><strong>Discovery</strong><small>Discover people in OAP World</small></a>
-        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-green">✓</span><strong>Certified</strong><small>Identity &amp; trust</small></a>
-        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-gold">!</span><strong>Safety</strong><small>Public safety hub</small></a>
-        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-shield">🔒</span><strong>Private</strong><small>My Card &amp; settings</small></a>
-        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-purple">🔓</span><strong>Public</strong><small>Open public spaces</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🚀</span><strong>Opportunities</strong><small>Work &amp; collaboration</small></a>
-        <a href="{{ url_for('the_spot_front_door') }}"><span class="royal-symbol royal-star">✦</span><strong>Spotlight</strong><small>Public highlights</small></a>
-        <a href="{{ url_for('my_card_page') }}"><span class="royal-symbol royal-scroll">📜</span><strong>Identity</strong><small>Open My Card</small></a>
-      </nav>
-
-      <section class="linkup-royal-stream" aria-label="Link Up discovery">
-        <a class="linkup-royal-card" href="{{ url_for('home') }}">
-          <span class="royal-card-art royal-nearby" aria-hidden="true">📍</span>
-          <span><strong>Nearby People</strong><small>Discover people through OAP World, then Link Up privately.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
-        <a class="linkup-royal-card" href="{{ url_for('the_link_front_door') }}">
-          <span class="royal-card-art royal-opportunity" aria-hidden="true">♛</span>
-          <span><strong>Opportunities</strong><small>Discover collaborations, projects, services and events.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
-        <a class="linkup-royal-card" href="{{ url_for('the_spot_front_door') }}">
-          <span class="royal-card-art royal-signal" aria-hidden="true">🌐</span>
-          <span><strong>Community Signals</strong><small>See what is happening across The Spot.</small></span>
-          <b aria-hidden="true">›</b>
-        </a>
+      <section class="linkup-public-welcome" aria-label="Link Up private communication">
+        <p><strong>Simple private chat.</strong> Create My Card, Link with someone, then keep the conversation inside Link Up.</p>
       </section>
-
-      <nav class="linkup-royal-bottom" aria-label="Link Up navigation">
-        <a aria-current="page" href="{{ url_for('linkup_front_door') }}">⌂<span>Home</span></a>
-        <a href="{{ url_for('home') }}">♟<span>People</span></a>
-        <a class="linkup-oap-home" href="{{ url_for('home') }}">♛<span>OAP</span></a>
-        <a href="{{ url_for('linkup_front_door') }}">💬<span>Link Message</span></a>
-        <a href="{{ url_for('my_card_page') }}">●<span>Profile</span></a>
-      </nav>
     </main>
   {% else %}
     <main class="linkup-shell" aria-label="Private Link Up messenger">
       <aside class="linkup-list" aria-label="Link Ups">
-        <div class="linkup-list-head">
+        <div class="linkup-list-head" id="linkup-chats">
           <input class="linkup-search" type="search" placeholder="Search Link Ups" aria-label="Search Link Ups" data-linkup-search>
           <button class="linkup-new-btn" type="button" data-linkup-new aria-label="New Link">+</button>
         </div>
-        <div class="linkup-master-nav">
-          <a href="{{ url_for('the_link_front_door') }}">The Link</a>
-        </div>
+        <nav class="linkup-master-nav" aria-label="Link Up private menu">
+          <a href="#linkup-chats">💬 Link Ups</a>
+          <a href="#linkup-ring">📞 Ring</a>
+          <a href="#linkup-now">🟢 Now</a>
+          <a href="#linkup-incoming">🔔 Incoming</a>
+          <a href="#linkup-more">⋯ More</a>
+        </nav>
 
         {% if my_card %}
         <section class="linkup-card" aria-label="My Card">
@@ -149,7 +113,7 @@
           </span>
         </section>
         {% endif %}
-        <form class="linkup-now" data-oap-now-form>
+        <form class="linkup-now" id="linkup-now" data-oap-now-form>
           <label for="oap-now">💬 Now · What you on?</label>
           <input id="oap-now" maxlength="120" placeholder="Share a short status" data-oap-now-input>
           <label class="linkup-free"><input type="checkbox" data-oap-im-free> 🟢 I’m Free</label>
@@ -157,7 +121,7 @@
           <button type="submit">Update Now</button>
         </form>
 
-        <section class="linkup-card" aria-label="Link Requests">
+        <section class="linkup-card" id="linkup-requests" aria-label="Link Requests">
           <span class="linkup-avatar">🔗</span>
           <span class="linkup-card-copy">
             <strong>Link Requests</strong>
@@ -213,13 +177,15 @@
         {% else %}
           <div class="linkup-empty">
             <p>No Link Ups yet.</p>
-            <p><a href="{{ url_for('home') }}">Discover people in OAP World</a> · <a href="{{ url_for('the_link_front_door') }}">Open The Link</a> · <a href="{{ url_for('my_card_page') }}">Open My Card</a></p>
+            <p><a href="{{ url_for('the_link_front_door') }}">Open The Link</a> · <a href="{{ url_for('my_card_page') }}">Open My Card</a></p>
           </div>
         {% endif %}
       </aside>
 
-      <section class="linkup-chat" aria-label="Open chat">
-        <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
+      <section class="linkup-chat" id="linkup-ring" aria-label="Open chat">
+        <section id="linkup-incoming" aria-label="Incoming activity">
+          <div class="linkup-incoming" data-oap-incoming-unified hidden aria-live="polite"></div>
+        </section>
         <div class="linkup-incoming" data-oap-incoming-calls hidden aria-live="polite"></div>
         <div class="linkup-call-stage" data-oap-call-stage hidden>
           <p data-oap-call-stage-label>Call</p>
@@ -232,6 +198,17 @@
         <p class="linkup-runtime" data-oap-call-status role="status">Call</p>
         <p class="linkup-runtime" data-oap-presence-status role="status">Around Now</p>
         <p class="linkup-runtime" data-oap-share-status role="status">Share</p>
+        <details class="linkup-conversation-settings" id="linkup-more">
+          <summary>More</summary>
+          <p><a href="{{ url_for('my_card_page') }}">My Card</a></p>
+          <p><a href="#linkup-requests">Link Requests</a></p>
+          <p><a href="#linkup-ring">My Controls</a> · open a Link Up and use ⚙ My Controls.</p>
+          <form method="post" action="{{ url_for('auth_sign_out') }}">
+            <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+            <button class="mc-secondary" type="submit">Leave My World</button>
+          </form>
+          <p>Voice, My Spot, Live Spot and My Emojis stay inside the private chat where they are used.</p>
+        </details>
 
         {% if dashboard and dashboard.threads %}
           {% for thread in dashboard.threads %}
@@ -265,6 +242,9 @@
                 </div>
                 {% if message.other_identity_id %}
                 <details><summary>⋯</summary>
+                  {% if message.direction == 'sent' %}
+                  <button class="mc-secondary" type="button" data-oap-delete-link data-message-id="{{ message.message_id }}">Delete Link</button>
+                  {% endif %}
                   <form method="post" action="{{ url_for('linkup_safety.block_member', member_id=message.other_identity_id) }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><button class="mc-secondary" type="submit">Block</button></form>
                   <form method="post" action="{{ url_for('linkup_safety.report_message', message_id=message.message_id, member_id=message.other_identity_id) }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}"><select name="reason" required aria-label="Report reason"><option value="">Report…</option><option value="harassment">Harassment</option><option value="spam">Spam</option><option value="threat">Threat or safety concern</option><option value="other">Other</option></select><textarea name="detail" maxlength="2000" placeholder="Details (optional)" aria-label="Report details"></textarea><button class="mc-secondary" type="submit">Report</button></form>
                 </details>
@@ -280,8 +260,8 @@
                   <button class="mc-secondary" type="button" data-oap-plus aria-expanded="false" aria-label="More">+</button>
                   <textarea name="body" maxlength="4000" required rows="1" placeholder="Type a Link…"></textarea>
                   <details data-oap-emoji-picker>
-                    <summary aria-label="Choose emoji" title="Emoji">😀</summary>
-                    <div role="group" aria-label="Insert emoji">
+                    <summary aria-label="My Emojis" title="My Emojis">😀</summary>
+                    <div role="group" aria-label="My Emojis">
                       {% for emoji in ['😀', '😂', '❤️', '👍', '🙏', '🔥', '👑', '💜', '🎉', '🤝', '🌍', '💯'] %}
                       <button type="button" data-oap-emoji="{{ emoji }}" aria-label="Insert {{ emoji }}">{{ emoji }}</button>
                       {% endfor %}

@@ -6,7 +6,7 @@ and never turns missing proof green. Human Authority remains final.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from . import (
@@ -37,7 +37,7 @@ def _iso_from_epoch(value: object) -> str | None:
         return None
     if epoch <= 0:
         return None
-    return datetime.fromtimestamp(epoch, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.fromtimestamp(epoch, tz=UTC).isoformat().replace("+00:00", "Z")
 
 
 def _runtime_observation(generated_at: str) -> dict[str, Any]:
@@ -302,7 +302,7 @@ def _direct_observation(generated_at: str) -> dict[str, Any]:
 def operational_monitor() -> dict[str, Any]:
     """Return source-backed observations without inventing live proof."""
 
-    generated_at = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    generated_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     link_observation = link_monitor.observation(generated_at)
     if link_observation["proof_state"] == "partial_proof":
         link_observation["signal"] = live_signals.get_signal("warning")
@@ -343,7 +343,10 @@ def status() -> dict[str, Any]:
         "signal_intelligence_monitor": monitor,
         "mind_body_soul": smi_brain_protocol.MIND_BODY_SOUL_777,
         "laws_21": smi_brain_protocol.LAWS_21,
-        "proof_signals_21": smi_brain_protocol.SIGNALS_21,
+        "major_links_7": smi_brain_protocol.MAJOR_LINKS_7,
+        "core_review_signals_21": smi_brain_protocol.CORE_REVIEW_SIGNALS_21,
+        "thinking_signals_21": smi_brain_protocol.THINKING_SIGNALS_21,
+        "proof_signals_21": smi_brain_protocol.THINKING_SIGNALS_21,
         "flow": (
             "Observe",
             "Classify",

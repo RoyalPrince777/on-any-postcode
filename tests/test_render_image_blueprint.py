@@ -16,7 +16,7 @@ def test_core_render_blueprint_uses_immutable_first_party_runtime_image():
     assert "runtime: image" in block
     assert (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
-        "sha256:22fb2967afe92eba48dfbdd261160ccf4f2a93cae5d7d11c8d807d0c4a02fb69"
+        "sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a"
     ) in block
     assert 'value: "app:app"' in block
     assert "buildCommand:" not in block
@@ -41,11 +41,11 @@ def test_core_image_release_manifest_is_candidate_not_live_proof():
     )
     assert manifest["evidence_state"] == "candidate_not_live_proven"
     assert manifest["release_commit"] == (
-        "48807b3a58b6e04122369a076cde30878160960d"
+        "1c0e817e102afb836d6c6236aeb511769d0c9ec5"
     )
     assert manifest["image"]["immutable_ref"] == (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
-        "sha256:22fb2967afe92eba48dfbdd261160ccf4f2a93cae5d7d11c8d807d0c4a02fb69"
+        "sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a"
     )
     assert manifest["service"]["render_service_id"] == (
         "srv-d8gfsv0jo6nc73egdlf0"
@@ -66,12 +66,12 @@ def _smi_block() -> str:
     return content[start:] if next_service < 0 else content[start : start + 1 + next_service]
 
 
-def test_smi_render_blueprint_uses_exact_motion_fix_image():
+def test_smi_render_blueprint_uses_exact_human_ai_boundary_image():
     block = _smi_block()
     assert "runtime: image" in block
     assert (
         "ghcr.io/royalprince777/on-any-postcode-runtime@"
-        "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
+        "sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a"
     ) in block
     assert 'value: "smi_gateway:app"' in block
     assert "buildCommand:" not in block

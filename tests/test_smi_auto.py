@@ -64,3 +64,202 @@ def test_public_status_declares_same_non_authority_contract():
 def test_app_registers_smi_auto_response_hook():
     names = {func.__name__ for func in app_module.app.after_request_funcs[None]}
     assert "_oap_smi_auto_response" in names
+
+
+def test_smi_auto_adds_only_mission_relevant_semantic_lenses():
+    observed = smi_auto.observe(
+        "GET",
+        "/mission/ollama",
+        message="Why is Link Up confusing users on mobile?",
+    )
+    assert observed["selector"] == "surface+action+mission"
+    assert set(observed["semantic_lenses"]) == {"ux", "behaviour"}
+    assert "competitive" not in observed["lenses"]
+    assert "trend" not in observed["lenses"]
+
+
+def test_smi_auto_combines_surface_action_and_mission_without_all_intelligence():
+    observed = smi_auto.observe(
+        "POST",
+        "/mission/release",
+        message="Check whether this release is ready and how rollback works if it fails.",
+    )
+    assert {"readiness", "gap", "resilience", "risk"}.issubset(set(observed["semantic_lenses"]))
+    assert observed["write_action"] is True
+    assert observed["war_room_escalation"] is True
+    assert len(observed["lenses"]) < 28
+    assert observed["execution_granted"] is False
+    assert observed["approval_granted"] is False
+
+
+def test_smi_auto_without_message_preserves_existing_low_noise_contract():
+    observed = smi_auto.observe("GET", "/the-spot")
+    assert observed["semantic_lenses"] == ()
+    assert observed["lenses"] == smi_auto.BASE_LENSES
+
+
+def test_smi_intelligence_selects_minimum_sufficient_a1_to_a7_level():
+    base = smi_auto.observe("GET", "/the-spot")
+    semantic = smi_auto.observe(
+        "GET",
+        "/mission/ollama",
+        message="Why is this navigation confusing on mobile?",
+    )
+    consequential = smi_auto.observe(
+        "POST",
+        "/mission/release",
+        message="Verify release readiness, dependencies, rollback and recovery before approval.",
+    )
+
+    assert base["smi_intelligence"]["level"] == "A1"
+    assert semantic["smi_intelligence"]["level"] in {"A3", "A4"}
+    assert consequential["smi_intelligence"]["level"] in {"A6", "A7"}
+    assert base["smi_intelligence"]["stop"] is True
+    assert consequential["execution_granted"] is False
+    assert consequential["approval_granted"] is False
+
+
+def test_smi_intelligence_does_not_escalate_depth_without_need():
+    observed = smi_auto.observe("GET", "/the-spot", message="Hello")
+    assert observed["smi_intelligence"]["level"] == "A1"
+    assert observed["semantic_lenses"] == ()
+    assert observed["smi_intelligence"]["stop_reason"].startswith("minimum sufficient intelligence")
+
+
+def test_nirmata_and_aei_route_as_advisory_lenses_only():
+    for phrase, expected in (("Nirmata design upgrade", "architecture"), ("AEI execute upgrade", "security")):
+        result = smi_auto.observe("GET", "/mission/smi", message=phrase)
+        assert expected in result["semantic_lenses"]
+        assert result["execution_granted"] is False
+        assert result["approval_granted"] is False
+        assert result["provider_call_performed"] is False
+        assert result["database_write_performed"] is False
+        assert result["human_authority_final"] is True
+
+
+def test_hathi_memory_learning_routes_to_canonical_jungle_passport_with_seven_thinking():
+    result = smi_auto.observe("GET", "/mission/smi", message="Memory and learning review")
+    mission = result["specialist_mission"]
+    assert mission["lead"] == "Colonel Hathi"
+    assert mission["lead_alias"] == "Hathi"
+    assert mission["lead_passport"] == "JUNGLE-HATHI-001"
+    assert mission["support"] == ("Hathi Jr", "Owl", "Oracle", "Fox")
+    assert mission["thinking_depth"] == 7
+    assert len(mission["selected_checks"]) == 7
+    assert {x["block"] for x in mission["selected_checks"]} == {"Mind"}
+    assert set(mission["lenses"]).issubset(set(result["lenses"]))
+    assert mission["memory_owner"] == "HRM Core"
+    assert mission["guardian_required"] and mission["green_gate_required"]
+    assert not mission["checks_executed"] and not mission["receipts_verified"]
+    assert not mission["independent_votes_proven"]
+    assert not mission["execution_granted"] and not mission["approval_granted"]
+    assert mission["human_authority_final"]
+    assert not result["provider_call_performed"]
+    assert not result["database_write_performed"]
+
+
+def test_non_memory_request_does_not_invoke_hathi_specialist_team():
+    assert smi_auto.observe("GET", "/the-spot", message="Hello")["specialist_mission"] is None
+
+
+def test_dynamic_multi_division_routing_preserves_one_brain_and_governance():
+    selection = smi_auto.route_divisions(("truth", "engineering", "memory", "engineering"), thinking="7")
+    assert tuple(row["division"] for row in selection["divisions"]) == ("truth", "engineering", "memory")
+    assert selection["thinking_depth"] == 7
+    assert len(selection["selected_checks"]) == 7
+    assert selection["divisions"][-1]["lead"] == "Colonel Hathi"
+    assert selection["selection_only"] is True
+    assert selection["agents_executed"] is False
+    assert selection["independent_votes_proven"] is False
+    assert selection["guardian_required"] is True
+    assert selection["green_gate_required"] is True
+    assert selection["hrm_proof_required"] is True
+    assert selection["execution_granted"] is False
+    assert selection["approval_granted"] is False
+    assert selection["human_authority_final"] is True
+
+
+def test_dynamic_multi_division_auto_escalates_and_rejects_invalid_scope():
+    import pytest
+    full = smi_auto.route_divisions(("truth", "strategy", "engineering", "decision", "memory"))
+    assert full["thinking_depth"] == 21
+    assert len(full["selected_checks"]) == 21
+    assert len(full["divisions"]) == 5
+    assert smi_auto.route_divisions(("truth",), thinking="AUTO")["thinking_depth"] == 3
+    for divisions, thinking in (((), "AUTO"), (("unknown",), "AUTO"), (("truth",), "14")):
+        with pytest.raises(ValueError):
+            smi_auto.route_divisions(divisions, thinking=thinking)
+
+
+def test_memory_auto_depth_matches_hathi_seven_check_contract():
+    memory_only = smi_auto.route_divisions(("memory",), thinking="AUTO")
+    engineering_and_memory = smi_auto.route_divisions(("engineering", "memory"), thinking="AUTO")
+    for selection in (memory_only, engineering_and_memory):
+        assert selection["thinking_depth"] == 7
+        assert len(selection["selected_checks"]) == 7
+        assert selection["selection_only"] is True
+        assert selection["agents_executed"] is False
+        assert selection["execution_granted"] is False
+        assert selection["approval_granted"] is False
+        assert selection["human_authority_final"] is True
+    assert smi_auto.route_divisions(("engineering",), thinking="AUTO")["thinking_depth"] == 3
+
+
+def test_matrix_mouse_creative_simulation_is_advisory_not_new_passport():
+    from mission_control import agents
+    profiles = [row for row in agents.MATRIX_ADVISORY_ALLIANCES if row["id"] == "mouse_creative_simulation"]
+    assert len(profiles) == 1
+    assert profiles[0]["members"] == ("Mouse",)
+    assert profiles[0]["world_id"] == "matrix"
+    assert "Morpheus" in profiles[0]["allies"]
+    assert agents.MATRIX_ALLIANCE_POLICY["execution"] == "DISABLED"
+    assert agents.MATRIX_ALLIANCE_POLICY["independent_votes"] is False
+    assert agents.MATRIX_ALLIANCE_POLICY["founder_final_required"] is True
+
+
+def test_morpheus_mouse_mission_review_uses_existing_matrix_advisory_boundary():
+    from mission_control import agents
+    profiles = [x for x in agents.MATRIX_ADVISORY_ALLIANCES if x["id"] == "morpheus_mouse_mission_design"]
+    assert len(profiles) == 1
+    assert profiles[0]["members"] == ("Morpheus", "Mouse")
+    assert profiles[0]["world_id"] == "matrix"
+    assert "Mouse designs training programs" in " ".join(profiles[0]["roles"])
+    assert profiles[0]["training_flow"][0] == "Morpheus defines lesson"
+    assert profiles[0]["training_flow"][2] == "Tank operates approved runtime"
+    assert profiles[0]["runtime_execution"] is False
+    assert agents.MATRIX_ALLIANCE_POLICY["execution"] == "DISABLED"
+    assert agents.MATRIX_ALLIANCE_POLICY["independent_votes"] is False
+    assert agents.MATRIX_ALLIANCE_POLICY["founder_final_required"] is True
+
+
+
+def test_mouse_dynamic_recommendation_preserves_matrix_home_and_authority():
+    recommendation = smi_auto.route_divisions(
+        ("engineering", "decision"), thinking="7",
+        mission="Review game mechanics and UI edge cases"
+    )["specialist_recommendation"]
+    assert recommendation["agent"] == "Mouse"
+    assert recommendation["commander"] == "Morpheus"
+    assert recommendation["home_world"] == "matrix"
+    assert recommendation["family_transfer"] is False
+    assert recommendation["dynamic_recommendation_only"] is True
+    assert recommendation["execution_granted"] is False
+    assert recommendation["approval_granted"] is False
+    assert recommendation["human_authority_final"] is True
+
+
+def test_mouse_not_recommended_for_unrelated_mission_or_oversized_input():
+    assert smi_auto.route_divisions(("memory",), mission="Review HRM receipts")["specialist_recommendation"] is None
+    assert smi_auto.recommend_matrix_mouse("x" * 2001) is None
+
+
+def test_matrix_home_groups_preserve_character_home_and_external_smi_boundary():
+    from mission_control import agents
+    assert agents.matrix_home_for('Mouse')['group_id'] == 'nebuchadnezzar'
+    assert agents.matrix_home_for('Twin One')['group_id'] == 'merovingian'
+    assert agents.matrix_home_for('Twin Two')['group_id'] == 'merovingian'
+    assert agents.matrix_home_for('Oracle')['group_id'] == 'oracle_circle'
+    assert agents.matrix_home_for('Architect')['group_id'] == 'machine_system'
+    assert agents.matrix_home_for('Niobe')['group_id'] == 'logos'
+    assert agents.matrix_home_for('Nirmata') is None
+    assert agents.matrix_home_for('Mouse')['execution_granted'] is False

@@ -25,13 +25,17 @@ from . import (
     civilization,
     infrastructure,
     judgement,
+    matrix_simulation,
     ollama_chat,
     organism,
     postgres_db,
     products,
     public_store,
     smi_android_live_evidence,
+    smi_auto,
     smi_chat_runtime,
+    smi_chatgpt_connector,
+    smi_command_dashboard,
     smi_founder_assets,
     smi_receipt_backend,
     smi_recursive_improvement,
@@ -287,6 +291,29 @@ def agent_intelligence():
     return _no_store(response)
 
 
+@bp.get("/smi")
+@web_security.login_required(founder_only=True)
+def smi_command_dashboard_view():
+    """Render one Founder command surface from canonical SMI status sources."""
+
+    return _no_store(
+        make_response(
+            render_template(
+                "smi_command_dashboard.html",
+                command=smi_command_dashboard.status(),
+            )
+        )
+    )
+
+
+@bp.get("/smi/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_command_dashboard_status():
+    """Return the same read-only Founder command projection as JSON."""
+
+    return _no_store(make_response(jsonify(smi_command_dashboard.status())))
+
+
 @bp.get("/brain")
 @web_security.login_required()
 def brain_dashboard():
@@ -309,6 +336,7 @@ def brain_status():
     return _no_store(make_response(jsonify(brain.get_public_brain_status())))
 
 
+@bp.get("/smi-cc")
 @bp.get("/war-room")
 @web_security.login_required()
 def war_room_dashboard():
@@ -329,6 +357,48 @@ def war_room_status():
     """Return the same read-only, redacted War Room evidence projection."""
 
     return _no_store(make_response(jsonify(war_room.get_war_room_dashboard())))
+
+
+@bp.post("/war-room/divisions/route")
+@web_security.login_required(api=True)
+def war_room_divisions_route():
+    """Founder-session-only advisory selection; no actions or votes executed."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh the secure session.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Expected JSON object.", 400)
+    mission = payload.get("mission", "")
+    notes = payload.get("notes", "")
+    if not isinstance(mission, str) or not isinstance(notes, str) or len(mission) > 2000 or len(notes) > 2000:
+        return _error("invalid_mission", "Mission and notes must be text within 2000 characters.", 400)
+    try:
+        result = smi_auto.route_divisions(payload.get("divisions"), thinking=payload.get("thinking", "AUTO"), mission=mission)
+    except ValueError as exc:
+        return _error("invalid_selection", str(exc), 400)
+    # Founder-supplied text is request-scoped; never log, store or treat it as authorisation.
+    return _no_store(make_response(jsonify({**result, "mission": mission.strip(), "notes": notes.strip()})))
+
+
+@bp.post("/war-room/mouse-training")
+@web_security.login_required(api=True)
+def war_room_mouse_training():
+    """Run a bounded interactive fictional exercise inside Founder War Room."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh secure session.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Expected a JSON object.", 400)
+    choice = payload.get("choice")
+    if choice is not None and not isinstance(choice, str):
+        return _error("invalid_choice", "Invalid response.", 400)
+    try:
+        result = matrix_simulation.run_mouse_attention_training(
+            payload.get("objective"), choice=choice
+        )
+    except ValueError as exc:
+        return _error("invalid_training", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.get("/war-room/actions")
@@ -625,6 +695,43 @@ def smi_chat_reply_audio():
     )
 
 
+@bp.post("/chat/founder-final")
+@web_security.login_required(api=True)
+def smi_chat_founder_final():
+    """Record Founder Final for the latest pending Judgement in this chat."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = smi_chat_runtime.record_founder_final(
+            _chat_identity(),
+            payload.get("conversation_id"),
+            payload.get("decision") or "APPROVED",
+        )
+    except authority.HumanAuthorityRequired:
+        return _error(
+            "human_authority_required",
+            "Only active level-zero Human Authority may record Founder Final.",
+            403,
+        )
+    except ValueError as exc:
+        return _error("invalid_founder_final", str(exc), 400)
+    except approval_service.ApprovalUnavailable:
+        return _error(
+            "approval_unavailable",
+            "Founder Final could not be recorded safely.",
+            503,
+        )
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.post("/chat/feedback")
 @web_security.login_required(api=True)
 def smi_chat_feedback():
@@ -751,6 +858,60 @@ def smi_founder_library():
             "Founder Library is temporarily unavailable.",
             503,
         )
+
+
+@bp.post("/ui/interaction-proof")
+@web_security.login_required(api=True, founder_only=True)
+def smi_interaction_proof():
+    """Persist one signed, release-bound surface proof after runtime acknowledgement."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+
+    surface_id = str(payload.get("surface_id") or "").strip()
+    runtime_instance_id = str(payload.get("runtime_instance_id") or "").strip()
+    interaction_id = str(payload.get("interaction_id") or "").strip()
+    try:
+        status_code = int(payload.get("status_code") or 0)
+    except (TypeError, ValueError):
+        status_code = 0
+
+    result = smi_receipt_backend.write_interaction_surface_live_proof(
+        surface_id=surface_id,
+        runtime_instance_id=runtime_instance_id,
+        interaction_id=interaction_id,
+        status_code=status_code,
+        runtime_acknowledged=payload.get("runtime_acknowledged") is True,
+        interaction_completed=payload.get("interaction_completed") is True,
+    )
+    if not result.get("ok"):
+        return _error(
+            "interaction_proof_not_recorded",
+            "The interaction was not eligible for durable certification.",
+            409,
+        )
+    return _no_store(
+        make_response(
+            jsonify(
+                proven=True,
+                surface_id=surface_id,
+                chronicle_receipt={
+                    "receipt_id": result.get("receipt_id"),
+                    "durable": bool(result.get("durable")),
+                    "backend": result.get("backend"),
+                },
+                whole_interaction_green=False,
+                human_authority_final=True,
+            )
+        )
+    )
 
 
 @bp.post("/ui/button-proof")
@@ -1225,3 +1386,16 @@ def civilization_system_status():
     return _no_store(
         make_response(jsonify(civilization.get_civilization_status()), 200)
     )
+
+
+@bp.get("/smi/connector/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_connector_status():
+    """Founder-session-only read-only status. Not an external ChatGPT auth path."""
+    return _no_store(make_response(jsonify(
+        smi_chatgpt_connector.safe_status(
+            authorized=True,
+            studio_status=studio_intelligence.status(),
+        )
+    ), 200))
+

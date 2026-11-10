@@ -1,7 +1,128 @@
 (()=>{
 window.OAP_SMI_CONTROL_SURFACE_V2_PENDING=true;
 const cfg=window.OAP_SMI_UI||{};
+const OAP_SMI_VOICE_PREF_KEY="oap.smi.voiceReplyEnabled.v1";
+const OAP_SMI_INTELLIGENCE_PREF_KEY="oap.smi.defaultIntelligence.v1";
+const OAP_SMI_REDUCED_MOTION_PREF_KEY="oap.smi.reducedMotion.v1";
+window.OAP_SMI_VOICE_PREF={
+  read(fallback=true){
+    try{
+      const stored=window.localStorage?.getItem(OAP_SMI_VOICE_PREF_KEY);
+      if(stored==="true")return true;
+      if(stored==="false")return false;
+    }catch{}
+    return Boolean(fallback);
+  },
+  write(enabled){
+    try{window.localStorage?.setItem(OAP_SMI_VOICE_PREF_KEY,String(Boolean(enabled)));}catch{}
+    return Boolean(enabled);
+  },
+  scope:"device-local-ui-preference",
+  storesAudio:false,
+  storesTranscript:false
+};
+window.OAP_SMI_REDUCED_MOTION={
+  read(){
+    try{return window.localStorage?.getItem(OAP_SMI_REDUCED_MOTION_PREF_KEY)==="true";}catch{return false;}
+  },
+  write(enabled){
+    const value=Boolean(enabled);
+    try{window.localStorage?.setItem(OAP_SMI_REDUCED_MOTION_PREF_KEY,String(value));}catch{}
+    document.body?.classList.toggle("smi-user-reduced-motion",value);
+    window.dispatchEvent(new CustomEvent("oap-smi-reduced-motion-change",{detail:{enabled:value}}));
+    return value;
+  },
+  scope:"device-local-ui-preference"
+};
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+const smiSettingsButton=q("#smi-settings-button");
+const smiSettingsPanel=q("#smi-settings-panel");
+const voiceAutoSpeakToggle=q("#voice-auto-speak-toggle");
+const defaultIntelligenceLevel=q("#default-intelligence-level");
+const runtimeThinkingLevel=q("#thinking-level");
+const reducedMotionToggle=q("#reduced-motion-toggle");
+const resetDevicePreferences=q("#reset-device-preferences");
+const allowedIntelligenceLevels=new Set(["auto","instant","think","deep_dive"]);
+function readIntelligencePreference(){
+  try{
+    const stored=window.localStorage?.getItem(OAP_SMI_INTELLIGENCE_PREF_KEY);
+    return allowedIntelligenceLevels.has(stored)?stored:"auto";
+  }catch{return "auto";}
+}
+function writeIntelligencePreference(value){
+  const safe=allowedIntelligenceLevels.has(value)?value:"auto";
+  try{window.localStorage?.setItem(OAP_SMI_INTELLIGENCE_PREF_KEY,safe);}catch{}
+  return safe;
+}
+function syncSmiSettings(){
+  if(voiceAutoSpeakToggle)voiceAutoSpeakToggle.checked=window.OAP_SMI_VOICE_PREF?.read?.(true) ?? true;
+  const intelligence=readIntelligencePreference();
+  if(defaultIntelligenceLevel)defaultIntelligenceLevel.value=intelligence;
+  if(runtimeThinkingLevel&&allowedIntelligenceLevels.has(intelligence))runtimeThinkingLevel.value=intelligence;
+  const reduced=window.OAP_SMI_REDUCED_MOTION?.read?.()===true;
+  if(reducedMotionToggle)reducedMotionToggle.checked=reduced;
+  document.body?.classList.toggle("smi-user-reduced-motion",reduced);
+}
+if(smiSettingsButton&&smiSettingsPanel){
+  smiSettingsButton.addEventListener("click",()=>{
+    const open=smiSettingsPanel.hidden;
+    smiSettingsPanel.hidden=!open;
+    smiSettingsButton.setAttribute("aria-expanded",String(open));
+    if(open)syncSmiSettings();
+  });
+}
+if(voiceAutoSpeakToggle){
+  syncSmiSettings();
+  voiceAutoSpeakToggle.addEventListener("change",()=>{
+    const enabled=window.OAP_SMI_VOICE_PREF?.write?.(voiceAutoSpeakToggle.checked) ?? voiceAutoSpeakToggle.checked;
+    const speaker=document.getElementById("speaker-button");
+    const current=speaker?.getAttribute("aria-pressed")==="true";
+    if(speaker&&current!==Boolean(enabled))speaker.click();
+    const status=document.getElementById("status");
+    if(status)status.textContent=enabled
+      ?"Voice reply on · preference saved on this device"
+      :"Voice reply off · preference saved on this device";
+  });
+}
+if(defaultIntelligenceLevel){
+  defaultIntelligenceLevel.addEventListener("change",()=>{
+    const value=writeIntelligencePreference(defaultIntelligenceLevel.value);
+    defaultIntelligenceLevel.value=value;
+    if(runtimeThinkingLevel)runtimeThinkingLevel.value=value;
+    const status=document.getElementById("status");
+    if(status)status.textContent="Default Intelligence · "+(value==="deep_dive"?"21":value==="think"?"7":value==="instant"?"3":"Auto")+" · preference saved on this device";
+  });
+}
+if(reducedMotionToggle){
+  reducedMotionToggle.addEventListener("change",()=>{
+    const enabled=window.OAP_SMI_REDUCED_MOTION?.write?.(reducedMotionToggle.checked) ?? reducedMotionToggle.checked;
+    reducedMotionToggle.checked=Boolean(enabled);
+    const status=document.getElementById("status");
+    if(status)status.textContent=enabled
+      ?"Reduced Motion on · SMI visual motion suppressed"
+      :"Reduced Motion off · system motion preference applies";
+  });
+}
+if(resetDevicePreferences){
+  resetDevicePreferences.addEventListener("click",()=>{
+    try{
+      window.localStorage?.removeItem(OAP_SMI_VOICE_PREF_KEY);
+      window.localStorage?.removeItem(OAP_SMI_INTELLIGENCE_PREF_KEY);
+      window.localStorage?.removeItem(OAP_SMI_REDUCED_MOTION_PREF_KEY);
+    }catch{}
+    document.body?.classList.remove("smi-user-reduced-motion");
+    if(defaultIntelligenceLevel)defaultIntelligenceLevel.value="auto";
+    if(runtimeThinkingLevel)runtimeThinkingLevel.value="auto";
+    if(reducedMotionToggle)reducedMotionToggle.checked=false;
+    const speaker=document.getElementById("speaker-button");
+    if(speaker&&speaker.getAttribute("aria-pressed")!=="true")speaker.click();
+    if(voiceAutoSpeakToggle)voiceAutoSpeakToggle.checked=true;
+    window.dispatchEvent(new CustomEvent("oap-smi-reduced-motion-change",{detail:{enabled:false}}));
+    const status=document.getElementById("status");
+    if(status)status.textContent="SMI device preferences reset · conversations, HRM and receipts unchanged";
+  });
+}
+syncSmiSettings();
 const input=q('#message'),messages=q('#messages'),history=q('.history'),historyList=q('#history-list'),head=q('.chat-head'),plus=q('#plus-button'),menu=q('#attach-menu'),thinking=q('#thinking');
 if(q('.chat-title'))q('.chat-title').textContent='Personal SMI';if(q('.chat-head .chat-subtitle'))q('.chat-head .chat-subtitle').textContent='Private Founder intelligence · straight answers · guarded actions';if(q('#thinking-title'))q('#thinking-title').textContent='🧠 Thinking Process · safe work stages';document.title='Personal SMI · OAP';
 if(input){input.rows=1;input.placeholder='Ask SMI…';const resize=()=>{input.style.height='31px';if(input.value.trim())input.style.height=Math.min(input.scrollHeight,96)+'px';};input.addEventListener('input',resize);resize()}
@@ -59,7 +180,7 @@ function closeMapWorkspace(){
 qa('[data-map-view]').forEach(button=>button.onclick=()=>openMapWorkspace(button.dataset.mapView||'/on-any-place'));
 if(mapClose)mapClose.onclick=closeMapWorkspace;
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&mapWorkspace&&!mapWorkspace.hidden)closeMapWorkspace()});
-if(!window.OAP_SMI_CONTROL_SURFACE_V2_PENDING)qa('[data-oap-action]').forEach(button=>{button.onclick=()=>{const id=button.dataset.oapAction;if(id==='map-intelligence'){openMapWorkspace('/on-any-place');return}if(id==='war-room'){location.href=cfg.warRoomUrl;return}if(id==='improvement'){location.href=cfg.improvementUrl;return}if(id==='swot'){input.value=input.value.trim()?('Run SWOT Intelligence on this:\n'+input.value.trim()):'Run SWOT Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='SWOT Intelligence ready · Strengths · Weaknesses · Opportunities · Threats · Practical Move';menu?.classList.remove('show');return}if(id==='behaviour'){input.value=input.value.trim()?('Run Behaviour Intelligence on this:\n'+input.value.trim()):'Run Behaviour Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Behaviour Intelligence ready · 21 dimensions · evidence-backed percentages only';menu?.classList.remove('show');return}if(id==='github-governed'){githubAction();return}if(id==='function-health'){safeInspect('Function Health',cfg.functionHealthUrl,button);return}if(id==='green-gate'){safeInspect('Green Gate',cfg.greenGateUrl,button);return}if(id==='hrm'){safeInspect('HRM / Jog Memory',cfg.hrmUrl,button);return}if(id==='founder-library'){safeInspect('Founder Library',cfg.founderLibraryUrl,button);return}}});
+if(!window.OAP_SMI_CONTROL_SURFACE_V2_PENDING)qa('[data-oap-action]').forEach(button=>{button.onclick=()=>{const id=button.dataset.oapAction;if(id==='map-intelligence'){openMapWorkspace('/on-any-place');return}if(id==='war-room'){location.href=cfg.warRoomUrl;return}if(id==='improvement'){location.href=cfg.improvementUrl;return}if(id==='swot'){input.value=input.value.trim()?('Run SWOT Intelligence on this:\n'+input.value.trim()):'Run SWOT Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='SWOT Intelligence ready · Strengths · Weaknesses · Opportunities · Threats · Practical Move';menu?.classList.remove('show');return}if(id==='behaviour'){input.value=input.value.trim()?('Run Behaviour Intelligence on this:\n'+input.value.trim()):'Run Behaviour Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Behaviour Intelligence ready · 21 dimensions · evidence-backed percentages only';menu?.classList.remove('show');return}if(id==='ux'){input.value=input.value.trim()?('Run UX Intelligence on this:\n'+input.value.trim()):'Run UX Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='UX / UI Intelligence ready · layout · interaction · accessibility';menu?.classList.remove('show');return}if(id==='alignment'){input.value=input.value.trim()?('Run Alignment Intelligence on this:\n'+input.value.trim()):'Run Alignment Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Alignment Intelligence ready · naming · ownership · routes · boundaries';menu?.classList.remove('show');return}if(id==='infrastructure-intelligence'){input.value=input.value.trim()?('Run Architecture Dependency Performance Resilience Intelligence on this:\n'+input.value.trim()):'Run Architecture Dependency Performance Resilience Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Infrastructure Intelligence ready · architecture · dependency · performance · resilience';menu?.classList.remove('show');return}if(id==='security'){input.value=input.value.trim()?('Run Security Intelligence on this:\n'+input.value.trim()):'Run Security Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Security Intelligence ready · auth · permissions · secrets · fail-closed';menu?.classList.remove('show');return}if(id==='evidence'){input.value=input.value.trim()?('Run Evidence Intelligence on this:\n'+input.value.trim()):'Run Evidence Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Evidence Intelligence ready · proof · freshness · confidence';menu?.classList.remove('show');return}if(id==='github-governed'){githubAction();return}if(id==='function-health'){safeInspect('Function Health',cfg.functionHealthUrl,button);return}if(id==='green-gate'){safeInspect('Green Gate',cfg.greenGateUrl,button);return}if(id==='hrm'){safeInspect('HRM / Jog Memory',cfg.hrmUrl,button);return}if(id==='founder-library'){safeInspect('Founder Library',cfg.founderLibraryUrl,button);return}}});
 if(plus&&menu&&!menu.querySelector('[data-oap-connectors]')){const d=document.createElement('div');d.className='attach-divider';d.dataset.oapConnectors='1';menu.append(d);const l=document.createElement('div');l.className='attach-section-label';l.textContent='Connected tools';menu.append(l);[['render','◇','Render'],['github','◇','GitHub'],['neon','◇','Neon']].forEach(([id,icon,name])=>{const b=document.createElement('button');b.type='button';b.className='attach-option connector';b.innerHTML=`<span class="connector-copy"><span>${icon}</span><span>${name}</span></span><span class="connector-state">Inspect</span>`;b.onclick=()=>inspect(id,b);menu.append(b)});const improve=document.createElement('button');improve.type='button';improve.className='attach-option connector';improve.innerHTML='<span class="connector-copy"><span>🟠</span><span>Improvement Loop</span></span><span class="connector-state attention">Review</span>';improve.onclick=()=>{location.href=cfg.improvementUrl};menu.append(improve);const a=document.createElement('button');a.type='button';a.className='attach-option connector';a.innerHTML='<span class="connector-copy"><span>⚙️</span><span>Governed GitHub action</span></span><span class="connector-state attention">Approval</span>';a.onclick=githubAction;menu.append(a);const note=document.createElement('div');note.className='attach-note';note.textContent='Credentials never appear here. Consequential actions require Human Authority and a signed receipt.';menu.append(note)}
 const nativeFetch=window.fetch.bind(window);window.fetch=async function(req,init){const response=await nativeFetch(req,init);try{const url=typeof req==='string'?req:req?.url||'';if(url===cfg.streamUrl){response.clone().text().then(text=>{for(const block of text.split(/\n\n+/)){if(!block.includes('event: complete'))continue;const line=block.split('\n').find(x=>x.startsWith('data: '));if(line){try{window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:JSON.parse(line.slice(6)).result}))}catch{}}}})}}catch{}return response};
 window.OAP_SMI_MASTER={version:'1.3',masterTools:true,savedWork:true,founderLibrary:true,search:true,studio21:true,mapIntelligenceWorkspace:true,governedActions:true};
@@ -232,6 +353,50 @@ refreshOps();
         : "";
     };
     const endpoint=(template,id)=>String(template||"").replace("__VIDEO_ID__",encodeURIComponent(String(id||"")));
+    const interactionRuntimeId=(()=>{
+      const key="oap_smi_interaction_runtime_id";
+      try{
+        const existing=sessionStorage.getItem(key);
+        if(existing)return existing;
+        const created=(crypto.randomUUID?.()||("runtime-"+Date.now()+"-"+Math.random().toString(16).slice(2)));
+        sessionStorage.setItem(key,created);
+        return created;
+      }catch{
+        return crypto.randomUUID?.()||("runtime-"+Date.now()+"-"+Math.random().toString(16).slice(2));
+      }
+    })();
+
+    async function recordInteractionProof(surfaceId,interactionId,statusCode=200){
+      if(!cfg.interactionProofUrl)return null;
+      const id=String(interactionId||crypto.randomUUID?.()||("interaction-"+Date.now()+"-"+Math.random().toString(16).slice(2)));
+      try{
+        const response=await fetch(cfg.interactionProofUrl,{
+          method:"POST",
+          credentials:"same-origin",
+          headers:{
+            "Content-Type":"application/json",
+            "X-OAP-CSRF":window.csrfToken||cfg.csrfToken||""
+          },
+          body:JSON.stringify({
+            surface_id:String(surfaceId||""),
+            runtime_instance_id:interactionRuntimeId,
+            interaction_id:id,
+            status_code:Number(statusCode||0),
+            runtime_acknowledged:true,
+            interaction_completed:true
+          })
+        });
+        const payload=await response.json().catch(()=>({}));
+        if(!response.ok||payload.proven!==true)return null;
+        const receipt=payload.chronicle_receipt||null;
+        if(receipt?.receipt_id){
+          try{sessionStorage.setItem("oap_smi_interaction_proof:"+surfaceId,String(receipt.receipt_id));}catch{}
+        }
+        if(receipt?.receipt_id)await syncFunctionHealth();
+        return receipt;
+      }catch{return null;}
+    }
+    window.OAP_SMI_RECORD_INTERACTION_PROOF=recordInteractionProof;
 
     async function recordButtonProof(actionId,target,statusCode){
       if(!cfg.buttonProofUrl)return null;
@@ -569,6 +734,22 @@ refreshOps();
       studioButton.after(studioLabel,imagine,alive,scene);
     }
 
+    function ensureInteractionProofBadge(){
+      let badge=document.getElementById("smi-interaction-proof-count");
+      if(badge)return badge;
+      badge=document.createElement("button");
+      badge.type="button";
+      badge.id="smi-interaction-proof-count";
+      badge.className="smi-proof-count";
+      badge.textContent="🟣 Proof 0/9";
+      badge.setAttribute("aria-label","SMI interaction proof progress");
+      badge.title="Durable signed interaction receipts · physical acceptance excluded";
+      badge.addEventListener("click",()=>safeInspect("Function Health",cfg.functionHealthUrl,badge));
+      const host=q(".chat-head")||document.body;
+      host.append(badge);
+      return badge;
+    }
+
     async function syncFunctionHealth(){
       if(!cfg.functionHealthUrl)return;
       try{
@@ -576,6 +757,20 @@ refreshOps();
         const data=await response.json();
         if(!response.ok||!Array.isArray(data.functions))return;
         const byId=new Map(data.functions.map(item=>[item.id,item]));
+        const interaction=data.interaction_certification||{};
+        const receiptSummary=interaction.receipt_summary||{};
+        const provenCount=Number(receiptSummary.proven_count ?? interaction.live_proven_count ?? 0);
+        const expectedCount=Number(receiptSummary.expected_count ?? interaction.expected_count ?? 9);
+        const remainingCount=Math.max(0,Number(receiptSummary.remaining_count ?? (expectedCount-provenCount)));
+        const badge=ensureInteractionProofBadge();
+        badge.textContent=(remainingCount===0?"🟢":"🟣")+" Proof "+provenCount+"/"+expectedCount;
+        badge.dataset.provenCount=String(provenCount);
+        badge.dataset.expectedCount=String(expectedCount);
+        badge.dataset.remainingCount=String(remainingCount);
+        badge.dataset.complete=String(remainingCount===0&&expectedCount>0);
+        badge.title=remainingCount===0
+          ?"9/9 durable interaction proof complete"
+          :remainingCount+" interaction proof"+(remainingCount===1?"":"s")+" remaining · no fake Green";
         qa("[data-oap-action]",menu).forEach(button=>{
           const item=byId.get(button.dataset.oapAction);
           if(!item)return;
@@ -819,25 +1014,38 @@ refreshOps();
       event.preventDefault();
       event.stopImmediatePropagation();
       if(id==="map-intelligence"){
+        // Visibility is never gated by proof collection. Open the real map first;
+        // runtime evidence may update the control state afterwards.
+        openMap("/on-any-place");
         button.disabled=true;
         try{
           const ack=await fetchAck(id,"/on-any-place",{json:false});
           const chip=q(".connector-state",button);
           if(chip)chip.textContent=ack.proof?.receipt_id?"Proven":"Reached";
-          openMap("/on-any-place");
         }catch(error){
-          addCard("Map Intelligence",error?.message||"Map unavailable","red");
+          const chip=q(".connector-state",button);
+          if(chip)chip.textContent="Open";
+          addCard("Map Intelligence",error?.message||"Map proof unavailable","yellow");
         }finally{button.disabled=false;}
         return;
       }
-      if(id==="swot"||id==="behaviour"){
-        const prefix=id==="swot"?"Run SWOT Intelligence on this:\n":"Run Behaviour Intelligence on this:\n";
+      if(id==="swot"||id==="behaviour"||id==="ux"||id==="alignment"||id==="infrastructure-intelligence"||id==="security"||id==="evidence"){
+        const lensPrompts={
+          swot:["Run SWOT Intelligence on this:\n","SWOT Intelligence ready"],
+          behaviour:["Run Behaviour Intelligence on this:\n","Behaviour Intelligence ready · evidence-backed percentages only"],
+          ux:["Run UX Intelligence on this:\n","UX / UI Intelligence ready · layout · interaction · accessibility"],
+          alignment:["Run Alignment Intelligence on this:\n","Alignment Intelligence ready · naming · ownership · routes · boundaries"],
+          "infrastructure-intelligence":["Run Architecture Dependency Performance Resilience Intelligence on this:\n","Infrastructure Intelligence ready · architecture · dependency · performance · resilience"],
+          security:["Run Security Intelligence on this:\n","Security Intelligence ready · auth · permissions · secrets · fail-closed"],
+          evidence:["Run Evidence Intelligence on this:\n","Evidence Intelligence ready · proof · freshness · confidence"]
+        };
+        const [prefix,statusText]=lensPrompts[id];
         input.value=input.value.trim()?prefix+input.value.trim():prefix;
         input.dispatchEvent(new Event("input",{bubbles:true}));
         input.focus();
         menu.classList.remove("show");
         plus.setAttribute("aria-expanded","false");
-        setStatus(id==="swot"?"SWOT Intelligence ready":"Behaviour Intelligence ready · evidence-backed percentages only");
+        setStatus(statusText);
         return;
       }
       if(inspectTargets[id]){
@@ -891,5 +1099,55 @@ refreshOps();
   }else{
     bootControlSurfaceV2();
   }
-})();
 
+/* SMI automatic reviewer + evidence-vote surface.
+ * Uses only the completed governed result returned by the server.
+ * It never invents reviewer votes client-side.
+ */
+window.addEventListener('oap-smi-complete',event=>{
+  const result=event?.detail||{};
+  const review=result.auto_review;
+  if(!review||review.automatic!==true||!Array.isArray(review.votes))return;
+  const messages=document.getElementById('messages');
+  if(!messages)return;
+
+  const card=document.createElement('div');
+  card.className='msg receipt-card smi-auto-review-card';
+  card.dataset.smiAutoReview='true';
+
+  const title=document.createElement('strong');
+  title.textContent='🧠 SMI AUTO · Evidence Vote Board';
+  const meta=document.createElement('span');
+  meta.className='receipt-meta';
+  const roles=Array.isArray(result.active_reviewers)?result.active_reviewers:[];
+  meta.textContent=(roles.length?roles.join(' · '):'Automatic review')+' · Human Authority final';
+  card.append(title,meta);
+
+  const grid=document.createElement('div');
+  grid.className='receipt-grid';
+  review.votes.forEach(item=>{
+    const pill=document.createElement('div');
+    pill.className='receipt-pill';
+    pill.dataset.vote=String(item.vote||'CONDITIONAL');
+    const name=document.createElement('b');
+    name.textContent=String(item.reviewer||'Reviewer');
+    const vote=document.createElement('span');
+    const signal=item.vote==='PASS'?'🟢':item.vote==='FAIL'?'🔴':'🟣';
+    vote.textContent=signal+' '+String(item.vote||'CONDITIONAL');
+    const lens=document.createElement('small');
+    lens.textContent=String(item.lens||item.reason||'Governed evidence review');
+    pill.append(name,vote,lens);
+    grid.append(pill);
+  });
+  card.append(grid);
+
+  const summary=document.createElement('div');
+  summary.className='receipt-meta';
+  const counts=review.summary||{};
+  summary.textContent='PASS '+String(counts.PASS||0)+' · FAIL '+String(counts.FAIL||0)+' · CONDITIONAL '+String(counts.CONDITIONAL||0)+' · Votes advise only; they grant no authority.';
+  card.append(summary);
+
+  messages.append(card);
+  messages.scrollTop=messages.scrollHeight;
+});
+})();

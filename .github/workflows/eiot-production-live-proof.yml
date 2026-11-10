@@ -1,0 +1,31 @@
+name: EIOT production live proof
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "eiot_world_server.py"
+      - "mission_control/mtown_*.py"
+      - "scripts/prove_eiot_production_live.py"
+      - ".github/workflows/eiot-production-live-proof.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-live-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact main commit
+        uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Prove live M Town world server, persistence and endless cells
+        env:
+          EIOT_WORLD_URL: https://eiot-mtown-world.onrender.com
+        run: python scripts/prove_eiot_production_live.py

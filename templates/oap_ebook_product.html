@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="OAP Library digital ebook product.">
+<title>{{ product.title }} - OAP Library</title>
+{% include "_oap_install_head.html" %}
+<link rel="stylesheet" href="{{ url_for('static', filename='oap/oap_library.css') }}">
+</head>
+<body>
+<header class="library-topbar">
+<a class="library-brand" href="/library"><span class="library-brand-mark">OAP</span><span>LIBRARY</span></a>
+<nav aria-label="Library navigation">
+<a href="/library/books">Books</a>
+<a href="/library/my-library">My Library</a>
+<a href="/library/create">Create</a>
+<a href="/library/sell">Sell</a>
+</nav>
+</header>
+<main class="library-collections">
+<section class="library-intro">
+<div class="library-opening">
+<p class="library-kicker">DIGITAL EBOOK · APPROVED MARKET LISTING</p>
+<h1>{{ product.title }}</h1>
+<p class="library-lead">{{ product.description }}</p>
+<p>By {{ product.seller }}</p>
+<p><strong>{{ product.currency }} {{ "%.2f"|format(product.price_minor / 100) }}</strong></p>
+<div class="learning-card-actions">
+<a href="/library/ebooks/{{ product.book_id }}/{{ product.edition_id }}/pages/0?preview=1">Preview</a>
+</div>
+</div>
+</section>
+
+<aside class="library-boundary">
+<strong>Unlock is payment-proof gated.</strong>
+<span>This listing is sale-ready software, but ownership is not granted until an independently verified captured-payment record creates a durable ebook entitlement.</span>
+</aside>
+
+<section class="library-empty">
+<h2>Unlock</h2>
+<p>Checkout is not activated on this page until the regulated payment confirmation path is proven. Returning from a payment screen will never create ownership by itself.</p>
+<p>After verified payment: entitlement → Owned → My Library → protected reading.</p>
+</section>
+</main>
+<footer><span>BORN LOCAL. BUILT GLOBAL. EARTH IS OUR TURF.</span><span>ON ANY POSTCODE</span></footer>
+</body>
+</html>

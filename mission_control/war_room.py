@@ -16,10 +16,13 @@ from oap.guardian.engine import GuardianEngine
 from oap.war_room import WarRoomEngine
 
 from . import (
+    agent_achievements,
     agents,
+    ai_behaviour,
     authority,
     brain,
     infrastructure,
+    intelligence_alliances,
     judgement,
     matrix_signal_bus,
     matrix_simulation,
@@ -304,6 +307,8 @@ def _rating(
     impact: int,
     parent: str | None = None,
     truth_boundary: str | None = None,
+    independent_verification: str | None = None,
+    sustained_certification: str | None = None,
 ) -> dict[str, Any]:
     if len(stages) != 5:
         raise ValueError("Every War Room rating requires exactly five evidence stages")
@@ -316,6 +321,12 @@ def _rating(
         else:
             stage_blocked = True
 
+    legacy_stars = stars
+    # A receipt *reference* is not independently authenticated evidence.
+    # Remain at the five proven gates until a durable, subject-bound,
+    # independent verifier is wired into the canonical HRM proof path.
+    # Never promote from caller-controlled strings alone.
+    stars = legacy_stars
     rubric = RATING_RUBRIC[stars]
     first_missing = next(
         (stage["stage"] for stage in stages if not stage["passed"]),
@@ -328,15 +339,21 @@ def _rating(
         "parent": parent,
         "summary": summary,
         "stars": stars,
-        "stars_display": "★" * stars + "☆" * (5 - stars),
-        "score": stars * 20,
-        "label": rubric["label"],
+        "stars_display": "★" * stars + "☆" * (7 - stars),
+        "stars_max": 7,
+        "legacy_proof_gates_passed": legacy_stars,
+        "higher_star_proof": "CERTIFIED" if stars == 7 else "INDEPENDENT_VERIFIED" if stars == 6 else "UNRATED",
+        "independent_verification_receipt": None,
+        "sustained_certification_receipt": None,
+        "higher_star_gate_reason": "authenticated_subject_bound_hrm_receipt_verification_pending",
+        "score": round(stars * 100 / 7),
+        "label": "Sustained operationally certified" if stars == 7 else "Independently verified" if stars == 6 else rubric["label"],
         "signal": rubric["signal"],
         "first_missing_stage": first_missing,
         "next_gate": next_gate,
         "impact": impact,
         "truth_boundary": truth_boundary,
-        "human_approval_required": stars < 5,
+        "human_approval_required": stars < 7,
         "stages": stages,
     }
 
@@ -1306,6 +1323,54 @@ def validate_war_room_scope() -> dict[str, Any]:
     }
 
 
+def _a1_a7_evidence_projection(ratings: list[dict[str, Any]]) -> dict[str, Any]:
+    """Informational SMI autonomy ladder; never grants authority or certification.
+
+    Existing stars are portfolio-component evidence, not proof that SMI can
+    autonomously operate or that any autonomy level is certified.
+    """
+    levels = (
+        ("A1", "Manual Support", "Reactive"),
+        ("A2", "Guided Assistance", "Analytical"),
+        ("A3", "Bounded Tool Support", "Reasoning"),
+        ("A4", "Supervised Autonomy", "Coordinated"),
+        ("A5", "Governed Operational Preparation", "Adaptive"),
+        ("A6", "Governed Operational Execution", "Advanced Autonomous"),
+        ("A7", "Certified Organism-Scale Autonomy", "Sovereign-Governed"),
+    )
+    return {
+        "name": "SMI A1-A7 evidence projection",
+        "intelligence": "Sovereign Megaverse Intelligence",
+        "mission_keeper": "Captain ALL IN",
+        "model": "one_intelligence_seven_operating_levels",
+        "mode": "read_only_no_authority",
+        "highest_certified_level": None,
+        "certification_status": "not_established",
+        "levels": tuple(
+            {
+                "id": level,
+                "name": name,
+                "capability": capability,
+                "certified": False,
+                "evidence_status": "not_independently_certified",
+                "locked": level in ("A6", "A7"),
+            }
+            for level, name, capability in levels
+        ),
+        "portfolio_rated_areas": len(ratings),
+        "portfolio_proves_autonomy": False,
+        "remaining_proof": (
+            "Independent SMI autonomy-level evidence and attribution",
+            "Guardian approval boundaries and Human Authority decisions",
+            "HRM receipts, rollback, emergency halt and runtime recovery",
+            "Independent operational certification before A6 or A7",
+        ),
+        "can_approve": False,
+        "can_execute": False,
+        "founder_final": True,
+    }
+
+
 def get_war_room_dashboard() -> dict[str, Any]:
     """Return the complete Founder-only, read-only programme projection."""
 
@@ -1339,7 +1404,7 @@ def get_war_room_dashboard() -> dict[str, Any]:
                 if items
                 else 0,
                 "runtime_verified": sum(int(item["stars"]) >= 4 for item in items),
-                "certified": sum(int(item["stars"]) == 5 for item in items),
+                "certified": sum(int(item["stars"]) == 7 for item in items),
             }
         )
 
@@ -1365,16 +1430,17 @@ def get_war_room_dashboard() -> dict[str, Any]:
     )
     star_counts = {
         str(stars): sum(int(item["stars"]) == stars for item in ratings)
-        for stars in range(6)
+        for stars in range(8)
     }
     overall = round(
-        sum(int(item["stars"]) for item in ratings) / (len(ratings) * 5) * 100
+        sum(int(item["stars"]) for item in ratings) / (len(ratings) * 7) * 100
     )
     conflict_audit = _conflict_audit(snapshot)
     scope = validate_war_room_scope()
     validation_errors = tuple(scope["errors"]) + tuple(
         conflict_audit["active_conflicts"]
     )
+    achievement_rankings = tuple(agent_achievements.career_rankings(()))
 
     return {
         "name": "OAP War Room",
@@ -1392,6 +1458,8 @@ def get_war_room_dashboard() -> dict[str, Any]:
         "rubric": RATING_RUBRIC,
         "flow": WAR_ROOM_FLOW,
         "review_lenses": REVIEW_LENSES,
+        "smi_autonomy": _a1_a7_evidence_projection(ratings),
+        "thinking_check_profiles": ai_behaviour.status()["thinking_check_profiles"],
         "categories": tuple(categories),
         "summary": {
             "overall_evidence_score": overall,
@@ -1401,10 +1469,22 @@ def get_war_room_dashboard() -> dict[str, Any]:
             "rated_areas": len(ratings),
             "runtime_verified": sum(int(item["stars"]) >= 4 for item in ratings),
             "operationally_certified": sum(
-                int(item["stars"]) == 5 for item in ratings
+                int(item["stars"]) == 7 for item in ratings
             ),
             "star_counts": star_counts,
+            "star_max": 7,
+            "higher_star_certification": "blocked_pending_authenticated_hrm_proof",
             "meaning": "Portfolio evidence view; not a release or safety certification.",
+        },
+        "intelligence_alliance_board": intelligence_alliances.get_founder_alliance_board(
+            career_rankings=achievement_rankings,
+        ),
+        "agent_achievement_rankings": {
+            "status": "read_only_unawarded",
+            "award_source": "No persisted independently approved award records connected",
+            "awarded_movements": 0,
+            "ranking": achievement_rankings,
+            "separate_from_readiness_ratings": True,
         },
         "top_next": top_next,
         "conflict_audit": conflict_audit,

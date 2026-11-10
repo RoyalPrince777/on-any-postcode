@@ -46,7 +46,8 @@ def test_live_control_is_forced_visible_outside_dashboard_layout():
 def test_legacy_dashboard_chrome_is_suppressed_before_first_paint():
     base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()
     assert 'id="smi-first-paint-guard"' in base
-    assert '<body class="mc-workspace-body smi-noise-strip smi-booting">' in base
+    assert '<body class="mc-workspace-body smi-noise-strip">' in base
+    assert "smi-booting" not in base
     assert '<nav class="navs" hidden inert aria-hidden="true">' in base
     assert '<section class="smi-hero" hidden inert aria-hidden="true">' in base
     assert '<header class="chat-head" hidden aria-hidden="true">' in base
@@ -58,6 +59,16 @@ def test_failed_request_restores_composer_for_retry():
     assert "Your request is preserved for retry." in canonical
     assert "Inference unavailable · request preserved · retry when backend is ready" in canonical
     assert "oapInput.focus()" in canonical
+
+
+def test_explicit_reduced_motion_preference_suppresses_smi_animation():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    assert "body.smi-user-reduced-motion .smi-shell *" in css
+    assert "animation:none!important" in css
+    assert "transition:none!important" in css
+    assert "scroll-behavior:auto!important" in css
+    assert "body.smi-user-reduced-motion .smi-approved-portrait" in css
+    assert "transform:none!important" in css
 
 
 def test_live_fullscreen_keeps_minimum_text_fallback_controls_visible():
@@ -77,27 +88,191 @@ def test_live_fullscreen_surfaces_recovery_message():
     assert "Your request is preserved for retry." in canonical
 
 
-def test_canonical_ui_ownership_is_not_split_across_surface_styles():
-    noise = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
-    live = (ROOT / "mission_control" / "static" / "smi_live_character.css").read_text(encoding="utf-8")
-    assert "Canonical UI ownership: Live fullscreen layout." in noise
-    assert "body.smi-noise-strip.smi-live-fullscreen .workspace-grid" in noise
-    assert "body.smi-live-fullscreen .workspace-grid" not in live
-    assert "body.smi-live-fullscreen .composer" not in live
-    assert "body.smi-live-fullscreen .thinking" not in live
-
-def test_noise_strip_does_not_restyle_dedicated_dashboard_or_command_surfaces():
-    noise = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
-    assert "smi-command-layout{" not in noise
-    assert "smi-dashboard-shell{" not in noise
-    assert "smi-summary-card{" not in noise
-
-def test_first_paint_guard_only_prevents_flash_not_persistent_layout():
+def test_primary_controls_remain_human_readable_not_emoji_only():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
     base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
-    guard = base.split('id="smi-first-paint-guard"', 1)[1].split("</style>", 1)[0]
-    assert "smi-booting" in guard
-    assert ".composer{position:fixed" not in guard
-    assert ".workspace-grid{grid-template-columns" not in guard
+    for label in ("Tools", "Voice", "Pause", "Stop", "Send"):
+        assert f">{label}<" in base or f">{label}</span>" in base
+    assert 'class="control-label">Tools</span>' in base
+    assert 'class="control-label">Voice</span>' in base
+    assert 'class="control-label">Pause</span>' in base
+    assert 'class="control-label">Stop</span>' in base
+    assert ".control-label{" in css
+    assert 'content:none!important' in css
+    assert ".send-label{display:inline!important" in css
+
+
+def test_final_smi_shell_does_not_wait_for_dom_ready_to_become_visible():
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
+    js = (ROOT / "mission_control" / "static" / "smi_noise_strip.js").read_text(encoding="utf-8")
+    assert 'class="mc-workspace-body smi-noise-strip"' in base
+    assert "smi-booting" not in base
+    assert "classList.remove('smi-booting')" not in js
+
+
+def test_first_paint_guard_is_inside_head_before_body():
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
+    guard = base.index('id="smi-first-paint-guard"')
+    head_close = base.index("</head>")
+    body = base.index("<body")
+    assert guard < head_close < body
+
+
+def test_war_room_uses_direct_configured_route_not_hidden_tool_proxy():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    assert "const openWarRoom=()=>{" in command
+    assert "cfg.warRoomUrl" in command
+    assert "window.location.assign(target)" in command
+    assert 'if(target==="war-room"){openWarRoom();return;}' in command
+    assert 'if(action==="war-room")' in command
+    assert '#attach-menu [data-oap-action="war-room"]' not in command
+
+
+def test_voice_and_pause_state_changes_keep_readable_labels():
+    canonical = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text(encoding="utf-8")
+    assert 'class="control-label">Resume</span>' in canonical
+    assert 'class="control-label">Pause</span>' in canonical
+    assert 'class="control-label">Stop voice</span>' in canonical
+    assert 'class="control-label">Voice</span>' in canonical
+
+
+def test_quiet_home_shows_only_primary_composer_controls():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text(encoding="utf-8")
+    canonical = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text(encoding="utf-8")
+    assert "Final noise strip: one quiet front-door composer." in css
+    assert "body.smi-noise-strip #speaker-button{\n  display:none!important;" in css
+    assert 'id="voice-reply-menu-button"' in base
+    assert "oapVoiceReplyMenu" in canonical
+    assert "oapSpeaker?.click()" in canonical
+    for label in ("Tools", "Voice", "Send"):
+        assert label in base
+
+
+def test_home_restores_system_context_without_dashboard_wall():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    assert 'className="smi-home-intelligence"' in command
+    for label in ("🏠 Home", "🧠 SMI", "📡 Signals", "🛡️ Guardian", "⚔️ War Room", "🧩 Intelligence", "🧾 HRM / JOOG", "⚙️ Control", "🔔 Incoming", "👤 My World", "⚙ Settings"):
+        assert label in command
+    assert 'homeButton.addEventListener("click",()=>{' in command
+    assert 'setOpen(true);' in command
+    assert 'panel.dataset.mobileView="evidence"' in command
+    assert 'signalsHomeButton.addEventListener("click",()=>openStatus(true))' in command
+    assert 'guardianHomeButton.addEventListener("click",()=>triggerMasterTool("guardian"))' in command
+    assert 'warHomeButton.addEventListener("click",()=>openWarRoom())' in command
+    assert 'hrmHomeButton.addEventListener("click",()=>triggerMasterTool("hrm"))' in command
+    assert 'document.getElementById("smi-settings-button")' in command
+    assert "Home intelligence rail: restore system context without restoring dashboard noise." in css
+    assert "body.smi-noise-strip.smi-command-open .smi-home-intelligence" in css
+    assert "body.smi-noise-strip.smi-live-fullscreen .smi-home-intelligence" in css
+
+
+def test_seven_major_links_are_compact_home_controls_not_progress_stages():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    assert 'className="smi-major-links"' in command
+    assert 'aria-label","SMI seven major mission links"' in command
+    assert "body.smi-noise-strip .smi-major-links" in css
+    assert "overflow-x:auto!important" in css
+    assert "body.smi-noise-strip.smi-command-open .smi-major-links" in css
+    assert "body.smi-noise-strip.smi-live-fullscreen .smi-major-links" in css
+
+
+def test_unified_system_intelligence_reuses_canonical_evidence():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    assert 'className="smi-unified-intelligence"' in command
+    for key in ("mission", "matrix", "guardian", "hrm", "signals", "gate"):
+        assert f'["{key}"' in command or f'"{key}"' in command
+    for url in ("cfg.healthUrl", "cfg.functionHealthUrl", "cfg.signalsUrl",
+                "cfg.greenGateUrl", "cfg.routesUrl", "cfg.hrmUrl"):
+        assert url in command
+    assert "No verified active mission feed · do not infer one" in command
+    assert "Route evidence reachable · Matrix world-state not certified" in command
+    assert "HRM source reached · durable receipt not certified" in command
+    assert 'setUnified("gate",gate?.green===true' in command
+    assert 'setUnified("signals",signalProven' in command
+    assert 'panel.dataset.mobileView="evidence"' in command
+    assert "smi-unified-grid" in css
+    assert "grid-template-columns:1fr!important" in css
+    assert 'className="smi-system-detail"' in command
+    assert 'evidenceDetail.append(evidenceSummary,dashboard)' in command
+
+
+def test_civilization_and_ecosystem_are_distinct_evidence_lanes_not_new_brains():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    template = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    assert "civilizationStatusUrl" in template
+    assert "ecosystemStatusUrl" in template
+    assert "ecosystemDashboardUrl" in template
+    assert "url_for('ecosystem_intelligence.dashboard')" in template
+    assert '["civilization","🌍 Civilization"' in command
+    assert '["ecosystem","🌱 Ecosystem"' in command
+    assert '["civilization",cfg.civilizationStatusUrl]' in command
+    assert '["ecosystem",cfg.ecosystemStatusUrl]' in command
+    assert 'civilization?.validation?.passed===true' in command
+    assert 'setUnified("civilization",false' in command
+    assert "Architecture validated · 9 domains · operational Green not claimed" in command
+    assert 'ecosystem?.runtime?.automatic_internal_ingestion_ready===true' in command
+    assert 'ecosystem?.runtime?.external_live_complete===true' in command
+    assert 'ecosystem?.architecture?.full_green===true' in command
+    assert 'setUnified("ecosystem",ecosystemComplete' in command
+    assert "NOT FULL GREEN" in command
+
+
+def test_smi_home_world_controls_open_existing_public_routes_without_private_actions():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    template = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    assert "publicOapUrl:'/'" in template
+    assert "publicWorldOrigin:'https://on-any-postcode.onrender.com/'" in template
+    assert 'cfg.publicWorldOrigin' in command
+    assert '["🌍 OAP World","world-controls"]' in command
+    assert 'if(action==="world-controls")' in command
+    assert 'worldPanel.id="smi-world-controls"' in command
+    for route in ('["🌍 Enter OAP World","/"]', '["📍 The Spot","/the-spot"]',
+                  '["🔗 Link Up","/linkup"]', '["🗺️ OAP World / Place","/on-any-place"]'):
+        assert route in command
+    assert 'candidate.protocol==="https:"' in command
+    assert 'link.href=publicOrigin+path' in command
+    assert 'link.rel="noopener noreferrer"' in command
+    assert 'worldPanel.hidden=true' in command
+    assert 'worldPanel.hidden=!worldPanel.hidden' in command
+    assert 'event.key==="Escape"' in command
+    assert 'body.smi-noise-strip .smi-world-controls[hidden]{display:none!important}' in css
+    assert 'body.smi-noise-strip.smi-command-open .smi-world-controls' in css
+    assert 'Founder controls stay private.' in command
+
+
+def test_jungle_home_door_uses_registered_families_and_existing_war_room():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    assert '["🐆 Jungle","jungle-controls"]' in command
+    assert 'if(action==="jungle-controls")' in command
+    assert 'junglePanel.id="smi-jungle-controls"' in command
+    for family in ("jungle_book", "animal", "akan_animal"):
+        assert "/mission/agents?family=" + family in command
+    assert 'String(cfg.warRoomUrl||"")' in command
+    assert 'junglePanel.hidden=true' in command
+    assert "junglePanel.hidden=!junglePanel.hidden" in command
+    assert "review lenses are not independent agents" in command
+
+
+def test_existing_world_menu_separates_public_previews_and_private_review():
+    command = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    assert '["🌍 OAP World","world-controls"]' in command
+    assert 'worldPanel.id="smi-world-controls"' in command
+    assert 'publicHeading.textContent="PUBLIC OAP · PREVIEW"' in command
+    assert 'controlHeading.textContent="PRIVATE SMI · WORLD GOVERNANCE"' in command
+    for route in ("cfg.civilizationStatusUrl", "cfg.ecosystemDashboardUrl",
+                  "cfg.functionHealthUrl", "cfg.greenGateUrl"):
+        assert route in command
+    assert 'if(!target.startsWith("/")||target.startsWith("//"))return' in command
+    assert 'link.referrerPolicy="no-referrer"' in command
+    assert "no publication, payment, permission change or automatic Green" in command
+    assert "smi-world-founder-link" in css
+    assert "overscroll-behavior:contain" in css
 
 def test_reference_command_room_uses_real_evidence_and_mobile_drawer():
     css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")

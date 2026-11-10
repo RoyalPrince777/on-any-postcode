@@ -46,6 +46,7 @@ def home_node_complete(job_id: str):
         return _response({"error": "invalid_payload"}, 400)
     ok = home_node_bridge.complete(
         job_id,
+        claim_token=payload.get("claim_token"),
         result=payload.get("result"),
         error=payload.get("error"),
     )

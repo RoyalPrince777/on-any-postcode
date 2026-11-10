@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Line · OAP</title>
+<style>
+:root{color-scheme:dark;background:#060706;color:#f7f3e8;font-family:Arial,sans-serif}
+body{margin:0;background:#060706;color:#f7f3e8}
+header,main{max-width:900px;margin:auto;padding:16px}
+header{display:flex;justify-content:space-between;gap:12px;align-items:center}
+a{color:inherit;text-decoration:none}
+.hero,.menu{border:1px solid #3d3520;border-radius:18px;background:#10110f;padding:16px;margin-bottom:14px}
+.hero h1{margin:4px 0 6px;font-size:1.9rem}
+.muted{color:#b9b39f}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.button{display:block;border:1px solid #5c4d24;border-radius:14px;padding:14px;background:#171711}
+.button strong{display:block;margin-bottom:3px}
+.pill{display:inline-block;border:1px solid #4b432d;border-radius:999px;padding:5px 9px;margin:3px 5px 3px 0;font-size:.84rem}
+h2{font-size:1rem;margin:0 0 10px}
+small{color:#aaa58f}
+</style>
+</head>
+<body>
+<header>
+<a href="/my-card">← My Card</a>
+<strong>MY LINE</strong>
+<a href="/linkup">Link Up →</a>
+</header>
+<main>
+<section class="hero">
+<small>OAP NUMBER · NETWORK PASSPORT · MY PHONE</small>
+<h1>📱 {{ telecom.line.line_name }}</h1>
+<p><strong>{{ telecom.line.oap_number }}</strong></p>
+<span class="pill">Passport {{ telecom.line.network_passport.status }}</span>
+<span class="pill">Phone {{ telecom.line.device_binding.binding_status }}</span>
+</section>
+
+{% for group in surface.button_groups %}
+<section class="menu">
+<h2>{{ group.name }}</h2>
+<div class="grid">
+{% for button_id in group.buttons %}
+{% set item = routes[button_id] %}
+<a class="button" href="{{ item.route }}">
+<strong>{{ item.name }}</strong>
+<span class="muted">{{ item.kind|replace('_',' ')|title }}</span>
+</a>
+{% endfor %}
+</div>
+</section>
+{% endfor %}
+</main>
+</body>
+</html>

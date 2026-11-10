@@ -8,12 +8,12 @@ private chain-of-thought and unrelated personal data.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from oap.contracts import MemoryItem, OutputState
 
 HISTORY_REVISION = "2026-09-04-v1"
-_HISTORY_TIMESTAMP = datetime(2026, 9, 4, tzinfo=timezone.utc)
+_HISTORY_TIMESTAMP = datetime(2026, 9, 4, tzinfo=UTC)
 
 _HISTORY: tuple[dict[str, object], ...] = (
     {

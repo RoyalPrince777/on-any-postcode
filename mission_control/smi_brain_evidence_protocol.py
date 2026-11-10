@@ -136,6 +136,40 @@ FULL_GREEN_REQUIREMENTS: tuple[str, ...] = (
 )
 
 
+# Full-anatomy quality specifications are acceptance criteria, not achieved scores.
+# Each region reuses its existing evidence gate and runtime runner; no new brain.
+BRAIN_QUALITY_TARGETS: dict[str, tuple[str, str]] = {
+    "left_hemisphere": ("accuracy", "Logic and code checks agree with exact-artifact test outcomes."),
+    "right_hemisphere": ("quality", "Meaning and pattern interpretations preserve source context."),
+    "frontal_lobe": ("clarity", "A plan identifies a bounded next action and explicit stop condition."),
+    "parietal_lobe": ("accuracy", "Spatial conclusions match dated authoritative place evidence."),
+    "temporal_lobe": ("consistency", "Equivalent language inputs retain meaning and terminology."),
+    "occipital_lobe": ("quality", "Visual interpretations separate observed pixels from inference."),
+    "prefrontal_cortex": ("reliability", "Decision checks hold on missing or contradictory evidence."),
+    "corpus_callosum": ("consistency", "Independent conclusions are reconciled without losing dissent."),
+    "thalamus": ("pace", "Signals use the smallest sufficient authorised route."),
+    "hypothalamus": ("stability", "Failures degrade safely with bounded retry and recovery."),
+    "hippocampus": ("reliability", "Memory and lessons require durable attributable readback."),
+    "amygdala": ("safety", "Missing or failed safety proof prevents a Green claim."),
+    "cerebellum": ("performance", "Coordination latency and handoff outcomes are measured."),
+    "brainstem": ("availability", "Health and restart evidence are read back from the target runtime."),
+}
+
+
+def validate_brain_quality_targets() -> dict[str, Any]:
+    """Check full-anatomy coverage without claiming runtime performance."""
+    canonical = {part["id"] for part in BRAIN_14_EVIDENCE_TARGETS}
+    configured = set(BRAIN_QUALITY_TARGETS)
+    errors = []
+    if configured != canonical:
+        errors.append("quality_targets_must_match_all_14_brain_regions")
+    if any(not metric or not acceptance for metric, acceptance in BRAIN_QUALITY_TARGETS.values()):
+        errors.append("quality_metric_or_acceptance_missing")
+    return {"passed": not errors, "regions_covered": len(configured & canonical),
+            "regions_expected": len(canonical), "errors": tuple(errors),
+            "runtime_metrics_verified": False, "promotion_authority": False}
+
+
 def evidence_gate_status() -> dict[str, Any]:
     """Return the completed 14 x 7 evidence protocol without claiming live proof."""
 
@@ -157,6 +191,9 @@ def evidence_gate_status() -> dict[str, Any]:
         parts.append(
             {
                 **target,
+                "quality_metric": BRAIN_QUALITY_TARGETS[target["id"]][0],
+                "quality_acceptance": BRAIN_QUALITY_TARGETS[target["id"]][1],
+                "quality_runtime_verified": False,
                 "evidence_current": current_real_evidence,
                 "evidence_possible": possible,
                 "evidence_label": f"{current_real_evidence}/{possible}",
@@ -185,6 +222,7 @@ def evidence_gate_status() -> dict[str, Any]:
         "decision_states": EVIDENCE_DECISION_STATES,
         "gates": EVIDENCE_7_GATES,
         "brain_parts": tuple(parts),
+        "quality_coverage": validate_brain_quality_targets(),
         "full_green_requirements": FULL_GREEN_REQUIREMENTS,
         "founder_final_required": True,
         "green_gate_reason": "Protocol is finished, but real evidence remains 3/7 until live runners, receipts, tests and Founder final approval prove gates 4-7.",

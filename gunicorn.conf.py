@@ -194,6 +194,8 @@ def on_starting(server):
                     "local_reason": home_node.get("reason"),
                     "bridge_configured": bridge.get("configured"),
                     "worker_recently_seen": bridge.get("worker_recently_seen"),
+                    "durable_worker_fresh": bridge.get("durable_worker_fresh"),
+                    "worker_ready": bridge.get("worker_ready"),
                     "first_party_inference_ready": inference_probe.get("first_party_inference_ready"),
                     "compatibility_fallback_configured": inference_probe.get(
                         "compatibility_fallback_configured"
@@ -213,6 +215,8 @@ def on_starting(server):
                     "local_reason": "probe_failed",
                     "bridge_configured": False,
                     "worker_recently_seen": False,
+                    "durable_worker_fresh": False,
+                    "worker_ready": False,
                     "first_party_inference_ready": False,
                     "compatibility_fallback_configured": bool(
                         os.environ.get("OPENAI_API_KEY", "").strip()
@@ -222,6 +226,152 @@ def on_starting(server):
                 separators=(",", ":"),
             )
         )
+    if (
+        os.environ.get("OAP_MARKET_SUPPLIER_MIGRATION_ON_BOOT", "")
+        .strip()
+        .lower()
+        == "true"
+    ):
+        from mission_control.market_supplier_network import init_schema
+
+        migration_status = init_schema(assume_yes=True)
+        server.log.info(
+            json.dumps(
+                {
+                    "event": "oap_market_supplier_migration_applied",
+                    "migration": migration_status.get("migration"),
+                    "schema_ready": migration_status.get("schema_ready") is True,
+                    "migration_verified": migration_status.get("migration_verified") is True,
+                    "provider_execution_enabled": False,
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+            )
+        )
+
+    if (
+        os.environ.get("OAP_COMMERCE_MIGRATION_ON_BOOT", "")
+        .strip()
+        .lower()
+        == "true"
+    ):
+        from mission_control.commerce_install import install as install_commerce
+
+        commerce_migration = install_commerce(assume_yes=True, dry_run=False)
+        server.log.info(
+            json.dumps(
+                {
+                    "event": "oap_commerce_migration_applied",
+                    "schema_ready": commerce_migration.get("schema_ready") is True,
+                    "component_count": len(commerce_migration.get("components") or {}),
+                    "payment_provider_configured": bool(
+                        (commerce_migration.get("payment_provider") or {}).get(
+                            "configuration_complete"
+                        )
+                    ),
+                    "pod_provider_configured": bool(
+                        (commerce_migration.get("pod_provider") or {}).get(
+                            "configuration_complete"
+                        )
+                    ),
+                    "secret_exposed": False,
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+            )
+        )
+
+    try:
+        from mission_control.commerce_install import status as commerce_install_status
+
+        commerce_readiness = commerce_install_status()
+    except RuntimeError:
+        commerce_readiness = {
+            "installer_built": False,
+            "payment_provider_configured": False,
+            "pod_provider_configured": False,
+            "secret_values_exposed": False,
+        }
+    server.log.info(
+        json.dumps(
+            {
+                "event": "oap_commerce_install_readiness",
+                **commerce_readiness,
+                "secret_exposed": False,
+            },
+            separators=(",", ":"),
+        )
+    )
+
+    try:
+        from mission_control.market_supplier_network import schema_status
+
+        supplier_schema = schema_status()
+    except Exception:
+        supplier_schema = {
+            "database_reachable": False,
+            "supplier_bindings_ready": False,
+            "design_products_ready": False,
+            "schema_ready": False,
+            "provider_execution_enabled": False,
+        }
+    server.log.info(
+        json.dumps(
+            {
+                "event": "oap_market_supplier_schema_readiness",
+                **supplier_schema,
+                "human_authority_final": True,
+            },
+            separators=(",", ":"),
+        )
+    )
+    if (
+        os.environ.get("OAP_BANK_EVIDENCE_MIGRATION_ON_BOOT", "")
+        .strip()
+        .lower()
+        == "true"
+    ):
+        from mission_control.bank_authorisation_store import init_schema as init_bank_evidence_schema
+
+        bank_migration_status = init_bank_evidence_schema(assume_yes=True)
+        server.log.info(
+            json.dumps(
+                {
+                    "event": "oap_bank_authorisation_evidence_migration_applied",
+                    "migration": bank_migration_status.get("migration"),
+                    "schema_ready": bank_migration_status.get("schema_ready") is True,
+                    "regulated_execution_enabled": False,
+                    "regulator_authorisation_granted": False,
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+            )
+        )
+
+    try:
+        from mission_control.bank_authorisation_store import schema_status as bank_evidence_schema_status
+
+        bank_evidence_schema = bank_evidence_schema_status()
+    except Exception:
+        bank_evidence_schema = {
+            "database_reachable": False,
+            "evidence_table_ready": False,
+            "schema_ready": False,
+            "error": "bank_evidence_schema_probe_failed",
+        }
+    server.log.info(
+        json.dumps(
+            {
+                "event": "oap_bank_authorisation_evidence_schema_readiness",
+                **bank_evidence_schema,
+                "regulated_execution_enabled": False,
+                "regulator_authorisation_granted": False,
+                "human_authority_final": True,
+            },
+            separators=(",", ":"),
+        )
+    )
+
     _emit_database_certification(server)
     _emit_database_connection_diagnostic(server)
     _restore_configured_authority_once(server)

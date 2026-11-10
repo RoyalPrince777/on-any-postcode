@@ -12,7 +12,7 @@ import os
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from mission_control.hrm_agent_lifecycle import BODY_7, MIND_7, SOUL_7
@@ -86,7 +86,7 @@ def build_receipt(
         uuid.uuid5(uuid.NAMESPACE_URL, f"oap-hrm:{signal_id}:{idempotency_key}")
     )
     body = dict(governed)
-    body["recorded_at"] = datetime.now(timezone.utc).isoformat()
+    body["recorded_at"] = datetime.now(UTC).isoformat()
     return DurableReceipt(receipt_id=receipt_id, checksum=checksum, payload=body)
 
 

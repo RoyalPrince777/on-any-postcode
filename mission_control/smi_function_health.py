@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+from werkzeug.exceptions import MethodNotAllowed, NotFound
+from werkzeug.routing import RequestRedirect
 
 from . import (
     agents,
@@ -14,7 +17,9 @@ from . import (
     judgement,
     smi_brain_evidence_runner,
     smi_chat_runtime,
+    smi_completion_contract,
     smi_proof_gate,
+    smi_receipt_backend,
     smi_recursive_improvement,
 )
 
@@ -108,8 +113,73 @@ FUNCTION_SPECS = (
 )
 
 
+SMI_FIXED_NAV_PATHS: tuple[tuple[str, str], ...] = (
+    ("oap-front-door", "/"),
+    ("oap-search", "/search"),
+    ("map", "/on-any-place"),
+    ("map-alias", "/oap-map"),
+    ("movement", "/movement"),
+    ("travel-direct", "/travel/direct"),
+    ("map-status", "/map-intelligence/status"),
+    ("smi-chat", "/mission/ollama"),
+    ("war-room", "/mission/war-room"),
+    ("brain", "/mission/brain"),
+    ("agents", "/mission/agents"),
+    ("infrastructure", "/mission/infrastructure"),
+    ("judgement", "/mission/judgement"),
+    ("improvement", "/mission/improvement"),
+    ("function-health", "/mission/smi/function-health"),
+    ("routes", "/mission/smi/routes"),
+    ("green-gate", "/mission/smi/green-gate"),
+)
+
+
+def _registered_get_path(url_map: Any, path: str) -> bool:
+    """Return True only when a concrete internal GET path resolves in Flask routing."""
+
+    clean_path = str(path).split("?", 1)[0]
+    bind = getattr(url_map, "bind", None)
+    if callable(bind):
+        adapter = bind("localhost")
+        try:
+            adapter.match(clean_path, method="GET")
+        except (MethodNotAllowed, NotFound, RequestRedirect):
+            return False
+        return True
+
+    return any(
+        getattr(rule, "rule", None) == clean_path
+        and "GET" in set(getattr(rule, "methods", ()) or ())
+        for rule in url_map.iter_rules()
+    )
+
+
+def ui_route_integrity(url_map: Any) -> dict[str, Any]:
+    """Audit fixed SMI navigation paths so buttons/tabs cannot silently target 404s."""
+
+    paths = tuple(
+        {
+            "id": route_id,
+            "path": path,
+            "registered": _registered_get_path(url_map, path),
+        }
+        for route_id, path in SMI_FIXED_NAV_PATHS
+    )
+    registered_count = sum(1 for item in paths if item["registered"])
+    return {
+        "component": "SMI UI Route Integrity",
+        "paths": paths,
+        "registered_count": registered_count,
+        "expected_count": len(paths),
+        "availability_percent": _percent(registered_count, len(paths)),
+        "all_registered": registered_count == len(paths),
+        "no_404_routing_gap": registered_count == len(paths),
+        "human_authority_final": True,
+    }
+
+
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _percent(count: int, total: int) -> float:
@@ -191,7 +261,34 @@ def route_status(url_map: Any) -> dict[str, Any]:
 
 
 def interaction_certification() -> dict[str, Any]:
-    """Track SMI interaction implementation separately from live Green Gate proof."""
+    """Track implementation and consume only durable live interaction evidence."""
+
+    button_proof, button_proof_checked = _safe_read(
+        smi_receipt_backend.latest_durable_button_proof,
+        {"proven": False, "reason": "button_proof_unavailable"},
+    )
+
+    surface_proofs, surface_proofs_checked = _safe_read(
+        smi_receipt_backend.latest_durable_interaction_surface_proofs,
+        {},
+    )
+
+    completion, completion_checked = _safe_read(
+        smi_completion_contract.completion_status,
+        {"proof_gates": ()},
+    )
+    proof_gates = completion.get("proof_gates")
+    if not isinstance(proof_gates, (tuple, list)):
+        proof_gates = ()
+    founder_chat_proven = bool(
+        completion_checked
+        and any(
+            isinstance(item, Mapping)
+            and item.get("id") == "founder_chat_interaction"
+            and item.get("proven") is True
+            for item in proof_gates
+        )
+    )
 
     try:
         base = (
@@ -216,23 +313,93 @@ def interaction_certification() -> dict[str, Any]:
     for spec in INTERACTION_CERTIFICATION_SPECS:
         markers = tuple(str(item) for item in spec["markers"])
         wired = bool(source_available and all(marker in source for marker in markers))
+        live_runtime_proven = bool(
+            wired
+            and (
+                (
+                    spec["id"] == "control-surface-v2"
+                    and button_proof_checked
+                    and button_proof.get("proven") is True
+                )
+                or (
+                    spec["id"] == "chat"
+                    and founder_chat_proven
+                )
+                or (
+                    spec["id"] not in {"chat", "control-surface-v2"}
+                    and surface_proofs_checked
+                    and isinstance(surface_proofs.get(spec["id"]), Mapping)
+                    and surface_proofs[spec["id"]].get("proven") is True
+                    and surface_proofs[spec["id"]].get("durable") is True
+                    and surface_proofs[spec["id"]].get("cryptographically_verified") is True
+                    and bool(str(surface_proofs[spec["id"]].get("release_id") or "").strip())
+                )
+            )
+        )
         surfaces.append(
             {
                 "id": spec["id"],
                 "name": spec["name"],
                 "implementation_wired": wired,
                 "backend_path": spec["backend"],
-                "known_gap": spec.get("known_gap"),
-                "live_runtime_proven": False,
-                "state": "purple" if wired else "red",
-                "label": "CERTIFICATION REQUIRED" if wired else "IMPLEMENTATION MISSING",
+                "known_gap": None if live_runtime_proven else spec.get("known_gap"),
+                "live_runtime_proven": live_runtime_proven,
+                "live_proof_receipt_id": (
+                    button_proof.get("receipt_id")
+                    if live_runtime_proven and spec["id"] == "control-surface-v2"
+                    else (
+                        surface_proofs[spec["id"]].get("receipt_id")
+                        if (
+                            live_runtime_proven
+                            and spec["id"] not in {"chat", "control-surface-v2"}
+                            and isinstance(surface_proofs.get(spec["id"]), Mapping)
+                        )
+                        else None
+                    )
+                ),
+                "live_proof_source": (
+                    "durable_post_ack_button_proof"
+                    if live_runtime_proven and spec["id"] == "control-surface-v2"
+                    else (
+                        "founder_chat_interaction_gate"
+                        if live_runtime_proven and spec["id"] == "chat"
+                        else (
+                            "durable_interaction_surface_proof"
+                            if (
+                                live_runtime_proven
+                                and spec["id"] not in {"chat", "control-surface-v2"}
+                            )
+                            else None
+                        )
+                    )
+                ),
+                "state": "green" if live_runtime_proven else ("purple" if wired else "red"),
+                "label": (
+                    "LIVE PROVEN"
+                    if live_runtime_proven
+                    else ("CERTIFICATION REQUIRED" if wired else "IMPLEMENTATION MISSING")
+                ),
             }
         )
 
     implemented_count = sum(
         1 for item in surfaces if item["implementation_wired"]
     )
+    live_proven_count = sum(
+        1 for item in surfaces if item["live_runtime_proven"]
+    )
     expected_count = len(surfaces)
+    proven_surface_ids = tuple(
+        item["id"] for item in surfaces if item["live_runtime_proven"]
+    )
+    pending_surface_ids = tuple(
+        item["id"] for item in surfaces if not item["live_runtime_proven"]
+    )
+    receipt_ids = {
+        item["id"]: item["live_proof_receipt_id"]
+        for item in surfaces
+        if item["live_proof_receipt_id"]
+    }
     return {
         "component": "SMI Interaction Certification",
         "generated_at": _now(),
@@ -240,8 +407,20 @@ def interaction_certification() -> dict[str, Any]:
         "implemented_count": implemented_count,
         "expected_count": expected_count,
         "implementation_percent": _percent(implemented_count, expected_count),
+        "live_proven_count": live_proven_count,
+        "live_proof_percent": _percent(live_proven_count, expected_count),
         "all_implemented_for_certification": implemented_count == expected_count,
-        "whole_interaction_green": False,
+        "whole_interaction_green": live_proven_count == expected_count,
+        "receipt_summary": {
+            "reader_checked": bool(surface_proofs_checked),
+            "proven_surface_ids": proven_surface_ids,
+            "pending_surface_ids": pending_surface_ids,
+            "receipt_ids": receipt_ids,
+            "proven_count": live_proven_count,
+            "expected_count": expected_count,
+            "remaining_count": expected_count - live_proven_count,
+            "complete": live_proven_count == expected_count,
+        },
         "live_proof_required": True,
         "proof_chain": (
             "control",
@@ -321,8 +500,11 @@ def function_health(url_map: Any) -> dict[str, Any]:
     if not isinstance(improvement_proof, Mapping):
         improvement_proof = {}
 
+    ui_routes = ui_route_integrity(url_map)
     route_integrity = bool(
-        routes["all_registered"] and routes["duplicate_primary_paths"] == 0
+        routes["all_registered"]
+        and routes["duplicate_primary_paths"] == 0
+        and ui_routes["all_registered"]
     )
 
     proofs: dict[str, dict[str, Any]] = {
@@ -468,6 +650,7 @@ def function_health(url_map: Any) -> dict[str, Any]:
         "proof_required_count": expected_count - runtime_ready_count,
         "all_proof_sources_checked": proof_checked_count == expected_count,
         "all_primary_routes_registered": routes["all_registered"],
+        "ui_route_integrity": ui_routes,
         "duplicate_primary_paths": routes["duplicate_primary_paths"],
         "green_gate": gate,
         "interaction_certification": interaction_certification(),

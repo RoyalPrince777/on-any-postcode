@@ -57,6 +57,47 @@ def test_smi_runtime_modes_reach_governed_brain_context():
     assert "studio_mode=studio_mode" in facade
 
 
+def test_smi_master_settings_reuses_voice_and_persists_default_intelligence():
+    base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()
+    script = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text()
+
+    assert 'id="smi-settings-button"' in base
+    assert 'id="smi-settings-panel"' in base
+    assert 'id="voice-auto-speak-toggle"' in base
+    assert 'id="default-intelligence-level"' in base
+    assert 'id="reduced-motion-toggle"' in base
+    assert 'id="reset-device-preferences"' in base
+    assert "Speak SMI replies automatically" in base
+    assert "Default Intelligence" in base
+    assert "Reduced Motion" in base
+    assert "Preferences are saved on this device only." in base
+    assert "Reduced Motion keeps SMI visually still, including Live mode." in base
+    assert "Reset clears only SMI device preferences; conversations, HRM and receipts are not deleted." in base
+    assert "No audio or transcript is stored by these settings." in base
+
+    assert 'smiSettingsButton=q("#smi-settings-button")' in script
+    assert 'OAP_SMI_INTELLIGENCE_PREF_KEY="oap.smi.defaultIntelligence.v1"' in script
+    assert "allowedIntelligenceLevels" in script
+    assert "readIntelligencePreference()" in script
+    assert "writeIntelligencePreference(" in script
+    assert "runtimeThinkingLevel.value=intelligence" in script
+    assert "runtimeThinkingLevel.value=value" in script
+    assert 'OAP_SMI_REDUCED_MOTION_PREF_KEY="oap.smi.reducedMotion.v1"' in script
+    assert "window.OAP_SMI_REDUCED_MOTION" in script
+    assert 'classList.toggle("smi-user-reduced-motion",value)' in script
+    assert '"oap-smi-reduced-motion-change"' in script
+    assert 'resetDevicePreferences=q("#reset-device-preferences")' in script
+    assert "window.localStorage?.removeItem(OAP_SMI_VOICE_PREF_KEY)" in script
+    assert "window.localStorage?.removeItem(OAP_SMI_INTELLIGENCE_PREF_KEY)" in script
+    assert "window.localStorage?.removeItem(OAP_SMI_REDUCED_MOTION_PREF_KEY)" in script
+    assert "conversations, HRM and receipts unchanged" in script
+    assert "window.OAP_SMI_VOICE_PREF?.read?" in script
+    assert "window.OAP_SMI_VOICE_PREF?.write?" in script
+    assert 'document.getElementById("speaker-button")' in script
+    assert "speaker.click()" in script
+
+
+
 def test_smi_response_actions_include_feedback_and_voice():
     script = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text()
     for marker in (
@@ -109,6 +150,50 @@ def test_smi_auto_resolves_smallest_sufficient_depth_and_studio():
         war_room_triggered=False,
     )
     assert (level, studio, depth) == ("deep_dive", True, 21)
+
+
+def test_founder_shorthand_routes_into_existing_depth_and_review_controls():
+    from mission_control import smi_chat_runtime_core as core
+
+    for message in ("SMI 21", "truth mode"):
+        level, studio, depth = core._auto_runtime_mode(
+            message,
+            requested_level="auto",
+            studio_mode=False,
+            code_mode=False,
+            image_attached=False,
+            media_kind=None,
+            war_room_triggered=False,
+        )
+        assert (level, studio, depth) == ("deep_dive", False, 21)
+
+    signals = core._founder_shorthand("SMI 21 truth mode red team")
+    assert signals["deep_dive"] is True
+    assert signals["force_war_room"] is True
+    assert signals["signals"] == ("SMI_21", "TRUTH_MODE", "RED_TEAM")
+
+
+def test_explicit_ui_depth_still_beats_text_only_depth_shorthand():
+    from mission_control import smi_chat_runtime_core as core
+
+    level, studio, depth = core._auto_runtime_mode(
+        "SMI 21",
+        requested_level="instant",
+        studio_mode=False,
+        code_mode=False,
+        image_attached=False,
+        media_kind=None,
+        war_room_triggered=False,
+    )
+    assert (level, studio, depth) == ("instant", False, 3)
+
+
+def test_red_team_shorthand_forces_existing_war_room_review_path():
+    core = (ROOT / "mission_control" / "smi_chat_runtime_core.py").read_text()
+    assert 'red_team = bool(re.search(r"\\bred\\s+team\\b", text))' in core
+    assert 'requested_mode == "war_room" or shorthand["force_war_room"]' in core
+    assert "force_war_room=force_war_room" in core
+    assert 'brain["founder_shorthand_war_room"] = bool(shorthand["force_war_room"])' in core
 
 
 def test_explicit_smi_depth_is_preserved_but_generation_can_auto_enter_studio():
@@ -176,7 +261,7 @@ def test_smi_interaction_layer_exposes_canonical_modes_and_capture_paths():
 
     assert "smi_interaction_layer.js" in wrapper
     assert "smi_interaction_layer.css" in wrapper
-    assert "smi-status-open" in dashboard
+    assert "smi-home-open" in dashboard
     assert "smi-dashboard-mode" not in dashboard
     assert "smi-chat-mode" not in dashboard
 
@@ -212,7 +297,8 @@ def test_explicit_war_room_selector_forces_review_without_execution_authority():
     live_brain = (ROOT / "mission_control" / "live_brain.py").read_text()
     war_room = (ROOT / "oap" / "war_room" / "engine.py").read_text()
 
-    assert 'force_war_room=requested_mode == "war_room"' in core
+    assert 'requested_mode == "war_room" or shorthand["force_war_room"]' in core
+    assert "force_war_room=force_war_room" in core
     assert "force_review=bool(force_war_room)" in live_brain
     assert "bool(force_review)" in war_room
     assert '"decision_authority": False' in live_brain
@@ -240,3 +326,29 @@ def test_function_health_tracks_interaction_certification_without_fake_green():
         "control-surface-v2",
     }
     assert all(item["state"] == "purple" for item in result["surfaces"])
+
+def test_smi_interaction_surfaces_emit_post_ack_proof_receipts():
+    template = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    final = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
+    layer = (ROOT / "mission_control" / "static" / "smi_interaction_layer.js").read_text(encoding="utf-8")
+    controller = (ROOT / "mission_control" / "static" / "smi_canonical_controller.js").read_text(encoding="utf-8")
+
+    assert "interactionProofUrl:" in template
+    assert "window.OAP_SMI_RECORD_INTERACTION_PROOF=recordInteractionProof" in final
+    assert '"runtime_acknowledged":true' not in final
+    assert "runtime_acknowledged:true" in final
+    assert "interaction_completed:true" in final
+    for surface in ("vision", "screen", "face-up", "tools", "intelligence-selector"):
+        assert f'recordSurfaceProof("{surface}"' in layer
+    assert "OAP_SMI_RECORD_INTERACTION_PROOF?.('voice'" in controller
+    assert "OAP_SMI_RECORD_INTERACTION_PROOF?.('runtime-controls'" in controller
+
+def test_smi_live_interaction_proof_badge_tracks_authoritative_function_health():
+    source = (ROOT / "mission_control" / "static" / "smi_chat_final.js").read_text(encoding="utf-8")
+    assert 'badge.id="smi-interaction-proof-count"' in source
+    assert 'receiptSummary.proven_count' in source
+    assert 'interaction.live_proven_count' in source
+    assert '" Proof "+provenCount+"/"+expectedCount' in source
+    assert 'remainingCount===0?"🟢":"🟣"' in source
+    assert 'await syncFunctionHealth()' in source
+

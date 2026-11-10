@@ -148,6 +148,8 @@ def execute(
     expected_status: object,
     target_status: object,
     expected_current_hash: object | None = None,
+    expected_result_hash: object | None = None,
+    rollback_origin: Mapping[str, object] | None = None,
 ) -> dict[str, Any]:
     """Execute one reversible owner-scoped status transition and verify read-back."""
 
@@ -216,6 +218,54 @@ def execute(
                 if current_hash_proof != expected_hash:
                     raise ExecutionBlocked("record_hash_mismatch")
 
+            # Rollback restoration MUST be validated while holding the row lock
+            # and before UPDATE/HRM/audit/commit. A post-commit mismatch cannot
+            # safely be reported as a blocked, unperformed rollback.
+            if expected_result_hash is not None:
+                required_result = str(expected_result_hash or "").strip().casefold()
+                if (len(required_result) != 64
+                        or any(ch not in "0123456789abcdef"
+                               for ch in required_result)):
+                    raise ValueError("invalid_expected_result_hash")
+                projected_result = _proof_hash({
+                    "workspace_id": workspace_id,
+                    "title": title,
+                    "body": body,
+                    "status": target,
+                })
+                if projected_result != required_result:
+                    raise ExecutionBlocked("rollback_restoration_hash_mismatch")
+
+            if rollback_origin is not None:
+                # A browser-supplied rollback token is NOT proof of its own origin.
+                # Anchor it to the most recent immutable record-action audit,
+                # under the same record lock and before performing any mutation.
+                previous_action = connection.execute(
+                    """SELECT metadata FROM audit_events
+                       WHERE action=%s AND actor_id=%s AND target=%s
+                       ORDER BY event_seq DESC LIMIT 1""",
+                    (_AUDIT_ACTION, identity, f"workspace_record:{record}"),
+                ).fetchone()
+                if previous_action is None:
+                    raise ExecutionBlocked("rollback_origin_audit_missing")
+                audit_data = previous_action[0]
+                if isinstance(audit_data, str):
+                    try:
+                        audit_data = json.loads(audit_data)
+                    except ValueError as exc:
+                        raise ExecutionBlocked("rollback_origin_audit_invalid") from exc
+                if not isinstance(audit_data, Mapping) or not all((
+                    audit_data.get("record_id") == record,
+                    audit_data.get("request_id") == rollback_origin.get("origin_request_id"),
+                    audit_data.get("before_hash") == required_result,
+                    audit_data.get("after_hash") == current_hash_proof,
+                    audit_data.get("before_status") == target,
+                    audit_data.get("after_status") == expected,
+                    audit_data.get("content_unchanged") is True,
+                    audit_data.get("status_readback_verified") is True,
+                )):
+                    raise ExecutionBlocked("rollback_origin_audit_mismatch")
+
             duplicate = connection.execute(
                 """SELECT metadata
                    FROM audit_events
@@ -264,7 +314,14 @@ def execute(
                     "status": str(after[3]),
                 }
             )
+            # Independently verify the actual post-UPDATE row while the same
+            # transaction is still open. Never discover a restoration hash
+            # mismatch only after the audit/outcome has committed.
+            if expected_result_hash is not None and after_hash != required_result:
+                raise ExecutionBlocked("rollback_restoration_hash_mismatch")
+
             rollback_token = {
+                "origin_request_id": request_id,
                 "record_id": record,
                 "expected_status": target,
                 "target_status": expected,
@@ -400,6 +457,16 @@ def rollback(
 
     if not isinstance(rollback_token, Mapping):
         raise TypeError("rollback_token_required")
+    original_request_id = _uuid(
+        rollback_token.get("origin_request_id"), "rollback_origin_request_id",
+    )
+    current_request_id = _uuid(
+        authorization.get("request_id"), "request_id",
+    )
+    # Enforce the distinct fresh Human Authority review on the server, not
+    # merely in browser controls. An old approval cannot authorise its own undo.
+    if original_request_id == current_request_id:
+        raise ExecutionBlocked("fresh_rollback_review_required")
     record_id = rollback_token.get("record_id")
     expected_status = rollback_token.get("expected_status")
     target_status = rollback_token.get("target_status")
@@ -418,14 +485,15 @@ def rollback(
         expected_status=expected_status,
         target_status=target_status,
         expected_current_hash=expected_current_hash,
+        expected_result_hash=expected_restored_hash,
+        rollback_origin={"origin_request_id": original_request_id},
     )
-    if result["after_hash"] != expected_restored_hash:
-        raise ExecutionBlocked("rollback_restoration_hash_mismatch")
-
+    # A contradictory receipt is reconciliation evidence, not a claim that
+    # the mutation never occurred; both hash gates execute before commit.
     return {
         **result,
         "recovery_action": "ROLLBACK_INTERNAL_RECORD",
-        "rollback_verified": True,
+        "rollback_verified": result["after_hash"] == expected_restored_hash,
         "restored_hash": result["after_hash"],
         "original_before_hash": expected_restored_hash,
         "human_authority_final": True,

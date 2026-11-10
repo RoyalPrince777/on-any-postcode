@@ -9,9 +9,12 @@ def test_latest_founder_memory_contains_current_locked_rules():
     assert "no fake green" in text
     assert "Kaa is completely excluded" in text
     assert "one canonical Send/Enter/Mic/Voice/Stop runtime" in text
+    assert "exactly seven major links" in text
+    assert "Core Review Signals" in text
+    assert "Thinking Signals" in text
     assert (
         latest_founder_memory.status()["revision"]
-        == "2026-09-18-war-room-intelligence"
+        == "2026-10-02-seven-links-core-thinking-signals"
     )
 
 

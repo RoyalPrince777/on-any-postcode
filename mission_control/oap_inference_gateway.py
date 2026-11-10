@@ -13,6 +13,7 @@ import os
 import re
 import time
 from collections.abc import Callable
+from contextvars import ContextVar
 from typing import Any
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
@@ -62,6 +63,17 @@ PUBLIC_SMI_SYSTEM = (
 _PROBE_TTL_SECONDS = 30.0
 _probe_cache: tuple[float, dict[str, Any]] | None = None
 _LOG = logging.getLogger(__name__)
+# Request-local successful gateway observation; not a signed device attestation.
+_INFERENCE_ROUTE: ContextVar[str | None] = ContextVar("oap_inference_route", default=None)
+
+
+def clear_inference_route() -> None:
+    _INFERENCE_ROUTE.set(None)
+
+
+def observed_inference_route() -> str | None:
+    return _INFERENCE_ROUTE.get()
+
 
 
 def _enrich_brain(message: str, brain: dict | None) -> dict[str, Any]:
@@ -377,6 +389,7 @@ def generate(
 ) -> str:
     """Route generation local-direct -> outbound bridge -> compatibility fallback."""
 
+    clear_inference_route()
     if cancel_check is not None:
         cancel_check()
     enriched_brain = _enrich_brain(message, brain)
@@ -399,6 +412,7 @@ def generate(
                 cancel_check()
             if on_delta is not None:
                 on_delta(text)
+            _INFERENCE_ROUTE.set("local_direct")
             return text
         except RuntimeError as exc:
             if cancel_check is not None:
@@ -417,6 +431,7 @@ def generate(
                 cancel_check()
             if on_delta is not None:
                 on_delta(text)
+            _INFERENCE_ROUTE.set("home_node_bridge")
             return text
         except RuntimeError as exc:
             if cancel_check is not None:
@@ -426,6 +441,8 @@ def generate(
         cancel_check()
     if not FALLBACK_ENABLED:
         raise RuntimeError("first_party_inference_required") from first_party_error
+    if not os.environ.get("OPENAI_API_KEY", "").strip() and first_party_error is not None:
+        raise first_party_error
     result = compatibility_engine(
         message,
         image_data,
@@ -438,6 +455,7 @@ def generate(
     )
     if cancel_check is not None:
         cancel_check()
+    _INFERENCE_ROUTE.set("compatibility_fallback")
     return result
 
 
@@ -499,7 +517,13 @@ def status(*, probe: bool = False) -> dict[str, Any]:
     bridge = home_node_bridge.status()
     first_party_ready = bool(
         (proof.get("reachable") and proof.get("model_available"))
-        or (bridge.get("configured") and bridge.get("worker_recently_seen"))
+        or (
+            bridge.get("configured")
+            and (
+                bridge.get("worker_recently_seen")
+                or bridge.get("durable_worker_fresh")
+            )
+        )
     )
     return {
         "gateway": "OAP Inference Gateway",

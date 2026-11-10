@@ -40,16 +40,19 @@
   </style>
 </head>
 <body class="mc-workspace-body">
+  {% set mine_view = auth_user and request.args.get('mine') == '1' %}
   <header class="mc-workspace-header">
     <div>
       <p class="mc-eyebrow">OAP World / Market</p>
       <h1>Market</h1>
-      <p>{{ capability.purpose }}</p><p>Discover local products and Certified merchants. Checkout, payment capture and delivery confirmation stay evidence-gated.</p>
+      <p>{{ capability.purpose }}</p><p>Discover local products and Certified merchants.</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
-      {% if auth_user %}
-      <a class="mc-secondary-link" href="#sell">＋ Sell</a>
+      {% if mine_view %}
+      <a class="mc-secondary-link" href="{{ request.path }}">Public Market</a>
+      {% elif auth_user %}
+      <a class="mc-secondary-link" href="{{ request.path }}?mine=1">My Market</a>
       {% else %}
       <a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path) }}">Enter My World</a>
       {% endif %}
@@ -57,9 +60,19 @@
   </header>
 
   <main class="mc-workspace market-shell">
+    {% if mine_view %}
+    <section class="mc-panel market-notice" aria-label="My Market private view">
+      <strong>My Market</strong> · Your private order and merchant controls. Public shoppers do not see this management view.
+      <div class="market-actions" style="margin-top:10px">
+        <a class="mc-secondary-link" href="#orders">My Orders</a>
+        <a class="mc-secondary-link" href="#sell">Sell on OAP</a>
+        <a class="mc-secondary-link" href="{{ request.path }}">View Public Market</a>
+      </div>
+    </section>
+    {% endif %}
     <section class="mc-panel market-hero" aria-labelledby="market-browse-title">
-      <p class="mc-eyebrow">Browse · Local · Trusted</p>
-      <h2 id="market-browse-title">Find what you need</h2>
+      <p class="mc-eyebrow">{{ 'My Market · Orders · Seller' if mine_view else 'Browse · Local · Trusted' }}</p>
+      <h2 id="market-browse-title">{{ 'Your Market workspace' if mine_view else 'Find what you need' }}</h2>
       <form class="market-toolbar" method="get" action="{{ request.path }}">
         <label class="sr-only" for="market-search">Search Market</label>
         <input id="market-search" name="q" value="{{ request.args.get('q','') }}" placeholder="Search products, sellers or places">
@@ -87,16 +100,25 @@
           {% if not query or query in haystack %}
           {% set visible.count = visible.count + 1 %}
           {% set rs = market_reviews.get(product.product_id, {}) %}
+          {% set supplier = market_supplier_projection.get(product.product_id, {}) %}
           <article class="market-card">
             <p class="mc-eyebrow">{{ product.postcode or product.borough or product.country or 'OAP Market' }}</p>
             <h3>{{ product.name }}</h3>
             <p>{{ product.description }}</p>
             <div class="market-price">{{ product.currency }} {{ product.price }}</div>
             <p class="market-meta">{{ product.seller }}</p>
+            {% if supplier.get('made_to_order') %}
+            <p class="market-meta">🧵 Made to order · {{ supplier.get('garment_type') or 'garment' }}</p>
+            <p class="market-meta">Fulfilment setup · {{ supplier.get('fulfilment_state') }}</p>
+            {% if supplier.get('sizes') %}<p class="market-meta">Sizes · {{ supplier.get('sizes')|join(', ') }}</p>{% endif %}
+            {% if supplier.get('colors') %}<p class="market-meta">Colours · {{ supplier.get('colors')|join(', ') }}</p>{% endif %}
+            {% endif %}
             <p class="market-meta">{% if rs.get('count') %}⭐ {{ rs.get('average') }}/5 · {{ rs.get('count') }} review{{ '' if rs.get('count') == 1 else 's' }}{% else %}No reviews yet{% endif %}</p>
             <div class="market-actions">
               <a class="mc-secondary-link" href="{{ request.path }}?product={{ product.product_id }}">View item</a>
-              {% if auth_user %}
+              {% if supplier and not supplier.get('order_intent_allowed') %}
+              <span class="market-notice">Ordering unavailable for this item.</span>
+              {% elif auth_user %}
               <button class="mc-primary market-add" type="button"
                       data-product-id="{{ product.product_id }}"
                       data-name="{{ product.name|e }}"
@@ -144,7 +166,7 @@
       <p class="mc-eyebrow">Basket</p>
       <h2 id="market-basket-title">Your Basket</h2>
       {% if auth_user %}
-      <p class="market-meta">Basket lines are pre-order state. Confirming creates one canonical Commerce order and Market transaction per line. No payment is captured.</p>
+
       <div id="market-basket-list" class="market-basket-list"></div>
       <div class="market-actions">
         <button id="market-checkout" class="mc-primary" type="button">Review & Confirm Orders</button>
@@ -156,14 +178,14 @@
       {% endif %}
     </section>
 
-    {% if auth_user %}
+    {% if mine_view %}
     <section id="orders" class="mc-panel" aria-labelledby="market-orders-title">
-      <p class="mc-eyebrow">Orders · server truth</p>
+      <p class="mc-eyebrow">Orders</p>
       <h2 id="market-orders-title">My Orders</h2>
       <button id="market-refresh-orders" class="mc-secondary-link" type="button">Refresh Orders</button>
       <div id="market-order-list" class="market-order-list"></div>
       <div id="market-order-detail" class="market-hidden">
-        <h3>Order & Transaction Timeline</h3>
+        <h3>Order details</h3>
         <div id="market-order-summary"></div>
         <div id="market-timeline" class="market-timeline"></div>
         <div class="market-actions">
@@ -174,11 +196,46 @@
     </section>
     {% endif %}
 
+    {% if mine_view %}
+    <section id="my-pod-store" class="mc-panel" aria-labelledby="my-pod-store-title">
+      <p class="mc-eyebrow">Private · Print on demand</p>
+      <h2 id="my-pod-store-title">My POD Store</h2>
+      <p class="market-notice">Finish products here first. New POD products stay private and do not appear in the Public Market unless a separate later release is explicitly approved.</p>
+      {% if my_pod_products %}
+      <div class="market-grid">
+        {% for product in my_pod_products %}
+        <article class="market-card" data-my-pod-product="{{ product.product_id }}">
+          <p class="mc-eyebrow">{{ product.garment_type }} · {{ product.supplier_state }}</p>
+          <h3>{{ product.name }}</h3>
+          <p>{{ product.description }}</p>
+          <div class="market-price">{{ product.currency }} {{ product.price }}</div>
+          <p class="market-meta">Design · {{ product.design_state }} · Supplier · {{ product.supplier_state }}</p>
+          <p class="market-meta">Colours · {{ product.colors|join(', ') }} · Sizes · {{ product.sizes|join(', ') }}</p>
+          <p class="market-meta">Public Market · {{ 'ON' if product.public_listing_active else 'OFF' }}</p>
+          <div class="market-actions">
+            {% if product.supplier_state != 'READY' or product.design_state != 'READY' %}
+            <button class="mc-primary pod-ready" type="button" data-product-id="{{ product.product_id }}">Mark supplier ready</button>
+            {% endif %}
+            {% if product.supplier_state != 'STOPPED' %}
+            <button class="mc-secondary-link market-danger pod-stop" type="button" data-product-id="{{ product.product_id }}">STOP product</button>
+            {% endif %}
+          </div>
+          <p class="market-meta pod-status" role="status" aria-live="polite"></p>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="market-empty">No POD products in My Market yet.</div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if mine_view %}
     <section id="sell" class="mc-panel market-sell" aria-labelledby="market-sell-title">
       <p class="mc-eyebrow">Seller</p>
       <h2 id="market-sell-title">Sell on OAP</h2>
-      {% if auth_user and merchant_certified %}
-        <p class="market-notice"><strong>Certified Merchant active.</strong> You can publish listings. Checkout and regulated payment capture remain separately locked.</p>
+      {% if merchant_certified %}
+        <p class="market-notice"><strong>Certified Merchant active.</strong> You can publish listings.</p>
         <form method="post" action="{{ url_for('market_listing_create') }}">
           <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
           <label for="market-name">Product</label>
@@ -187,27 +244,41 @@
           <textarea id="market-description" name="description" maxlength="3000"></textarea>
           <label for="market-price">Price in GBP</label>
           <input id="market-price" name="price" inputmode="decimal" required>
-          <button class="mc-primary" type="submit">Publish listing</button>
+          <details>
+            <summary>🧵 Made-to-order clothing / print supplier</summary>
+            <p class="market-meta">Use this section for made-to-order products. POD products are saved to My Market first and stay off the Public Market.</p>
+            <label><input type="checkbox" name="made_to_order" value="1"> This is a made-to-order design product</label>
+            <label for="market-garment-type">Garment type</label>
+            <input id="market-garment-type" name="garment_type" maxlength="120" placeholder="T-shirt, hoodie, tracksuit">
+            <label for="market-artwork-ref">Artwork / design reference</label>
+            <input id="market-artwork-ref" name="artwork_reference" maxlength="500" placeholder="OAP design asset or supplier design reference">
+            <label for="market-placements">Print placements</label>
+            <input id="market-placements" name="placements" maxlength="240" placeholder="front, back, left sleeve">
+            <label for="market-colors">Colours</label>
+            <input id="market-colors" name="colors" maxlength="400" placeholder="black, gold, white">
+            <label for="market-sizes">Sizes</label>
+            <input id="market-sizes" name="sizes" maxlength="240" placeholder="S, M, L, XL, 2XL">
+            <label for="market-supplier-label">Manufacturer</label>
+            <input id="market-supplier-label" name="supplier_label" maxlength="120" placeholder="Tapstitch or another supplier">
+            <label for="market-supplier-slug">Supplier key</label>
+            <input id="market-supplier-slug" name="supplier_slug" maxlength="64" placeholder="tapstitch">
+            <label for="market-supplier-product-ref">Supplier garment reference</label>
+            <input id="market-supplier-product-ref" name="supplier_product_ref" maxlength="240">
+            <label for="market-supplier-variant-ref">Supplier variant reference</label>
+            <input id="market-supplier-variant-ref" name="supplier_variant_ref" maxlength="240">
+            <label for="market-supplier-evidence">Supplier evidence reference (optional)</label>
+            <input id="market-supplier-evidence" name="supplier_evidence_reference" maxlength="500">
+          </details>
+          <button class="mc-primary" type="submit">Save product</button>
         </form>
-      {% elif auth_user and merchant_certification_unavailable %}
-        <p class="market-notice"><strong>Certification check unavailable.</strong> Publishing stays locked until Certified Merchant status can be proven.</p>
-      {% elif auth_user %}
-        <p class="market-notice"><strong>Certified Merchant required.</strong> Browsing remains open; publishing requires Certified Merchant status.</p>
+      {% elif merchant_certification_unavailable %}
+        <p class="market-notice"><strong>Certification unavailable.</strong> Try again later.</p>
       {% else %}
-        <p class="market-notice">Browsing is public. Sign in only when you want to use a protected seller action.</p>
-        <a class="mc-secondary-link" href="{{ url_for('auth_page', next=request.path ~ '#sell') }}">Enter My World to sell →</a>
+        <p class="market-notice"><strong>Certified Merchant required.</strong> Public browsing remains open.</p>
       {% endif %}
     </section>
+    {% endif %}
 
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Transaction truth</p>
-      <div class="market-chip-row">
-        <span class="market-chip">Order · governed</span>
-        <span class="market-chip">Movement · evidence-gated</span>
-        <span class="market-chip">Parcel · evidence-gated</span>
-        <span class="market-chip">Payment capture · locked</span>
-      </div>
-    </section>
   </main>
   <script>
   (() => {
@@ -297,7 +368,7 @@
     document.getElementById('market-checkout')?.addEventListener('click', async () => {
       const basket = loadBasket();
       if (!basket.length) { status.textContent = 'Basket is empty.'; return; }
-      status.textContent = 'Creating governed order intents…';
+      status.textContent = 'Creating order…';
       const created = [];
       try {
         for (const item of basket) {
@@ -313,21 +384,22 @@
           created.push(result);
         }
         saveBasket([]); renderBasket();
-        status.textContent = created.length + ' governed order' + (created.length === 1 ? '' : 's') + ' created. Payment capture remains locked.';
+        status.textContent = created.length + ' order' + (created.length === 1 ? '' : 's') + ' created.';
         await refreshOrders();
       } catch (error) {
-        status.textContent = 'Checkout stopped safely: ' + error.message;
+        status.textContent = 'Order could not be created: ' + error.message;
       }
     });
 
     async function refreshOrders() {
-      ordersList.innerHTML = '<div class="market-empty">Loading server truth…</div>';
+      if (!ordersList) return;
+      ordersList.innerHTML = '<div class="market-empty">Loading…</div>';
       try {
         const data = await jsonFetch('/mission/organs/market/orders');
         const txByOrder = new Map((data.transactions || []).map(tx => [tx.order_id, tx]));
         ordersList.innerHTML = '';
         if (!(data.orders || []).length) {
-          ordersList.innerHTML = '<div class="market-empty">No governed orders yet.</div>'; return;
+          ordersList.innerHTML = '<div class="market-empty">No orders yet.</div>'; return;
         }
         data.orders.forEach(order => {
           const tx = txByOrder.get(order.order_id);
@@ -353,8 +425,8 @@
         timeline.innerHTML = '';
         activeTransactionId = transactionId || null;
         if (!transactionId) {
-          timeline.innerHTML = '<div class="market-empty">Transaction correlation is not available for this order.</div>';
-          recovery.textContent = 'No correlated recovery state available.';
+          timeline.innerHTML = '<div class="market-empty">No additional order details are available.</div>';
+          recovery.textContent = '';
           stopButton.disabled = true;
           detail.classList.remove('market-hidden');
           return;
@@ -368,7 +440,7 @@
         });
         if (!(tx.events || []).length) timeline.innerHTML = '<div class="market-empty">No transaction events recorded yet.</div>';
         const r = tx.recovery || {};
-        recovery.textContent = 'State: ' + r.state + ' · Recovery: ' + r.recovery_state + ' · Last good stage: ' + r.last_good_stage + ' · Next safe action: ' + r.next_safe_action;
+        recovery.textContent = 'Status: ' + r.state;
         stopButton.disabled = tx.transaction.stop_state === 'STOPPED';
         detail.classList.remove('market-hidden');
       } catch (error) {
@@ -385,16 +457,54 @@
         });
         await refreshOrders();
         const tx = await jsonFetch('/mission/organs/market/transactions/' + encodeURIComponent(activeTransactionId));
-        recovery.textContent = 'STOP active · consequential progression blocked · last good stage: ' + tx.recovery.last_good_stage;
+        recovery.textContent = 'Transaction stopped.';
         stopButton.disabled = true;
       } catch (error) {
-        recovery.textContent = 'STOP failed safely: ' + error.message;
+        recovery.textContent = 'Could not stop transaction: ' + error.message;
       }
+    });
+
+    document.querySelectorAll('.pod-ready').forEach(button => {
+      button.addEventListener('click', async () => {
+        const card = button.closest('[data-my-pod-product]');
+        const output = card?.querySelector('.pod-status');
+        const evidence = window.prompt('Supplier readiness evidence reference');
+        if (!evidence) return;
+        if (output) output.textContent = 'Checking readiness…';
+        try {
+          await jsonFetch('/mission/organs/market/products/' + encodeURIComponent(button.dataset.productId) + '/supplier-ready', {
+            method:'POST',
+            body:JSON.stringify({evidence_reference:evidence})
+          });
+          if (output) output.textContent = 'Supplier and design marked READY. Public Market remains OFF.';
+          button.disabled = true;
+        } catch (error) {
+          if (output) output.textContent = 'Could not mark ready: ' + error.message;
+        }
+      });
+    });
+
+    document.querySelectorAll('.pod-stop').forEach(button => {
+      button.addEventListener('click', async () => {
+        const card = button.closest('[data-my-pod-product]');
+        const output = card?.querySelector('.pod-status');
+        if (output) output.textContent = 'Stopping product…';
+        try {
+          await jsonFetch('/mission/organs/market/products/' + encodeURIComponent(button.dataset.productId) + '/supplier-stop', {
+            method:'POST',
+            body:JSON.stringify({reason:'owner_stop'})
+          });
+          if (output) output.textContent = 'Product stopped.';
+          button.disabled = true;
+        } catch (error) {
+          if (output) output.textContent = 'Could not stop product: ' + error.message;
+        }
+      });
     });
 
     document.getElementById('market-refresh-orders')?.addEventListener('click', refreshOrders);
     renderBasket();
-    refreshOrders();
+    if (ordersList) refreshOrders();
   })();
   </script>
 </body>

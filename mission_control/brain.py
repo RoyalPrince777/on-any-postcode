@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import autonomy_levels, intelligence_lenses
+from . import autonomy_levels, intelligence_lenses, smi_archive
 from .agents import AGENT_REGISTRY, LOCKED_FAMILY_IDS
 from .database import db_status
 from .organism import (
@@ -250,6 +250,7 @@ def get_public_brain_status() -> dict[str, Any]:
         "intelligence_lenses": len(intelligence_lenses.FULL_LENS_IDS),
         "core_intelligence_lenses": len(intelligence_lenses.CORE_LENS_IDS),
         "autonomy": autonomy,
+        "archive": smi_archive.status(),
         "components": components,
         "processing_cycle": PROCESSING_CYCLE,
         "learning_circuit": learning_circuit_status(),

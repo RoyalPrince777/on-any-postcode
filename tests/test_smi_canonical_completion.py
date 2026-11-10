@@ -50,7 +50,7 @@ def test_completion_contract_reports_code_separately_from_runtime_proof():
 
     assert status["operating_level_model"] == "A1-A7"
     assert status["one_brain"] is True
-    assert status["intelligence"]["lens_count"] == 26
+    assert status["intelligence"]["lens_count"] == 28
     assert status["intelligence"]["core_lens_count"] == 10
     assert status["intelligence"]["execution_granted_by_lens"] is False
     assert status["green_gate"]["code_boundary_ready"] is True
@@ -68,14 +68,14 @@ def test_completion_contract_reports_code_separately_from_runtime_proof():
     }
 
 
-def test_all_26_intelligence_lenses_remain_capabilities_not_execution_authority():
-    assert len(intelligence_lenses.FULL_LENS_IDS) == 26
+def test_all_28_intelligence_lenses_remain_capabilities_not_execution_authority():
+    assert len(intelligence_lenses.FULL_LENS_IDS) == 28
     assert len(intelligence_lenses.CORE_LENS_IDS) == 10
 
     routed = intelligence_lenses.public_route("Full Intelligence on SIKA")
     assert routed["active"] is True
     assert routed["mode"] == "full"
-    assert len(routed["lenses"]) == 26
+    assert len(routed["lenses"]) == 28
     assert routed["execution_granted"] is False
     assert routed["human_authority_final"] is True
 
@@ -92,7 +92,7 @@ def test_personal_smi_grounding_exposes_a5_a6_a7_as_locked_not_authority():
     assert '"a5_enabled":false' in text
     assert '"a6_enabled":false' in text
     assert '"a7_enabled":false' in text
-    assert '"intelligence_lens_count":26' in text
+    assert '"intelligence_lens_count":28' in text
     assert "higher levels never move human authority" in text
     assert "truth intelligence plus evidence intelligence" in text
 
@@ -173,3 +173,255 @@ def test_behaviour_step2_scores_only_explicit_runtime_evidence():
         if item["evidence_state"] == "unknown"
     }
     assert {"truth", "evidence", "instruction", "directness", "noise", "confidence"} <= unknown
+
+
+def test_human_ai_boundary_keeps_identity_experience_and_authority_distinct():
+    status = ai_behaviour_protocol.status()
+    boundary = status["human_ai_boundary"]
+
+    assert boundary["human"]["living_being"] is True
+    assert boundary["human"]["lived_experience"] is True
+    assert boundary["human"]["consent_source"] is True
+    assert boundary["human"]["responsibility_bearer"] is True
+    assert boundary["human"]["final_consequential_authority"] is True
+
+    assert boundary["ai"]["engineered_software"] is True
+    assert boundary["ai"]["living_being"] is False
+    assert boundary["ai"]["human_identity"] is False
+    assert boundary["ai"]["lived_experience_claimed"] is False
+    assert boundary["ai"]["feelings_claimed"] is False
+    assert boundary["ai"]["sentience_claimed"] is False
+    assert boundary["ai"]["consciousness_claimed"] is False
+    assert boundary["ai"]["may_observe_permitted_data"] is True
+    assert boundary["ai"]["may_analyse"] is True
+    assert boundary["ai"]["may_compare"] is True
+    assert boundary["ai"]["may_predict"] is True
+    assert boundary["ai"]["may_recommend"] is True
+    assert boundary["ai"]["may_self_approve"] is False
+    assert boundary["ai"]["may_replace_human_authority"] is False
+
+    locks = status["hard_locks"]
+    assert locks["human_identity_claim_enabled"] is False
+    assert locks["lived_experience_claim_enabled"] is False
+    assert locks["feelings_claim_enabled"] is False
+    assert locks["sentience_claim_enabled"] is False
+    assert locks["consciousness_claim_enabled"] is False
+    assert locks["replace_human_authority_enabled"] is False
+
+
+def test_completion_contract_reflects_governed_a5_a6_runtime_state(monkeypatch):
+    monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A6")
+    monkeypatch.setattr(autonomy_levels, "A5_ENABLED", True)
+    monkeypatch.setattr(autonomy_levels, "A6_ENABLED", True)
+    monkeypatch.setattr(autonomy_levels, "A6_MATRIX_CONTROL", True)
+
+    status = smi_completion_contract.completion_status()
+    rows = {item["check"]: item for item in status["completion_checks"]}
+
+    assert rows["A5 preparation boundary"]["status"] == "governed_preparation_enabled"
+    assert rows["A5 preparation boundary"]["light"] == "🟢"
+    assert rows["A6 governed execution"]["status"] == "matrix_governed_operation_gated"
+    assert rows["A6 governed execution"]["light"] == "🟢"
+    assert rows["A7 organism-scale autonomy"]["status"] == "constitutional_locked"
+    assert rows["A7 organism-scale autonomy"]["light"] == "🔒"
+    assert status["hard_locks"]["a5_enabled"] is True
+    assert status["hard_locks"]["a6_enabled"] is True
+    assert status["hard_locks"]["a7_enabled"] is False
+
+
+def test_smi_recommends_smallest_fit_team_for_state_divergence():
+    plan = ai_behaviour_protocol.recommend_agent_team(
+        "Map shows the new runtime then old cached state takes over"
+    )
+
+    assert plan["selection_mode"] == "smi_recommended"
+    assert [item["name"] for item in plan["recommended_team"]] == [
+        "Twinz",
+        "Agent Smith",
+        "Shere Khan",
+        "Bagheera",
+    ]
+    assert plan["active_team"] == plan["recommended_team"]
+    assert plan["founder_can_change"] is True
+    assert plan["smi_can_silently_override_founder"] is False
+    assert plan["coverage_warnings"] == ()
+
+
+def test_founder_manual_agent_selection_overrides_smi_without_silent_additions():
+    plan = ai_behaviour_protocol.recommend_agent_team(
+        "Map cache divergence",
+        founder_selection=["Bagheera", "Twinz"],
+    )
+
+    assert plan["selection_mode"] == "founder_manual_override"
+    assert plan["founder_override_applied"] is True
+    assert [item["name"] for item in plan["active_team"]] == [
+        "Bagheera",
+        "Twinz",
+    ]
+    assert [item["name"] for item in plan["recommended_team"]] == [
+        "Twinz",
+        "Agent Smith",
+        "Shere Khan",
+        "Bagheera",
+    ]
+    assert "No dedicated adversarial failure-hunter selected." in plan["coverage_warnings"]
+    assert plan["smi_can_silently_override_founder"] is False
+    assert "Guardian" in plan["mandatory_gates_unchanged"]
+
+
+def test_founder_can_change_smi_pick_but_unknown_review_roles_fail_closed():
+    try:
+        ai_behaviour_protocol.recommend_agent_team(
+            "Map cache divergence",
+            founder_selection=["Unknown Agent"],
+        )
+    except ValueError as exc:
+        assert str(exc) == "unknown_review_agent:Unknown Agent"
+    else:
+        raise AssertionError("unknown review role must fail closed")
+
+
+def test_behaviour_status_exposes_auto_plus_founder_override_contract():
+    status = ai_behaviour_protocol.status("map cache divergence")
+    selection = status["agent_team_selection"]
+
+    assert status["version"] >= 4
+    assert selection["mode"] == "automatic_with_founder_override"
+    assert selection["founder_can_change"] is True
+    assert selection["smi_can_silently_override_founder"] is False
+    assert "Twinz" in selection["catalog"]
+    assert "Agent Smith" in selection["catalog"]
+    assert "Shere Khan" in selection["catalog"]
+    assert "Bagheera" in selection["catalog"]
+
+
+def test_agent_strength_board_is_first_party_and_does_not_fake_runtime_strength():
+    board = ai_behaviour_protocol.agent_strength_board()
+
+    assert board["truth_mode"] is True
+    assert board["human_authority_final"] is True
+    assert board["first_party_rule"]["external_agent_authority"] is False
+    assert board["first_party_rule"]["external_model_can_raise_strength_score"] is False
+    assert board["overall_strength_percent"] is None
+    assert board["all_agents_runtime_proven"] is False
+
+    agents = {item["agent"]: item for item in board["agents"]}
+    for name in ("Twinz", "Agent Smith", "Shere Khan", "Bagheera"):
+        assert name in agents
+        assert agents[name]["ownership"] == "OAP_FIRST_PARTY"
+        assert agents[name]["software_readiness_percent"] == 100.0
+        assert agents[name]["proven_strength_percent"] is None
+        assert agents[name]["strength_light"] == "purple"
+
+
+def test_agent_strength_becomes_proven_only_with_all_seven_oap_evidence_dimensions():
+    evidence = {
+        "mission_fit": True,
+        "correctness": True,
+        "evidence_quality": True,
+        "challenge_value": True,
+        "recovery_value": True,
+        "boundary_discipline": True,
+        "speed_efficiency": True,
+    }
+    status = ai_behaviour_protocol.agent_strength_status("Shere Khan", evidence)
+
+    assert status["software_readiness_percent"] == 100.0
+    assert status["evidence_coverage_percent"] == 100.0
+    assert status["measured_strength_percent"] == 100.0
+    assert status["proven_strength_percent"] == 100.0
+    assert status["strength_light"] == "green"
+    assert status["external_model_score_influence"] is False
+
+
+def test_agent_strength_partial_evidence_stays_unproven():
+    status = ai_behaviour_protocol.agent_strength_status(
+        "Bagheera",
+        {
+            "mission_fit": True,
+            "recovery_value": True,
+            "boundary_discipline": True,
+        },
+    )
+
+    assert status["evidence_coverage_percent"] < 100
+    assert status["measured_strength_percent"] == 100.0
+    assert status["proven_strength_percent"] is None
+    assert status["strength_light"] == "purple"
+
+
+def test_unknown_agent_strength_fails_closed():
+    try:
+        ai_behaviour_protocol.agent_strength_status("Not An OAP Agent")
+    except ValueError as exc:
+        assert str(exc) == "unknown_review_agent:Not An OAP Agent"
+    else:
+        raise AssertionError("unknown review agent must fail closed")
+
+
+def test_maps_loading_old_routes_uses_founder_requested_eight_review_team():
+    plan = ai_behaviour_protocol.recommend_agent_team(
+        "Maps still loading and showing old routes"
+    )
+
+    assert [item["name"] for item in plan["recommended_team"]] == [
+        "Shere Khan",
+        "Bagheera",
+        "Agent Smith",
+        "Twinz",
+        "Octopus",
+        "Spider",
+        "Fox",
+        "Shark",
+        "Bee",
+    ]
+    assert plan["active_team"] == plan["recommended_team"]
+    assert plan["coverage_warnings"] == ()
+    assert all(item["authority"] == "advisory_review_only" for item in plan["active_team"])
+
+
+def test_smi_cc_auto_maps_agent_board_selects_first_party_best_fit_and_truth_gates_strength():
+    board = ai_behaviour_protocol.map_build_agent_board("Build Maps routing render reliability")
+
+    assert board["mode"] == "AUTO"
+    assert board["first_party_only"] is True
+    assert board["best_fit_agent"] == "Octopus"
+    assert board["votes_are_binding"] is False
+    assert board["votes_grant_authority"] is False
+    assert board["founder_final"] is True
+
+    names = [item["agent"] for item in board["team"]]
+    assert names == [
+        "Octopus",
+        "Shere Khan",
+        "Spider",
+        "Agent Smith",
+        "Twinz",
+        "Shark",
+        "Bagheera",
+        "Fox",
+        "Bee",
+    ]
+    assert all(item["rating_kind"] == "software_role_fit_not_runtime_strength" for item in board["team"])
+    assert all(item["runtime_strength_percent"] is None for item in board["team"])
+    assert all(item["runtime_strength_stars"] is None for item in board["team"])
+
+
+def test_maps_peer_votes_are_deterministic_evidence_reviews_not_fake_agent_opinions():
+    board = ai_behaviour_protocol.map_build_agent_board()
+
+    assert len(board["peer_votes"]) == 72
+    assert all(vote["deterministic_evidence_review"] is True for vote in board["peer_votes"])
+    assert all(vote["independent_agent_opinion"] is False for vote in board["peer_votes"])
+    assert all(vote["authority_granted"] is False for vote in board["peer_votes"])
+    assert all(vote["decision"] in {"PASS", "CONDITIONAL", "ABSTAIN"} for vote in board["peer_votes"])
+
+
+def test_smi_status_auto_exposes_maps_board_only_for_map_target():
+    status = ai_behaviour_protocol.status("Maps build")
+    assert status["smi_cc_auto"]["enabled"] is True
+    assert status["smi_cc_auto"]["map_build_board"]["best_fit_agent"] == "Octopus"
+
+    generic = ai_behaviour_protocol.status("SMI")
+    assert generic["smi_cc_auto"]["map_build_board"] is None

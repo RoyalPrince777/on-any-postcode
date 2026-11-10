@@ -173,6 +173,13 @@ def test_smi_gateway_allowlist_is_founder_private_only():
     assert smi_gateway._allowed("infrastructure") is True
     assert smi_gateway._allowed("infrastructure/security") is True
     assert smi_gateway._allowed("api/infrastructure/status") is True
+    assert (
+        smi_gateway._allowed(
+            "api/smi-organiser/connectivity-briefs/11111111-1111-4111-8111-111111111111"
+        )
+        is True
+    )
+    assert smi_gateway._allowed("api/smi-organiser-evil/connectivity-briefs") is False
     assert smi_gateway._allowed("on-any-place") is True
     assert smi_gateway._allowed("map-intelligence") is True
     assert smi_gateway._allowed("map-intelligence/route") is True

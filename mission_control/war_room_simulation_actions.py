@@ -6,14 +6,14 @@ dispatch, hidden tracking, public claims or self-approved changes.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 
 from . import autonomy_levels
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 SIMULATION_STAGES_21 = (

@@ -16,6 +16,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from oap.registry import founder_tool_registry
+from oap.smi.capability_preflight import preflight
 
 _API_BASE = "https://api.render.com/v1"
 _DEFAULT_WORKSPACE_ID = "tea-d8gfop6k1jcs73cuvff0"
@@ -76,6 +77,16 @@ class FounderRenderReadAdapter:
         }
 
     def _authorize(self, ability: str) -> None:
+        decision = preflight(
+            self._registry,
+            task_type="TECHNICAL",
+            query=f"render {ability}",
+            tool_id="render",
+            ability=ability,
+        )
+        if not decision.permitted_for_proposal:
+            raise PermissionError("SMI capability preflight denied render read")
+        # Preserve canonical registry enforcement as defence in depth.
         self._registry.authorize_capability("render", ability, mutation=False)
 
     def _service_id(self, alias: str) -> str:

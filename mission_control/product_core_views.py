@@ -3,39 +3,58 @@ from __future__ import annotations
 
 import base64
 import binascii
+import uuid
 
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
+    certification,
+    commerce_install,
+    commerce_provider_receipts,
     distribution_intelligence,
+    distribution_runtime,
     entertainment_catalogue,
+    founder_private_commerce,
+    founder_private_pod_mapper,
+    founder_private_pod_orders,
     live_music_core,
+    market_sika_pod_runtime,
+    market_supplier_network,
     market_transaction_spine,
     music_acceptance,
     music_assets,
     music_civilization,
     music_evidence,
+    music_market_purchase,
     music_recovery,
     open_cinema,
     open_cinema_evidence,
     open_music_intake,
+    pod_provider_registry,
+    printful_pod_adapter,
+    prodigi_pod_adapter,
     product_core_services,
     product_cores,
     product_store,
     public_store,
     radio_core,
     records_core,
+    sika_payment_orchestrator,
+    sika_payment_submission_evidence,
+    sika_secure_provider_runtime,
     web_security,
 )
 
 bp = Blueprint("product_core_organs", __name__)
 _store = product_cores.PostgresProductCoreStore()
 _music_evidence_store = music_evidence.MusicEvidenceStore()
+_music_market_purchase_store = music_market_purchase.MusicMarketPurchaseStore()
 _radio_store = radio_core.RadioStore()
 _records_store = records_core.RecordsStore()
 _live_music_store = live_music_core.LiveMusicStore()
 _music_recovery_store = music_recovery.MusicRecoveryStore()
 _music_acceptance_store = music_acceptance.MusicAcceptanceStore()
+_distribution_runtime_store = distribution_runtime.DistributionRuntimeStore()
 _music_asset_store = music_assets.MusicAssetStore()
 
 
@@ -63,6 +82,16 @@ def _identity(*, sync: bool = False) -> str:
             display_name=str(user["name"]),
             email_verified=bool(user.get("email_verified")),
         )
+    return identity_id
+
+
+def _require_certified_merchant(identity_id: str) -> str:
+    try:
+        status = certification.identity_status(identity_id)
+    except certification.CertificationUnavailable as exc:
+        raise RuntimeError("merchant_certification_unavailable") from exc
+    if status.get("merchant") is not True:
+        raise PermissionError("certified_merchant_required")
     return identity_id
 
 
@@ -135,6 +164,7 @@ def _market_projection(identity_id: str) -> dict[str, object]:
         "orders": commerce.get("orders", []),
         "payment_capture_performed": False,
         "external_fulfilment_performed": False,
+        "sika_pod_runtime": market_sika_pod_runtime.status(),
         "human_authority_final": True,
     }
 
@@ -742,6 +772,81 @@ def distribution_status():
         )
 
 
+@bp.get("/distribution/runtime")
+@web_security.login_required(api=True)
+def distribution_runtime_list():
+    try:
+        owner = _identity()
+        return _no_store(make_response(jsonify({
+            "runtime": distribution_runtime.status(),
+            "items": _distribution_runtime_store.list_for_owner(
+                owner_identity_id=owner
+            ),
+            "analytics": _distribution_runtime_store.analytics(
+                owner_identity_id=owner
+            ),
+        })))
+    except (ValueError, RuntimeError):
+        return _error(
+            "distribution_runtime_unavailable",
+            "OAP Distribution Runtime is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.get("/distribution/runtime/<distribution_id>")
+@web_security.login_required(api=True)
+def distribution_runtime_item(distribution_id: str):
+    try:
+        return _no_store(make_response(jsonify(
+            _distribution_runtime_store.read(
+                owner_identity_id=_identity(),
+                distribution_id=distribution_id,
+            )
+        )))
+    except PermissionError:
+        return _error("permission_denied", "Distribution item unavailable.", 403)
+    except (ValueError, RuntimeError):
+        return _error(
+            "distribution_runtime_unavailable",
+            "OAP Distribution Runtime is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/distribution/runtime")
+@web_security.login_required(api=True)
+def create_distribution_runtime_item():
+    def action():
+        payload = _payload()
+        return _distribution_runtime_store.create(
+            owner_identity_id=_identity(sync=True),
+            lane=payload.get("lane"),
+            subject_type=payload.get("subject_type"),
+            subject_id=payload.get("subject_id"),
+            source_reference=payload.get("source_reference"),
+            destination_reference=payload.get("destination_reference"),
+            order_id=payload.get("order_id"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/distribution/runtime/<distribution_id>/transition")
+@web_security.login_required(api=True)
+def transition_distribution_runtime_item(distribution_id: str):
+    def action():
+        payload = _payload()
+        return _distribution_runtime_store.transition(
+            owner_identity_id=_identity(sync=True),
+            distribution_id=distribution_id,
+            target_state=payload.get("target_state"),
+            evidence_reference=payload.get("evidence_reference"),
+        )
+
+    return _handle_write(action)
+
+
 @bp.get("/distribution-market-media")
 @web_security.login_required(api=True)
 def distribution_market_media_status():
@@ -1019,8 +1124,9 @@ def market_status():
 def create_storefront():
     def action():
         payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
         return _store.create_storefront(
-            seller_identity_id=_identity(sync=True),
+            seller_identity_id=seller,
             store_name=payload.get("store_name"),
             slug=payload.get("slug"),
         )
@@ -1033,8 +1139,9 @@ def create_storefront():
 def create_product():
     def action():
         payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
         product_id = product_store.create_product(
-            _identity(sync=True),
+            seller,
             name=payload.get("name"),
             description=payload.get("description"),
             price=payload.get("price"),
@@ -1053,14 +1160,216 @@ def create_product():
 def create_order():
     def action():
         payload = _payload()
+        product_id = payload.get("product_id")
+        gate = market_supplier_network.STORE.order_intent_allowed(
+            product_id=product_id
+        )
+        if gate.get("allowed") is not True:
+            raise ValueError(str(gate.get("reason") or "supplier_not_ready"))
         return _store.create_order_intent(
             buyer_identity_id=_identity(sync=True),
-            product_id=payload.get("product_id"),
+            product_id=product_id,
             quantity=payload.get("quantity", 1),
             idempotency_key=payload.get("idempotency_key"),
         )
 
     return _handle_write(action)
+
+
+@bp.get("/market/suppliers")
+@web_security.login_required(api=True)
+def market_supplier_bindings():
+    try:
+        identity = _require_certified_merchant(_identity())
+        return _no_store(make_response(jsonify({
+            "supplier_network": market_supplier_network.truth_status(),
+            "bindings": market_supplier_network.STORE.owner_bindings(
+                seller_identity_id=identity
+            ),
+        })))
+    except PermissionError as exc:
+        return _error("permission_denied", str(exc), 403)
+    except (ValueError, RuntimeError):
+        return _error(
+            "supplier_network_unavailable",
+            "Supplier Network is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/market/products/<product_id>/supplier-ready")
+@web_security.login_required(api=True)
+def mark_market_supplier_ready(product_id: str):
+    def action():
+        payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
+        return market_supplier_network.STORE.mark_ready(
+            seller_identity_id=seller,
+            product_id=product_id,
+            evidence_reference=payload.get("evidence_reference"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/products/<product_id>/supplier-stop")
+@web_security.login_required(api=True)
+def stop_market_supplier(product_id: str):
+    def action():
+        payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
+        return market_supplier_network.STORE.stop(
+            seller_identity_id=seller,
+            product_id=product_id,
+            reason=payload.get("reason"),
+        )
+
+    return _handle_write(action)
+
+
+
+@bp.post("/market/music-products")
+@web_security.login_required(api=True)
+def create_music_market_product():
+    """Bind one rights-ready OAP Music release to one Market product."""
+    def action():
+        payload = _payload()
+        seller = _require_certified_merchant(_identity(sync=True))
+        split_plan = payload.get("split_plan")
+        if not isinstance(split_plan, list):
+            raise TypeError("split_plan_required")
+        return _music_market_purchase_store.link_release_product(
+            seller_identity_id=seller,
+            release_id=payload.get("release_id"),
+            product_id=payload.get("product_id"),
+            rights_evidence_receipt_id=payload.get("rights_evidence_receipt_id"),
+            split_plan=split_plan,
+            optional_pay_more=bool(payload.get("optional_pay_more", True)),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/music-orders")
+@web_security.login_required(api=True)
+def create_music_market_order():
+    """Create a Commerce order for a linked Music product without supplier fulfilment."""
+    def action():
+        payload = _payload()
+        identity = _identity(sync=True)
+        product_id = payload.get("product_id")
+        price_minor = payload.get("price_minor")
+        with music_market_purchase.postgres_db.connect(readonly=True) as connection:
+            linked = connection.execute(
+                """SELECT minimum_price_minor,optional_pay_more,state
+                   FROM oap_music_market_products WHERE product_id=%s""",
+                (product_id,),
+            ).fetchone()
+        if linked is None or str(linked[2]) != "READY":
+            raise ValueError("music_market_product_not_ready")
+        minimum = int(linked[0])
+        with music_market_purchase.postgres_db.connect(readonly=True) as connection:
+            product_row = connection.execute(
+                "SELECT price_minor FROM products WHERE id=%s AND active=TRUE",
+                (product_id,),
+            ).fetchone()
+        if product_row is None:
+            raise ValueError("market_product_unavailable")
+        effective_price = music_market_purchase.validate_order_terms(
+            listing_price_minor=product_row[0],
+            requested_price_minor=price_minor,
+            minimum_price_minor=minimum,
+            optional_pay_more=bool(linked[1]),
+            quantity=1,
+        )
+        override = (
+            effective_price if effective_price != int(product_row[0]) else None
+        )
+        order = _store.create_order_intent(
+            buyer_identity_id=identity,
+            product_id=product_id,
+            quantity=1,
+            idempotency_key=payload.get("idempotency_key"),
+            unit_price_override_minor=override,
+        )
+        transaction = market_transaction_spine.STORE.create_from_order(
+            buyer_identity_id=identity,
+            order_id=order["order_id"],
+            idempotency_key=f"music:{payload.get('idempotency_key')}",
+        )
+        return {
+            "order": order,
+            "transaction": transaction,
+            "ownership_granted": False,
+            "payment_capture_performed": False,
+            "payout_performed": False,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/market/music-orders/<order_id>/finalize")
+@web_security.login_required(api=True)
+def finalize_music_market_order(order_id: str):
+    """Observe an existing CAPTURED payment and mint the buyer entitlement."""
+    return _handle_write(
+        lambda: _music_market_purchase_store.finalize_captured_order(
+            buyer_identity_id=_identity(sync=True),
+            order_id=order_id,
+        )
+    )
+
+
+@bp.get("/tune/library/purchases")
+@web_security.login_required(api=True)
+def music_purchase_library():
+    try:
+        return _no_store(
+            make_response(
+                jsonify(
+                    {
+                        "items": _music_market_purchase_store.library(
+                            buyer_identity_id=_identity()
+                        ),
+                        "ownership_source": "captured_commerce_order",
+                        "payment_capture_performed_here": False,
+                    }
+                )
+            )
+        )
+    except (ValueError, RuntimeError):
+        return _error(
+            "music_library_unavailable",
+            "Purchased Music library is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.get("/market/music-entitlements/<entitlement_id>/splits")
+@web_security.login_required(api=True)
+def music_purchase_splits(entitlement_id: str):
+    try:
+        return _no_store(
+            make_response(
+                jsonify(
+                    {
+                        "splits": _music_market_purchase_store.split_ledger(
+                            identity_id=_identity(),
+                            entitlement_id=entitlement_id,
+                        ),
+                        "payout_performed": False,
+                    }
+                )
+            )
+        )
+    except PermissionError:
+        return _error("permission_denied", "Split ledger unavailable.", 403)
+    except (ValueError, RuntimeError):
+        return _error(
+            "music_split_ledger_unavailable",
+            "Music split ledger is temporarily unavailable.",
+            503,
+        )
 
 
 @bp.get("/market/orders")
@@ -1088,9 +1397,15 @@ def create_market_order():
         payload = _payload()
         identity = _identity(sync=True)
         key = str(payload.get("idempotency_key") or "")
+        product_id = payload.get("product_id")
+        gate = market_supplier_network.STORE.order_intent_allowed(
+            product_id=product_id
+        )
+        if gate.get("allowed") is not True:
+            raise ValueError(str(gate.get("reason") or "supplier_not_ready"))
         order = _store.create_order_intent(
             buyer_identity_id=identity,
-            product_id=payload.get("product_id"),
+            product_id=product_id,
             quantity=payload.get("quantity", 1),
             idempotency_key=key,
         )
@@ -1208,3 +1523,475 @@ def create_parcel():
         )
 
     return _handle_write(action)
+
+
+@bp.get("/market/install-status")
+@web_security.login_required(api=True, founder_only=True)
+def market_install_status():
+    """Founder-only secret-free install/provider readiness."""
+
+    try:
+        return _no_store(make_response(jsonify(commerce_install.status())))
+    except RuntimeError:
+        return _error(
+            "commerce_install_status_unavailable",
+            "Commerce install status is temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/market/install")
+@web_security.login_required(api=True, founder_only=True)
+def install_market_commerce_runtime():
+    """Apply the unified commerce schema only after explicit Founder action."""
+
+    def action():
+        payload = _payload()
+        return commerce_install.install(
+            assume_yes=True,
+            dry_run=bool(payload.get("dry_run", True)),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/payments/<payment_id>/execute")
+@web_security.login_required(api=True, founder_only=True)
+def execute_market_payment(payment_id: str):
+    """Submit one already-AUTHORISED SIKA payment to the private provider."""
+
+    def action():
+        owner = _identity(sync=True)
+        payload = _payload()
+        intent = sika_payment_orchestrator.read_intent(payment_id)
+        if intent is None:
+            raise ValueError("payment_intent_not_found")
+        if intent.status == "SUBMITTED":
+            return {
+                "payment": intent.as_dict(),
+                "idempotent": True,
+                "provider_called": False,
+                "human_authority_final": True,
+            }
+        if intent.status != "AUTHORISED":
+            raise ValueError("payment_not_authorised_for_provider_submission")
+        provider_payload = payload.get("provider_payload")
+        if provider_payload is None:
+            provider_payload = {}
+        if not isinstance(provider_payload, dict):
+            raise TypeError("provider_payload_object_required")
+        outbound = dict(provider_payload)
+        outbound.update(
+            payment_id=intent.payment_id,
+            payee_reference=intent.payee_reference,
+            amount=f"{intent.amount:.2f}",
+            currency=intent.currency,
+            jurisdiction=intent.jurisdiction,
+        )
+        receipt = sika_secure_provider_runtime.submit(
+            kind="payment",
+            payload=outbound,
+            idempotency_key=intent.idempotency_key,
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="payment",
+            subject_id=intent.payment_id,
+            provider_receipt=receipt,
+        )
+        evidence = sika_payment_submission_evidence.record(
+            evidence_id=str(uuid.uuid4()),
+            payment_id=intent.payment_id,
+            idempotency_key=intent.idempotency_key,
+            provider_id=receipt["provider_id"],
+            provider_reference=receipt["provider_reference"],
+            outcome="ACCEPTED",
+            evidence_hash=receipt["receipt_hash"],
+        )
+        submitted = sika_payment_orchestrator.transition(
+            payment_id=intent.payment_id,
+            target_status="SUBMITTED",
+            provider_reference=receipt["provider_reference"],
+        )
+        return {
+            "payment": submitted.as_dict(),
+            "receipt": durable,
+            "submission_evidence_id": evidence.evidence_id,
+            "provider_called": True,
+            "money_movement_claimed": False,
+            "secret_values_exposed": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/market/payments/provider/webhook")
+def market_payment_provider_webhook():
+    """Accept only timestamped HMAC-verified provider payment callbacks."""
+
+    raw = request.get_data(cache=True)
+    timestamp = request.headers.get("X-OAP-Provider-Timestamp", "")
+    signature = request.headers.get("X-OAP-Provider-Signature", "")
+    try:
+        verified = sika_secure_provider_runtime.verify_webhook(
+            kind="payment",
+            body=raw,
+            timestamp=timestamp,
+            signature=signature,
+        )
+        if verified.get("signature_verified") is not True:
+            return _error("provider_signature_invalid", "Invalid provider signature.", 403)
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            raise TypeError("provider_webhook_json_required")
+        payment_id = str(payload.get("payment_id") or "").strip()
+        state = str(payload.get("status") or payload.get("state") or "").strip().upper()
+        if not payment_id:
+            raise ValueError("payment_id_required")
+        intent = sika_payment_orchestrator.read_intent(payment_id)
+        if intent is None:
+            raise ValueError("payment_intent_not_found")
+        owner = commerce_provider_receipts.owner_for_subject(payment_id)
+        if owner is None:
+            raise ValueError("provider_receipt_owner_unavailable")
+        webhook_receipt = sika_secure_provider_runtime.webhook_receipt(
+            kind="payment",
+            payload=payload,
+            idempotency_key=f"payhook:{payment_id}:{timestamp}",
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="payment_webhook",
+            subject_id=payment_id,
+            provider_receipt=webhook_receipt,
+        )
+        target = {
+            "SETTLED": "SETTLED",
+            "CAPTURED": "SETTLED",
+            "SUCCEEDED": "SETTLED",
+            "FAILED": "FAILED",
+            "REJECTED": "FAILED",
+        }.get(state)
+        payment = intent
+        if target is not None and intent.status == "SUBMITTED":
+            payment = sika_payment_orchestrator.transition(
+                payment_id=payment_id,
+                target_status=target,
+            )
+        return _no_store(
+            make_response(
+                jsonify(
+                    accepted=True,
+                    payment=payment.as_dict(),
+                    receipt=durable,
+                    signature_verified=True,
+                    secret_values_exposed=False,
+                )
+            )
+        )
+    except (TypeError, ValueError):
+        return _error("provider_webhook_invalid", "Invalid provider webhook.", 400)
+    except RuntimeError:
+        return _error("provider_webhook_unavailable", "Provider webhook unavailable.", 503)
+
+
+@bp.get("/market/pod/private/status")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_status():
+    """Founder-only private commerce capability status."""
+
+    return _no_store(make_response(jsonify(founder_private_commerce.status())))
+
+
+@bp.get("/market/pod/private/analytics")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_analytics():
+    """Founder-only aggregate My POD catalogue intelligence."""
+
+    try:
+        products = market_supplier_network.STORE.owner_pod_products(
+            seller_identity_id=_identity()
+        )
+        return _no_store(
+            make_response(
+                jsonify(founder_private_commerce.private_catalogue_analytics(products))
+            )
+        )
+    except (ValueError, RuntimeError):
+        return _error(
+            "private_pod_analytics_unavailable",
+            "Private POD analytics are temporarily unavailable.",
+            503,
+        )
+
+
+@bp.post("/market/pod/private/plan")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_plan():
+    """Build one private canonical fulfilment plan without provider execution."""
+
+    def action():
+        owner = _identity(sync=True)
+        payload = _payload()
+        product_id = str(payload.get("product_id") or "").strip()
+        products = market_supplier_network.STORE.owner_pod_products(
+            seller_identity_id=owner
+        )
+        product = next(
+            (row for row in products if str(row.get("product_id")) == product_id),
+            None,
+        )
+        if product is None:
+            raise PermissionError("private_product_not_owned")
+        return founder_private_commerce.private_fulfilment_plan(
+            product=product,
+            quantity=payload.get("quantity", 1),
+            provider_id=payload.get("provider_id"),
+            color=payload.get("color"),
+            size=payload.get("size"),
+            destination_country=payload.get("destination_country"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/private/order")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_order():
+    """Create one durable Founder-private POD order snapshot."""
+
+    def action():
+        owner = _identity(sync=True)
+        payload = _payload()
+        product_id = str(payload.get("product_id") or "").strip()
+        products = market_supplier_network.STORE.owner_pod_products(
+            seller_identity_id=owner
+        )
+        product = next(
+            (row for row in products if str(row.get("product_id")) == product_id),
+            None,
+        )
+        if product is None:
+            raise PermissionError("private_product_not_owned")
+        plan = founder_private_commerce.private_fulfilment_plan(
+            product=product,
+            quantity=payload.get("quantity", 1),
+            provider_id=payload.get("provider_id"),
+            color=payload.get("color"),
+            size=payload.get("size"),
+            destination_country=payload.get("destination_country"),
+        )
+        provider_payload = founder_private_pod_mapper.map_provider_payload(
+            provider_id=plan["provider_id"],
+            plan=plan,
+            delivery_address=payload.get("delivery_address"),
+        )
+        return founder_private_pod_orders.STORE.create_snapshot(
+            owner_identity_id=owner,
+            product_id=product_id,
+            provider_id=plan["provider_id"],
+            canonical_order=plan["canonical_order"],
+            provider_payload=provider_payload,
+            idempotency_key=payload.get("idempotency_key"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/private/order/<private_order_id>/execute")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_order_execute(private_order_id: str):
+    """Execute only the durable private snapshot through the locked provider registry."""
+
+    def action():
+        owner = _identity(sync=True)
+        private_order = founder_private_pod_orders.STORE.read_for_owner(
+            owner_identity_id=owner,
+            private_order_id=private_order_id,
+        )
+        receipt = pod_provider_registry.submit(
+            provider_id=private_order["provider_id"],
+            payload=private_order["provider_payload"],
+            idempotency_key=private_order["idempotency_key"],
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="pod",
+            subject_id=private_order_id,
+            provider_receipt=receipt,
+        )
+        updated = founder_private_pod_orders.STORE.attach_provider_receipt(
+            owner_identity_id=owner,
+            private_order_id=private_order_id,
+            provider_receipt=receipt,
+        )
+        return {
+            "private_order": updated,
+            "receipt": durable,
+            "provider_called": True,
+            "public_merchant_access": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/private/order/<private_order_id>/readback")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_order_readback(private_order_id: str):
+    """Read provider state for a private order; no confirmation or charge."""
+
+    def action():
+        owner = _identity(sync=True)
+        private_order = founder_private_pod_orders.STORE.read_for_owner(
+            owner_identity_id=owner,
+            private_order_id=private_order_id,
+        )
+        provider = private_order["provider_id"]
+        reference = private_order["provider_reference"]
+        if not reference:
+            raise ValueError("private_pod_provider_reference_missing")
+        if provider == "prodigi":
+            evidence = prodigi_pod_adapter.get_order(provider_reference=reference)
+        elif provider == "printful":
+            evidence = printful_pod_adapter.get_order(provider_reference=reference)
+        else:
+            raise ValueError("private_pod_readback_unavailable")
+        reconciled = founder_private_commerce.reconcile_provider_state(
+            provider_id=provider,
+            provider_state=evidence.get("provider_state"),
+        )
+        return founder_private_pod_orders.STORE.update_readback(
+            owner_identity_id=owner,
+            private_order_id=private_order_id,
+            provider_reference=evidence.get("provider_reference"),
+            provider_state=evidence.get("provider_state"),
+            canonical_state=reconciled["canonical_state"],
+            recovery_required=reconciled["recovery_required"],
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/private/reconcile")
+@web_security.login_required(api=True, founder_only=True)
+def founder_private_pod_reconcile():
+    """Normalize provider evidence privately without automatic consequences."""
+
+    def action():
+        payload = _payload()
+        return founder_private_commerce.reconcile_provider_state(
+            provider_id=payload.get("provider_id"),
+            provider_state=payload.get("provider_state"),
+        )
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/<subject_id>/execute")
+@web_security.login_required(api=True, founder_only=True)
+def execute_market_pod(subject_id: str):
+    """Submit one governed POD request and persist its provider receipt."""
+
+    def action():
+        owner = _identity(sync=True)
+        payload = _payload()
+        provider_payload = payload.get("provider_payload")
+        if not isinstance(provider_payload, dict):
+            raise TypeError("provider_payload_object_required")
+        outbound = dict(provider_payload)
+        outbound["oap_subject_id"] = subject_id
+        receipt = pod_provider_registry.submit(
+            provider_id=payload.get("provider_id"),
+            payload=outbound,
+            idempotency_key=payload.get("idempotency_key"),
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="pod",
+            subject_id=subject_id,
+            provider_receipt=receipt,
+        )
+        distribution = None
+        distribution_id = payload.get("distribution_id")
+        if distribution_id:
+            distribution = _distribution_runtime_store.transition(
+                owner_identity_id=owner,
+                distribution_id=distribution_id,
+                target_state="HANDED_OFF",
+                evidence_reference=receipt["receipt_hash"],
+            )
+        return {
+            "receipt": durable,
+            "distribution": distribution,
+            "provider_called": True,
+            "secret_values_exposed": False,
+            "human_authority_final": True,
+        }
+
+    return _handle_write(action)
+
+
+@bp.post("/market/pod/provider/webhook")
+def market_pod_provider_webhook():
+    """Verify POD callback then persist and advance an owned Distribution item."""
+
+    raw = request.get_data(cache=True)
+    timestamp = request.headers.get("X-OAP-Provider-Timestamp", "")
+    signature = request.headers.get("X-OAP-Provider-Signature", "")
+    try:
+        verified = sika_secure_provider_runtime.verify_webhook(
+            kind="pod",
+            body=raw,
+            timestamp=timestamp,
+            signature=signature,
+        )
+        if verified.get("signature_verified") is not True:
+            return _error("provider_signature_invalid", "Invalid provider signature.", 403)
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            raise TypeError("provider_webhook_json_required")
+        subject_id = str(payload.get("oap_subject_id") or payload.get("subject_id") or "").strip()
+        if not subject_id:
+            raise ValueError("pod_subject_id_required")
+        owner = commerce_provider_receipts.owner_for_subject(subject_id)
+        if owner is None:
+            raise ValueError("provider_receipt_owner_unavailable")
+        webhook_receipt = sika_secure_provider_runtime.webhook_receipt(
+            kind="pod",
+            payload=payload,
+            idempotency_key=f"podhook:{subject_id}:{timestamp}",
+        )
+        durable = commerce_provider_receipts.record(
+            owner_identity_id=owner,
+            kind="pod_webhook",
+            subject_id=subject_id,
+            provider_receipt=webhook_receipt,
+        )
+        distribution = None
+        distribution_id = payload.get("distribution_id")
+        state = str(payload.get("state") or payload.get("status") or "").upper()
+        target = market_sika_pod_runtime.distribution_transition_for_supplier_state(state)
+        if distribution_id and target is not None:
+            distribution = _distribution_runtime_store.transition(
+                owner_identity_id=owner,
+                distribution_id=distribution_id,
+                target_state=target,
+                evidence_reference=webhook_receipt["receipt_hash"],
+            )
+        return _no_store(
+            make_response(
+                jsonify(
+                    accepted=True,
+                    receipt=durable,
+                    distribution=distribution,
+                    signature_verified=True,
+                    secret_values_exposed=False,
+                )
+            )
+        )
+    except (TypeError, ValueError):
+        return _error("provider_webhook_invalid", "Invalid provider webhook.", 400)
+    except RuntimeError:
+        return _error("provider_webhook_unavailable", "Provider webhook unavailable.", 503)

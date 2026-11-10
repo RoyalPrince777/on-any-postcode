@@ -13,10 +13,21 @@ import urllib.request
 API_BASE = "https://api.render.com/v1"
 SERVICE_ID = "srv-da6tp615efls73ct81q0"
 SERVICE_NAME = "oap-smi"
-IMAGE = (
-    "ghcr.io/royalprince777/on-any-postcode-runtime@"
-    "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
-)
+RELEASE_MANIFEST = "deploy/render-image-release.json"
+
+
+def _release_image() -> str:
+    with open(RELEASE_MANIFEST, encoding="utf-8") as handle:
+        manifest = json.load(handle)
+    service = manifest["services"]["smi"]
+    if service.get("render_service_id") != SERVICE_ID:
+        raise RuntimeError("Release manifest service id mismatch")
+    if service.get("runtime_target") != RUNTIME_TARGET:
+        raise RuntimeError("Release manifest runtime target mismatch")
+    image = manifest["image"]["immutable_ref"]
+    if not isinstance(image, str) or "@sha256:" not in image:
+        raise RuntimeError("Release manifest immutable image is invalid")
+    return image
 PUBLIC_URL = "https://oap-smi.onrender.com"
 HEALTH_PATH = "/healthz"
 RUNTIME_TARGET = "smi_gateway:app"
@@ -83,9 +94,8 @@ def plan() -> dict[str, object]:
         "public_url": PUBLIC_URL,
         "health_path": HEALTH_PATH,
         "runtime_target": RUNTIME_TARGET,
-        "image": IMAGE,
-        "update_payload": {"image": {"url": IMAGE}, "autoDeploy": "no"},
-        "deploy_payload": {"imageUrl": IMAGE},
+        "image": _release_image(),
+        "deploy_payload": {"imageUrl": _release_image()},
         "creates_new_service": False,
         "replaces_environment": False,
         "source_build_required": False,
@@ -99,19 +109,11 @@ def promote(*, apply: bool = False) -> dict[str, object]:
         return {"applied": False, "dry_run": True, "plan": action}
     current = _request("GET", f"/services/{SERVICE_ID}")
     _assert_service(current)
-    updated = _request(
-        "PATCH",
-        f"/services/{SERVICE_ID}",
-        {"image": {"url": IMAGE}, "autoDeploy": "no"},
-    )
-    _assert_service(updated)
-    image_path = updated.get("imagePath")
-    if image_path not in (None, IMAGE):
-        raise RuntimeError("Render returned an unexpected image path")
+    image = _release_image()
     deploy = _request(
         "POST",
         f"/services/{SERVICE_ID}/deploys",
-        {"imageUrl": IMAGE},
+        {"imageUrl": image},
     )
     deploy_id = deploy.get("id")
     if not isinstance(deploy_id, str) or not deploy_id.startswith("dep-"):
@@ -120,7 +122,7 @@ def promote(*, apply: bool = False) -> dict[str, object]:
         "applied": True,
         "dry_run": False,
         "service_id": SERVICE_ID,
-        "image": IMAGE,
+        "image": image,
         "deploy_id": deploy_id,
         "environment_replaced": False,
         "new_service_created": False,

@@ -22,10 +22,164 @@
 .review-lens b{display:block;color:#e5d8fc}.review-lens small{color:#b7adc8}
 .review-truth{border-left:3px solid #b39555;padding:12px;background:#1b1720;color:#e4d8c7;margin-top:12px}
 @media(max-width:760px){.review-quarters,.review-judges,.review-lenses{grid-template-columns:1fr}}
-</style></head><body><main class="w">
+</style>
+<style>
+/* Additive status matrix upgrade. Existing War Room controls remain canonical. */
+.wr-status-matrix{background:linear-gradient(145deg,#0b0d13,#09130e 58%,#15101f);border-color:#66518c}
+.wr-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.wr-status-card{border:1px solid var(--l);border-radius:13px;background:#070d09;padding:12px;min-height:108px}
+.wr-status-card strong{display:block;font-size:1.18rem;margin-top:4px}.wr-status-card small{display:block;color:var(--m);margin-top:5px;line-height:1.45}
+.wr-status-card .metric{font-size:1.75rem;font-weight:900;color:#f2d778}.wr-status-card[data-state="green"]{border-color:#2c8c52}.wr-status-card[data-state="purple"]{border-color:#7256aa}.wr-status-card[data-state="yellow"]{border-color:#7a682b}
+.wr-flow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin-top:12px}
+.wr-flow-step{border:1px solid #423851;border-radius:12px;background:#0a0b13;padding:10px;text-align:center;min-height:86px;display:grid;place-items:center}
+.wr-flow-step b{display:block;color:#e7d7ff}.wr-flow-step small{display:block;color:#a99fb7;margin-top:4px}
+.wr-audit{width:100%;border-collapse:collapse;margin-top:12px}.wr-audit th,.wr-audit td{padding:10px;border-bottom:1px solid var(--l);text-align:left;vertical-align:top}.wr-audit th{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:#b8c8bd}.wr-audit td:last-child{font-weight:800}
+.wr-audit .ok{color:var(--g)}.wr-audit .review{color:var(--pu)}.wr-audit .locked{color:var(--y)}
+@media(max-width:850px){.wr-status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wr-flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.wr-status-grid,.wr-flow{grid-template-columns:1fr}.wr-audit{font-size:.82rem}}
+</style>
+
+<style>
+/* Founder reference board: advisory snapshots, not live scores or privileges. */
+.smi-roster-board{border:1px solid #7152a5;background:linear-gradient(145deg,#111324,#08130c);border-radius:18px;padding:18px;margin-block:15px}
+.smi-roster-board h2{margin:6px 0;font-size:clamp(1.2rem,3vw,1.8rem)}
+.smi-roster-command{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.smi-roster-command article{padding:12px;border:1px solid #594b72;border-radius:12px;background:#111122}
+.smi-roster-command strong{display:block;color:#ecd59a}
+.smi-roster-command small{display:block;color:#b6adc5;margin-top:6px;line-height:1.5}
+.smi-roster-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+.smi-roster-panel{background:#090d14;border:1px solid #35324e;border-radius:12px;padding:12px;min-width:0}
+.smi-roster-panel h3{margin:0 0 8px}
+.smi-roster-scroll{overflow-x:auto}
+.smi-roster-history{border-collapse:collapse;width:100%;font-size:.85rem}
+.smi-roster-history th,.smi-roster-history td{padding:7px 8px;border-bottom:1px solid #292638;text-align:left}
+.smi-roster-history th{color:#c6b6e6;font-weight:750}
+.smi-roster-history td:first-child{font-variant-numeric:tabular-nums;color:#e7c77a;font-weight:800}
+.smi-roster-history td:last-child{text-align:right;white-space:nowrap}
+.smi-roster-note{font-size:.81rem;color:#b9adc8;line-height:1.5}
+.smi-alliance-list{display:grid;gap:8px}
+.smi-alliance-list details{border:1px solid #39334b;background:#11101d;border-radius:10px;padding:10px}
+.smi-alliance-list summary{cursor:pointer;font-weight:750;line-height:1.5}
+.smi-alliance-list ul{margin:9px 0 4px;padding-left:19px;line-height:1.6}
+.smi-alliance-list li{margin-bottom:3px}
+.smi-roster-status{color:#eed293}
+@media(max-width:760px){.smi-roster-command,.smi-roster-layout{grid-template-columns:1fr}.smi-roster-board{padding:12px}}
+</style>
+</head><body><main class="w">
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
-<section class="panel"><div class="ey">Mission control</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…"><div class="bar" style="margin-top:10px">
+
+<section class="panel wr-status-matrix" id="war-room-status-matrix" aria-labelledby="wr-status-title">
+  <div class="ey">🟣 SMI CC · War Room Status Matrix</div>
+  <h2 id="wr-status-title">UI · UX · Buttons · Functions · Proof · Authority</h2>
+  <p class="muted">Additive command view. Nothing below replaces an existing War Room control, council, vote, simulation, recovery proof, receipt or Founder Final boundary.</p>
+  <div class="wr-status-grid">
+    <article class="wr-status-card" data-state="green"><small>UI / UX</small><strong>Preserved + upgraded</strong><small>Responsive Founder-only War Room shell, mission entry, review boards, mobile layout and existing navigation remain intact.</small></article>
+    <article class="wr-status-card" data-state="purple"><small>BUTTONS</small><div class="metric" data-wr-control-count>—</div><strong>Visible controls audited</strong><small>Counted from the rendered War Room. Existing controls are not removed to create this matrix.</small></article>
+    <article class="wr-status-card" data-state="purple"><small>GOVERNED FUNCTIONS</small><div class="metric" data-wr-function-count>—</div><strong>Wired action controls</strong><small>Mission actions, depth, Guardian, Green Gate, recovery and Founder Final hooks counted from real data attributes.</small></article>
+    <article class="wr-status-card" data-state="{{ 'green' if war_room.validation.passed else 'yellow' }}"><small>WAR ROOM VALIDATION</small><strong>{{ '🟢 Passed' if war_room.validation.passed else '🟡 Review required' }}</strong><small>{{ war_room.validation.checks.rated_areas }} rated areas · {{ war_room.validation.checks.categories }} categories.</small></article>
+    <article class="wr-status-card" data-state="purple"><small>EVIDENCE SCORE</small><div class="metric">{{ war_room.summary.overall_evidence_score }}%</div><strong>Portfolio evidence</strong><small>{{ war_room.summary.meaning }}</small></article>
+    <article class="wr-status-card" data-state="purple"><small>RUNTIME VERIFIED</small><div class="metric">{{ war_room.summary.runtime_verified }}/{{ war_room.summary.rated_areas }}</div><strong>Evidence-backed runtime areas</strong><small>Separate from operational certification and from Founder approval.</small></article>
+    <article class="wr-status-card" data-state="yellow"><small>OPERATIONALLY CERTIFIED</small><div class="metric">{{ war_room.summary.operationally_certified }}/{{ war_room.summary.rated_areas }}</div><strong>Do not inflate</strong><small>Only areas reaching the canonical highest evidence stage count here.</small></article>
+    <article class="wr-status-card" data-state="green"><small>GUARDIAN / AEGIS</small><strong>🛡 Preserved</strong><small>Safety, permission and organism boundaries remain outside decorative status.</small></article>
+    <article class="wr-status-card" data-state="yellow"><small>HUMAN AUTHORITY</small><strong>👑 Founder Final</strong><small>{{ war_room.human_authority.message }}</small></article>
+  </div>
+
+  <h3>Seven-link mission command</h3>
+  <div class="wr-flow" aria-label="Canonical seven-link SMI mission flow">
+    <div class="wr-flow-step"><div><b>1 · Mission</b><small>Define the target</small></div></div>
+    <div class="wr-flow-step"><div><b>2 · Continue</b><small>Direct bounded work</small></div></div>
+    <div class="wr-flow-step"><div><b>3 · Risk / Guardian</b><small>Protect the boundary</small></div></div>
+    <div class="wr-flow-step"><div><b>4 · War Room / Judgement</b><small>Challenge and decide</small></div></div>
+    <div class="wr-flow-step"><div><b>5 · Founder Final</b><small>Human Authority</small></div></div>
+    <div class="wr-flow-step"><div><b>6 · Recovery / Rollback</b><small>Return safely</small></div></div>
+    <div class="wr-flow-step"><div><b>7 · Outcome / Learning</b><small>Receipt and improve</small></div></div>
+  </div>
+
+  <table class="wr-audit">
+    <thead><tr><th>Surface</th><th>What remains</th><th>Evidence state</th></tr></thead>
+    <tbody>
+      <tr><td>Mission control</td><td>SMI Auto, Manual 3/7/21, War Room, Challenge, Compare, 7×, Vote Board</td><td class="ok">Preserved</td></tr>
+      <tr><td>Protection</td><td>Guardian / Aegis, Green Gate, fail-closed truth language</td><td class="ok">Preserved</td></tr>
+      <tr><td>Recovery</td><td>25% rollback, 50% runtime guard, 75% isolation, 100% completion gate</td><td class="ok">Preserved</td></tr>
+      <tr><td>Review intelligence</td><td>Seven judges, 21 lenses, councils, debate alignment, simulation chamber</td><td class="ok">Preserved</td></tr>
+      <tr><td>Proof</td><td>Evidence score, seven-star board, receipts, runtime and operational stages</td><td class="review">Evidence-driven</td></tr>
+      <tr><td>Authority</td><td>Founder Final stays separate from votes, stars and automated review</td><td class="locked">Founder-only</td></tr>
+    </tbody>
+  </table>
+  <p class="truth"><strong>Truth mode:</strong> a visible button, high percentage, unanimous vote or attractive dashboard never creates proof. Existing evidence gates remain authoritative.</p>
+
+</section>
+
+{% set alliance_board = war_room.intelligence_alliance_board %}
+<section class="smi-roster-board" id="smi-agent-rankings" aria-labelledby="smi-agent-rankings-title">
+  <div class="ey">🟣 SMI · Founder-only intelligence reference board</div>
+  <h2 id="smi-agent-rankings-title">🏆 Historic Top 21 + Six Specialist Alliances</h2>
+  <p class="smi-roster-note">The dated Top 21 is an advisory role-fit snapshot, not a live performance ranking. Individual lifetime achievement stars are tracked separately. Fiction-inspired names do not become registered OAP agents by appearing here.</p>
+  <div class="smi-roster-command" aria-label="Command authority and role separation">
+    <article><strong>👑 Founder Final</strong><small>Only final human authority; not a competing agent or automatic vote.</small></article>
+    <article><strong>🧠 {{ alliance_board.smi.name }}</strong><small>One coordinating intelligence brain above specialist rankings; no agent career-star score.</small></article>
+    <article><strong>👑 {{ alliance_board.mission_coordinator.name }}</strong><small>Mission and scoreboard coordination; historical standing shown below, without adding a duplicate agent passport.</small></article>
+  </div>
+  <div class="smi-roster-layout">
+    <div class="smi-roster-panel">
+      <h3>Historical Top 21 · {{ alliance_board.historical_top_21.as_of }}</h3>
+      <div class="smi-roster-scroll">
+        <table class="smi-roster-history" aria-label="Dated advisory Top 21 rankings">
+          <thead><tr><th scope="col">Rank</th><th scope="col">Agent / role</th><th scope="col">Rating</th><th scope="col">Earned ⭐</th></tr></thead>
+          <tbody>
+          {% for entry in alliance_board.historical_top_21.entries %}
+            <tr>
+              <td>#{{ entry.rank }}</td>
+              <td>{{ entry.name }}{% if not entry.registry_linked %} <span class="smi-roster-note">(reference only)</span>{% endif %}</td>
+              <td>{{ entry.historical_rating }}/{{ entry.historical_rating_max }} ⭐</td>
+              <td>{% if entry.career_stars is not none %}{{ entry.career_stars }}{% else %}—{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="smi-roster-note">Source: {{ alliance_board.historical_top_21.source }}. Unlinked historical labels have no canonical passport in this board.</p>
+      <p class="smi-roster-note"><strong>Earned lifetime stars:</strong> {{ war_room.agent_achievement_rankings.awarded_movements }} approved movements recorded; no candidate or historical rating is silently awarded. {{ war_room.agent_achievement_rankings.award_source }}.</p>
+    </div>
+    <div class="smi-roster-panel">
+      <h3>Six alliances · advisory and specialist context</h3>
+      <div class="smi-alliance-list">
+      {% for alliance in alliance_board.alliances %}
+        <details {% if alliance.id == "jungle_book" %}open{% endif %}>
+          <summary>{{ alliance.name }} · {{ alliance.members|length }} references</summary>
+          <p class="smi-roster-note smi-roster-status">{{ alliance.status|replace('_', ' ')|capitalize }}{% if alliance.id != "jungle_book" %} · Unranked{% endif %}</p>
+          <ul>
+          {% for member in alliance.members %}
+            <li>{{ member.name }}{% if member.agent_id %} <span class="smi-roster-note">· registered</span>{% else %} <span class="smi-roster-note">· design reference</span>{% endif %}</li>
+          {% endfor %}
+          </ul>
+          {% if alliance.threat_models_not_agents is defined %}
+          <p class="smi-roster-note">Threat models only: {{ alliance.threat_models_not_agents|join(', ') }}.</p>
+          {% endif %}
+        </details>
+      {% endfor %}
+      </div>
+      <p class="smi-roster-note">Guardian and HRM remain separate oversight systems. No new execution, approval, voting or ranking authority is created.</p>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="smi-cc"><div class="ey">👑 SMI CC · Command Centre</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…">
+<fieldset class="panel" id="smi-division-command">
+<legend>🧠 SMI divisions · select more than one</legend>
+<div class="bar" style="margin:8px 0">
+{% for id, name in [('truth','Truth & Investigation'),('strategy','Strategy'),('engineering','Engineering'),('decision','Decision'),('awareness','Awareness'),('recovery','Execution & Recovery'),('memory','Memory & Evolution')] %}
+<label class="chip"><input type="checkbox" name="smi-division" value="{{ id }}" {% if id == 'engineering' %}checked{% endif %}> {{ name }}</label>
+{% endfor %}
+</div>
+<label for="smi-command-thinking">Thinking</label>
+<select id="smi-command-thinking" class="chip"><option>AUTO</option><option>3</option><option>7</option><option>21</option></select>
+<label for="smi-command-extra">Additional instructions (optional)</label>
+<textarea class="mission" id="smi-command-extra" rows="2" maxlength="2000" placeholder="Add your mission notes here; this only prepares a plan."></textarea>
+<div class="bar" style="margin-top:8px"><button id="smi-division-route" class="btn primary" type="button">🟣 Select SMI team</button></div>
+<p class="muted">Advisory routing only. No models, approval, release or agent actions are launched.</p>
+</fieldset><div class="bar" style="margin-top:10px">
 <button class="btn primary js-war-action" type="button" data-action="smi-auto">▶ RUN · 🟣 SMI AUTO</button><button class="btn js-depth" type="button" data-depth="3">MANUAL 3</button><button class="btn js-depth" type="button" data-depth="7">MANUAL 7</button><button class="btn js-depth" type="button" data-depth="21">MANUAL 21</button><button class="btn primary js-war-mode" type="button">⚔️ WAR ROOM</button><a class="btn" href="#depth-3-7-21">3 / 7 / 21 DEPTH</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=challenge_again">⚔️ CHALLENGE</a>
 <a class="btn" href="/smi/deep-dive/simulate?command=compare_options">↔ Counter / Compare</a>
@@ -47,6 +201,12 @@
 <a class="chip" href="/mission/war-room/routes">🧭 Routes</a>
 <span class="chip" aria-disabled="true" title="Bounded reviews complete synchronously; there is no background task to stop.">■ STOP</span>
 </div>
+<section class="panel" id="mouse-training">
+<h3>🐭 Mouse + 🕶️ Morpheus · Attention Training</h3>
+<p class="muted">Interactive fictional decision exercise. No autonomous agents, production actions or HRM writes.</p>
+<button id="mouse-training-start" class="btn" type="button">Start training</button>
+<div id="mouse-training-content" role="status" aria-live="polite"></div>
+</section>
 <div id="war-action-result" class="receipt action-result" data-signal="purple" role="status" aria-live="polite">🟣 Ready. SMI AUTO runs bounded review checks only; it cannot approve, deploy, spend, dispatch or bypass Founder Final.</div>
 <p class="truth">Primary controls now separate governed actions from review/navigation. 7★ and Vote open their evidence boards; they do not manufacture scores or tallies. Founder Final remains separate Human Authority. This surface performs no production write.</p></section>
 <section class="panel review-command" id="review-21x" aria-labelledby="review-21x-title">
@@ -225,6 +385,61 @@
     result.dataset.signal = signal || 'purple';
     result.textContent = text;
   };
+  document.getElementById('smi-division-route')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    const divisions = [...document.querySelectorAll('input[name="smi-division"]:checked')].map(el => el.value);
+    if (!divisions.length) { show('yellow', '🟡 Choose at least one SMI division.'); return; }
+    button.disabled = true;
+    try {
+      const response = await fetch('/mission/war-room/divisions/route', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+        body: JSON.stringify({divisions, thinking: document.getElementById('smi-command-thinking').value, mission: document.querySelector('.mission')?.value || '', notes: document.getElementById('smi-command-extra').value})
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result?.error?.message || 'Selection unavailable');
+      const teams = result.divisions.map(team => team.division + ': ' + team.lead).join(' · ');
+      const suggested = result.specialist_recommendation;
+      const specialistLine = suggested ? '\\nRecommended: ' + suggested.agent + ' · Commander: ' + suggested.commander + ' · Home: ' + suggested.home_system + ' (advisory only)' : '';
+      const mission = document.querySelector('.mission')?.value.trim() || '(no mission entered)';
+      const notes = document.getElementById('smi-command-extra').value.trim();
+      show('purple', '🟣 Advisory team selected · ' + result.thinking_depth + ' Thinking\\n' +
+        teams + specialistLine + '\\nMission: ' + mission + (notes ? '\\nNotes: ' + notes : '') +
+        '\\nNo agents executed. Guardian, Green Gate and Founder Final required.');
+    } catch (error) { show('yellow', '🟡 ' + error.message); }
+    finally { button.disabled = false; }
+  });
+  const mouseTraining = document.getElementById('mouse-training-content');
+  async function mouseExercise(choice) {
+    const objective = document.querySelector('.mission')?.value.trim() || 'Practice noticing distractions';
+    const response = await fetch('/mission/war-room/mouse-training', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: JSON.stringify({objective, choice})
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload?.error?.message || 'Training request failed');
+    mouseTraining.replaceChildren();
+    const scene = document.createElement('p');
+    scene.textContent = payload.scene + ' ' + payload.prompt;
+    mouseTraining.append(scene);
+    if (payload.feedback) {
+      const feedback = document.createElement('p');
+      feedback.textContent = 'Morpheus review: ' + payload.feedback + ' Fictional training only; no HRM receipt.';
+      mouseTraining.append(feedback);
+    } else {
+      for (const option of payload.options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn';
+        button.textContent = option.label;
+        button.addEventListener('click', () => mouseExercise(option.id).catch(error => { mouseTraining.textContent = error.message; }));
+        mouseTraining.append(button);
+      }
+    }
+  }
+  document.getElementById('mouse-training-start')?.addEventListener('click', () =>
+    mouseExercise(null).catch(error => { mouseTraining.textContent = error.message; }));
   async function run(action) {
     const response = await fetch(endpoint(action), {
       method: 'POST',
@@ -240,7 +455,21 @@
   }
   async function runAuto(button) {
     const actions = ['alignment-check','aegis-check','function-health','green-gate','hrm-receipt'];
-    const lines = ['🟣 SMI AUTO · 3 / 7 / 21 governed review'];
+    const chosen = [...document.querySelectorAll('input[name="smi-division"]:checked')].map(el => el.value);
+    if (!chosen.length) throw new Error('Choose at least one SMI division.');
+    const routeResponse = await fetch('/mission/war-room/divisions/route', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'X-OAP-CSRF': csrf, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+      body: JSON.stringify({divisions: chosen, thinking: document.getElementById('smi-command-thinking').value, mission: document.querySelector('.mission')?.value || '', notes: document.getElementById('smi-command-extra').value})
+    });
+    const selectedPlan = await routeResponse.json().catch(() => ({}));
+    if (!routeResponse.ok) throw new Error(selectedPlan?.error?.message || 'SMI routing failed');
+    const lines = ['🟣 SMI AUTO · ' + selectedPlan.thinking_depth + ' Thinking · advisory route',
+      'Divisions: ' + selectedPlan.divisions.map(x => x.division + ' (' + x.lead + ')').join(', '),
+      'Thinking plan: ' + selectedPlan.selected_checks.length + ' checks selected · 0 verified executed',
+      'Agent execution: NONE · Independent votes: NOT VERIFIED'];
+
+    if (selectedPlan.specialist_recommendation) lines.push('Suggested Matrix specialist: Mouse · Morpheus command · no family transfer');
     for (const action of actions) {
       const payload = await run(action);
       const signal = payload.signal || payload.action?.signal || 'unknown';
@@ -248,6 +477,7 @@
       const state = payload.state || payload.action?.state || 'reviewed';
       lines.push(label + ': ' + signal + ' · ' + state);
     }
+    lines.push('Proof actions queried: ' + actions.length + ' (not equivalent to Thinking checks)');
     lines.push('👑 Founder Final: unchanged · separate authority');
     show('purple', lines.join('\n'));
   }
@@ -434,4 +664,25 @@
   });
 })();
 </script>
-</main><nav class="bottom"><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav></body></html>
+</main><nav class="bottom"><a href="/mission/smi-cc#smi-cc">👑 SMI CC</a><a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔ War Room</a><a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a><a href="/mission">🎯 Mission</a><a href="/smi/brain/receipts">🧾 Receipts</a></nav>
+<script>
+(()=>{"use strict";
+ const root=document.querySelector("main.w"); if(!root)return;
+ const controls=[...root.querySelectorAll("button,a.btn,a.chip")].filter(el=>!el.hasAttribute("aria-disabled"));
+ const wired=controls.filter(el=>
+   el.matches("[data-action],[data-depth],[data-proof],[data-step],[data-sim-mode],[data-sim-depth],[data-arena-action]") ||
+   el.classList.contains("js-war-action") ||
+   el.classList.contains("js-depth") ||
+   el.classList.contains("js-war-mode") ||
+   el.classList.contains("js-recovery-proof") ||
+   el.classList.contains("js-complete-green") ||
+   el.classList.contains("js-founder-final") ||
+   el.id==="run-simulation"
+ );
+ const controlNode=root.querySelector("[data-wr-control-count]");
+ const functionNode=root.querySelector("[data-wr-function-count]");
+ if(controlNode)controlNode.textContent=String(controls.length);
+ if(functionNode)functionNode.textContent=String(wired.length);
+})();
+</script>
+</body></html>

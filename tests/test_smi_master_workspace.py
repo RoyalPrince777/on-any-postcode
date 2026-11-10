@@ -48,7 +48,8 @@ def test_visible_master_tool_buttons_have_real_handlers():
         assert f'data-connector-id="{connector}"' in base
     for action in (
         "map-intelligence","war-room","function-health","green-gate","hrm",
-        "founder-library","improvement","swot","behaviour","github-governed",
+        "founder-library","improvement","swot","behaviour","ux","alignment",
+        "infrastructure-intelligence","security","evidence","github-governed",
     ):
         assert f'data-oap-action="{action}"' in base
     assert "qa('[data-connector-id]').forEach" in final
@@ -78,3 +79,20 @@ def test_core_chat_controls_have_single_canonical_owners():
 def test_master_workspace_contract_is_explicit():
     final = FINAL.read_text(encoding="utf-8")
     assert "window.OAP_SMI_MASTER={version:'1.3',masterTools:true,savedWork:true,founderLibrary:true,search:true,studio21:true,mapIntelligenceWorkspace:true,governedActions:true}" in final
+
+
+def test_intelligence_menu_prioritises_core_review_and_disambiguates_infrastructure():
+    base = BASE.read_text(encoding="utf-8")
+    ordered = (
+        'data-oap-action="ux"',
+        'data-oap-action="alignment"',
+        'data-oap-action="infrastructure-intelligence"',
+        'data-oap-action="security"',
+        'data-oap-action="evidence"',
+        'data-oap-action="map-intelligence"',
+        'data-oap-action="swot"',
+        'data-oap-action="behaviour"',
+    )
+    positions = [base.index(marker) for marker in ordered]
+    assert positions == sorted(positions)
+    assert '<h3>Infrastructure Systems</h3>' in base

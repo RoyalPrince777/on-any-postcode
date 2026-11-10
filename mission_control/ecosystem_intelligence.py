@@ -14,11 +14,11 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Iterable, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from . import matrix_signal_bus, workspaces
+from . import matrix_signal_bus, workspaces, world_observation
 
 HIERARCHY: tuple[str, ...] = (
     "Human Authority",
@@ -142,7 +142,7 @@ ECOSYSTEM_LAW: tuple[str, ...] = (
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _score(value: object, name: str) -> int:
@@ -210,6 +210,12 @@ def _normalise_signal(signal: Mapping[str, Any]) -> dict[str, Any]:
     recommendation = str(signal.get("recommendation") or "").strip()
     risk = str(signal.get("risk") or "").strip()
     opportunity = str(signal.get("opportunity") or "").strip()
+    raw_observation = signal.get("observation")
+    observation = (
+        world_observation.normalise(raw_observation)
+        if raw_observation is not None
+        else None
+    )
 
     return {
         "domain": domain,
@@ -225,6 +231,7 @@ def _normalise_signal(signal: Mapping[str, Any]) -> dict[str, Any]:
         "recommendation": recommendation,
         "risk": risk,
         "opportunity": opportunity,
+        "observation": observation,
     }
 
 
@@ -335,6 +342,7 @@ def status() -> dict[str, Any]:
         ),
         "time_horizons": TIME_HORIZONS,
         "truth_states": TRUTH_STATES,
+        "world_observation": world_observation.status(),
         "geography_levels": GEOGRAPHY_LEVELS,
         "pressure_dimensions": PRESSURE_DIMENSIONS,
         "intelligence_cycle": INTELLIGENCE_CYCLE,
@@ -376,9 +384,26 @@ def analyse(
 
     domains = tuple(dict.fromkeys(item["domain"] for item in items))
     horizons = tuple(dict.fromkeys(item["horizon"] for item in items))
-    average_pressure = sum(item["pressure"] for item in items) / len(items)
-    strongest = min(items, key=lambda item: item["pressure"])
-    weakest = max(items, key=lambda item: item["pressure"])
+    current_items = tuple(
+        item
+        for item in items
+        if item.get("observation") is None
+        or bool(item["observation"]["live_claim_allowed"])
+    )
+    contextual_only_items = tuple(item for item in items if item not in current_items)
+    pressure_items = current_items or tuple(
+        {
+            **item,
+            "pressure": 0,
+            "risk": "",
+            "opportunity": "",
+            "recommendation": "",
+        }
+        for item in items
+    )
+    average_pressure = sum(item["pressure"] for item in pressure_items) / len(pressure_items)
+    strongest = min(pressure_items, key=lambda item: item["pressure"])
+    weakest = max(pressure_items, key=lambda item: item["pressure"])
     consequential = average_pressure >= 60 or weakest["pressure"] >= 80
     state = _pressure_state(average_pressure)
 
@@ -410,17 +435,39 @@ def analyse(
             for proof in item["evidence"]
         )
     )
-    risks = _clean_strings(item["risk"] for item in items if item["risk"])
+    risks = _clean_strings(item["risk"] for item in current_items if item["risk"])
     opportunities = _clean_strings(
-        item["opportunity"] for item in items if item["opportunity"]
+        item["opportunity"] for item in current_items if item["opportunity"]
     )
     recommendations = _clean_strings(
-        item["recommendation"] for item in items if item["recommendation"]
+        item["recommendation"] for item in current_items if item["recommendation"]
     )
     forecasts = tuple(
         item["summary"]
         for item in items
         if item["truth_state"] == "forecast" or item["horizon"] == "next"
+    )
+    observations = tuple(
+        item["observation"] for item in items if item.get("observation") is not None
+    )
+    observation_evidence_mix = {
+        evidence_class: sum(
+            1
+            for observation in observations
+            if observation["evidence_class"] == evidence_class
+        )
+        for evidence_class in world_observation.EVIDENCE_CLASSES
+    }
+    observation_freshness_mix = {
+        freshness_state: sum(
+            1
+            for observation in observations
+            if observation["freshness_state"] == freshness_state
+        )
+        for freshness_state in world_observation.FRESHNESS_STATES
+    }
+    live_observation_count = sum(
+        bool(observation["live_claim_allowed"]) for observation in observations
     )
 
     explanation = (
@@ -463,6 +510,20 @@ def analyse(
         "affected_systems": affected_systems,
         "evidence": evidence,
         "forecast": forecasts,
+        "observations": observations,
+        "observation_count": len(observations),
+        "live_observation_count": live_observation_count,
+        "current_signal_count": len(current_items),
+        "contextual_only_signal_count": len(contextual_only_items),
+        "contextual_only_signal_ids": tuple(
+            str(item.get("summary") or "") for item in contextual_only_items
+        ),
+        "observation_evidence_mix": observation_evidence_mix,
+        "observation_freshness_mix": observation_freshness_mix,
+        "stale_or_expired_observation_present": any(
+            observation["freshness_state"] in {"stale", "expired"}
+            for observation in observations
+        ),
         "risks": risks,
         "opportunities": opportunities,
         "recommendations": recommendations,

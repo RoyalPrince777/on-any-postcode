@@ -173,3 +173,34 @@ def test_worker_heartbeat_exposes_all_three_autonomy_boundaries(monkeypatch):
     assert heartbeat["human_authority_final"] is True
     assert heartbeat["independent_execution"] is False
     assert heartbeat["consequential_action"] is False
+
+
+def test_autonomy_cycle_rejects_truthy_nonboolean_gate_and_invariant_values(monkeypatch):
+    """Strings or numeric values cannot manufacture production proof."""
+    def misleading_health():
+        health = _health(approval_receipt=True)
+        health["checks"]["guardian"] = "false"
+        health["checks"]["hrm"] = 1
+        health["checks"]["approval_receipt"] = "true"
+        health["invariants"]["execution_locked"] = "true"
+        health["invariants"]["human_authority_final"] = 1
+        return health
+
+    monkeypatch.setattr(smi_runtime_autonomy.smi_chat_runtime, "health", misleading_health)
+    health = misleading_health()
+    components = smi_runtime_autonomy._components(health)
+    assert next(item for item in components if item["component"] == "SMI 21 Gate: guardian")["ready"] is False
+    assert next(item for item in components if item["component"] == "SMI 21 Gate: hrm")["ready"] is False
+    assert next(item for item in components if item["component"] == "SMI 21 Gate: approval_receipt")["ready"] is False
+
+    cycle = smi_runtime_autonomy.run_cycle()
+    assert cycle["gates_green"] == 18
+    assert cycle["gates_total"] == 21
+    assert cycle["production_invariants"] == {
+        "execution_locked": False,
+        "human_authority_final": False,
+    }
+    assert cycle["controlled_self_improvement_runtime"]["ready"] is False
+    assert cycle["provider_completion_performed"] is False
+    assert cycle["hrm_record_created"] is False
+    assert cycle["consequential_action"] is False

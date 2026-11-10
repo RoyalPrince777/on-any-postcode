@@ -6,6 +6,16 @@
  const head=document.querySelector(".chat-head");
  const character=document.getElementById("smi-character");
  const messages=document.getElementById("messages");
+ const openWarRoom=()=>{
+  const target=String(cfg.warRoomUrl||"").trim();
+  if(!target){
+   const feedback=document.getElementById("status");
+   if(feedback)feedback.textContent="War Room route unavailable.";
+   return false;
+  }
+  window.location.assign(target);
+  return true;
+ };
  if(!chatbox||!head||!character||!messages||document.getElementById("smi-command-centre"))return;
  const marker=document.createComment("original SMI character position");
  character.parentNode.insertBefore(marker,character);
@@ -21,8 +31,8 @@
     document.getElementById("message")?.focus();return;
    }
    if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
-   if(target==="war-room")document.querySelector('#attach-menu [data-oap-action="war-room"]')?.click();
-   else document.getElementById(target)?.click();
+   if(target==="war-room"){openWarRoom();return;}
+   document.getElementById(target)?.click();
   });
   presenceActions.append(button);
  }
@@ -57,14 +67,271 @@
    if(details){details.open=true;details.scrollIntoView({block:"start",behavior:"auto"});}
   }
  };
+
  statusButton.addEventListener("click",()=>openStatus(false));
  signalsButton.addEventListener("click",()=>openStatus(true));
+
+ // Canonical private SMI home rail: one front door into the existing owners.
+ // This is navigation/control composition only; it creates no duplicate runtime.
+ const homeRail=document.createElement("nav");
+ homeRail.className="smi-home-intelligence";
+ homeRail.setAttribute("aria-label","SMI master home menu");
+
+ const closeTransientPanels=()=>{
+  document.querySelectorAll(".smi-world-controls").forEach(item=>{item.hidden=true;});
+  document.querySelectorAll('[aria-controls="smi-world-controls"],[aria-controls="smi-jungle-controls"]').forEach(item=>item.setAttribute("aria-expanded","false"));
+ };
+
+ const triggerMasterTool=(action)=>{
+  const button=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
+  if(button&&!button.disabled){
+   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+   button.click();
+   return true;
+  }
+  const feedback=document.getElementById("status");
+  if(feedback)feedback.textContent=action+" control unavailable";
+  return false;
+ };
+
+ const homeButton=document.createElement("button");
+ homeButton.type="button";homeButton.textContent="🏠 Home";
+ homeButton.setAttribute("aria-label","Return to SMI Home");
+ homeButton.addEventListener("click",()=>{
+  closeTransientPanels();
+  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+  if(document.body.classList.contains("smi-status-open"))document.querySelector(".smi-chat-return")?.click();
+  document.getElementById("message")?.focus();
+ });
+
+ const smiButton=document.createElement("button");
+ smiButton.type="button";smiButton.textContent="🧠 SMI";
+ smiButton.setAttribute("aria-label","Open SMI system command centre");
+ smiButton.addEventListener("click",()=>setOpen(true));
+
+ const signalsHomeButton=document.createElement("button");
+ signalsHomeButton.type="button";signalsHomeButton.textContent="📡 Signals";
+ signalsHomeButton.setAttribute("aria-label","Open SMI signals");
+ signalsHomeButton.addEventListener("click",()=>openStatus(true));
+
+ const guardianHomeButton=document.createElement("button");
+ guardianHomeButton.type="button";guardianHomeButton.textContent="🛡️ Guardian";
+ guardianHomeButton.setAttribute("aria-label","Run Guardian evidence review");
+ guardianHomeButton.addEventListener("click",()=>triggerMasterTool("guardian"));
+
+ const warHomeButton=document.createElement("button");
+ warHomeButton.type="button";warHomeButton.textContent="⚔️ War Room";
+ warHomeButton.setAttribute("aria-label","Open War Room");
+ warHomeButton.addEventListener("click",()=>openWarRoom());
+
+ const intelligenceHomeButton=document.createElement("button");
+ intelligenceHomeButton.type="button";intelligenceHomeButton.textContent="🧩 Intelligence";
+ intelligenceHomeButton.setAttribute("aria-label","Open Intelligence systems");
+ intelligenceHomeButton.addEventListener("click",()=>{
+  const target=String(cfg.agentsUrl||"").trim();
+  if(target.startsWith("/")&&!target.startsWith("//"))window.location.assign(target);
+  else setOpen(true);
+ });
+
+ const hrmHomeButton=document.createElement("button");
+ hrmHomeButton.type="button";hrmHomeButton.textContent="🧾 HRM / JOOG";
+ hrmHomeButton.setAttribute("aria-label","Open HRM and Jog Memory");
+ hrmHomeButton.addEventListener("click",()=>triggerMasterTool("hrm"));
+
+ const controlHomeButton=document.createElement("button");
+ controlHomeButton.type="button";controlHomeButton.textContent="⚙️ Control";
+ controlHomeButton.setAttribute("aria-label","Open SMI Control and infrastructure");
+ controlHomeButton.addEventListener("click",()=>{
+  setOpen(true);
+  panel.dataset.mobileView="evidence";
+  mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="evidence")));
+ });
+
+ const incomingHomeButton=document.createElement("button");
+ incomingHomeButton.type="button";incomingHomeButton.textContent="🔔 Incoming";
+ incomingHomeButton.setAttribute("aria-label","Open Incoming activity");
+ incomingHomeButton.addEventListener("click",()=>{
+  window.location.assign("/linkup#linkup-incoming");
+ });
+
+ const myWorldHomeButton=document.createElement("button");
+ myWorldHomeButton.type="button";myWorldHomeButton.textContent="👤 My World";
+ myWorldHomeButton.setAttribute("aria-label","Open My World");
+ myWorldHomeButton.addEventListener("click",()=>{
+  window.location.assign("/my-world");
+ });
+
+ const settingsHomeButton=document.createElement("button");
+ settingsHomeButton.type="button";settingsHomeButton.textContent="⚙ Settings";
+ settingsHomeButton.setAttribute("aria-label","Open SMI Settings");
+ settingsHomeButton.addEventListener("click",()=>{
+  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+  document.getElementById("plus-button")?.click();
+  const settings=document.getElementById("smi-settings-button");
+  if(settings){
+   const panelOpen=settings.getAttribute("aria-expanded")==="true";
+   if(!panelOpen)settings.click();
+   settings.scrollIntoView({block:"nearest",behavior:"auto"});
+  }
+ });
+
+ homeRail.append(
+  homeButton,smiButton,signalsHomeButton,guardianHomeButton,warHomeButton,
+  intelligenceHomeButton,hrmHomeButton,controlHomeButton,
+  incomingHomeButton,myWorldHomeButton,settingsHomeButton
+ );
+ document.body.append(homeRail);
+
+ // Seven canonical mission links: direct controls into existing owners, not stages.
+ const majorLinks=document.createElement("nav");
+ majorLinks.className="smi-major-links";
+ majorLinks.setAttribute("aria-label","SMI seven major mission links");
+
+ const missionStatus=(text)=>{
+  const feedback=document.getElementById("status");
+  if(feedback)feedback.textContent=String(text||"");
+ };
+
+ const submitLiteral=(literal)=>{
+  const input=document.getElementById("message");
+  const form=document.getElementById("chat-form");
+  if(!input||!form){missionStatus("SMI chat unavailable");return false;}
+  input.value=literal;
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+  form.requestSubmit();
+  return true;
+ };
+
+ const addMajor=(label,handler)=>{
+  const button=document.createElement("button");
+  button.type="button";button.textContent=label;
+  button.addEventListener("click",handler);
+  majorLinks.append(button);
+  return button;
+ };
+
+ addMajor("1 · Mission",async()=>{
+  missionStatus("Checking latest governed mission…");
+  try{
+   const response=await fetch("/mission/all-in-ai/mission/latest",{cache:"no-store",credentials:"same-origin"});
+   const body=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(body?.error?.message||"Mission feed unavailable");
+   const mission=body?.mission||body?.latest||body;
+   const label=String(mission?.title||mission?.mission||mission?.status||mission?.mission_id||"latest mission receipt found");
+   missionStatus("Mission · "+label.slice(0,180));
+  }catch(error){missionStatus(error?.message||"Mission feed unavailable");}
+ });
+ addMajor("2 · Continue",()=>submitLiteral("🟣"));
+ addMajor("3 · Risk / Guardian",()=>triggerMasterTool("guardian"));
+ addMajor("4 · War Room / Judgement",()=>openWarRoom());
+ addMajor("5 · Founder Final",()=>submitLiteral("🟢"));
+ addMajor("6 · Recovery / Rollback",async()=>{
+  missionStatus("Running bounded rollback / recovery proof…");
+  try{
+   const response=await fetch("/mission/smi-proof/rollback-recovery",{
+    method:"POST",credentials:"same-origin",
+    headers:{"X-OAP-CSRF":window.csrfToken||"","Accept":"application/json"}
+   });
+   const body=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error(body?.error?.message||"Rollback / recovery proof unavailable");
+   missionStatus(body?.proof?.passed===true
+    ?"Rollback / Recovery proof passed · execution not granted"
+    :"Rollback / Recovery proof returned without Green");
+  }catch(error){missionStatus(error?.message||"Rollback / recovery proof unavailable");}
+ });
+ addMajor("7 · Outcome / Learning",()=>triggerMasterTool("hrm"));
+ document.body.append(majorLinks);
+
+ // OAP World and Jungle remain available as deeper, existing command-centre systems.
+ const worldPanel=document.createElement("nav");
+ worldPanel.id="smi-world-controls";
+ worldPanel.className="smi-world-controls";
+ worldPanel.setAttribute("aria-label","OAP World public navigation");
+ worldPanel.hidden=true;
+ const publicRoot=String(cfg.publicWorldOrigin||"").trim();
+ let publicOrigin=null;
+ try{
+  const candidate=new URL(publicRoot);
+  if(candidate.protocol==="https:")publicOrigin=candidate.origin;
+ }catch(_){}
+ const publicRoutes=[
+  ["🌍 Enter OAP World","/"],
+  ["📍 The Spot","/the-spot"],
+  ["🔗 Link Up","/linkup"],
+  ["🗺️ OAP World / Place","/on-any-place"]
+ ];
+ const publicHeading=document.createElement("strong");
+ publicHeading.className="smi-world-menu-heading";
+ publicHeading.textContent="PUBLIC OAP · PREVIEW";
+ worldPanel.append(publicHeading);
+ const worldNotice=document.createElement("small");
+ worldNotice.textContent="Public OAP · first-party front door · Founder controls stay private.";
+ if(publicOrigin){
+  publicRoutes.forEach(([label,path])=>{
+   const link=document.createElement("a");
+   link.textContent=label;link.href=publicOrigin+path;
+   link.rel="noopener noreferrer";
+   link.referrerPolicy="no-referrer";
+   worldPanel.append(link);
+  });
+ }else{
+  worldNotice.textContent="Public OAP origin unavailable · no unverified navigation.";
+ }
+ worldPanel.append(worldNotice);
+ const controlHeading=document.createElement("strong");
+ controlHeading.className="smi-world-menu-heading";
+ controlHeading.textContent="PRIVATE SMI · WORLD GOVERNANCE";
+ worldPanel.append(controlHeading);
+ const worldFounderRoutes=[
+  ["🌍 Civilization registry",cfg.civilizationStatusUrl],
+  ["🌱 Ecosystem Intelligence",cfg.ecosystemDashboardUrl],
+  ["🔗 Civilization × Ecosystem Evidence",cfg.civilizationBridgeUrl],
+  ["🩺 World Function Health",cfg.functionHealthUrl],
+  ["🟢 Green Gate evidence",cfg.greenGateUrl]
+ ];
+ worldFounderRoutes.forEach(([label,path])=>{
+  const target=String(path||"").trim();
+  if(!target.startsWith("/")||target.startsWith("//"))return;
+  const link=document.createElement("a");
+  link.textContent=label;link.href=target;
+  link.className="smi-world-founder-link";
+  worldPanel.append(link);
+ });
+ const governanceNotice=document.createElement("small");
+ governanceNotice.textContent="Review only · no publication, payment, permission change or automatic Green. Founder Final remains separate.";
+ worldPanel.append(governanceNotice);
+ document.body.append(worldPanel);
+
+ const junglePanel=document.createElement("nav");
+ junglePanel.id="smi-jungle-controls";
+ junglePanel.className="smi-world-controls smi-jungle-controls";
+ junglePanel.setAttribute("aria-label","First-party Jungle intelligence families");
+ junglePanel.hidden=true;
+ const jungleRoutes=[
+  ["🐆 Jungle Book","/mission/agents?family=jungle_book"],
+  ["🦉 Animal Council","/mission/agents?family=animal"],
+  ["🌍 Akan Animal","/mission/agents?family=akan_animal"],
+  ["⚔️ War Room Council",String(cfg.warRoomUrl||"")]
+ ];
+ jungleRoutes.forEach(([label,path])=>{
+  if(!path||!path.startsWith("/"))return;
+  const link=document.createElement("a");
+  link.textContent=label;link.href=path;
+  junglePanel.append(link);
+ });
+ const jungleNotice=document.createElement("small");
+ jungleNotice.textContent="Registered first-party roles only · review lenses are not independent agents.";
+ junglePanel.append(jungleNotice);
+ document.body.append(junglePanel);
+
  // Quick access reuses the existing, governed Master Tools handlers.
  const universe=document.createElement("nav");
  universe.className="smi-command-universe";
  universe.setAttribute("aria-label","SMI universe tools");
  const quickActions=[
   ["＋ Master Tools","master-tools"],
+  ["🌍 OAP World","world-controls"],
+  ["🐆 Jungle","jungle-controls"],
   ["⚔️ War Room","war-room"],
   ["🕶 Matrix Routes","matrix-routes"],
   ["🧠 HRM","hrm"],
@@ -91,7 +358,24 @@
  const bankHeritage=document.createElement("p");
  bankHeritage.textContent="Prince Sovereign Bank · heritage | SIKA · separate value classes";
  const bankNotice=document.createElement("p");
- bankNotice.textContent="READ ONLY · no bank licence, balance, account, cash service, signed package or release is asserted.";
+ bankNotice.textContent="READ ONLY · checking canonical Bank / SIKA truth…";
+ const refreshBankTruth=async()=>{
+  bankNotice.textContent="READ ONLY · checking canonical Bank / SIKA truth…";
+  try{
+   const response=await fetch("/mission/smi/status",{cache:"no-store",credentials:"same-origin"});
+   const payload=await response.json().catch(()=>({}));
+   if(!response.ok)throw new Error("Bank / SIKA truth unavailable");
+   const bank=payload&&payload.bank?payload.bank:{};
+   const controls=bank.software_controls_present===true?"software controls present":"software controls unproven";
+   const gateway=bank.single_pay_gateway===true?"SIKA Pay gateway present":"SIKA Pay gateway unproven";
+   const bypass=bank.direct_authorisation_bypass_allowed===false?"direct authorisation bypass closed":"direct authorisation bypass not proven closed";
+   const regulated=bank.regulated_execution_enabled===true?"regulated execution ON":"regulated execution locked";
+   const movement=bank.money_movement===true?"money movement ON":"money movement locked";
+   bankNotice.textContent=["READ ONLY",controls,gateway,bypass,regulated,movement].join(" · ");
+  }catch(_){
+   bankNotice.textContent="READ ONLY · Bank / SIKA canonical status unavailable · no Green inferred.";
+  }
+ };
  const bankTabs=document.createElement("nav");
  bankTabs.setAttribute("aria-label","Bank review controls");
  const bankDetail=document.createElement("div");
@@ -273,6 +557,58 @@
  const dashboard=document.createElement("section");dashboard.className="smi-room-status";dashboard.setAttribute("aria-label","Live SMI intelligence and alignment");
  dashboard.innerHTML='<h3>◈ SYSTEM STATUS · LIVE PROOF</h3><div class="smi-room-status-grid"><article data-room-stat="runtime"><strong>SMI runtime</strong><small>Not checked</small></article><article data-room-stat="functions"><strong>Function health</strong><small>Not checked</small></article><article data-room-stat="signals"><strong>21 Signals</strong><small>Not checked</small></article><article data-room-stat="alignment"><strong>Alignment</strong><small>Not checked</small></article></div><h3>MIND × BODY × SOUL · DIRECT EVIDENCE</h3><div class="smi-room-gates"><article data-room-gate="mind"><strong>🧠 MIND</strong><small>Reasoning · alignment · evidence coherence</small></article><article data-room-gate="body"><strong>⚙️ BODY</strong><small>Runtime · functions · routes · execution health</small></article><article data-room-gate="soul"><strong>💛 SOUL</strong><small>Guardian · Aegis · recovery · trust boundaries</small></article></div><p class="smi-room-status-note">MBS is the operating model, not a percentage ladder. 3 / 7 / 21 controls review depth only. Founder Final remains separate Human Authority after evidence gates.</p>';
  evidence.append(dashboard);
+ // One System Intelligence reading surface. Each tile reports backend evidence,
+ // not inferred readiness from a reachable URL or an illustrated organism.
+ const unified=document.createElement("section");
+ unified.className="smi-unified-intelligence";
+ unified.setAttribute("aria-label","SMI unified system intelligence");
+ const unifiedTitle=document.createElement("h3");
+ unifiedTitle.textContent="🧠 SMI SYSTEM INTELLIGENCE · EVIDENCE";
+ const unifiedGrid=document.createElement("div");
+ unifiedGrid.className="smi-unified-grid";
+ const unifiedSources=[
+  ["mission","🎯 Mission","No verified active mission feed","/mission/all-in-ai/app"],
+  ["civilization","🌍 Civilization","Architecture not checked",cfg.civilizationStatusUrl],
+  ["ecosystem","🌱 Ecosystem","Runtime/source evidence not checked",cfg.ecosystemDashboardUrl],
+  ["matrix","🌐 Matrix","Routes not checked","/mission/war-room/routes"],
+  ["guardian","🛡️ Guardian","Safety evidence not checked",cfg.greenGateUrl],
+  ["hrm","🧬 HRM","Receipts not checked",cfg.hrmUrl],
+  ["signals","📡 21 Signals","Contract not checked",cfg.signalsUrl],
+  ["gate","🟢 Green Gate","Decision evidence not checked",cfg.greenGateUrl]
+ ];
+ const unifiedNodes=new Map();
+ unifiedSources.forEach(([key,label,initial,url])=>{
+  const tile=document.createElement("article");
+  tile.dataset.unified=key;tile.dataset.proven="false";
+  const heading=document.createElement("strong");
+  heading.textContent=label;
+  const state=document.createElement("small");
+  state.textContent=initial;
+  tile.append(heading,state);
+  if(url){
+   const link=document.createElement("a");
+   link.href=url;link.textContent="Open";
+   link.setAttribute("aria-label","Open "+label+" canonical surface");
+   tile.append(link);
+  }
+  unifiedGrid.append(tile);
+  unifiedNodes.set(key,tile);
+ });
+ unified.append(unifiedTitle,unifiedGrid);
+ dashboard.before(unified);
+ // Preserve the original deep proof grid without making the home system a second wall.
+ const evidenceDetail=document.createElement("details");
+ evidenceDetail.className="smi-system-detail";
+ const evidenceSummary=document.createElement("summary");
+ evidenceSummary.textContent="Detailed MIND × BODY × SOUL evidence";
+ dashboard.before(evidenceDetail);
+ evidenceDetail.append(evidenceSummary,dashboard);
+ const setUnified=(key,proven,message)=>{
+  const node=unifiedNodes.get(key);
+  if(!node)return;
+  node.dataset.proven=String(proven===true);
+  node.querySelector("small").textContent=message;
+ };
  const roomStats=new Map([...dashboard.querySelectorAll("[data-room-stat]")].map(el=>[el.dataset.roomStat,el]));
  const roomGates=new Map([...dashboard.querySelectorAll("[data-room-gate]")].map(el=>[el.dataset.roomGate,el]));
  const proofList=document.createElement("div");proofList.className="smi-command-side";
@@ -302,11 +638,18 @@
   const signal=roomRequest.signal;
   roomStats.forEach(node=>setRoom(node,false,"Checking live evidence…"));
   roomGates.forEach((node,key)=>setRoom(node,false,key==="founder"?"Founder decision required":"Checking proof…"));
+  for(const key of ["matrix","guardian","hrm","signals","gate","civilization","ecosystem"])setUnified(key,false,"Checking backend evidence…");
+  setUnified("mission",false,"No verified active mission feed · do not infer one");
   const targets=[
    ["runtime",cfg.healthUrl],
    ["functions",cfg.functionHealthUrl],
    ["signals",cfg.signalsUrl],
-   ["alignment",cfg.greenGateUrl]
+   ["alignment",cfg.greenGateUrl],
+   ["matrix",cfg.routesUrl],
+   ["hrm",cfg.hrmUrl],
+   ["civilization",cfg.civilizationStatusUrl],
+   ["ecosystem",cfg.ecosystemStatusUrl],
+   ["mission","/mission/all-in-ai/mission/latest"]
   ];
   const result=await Promise.allSettled(targets.map(async ([,url])=>{
    if(!url)throw new Error("Route unavailable");
@@ -318,7 +661,7 @@
   }));
   if(signal.aborted)return;
   const value=index=>result[index].status==="fulfilled"?result[index].value:null;
-  const health=value(0),functions=value(1),signals=value(2),gate=value(3);
+  const health=value(0),functions=value(1),signals=value(2),gate=value(3),matrix=value(4),hrm=value(5),civilization=value(6),ecosystem=value(7),mission=value(8);
   const count=Number(functions?.available_count||0),expected=Number(functions?.expected_count||0);
   const functionsProven=expected>0&&count===expected&&Number(functions?.proof_checked_count||0)===expected&&Number(functions?.proof_required_count||0)===0;
   const signalProven=signals?.ready===true&&signals?.signals_valid===true&&Number(signals?.signal_count)===21;
@@ -337,6 +680,36 @@
   setRoom(roomGates.get("mind"),mindProven,mindProven?"Evidence coherent":"Reasoning/alignment proof incomplete");
   setRoom(roomGates.get("body"),bodyProven,bodyProven?"Runtime and function proof recorded":"Runtime/function proof incomplete");
   setRoom(roomGates.get("soul"),soulProven,soulProven?"Guardian/Aegis recovery proof recorded":"Safety/recovery proof incomplete");
+  // A plan is not an active mission: require the canonical owner-scoped HRM and
+  // audit read-back contract, never infer execution from HTTP 200 or a route.
+  const missionVerified=mission?.found===true&&mission?.read_back_verified===true&&
+   mission?.audit_verified===true&&mission?.hrm_verified===true&&
+   mission?.execution_granted===false&&mission?.human_authority_final===true&&
+   ["planned","stopped","recovered"].includes(mission?.state);
+  setUnified("mission",missionVerified,
+   missionVerified?"Verified "+mission.state+" checkpoint · no execution":
+   mission?.found===false?"No recorded mission · NOT PROVEN":
+   "Mission receipt unavailable/unverified · NOT PROVEN");
+  // A valid response is not a Green receipt. Claim only explicit boolean contracts.
+  setUnified("matrix",false,matrix?"Route evidence reachable · Matrix world-state not certified":"Routes unavailable · NOT PROVEN");
+  setUnified("hrm",false,hrm?"HRM source reached · durable receipt not certified":"HRM unavailable · NOT PROVEN");
+  setUnified("guardian",soulProven,soulProven?"Recovery checks explicitly passed":"Guardian/Aegis proof incomplete");
+  setUnified("signals",signalProven,signalProven?"21/21 signal contract validated":signals?"21 Signals proof incomplete":"Signals unavailable · NOT PROVEN");
+  setUnified("gate",gate?.green===true,gate?.green===true?"Backend gate satisfied · Founder Final separate":gate?"Missing proof · NOT GREEN":"Gate unavailable · NOT GREEN");
+  // Architecture and internal ingestion are distinct from verified, externally current world-state.
+  const civilizationDefined=civilization?.validation?.passed===true&&civilization?.status==="architecture_protocol_defined";
+  setUnified("civilization",false,civilizationDefined?
+   "Architecture validated · 9 domains · operational Green not claimed":
+   civilization?"Architecture or protocol not validated · NOT PROVEN":"Civilization source unavailable · NOT PROVEN");
+  const ecosystemInternal=ecosystem?.runtime?.automatic_internal_ingestion_ready===true;
+  const provenGates=Number(ecosystem?.live_sources?.proven_gate_count||0);
+  const requiredGates=Number(ecosystem?.live_sources?.required_gate_count||0);
+  const ecosystemComplete=ecosystemInternal&&requiredGates>0&&provenGates===requiredGates&&
+   ecosystem?.live_sources?.all_required_live_sources_proven===true&&
+   ecosystem?.runtime?.external_live_complete===true&&ecosystem?.architecture?.full_green===true;
+  setUnified("ecosystem",ecosystemComplete,
+   ecosystemInternal?"Internal signals ready · "+provenGates+"/"+(requiredGates||"?")+" external gates · "+(ecosystemComplete?"source coverage proven; Founder Final separate":"NOT FULL GREEN"):
+   ecosystem?"Internal ingestion not proven · NOT GREEN":"Ecosystem source unavailable · NOT PROVEN");
  }
  function setOpen(open){
   if(open===active)return;
@@ -382,6 +755,16 @@
   const trigger=event.target.closest("[data-action]");
   if(!trigger)return;
   const action=trigger.dataset.action;
+  if(action==="world-controls"){
+   worldPanel.hidden=!worldPanel.hidden;
+   junglePanel.hidden=true;
+   return;
+  }
+  if(action==="jungle-controls"){
+   junglePanel.hidden=!junglePanel.hidden;
+   worldPanel.hidden=true;
+   return;
+  }
   if(action==="master-tools"){
    // Only the original composer owns the drawer. The originating click must not
    // bubble to its outside-click guard after the canonical button opens it.
@@ -399,11 +782,17 @@
   if(action==="oap-bank-controls"){
    bankControls.hidden=!bankControls.hidden;
    trigger.setAttribute("aria-expanded",String(!bankControls.hidden));
+   if(!bankControls.hidden)refreshBankTruth();
    return;
   }
   if(action==="oap-maps-controls"){
    mapsControls.hidden=!mapsControls.hidden;
    trigger.setAttribute("aria-expanded",String(!mapsControls.hidden));
+   return;
+  }
+  if(action==="war-room"){
+   setOpen(false);
+   openWarRoom();
    return;
   }
   if(action==="matrix-routes"){

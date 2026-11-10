@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hmac
 import os
+import secrets
 import threading
 import time
 import uuid
@@ -16,6 +17,8 @@ from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
+
+from .organism_runtime import inference_worker_status
 
 _MAX_PENDING = 8
 _JOB_TTL_SECONDS = 45.0
@@ -43,6 +46,7 @@ class _Job:
     payload: dict[str, Any]
     created_at: float = field(default_factory=time.monotonic)
     claimed: bool = False
+    claim_token: str | None = None
     result: str | None = None
     error: str | None = None
     event: threading.Event = field(default_factory=threading.Event)
@@ -156,19 +160,27 @@ def claim_next() -> dict[str, Any] | None:
             if job is None or job.claimed:
                 continue
             job.claimed = True
+            job.claim_token = secrets.token_urlsafe(32)
             return {
                 "job_id": job.job_id,
+                "claim_token": job.claim_token,
                 "payload": job.payload,
                 "expires_in_seconds": max(0, int(_JOB_TTL_SECONDS - (now - job.created_at))),
             }
     return None
 
 
-def complete(job_id: str, *, result: str | None = None, error: str | None = None) -> bool:
+def complete(
+    job_id: str, *, claim_token: str | None = None,
+    result: str | None = None, error: str | None = None,
+) -> bool:
     """Complete an existing claimed job exactly once."""
     with _LOCK:
         job = _JOBS.get(str(job_id))
         if job is None or job.event.is_set() or not job.claimed:
+            return False
+        if (not job.claim_token or not isinstance(claim_token, str)
+                or not hmac.compare_digest(job.claim_token, claim_token)):
             return False
         if error:
             job.error = str(error)[:160]
@@ -184,12 +196,15 @@ def complete(job_id: str, *, result: str | None = None, error: str | None = None
 
 def status() -> dict[str, Any]:
     now = time.monotonic()
+    durable = inference_worker_status(stale_after_seconds=60)
     with _LOCK:
         _prune_locked(now)
         worker_recent = _worker_recent_locked(now)
         return {
             "configured": configured(),
             "worker_recently_seen": worker_recent,
+            "durable_worker_fresh": bool(durable.get("worker_fresh")),
+            "worker_ready": bool(worker_recent or durable.get("worker_fresh")),
             "pending_jobs": len(_PENDING),
             "active_jobs": len(_JOBS),
             "public_ollama_required": False,

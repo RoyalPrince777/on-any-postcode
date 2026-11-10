@@ -175,6 +175,31 @@ def location_weather(place: object) -> dict[str, Any]:
             "confidence": 100,
             "geography": geography,
             "affected_systems": ("Nature Intelligence", "Movement Intelligence"),
+            "observation": {
+                "object_type": "weather",
+                "event_type": "weather_observation",
+                "evidence_class": "observed",
+                "source": weather_provider,
+                "source_ownership": "external_public",
+                "observed_at": observation_time,
+                "fresh_for_seconds": 900,
+                "stale_after_seconds": 3600,
+                "expires_after_seconds": 21600,
+                "evidence": tuple(
+                    value
+                    for value in (
+                        f"provider:{weather_provider}",
+                        f"observation_time:{observation_time}",
+                    )
+                    if value
+                ),
+                "first_party": {
+                    "software": True,
+                    "processing": True,
+                    "storage": True,
+                    "observation": False,
+                },
+            },
             "risk": (
                 "Weather conditions may affect local movement and fulfilment reliability."
                 if weather_pressure >= 35

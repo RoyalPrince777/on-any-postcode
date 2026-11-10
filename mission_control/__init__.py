@@ -1,3 +1,4 @@
+# ruff: noqa: I001
 """Mission Control package initialiser.
 
 Web-only dependencies are imported inside ``init_app`` so worker-only runtimes
@@ -23,6 +24,9 @@ def init_app(app: Flask) -> None:
     from . import audit as auditmod
     from . import (
         authority,
+        bank_authorisation,
+        bank_authorisation_store,
+        bank_regulator_pack,
         esim_persistence,
         hrm_durable_receipt,
         link_activity,
@@ -39,11 +43,23 @@ def init_app(app: Flask) -> None:
         linkup_safety,
         mail_migration,
         mail_preflight,
+        market_supplier_network,
         movement_match_safety,
         movement_operations,
         music_civilization_migration,
         oap_lab_immutability_migration,
         oap_library_learning,
+        oap_library_ebook_schema,
+        oap_eats_store,
+        oap_ride_runtime,
+        oap_ride_commercial,
+        oap_ride_payment_bridge,
+        oap_ride_driver_accessibility,
+        oap_ride_guardian_outbox,
+        oap_ride_reconciliation_cases,
+        oap_ride_split_snapshot,
+        oap_ride_private_geometry,
+        oap_ride_guardian,
         organism_runtime,
         postgres_db,
         product_cores,
@@ -63,7 +79,9 @@ def init_app(app: Flask) -> None:
     from .bank_store_catalog_routes import bp as bank_store_catalog_bp
     from .certification_views import bp as certification_bp
     from .checkpoint_views import bp as checkpoint_bp
+    from .company_intelligence_views import bp as company_intelligence_bp
     from .founder_tool_views import bp as founder_tool_bp
+    from .global_transport_views import bp as global_transport_bp
     from .home_node_views import bp as home_node_bp
     from .humanitarian_views import bp as humanitarian_tracker_bp
     from .isac_views import bp as isac_spatial_bp
@@ -77,6 +95,7 @@ def init_app(app: Flask) -> None:
     from .link_turn_routes import bp as link_turn_bp
     from .link_voice_routes import bp as link_voice_bp
     from .linkup_safety_routes import bp as linkup_safety_bp
+    from .mail_routes import bp as mail_bp
     from .mail_store_catalog_routes import bp as mail_store_catalog_bp
     from .maps_movement_direct_proof_views import bp as maps_movement_direct_proof_bp
     from .matrix_founder_decision_views import bp as matrix_founder_decisions_bp
@@ -85,14 +104,105 @@ def init_app(app: Flask) -> None:
     from .music_public_views import bp as music_public_bp
     from .oap_data_views import bp as oap_data_bp
     from .oap_library_views import bp as oap_library_bp
+    from .oap_ebook_catalogue_store import resolve_trusted_ebook
+    from .oap_ebook_http import create_ebook_blueprint
+    from .oap_pay import bp as oap_pay_bp
+    from .sika_founder_routes import bp as sika_founder_bp
+    from .personal_telecom_routes import bp as personal_telecom_bp
+    from .ptt_routes import bp as ptt_bp
     from .oap_store import bp as oap_store_bp
+    from .oap_engine_android_routes import bp as oap_engine_android_bp
     from .on_any_place_routes import bp as on_any_place_bp
+    from .organiser_views import bp as smi_organiser_bp
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
     from .travel_supply_views import bp as travel_supply_bp
     from .views import bp
 
     movement_operations.STORE = movement_match_safety.STORE
+
+
+    if os.environ.get("OAP_EATS_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        result = oap_eats_store.init_schema(assume_yes=True, dry_run=False)
+        print(
+            json.dumps(
+                {
+                    "event": "oap_eats_schema_migration",
+                    "success": bool(result.get("schema_ready")),
+                    "migration": result.get("migration"),
+                    "checksum": result.get("checksum"),
+                    "human_authority_final": True,
+                },
+                separators=(",", ":"),
+                sort_keys=True,
+            ),
+            flush=True,
+        )
+
+    if os.environ.get("OAP_RIDE_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        # Ride schema objects reference the durable Movement spine. Production
+        # may legitimately start with the Ride auto-apply flag on a database
+        # where Movement has not yet been materialised, so establish that
+        # prerequisite first instead of crashing Gunicorn during app import.
+        movement_schema = movement_operations.init_movement_schema(
+            assume_yes=True,
+            dry_run=False,
+        )
+        if not movement_schema.get("schema_ready"):
+            raise RuntimeError("movement_schema_required_before_ride")
+        ride_installers = (
+            ("0001_oap_ride_runtime", oap_ride_runtime.init_schema),
+            ("0002_oap_ride_guardian", oap_ride_guardian.init_schema),
+            ("0003_oap_ride_commercial_accessibility", oap_ride_commercial.init_schema),
+            ("0004_oap_ride_payment_bridge", oap_ride_payment_bridge.init_schema),
+            ("0005_oap_ride_driver_accessibility", oap_ride_driver_accessibility.init_schema),
+            ("0006_oap_ride_private_geometry", oap_ride_private_geometry.init_schema),
+            ("0007_oap_ride_guardian_outbox", oap_ride_guardian_outbox.init_schema),
+            ("0008_oap_ride_reconciliation_cases", oap_ride_reconciliation_cases.init_schema),
+            ("0009_oap_ride_split_snapshot", oap_ride_split_snapshot.init_schema),
+        )
+        ride_results = []
+        try:
+            for version, installer in ride_installers:
+                result = installer(assume_yes=True, dry_run=False)
+                ride_results.append(
+                    {
+                        "version": version,
+                        "schema_ready": bool(result.get("schema_ready")),
+                        "checksum": result.get("checksum"),
+                        "tables": result.get("tables"),
+                    }
+                )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_ride_schema_migration",
+                        "success": all(item["schema_ready"] for item in ride_results),
+                        "results": ride_results,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_ride_schema_migration",
+                        "success": False,
+                        "results": ride_results,
+                        "error": "ride_schema_migration_failed",
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
 
     if os.environ.get("OAP_MUSIC_SCHEMA_AUTO_APPLY", "").strip() == "1":
         try:
@@ -429,6 +539,93 @@ def init_app(app: Flask) -> None:
                         "event": "oap_link_share_migration",
                         "success": False,
                         "error": "link_share_migration_failed",
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+            raise
+
+    if os.environ.get("OAP_LIBRARY_EBOOK_SCHEMA_PROOF_ON_BOOT", "").strip() == "1":
+        try:
+            ebook_schema_proof = oap_library_ebook_schema.readback()
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_readback",
+                        "success": True,
+                        "schema_ready": bool(
+                            ebook_schema_proof.get("schema_ready")
+                        ),
+                        "prerequisites_ready": bool(
+                            ebook_schema_proof.get("prerequisites_ready")
+                        ),
+                        "tables": ebook_schema_proof.get("tables"),
+                        "prerequisites": ebook_schema_proof.get("prerequisites"),
+                        "member_rows_read": False,
+                        "payment_rows_read": False,
+                        "payment_capture_performed": False,
+                        "ownership_created": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except oap_library_ebook_schema.LibraryEbookSchemaUnavailable:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_readback",
+                        "success": False,
+                        "schema_ready": False,
+                        "error": "library_ebook_schema_readback_failed",
+                        "member_rows_read": False,
+                        "payment_rows_read": False,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+
+    if os.environ.get("OAP_LIBRARY_EBOOK_SCHEMA_AUTO_APPLY", "").strip() == "1":
+        try:
+            ebook_schema = oap_library_ebook_schema.install(
+                assume_yes=True,
+                dry_run=False,
+            )
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_migration",
+                        "success": bool(ebook_schema.get("schema_ready")),
+                        "migration": ebook_schema.get("migration"),
+                        "checksum": ebook_schema.get("checksum"),
+                        "prerequisites_ready": bool(
+                            ebook_schema.get("prerequisites_ready")
+                        ),
+                        "member_rows_read": False,
+                        "payment_rows_read": False,
+                        "payment_capture_performed": False,
+                        "ownership_created": False,
+                        "human_authority_final": True,
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+        except Exception:
+            print(
+                json.dumps(
+                    {
+                        "event": "oap_library_ebook_schema_migration",
+                        "success": False,
+                        "error": "library_ebook_schema_migration_failed",
+                        "payment_capture_performed": False,
+                        "ownership_created": False,
                     },
                     separators=(",", ":"),
                     sort_keys=True,
@@ -797,6 +994,102 @@ def init_app(app: Flask) -> None:
         import json
         print(json.dumps(postgres_db.init_postgres(dry_run=dry_run, assume_yes=yes)))
 
+    @app.cli.command("oap-bank-evidence-status")
+    def _oap_bank_evidence_status() -> None:
+        """Read-only bank evidence schema and regulator-readiness status."""
+        import json
+
+        print(
+            json.dumps(
+                {
+                    "schema": bank_authorisation_store.schema_status(),
+                    "readiness": bank_authorisation_store.readiness_status(),
+                }
+            )
+        )
+
+    @app.cli.command("oap-bank-evidence-register")
+    def _oap_bank_evidence_register() -> None:
+        """Read-only latest event projection for all PRA/FCA evidence categories."""
+        import json
+
+        print(
+            json.dumps(
+                {
+                    "register": bank_authorisation_store.latest_register(),
+                    "readiness": bank_authorisation_store.readiness_status(),
+                }
+            )
+        )
+
+    @app.cli.command("oap-bank-regulator-pack")
+    def _oap_bank_regulator_pack() -> None:
+        """Read-only canonical regulator evidence pack with SHA-256 digest."""
+        import json
+
+        print(json.dumps(bank_regulator_pack.build_pack(), sort_keys=True))
+
+    @app.cli.command("oap-record-bank-evidence")
+    @click.option(
+        "--category",
+        type=click.Choice(list(bank_authorisation.PRA_FCA_EVIDENCE)),
+        required=True,
+    )
+    @click.option(
+        "--status",
+        type=click.Choice(["DRAFT", "REVIEWED", "ACCEPTED", "REJECTED"]),
+        required=True,
+    )
+    @click.option("--evidence-reference", required=True)
+    @click.option("--notes", default="", show_default=True)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_record_bank_evidence(
+        category: str,
+        status: str,
+        evidence_reference: str,
+        notes: str,
+        yes: bool,
+    ) -> None:
+        """Append one Founder-confirmed bank-authorisation evidence event."""
+        import json
+
+        if not yes:
+            raise click.ClickException("explicit_confirmation_required")
+        reviewer = authority.configured_identity()
+        if not reviewer:
+            raise click.ClickException("human_authority_identity_not_configured")
+        try:
+            result = bank_authorisation_store.record_evidence(
+                category=category,
+                status=status,
+                evidence_reference=evidence_reference,
+                reviewed_by=str(reviewer),
+                notes=notes,
+            )
+        except Exception as exc:
+            raise click.ClickException(str(exc) or type(exc).__name__) from exc
+        print(json.dumps(result))
+
+    @app.cli.command("oap-market-supplier-status")
+    def _oap_market_supplier_status() -> None:
+        """Read-only Supplier Network schema status."""
+        import json
+        print(json.dumps(market_supplier_network.schema_status()))
+
+    @app.cli.command("oap-init-market-supplier")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_market_supplier(dry_run: bool, yes: bool) -> None:
+        import json
+        print(
+            json.dumps(
+                market_supplier_network.init_schema(
+                    dry_run=dry_run,
+                    assume_yes=yes,
+                )
+            )
+        )
+
     @app.cli.command("oap-mail-preflight")
     def _oap_mail_preflight() -> None:
         """Read-only redacted Mail database/recovery observations."""
@@ -865,6 +1158,72 @@ def init_app(app: Flask) -> None:
     def _oap_init_runtime(dry_run: bool, yes: bool) -> None:
         import json
         print(json.dumps(organism_runtime.init_runtime_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-ride-guardian-status")
+    def _oap_ride_guardian_status() -> None:
+        import json
+        print(json.dumps(oap_ride_guardian.status()))
+
+    @app.cli.command("oap-init-ride-guardian")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_guardian(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_guardian.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-private-geometry")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_private_geometry(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_private_geometry.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-reconciliation-cases")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_reconciliation_cases(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_reconciliation_cases.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-guardian-outbox")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_guardian_outbox(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_guardian_outbox.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-driver-accessibility")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_driver_accessibility(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_driver_accessibility.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-payment-bridge")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_payment_bridge(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_payment_bridge.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-init-ride-commercial")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_commercial(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_commercial.init_schema(dry_run=dry_run, assume_yes=yes)))
+
+    @app.cli.command("oap-ride-runtime-status")
+    def _oap_ride_runtime_status() -> None:
+        import json
+        print(json.dumps(oap_ride_runtime.schema_status()))
+
+    @app.cli.command("oap-init-ride-runtime")
+    @click.option("--dry-run", is_flag=True, default=False)
+    @click.option("--yes", "yes", is_flag=True, default=False)
+    def _oap_init_ride_runtime(dry_run: bool, yes: bool) -> None:
+        import json
+        print(json.dumps(oap_ride_runtime.init_schema(dry_run=dry_run, assume_yes=yes)))
 
     @app.cli.command("oap-movement-status")
     def _oap_movement_status() -> None:
@@ -1148,6 +1507,11 @@ def init_app(app: Flask) -> None:
 
     surface_security.register(app)
     app.register_blueprint(oap_library_bp)
+    app.register_blueprint(create_ebook_blueprint(resolve_trusted_ebook))
+    app.register_blueprint(oap_pay_bp)
+    app.register_blueprint(sika_founder_bp)
+    app.register_blueprint(personal_telecom_bp)
+    app.register_blueprint(ptt_bp)
     app.register_blueprint(all_in_ai_bp, url_prefix="/mission")
     app.register_blueprint(music_public_bp)
     app.register_blueprint(on_any_place_bp)
@@ -1163,16 +1527,21 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(link_presence_bp)
     app.register_blueprint(link_voice_bp)
     app.register_blueprint(link_message_bp)
+    app.register_blueprint(mail_bp)
     app.register_blueprint(mail_store_catalog_bp)
     app.register_blueprint(bank_store_catalog_bp)
     app.register_blueprint(oap_store_bp)
+    app.register_blueprint(oap_engine_android_bp)
     app.register_blueprint(travel_supply_bp)
+    app.register_blueprint(global_transport_bp)
     app.register_blueprint(provider_bp, url_prefix="/mission")
     app.register_blueprint(product_core_bp, url_prefix="/mission/organs")
     app.register_blueprint(founder_tool_bp, url_prefix="/mission")
     app.register_blueprint(certification_bp, url_prefix="/mission")
+    app.register_blueprint(company_intelligence_bp, url_prefix="/mission")
     app.register_blueprint(home_node_bp, url_prefix="/mission")
     app.register_blueprint(oap_data_bp, url_prefix="/mission")
+    app.register_blueprint(smi_organiser_bp, url_prefix="/mission")
     app.register_blueprint(isac_spatial_bp, url_prefix="/mission/isac-spatial")
     app.register_blueprint(humanitarian_tracker_bp, url_prefix="/mission/humanitarian")
     app.register_blueprint(matrix_founder_decisions_bp)

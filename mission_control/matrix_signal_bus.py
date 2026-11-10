@@ -11,7 +11,7 @@ Founder but cannot emit live Matrix Signals until separately registered.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -81,7 +81,7 @@ ALLOWED_URGENCY: tuple[str, ...] = ("low", "normal", "high", "critical")
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def registered_matrix_names() -> tuple[str, ...]:
@@ -130,6 +130,7 @@ def topology() -> dict[str, Any]:
                 "status": status,
                 "can_emit_signal": status == "registered",
                 "can_execute": False,
+                "home": agents.matrix_home_for(name),
             }
         )
 
@@ -184,6 +185,18 @@ def route_signal(
 ) -> dict[str, Any]:
     """Create a bounded Matrix Signal envelope without taking external action."""
 
+    if not isinstance(sender, str):
+        raise ValueError("Signal sender must be text")  # noqa: TRY004 - preserve public error contract
+    if not isinstance(topic, str) or not topic.strip() or len(topic) > 2000:
+        raise ValueError("Signal topic must be 1-2000 characters")
+    if not isinstance(kind, str) or len(kind) > 64:
+        raise ValueError("Invalid signal kind")
+    if not isinstance(requested_action, str) or len(requested_action) > 256:
+        raise ValueError("Invalid requested action")
+    if recipients is not None and (isinstance(recipients, (str, bytes)) or not isinstance(recipients, (tuple, list)) or len(recipients) > 16 or any(not isinstance(x, str) for x in recipients)):
+        raise ValueError("Recipients must be at most 16 named entries")
+    if isinstance(evidence, (str, bytes)) or not isinstance(evidence, (tuple, list)) or len(evidence) > 16 or any(not isinstance(x, str) or len(x) > 1000 for x in evidence):
+        raise ValueError("Evidence must be at most 16 bounded text entries")
     sender = sender.strip()
     if sender not in registered_matrix_names():
         raise ValueError(
@@ -194,7 +207,7 @@ def route_signal(
     topic = topic.strip()
     if not topic:
         raise ValueError("Signal topic is required")
-    if confidence is not None and not 0 <= confidence <= 1:
+    if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (float, int)) or not 0 <= confidence <= 1):
         raise ValueError("confidence must be between 0 and 1")
 
     routed_recipients = _normalise_recipients(recipients)
@@ -217,6 +230,10 @@ def route_signal(
         "signal_id": f"MATRIX-SIGNAL-{uuid4().hex[:12].upper()}",
         "timestamp_utc": _now(),
         "sender": sender,
+        "sender_home": agents.matrix_home_for(sender),
+        "recipient_homes": {name: agents.matrix_home_for(name) for name in routed_recipients if name in registered_matrix_names()},
+        "delivered_to_agent_runtime": False,
+        "recipient_reply_received": False,
         "sender_channel": MATRIX_ROLE_CHANNELS[sender],
         "topic": topic,
         "kind": kind.strip() or "analysis",
@@ -241,3 +258,40 @@ def route_signal(
         "permission_change_allowed": False,
         "agent_creation_allowed": False,
     }
+
+
+def route_reply_signal(*, original: dict[str, Any], sender: str,
+                       topic: str, evidence: Iterable[str] = ()) -> dict[str, Any]:
+    """Prepare a correlated review reply, without impersonation or live delivery.
+
+    A caller must be separately authorised to speak for the sender. This function
+    checks the original envelope's recipient scope, not external identity.
+    """
+    if not isinstance(original, dict) or not str(original.get("signal_id", "")).startswith("MATRIX-SIGNAL-"):
+        raise ValueError("Valid Matrix signal required")
+    if original.get("sender") not in registered_matrix_names():
+        raise ValueError("Original sender must be registered")
+    if sender not in registered_matrix_names():
+        raise ValueError("Reply sender must be registered")
+    original_recipients = original.get("recipients")
+    if not isinstance(original_recipients, (tuple, list)) or sender not in original_recipients:
+        raise ValueError("Reply sender must be a registered original recipient")
+    if original.get("execution_granted") is not False or original.get("external_action_taken") is not False:
+        raise ValueError("Reply requires an unexecuted review-only original")
+    if original.get("sender_home") != agents.matrix_home_for(original["sender"]):
+        raise ValueError("Original sender home mismatch")
+    if original.get("recipient_homes", {}).get(sender) != agents.matrix_home_for(sender):
+        raise ValueError("Original recipient home mismatch")
+    if not isinstance(topic, str) or not topic.strip() or len(topic) > 2000:
+        raise ValueError("Reply topic must be 1-2000 characters")
+    reply = route_signal(
+        sender=sender, topic=topic,
+        kind="review_reply",
+        recipients=(original["sender"],),
+        evidence=evidence,
+        consequential=bool(original.get("war_room_required")),
+    )
+    reply["in_reply_to"] = original["signal_id"]
+    reply["delivery_confirmed"] = False
+    reply["independent_agent_execution_proven"] = False
+    return reply

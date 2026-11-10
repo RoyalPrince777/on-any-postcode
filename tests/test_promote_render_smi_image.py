@@ -3,15 +3,15 @@ import pytest
 from scripts import promote_render_smi_image as promotion
 
 
-def test_smi_plan_is_exact_existing_service_and_motion_fix_image():
+def test_smi_plan_is_exact_existing_service_and_manifest_image():
     plan = promotion.plan()
     assert plan["service_id"] == "srv-da6tp615efls73ct81q0"
     assert plan["service_name"] == "oap-smi"
     assert plan["public_url"] == "https://oap-smi.onrender.com"
     assert plan["runtime_target"] == "smi_gateway:app"
-    assert plan["image"].endswith(
-        "sha256:e23632e68641d7bdf8bc6f1e23596336537aec4cf101a748b229acddd70d8622"
-    )
+    assert plan["image"] == promotion._release_image()
+    assert plan["image"].endswith("sha256:31e1a236c954811cb00868897c614a5b655a8b2cfb9c844f4e80d6c231453d8a")
+    assert plan["deploy_payload"] == {"imageUrl": promotion._release_image()}
     assert plan["creates_new_service"] is False
     assert plan["replaces_environment"] is False
     assert plan["source_build_required"] is False
@@ -32,7 +32,7 @@ def test_smi_apply_fails_closed_without_api_key(monkeypatch):
         promotion.promote(apply=True)
 
 
-def test_smi_apply_updates_existing_service_then_deploys(monkeypatch):
+def test_smi_apply_deploys_exact_manifest_image_without_service_patch(monkeypatch):
     calls = []
     current = {
         "id": promotion.SERVICE_ID,
@@ -47,8 +47,6 @@ def test_smi_apply_updates_existing_service_then_deploys(monkeypatch):
         calls.append((method, path, payload))
         if method == "GET":
             return dict(current)
-        if method == "PATCH":
-            return {**current, "imagePath": promotion.IMAGE}
         if method == "POST":
             return {"id": "dep-smi-proof"}
         raise AssertionError(method)
@@ -60,13 +58,8 @@ def test_smi_apply_updates_existing_service_then_deploys(monkeypatch):
     assert calls == [
         ("GET", f"/services/{promotion.SERVICE_ID}", None),
         (
-            "PATCH",
-            f"/services/{promotion.SERVICE_ID}",
-            {"image": {"url": promotion.IMAGE}, "autoDeploy": "no"},
-        ),
-        (
             "POST",
             f"/services/{promotion.SERVICE_ID}/deploys",
-            {"imageUrl": promotion.IMAGE},
+            {"imageUrl": promotion._release_image()},
         ),
     ]

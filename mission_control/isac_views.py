@@ -5,6 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import isac_spatial_intelligence, spatial_presence, web_security
+from .isac_master_command import master_isac_status
 
 bp = Blueprint("isac_spatial", __name__)
 
@@ -50,6 +51,14 @@ def app_dashboard():
 @web_security.login_required(api=True, founder_only=True)
 def status():
     return _no_store(make_response(jsonify(isac_spatial_intelligence.isac_spatial_status())))
+
+
+@bp.get("/app/master-status")
+@web_security.login_required(api=True, founder_only=True)
+def master_status():
+    """Founder-only, no-store master view; missing external feeds remain unconnected."""
+    spatial = isac_spatial_intelligence.isac_spatial_status()
+    return _no_store(make_response(jsonify(master_isac_status(spatial))))
 
 
 @bp.get("/app/status")

@@ -33,7 +33,7 @@ def attach_provider(
     if not name:
         raise ValueError("provider_name_required")
 
-    configured_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    configured_at = datetime.datetime.now(datetime.UTC).isoformat()
     esim_provisioning.CORE.provider = provider
     _PROVIDER_STATE.update(
         {
@@ -58,7 +58,7 @@ def detach_provider(*, founder_identity: str) -> dict[str, Any]:
             "configured": False,
             "provider": None,
             "approved_by": identity,
-            "configured_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "configured_at": datetime.datetime.now(datetime.UTC).isoformat(),
         }
     )
     return status()

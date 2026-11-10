@@ -45,16 +45,15 @@
     <p class="sub">Born Local. Built Global. Earth Is Our Turf.</p>
     <div class="card">
       <strong>📲 Install OAP Music</strong>
-      <p class="muted">First-party installable web app. Creator actions remain protected behind Enter My World.</p>
       <div class="source-actions">
         <button class="action" type="button" data-oap-music-install hidden>Install OAP Music</button>
       </div>
-      <p class="result" data-oap-music-install-status role="status">Checking install support…</p>
+      <p class="result" data-oap-music-install-status role="status"></p>
     </div>
 
     <label for="music-search" class="muted">Search OAP Music</label>
     <input id="music-search" class="search" type="search" placeholder="Search OAP tracks and releases…" autocomplete="off">
-    <p id="catalogue-state" class="count">First-party catalogue search ready. No playable track is claimed.</p>
+    <p id="catalogue-state" class="count"></p>
 
     <nav class="chips" aria-label="Music sections">
       <button class="chip" type="button" data-target="home">Home</button>
@@ -70,15 +69,12 @@
       <button class="chip" type="button" data-target="records">🏛 Records</button>
     </nav>
 
-    <div class="truth">
-      🔐 OAP Music is a first-party catalogue. Tracks become playable only after recording, composition, asset, territory and approval evidence pass.
-    </div>
 
     <section id="home">
       <h2>Home</h2>
       <div class="grid">
-        <div class="card"><strong>🎧 First-party listening platform</strong><span class="muted">OAP owns the catalogue, player contract, playlists and library data model.</span></div>
-        <div class="card"><strong>🔎 Search</strong><span class="muted">Searches canonical OAP releases and tracks only.</span></div>
+        <div class="card"><strong>🎧 OAP Music</strong><span class="muted">Tracks, releases, playlists and your library in one place.</span></div>
+        <div class="card"><strong>🔎 Search</strong><span class="muted">Find OAP tracks and releases.</span></div>
       </div>
     </section>
 
@@ -90,22 +86,22 @@
 
     <section id="artists">
       <h2>Artists</h2>
-      <div class="card">Artist profiles are first-party OAP identities. Public artist cards appear when published releases exist.</div>
+      <div class="card">Artist profiles appear when published releases are available.</div>
     </section>
 
     <section id="releases">
       <h2>Releases</h2>
-      <div class="card">Singles, EPs and albums come from the canonical OAP Music release store.</div>
+      <div class="card">Singles, EPs and albums.</div>
     </section>
 
     <section id="playlists">
       <h2>Playlists</h2>
-      <div class="card">Playlists are stored first-party in OAP Music. Personal playlist actions require Enter My World.</div>
+      <div class="card">Create and manage playlists after Enter My World.</div>
     </section>
 
     <section id="library">
       <h2>Library</h2>
-      <div class="card">Your saved music and owner-scoped library remain behind OAP identity.</div>
+      <div class="card">Your purchased and saved music.</div>
     </section>
 
     <section id="first-party-discovery">
@@ -134,7 +130,7 @@
 
     <section id="creators">
       <h2>👤 Creator Studio</h2>
-      <p class="muted">Signed-in creator actions use the existing owner-scoped OAP Music and Radio organs. Uploads stay private until rights and public-release gates pass.</p>
+      <p class="muted">Create releases, upload tracks and manage radio after Enter My World.</p>
       <div class="control-grid">
         <form id="release-form" class="card control-form">
           <strong>📦 Create release</strong>
@@ -204,21 +200,21 @@
           <div class="result" id="stop-result"></div>
         </form>
       </div>
-      <div class="truth">Radio rotation is a real owner-scoped queue. Public broadcast remains OFF until the rights/evidence and broadcast gates pass.</div>
+
     </section>
 
     <section id="records">
       <h2>🏛 OAP Records</h2>
-      <div class="card">Masters, credits, provenance, archive and recovery receipts are part of the Music system. No archive receipt is treated as a rights grant.</div>
+      <div class="card">Masters, credits and release records.</div>
     </section>
 
     <section id="player">
       <div class="player">
         <strong>▶️ OAP Player</strong>
-        <p class="muted">Your uploaded audio can play here privately after Enter My World. No publicly cleared playable track is available yet.</p>
+        <p class="muted">Your uploaded audio appears here after Enter My World.</p>
         <div id="private-assets" class="grid"></div>
-        <div id="player-state" class="result">Checking private player…</div>
-        <div class="truth">▶ Play locked publicly. Playback stays locked until the evidence gate passes. Private owner playback is not a public rights clearance, radio airplay receipt or external distribution claim.</div>
+        <div id="player-state" class="result"></div>
+
       </div>
     </section>
   </main>
@@ -326,9 +322,9 @@
             card.append(title, audio, meta);
             privateAssets.append(card);
           });
-          playerState.textContent = assets.length ? assets.length + ' private audio asset(s) ready.' : 'No private uploads yet.';
+          playerState.textContent = assets.length ? assets.length + ' track' + (assets.length === 1 ? '' : 's') + ' ready.' : 'No uploads yet.';
         } catch (error) {
-          playerState.textContent = 'Enter My World to create, upload, play and manage your own music. ' + error.message;
+          playerState.textContent = 'Enter My World to manage your music.';
         }
       }
 
@@ -350,13 +346,13 @@
         const releaseId = data.get('release_id');
         data.delete('release_id');
         try {
-          message('upload-result','Uploading securely to OAP Data…');
+          message('upload-result','Uploading…');
           const response = await fetch('/mission/organs/tune/releases/' + encodeURIComponent(releaseId) + '/upload', {
             method:'POST', credentials:'same-origin', headers:{'X-OAP-CSRF':csrf,'Accept':'application/json'}, body:data
           });
           const payload = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(payload.error?.message || payload.error?.code || 'Upload failed');
-          message('upload-result','Uploaded · track ' + payload.track.track_id + ' · private player ready');
+          message('upload-result','Uploaded successfully.');
           uploadForm.reset(); await refreshCreatorControls();
         } catch (error) { message('upload-result',error.message); }
       });
@@ -365,7 +361,7 @@
         event.preventDefault();
         try {
           const row = await apiJson('/mission/organs/radio/stations','POST',Object.fromEntries(new FormData(stationForm).entries()));
-          message('station-result','Station created: ' + row.name + ' · STOP active');
+          message('station-result','Station created: ' + row.name);
           stationForm.reset(); await refreshCreatorControls();
         } catch (error) { message('station-result',error.message); }
       });
@@ -376,7 +372,7 @@
         const stationId = data.station_id; delete data.station_id; data.position = Number(data.position);
         try {
           const row = await apiJson('/mission/organs/radio/stations/' + encodeURIComponent(stationId) + '/rotation','POST',data);
-          message('rotation-result','Queued at position ' + row.position + ' · not claimed aired');
+          message('rotation-result','Added to rotation at position ' + row.position);
         } catch (error) { message('rotation-result',error.message); }
       });
 
@@ -384,7 +380,7 @@
         event.preventDefault();
         const releaseId = new FormData(reviewForm).get('release_id');
         try {
-          message('review-result','Submitting to governed review…');
+          message('review-result','Submitting…');
           const row = await apiJson('/mission/organs/tune/releases/' + encodeURIComponent(releaseId) + '/review','POST',{});
           message('review-result','Review state: ' + row.state + ' · rights: ' + row.rights_status);
           await refreshCreatorControls();
@@ -410,7 +406,7 @@
         data.ends_at = new Date(data.ends_at).toISOString();
         try {
           const row = await apiJson('/mission/organs/radio/stations/' + encodeURIComponent(stationId) + '/schedule','POST',data);
-          message('schedule-result','Scheduled · ' + row.starts_at + ' → ' + row.ends_at + ' · broadcast not auto-started');
+          message('schedule-result','Scheduled · ' + row.starts_at + ' → ' + row.ends_at);
           scheduleForm.reset(); await refreshCreatorControls();
         } catch (error) { message('schedule-result',error.message); }
       });
@@ -421,7 +417,7 @@
         const stationId = data.station_id; delete data.station_id;
         try {
           const row = await apiJson('/mission/organs/radio/stations/' + encodeURIComponent(stationId) + '/stop','POST',data);
-          message('stop-result',row.stopped ? 'STOP active · player handoff blocked' : 'STOP state unchanged');
+          message('stop-result',row.stopped ? 'Station stopped.' : 'No change.');
           await refreshCreatorControls();
         } catch (error) { message('stop-result',error.message); }
       });
@@ -436,7 +432,7 @@
 
       async function searchOapMusic() {
         const query = input.value.trim();
-        state.textContent = query ? 'Searching first-party OAP Music…' : 'Loading first-party OAP Music…';
+        state.textContent = query ? 'Searching…' : 'Loading…';
         try {
           const response = await fetch('/music/api/catalogue?q=' + encodeURIComponent(query), {cache: 'no-store'});
           if (!response.ok) throw new Error('catalogue unavailable');
@@ -452,7 +448,7 @@
             release.textContent = item.release_title + ' · ' + item.release_type;
             const lock = document.createElement('div');
             lock.className = 'truth';
-            lock.textContent = '🔒 Playback locked until evidence gate passes.';
+            lock.textContent = '🔒 Playback unavailable.';
             card.append(title, release, lock);
             results.append(card);
           });

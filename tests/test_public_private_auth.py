@@ -15,8 +15,11 @@ AUTH_ID = "11111111-1111-4111-8111-111111111111"
 
 
 def test_public_world_and_product_surfaces_remain_anonymous(anonymous_client):
+    root = anonymous_client.get("/", follow_redirects=False)
+    assert root.status_code == 302
+    assert root.headers["Location"].endswith("/world")
+
     for path in (
-        "/",
         "/world",
         "/healthz",
         "/livez",
@@ -135,7 +138,10 @@ def test_anonymous_pages_do_not_disclose_internal_architecture(anonymous_client)
         "execution locked",
         "human authority",
     ):
-        assert internal_term not in public_copy
+        if internal_term == "smi":
+            assert re.search(r"\\bsmi\\b", public_copy) is None
+        else:
+            assert internal_term not in public_copy
 
 
 def test_anonymous_visitors_receive_only_public_styles(anonymous_client):

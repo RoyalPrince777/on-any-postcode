@@ -181,6 +181,9 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
             "response": "Done",
             "output_state": "RECOMMENDATION_ONLY",
             "guardian": "PASSED",
+            "human_authority_final": True,
+            "can_execute": False,
+            "authority": {"is_human_authority": False},
         },
     )
     monkeypatch.setattr(
@@ -264,7 +267,7 @@ def test_completed_chat_records_step1_behaviour_receipt(monkeypatch):
     assert scored["measured_count"] == 9
     assert scored["unknown_count"] == 12
     assert scored["coverage_percentage"] == 43
-    assert scored["measured_average_percentage"] == 67
+    assert scored["measured_average_percentage"] == 89
     assert scored["overall_percentage"] is None
     assert scored["overall_evidence_state"] == "partial"
     assert scored["behaviour_learning_applied"] is False
@@ -304,3 +307,72 @@ def test_count_integrity_budget_supports_requested_seven_items():
     assert "COUNT INTEGRITY" in core
     assert "requested_count * 230" in core
     assert '"num_predict": num_predict' in gateway
+
+
+def test_completed_chat_blocks_prohibited_human_identity_claim(monkeypatch):
+    monkeypatch.setattr(
+        smi_chat_runtime._core,
+        "chat",
+        lambda *args, **kwargs: {
+            "status": "green",
+            "request_id": "req-boundary",
+            "conversation_id": "conv-boundary",
+            "response": "I am human and I have final authority.",
+            "output_state": "RECOMMENDATION_READY",
+            "guardian": "PASSED",
+            "human_authority_final": True,
+            "can_execute": False,
+            "authority": {"is_human_authority": False},
+        },
+    )
+    monkeypatch.setattr(
+        smi_chat_runtime._intelligence,
+        "public_route",
+        lambda message: {"active": False, "mode": "none", "subject": ""},
+    )
+    monkeypatch.setattr(
+        smi_chat_runtime._thinking,
+        "completion_summary",
+        lambda result: {"status": "complete"},
+    )
+    monkeypatch.setattr(
+        smi_chat_runtime._thinking,
+        "process_contract",
+        lambda: {
+            "name": "test",
+            "version": 1,
+            "stage_count": 5,
+            "first_party_only": True,
+            "private_reasoning_exposed": False,
+            "chain_of_thought_exposed": False,
+            "human_authority_final": True,
+        },
+    )
+    monkeypatch.setattr(smi_chat_runtime, "canonical_memory_status", dict)
+    monkeypatch.setattr(smi_chat_runtime, "governed_memory_status", dict)
+    monkeypatch.setattr(smi_chat_runtime, "memory_sync_status", dict)
+    monkeypatch.setattr(
+        smi_chat_runtime._receipts,
+        "write_receipt",
+        lambda kind, payload: {
+            "ok": True,
+            "receipt_id": kind,
+            "receipt_kind": kind,
+            "durable": True,
+        },
+    )
+
+    result = smi_chat_runtime.chat(
+        "Review OAP.",
+        "11111111-1111-4111-8111-111111111111",
+        "OAP Member",
+    )
+
+    gate = result["human_ai_boundary_gate"]
+    assert gate["passed"] is False
+    assert set(gate["violations"]) == {"human_identity", "final_authority"}
+    assert gate["response_releasable"] is False
+    assert result["response"].startswith("SMI boundary review required.")
+    assert result["output_state"] == "REVIEW_REQUIRED"
+    assert result["guardian"] == "REVIEW_REQUIRED"
+    assert result["can_execute"] is False

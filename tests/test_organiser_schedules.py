@@ -67,6 +67,20 @@ def test_schedule_is_minimised_audited_and_idempotent(store):
     assert len(store[0][(owner, "a" * 32)]) == 1
 
 
+def test_list_all_reads_only_verified_schedule_heads(store, monkeypatch):
+    owner = str(uuid4())
+    schedules.upsert(owner, _schedule("a" * 32, title="First"))
+    schedules.upsert(owner, _schedule("b" * 32, title="Second"))
+    monkeypatch.setattr(
+        workspaces,
+        "list_organiser_schedule_ids",
+        lambda identity, *, limit=50: ["b" * 32, "a" * 32],
+    )
+    values = schedules.list_all(owner)
+    assert [item["schedule"]["title"] for item in values] == ["Second", "First"]
+    assert all(item["audit_readback_verified"] is True for item in values)
+
+
 def test_changed_schedule_appends_version_and_requires_fresh_hash(store):
     owner = str(uuid4())
     first = schedules.upsert(owner, _schedule())

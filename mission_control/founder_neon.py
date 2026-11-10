@@ -15,6 +15,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from oap.registry import founder_tool_registry
+from oap.smi.capability_preflight import preflight
 
 from . import database, postgres_db
 
@@ -59,6 +60,16 @@ class FounderNeonReadAdapter:
         self._registry = founder_tool_registry()
 
     def _authorize(self, ability: str) -> None:
+        decision = preflight(
+            self._registry,
+            task_type="TECHNICAL",
+            query=f"postgres {ability}",
+            tool_id="postgres",
+            ability=ability,
+        )
+        if not decision.permitted_for_proposal:
+            raise PermissionError("SMI capability preflight denied postgres read")
+        # Preserve canonical registry enforcement as defence in depth.
         self._registry.authorize_capability("postgres", ability, mutation=False)
 
     def _request_json(self, path: str) -> Any:

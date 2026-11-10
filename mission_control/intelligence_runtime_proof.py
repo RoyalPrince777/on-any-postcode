@@ -10,6 +10,7 @@ import os
 from typing import Any
 
 from oap.guardian import GuardianEngine
+from oap.smi import independent_oversight, planetary_intelligence
 
 from . import (
     all_intelligence,
@@ -96,6 +97,8 @@ def status() -> dict[str, Any]:
     hierarchy_worlds = {str(item["id"]): item for item in hierarchy["worlds"]}
     local_telemetry = telemetry.status()
     guardian = GuardianEngine().status()
+    planetary = planetary_intelligence.status()
+    oversight = independent_oversight.status()
 
     local_observability = bool(local_telemetry.get("local_observability_ready"))
     infrastructure_live = bool(local_observability and _render_runtime_present())
@@ -224,6 +227,47 @@ def status() -> dict[str, Any]:
     )
 
     cross_system = (
+        _proof(
+            item_id="planetary",
+            name="Planetary Intelligence",
+            bounded_runtime_ready=bool(
+                planetary["earth_intelligence_reused"]
+                and planetary["ecosystem_intelligence_reused"]
+                and not planetary["execution_granted"]
+                and planetary["human_authority_final"]
+            ),
+            live_external_ready=False,
+            full_runtime_ready=bool(planetary["full_planetary_runtime_ready"]),
+            bounded_evidence=(
+                "Observation Ladder Level 06 reuses Earth and Ecosystem Intelligence for "
+                "evidence-bound local-to-global correlation without network calls, tracking or execution."
+            ),
+            next_gate=(
+                "Prove source-scoped live planetary lanes independently; bounded correlation alone "
+                "does not prove universal live-world coverage."
+            ),
+        ),
+        _proof(
+            item_id="independent_oversight",
+            name="Independent Oversight",
+            bounded_runtime_ready=bool(
+                oversight["observation_ladder_level"] == 7
+                and oversight["mode"] == "READ_ONLY_ASSURANCE"
+                and not oversight["independent_execution"]
+                and not oversight["independent_approval"]
+                and oversight["human_authority_final"]
+            ),
+            live_external_ready=False,
+            full_runtime_ready=False,
+            bounded_evidence=(
+                "Observation Ladder Level 07 exposes a fail-closed seven-dimension assurance contract "
+                "that cannot approve, execute, self-certify or write production."
+            ),
+            next_gate=(
+                "Provide separately evidenced external/independent assurance before claiming the "
+                "oversight boundary itself is independently certified."
+            ),
+        ),
         _proof(
             item_id="ecosystem",
             name="Ecosystem Intelligence",

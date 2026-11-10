@@ -37,8 +37,10 @@ def test_star_ratings_are_sequential_and_never_skip_missing_evidence():
                 break
             prefix += 1
         assert item["stars"] == prefix
-        assert item["score"] == item["stars"] * 20
-        assert len(item["stars_display"]) == 5
+        assert item["score"] == round(item["stars"] * 100 / 7)
+        assert len(item["stars_display"]) == 7
+        assert item["stars_max"] == 7
+        assert item["higher_star_proof"] == "UNRATED"
 
     physical = next(item for item in _ratings(projection) if item["id"] == "physical_oap_silicon")
     assert physical["stars"] == 1
@@ -149,3 +151,34 @@ def test_mission_navigation_links_to_war_room(client):
     for path in ("/mission", "/mission/brain", "/mission/organism"):
         page = client.get(path).get_data(as_text=True)
         assert 'href="/mission/war-room"' in page
+
+
+def test_seven_star_gate_rejects_unverified_receipt_references():
+    from mission_control.war_room import _rating, _stages
+    stages = _stages(True, True, True, True, True, ("a", "b", "c", "d", "e"))
+    args = {"item_id": "proof", "name": "Proof", "category": "SMI", "summary": "test",
+            "stages": stages, "next_gate": "audit", "impact": 1}
+    base = _rating(**args)
+    assert base["stars"] == 5
+    assert base["stars_max"] == 7
+    assert base["higher_star_proof"] == "UNRATED"
+    assert _rating(**args, sustained_certification="fabricated")["stars"] == 5
+    spoof = _rating(**args, independent_verification="fake-6",
+                    sustained_certification="fake-7")
+    assert spoof["stars"] == 5
+    assert spoof["stars_display"] == "★★★★★☆☆"
+    assert spoof["independent_verification_receipt"] is None
+    assert spoof["sustained_certification_receipt"] is None
+    assert spoof["human_approval_required"] is True
+    assert spoof["higher_star_gate_reason"] == "authenticated_subject_bound_hrm_receipt_verification_pending"
+
+
+def test_seven_star_portfolio_denominator_matches_registered_ratings():
+    from mission_control import war_room
+    dashboard = war_room.get_war_room_dashboard()
+    ratings = _ratings(dashboard)
+    summary = dashboard['summary']
+    assert summary['star_max'] == 7
+    assert summary['overall_evidence_score'] == round(sum(x['stars'] for x in ratings) / (7 * len(ratings)) * 100)
+    assert len(summary['star_counts']) == 8
+    assert tuple(dashboard['thinking_check_profiles']) == ('3', '7', '21')

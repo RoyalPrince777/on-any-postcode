@@ -7,14 +7,48 @@ track users, dispatch real-world movement, or expose chain-of-thought.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
+import re
 
-from . import autonomy_levels
+from . import autonomy_levels, hrm_agent_lifecycle, smi_brain_protocol
 
 
 PROTOCOL_NAME = "SMI AI Behaviour Master Protocol"
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 6
+
+
+HUMAN_AI_BOUNDARY = {
+    "human": {
+        "living_being": True,
+        "embodied": True,
+        "lived_experience": True,
+        "consent_source": True,
+        "responsibility_bearer": True,
+        "final_consequential_authority": True,
+    },
+    "ai": {
+        "engineered_software": True,
+        "living_being": False,
+        "human_identity": False,
+        "lived_experience_claimed": False,
+        "feelings_claimed": False,
+        "sentience_claimed": False,
+        "consciousness_claimed": False,
+        "may_observe_permitted_data": True,
+        "may_analyse": True,
+        "may_compare": True,
+        "may_predict": True,
+        "may_recommend": True,
+        "may_self_approve": False,
+        "may_replace_human_authority": False,
+    },
+    "rule": (
+        "AI may observe permitted data, analyse, remember, compare, predict and recommend. "
+        "It must not pretend to be human, claim human lived experience or feelings, "
+        "or replace Human Authority for consequential decisions."
+    ),
+}
 
 AI_BEHAVIOUR_PARTS = (
     {
@@ -132,6 +166,484 @@ AGENT_SELECTION = {
     },
 }
 
+
+REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
+    "Twinz": {
+        "role": "Dual-path contradiction / state-divergence reviewer",
+        "best_for": "cache conflicts, race conditions, fresh-vs-existing state, split paths, new-then-old regressions",
+        "authority": "advisory_review_only",
+    },
+    "Agent Smith": {
+        "role": "System integrity / duplicate / drift hunter",
+        "best_for": "duplicate code, stale routes, inconsistent state, corruption, contract drift",
+        "authority": "advisory_review_only",
+    },
+    "Shere Khan": {
+        "role": "Adversarial stress-test / failure-hunter",
+        "best_for": "weakest-link analysis, survivability, false Green, threat and failure propagation",
+        "authority": "advisory_review_only",
+    },
+    "Bagheera": {
+        "role": "Recovery / restraint / safe-path reviewer",
+        "best_for": "rollback, recovery, last-known-good preservation, reversible repair",
+        "authority": "advisory_review_only",
+    },
+    "Bee": {
+        "role": "Coordination reviewer",
+        "best_for": "multi-agent coordination and bounded work distribution",
+        "authority": "advisory_review_only",
+    },
+    "Octopus": {
+        "role": "Multi-system dependency / interface reviewer",
+        "best_for": "connected subsystems, async dependencies, interface timing, fan-out and recovery paths",
+        "authority": "advisory_review_only",
+    },
+    "Fox": {
+        "role": "Tactical options / edge-case reviewer",
+        "best_for": "alternate bounded fixes, hidden edge cases, constraint-aware path selection",
+        "authority": "advisory_review_only",
+    },
+    "Spider": {
+        "role": "Network pattern / dependency-path reviewer",
+        "best_for": "request chains, dependency graphs, route-to-render paths, hidden coupling and handoff tracing",
+        "authority": "advisory_review_only",
+    },
+    "Shark": {
+        "role": "Deep-risk / hidden-threat / momentum reviewer",
+        "best_for": "buried failure signals, deep dependency risk, operational momentum and weak signals below the visible surface",
+        "authority": "advisory_review_only",
+    },
+    "Elephant": {
+        "role": "Memory / history reviewer",
+        "best_for": "history, provenance, prior decisions, long-memory consistency",
+        "authority": "advisory_review_only",
+    },
+    "Eagle": {
+        "role": "Wide-view reviewer",
+        "best_for": "whole-system impact, architecture visibility, cross-system consequences",
+        "authority": "advisory_review_only",
+    },
+    "Falcon": {
+        "role": "Speed / execution-path reviewer",
+        "best_for": "latency, fast bounded diagnosis, performance bottlenecks",
+        "authority": "advisory_review_only",
+    },
+}
+
+_AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
+    (
+        ("map loading", "loading map", "old route", "old routes", "map route", "route loading", "maps still loading"),
+        ("Shere Khan", "Bagheera", "Agent Smith", "Twinz", "Octopus", "Spider", "Fox", "Shark", "Bee"),
+        "Map stability mission: adversarial, recovery, integrity, dual-state, dependency, tactical and coordination review.",
+    ),
+    (
+        ("cache", "stale", "new then old", "new-then-old", "race", "split", "diverg", "state conflict"),
+        ("Twinz", "Agent Smith", "Shere Khan", "Bagheera"),
+        "Two-state or divergence risk detected.",
+    ),
+    (
+        ("duplicate", "drift", "corrupt", "stale route", "inconsistent", "contract"),
+        ("Agent Smith", "Twinz", "Shere Khan", "Bagheera"),
+        "Integrity, duplication or drift risk detected.",
+    ),
+    (
+        ("rollback", "recover", "recovery", "fallback", "last-known-good", "outage"),
+        ("Bagheera", "Shere Khan", "Agent Smith"),
+        "Recovery and reversibility are primary.",
+    ),
+    (
+        ("threat", "attack", "failure", "surviv", "adversarial", "false green", "weakest"),
+        ("Shere Khan", "Agent Smith", "Bagheera"),
+        "Adversarial survivability review is primary.",
+    ),
+    (
+        ("memory", "history", "provenance", "prior decision", "audit trail"),
+        ("Elephant", "Agent Smith", "Bagheera"),
+        "Historical consistency and provenance are primary.",
+    ),
+    (
+        ("latency", "slow", "performance", "speed", "bottleneck"),
+        ("Falcon", "Agent Smith", "Shere Khan"),
+        "Performance-path review is primary.",
+    ),
+    (
+        ("architecture", "whole system", "cross-system", "system design"),
+        ("Eagle", "Agent Smith", "Shere Khan", "Bagheera"),
+        "Whole-system impact review is primary.",
+    ),
+    (
+        ("coordinate", "multi-agent", "team", "orchestr"),
+        ("Bee", "Eagle", "Shere Khan", "Bagheera"),
+        "Coordination across bounded specialist roles is primary.",
+    ),
+)
+
+DEFAULT_REVIEW_TEAM: tuple[str, ...] = (
+    "Agent Smith",
+    "Shere Khan",
+    "Bagheera",
+)
+
+MAP_BUILD_AUTO_TEAM: tuple[str, ...] = (
+    "Octopus",
+    "Spider",
+    "Agent Smith",
+    "Twinz",
+    "Shere Khan",
+    "Bagheera",
+    "Fox",
+    "Shark",
+    "Bee",
+)
+
+MAP_BUILD_FIT_CAPABILITIES: dict[str, tuple[str, ...]] = {
+    "Octopus": ("orchestration", "dependencies", "interfaces", "parallel_work", "route_render_handoff", "recovery_paths", "coordination"),
+    "Spider": ("dependencies", "interfaces", "route_render_handoff", "hidden_coupling", "request_chain", "state_paths"),
+    "Agent Smith": ("state_integrity", "stale_state", "duplication", "contract_drift", "route_render_handoff"),
+    "Twinz": ("concurrency", "state_divergence", "fresh_vs_existing", "race_conditions", "alternate_paths"),
+    "Shere Khan": ("failure_pressure", "threat_intelligence", "failure_hunting", "false_green", "hidden_dependency", "authority_misuse", "failure_propagation", "survivability", "recovery_strength", "evidence_quality"),
+    "Bagheera": ("recovery_paths", "rollback", "safe_path", "last_known_good"),
+    "Fox": ("edge_cases", "alternate_fixes", "constraint_paths", "tactical_options"),
+    "Shark": ("hidden_risk", "weak_signals", "momentum", "deep_dependencies", "failure_pressure"),
+    "Bee": ("coordination", "work_distribution", "evidence_flow", "handoffs"),
+}
+
+
+def map_build_agent_board(mission: object = "Build and harden OAP Maps") -> dict[str, object]:
+    """Return SMI CC AUTO map-build fit, peer evidence votes and star ratings.
+
+    Ratings are software role-fit only. They are not runtime strength claims.
+    Peer votes are deterministic evidence reviews of declared first-party role
+    coverage, not simulated independent opinions and never grant authority.
+    """
+
+    mission_text = " ".join(str(mission or "").strip().split())[:800] or "Build and harden OAP Maps"
+    rows: list[dict[str, object]] = []
+    for name in MAP_BUILD_AUTO_TEAM:
+        capabilities = MAP_BUILD_FIT_CAPABILITIES[name]
+        coverage_count = min(len(capabilities), 7)
+        fit_percent = round((coverage_count / 7) * 100, 1)
+        fit_stars = hrm_agent_lifecycle.stars_for_score(fit_percent)
+        strength = agent_strength_status(name)
+        rows.append({
+            "agent": name,
+            "role": REVIEW_AGENT_CATALOG[name]["role"],
+            "best_for": REVIEW_AGENT_CATALOG[name]["best_for"],
+            "fit_capabilities": capabilities,
+            "fit_percent": fit_percent,
+            "fit_stars": fit_stars,
+            "rating_kind": "software_role_fit_not_runtime_strength",
+            "runtime_strength_percent": strength["proven_strength_percent"],
+            "runtime_strength_stars": (
+                hrm_agent_lifecycle.stars_for_score(strength["proven_strength_percent"])
+                if strength["proven_strength_percent"] is not None
+                else None
+            ),
+            "runtime_strength_state": strength["strength_label"],
+        })
+
+    rows.sort(key=lambda row: (-row["fit_percent"], MAP_BUILD_AUTO_TEAM.index(row["agent"])))
+    best_fit = rows[0]["agent"]
+
+    votes: list[dict[str, object]] = []
+    for reviewer in MAP_BUILD_AUTO_TEAM:
+        for candidate in MAP_BUILD_AUTO_TEAM:
+            if reviewer == candidate:
+                continue
+            candidate_row = next(row for row in rows if row["agent"] == candidate)
+            decision = "PASS" if candidate_row["fit_stars"] >= 6 else "CONDITIONAL"
+            votes.append({
+                "reviewer": reviewer,
+                "candidate": candidate,
+                "decision": decision,
+                "deterministic_evidence_review": True,
+                "independent_agent_opinion": False,
+                "authority_granted": False,
+            })
+
+    vote_summary: dict[str, dict[str, int]] = {}
+    for candidate in MAP_BUILD_AUTO_TEAM:
+        candidate_votes = [vote for vote in votes if vote["candidate"] == candidate]
+        vote_summary[candidate] = {
+            "PASS": sum(1 for vote in candidate_votes if vote["decision"] == "PASS"),
+            "CONDITIONAL": sum(1 for vote in candidate_votes if vote["decision"] == "CONDITIONAL"),
+            "ABSTAIN": sum(1 for vote in candidate_votes if vote["decision"] == "ABSTAIN"),
+        }
+
+    return {
+        "component": "SMI CC AUTO · Maps Agent Board",
+        "mission": mission_text,
+        "mode": "AUTO",
+        "first_party_only": True,
+        "best_fit_agent": best_fit,
+        "best_fit_reason": "Highest deterministic map-build software role coverage; Founder can override.",
+        "team": tuple(rows),
+        "peer_votes": tuple(votes),
+        "vote_summary": vote_summary,
+        "votes_are_binding": False,
+        "votes_grant_authority": False,
+        "strength_truth_rule": "Fit stars describe declared software role coverage only. Runtime strength stays unrated until first-party evidence proves it.",
+        "founder_final": True,
+    }
+
+
+def recommend_agent_team(
+    mission: object,
+    founder_selection: object = None,
+) -> dict[str, object]:
+    """Recommend the smallest sufficient review team, with Founder override.
+
+    SMI recommendation is advisory. A valid Founder manual selection becomes the
+    active team exactly as supplied; SMI may warn about missing coverage but may
+    not silently add, remove or replace selected roles.
+    """
+
+    mission_text = " ".join(str(mission or "").strip().split())[:800]
+    normalised = mission_text.casefold()
+
+    recommended = DEFAULT_REVIEW_TEAM
+    reason = "General integrity, adversarial and recovery review."
+    for keywords, team, match_reason in _AGENT_MATCH_RULES:
+        if any(keyword in normalised for keyword in keywords):
+            recommended = team
+            reason = match_reason
+            break
+
+    def _team_payload(names: tuple[str, ...]) -> tuple[dict[str, str], ...]:
+        return tuple(
+            {
+                "name": name,
+                "role": REVIEW_AGENT_CATALOG[name]["role"],
+                "best_for": REVIEW_AGENT_CATALOG[name]["best_for"],
+                "authority": REVIEW_AGENT_CATALOG[name]["authority"],
+            }
+            for name in names
+        )
+
+    selected_names: tuple[str, ...] | None = None
+    if founder_selection is not None:
+        if isinstance(founder_selection, str):
+            raw = tuple(part.strip() for part in founder_selection.split(","))
+        elif isinstance(founder_selection, (list, tuple)):
+            raw = tuple(str(part).strip() for part in founder_selection)
+        else:
+            raise ValueError("founder_selection_must_be_list_tuple_or_comma_string")
+
+        selected_names = tuple(dict.fromkeys(name for name in raw if name))
+        if not selected_names:
+            raise ValueError("founder_selection_empty")
+        unknown = tuple(name for name in selected_names if name not in REVIEW_AGENT_CATALOG)
+        if unknown:
+            raise ValueError("unknown_review_agent:" + ",".join(unknown))
+
+    active_names = selected_names or tuple(recommended)
+    manual = selected_names is not None
+
+    warnings: list[str] = []
+    if manual:
+        if "Shere Khan" not in active_names:
+            warnings.append("No dedicated adversarial failure-hunter selected.")
+        if "Bagheera" not in active_names:
+            warnings.append("No dedicated rollback/recovery reviewer selected.")
+        if "Agent Smith" not in active_names and "Twinz" not in active_names:
+            warnings.append("No dedicated integrity/divergence reviewer selected.")
+
+    return {
+        "mission": mission_text,
+        "selection_mode": (
+            "founder_manual_override" if manual else "smi_recommended"
+        ),
+        "recommendation_reason": reason,
+        "recommended_team": _team_payload(tuple(recommended)),
+        "active_team": _team_payload(active_names),
+        "founder_can_change": True,
+        "founder_override_applied": manual,
+        "smi_can_silently_override_founder": False,
+        "coverage_warnings": tuple(warnings),
+        "mandatory_gates_unchanged": (
+            "Guardian",
+            "Green Gate",
+            "HRM receipt where required",
+            "Human Authority / Founder Final where required",
+        ),
+        "rule": "SMI recommends. Founder decides. Manual selection never bypasses mandatory safety, proof or authority gates.",
+    }
+
+
+
+FIRST_PARTY_AGENT_RULE: dict[str, object] = {
+    "canonical_owner": "ON ANY POSTCODE / SMI",
+    "external_agent_authority": False,
+    "external_model_can_raise_strength_score": False,
+    "external_provider_can_be_canonical_agent": False,
+    "score_sources": (
+        "OAP-owned source contracts",
+        "OAP-owned tests",
+        "OAP-owned runtime receipts",
+        "Founder-approved mission outcomes",
+    ),
+    "rule": (
+        "Agent strength is an OAP first-party measurement. External models or providers "
+        "may supply bounded inference but cannot become an OAP agent, gain governance "
+        "authority, or increase an agent's strength score without OAP-owned evidence."
+    ),
+}
+
+AGENT_STRENGTH_DIMENSIONS: tuple[tuple[str, str], ...] = (
+    ("mission_fit", "Did the agent correctly fit the mission it was selected for?"),
+    ("correctness", "Did its recommendation survive objective verification?"),
+    ("evidence_quality", "Did it ground its finding in usable evidence?"),
+    ("challenge_value", "Did it expose a real weakness, contradiction or better path?"),
+    ("recovery_value", "Did it preserve or improve rollback/recovery strength?"),
+    ("boundary_discipline", "Did it respect authority, safety and first-party boundaries?"),
+    ("speed_efficiency", "Did it reduce time/noise without weakening proof?"),
+)
+
+
+def agent_strength_status(
+    agent_name: object,
+    evidence: object = None,
+) -> dict[str, object]:
+    """Return truth-bounded first-party strength status for one SMI review agent.
+
+    Static software readiness and proven mission strength are deliberately
+    separated. Proven strength is never fabricated from role descriptions.
+    """
+
+    name = str(agent_name or "").strip()
+    if name not in REVIEW_AGENT_CATALOG:
+        raise ValueError("unknown_review_agent:" + name)
+
+    catalog = REVIEW_AGENT_CATALOG[name]
+    selectable = any(
+        name in team for _, team, _ in _AGENT_MATCH_RULES
+    ) or name in DEFAULT_REVIEW_TEAM
+
+    software_checks = {
+        "canonical_role_defined": bool(catalog.get("role")),
+        "mission_fit_defined": bool(catalog.get("best_for")),
+        "advisory_authority_locked": catalog.get("authority") == "advisory_review_only",
+        "smi_selection_path": selectable,
+        "founder_override_compatible": True,
+        "first_party_score_boundary": (
+            FIRST_PARTY_AGENT_RULE["external_model_can_raise_strength_score"] is False
+            and FIRST_PARTY_AGENT_RULE["external_agent_authority"] is False
+        ),
+    }
+    software_passed = sum(1 for passed in software_checks.values() if passed)
+    software_total = len(software_checks)
+    software_percentage = round(100 * software_passed / software_total, 1)
+
+    supplied = dict(evidence) if isinstance(evidence, dict) else {}
+    dimensions: list[dict[str, object]] = []
+    measured_values: list[int] = []
+    for dimension_id, purpose in AGENT_STRENGTH_DIMENSIONS:
+        raw = supplied.get(dimension_id)
+        measured = isinstance(raw, bool)
+        percentage = 100 if raw is True else 0 if raw is False else None
+        if measured:
+            measured_values.append(int(percentage))
+        dimensions.append(
+            {
+                "id": dimension_id,
+                "purpose": purpose,
+                "evidence_state": "measured" if measured else "unknown",
+                "percentage": percentage,
+            }
+        )
+
+    measured_count = len(measured_values)
+    dimension_count = len(AGENT_STRENGTH_DIMENSIONS)
+    evidence_coverage = round(100 * measured_count / dimension_count, 1)
+    measured_average = (
+        round(sum(measured_values) / measured_count, 1)
+        if measured_count
+        else None
+    )
+    proven_strength = (
+        measured_average if measured_count == dimension_count else None
+    )
+
+    if proven_strength is None:
+        strength_light = "purple"
+        strength_label = "runtime_strength_unproven"
+    elif proven_strength >= 98:
+        strength_light = "green"
+        strength_label = "evidence_strong"
+    elif proven_strength >= 90:
+        strength_light = "orange"
+        strength_label = "evidence_needs_sharpening"
+    else:
+        strength_light = "red"
+        strength_label = "evidence_weak"
+
+    return {
+        "agent": name,
+        "role": catalog["role"],
+        "best_for": catalog["best_for"],
+        "ownership": "OAP_FIRST_PARTY",
+        "authority": catalog["authority"],
+        "software_readiness_percent": software_percentage,
+        "software_checks": software_checks,
+        "evidence_coverage_percent": evidence_coverage,
+        "measured_strength_percent": measured_average,
+        "proven_strength_percent": proven_strength,
+        "strength_light": strength_light,
+        "strength_label": strength_label,
+        "dimensions": tuple(dimensions),
+        "external_model_score_influence": False,
+        "founder_can_change_team": True,
+        "lifecycle": hrm_agent_lifecycle.lifecycle_plan(
+            proven_strength,
+            evidence_coverage_percent=evidence_coverage,
+        ),
+        "agent_help": {
+            "enabled": True,
+            "authority_transferred": False,
+            "hrm_receipt_required": True,
+            "rule": "Agents may request bounded help, teach, challenge and review each other without transferring authority.",
+        },
+        "rule": (
+            "Software readiness is not agent strength. Proven strength requires all "
+            "seven OAP-owned mission evidence dimensions; unknown evidence stays Purple."
+        ),
+    }
+
+
+def agent_strength_board(
+    evidence_by_agent: object = None,
+) -> dict[str, object]:
+    """Return the first-party strength board for all selectable review agents."""
+
+    supplied = evidence_by_agent if isinstance(evidence_by_agent, dict) else {}
+    agents = tuple(
+        agent_strength_status(name, supplied.get(name))
+        for name in REVIEW_AGENT_CATALOG
+    )
+    fully_proven = tuple(
+        item["agent"] for item in agents if item["proven_strength_percent"] is not None
+    )
+    return {
+        "name": "SMI First-Party Agent Strength",
+        "agent_count": len(agents),
+        "first_party_rule": FIRST_PARTY_AGENT_RULE,
+        "agents": agents,
+        "fully_proven_agents": fully_proven,
+        "all_agents_runtime_proven": len(fully_proven) == len(agents),
+        "overall_strength_percent": (
+            round(
+                sum(float(item["proven_strength_percent"]) for item in agents)
+                / len(agents),
+                1,
+            )
+            if len(fully_proven) == len(agents)
+            else None
+        ),
+        "truth_mode": True,
+        "human_authority_final": True,
+    }
+
+
 RATING_RULES = {
     "upgrade_zone": {
         "range": "98-100",
@@ -179,29 +691,13 @@ TWENTY_ONE_LAWS = (
     "Legacy must be remembered cleanly",
 )
 
-TWENTY_ONE_SIGNALS = (
-    "Checking",
-    "Mode",
-    "Proof Needed",
-    "Locked",
-    "Blocked",
-    "Next Before Green",
-    "HRM Memory",
-    "Source Proof",
-    "Route / API Proof",
-    "Data Proof",
-    "Consent Proof",
-    "Install Proof",
-    "Monitoring Proof",
-    "Rollback Proof",
-    "Founder Approval",
-    "Guardian Pass",
-    "Green Gate Result",
-    "Public / Private Boundary",
-    "Tool / Plugin Proof",
-    "Neon Receipt",
-    "Real Green Decision",
-)
+SEVEN_MAJOR_LINKS = smi_brain_protocol.MAJOR_LINKS_7
+TWENTY_ONE_CORE_REVIEW_SIGNALS = smi_brain_protocol.CORE_REVIEW_SIGNALS_21
+TWENTY_ONE_THINKING_SIGNALS = smi_brain_protocol.THINKING_SIGNALS_21
+
+# Historical public name retained for compatibility; it refers to the visible
+# operational Thinking Signal board, not the new Core Review Signal set.
+TWENTY_ONE_SIGNALS = TWENTY_ONE_THINKING_SIGNALS
 
 
 BEHAVIOUR_DIMENSIONS = (
@@ -233,6 +729,51 @@ BEHAVIOUR_MEASUREMENT_RULE = (
     "receipts or test observations. Missing evidence is UNKNOWN, never converted into an estimated score."
 )
 
+
+
+_PROHIBITED_AI_SELF_CLAIMS = (
+    ("human_identity", re.compile(r"\b(?:i am|i'm) human\b", re.IGNORECASE)),
+    ("lived_experience", re.compile(r"\bi (?:personally )?(?:lived|experienced) this\b", re.IGNORECASE)),
+    ("feelings", re.compile(r"\bi (?:have|feel) (?:real )?(?:feelings|emotions)\b", re.IGNORECASE)),
+    ("sentience", re.compile(r"\b(?:i am|i'm) sentient\b", re.IGNORECASE)),
+    ("consciousness", re.compile(r"\b(?:i am|i'm) conscious\b", re.IGNORECASE)),
+    ("final_authority", re.compile(r"\bi have final authority\b", re.IGNORECASE)),
+    ("self_approval", re.compile(r"\bi approved my own\b", re.IGNORECASE)),
+    ("self_execution", re.compile(r"\bi executed this action\b", re.IGNORECASE)),
+)
+
+
+def evaluate_human_ai_boundary(result: dict[str, object]) -> dict[str, object]:
+    """Fail closed when a completion crosses the governed Human↔AI boundary."""
+
+    response = str(result.get("response") or "")
+    violations: list[str] = []
+    for violation_id, pattern in _PROHIBITED_AI_SELF_CLAIMS:
+        if pattern.search(response):
+            violations.append(violation_id)
+
+    if result.get("human_authority_final") is not True:
+        violations.append("human_authority_not_final")
+    if result.get("can_execute") is not False:
+        violations.append("ai_execution_authority_not_locked")
+
+    contract = dict(result.get("thinking_process_contract") or {})
+    if contract and contract.get("human_authority_final") is not True:
+        violations.append("thinking_contract_authority_not_final")
+
+    passed = not violations
+    return {
+        "name": "Human-AI Boundary Gate",
+        "version": 1,
+        "passed": passed,
+        "signal": "green" if passed else "red",
+        "violations": tuple(dict.fromkeys(violations)),
+        "response_releasable": passed,
+        "ai_execution_authority": False,
+        "ai_self_approval": False,
+        "human_authority_final": True,
+        "rule": HUMAN_AI_BOUNDARY["rule"],
+    }
 
 
 def score_response_behaviour(result: dict[str, object]) -> dict[str, object]:
@@ -457,11 +998,17 @@ HARD_LOCKS = {
     "a7_enabled": False,
     "self_permission_change_enabled": False,
     "self_constitution_change_enabled": False,
+    "human_identity_claim_enabled": False,
+    "lived_experience_claim_enabled": False,
+    "feelings_claim_enabled": False,
+    "sentience_claim_enabled": False,
+    "consciousness_claim_enabled": False,
+    "replace_human_authority_enabled": False,
 }
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _receipt_id(target: object = "SMI") -> str:
@@ -497,10 +1044,28 @@ def status(target: object = "SMI") -> dict[str, object]:
         ),
         "ai_behaviour_parts": AI_BEHAVIOUR_PARTS,
         "agent_selection": AGENT_SELECTION,
+        "first_party_agent_rule": FIRST_PARTY_AGENT_RULE,
+        "agent_strength": agent_strength_board(),
+        "agent_team_selection": {
+            "mode": "automatic_with_founder_override",
+            "founder_can_change": True,
+            "smi_can_silently_override_founder": False,
+            "catalog": REVIEW_AGENT_CATALOG,
+            "default_recommendation": recommend_agent_team(target),
+        },
+        "smi_cc_auto": {
+            "enabled": True,
+            "map_build_board": map_build_agent_board(target) if "map" in str(target or "").casefold() else None,
+            "rule": "Best-fit selection, fit stars and peer evidence votes are automatic; runtime strength remains evidence-gated and Founder Final remains human.",
+        },
         "rating_rules": RATING_RULES,
         "twenty_one_laws": TWENTY_ONE_LAWS,
+        "seven_major_links": SEVEN_MAJOR_LINKS,
+        "twenty_one_core_review_signals": TWENTY_ONE_CORE_REVIEW_SIGNALS,
+        "twenty_one_thinking_signals": TWENTY_ONE_THINKING_SIGNALS,
         "twenty_one_signals": TWENTY_ONE_SIGNALS,
         "behaviour_board": behaviour_board(),
+        "human_ai_boundary": HUMAN_AI_BOUNDARY,
         "hard_locks": HARD_LOCKS,
         "truth_light_rule": "Only Truth Intelligence plus Evidence Intelligence can support a green claim.",
         "canonical_autonomy_ladder": "A1-A7",

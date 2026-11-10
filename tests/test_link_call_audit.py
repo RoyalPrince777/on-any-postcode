@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -154,7 +154,7 @@ def test_active_call_list_returns_only_bounded_session_metadata(monkeypatch):
     identity = str(uuid.uuid4())
     peer = str(uuid.uuid4())
     session_id = str(uuid.uuid4())
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
 
     connection = _Connection(
         lambda _query, _params: _Result(
@@ -218,3 +218,58 @@ def test_start_call_route_requires_csrf(client):
 
     assert response.status_code == 403
     assert response.get_json()["error"]["code"] == "csrf_failed"
+
+
+def test_recent_call_list_classifies_incoming_missed_without_media(monkeypatch):
+    _ready(monkeypatch)
+    identity = str(uuid.uuid4())
+    peer = str(uuid.uuid4())
+    session_id = str(uuid.uuid4())
+    started = datetime.now(UTC)
+    ended = datetime.now(UTC)
+
+    connection = _Connection(
+        lambda _query, _params: _Result(
+            rows=[
+                (
+                    session_id,
+                    peer,
+                    identity,
+                    "call",
+                    "ended",
+                    "failed",
+                    started,
+                    None,
+                    ended,
+                )
+            ]
+        )
+    )
+    monkeypatch.setattr(
+        link_call_audit.postgres_db,
+        "connect",
+        lambda *args, **kwargs: _Context(connection),
+    )
+
+    sessions = link_call_audit.list_recent(identity)
+
+    assert sessions[0]["direction"] == "incoming"
+    assert sessions[0]["missed"] is True
+    assert sessions[0]["outcome"] == "failed"
+    assert sessions[0]["ended_at"] == ended.isoformat()
+    for forbidden in ("audio", "video", "sdp", "ice", "transcript"):
+        assert forbidden not in str(sessions).casefold()
+
+
+def test_call_recents_route_is_authenticated_no_store(client, monkeypatch):
+    monkeypatch.setattr(
+        link_call_routes.link_call_audit,
+        "list_recent",
+        lambda _identity: [],
+    )
+
+    response = client.get("/linkup/calls/recents")
+
+    assert response.status_code == 200
+    assert response.get_json() == {"sessions": []}
+    assert response.headers["Cache-Control"] == "no-store"

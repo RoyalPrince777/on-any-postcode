@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OAP Company Intelligence</title>
+  <style>
+    :root{--bg:#050806;--panel:#0a140e;--line:#294636;--green:#38e57d;--gold:#d7b85d;--text:#f3faf5;--muted:#9db2a4;--yellow:#f4c95d;--red:#ff6f6f;--purple:#ad8cff}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.shell{max-width:1180px;margin:auto;padding:20px 14px 60px}a{color:inherit}.ey{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--green);font-weight:900}.hero{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}.hero h1{font-size:clamp(2.3rem,6vw,4.5rem);margin:.12em 0}.muted{color:var(--muted);line-height:1.45}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.card{border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--panel)}.card h3{margin:.2rem 0}.signal{font-weight:900}.proven{color:var(--green)}.unknown{color:#d9ddd9}.conflicting{color:var(--yellow)}.stale{color:var(--yellow)}.unavailable{color:var(--red)}.topline{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.pill{border:1px solid var(--line);border-radius:999px;padding:8px 11px}.truth{border-left:4px solid var(--gold);background:#201a08;padding:13px;border-radius:0 12px 12px 0}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid var(--line);border-radius:999px;padding:9px 12px;text-decoration:none}.section{margin-top:20px}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <div>
+      <p class="ey">SMI · Founder only</p>
+      <h1>Company Intelligence</h1>
+      <p class="muted">One company brain for evidence, Music, Clothing, Print on Demand, pricing and OAP Market truth.</p>
+    </div>
+    <a class="btn" href="/mission">← Mission Control</a>
+  </header>
+
+  <div class="topline">
+    <span class="pill">🟢 Software core: {{ '100%' if runtime.software_green else 'not proven' }}</span>
+    <span class="pill">Evidence: {{ runtime.proven_count }}/{{ runtime.domain_count }} · {{ runtime.evidence_percentage }}%</span>
+    <span class="pill">700-check protocol: {{ core.protocol_check_count }}</span>
+    <span class="pill">Founder Final: required</span>
+  </div>
+
+  <p class="truth"><strong>Truth Mode:</strong> {{ runtime.truth_boundary }}</p>
+
+  <section class="section">
+    <p class="ey">Seven evidence lanes</p>
+    <div class="grid">
+      {% for domain, item in runtime.evidence.states.items() %}
+      <article class="card">
+        <div class="signal {{ item.state|lower }}">{{ '🟢' if item.state == 'PROVEN' else '🟠' if item.state in ['CONFLICTING','STALE'] else '🔴' if item.state == 'UNAVAILABLE' else '⚪' }} {{ item.state }}</div>
+        <h3>{{ domain.replace('_',' ')|title }}</h3>
+        <p class="muted">{{ item.note or 'No evidence note recorded.' }}</p>
+        <small>{{ item.source_reference or 'No source reference' }}</small>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="ey">Commercial intelligence</p>
+    <div class="grid">
+      {% for item in core.music_policy, core.clothing_policy, core.print_on_demand_policy %}
+      <article class="card"><pre style="white-space:pre-wrap;margin:0">{{ item }}</pre></article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="actions">
+    <a class="btn" href="/mission/organs/distribution-market-media">📦 Distribution · Market · Media</a>
+    <a class="btn" href="/mission/war-room">⚔️ War Room</a>
+  </div>
+</main>
+</body>
+</html>

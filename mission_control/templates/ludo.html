@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="oap-csrf-token" content="{{ csrf_token }}"><title>Ludo · OAP Arena</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}"><script src="{{ url_for('static',filename='ludo.js') }}" defer></script></head>
+<body><main class="mc-shell arena-game" data-ludo-root>
+<section class="card arena-header"><nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a> · <a href="/arena/ludo/room">Online Room</a></nav>
+<p class="arena-hint">OAP Arena · Local pass-and-play</p><h1>🎲 Ludo</h1><p>Roll. Enter. Capture. Bring all four home.</p>
+<p class="arena-hint">OAP standard rules: server die, four pieces each, enter on 6, 52-space shared track, safe squares, capture, exact home finish. Sixes and captures earn another turn.</p>
+<label class="arena-field">Players (2–4, separated by commas)<input data-players maxlength="180" value="Player One, Player Two" autocomplete="off"></label>
+<div class="arena-actions"><button class="arena-primary" type="button" data-start>Start match</button><button type="button" data-roll disabled>Roll die</button><button class="arena-stop" type="button" data-stop disabled>STOP</button></div>
+<p class="arena-error" role="alert" data-error></p></section>
+<section class="card" data-game hidden><div class="arena-metrics" aria-live="polite"><span>Turn: <strong data-turn></strong></span><span>Roll: <strong data-roll-value>—</strong></span><span>Status: <strong data-status></strong></span></div>
+<h2>Four-piece race</h2><div class="arena-game-content" data-players-view></div>
+<p class="arena-feedback" role="status" aria-live="polite" data-feedback></p></section></main></body></html>

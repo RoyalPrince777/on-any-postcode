@@ -9,7 +9,7 @@ STATE_DIR="$HOME/.local/state/oap-home-node"
 BOOT_DIR="$HOME/.termux/boot"
 BOOT_FILE="$BOOT_DIR/10-oap-home-node"
 
-printf '%s\n' "OAP Home Node setup: bounded OAP CORE + SMI + whole-organism autonomy"
+printf '%s\n' "OAP Home Node setup: bounded organism runtime + first-party SMI inference worker"
 printf '%s\n' "No deploy, payment, dispatch, permission, carrier, or other consequential authority is enabled."
 
 # Android/Termux has no compatible psycopg-binary wheel. The Home Node does not
@@ -51,7 +51,7 @@ for forbidden in ("flask", "jwt", "cryptography"):
         raise SystemExit(f"Worker preflight unexpectedly loaded web dependency: {forbidden}")
 
 print(f"Psycopg ready via {pq.__impl__} implementation; libpq={pq.version()}")
-print("OAP Home Node worker preflight passed without Flask/JWT/cryptography")
+print("OAP Home Node organism worker preflight passed without Flask/JWT/cryptography")
 PY
 
 mkdir -p "$ENV_DIR" "$STATE_DIR" "$BOOT_DIR"
@@ -68,16 +68,26 @@ case "$database_url" in
     ;;
 esac
 
+printf '%s' "Paste the OAP Home Node bridge secret (input is hidden, minimum 32 characters): "
+IFS= read -r -s bridge_secret
+printf '\n'
+if (( ${#bridge_secret} < 32 )); then
+  printf '%s\n' "Refused: bridge secret must contain at least 32 characters." >&2
+  exit 2
+fi
+
 worker_id="termux-$(hostname 2>/dev/null || printf '%s' android)"
 {
   printf 'export OAP_NEON_DATABASE_URL=%q\n' "$database_url"
   printf 'export OAP_WORKER_ID=%q\n' "$worker_id"
+  printf 'export OAP_HOME_NODE_BRIDGE_SECRET=%q\n' "$bridge_secret"
+  printf 'export OAP_HOME_NODE_BRIDGE_URL=%q\n' "https://oap-smi.onrender.com/mission"
   printf 'export OAP_HOME_REPO=%q\n' "$REPO_DIR"
   printf 'export PSYCOPG_IMPL=python\n'
   printf 'export LD_LIBRARY_PATH=%q\n' "$termux_lib_path"
 } > "$ENV_FILE"
 chmod 600 "$ENV_FILE"
-unset database_url
+unset database_url bridge_secret
 
 cat > "$BOOT_FILE" <<EOF
 #!/data/data/com.termux/files/usr/bin/bash

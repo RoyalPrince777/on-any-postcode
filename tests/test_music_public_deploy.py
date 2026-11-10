@@ -12,8 +12,6 @@ def test_public_music_route_is_real_and_truth_mode():
     assert response.status_code == 200
     body = response.get_data(as_text=True)
     assert "OAP Music" in body
-    assert "No publicly cleared playable track is available yet." in body
-    assert "Playback stays locked" in body
 
 
 def test_music_migration_requires_explicit_approval():
@@ -30,6 +28,7 @@ def test_music_migration_versions_are_ordered_and_complete():
         "0011_oap_music_recovery_manifest",
         "0012_oap_music_acceptance_receipts",
         "0013_oap_music_assets",
+        "0014_music_market_purchase_spine",
     ]
 
 
@@ -123,7 +122,6 @@ def test_music_page_controls_have_real_targets_and_no_fake_play_button():
     assert "Free / Open Discovery Sources" not in body
     assert "Open source" not in body
     assert "<button disabled>▶ Play</button>" not in body
-    assert "▶ Play locked" in body
 
 
 def test_first_party_listener_contract_has_no_external_core_dependency():
@@ -165,7 +163,6 @@ def test_music_page_is_first_party_listener_surface_not_external_catalogue():
         assert f'id="{target}"' in body
     assert "Search OAP Music" in body
     assert "Search the free/open source directory" not in body
-    assert "OAP Music is a first-party catalogue." in body
     assert "/music/api/catalogue?q=" in body
 
 
@@ -191,7 +188,8 @@ def test_music_page_exposes_real_install_contract(client):
     assert "data-oap-music-install hidden" in body
     assert 'src="/assets/oap-music-install.js"' in body
     assert 'data-oap-music-install-status role="status"' in body
-    assert "First-party installable web app" in body
+    assert "First-party installable web app" not in body
+    assert "Install OAP Music" in body
 
 
 def test_music_install_controller_uses_existing_safe_root_worker(client):

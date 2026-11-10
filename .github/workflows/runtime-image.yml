@@ -1,5 +1,6 @@
 name: OAP runtime image
 # credential-bridge-recheck: 2026-09-28 secret-confirmed-rerun
+# library-final-gate-recheck: 2026-10-06
 
 on:
   pull_request:
@@ -7,8 +8,13 @@ on:
       - "Dockerfile.runtime"
       - "requirements.txt"
       - "app.py"
+      - "gunicorn.conf.py"
       - "smi_gateway.py"
       - "mission_control/**"
+      - "tests/map_production_chromium_smoke.py"
+      - "tests/oap_bank_production_chromium_smoke.py"
+      - "tests/transport_real_chromium_proof.py"
+      - ".github/workflows/transport-chromium-proof.yml"
       - "oap/**"
       - "templates/global_affairs.html"
       - ".github/workflows/runtime-image.yml"
@@ -18,8 +24,13 @@ on:
       - "Dockerfile.runtime"
       - "requirements.txt"
       - "app.py"
+      - "gunicorn.conf.py"
       - "smi_gateway.py"
       - "mission_control/**"
+      - "tests/map_production_chromium_smoke.py"
+      - "tests/oap_bank_production_chromium_smoke.py"
+      - "tests/transport_real_chromium_proof.py"
+      - ".github/workflows/transport-chromium-proof.yml"
       - "oap/**"
       - "templates/global_affairs.html"
       - ".github/workflows/runtime-image.yml"
@@ -71,12 +82,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Smoke-test Core and SMI from the same image
+      - name: Smoke-test Core, SMI, and local voice from the same image
         if: github.event_name == 'pull_request'
         run: |
           docker run --rm "${IMAGE_NAME}:${GITHUB_SHA}" python -c "import app; import smi_gateway; print('oap-runtime-imports-ok')"
           docker run --rm -e OAP_RUNTIME_TARGET=app:app "${IMAGE_NAME}:${GITHUB_SHA}" sh -c 'python -c "import app; assert hasattr(app, \"app\")"'
           docker run --rm -e OAP_RUNTIME_TARGET=smi_gateway:app "${IMAGE_NAME}:${GITHUB_SHA}" sh -c 'python -c "import smi_gateway; assert hasattr(smi_gateway, \"app\")"'
+          docker run --rm "${IMAGE_NAME}:${GITHUB_SHA}" python -c "from mission_control.smi_reply_voice_local import render_reply; r=render_reply('SMI lip sync proof'); a=r['alignment']; assert r['engine']=='self_hosted_espeak' and r['phonemeIssuedBySynth'] is True and r['audio_wav'][:4]==b'RIFF' and a['source']=='decoded_audio_phoneme_timeline' and len(a['cues'])>=3 and a['cues'][0]['viseme']=='silence' and a['cues'][-1]['viseme']=='silence'; print('oap-local-voice-viseme-proof-ok')"
 
       - name: Build and publish exact runtime image
         id: publish
@@ -90,6 +102,16 @@ jobs:
           tags: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Prove local voice and viseme timeline in exact published image
+        if: github.event_name != 'pull_request'
+        env:
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
+        run: |
+          set -euo pipefail
+          test -n "$IMAGE_DIGEST"
+          docker pull "${IMAGE_NAME}@${IMAGE_DIGEST}"
+          docker run --rm "${IMAGE_NAME}@${IMAGE_DIGEST}" python -c "from mission_control.smi_reply_voice_local import render_reply; r=render_reply('SMI production lip sync proof'); a=r['alignment']; assert r['engine']=='self_hosted_espeak' and r['phonemeIssuedBySynth'] is True and r['audio_wav'][:4]==b'RIFF' and a['source']=='decoded_audio_phoneme_timeline' and len(a['cues'])>=3 and a['cues'][0]['viseme']=='silence' and a['cues'][-1]['viseme']=='silence'; print('oap-published-local-voice-viseme-proof-ok')"
 
   promote-core:
     if: github.event_name == 'push'
@@ -158,6 +180,7 @@ jobs:
           PY
 
       - name: Promote exact published image to existing Core service
+        id: promote_core
         if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
         run: |
           python - <<'PY'
@@ -226,34 +249,123 @@ jobs:
           deploy=req("POST",f"/services/{service_id}/deploys",{"imageUrl":image})
           deploy_id=deploy.get("id") if isinstance(deploy,dict) else None
           if not deploy_id:
-              # A successful Render deploy request can return no JSON receipt.
-              # Health/read-back below remains the release gate.
-              deploy_id="accepted-no-receipt"
+              raise SystemExit("core_deploy_receipt_missing")
+          output=os.environ.get("GITHUB_OUTPUT")
+          if output:
+              with open(output,"a",encoding="utf-8") as handle:
+                  handle.write(f"deploy_id={deploy_id}\n")
           print(json.dumps({"service_id":service_id,"image":image,"deploy_id":deploy_id},sort_keys=True))
           PY
 
-      - name: Verify Core health
+      - name: Verify exact Core deploy is live and healthy
         if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
+        env:
+          DEPLOY_ID: ${{ steps.promote_core.outputs.deploy_id }}
         run: |
           python - <<'PY'
-          import time, urllib.request
-          url="https://on-any-postcode.onrender.com/healthz"
-          for _ in range(24):
-              try:
-                  with urllib.request.urlopen(url,timeout=20) as response:
-                      if 200 <= response.status < 300:
-                          print("core-image-health-pass")
-                          break
-              except Exception:
-                  pass
-              time.sleep(10)
+          import json, os, time, urllib.request, urllib.error
+
+          token=(os.environ.get("OAP_RENDER_API_KEY") or os.environ.get("RENDER_API_KEY") or "").strip()
+          deploy_id=os.environ.get("DEPLOY_ID","").strip()
+          digest=os.environ["IMAGE_DIGEST"].strip()
+          image=f'{os.environ["IMAGE_NAME"]}@{digest}'
+          service_id=os.environ["SERVICE_ID"]
+          api="https://api.render.com/v1"
+          headers={
+              "Accept":"application/json",
+              "Authorization":"Bearer "+token,
+              "User-Agent":"OAP-Core-Exact-Live-Gate/1.0",
+          }
+          if not deploy_id:
+              raise SystemExit("core_deploy_id_missing")
+
+          for _ in range(60):
+              req=urllib.request.Request(api+f"/services/{service_id}/deploys/{deploy_id}",headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  deploy=json.load(response)
+              status=str(deploy.get("status") or "")
+              deploy_image=(deploy.get("image") or {}).get("ref")
+              if status=="live":
+                  if deploy_image!=image:
+                      raise SystemExit(f"core_live_image_mismatch:{deploy_image}")
+                  break
+              if status in {"build_failed","update_failed","canceled","cancelled","deactivated"}:
+                  raise SystemExit(f"core_deploy_failed:{status}")
+              time.sleep(5)
           else:
-              raise SystemExit("core_image_health_not_ready")
+              raise SystemExit("core_exact_deploy_not_live")
+
+          req=urllib.request.Request(api+f"/services/{service_id}",headers=headers)
+          with urllib.request.urlopen(req,timeout=30) as response:
+              service=json.load(response)
+          if service.get("imagePath")!=image:
+              raise SystemExit("core_service_image_binding_mismatch")
+
+          url=os.environ["PUBLIC_URL"].rstrip("/") + os.environ["HEALTH_PATH"]
+          for _ in range(12):
+              try:
+                  req=urllib.request.Request(url,headers={"User-Agent":"OAP-Core-Exact-Live-Gate/1.0"})
+                  with urllib.request.urlopen(req,timeout=20) as response:
+                      if 200 <= response.status < 300:
+                          print(json.dumps({"event":"core_exact_deploy_live","deploy_id":deploy_id,"image":image,"success":True},sort_keys=True))
+                          break
+              except (urllib.error.URLError, TimeoutError):
+                  pass
+              time.sleep(5)
+          else:
+              raise SystemExit("core_exact_image_health_not_ready")
           PY
+
+  map-production-browser-proof:
+    if: github.event_name == 'push'
+    needs: [runtime-image, promote-core]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Chromium proof runtime
+        run: |
+          python -m pip install 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+
+      - name: Prove live public OAP map renders real roads
+        env:
+          OAP_MAP_URL: https://on-any-postcode.onrender.com/oap-map
+        run: python tests/map_production_chromium_smoke.py
+
+  bank-production-browser-proof:
+    if: github.event_name == 'push'
+    needs: [runtime-image, promote-core, map-production-browser-proof]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install Chromium proof runtime
+        run: |
+          python -m pip install 'playwright>=1.50,<2'
+          python -m playwright install --with-deps chromium
+
+      - name: Prove live OAP Bank renders canonical SIKA software truth
+        env:
+          OAP_BANK_URL: https://on-any-postcode.onrender.com/pay/bank
+          OAP_BANK_STATUS_URL: https://on-any-postcode.onrender.com/pay/bank/status
+        run: python tests/oap_bank_production_chromium_smoke.py
 
   promote-smi:
     if: github.event_name == 'push'
-    needs: [runtime-image, promote-core]
+    needs: [runtime-image, promote-core, map-production-browser-proof, bank-production-browser-proof]
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -283,6 +395,7 @@ jobs:
         run: echo "smi-promotion-skipped-render-api-key-not-configured"
 
       - name: Promote exact published image to existing SMI service
+        id: promote_smi
         if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
         run: |
           python - <<'PY'
@@ -356,34 +469,76 @@ jobs:
           deploy=req("POST",f"/services/{service_id}/deploys",{"imageUrl":image})
           deploy_id=deploy.get("id") if isinstance(deploy,dict) else None
           if not deploy_id:
-              # A successful Render deploy request can return no JSON receipt.
-              # Health/read-back below remains the release gate.
-              deploy_id="accepted-no-receipt"
+              raise SystemExit("smi_deploy_receipt_missing")
+          output=os.environ.get("GITHUB_OUTPUT")
+          if output:
+              with open(output,"a",encoding="utf-8") as handle:
+                  handle.write(f"deploy_id={deploy_id}\n")
           print(json.dumps({"service_id":service_id,"image":image,"deploy_id":deploy_id},sort_keys=True))
           PY
 
-      - name: Verify SMI health
+      - name: Verify exact SMI deploy is live and healthy
         if: env.OAP_RENDER_API_KEY != '' || env.RENDER_API_KEY != ''
+        env:
+          DEPLOY_ID: ${{ steps.promote_smi.outputs.deploy_id }}
         run: |
           python - <<'PY'
-          import time, urllib.request
-          url="https://oap-smi.onrender.com/healthz"
-          for _ in range(24):
-              try:
-                  with urllib.request.urlopen(url,timeout=20) as response:
-                      if 200 <= response.status < 300:
-                          print("smi-image-health-pass")
-                          break
-              except Exception:
-                  pass
-              time.sleep(10)
+          import json, os, time, urllib.request, urllib.error
+
+          token=(os.environ.get("OAP_RENDER_API_KEY") or os.environ.get("RENDER_API_KEY") or "").strip()
+          deploy_id=os.environ.get("DEPLOY_ID","").strip()
+          digest=os.environ["IMAGE_DIGEST"].strip()
+          image=f'{os.environ["IMAGE_NAME"]}@{digest}'
+          service_id=os.environ["SERVICE_ID"]
+          api="https://api.render.com/v1"
+          headers={
+              "Accept":"application/json",
+              "Authorization":"Bearer "+token,
+              "User-Agent":"OAP-SMI-Exact-Live-Gate/1.0",
+          }
+          if not deploy_id:
+              raise SystemExit("smi_deploy_id_missing")
+
+          for _ in range(60):
+              req=urllib.request.Request(api+f"/services/{service_id}/deploys/{deploy_id}",headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  deploy=json.load(response)
+              status=str(deploy.get("status") or "")
+              deploy_image=(deploy.get("image") or {}).get("ref")
+              if status=="live":
+                  if deploy_image!=image:
+                      raise SystemExit(f"smi_live_image_mismatch:{deploy_image}")
+                  break
+              if status in {"build_failed","update_failed","canceled","cancelled","deactivated"}:
+                  raise SystemExit(f"smi_deploy_failed:{status}")
+              time.sleep(5)
           else:
-              raise SystemExit("smi_image_health_not_ready")
+              raise SystemExit("smi_exact_deploy_not_live")
+
+          req=urllib.request.Request(api+f"/services/{service_id}",headers=headers)
+          with urllib.request.urlopen(req,timeout=30) as response:
+              service=json.load(response)
+          if service.get("imagePath")!=image:
+              raise SystemExit("smi_service_image_binding_mismatch")
+
+          url=os.environ["PUBLIC_URL"].rstrip("/") + os.environ["HEALTH_PATH"]
+          for _ in range(12):
+              try:
+                  req=urllib.request.Request(url,headers={"User-Agent":"OAP-SMI-Exact-Live-Gate/1.0"})
+                  with urllib.request.urlopen(req,timeout=20) as response:
+                      if 200 <= response.status < 300:
+                          print(json.dumps({"event":"smi_exact_deploy_live","deploy_id":deploy_id,"image":image,"success":True},sort_keys=True))
+                          break
+              except (urllib.error.URLError, TimeoutError):
+                  pass
+              time.sleep(5)
+          else:
+              raise SystemExit("smi_exact_image_health_not_ready")
           PY
 
   certify-production-release:
     if: github.event_name == 'push'
-    needs: [runtime-image, promote-core, promote-smi]
+    needs: [runtime-image, promote-core, promote-smi, bank-production-browser-proof]
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -433,6 +588,8 @@ jobs:
               ("smi_chat_status_private","https://oap-smi.onrender.com/mission/chat/status",{401}),
               ("smi_green_gate_private","https://oap-smi.onrender.com/mission/smi/green-gate",{401}),
               ("smi_war_room_private","https://oap-smi.onrender.com/mission/war-room/status",{401}),
+              ("smi_organiser_private","https://oap-smi.onrender.com/mission/organiser",{200}),
+              ("smi_organiser_api_private","https://oap-smi.onrender.com/api/smi-organiser/connectivity-briefs/11111111-1111-4111-8111-111111111111",{401}),
           ]
           receipt={}
           for name,url,allowed in probes:

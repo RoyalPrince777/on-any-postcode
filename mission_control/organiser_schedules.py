@@ -163,6 +163,18 @@ def get(owner_id: object, external_id: object) -> dict[str, object]:
     }
 
 
+def list_all(owner_id: object, *, limit: int = 50) -> tuple[dict[str, object], ...]:
+    """Return verified latest schedule mirrors for one owner."""
+    owner = _owner(owner_id)
+    schedule_ids = workspaces.list_organiser_schedule_ids(owner, limit=limit)
+    results = []
+    for schedule_id in schedule_ids:
+        if not _ID.fullmatch(schedule_id):
+            raise ScheduleMirrorUnavailable("schedule_index_invalid")
+        results.append(get(owner, schedule_id))
+    return tuple(results)
+
+
 def upsert(
     owner_id: object,
     schedule: OrganiserSchedule,

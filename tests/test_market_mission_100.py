@@ -16,12 +16,12 @@ def test_market_mission_100_surface_has_real_basket_order_timeline_stop_recovery
     assert "Your Basket" in template
     assert "Review & Confirm Orders" in template
     assert "My Orders" in template
-    assert "Order & Transaction Timeline" in template
+    assert "Order details" in template
     assert "STOP Transaction" in template
-    assert "last_good_stage" in template
+    assert "last_good_stage" not in template
     assert "/mission/organs/market/orders" in template
     assert "/mission/organs/market/transactions/" in template
-    assert "No payment is captured" in template
+    assert "No payment is captured" not in template
 
 
 def test_market_mission_100_api_bridge_is_canonical_and_fail_closed():
