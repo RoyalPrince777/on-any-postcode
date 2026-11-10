@@ -66,7 +66,7 @@ assert.deepEqual(submit("/arena").visits, ["/arena"]);
 assert.deepEqual(submit("/studio").visits, ["/studio"]);
 assert.deepEqual(submit("/koradaso/web-search").visits, ["/koradaso/web-search"]);
 assert.deepEqual(submit("/maps").visits, []);
-assert.deepEqual(submit("/studio").visits, []);
+assert.deepEqual(submit("/library").visits, []);
 assert.deepEqual(submit("/unknown").visits, []);
 assert.deepEqual(submit("example.com").visits, ["https://example.com/"]);
 assert.equal(submit("example.com", false, false).visits.length, 0);
