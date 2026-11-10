@@ -659,7 +659,9 @@
   exposeHeading.textContent="Expose · "+(held?"Green held":"Evidence reviewed")+" · "+count+" unresolved";
   exposeIntro.textContent="Truth · Red Team · Devil's Advocate"+basis+
    " · "+(held?"Not certified":"Signal review complete; runtime certification separate");
-  const findings=report.findings.slice(0,5);
+  // Keep the first actionable blockers visible; the full record stays canonical.
+  const findings=report.findings.slice(0,3);
+  const displayedActions=new Set();
   for(const finding of findings){
    if(!finding||typeof finding!=="object")continue;
    const item=document.createElement("li");
@@ -667,9 +669,14 @@
    name.textContent=String(finding.signal||"Unidentified signal").replace(/_/g," ");
    const state=document.createElement("small");
    state.textContent=String(finding.state||"unknown")+" · "+String(finding.priority||"unresolved").replace(/_/g," ");
-   const action=document.createElement("p");
-   action.textContent=String(finding.smallest_next_action||"Obtain evidence before release");
-   item.append(name,state,action);
+   item.append(name,state);
+   const nextAction=String(finding.smallest_next_action||"Obtain evidence before release");
+   if(!displayedActions.has(nextAction)){
+    const action=document.createElement("p");
+    action.textContent=nextAction;
+    item.append(action);
+    displayedActions.add(nextAction);
+   }
    exposeList.append(item);
   }
   if(count>findings.length)exposeMore.textContent=(count-findings.length)+" additional unresolved signals in the canonical evidence record.";
