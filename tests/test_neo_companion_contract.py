@@ -86,6 +86,8 @@ def test_neo_truth_review_does_not_certify_unchecked_confirmed_claim():
         {"gate": "ci", "status": "confirmed", "artifact": "run/12", "timestamp": "2026-11-10"},
     ))
     assert review["claimed_confirmed_pending_independent_verification"] == ("ci",)
+    assert review["evidence"][0]["status"] == "unknown"
+    assert review["missing_proof_gates"] == ("ci",)
     assert review["completion_percentage"] is None
     assert review["founder_final_required"]
 
@@ -133,5 +135,6 @@ def test_neo_unlock_does_not_misrepresent_a6_configuration_as_proof(monkeypatch)
     status = matrix_signal_bus.neo_unlock_status()
     assert status["a6_execution_configured"]
     assert not status["a6_operation_evidence_verified"]
+    assert not status["a6_execution_configured"]
     assert not status["independent_agent_execution"]
     assert not status["a7_enabled"]
