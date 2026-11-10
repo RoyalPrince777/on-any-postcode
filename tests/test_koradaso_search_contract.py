@@ -624,5 +624,6 @@ def test_koradaso_launcher_refuses_missing_or_invalid_royal_logo():
     assert 'Path("static/oap/koradaso_internet_logo.jpg")' in launcher
     assert 'if not logo.is_file() or logo.stat().st_size < 4:' in launcher
     assert 'royal logo asset is missing from this checkout' in launcher
-    assert 'image.read(3) != b"\\xff\\xd8\\xff"' in launcher
+    assert "image.read(3) != bytes((0xFF, 0xD8, 0xFF))" in launcher
+    assert Path("static/oap/koradaso_internet_logo.jpg").read_bytes()[:3] == bytes((0xFF, 0xD8, 0xFF))
     assert "git reset --hard" not in launcher
