@@ -108,8 +108,11 @@ def test_oap_pay_page_contains_mobile_nav_and_more_drawer(client):
     assert "Cash / Post Office" in body
     assert "FX" in body
     assert "Bank" in body
-    assert "Control Center" in body
-    assert "Founder / Admin" in body
+    assert "Founder / Admin" not in body
+    assert 'href="/pay/bank/me/activity"' in body
+    assert 'href="/pay/bank/me"' in body
+    assert 'href="#request"' in body
+    assert 'href="#payMethods"' in body
 
 
 def test_oap_pay_phone_methods_are_truth_bound():
