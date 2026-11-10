@@ -65,7 +65,25 @@
 .smi-roster-status{color:#eed293}
 @media(max-width:760px){.smi-roster-command,.smi-roster-layout{grid-template-columns:1fr}.smi-roster-board{padding:12px}}
 </style>
-</head><body><main class="w">
+
+<style>
+/* The CC alias uses the original War Room controller with a mission-first view.
+   Hidden diagnostics remain available on /mission/war-room, not duplicated here. */
+body.smi-dynamic-cc main.w>section:not(#smi-cc),
+body.smi-dynamic-cc main.w>header.hero{display:none}
+body.smi-dynamic-cc main.w{max-width:850px;padding:clamp(12px,3vw,28px) 14px 92px}
+body.smi-dynamic-cc #smi-cc{margin:0;padding:clamp(14px,3vw,28px);border-color:#7256aa;background:linear-gradient(155deg,#141022,#08110e)}
+body.smi-dynamic-cc #smi-cc h2{font-size:clamp(1.45rem,4vw,2.2rem);margin:8px 0}
+body.smi-dynamic-cc #smi-cc .smi-dynamic-intro{line-height:1.6;max-width:65ch}
+.smi-dynamic-actions{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0}
+.smi-dynamic-actions .btn{display:inline-flex;align-items:center;min-height:44px}
+.smi-dynamic-review{font-size:.82rem;line-height:1.55;padding:11px 12px;border:1px solid #51436a;border-radius:10px;margin:12px 0;color:#efdda9}
+.smi-dynamic-review span{color:#aebdb3}
+body.smi-dynamic-cc #smi-cc>fieldset{margin:14px 0}
+body.smi-dynamic-cc #smi-cc .mission{min-height:44px}
+@media(max-width:520px){.smi-dynamic-actions{display:grid;grid-template-columns:1fr}.smi-dynamic-actions .btn{justify-content:center}}
+</style>
+</head><body class="{% if request.path == '/mission/smi-cc' %}smi-dynamic-cc{% endif %}"><main class="w">
 <header class="hero"><div><div class="ey">⚔️ Founder-only · Research Intelligence</div><h1>WAR ROOM</h1><p class="muted">Research → Evidence → Intelligence → Vote → Challenge → 7-Star → Guardian → SMI → Human Authority → Receipt.</p></div><div class="pill">🟣 SMI AUTO</div></header>
 <section class="grid status"><div class="card purple"><small>MODE</small><strong>🟣 SMI AUTO · bounded</strong></div><div class="card"><small>EVIDENCE</small><strong>{{ war_room.summary.overall_evidence_score }}%</strong><div class="meter" aria-label="Overall evidence score"><span style="width:{{ war_room.summary.overall_evidence_score }}%"></span></div></div><div class="card yellow"><small>EXECUTION</small><strong>🔒 Gated</strong></div><div class="card green"><small>GUARDIAN / AEGIS</small><strong>🛡 Human + organism</strong></div><div class="card yellow"><small>AUTHORITY</small><strong>👑 Founder final</strong></div></section>
 
@@ -165,7 +183,11 @@
   </div>
 </section>
 
-<section class="panel" id="smi-cc"><div class="ey">👑 SMI CC · Command Centre</div><h2>One mission · one governed 3 / 7 / 21 control layer</h2><input class="mission" aria-label="War Room mission" placeholder="Enter the mission or research target…">
+<section class="panel" id="smi-cc"><div class="ey">👑 SMI Dynamic CC · ONE BRAIN</div><h2>Send SMI your mission</h2>
+<p class="muted smi-dynamic-intro">SMI coordinates existing engineering, specialist reviews, evidence and recovery. Routing prepares a governed plan; it does not execute agents or approve a release.</p>
+<div class="smi-dynamic-actions"><a class="btn primary" href="/mission/ollama">🧠 Send to SMI Chat</a><a class="btn" href="/mission/smi/status">◈ Evidence status</a><a class="btn" href="/mission/war-room">⚔ Full War Room</a></div>
+<div class="smi-dynamic-review" aria-label="Seven SMI reviews">Truth Mode · Red Team · Devil’s Advocate · Expose · Verification · Guardian · Recovery <span>— all evidence-led, not separate agents</span></div>
+<input class="mission" maxlength="2000" aria-label="War Room mission" placeholder="Describe your mission…">
 <fieldset class="panel" id="smi-division-command">
 <legend>🧠 SMI divisions · select more than one</legend>
 <div class="bar" style="margin:8px 0">
