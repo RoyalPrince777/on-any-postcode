@@ -182,6 +182,7 @@
         <button id="market-clear-basket" class="mc-secondary-link" type="button">Clear Basket</button>
       </div>
       <p id="market-checkout-status" class="market-meta" role="status" aria-live="polite"></p>
+      <p class="market-meta"><a href="{{ request.path }}?mine=1#orders">My Orders · verify an outstanding request before retrying</a></p>
       {% else %}
       <p class="market-notice">Browsing is public. Enter My World only when you want to create an order.</p>
       {% endif %}
