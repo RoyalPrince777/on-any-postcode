@@ -100,6 +100,8 @@ def test_market_checkout_preserves_ambiguous_order_retry_identity():
     assert "checkoutButton.disabled = false;" in template
     assert "pending.splice(index, 1);" in template
     assert "Check My Orders before retrying" in template
+    assert 'href="{{ request.path }}?mine=1#orders"' in template
+    assert "verify an outstanding request before retrying" in template
 
 
 def test_market_basket_and_retry_state_are_scoped_to_signed_in_identity():
