@@ -82,8 +82,9 @@ def test_smi_cc_is_an_alias_of_existing_war_room_not_a_second_application():
 def test_smi_cc_submits_bounded_mission_context_without_execution():
     assert "mission: document.querySelector('.mission')?.value || ''" in PAGE
     assert "notes: document.getElementById('smi-command-extra').value" in PAGE
-    from mission_control import views
     import inspect
+
+    from mission_control import views
     route = inspect.getsource(views.war_room_divisions_route)
     assert 'len(mission) > 2000' in route
     assert 'len(notes) > 2000' in route
