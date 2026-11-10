@@ -45,7 +45,7 @@ if not logo.is_file() or logo.stat().st_size < 4:
         "use the complete PR #1388 checkout before starting port 5052."
     )
 with logo.open("rb") as image:
-    if image.read(3) != b"\\xff\\xd8\\xff":
+    if image.read(3) != bytes((0xFF, 0xD8, 0xFF)):
         raise SystemExit("KORADASO refused: royal logo is not a valid JPEG asset.")
 PY
 export OAP_LOCAL_MODE=true
