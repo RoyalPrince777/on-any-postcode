@@ -7,6 +7,7 @@ values and raw prompts are never returned by status().
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import uuid
@@ -195,8 +196,10 @@ def create_video(prompt: str, *, source_image_data: str = "", seconds: str = "4"
     if not clean:
         raise ValueError("studio_prompt_required")
     file_field = None
+    source_sha256 = None
     if source_image_data:
         mime, raw = _decode_image_data_url(source_image_data)
+        source_sha256 = hashlib.sha256(raw).hexdigest()
         suffix = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp"}[mime]
         file_field = ("input_reference", f"oap-studio-reference.{suffix}", mime, raw)
     payload = _multipart_call(
@@ -216,6 +219,9 @@ def create_video(prompt: str, *, source_image_data: str = "", seconds: str = "4"
         "progress": int(payload.get("progress") or 0),
         "provider_completed": state == "completed",
         "artifact_proven": False,
+        "source_reference_sha256": source_sha256,
+        "continuity_verified": False,
+        "continuity_status": "unknown",
         "provider_is_authority": False,
     }
 
