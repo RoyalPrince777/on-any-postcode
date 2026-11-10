@@ -80,3 +80,23 @@ def test_market_transaction_store_has_owner_scoped_timeline_reads():
         "automatic_dispatch",
     }
     assert forbidden.isdisjoint(methods)
+
+
+def test_market_checkout_preserves_ambiguous_order_retry_identity():
+    """Guard the client contract until browser-level checkout tests can run."""
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+
+    assert "item.idempotency_key = 'market-'" in template
+    assert "saveBasket(basket);" in template
+    assert "const key = item.idempotency_key;" in template
+    assert "active.order_attempted = true;" in template
+    assert "qty.disabled = Boolean(item.order_attempted);" in template
+    assert "row.querySelector('button').disabled = Boolean(item.order_attempted);" in template
+    assert "if (found?.order_attempted)" in template
+    assert "loadBasket().filter(item => item.order_attempted)" in template
+    assert "checkoutButton.disabled = true;" in template
+    assert "checkoutButton.disabled = false;" in template
+    assert "pending.splice(index, 1);" in template
+    assert "Check My Orders before retrying" in template
