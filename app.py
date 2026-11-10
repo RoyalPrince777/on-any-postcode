@@ -1,3 +1,4 @@
+import hashlib
 import hmac
 import json
 import logging
@@ -618,6 +619,35 @@ def _load_public_snapshot():
         app.logger.warning("durable_public_read_failed")
         return _local_public_snapshot()
 
+_KORADASO_PUBLIC_RELEASE_FILES = (
+    "templates/koradaso_internet.html",
+    "templates/studio_public.html",
+    "static/koradaso_auto_update.js",
+    "static/oap-os-sw.js",
+    "static/oap-os-offline.html",
+)
+
+
+def _koradaso_public_release_id() -> str:
+    """Digest public shell files only; no private data, version bump or deploy claim."""
+    digest = hashlib.sha256()
+    for relative_path in _KORADASO_PUBLIC_RELEASE_FILES:
+        path = os.path.join(app.root_path, relative_path)
+        with open(path, "rb") as source:
+            digest.update(relative_path.encode("utf-8"))
+            digest.update(source.read())
+    return digest.hexdigest()[:20]
+
+
+@app.get("/koradaso/release")
+def koradaso_public_release():
+    """Read-only first-party public shell fingerprint, never an update trigger."""
+    response = make_response(jsonify(release=_koradaso_public_release_id()))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 @app.get("/studio")
 def public_studio():
     """Public OAP Studio Intelligence shell; no private SMI authority is exposed."""
@@ -626,6 +656,7 @@ def public_studio():
     response = make_response(render_template(
         "studio_public.html",
         koradaso_mode=request.args.get("source") == "koradaso",
+        koradaso_release=_koradaso_public_release_id(),
     ))
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -666,7 +697,9 @@ def root_front_door():
 @app.get("/koradaso")
 def koradaso_internet_home():
     """First-party KORADASO browser start page; no access or release grants."""
-    response = make_response(render_template("koradaso_internet.html"))
+    response = make_response(render_template(
+        "koradaso_internet.html", koradaso_release=_koradaso_public_release_id()
+    ))
     response.headers["Cache-Control"] = "no-store"
     # Keep KORADASO page context out of external website requests.
     # Browser traffic remains on the user device, not an OAP proxy.
