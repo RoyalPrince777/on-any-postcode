@@ -627,6 +627,10 @@ _KORADASO_PUBLIC_RELEASE_FILES = (
     "static/oap-os-offline.html",
     "static/oap-os.js",
     "static/manifest.webmanifest",
+    "static/oap_public.css",
+    "static/oap-os-icon-192.png",
+    "static/oap-os-icon-512.png",
+    "static/oap/koradaso_internet_logo.jpg",
 )
 
 
