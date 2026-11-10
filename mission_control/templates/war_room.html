@@ -506,8 +506,9 @@ body.smi-dynamic-cc #smi-cc .mission{min-height:44px}
       const selectedPlan = await routeResponse.json().catch(() => ({}));
       if (!routeResponse.ok) throw new Error(selectedPlan?.error?.message || 'SMI routing failed');
       if(controller.signal.aborted)return;
-      lines.push('Routing: '+selectedPlan.thinking_depth+' · advisory only');
-      lines.push('Thinking checks selected: '+selectedPlan.selected_checks.length+' · not executed');
+      lines.push('🟣 SMI AUTO · ' + selectedPlan.thinking_depth + ' Thinking · advisory route');
+      lines.push('Thinking plan: ' + selectedPlan.selected_checks.length + ' checks selected · 0 verified executed');
+      lines.push('Agent execution: NONE · Independent votes: NOT VERIFIED');
       for (const action of actions) {
         if(controller.signal.aborted)break;
         const response=await fetch(endpoint(action),{
@@ -525,6 +526,7 @@ body.smi-dynamic-cc #smi-cc .mission{min-height:44px}
       }
       if(!controller.signal.aborted){
         lines.push('Checks queried: '+completed+'/'+actions.length+' · execution authority unchanged');
+        lines.push('Proof actions queried: '+completed+'/'+actions.length+' (not equivalent to Thinking checks)');
         lines.push('Verified target runtime: UNKNOWN · Founder Final: required');
         show('purple',lines.join('\\n'));
       }
