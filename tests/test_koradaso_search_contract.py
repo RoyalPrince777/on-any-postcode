@@ -34,7 +34,7 @@ def test_koradaso_intelligence_automatic_public_shell_updates_without_private_da
     assert 'navigator.serviceWorker.register("/service-worker.js", {scope: "/"})' in updater
     assert 'registration.update()' in updater
     assert '"online", check' in updater
-    assert '"visibilitychange", check' in updater
+    assert '"visibilitychange", () => {check(); applyWhenIdle();}' in updater
     assert 'window.setInterval(check, periodMs)' in updater
     assert 'messages.children.length' in updater
     assert 'window.location.reload()' in updater
