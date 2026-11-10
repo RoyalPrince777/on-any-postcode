@@ -39,8 +39,13 @@ self.addEventListener("install", (event) => {
           throw new Error("koradaso_public_shell_invalid");
         }
       })
-      // Do not purge a cache potentially shared with an active worker.
-      // A failed install keeps the old active worker in control.
+      .catch(async (error) => {
+        // The cache key is tied to this immutable public release fingerprint.
+        // Remove rejected candidate data so the prior active worker can never
+        // accidentally treat corrupt candidate HTML as a last-good fallback.
+        await caches.delete(CACHE_VERSION);
+        throw error;
+      })
   );
 });
 
