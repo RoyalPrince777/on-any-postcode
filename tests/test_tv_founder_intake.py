@@ -48,7 +48,7 @@ def test_anonymous_upload_denied(anonymous_client):
 
 def test_private_draft_created_with_restricted_permissions(monkeypatch, tmp_path):
     monkeypatch.setenv("OAP_TV_PRIVATE_MEDIA_DIR", str(tmp_path))
-    media = b"\\x00\\x00\\x00\\x10ftypisom" + b"0" * 16
+    media = b"\x00\x00\x00\x10ftypisom" + b"0" * 16
     receipt = tv_founder_intake.intake(
         io.BytesIO(media), content_type="video/mp4",
         title="Private film", owner_id=str(uuid.uuid4())
@@ -62,7 +62,7 @@ def test_private_draft_created_with_restricted_permissions(monkeypatch, tmp_path
 def test_failed_disk_sync_leaves_no_partial_candidate(monkeypatch, tmp_path):
     monkeypatch.setenv("OAP_TV_PRIVATE_MEDIA_DIR", str(tmp_path))
     monkeypatch.setattr(os, "fsync", lambda fd: (_ for _ in ()).throw(OSError("disk sync failed")))
-    media = b"\\x00\\x00\\x00\\x10ftypisom" + b"0" * 16
+    media = b"\x00\x00\x00\x10ftypisom" + b"0" * 16
     with pytest.raises(OSError, match="disk sync failed"):
         tv_founder_intake.intake(
             io.BytesIO(media), content_type="video/mp4",
