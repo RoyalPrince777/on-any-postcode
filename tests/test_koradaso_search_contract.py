@@ -21,6 +21,27 @@ def test_koradaso_omnibox_routes_queries_to_existing_oap_search(client):
     assert 'href="/koradaso/web-search?q=music"' in catalogue.get_data(as_text=True)
 
 
+def test_koradaso_public_offline_shell_reuses_oap_worker_without_private_caching(client):
+    """Source contract only; does not certify disconnected-host or virtual AOSP boot."""
+    page = client.get("/koradaso")
+    worker_response = client.get("/service-worker.js")
+    assert page.status_code == worker_response.status_code == 200
+    source = SOURCE.read_text(encoding="utf-8")
+    worker = Path("static/oap-os-sw.js").read_text(encoding="utf-8")
+    assert 'navigator.serviceWorker.register("/service-worker.js",{scope:"/"})' in source
+    assert 'typeof navigator !== "undefined"' in source
+    assert '"/koradaso",' in worker
+    assert '"/static/oap/koradaso_internet_logo.jpg",' in worker
+    assert 'url.pathname === "/koradaso"' in worker
+    assert 'caches.match("/koradaso")' in worker
+    assert 'caches.match("/offline")' in worker
+    assert 'if (isPrivatePath(url.pathname)) return;' in worker
+    assert 'request.method !== "GET" || url.origin !== self.location.origin' in worker
+    assert '"/my-world"' in worker
+    assert '"/auth"' in worker
+    assert '"/mission"' in worker
+
+
 def test_koradaso_traffic_boundary_keeps_open_web_access_without_page_leak(client):
     """First-party response hardening, not device-wide network isolation proof."""
     response = client.get("/koradaso")
