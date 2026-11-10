@@ -321,7 +321,7 @@ def test_koradaso_oap_world_opens_menu_not_marketplace(client):
     assert "One World. One Front Door." in menu.get_data(as_text=True)
     source = SOURCE.read_text(encoding="utf-8")
     assert 'href="/world?source=oap-os"' in source
-    assert '<a href="/world?source=oap-os">🌍 OAP World</a>' in source
+    assert '<a class="tile" href="/world?source=oap-os">' in source
 
 
 
