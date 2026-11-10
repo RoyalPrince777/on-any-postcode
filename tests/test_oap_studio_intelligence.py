@@ -347,6 +347,10 @@ def test_edit_and_refine_use_high_fidelity_source_reference(monkeypatch):
     assert all(call["input_fidelity"] == "high" for call in calls)
     assert all(call["source"] == source for call in calls)
     assert "same primary character identity" in calls[0]["prompt"]
+    assert "every other identifiable person and animal separately" in calls[0]["prompt"]
+    assert "visible logos, lettering, props, and architecture" in calls[0]["prompt"]
+    assert "correct speaker and supplied audio" in calls[0]["prompt"]
+    assert "These are generation instructions, not proof of continuity" in calls[0]["prompt"]
     assert "premium cinematic quality" in calls[1]["prompt"]
 
 
