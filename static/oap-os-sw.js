@@ -23,11 +23,11 @@ const isPrivatePath = (pathname) => PRIVATE_PREFIXES.some(
   (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
 );
 
+// Stage updates: do not force a waiting worker onto open Link Up or SMI clients.
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then((cache) => cache.addAll(PUBLIC_SHELL))
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -38,7 +38,6 @@ self.addEventListener("activate", (event) => {
         keys.filter((key) => key.startsWith("oap-os-") && key !== CACHE_VERSION)
           .map((key) => caches.delete(key))
       ))
-      .then(() => self.clients.claim())
   );
 });
 
