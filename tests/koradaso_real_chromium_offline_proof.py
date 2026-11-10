@@ -161,6 +161,11 @@ def main() -> None:
                         // A rejected install is the expected fail-closed outcome.
                     }
                 }""")
+                recovered.wait_for_function("""async (badName) => {
+                    // Wait for the rejected candidate's cache, not just the
+                    // already-active registration from before update().
+                    return (await caches.keys()).includes(badName);
+                }""", arg=bad_cache)
                 recovered.wait_for_function("""async () => {
                     const registration = await navigator.serviceWorker.getRegistration("/");
                     return registration.active?.state === "activated" &&
