@@ -177,8 +177,8 @@ def test_koradaso_android_termux_loopback_is_explicit_and_scoped():
     ).read_text(encoding="utf-8")
 
     assert 'private static final String LOCAL_ORIGIN = "http://127.0.0.1:5050"' in source
-    assert "private String activeOrigin = LOCAL_ORIGIN;" in source
-    assert 'modeButton = navButton("Local 5050");' in source
+    assert "private String activeOrigin = KORADASO_TEST_ORIGIN;" in source
+    assert 'modeButton = navButton("Local 5052");' in source
     assert 'activeOrigin = KORADASO_TEST_ORIGIN;' in source
     assert 'activeOrigin = OAP_ORIGIN;' in source
     assert 'activeOrigin = LOCAL_ORIGIN;' in source
@@ -214,3 +214,23 @@ def test_koradaso_android_can_use_isolated_termux_5052_without_remote_cleartext(
     assert '"127.0.0.1".equals(uri.getHost())' in source
     assert 'uri.getUserInfo() == null' in source
     assert 'engineClient = new EngineDocumentClient(activeOrigin);' in source
+
+
+def test_koradaso_android_launches_on_5052_and_preserves_manual_secure_fallback():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert 'private String activeOrigin = KORADASO_TEST_ORIGIN;' in source
+    assert 'modeButton = navButton("Local 5052");' in source
+    assert 'engineClient = new EngineDocumentClient(activeOrigin);' in source
+    assert 'openFirstPartyPath("/koradaso");' in source
+    cycle = source.split("private void switchOrigin()", 1)[1].split("\n    }", 1)[0]
+    assert cycle.index('if (KORADASO_TEST_ORIGIN.equals(activeOrigin))') < cycle.index(
+        'else if (LOCAL_ORIGIN.equals(activeOrigin))'
+    )
+    assert cycle.index('activeOrigin = LOCAL_ORIGIN;') < cycle.index(
+        'activeOrigin = OAP_ORIGIN;'
+    ) < cycle.index('activeOrigin = KORADASO_TEST_ORIGIN;', cycle.index('activeOrigin = OAP_ORIGIN;'))
+    assert "onrender.com" not in source
+    # A local connection failure must not automatically switch to the public host.
+    assert 'activeOrigin = OAP_ORIGIN;' not in source.split(
+        'private void openFirstPartyPath(String sourcePath, boolean recordHistory)', 1
+    )[1].split('private void loadWebViewUrl', 1)[0]
