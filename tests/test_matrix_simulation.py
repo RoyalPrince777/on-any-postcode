@@ -61,6 +61,7 @@ def test_morpheus_mouse_training_plan_reuses_existing_matrix_ground_without_exec
 
 def test_morpheus_mouse_training_plan_rejects_unsupported_or_blank_scenario():
     import pytest
+
     from mission_control import matrix_simulation
     for objective, mode in (("", "scenario"), ("practice", "invalid"), ("x" * 2001, "scenario")):
         with pytest.raises(ValueError):
