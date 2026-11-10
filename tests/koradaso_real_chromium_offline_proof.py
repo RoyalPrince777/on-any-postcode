@@ -179,7 +179,7 @@ def main() -> None:
                     ]);
                 }""")
                 assert candidate_state == "redundant", candidate_state
-                assert recovered.evaluate("""async () => {
+                recovered.wait_for_function("""async () => {
                     const registration = await navigator.serviceWorker.getRegistration("/");
                     return registration.active?.state === "activated" &&
                         !registration.installing && !registration.waiting;
