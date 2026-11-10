@@ -81,6 +81,31 @@ def test_smi_runtime_improvement_gate_requires_real_governance_evidence(monkeypa
     assert cycle["controlled_self_improvement_runtime"]["independent_apply"] is False
 
 
+
+def test_improvement_readiness_requires_independent_execution_lock_and_real_human_authority(monkeypatch):
+    """An approval signal alone must not certify self-improvement readiness."""
+    for missing in ("execution_locked", "human_authority_final"):
+        data = _health(approval_receipt=True)
+        data["invariants"][missing] = False
+        monkeypatch.setattr(smi_runtime_autonomy.smi_chat_runtime, "health", lambda data=data: data)
+        cycle = smi_runtime_autonomy.run_cycle()
+        assert cycle["gates_green"] == 21
+        assert cycle["controlled_self_improvement_runtime"]["ready"] is False
+        assert cycle["controlled_self_improvement_runtime"]["independent_apply"] is False
+        assert cycle["consequential_action"] is False
+
+    for invalid in ("true", 1, None):
+        data = _health(approval_receipt=True)
+        data["invariants"]["execution_locked"] = invalid
+        monkeypatch.setattr(smi_runtime_autonomy.smi_chat_runtime, "health", lambda data=data: data)
+        assert smi_runtime_autonomy.run_cycle()["controlled_self_improvement_runtime"]["ready"] is False
+
+    data = _health(approval_receipt=True)
+    data.pop("invariants")
+    monkeypatch.setattr(smi_runtime_autonomy.smi_chat_runtime, "health", lambda: data)
+    assert smi_runtime_autonomy._evolution_evidence(data)["ready"] is False
+
+
 def test_smi_runtime_status_does_not_probe_health(monkeypatch):
     def forbidden():
         raise AssertionError("status must not run production health probe")
