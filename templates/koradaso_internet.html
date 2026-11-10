@@ -247,16 +247,10 @@ h2{letter-spacing:.03em;text-transform:none}
 <nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button><a href="/koradaso">⌂ KORADASO</a><a href="/world?source=oap-os">🌍 OAP World</a></nav>
 </main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
 </div>
+<script src="/static/koradaso_auto_update.js" defer></script>
 <script>
 (function(){
 "use strict";
-// Cache only the public KORADASO shell through the existing OAP public worker.
-// Private content, messages and identity data remain network-only.
-if (typeof navigator !== "undefined" && "serviceWorker" in navigator && window.isSecureContext) {
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("/service-worker.js",{scope:"/"}).catch(()=>{});
-  });
-}
 const form=document.getElementById("address-form"),field=document.getElementById("address"),note=document.getElementById("address-note");
 const back=document.getElementById("browser-back"),reduceMotion=document.getElementById("reduce-motion"),openWebSearch=document.getElementById("open-web-search");
 const trustState=document.getElementById("trust-state"),settingsNote=document.getElementById("settings-note");
