@@ -126,3 +126,15 @@ def test_reference_mobile_evidence_drawer_does_not_cover_live_smi():
     assert "closeEvidence();" in js
     assert "window.OAP_SMI_UI?.healthUrl" in js
     assert "Unknown · No Green inferred" in js
+
+
+def test_smi_evidence_health_refresh_is_bounded_and_fail_closed():
+    js = (ROOT / "mission_control" / "static" / "smi_noise_strip.js").read_text(encoding="utf-8")
+    assert "if(checkingEvidence)return" in js
+    assert "refresh.disabled=true" in js
+    assert "const controller=new AbortController()" in js
+    assert "setTimeout(()=>controller.abort(),8000)" in js
+    assert "signal:controller.signal" in js
+    assert "clearTimeout(timeout)" in js
+    assert "Unknown · No Green inferred" in js
+    assert "refresh.disabled=false" in js
