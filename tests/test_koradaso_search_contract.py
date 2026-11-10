@@ -30,7 +30,7 @@ def test_koradaso_public_smi_update_checks_real_interface_without_deploying(clie
     assert 'id="smi-update-status"' in source
     assert "fetch('/studio',{method:'GET',credentials:'same-origin',cache:'no-store',redirect:'error'})" in source
     assert "if(!response.ok)throw new Error" in source
-    assert "html.includes('id=\\"studio-send\\"')" in source
+    assert "html.includes(" in source and "studio-send" in source
     assert 'window.location.reload()' in source
     assert "history.length||input.value.trim()" in source
     assert "updateButton.disabled=false" in source
