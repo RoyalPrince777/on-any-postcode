@@ -100,3 +100,28 @@ def test_market_checkout_preserves_ambiguous_order_retry_identity():
     assert "checkoutButton.disabled = false;" in template
     assert "pending.splice(index, 1);" in template
     assert "Check My Orders before retrying" in template
+
+
+def test_market_basket_and_retry_state_are_scoped_to_signed_in_identity():
+    """The browser must never inherit another account's unscoped basket."""
+    from jinja2 import Environment
+
+    template = (
+        _root() / "mission_control" / "templates" / "market.html"
+    ).read_text(encoding="utf-8")
+    key_line = next(
+        line for line in template.splitlines() if "const keyName =" in line
+    )
+    render = Environment(autoescape=True).from_string(key_line).render
+
+    first = render(auth_user={"id": "member-one"})
+    second = render(auth_user={"id": "member-two"})
+    anonymous = render(auth_user=None)
+
+    assert "'oap-market-basket-v2:'" in first
+    assert '"member-one"' in first
+    assert '"member-two"' in second
+    assert first != second
+    assert '""' in anonymous
+    assert "oap-market-basket-v1" not in template
+    assert "Do not" in template and "unscoped basket" in template
