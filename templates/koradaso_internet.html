@@ -165,7 +165,13 @@ h2{letter-spacing:.03em;text-transform:none}
 @media(max-width:520px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:100px}}
 
 /* Compact public browser: actions in a real top-right drawer, never the home grid. */
-.top .royal-menu[open] .settings-panel{position:absolute;right:0;top:52px;z-index:30;width:min(340px,calc(100vw - 24px));max-height:min(78vh,700px);overflow-y:auto;box-shadow:0 15px 45px #000b}
+.top .royal-menu[open] .settings-panel{position:fixed;right:0;top:0;bottom:0;z-index:30;width:min(360px,100vw);height:100vh;height:100dvh;overflow-y:auto;border-radius:16px 0 0 16px;padding:18px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:-18px 0 45px #000b}
+.drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.drawer-heading h2{margin:0}
+.drawer-heading button{min-width:44px;min-height:44px;border:1px solid #977349;border-radius:12px;background:#21172e;color:#f1cd8d;font-size:1.4rem;cursor:pointer}
+.address-feedback:empty{display:none}
+.address-feedback:not(:empty){margin:4px 2px 12px;color:#ffda9c}
+@media(max-width:520px){.top .royal-menu[open] .settings-panel{border-radius:12px 0 0 12px}}
 .top .royal-menu[open]{flex-basis:0;margin-right:0}
 .screen-reader-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .public-smi{display:grid;place-items:center;min-height:49px;min-width:54px;padding:8px 11px;border:1px solid #ab83d0;border-radius:14px;background:#312046;color:#f6d48e;font-weight:750}
@@ -188,7 +194,7 @@ h2{letter-spacing:.03em;text-transform:none}
 <details class="royal-menu" id="browser-settings">
 <summary aria-label="Browser menu" title="Browser menu"><span aria-hidden="true">☰</span></summary>
 <div class="settings-panel">
-<h2>Browser</h2>
+<div class="drawer-heading"><h2>Browser</h2><button type="button" id="drawer-close" aria-label="Close browser menu">×</button></div>
 <section aria-labelledby="settings-downloads">
 <h3 id="settings-downloads">Downloads</h3>
 <p>Use the browser or Android Downloads manager to access downloaded files. KORADASO does not yet provide its own file manager.</p>
@@ -227,7 +233,7 @@ h2{letter-spacing:.03em;text-transform:none}
 <button type="submit">Search / Go</button>
 </form><a class="public-smi" href="/studio" aria-label="Open public SMI assistant">SMI</a></div>
 <p class="trust-state screen-reader-only" id="trust-state" role="status">OAP FIRST PARTY · Catalogue search</p>
-<p class="note screen-reader-only" id="address-note" role="status"></p>
+<p class="note address-feedback" id="address-note" role="status" aria-live="polite"></p>
 <div class="grid">
 <a class="tile" href="/world?source=oap-os"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>OAP World menu</span></a>
 
@@ -258,6 +264,7 @@ updateSearchMode(openWebSearch.checked?"web":"oap");
 openWebSearch.addEventListener("change",()=>{updateSearchMode(openWebSearch.checked?"web":"oap");savePreferences();});
 back.addEventListener("click",function(){if(window.history.length>1&&document.referrer){try{const previous=new URL(document.referrer);if(previous.origin===window.location.origin){window.history.back();return;}}catch(_){/* fallback home */}}window.location.assign("/koradaso");});
 const settings=document.getElementById("browser-settings");
+document.getElementById("drawer-close").addEventListener("click",()=>{settings.open=false;settings.querySelector("summary").focus();});
 const settingsLinks='a[href="#browser-settings"],a[href="#settings-downloads"]';
 document.querySelectorAll(settingsLinks).forEach(link=>link.addEventListener("click",()=>{settings.open=true;}));
 settings.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{settings.open=false;}));
