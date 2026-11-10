@@ -59,6 +59,12 @@ assert.deepEqual(submit("KORADASO history").visits,
 assert.deepEqual(submit("music").visits, ["/search?q=music"]);
 assert.deepEqual(submit("/world").visits, ["/world"]);
 assert.deepEqual(submit("/search").visits, ["/search"]);
+assert.deepEqual(submit("/oap-map").visits, ["/oap-map"]);
+assert.deepEqual(submit("/the-link").visits, ["/the-link"]);
+assert.deepEqual(submit("/the-spot/market").visits, ["/the-spot/market"]);
+assert.deepEqual(submit("/arena").visits, ["/arena"]);
+assert.deepEqual(submit("/studio").visits, ["/studio"]);
+assert.deepEqual(submit("/koradaso/web-search").visits, ["/koradaso/web-search"]);
 assert.deepEqual(submit("/maps").visits, []);
 assert.deepEqual(submit("/studio").visits, []);
 assert.deepEqual(submit("/unknown").visits, []);
@@ -71,7 +77,7 @@ assert.deepEqual(submit("music", true, false).visits,
 assert.equal(submit("music", true, true).prompts.length, 0);
 assert.equal(submit("javascript://attack").visits.length, 0);
 assert.equal(submit("//evil.example").visits.length, 0);
-console.log("KORADASO omnibox: 13 runtime cases passed");
+console.log("KORADASO omnibox: approved routes and unsafe schemes verified");
 """
     result = subprocess.run(
         ["node", "-e", script, str(ROOT / "templates/koradaso_internet.html")],
