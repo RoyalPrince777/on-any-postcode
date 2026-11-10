@@ -55,9 +55,9 @@ PUBLIC_DOORS = (
     ("Move", "Movement, maps and navigation", "/movement/workspace"),
     ("Ride", "OAP Rider and Driver", "/transport/ride"),
     ("Logistics", "Cargo, deliveries and fleet", "/distribution"),
-    ("Guardian", "Journey safety and protection", "/transport/ride/guardian/status"),
-    ("Operators", "Provider and shared-bike discovery", "/transport/shared-bikes/status"),
-    ("Control Center", "Transport execution readiness", "/transport/execution-readiness"),
+    ("Guardian", "Journey safety and protection", "/transport/guardian"),
+    ("Operators", "Provider and shared-bike discovery", "/transport/operators"),
+    ("Control Center", "Transport execution readiness", "/transport/control-center"),
 )
 
 DOOR_GROUPS = {
@@ -268,6 +268,90 @@ def transport_capabilities():
         "execution_readiness": state["execution_readiness"],
         "human_authority_final": True,
     }))
+
+
+# Public-facing navigation only. Technical JSON contracts remain on their original URLs.
+# No operator, payment, dispatch or evidence-writing action is exposed here.
+_TRANSPORT_INSIDE_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>{{ title }} · OAP Global Transport</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font:16px system-ui,-apple-system,sans-serif}
+main{max-width:760px;margin:auto;padding:20px 16px 48px}
+nav{display:flex;justify-content:space-between;align-items:center;gap:12px}
+a{color:inherit;text-decoration:none}
+.back{color:#e7c764;font-weight:650;min-height:44px;display:inline-flex;align-items:center}
+h1{font-size:clamp(1.8rem,6vw,2.5rem);margin:20px 0 6px}
+p{line-height:1.5;color:#bdbdbd;margin:0 0 20px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{background:#151515;border:1px solid #333;border-radius:16px;padding:18px 14px;
+min-height:96px;display:flex;flex-direction:column;justify-content:center;gap:8px}
+.card strong{color:#efd06b;font-size:1rem}.card span{font-size:.85rem;color:#bdbdbd}
+a:focus-visible{outline:3px solid #e7c764;outline-offset:3px}
+.note{margin-top:22px;color:#a9a9a9;font-size:.82rem}
+@media(max-width:360px){.grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<nav><a class="back" href="/transport">← Global Transport</a><a class="back" href="/transport/my">My Transport</a></nav>
+<h1>{{ title }}</h1><p>{{ description }}</p>
+<section class="grid" aria-label="{{ title }} options">
+{% for name, detail, href in items %}
+<a class="card" href="{{ href }}"><strong>{{ name }}</strong><span>{{ detail }}</span></a>
+{% endfor %}
+</section>
+<p class="note">Software navigation only. Availability and external actions require independent evidence and authority.</p>
+</main></body></html>"""
+
+_INSIDE_DOORS = {
+    "guardian": (
+        "Guardian", "Safety tools for your journey.",
+        (
+            ("Journey safety", "Protected journey controls", "/transport/ride/current"),
+            ("Guardian status", "Read journey safety status", "/transport/ride/guardian/status"),
+            ("My journeys", "Return to your journeys", "/transport/my"),
+        ),
+    ),
+    "operators": (
+        "Operators", "Discover available transport information.",
+        (
+            ("Shared bikes", "Mitcham discovery information", "/transport/shared-bikes/mitcham"),
+            ("Provider status", "Read operator availability information", "/transport/shared-bikes/status"),
+            ("Ride", "OAP Rider and Driver", "/transport/ride"),
+        ),
+    ),
+    "control-center": (
+        "Control Center", "Transport software status and readiness.",
+        (
+            ("Readiness", "Review execution requirements", "/transport/execution-readiness"),
+            ("Capabilities", "Review the 21 transport capabilities", "/transport/capabilities"),
+            ("Transport status", "Read current software status", "/transport/status"),
+        ),
+    ),
+}
+
+
+def _inside_door(name: str):
+    title, description, items = _INSIDE_DOORS[name]
+    return _no_store(make_response(render_template_string(
+        _TRANSPORT_INSIDE_PAGE, title=title, description=description, items=items,
+    )))
+
+
+@bp.get("/transport/guardian")
+def transport_guardian_home():
+    return _inside_door("guardian")
+
+
+@bp.get("/transport/operators")
+def transport_operators_home():
+    return _inside_door("operators")
+
+
+@bp.get("/transport/control-center")
+def transport_control_center_home():
+    return _inside_door("control-center")
 
 
 @bp.get("/transport/execution-readiness")
