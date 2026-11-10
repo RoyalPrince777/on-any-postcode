@@ -379,12 +379,20 @@
       if (checkoutButton.disabled) return;
       const basket = loadBasket();
       if (!basket.length) { status.textContent = 'Basket is empty.'; return; }
+      // Persist each key before contacting the server. A lost response must not
+      // generate a fresh order identifier when the buyer retries.
+      basket.forEach(item => {
+        if (!item.idempotency_key) {
+          item.idempotency_key = 'market-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2));
+        }
+      });
+      saveBasket(basket);
       checkoutButton.disabled = true;
       status.textContent = 'Creating order…';
       let created = 0;
       try {
         for (const item of basket) {
-          const key = 'market-' + item.product_id + '-' + Date.now() + '-' + created;
+          const key = item.idempotency_key;
           await jsonFetch('/mission/organs/market/orders', {
             method:'POST',
             body:JSON.stringify({
