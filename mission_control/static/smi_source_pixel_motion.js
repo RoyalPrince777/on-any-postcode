@@ -183,13 +183,18 @@
   function proofSnapshot(){
    const layerKeys=["eyes","head","breathing","mouth_visemes","face","hands","upper_body"];
    const allHashes=layerKeys.every(name=>/^[a-f0-9]{64}$/.test(String(evidenceLayerSha256[name]||"")));
-   const fullBodyRigProven=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
-   const accurateSoftwareLipSyncProven=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
+   // Pixel crops and cue counts are not articulated rig or timed-viseme proof.
+   // Keep those claims fail-closed until independently validated evidence exists.
+   const sourcePixelLayersObserved=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
+   const audioCueTimingObserved=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
+   const fullBodyRigProven=false;
+   const accurateSoftwareLipSyncProven=false;
    return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
-    maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,fullBodyRigProven,
-    accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
+    maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,sourcePixelLayersObserved,
+    audioCueTimingObserved,fullBodyRigProven,accurateSoftwareLipSyncProven,
+    accurateHumanLipSyncProven:false,
     physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
   }
   return Object.freeze({sourceSha256:actual,sourceOnly:true,decodedAudio:false,
