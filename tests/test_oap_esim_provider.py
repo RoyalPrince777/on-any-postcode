@@ -16,7 +16,7 @@ class SafeBackend:
 
 def _available_core():
     provider = OapFirstPartyEsimProvider(OapSmdpDevelopmentBoundary(SafeBackend()))
-    core = EsimProvisioningCore(provider=provider)
+    core = EsimProvisioningCore(provider=provider, network_evidence_verifier=lambda request_id, profile_id, evidence_id: evidence_id == "network-proof-1" and bool(profile_id))
     item = core.request(subject_id="founder", purpose="for-me-first")
     core.approve(item["request_id"], founder_identity="founder")
     return core, core.provision(item["request_id"])

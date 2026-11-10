@@ -98,9 +98,11 @@ class EsimProvisioningCore:
         self,
         provider: EsimProvider | None = None,
         repository: EsimRepository | None = None,
+        network_evidence_verifier: typing.Callable[[str, str, str], bool] | None = None,
     ) -> None:
         self.provider = provider
         self.repository = repository
+        self.network_evidence_verifier = network_evidence_verifier
         self._requests: dict[str, EsimRequest] = {}
         self._events: list[dict] = []
 
@@ -175,6 +177,28 @@ class EsimProvisioningCore:
             raise ValueError("available_profile_required")
         if not evidence_id or session_established is not True:
             raise RuntimeError("network_registration_not_confirmed")
+        if not item.provider_profile_id:
+            raise RuntimeError("provider_profile_missing")
+        if self.provider is None or self.provider.name != item.provider_name:
+            raise RuntimeError("esim_provider_mismatch")
+        # Reject prior receipts for this request after suspend/resume.
+        # Cross-worker single-use enforcement belongs to a durable trusted verifier.
+        if any(
+            event.get("event") == "registered"
+            and event.get("evidence_id") == evidence_id
+            for event in self.events(request_id)
+        ):
+            raise RuntimeError("network_evidence_already_used")
+        if self.network_evidence_verifier is None:
+            raise RuntimeError("network_evidence_verifier_not_configured")
+        try:
+            verified = self.network_evidence_verifier(
+                item.request_id, item.provider_profile_id or "", evidence_id
+            ) is True
+        except Exception as exc:
+            raise RuntimeError("network_evidence_verification_failed") from exc
+        if not verified:
+            raise RuntimeError("network_evidence_verification_failed")
         self._transition(item, "registered")
         self._record(item, "registered", evidence_id=evidence_id)
         self._transition(item, "active")
