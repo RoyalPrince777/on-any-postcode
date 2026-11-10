@@ -22,6 +22,12 @@
   const applyWhenIdle = () => {
     if (!pendingRelease || refreshing || !isIdle()) return;
     if (document.visibilityState !== "visible" || !navigator.onLine) return;
+    // A waiting worker must not be forced onto another active OAP client.
+    // Keep this page usable until the browser activates it naturally.
+    if (registration && registration.waiting) {
+      updateStatus("pending");
+      return;
+    }
     refreshing = true;
     updateStatus("refreshing");
     window.location.reload();
