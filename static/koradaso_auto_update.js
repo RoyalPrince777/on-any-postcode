@@ -13,7 +13,9 @@
   const isIdle = () => {
     const input = document.querySelector("#studio-input, #address");
     const messages = document.getElementById("messages");
-    return !input?.value.trim() && (!messages || !messages.children.length);
+    // Empty but focused composer is still active: don't interrupt typing.
+    return (!input || (document.activeElement !== input && !input.value.trim()))
+      && (!messages || !messages.children.length);
   };
   const updateStatus = status => {
     // Non-sensitive status only: no message text, identities or browsing history.
@@ -67,6 +69,7 @@
     applyWhenIdle();
   });
   document.addEventListener("input", applyWhenIdle);
+  document.addEventListener("focusout", applyWhenIdle);
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/service-worker.js", {scope: "/"})
       .then(found => {registration = found; check();})
