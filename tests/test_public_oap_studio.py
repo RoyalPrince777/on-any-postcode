@@ -16,6 +16,26 @@ def test_public_studio_route_exists_without_private_authority():
     assert "disabled" in page
 
 
+def test_koradaso_intelligence_reuses_public_studio_without_private_authority(client):
+    """KORADASO is a scoped presentation, not a second brain or private gateway."""
+    response = client.get("/studio?source=koradaso")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert "<title>KORADASO Intelligence</title>" in page
+    assert "One public SMI" in page
+    assert 'id="smi-update"' in page
+    assert page.count('data-smi-prompt="') == 7
+    assert "fetch('/studio/chat'" in page
+    assert "/mission/" not in page
+    assert "Private operational controls remain separate and inaccessible." in page
+    standard = client.get("/studio")
+    assert standard.status_code == 200
+    assert "<title>OAP Studio Intelligence</title>" in standard.get_data(as_text=True)
+    app = APP.read_text(encoding="utf-8")
+    assert 'request.args.get("source") == "koradaso"' in app
+    assert 'render_template("studio_public.html"' not in app  # same template, scoped flag
+
+
 def test_public_studio_does_not_expose_private_smi_controls():
     page = PUBLIC.read_text(encoding="utf-8")
     for forbidden in (
