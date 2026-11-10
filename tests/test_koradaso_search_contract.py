@@ -230,13 +230,16 @@ def test_external_search_is_opt_in_and_site_navigation_preserves_consent():
     assert 'window.confirm("OPEN WEB — "+url.hostname' in source
 
 
-def test_unready_oap_tiles_do_not_navigate_and_settings_are_functional():
+def test_approved_oap_tiles_are_real_routes_and_settings_are_functional(client):
     source = SOURCE.read_text(encoding="utf-8")
-    for route in ('/maps', '/the-link', '/the-spot/market', '/library'):
-        assert f'href="{route}"' not in source
+    for route in ("/oap-map", "/the-link", "/the-spot/market", "/arena"):
+        assert f'href="{route}"' in source
+        assert client.get(route).status_code in (200, 301, 302, 303)
+    for unavailable in ("/maps", "/library"):
+        assert f'href="{unavailable}"' not in source
     assert 'class="tile is-reserved"' not in source
-    assert '<strong>Maps</strong>' not in source
-    assert '<strong>Mail</strong>' not in source
+    assert '<strong>Maps</strong>' in source
+    assert '<strong>Mail</strong>' in source
     assert 'href="/world?source=oap-os"' in source
     assert 'href="/search"' in source
     assert 'name="search-mode"' not in source
@@ -339,13 +342,14 @@ def test_koradaso_shortcuts_keep_ready_world_market_search_and_settings(client):
     page = client.get("/koradaso")
     assert page.status_code == 200
     source = SOURCE.read_text(encoding="utf-8")
-    assert '<a class="tile" href="/world"><span class="ico"' in source
-    assert '<strong>Market</strong><span>OAP Marketplace</span>' in source
+    assert '<a class="tile" href="/world?source=oap-os"><span class="ico"' in source
+    assert '<a class="tile" href="/the-spot/market"><span class="ico"' in source
+    assert '<strong>Market</strong>' in source
     assert 'href="/world?source=oap-os"' in source
     assert 'href="/search"' in source
     assert 'aria-label="Browser menu"' in source
     for label in ("Maps", "Mail"):
-        assert f"<strong>{label}</strong>" not in source
+        assert f"<strong>{label}</strong>" in source
     assert 'id="settings-downloads"' in source
     assert client.get("/world").status_code == 200
     assert client.get("/world?source=oap-os").status_code == 200
@@ -385,7 +389,7 @@ def test_koradaso_original_logo_and_core_boundary(client):
 def test_koradaso_arena_and_discovery_tabs_are_truthful(client):
     html = client.get("/koradaso").get_data(as_text=True)
     assert 'class="tile arena-tile" href="/arena"' in html
-    assert "Play OAP games · Challenge hub" in html
+    assert '<strong>Arena</strong>' in html
     assert 'class="discovery-strip"' in html
     assert '<a href="/search">OAP Search</a>' in html
     assert '<a href="/koradaso/web-search">Web Index</a>' in html
