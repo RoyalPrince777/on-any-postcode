@@ -99,7 +99,7 @@ def test_koradaso_stages_public_worker_while_other_oap_clients_are_active():
     assert 'document.activeElement !== input' in updater
     assert 'document.addEventListener("focusout", applyWhenIdle)' in updater
     assert 'await caches.delete(CACHE_VERSION);' not in worker
-    assert 'throw error;' in worker
+    assert 'throw new Error("koradaso_public_shell_invalid")' in worker
     assert 'updateStatus("pending")' in updater
     assert "window.location.reload()" in updater
     assert 'if (isPrivatePath(url.pathname)) return;' in worker
