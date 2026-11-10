@@ -283,6 +283,7 @@ def test_mission_fit_auto_divisions_are_bounded_advisory_only():
 
 def test_mission_fit_auto_requires_nonempty_bounded_mission():
     import pytest
+
     from mission_control import smi_auto
     with pytest.raises(ValueError, match="invalid_mission"):
         smi_auto.route_divisions(["auto"], mission="")
