@@ -848,3 +848,36 @@ body.smi-reference-layout .smi-shell::after{pointer-events:none!important}
 @media(prefers-reduced-motion:reduce){
  body.smi-reference-layout .smi-reference-left{transition:none!important}
 }
+
+
+/* SMI mobile evidence access and immersive-state boundary. */
+body.smi-reference-layout .smi-reference-evidence-toggle{
+  display:none;min-width:44px;min-height:44px;border:1px solid var(--smi-ref-line);
+  border-radius:12px;background:#081125;color:var(--smi-ref-gold);font-size:1.2rem;cursor:pointer;
+}
+body.smi-reference-layout .smi-reference-evidence-toggle:focus-visible{
+  outline:2px solid #f4cb7c;outline-offset:2px;
+}
+body.smi-reference-layout.smi-live-fullscreen .smi-reference-top,
+body.smi-reference-layout.smi-live-fullscreen .smi-reference-side,
+body.smi-reference-layout.smi-live-fullscreen .smi-reference-foot{
+  display:none!important;
+}
+@media(max-width:760px){
+  body.smi-reference-layout .smi-reference-top{
+    grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 44px 44px;
+  }
+  body.smi-reference-layout .smi-reference-evidence-toggle{display:block}
+  body.smi-reference-layout .smi-reference-right{
+    display:block;
+    right:10px;
+    transform:translateX(calc(100% + 20px));
+    transition:transform .2s ease;
+  }
+  body.smi-reference-layout.smi-reference-evidence-open .smi-reference-right{
+    transform:translateX(0);
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body.smi-reference-layout .smi-reference-right{transition:none!important}
+}
