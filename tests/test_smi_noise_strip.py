@@ -138,3 +138,14 @@ def test_smi_evidence_health_refresh_is_bounded_and_fail_closed():
     assert "clearTimeout(timeout)" in js
     assert "Unknown · No Green inferred" in js
     assert "refresh.disabled=false" in js
+
+
+def test_reference_mobile_closed_drawers_are_not_focusable():
+    js = (ROOT / "mission_control" / "static" / "smi_noise_strip.js").read_text(encoding="utf-8")
+    assert "const mobileLayout=window.matchMedia('(max-width:760px)')" in js
+    assert "left.inert=!navOpen" in js
+    assert "right.inert=!evidenceOpen" in js
+    assert "left.setAttribute('aria-hidden',String(!navOpen))" in js
+    assert "right.setAttribute('aria-hidden',String(!evidenceOpen))" in js
+    assert "mobileLayout.addEventListener('change',syncDrawerAccess)" in js
+    assert "syncDrawerAccess();" in js
