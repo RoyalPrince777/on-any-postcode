@@ -56,7 +56,7 @@ def test_royal_home_keeps_search_and_navigation_functional(client):
     assert "New tab" not in body
     assert 'href="/arena"' in body
     assert 'href="/search"' in body
-    assert 'href="#bookmark-list"' in body
+    assert 'id="bookmark-list"' in body
     assert 'href="#browser-settings"' in body
     assert 'id="address-form"' in body
     assert 'id="trust-state"' in body
