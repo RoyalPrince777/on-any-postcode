@@ -307,6 +307,7 @@
     const recovery = document.getElementById('market-recovery');
     const stopButton = document.getElementById('market-stop-transaction');
     let activeTransactionId = null;
+    let checkoutInProgress = false;
 
     const loadBasket = () => {
       try {
@@ -332,21 +333,21 @@
         row.querySelector('.market-meta').textContent = money(item.currency, item.price);
         const qty = row.querySelector('input');
         qty.value = item.quantity;
-        qty.disabled = Boolean(item.order_attempted);
-        row.querySelector('button').disabled = Boolean(item.order_attempted);
+        qty.disabled = checkoutInProgress || Boolean(item.order_attempted);
+        row.querySelector('button').disabled = checkoutInProgress || Boolean(item.order_attempted);
         if (item.order_attempted) {
           row.querySelector('.market-meta').textContent += ' · Order request sent; review My Orders or retry unchanged';
         }
         qty.addEventListener('change', () => {
           const next = loadBasket();
-          if (!next[index] || next[index].order_attempted) return;
+          if (checkoutInProgress || !next[index] || next[index].order_attempted) return;
           next[index].quantity = Math.min(99, Math.max(1, Number(qty.value) || 1));
           next[index].idempotency_key = null;
           saveBasket(next); renderBasket();
         });
         row.querySelector('button').addEventListener('click', () => {
           const next = loadBasket();
-          if (!next[index] || next[index].order_attempted) return;
+          if (checkoutInProgress || !next[index] || next[index].order_attempted) return;
           next.splice(index, 1); saveBasket(next); renderBasket();
         });
         basketList.appendChild(row);
@@ -355,6 +356,7 @@
 
     document.querySelectorAll('.market-add').forEach(button => {
       button.addEventListener('click', () => {
+        if (checkoutInProgress) return;
         const basket = loadBasket();
         const found = basket.find(item => item.product_id === button.dataset.productId);
         if (found?.order_attempted) {
@@ -375,6 +377,7 @@
     });
 
     document.getElementById('market-clear-basket')?.addEventListener('click', () => {
+      if (checkoutInProgress) return;
       const pending = loadBasket().filter(item => item.order_attempted);
       saveBasket(pending); renderBasket();
       status.textContent = pending.length ? 'Unsubmitted items cleared. Outstanding order requests retained for safe retry.' : 'Basket cleared.';
@@ -394,7 +397,7 @@
 
     const checkoutButton = document.getElementById('market-checkout');
     checkoutButton?.addEventListener('click', async () => {
-      if (checkoutButton.disabled) return;
+      if (checkoutButton.disabled || checkoutInProgress) return;
       const basket = loadBasket();
       if (!basket.length) { status.textContent = 'Basket is empty.'; return; }
       // Persist each key before contacting the server. A lost response must not
@@ -405,7 +408,10 @@
         }
       });
       saveBasket(basket);
+      checkoutInProgress = true;
       checkoutButton.disabled = true;
+      document.getElementById('market-clear-basket').disabled = true;
+      renderBasket();
       status.textContent = 'Creating order…';
       let created = 0;
       try {
@@ -442,7 +448,10 @@
           ? created + ' order' + (created === 1 ? '' : 's') + ' created; remaining items kept in basket. Check My Orders before retrying. ' + error.message
           : 'Order could not be created. Check My Orders before retrying: ' + error.message;
       } finally {
+        checkoutInProgress = false;
         checkoutButton.disabled = false;
+        document.getElementById('market-clear-basket').disabled = false;
+        renderBasket();
       }
     });
 
