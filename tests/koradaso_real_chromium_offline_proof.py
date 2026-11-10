@@ -103,8 +103,40 @@ def main() -> None:
             finally:
                 app_module.app.view_functions["oap_os_service_worker"] = original_worker_view
 
+            # Once both original controlled tabs close, Chromium may activate
+            # the staged worker. Verify recovery with a genuinely missing new
+            # shell entry while network access is disabled.
             studio.close()
             page.close()
+            recovered = context.new_page()
+            recovered.goto(BASE + "/koradaso")
+            recovered.wait_for_function("""async (cacheName) => {
+                const registration = await navigator.serviceWorker.ready;
+                return registration.active?.state === "activated" &&
+                    !registration.waiting &&
+                    (await caches.keys()).includes(cacheName);
+            }""", arg=next_cache)
+            recovered.wait_for_function("""async (oldName) => {
+                const keys = await caches.keys();
+                return keys.includes(oldName);
+            }""", arg=current_cache)
+            cache_state = recovered.evaluate("""async ([newName, oldName]) => {
+                const newer = await caches.open(newName);
+                const older = await caches.open(oldName);
+                const original = await older.match("/koradaso");
+                if (!original) return "missing_last_good";
+                const removed = await newer.delete("/koradaso");
+                return removed ? "new_shell_removed" : "missing_new_shell";
+            }""", [next_cache, current_cache])
+            assert cache_state == "new_shell_removed", cache_state
+            context.set_offline(True)
+            recovered_response = recovered.reload(wait_until="domcontentloaded")
+            assert recovered_response is not None and recovered_response.status == 200
+            expect(recovered.locator("html")).to_have_attribute(
+                "data-koradaso-release", before
+            )
+            context.set_offline(False)
+            recovered.close()
             context.close()
             browser.close()
         print("KORADASO_REAL_CHROMIUM_OFFLINE_SHELL_PASS")
