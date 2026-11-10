@@ -208,7 +208,7 @@ def test_koradaso_android_can_use_isolated_termux_5052_without_remote_cleartext(
     source = SOURCE.read_text(encoding="utf-8")
     assert 'private static final String KORADASO_TEST_ORIGIN = "http://127.0.0.1:5052"' in source
     assert 'KORADASO_TEST_ORIGIN.equals(activeOrigin)' in source
-    assert 'modeButton = navButton("Local 5050");' in source
+    assert 'modeButton = navButton("Local 5052");' in source
     assert '"Local 5052" : "Online"' in source
     assert '&& (uri.getPort() == 5050 || uri.getPort() == 5052)' in source
     assert '"127.0.0.1".equals(uri.getHost())' in source
