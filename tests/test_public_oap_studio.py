@@ -23,7 +23,6 @@ def test_public_studio_does_not_expose_private_smi_controls():
         "/mission/studio/status",
         "/mission/ollama",
         "Sovereign Megaverse Intelligence",
-        "SMI",
         "War Room",
         "JOOG/HRM",
         "private agents",
@@ -32,6 +31,24 @@ def test_public_studio_does_not_expose_private_smi_controls():
     ):
         assert forbidden not in page
     assert "Private operational controls remain separate and inaccessible." in page
+    assert 'id="smi-update"' in page  # Public refresh only, no Founder authority.
+    assert "/mission/" not in page
+
+
+def test_public_smi_seven_recommendations_prefill_real_chat_not_unready_media():
+    page = PUBLIC.read_text(encoding="utf-8")
+    assert page.count('data-smi-prompt="') == 7
+    for title in ("Explain", "Research", "Truth Check", "Compare",
+                  "Plan", "Write", "Code Help"):
+        assert f"<strong>{title}</strong>" in page
+    assert "document.querySelectorAll('[data-smi-prompt]')" in page
+    assert "input.value=button.getAttribute('data-smi-prompt')" in page
+    assert "input.focus()" in page
+    assert "Replace the current unsent message" in page
+    assert "fetch('/studio/chat'" in page
+    assert 'type="button" data-smi-prompt=' in page
+    assert '<div class="tool"><strong>Imagine' not in page
+    assert '<div class="tool"><strong>Bring Alive' not in page
 
 
 def test_private_studio_generation_remains_founder_only():
