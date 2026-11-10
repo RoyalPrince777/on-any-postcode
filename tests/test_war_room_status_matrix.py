@@ -124,3 +124,16 @@ def test_cc_mission_field_remains_unique_for_chromium():
     assert '<textarea class="smi-command-notes" id="smi-command-extra"' in PAGE
     assert ".mission,.smi-command-notes{" in PAGE
     assert "document.querySelector('.mission')?.value" in PAGE
+
+
+def test_governed_smi_auto_has_stop_and_no_consequential_execution():
+    assert 'id="smi-auto-stop" disabled' in PAGE
+    assert "const controller=new AbortController()" in PAGE
+    assert "autoMissionController.abort()" in PAGE
+    assert "if(controller.signal.aborted)break" in PAGE
+    assert "if(autoMissionController)throw new Error" in PAGE
+    assert "Enter a mission before running SMI." in PAGE
+    assert "Checks queried: " in PAGE
+    assert "Founder Final: required" in PAGE
+    assert "Green NOT inferred" in PAGE
+    assert "STOPPED · no further checks" in PAGE
