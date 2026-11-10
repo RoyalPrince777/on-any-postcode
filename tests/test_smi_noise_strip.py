@@ -113,3 +113,16 @@ def test_reference_command_room_uses_real_evidence_and_mobile_drawer():
     assert "Unknown · No Green inferred" in js
     assert "fetch(url,{credentials:'same-origin',cache:'no-store'})" in js
     assert "document.addEventListener('keydown'" not in js
+
+def test_reference_mobile_evidence_drawer_does_not_cover_live_smi():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text(encoding="utf-8")
+    js = (ROOT / "mission_control" / "static" / "smi_noise_strip.js").read_text(encoding="utf-8")
+    assert "smi-reference-evidence-toggle" in css
+    assert "smi-reference-evidence-open" in css
+    assert "smi-reference-evidence-toggle" in js
+    assert "smi-reference-evidence-open" in js
+    assert "smi-reference-layout.smi-live-fullscreen .smi-reference-top" in css
+    assert "smi-reference-layout.smi-live-fullscreen .smi-reference-side" in css
+    assert "closeEvidence();" in js
+    assert "window.OAP_SMI_UI?.healthUrl" in js
+    assert "Unknown · No Green inferred" in js
