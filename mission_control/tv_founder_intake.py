@@ -35,11 +35,21 @@ def intake(stream, *, content_type: str, title: str, owner_id: str, content_kind
         raise ValueError("tv_media_signature_mismatch")
     item_id = str(uuid.uuid4())
     suffix = ".mp4" if content_type == "video/mp4" else ".webm"
-    # Exclusive create, no original filename or user-controlled path.
+    # Create private from the first byte; never expose an intermediate
+    # world-readable file or leave a partial candidate after a write failure.
     path = root / (item_id + suffix)
-    with path.open("xb") as target:
-        os.chmod(path, 0o600)
-        target.write(data)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(path, flags, 0o600)
+    try:
+        with os.fdopen(fd, "wb") as target:
+            target.write(data)
+            target.flush()
+            os.fsync(target.fileno())
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
     return {
         "candidate_id": item_id,
         "title": title.strip(),
