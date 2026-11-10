@@ -222,6 +222,24 @@ def run() -> int:
                 stop_event.wait(poll_seconds)
                 continue
             last_job_id = job.job_id
+            # STOP/AEGIS may arrive after claim but before the handler begins.
+            # These maintenance handlers are read-only; released work is retried
+            # through the existing lease/receipt machinery, never executed here.
+            if stop_event.is_set() or store.worker_state(worker_id) != "ACTIVE":
+                stop_event.set()
+                try:
+                    released_state = store.fail(
+                        job, worker_id, error_code="worker_stop_before_handler"
+                    )
+                except RuntimeError:
+                    released_state = "LEASE_ALREADY_RELEASED"
+                _log(
+                    "runtime_job_interrupted",
+                    job_id=job.job_id,
+                    phase="before_handler",
+                    state=released_state,
+                )
+                continue
             handler = HANDLERS.get(job.job_type)
             if handler is None:
                 state = store.fail(job, worker_id, error_code="handler_not_allowlisted")
@@ -251,6 +269,23 @@ def run() -> int:
                 result = handler(job)
                 if result.get("consequential_action") is not False:
                     raise PermissionError("runtime handler crossed authority boundary")
+                # A drained/isolated worker cannot certify a late success.
+                # Isolation may already have released the lease and its receipt.
+                if stop_event.is_set() or store.worker_state(worker_id) != "ACTIVE":
+                    stop_event.set()
+                    try:
+                        released_state = store.fail(
+                            job, worker_id, error_code="worker_stop_after_handler"
+                        )
+                    except RuntimeError:
+                        released_state = "LEASE_ALREADY_RELEASED"
+                    _log(
+                        "runtime_job_interrupted",
+                        job_id=job.job_id,
+                        phase="after_handler",
+                        state=released_state,
+                    )
+                    continue
                 store.complete(job, worker_id, result)
                 _log(
                     "runtime_job_succeeded",
