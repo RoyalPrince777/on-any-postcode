@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_VERSION = "oap-os-public-v1.2-staged";
+const CACHE_VERSION = "oap-os-public-__KORADASO_RELEASE__";
 const PUBLIC_SHELL = Object.freeze([
   "/offline",
   "/koradaso",
