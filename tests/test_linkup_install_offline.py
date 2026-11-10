@@ -51,9 +51,12 @@ def test_offline_shell_is_linkup_aware_but_contains_no_private_content():
 
 
 def test_service_worker_remains_network_first_for_linkup_navigation():
-    assert 'const CACHE_VERSION = "oap-os-public-v1.1";' in WORKER
+    # The public shell cache changes when KORADASO is added; Link Up must
+    # remain network-first and must never be cached as a private page.
+    assert 'const CACHE_VERSION = "oap-os-public-' in WORKER
     assert 'if (request.mode === "navigate")' in WORKER
-    assert 'fetch(request).catch(() => caches.match("/offline"))' in WORKER
+    assert 'fetch(request).catch(() => url.pathname === "/koradaso"' in WORKER
+    assert ': caches.match("/offline"))' in WORKER
     assert "cache.put" not in WORKER
     public_shell = WORKER.split("const PRIVATE_PREFIXES", 1)[0]
     assert '"/linkup"' not in public_shell
