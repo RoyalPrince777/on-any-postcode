@@ -271,7 +271,7 @@ reduceMotion.addEventListener("change",function(){document.body.classList.toggle
 // Bookmarks are user-initiated, browser-local and limited to OAP routes.
 const bookmarkList=document.getElementById("bookmark-list"),bookmarkNote=document.getElementById("bookmark-note");
 const bookmarkKey="koradaso.first_party_bookmarks.v1";
-const allowedRoutes=new Set(["/koradaso","/world","/search","/studio"]);
+const allowedRoutes=new Set(["/koradaso","/world","/search"]);
 function readBookmarks(){try{const value=JSON.parse(localStorage.getItem(bookmarkKey)||"[]");return Array.isArray(value)?value.filter(x=>typeof x==="string"&&allowedRoutes.has(x)).slice(0,12):[];}catch(_){return [];}}
 function showBookmarks(){
   bookmarkList.querySelectorAll(".bookmark-saved").forEach(node=>node.remove());
