@@ -36,6 +36,7 @@ def prepare():
     migrations = (
         ROOT / "migrations/0008_oap_arena_multiplayer_rooms.sql",
         ROOT / "migrations/0010_oap_arena_oware_room.sql",
+        ROOT / "migrations/0011_oap_arena_connect4_chat.sql",
     )
     with postgres_db.connect() as connection:
         for path in migrations:
