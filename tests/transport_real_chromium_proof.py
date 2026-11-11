@@ -160,6 +160,28 @@ def prove_transport(browser, viewport):
         assert result.status == 307, (source, result.status)
         assert result.headers["location"].endswith(expected), result.headers
 
+    # Real browser network-loss proof. Pre-cached public menu survives a lost server,
+    # but no private journey, payment or operational route is cached.
+    page.goto(BASE + "/transport", wait_until="load")
+    page.evaluate("() => navigator.serviceWorker.ready")
+    page.wait_for_function("() => !!navigator.serviceWorker.controller")
+    context.set_offline(True)
+    offline = page.goto(BASE + "/transport", wait_until="domcontentloaded")
+    assert offline is not None and offline.status == 200
+    expect(page.locator("h1")).to_have_text("Global Transport")
+    expect(page.get_by_text("Offline shell only", exact=False)).to_be_visible()
+    assert page.locator(".tile").count() == 7
+    expect(page.get_by_text("Unknown · blocked", exact=False)).to_be_visible()
+    assert page.locator("form").count() == 0
+    assert_layout(page)
+    gated = page.goto(BASE + "/transport/ride/current", wait_until="domcontentloaded")
+    assert gated is not None and gated.status == 200
+    expect(page.get_by_text("No actions are queued or executed offline.", exact=False)).to_be_visible()
+    context.set_offline(False)
+    restored = page.goto(BASE + "/transport", wait_until="domcontentloaded")
+    assert restored is not None and restored.status == 200
+    expect(page.locator('nav[aria-label="Global Transport main menu"] .card')).to_have_count(7)
+
     assert not errors, errors
     context.close()
 
