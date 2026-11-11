@@ -136,7 +136,7 @@
       <div class="brand">
         <div class="eyebrow">Founder Private · SMI</div>
         <h1>Sovereign Megaverse Intelligence</h1>
-        <p>One brain. One sovereign command surface. Evidence before Green.</p>
+        <p>One complete digital organism. One sovereign command surface. Evidence before Green.</p>
       </div>
       <div class="scope" aria-label="Scope and truth state">
         <span class="chip green">Software scope</span>
@@ -144,6 +144,29 @@
         <span class="chip gold">Human Authority final</span>
       </div>
     </header>
+
+    <section class="panel" aria-labelledby="smi-review-title">
+      <div class="section-title"><strong id="smi-review-title">🟣 SMI Review Intelligence</strong><span>8 functions · 16 capabilities · Founder-approved contract</span></div>
+      <p style="color:var(--muted);font-size:.78rem;line-height:1.5;margin:8px 0 14px">One Sovereign Megaverse Intelligence organism. Synthetic Mind, Synthetic Machine and Stealth Mode operate inside the same governed identity. Review functions are an approved architecture, not proof that every capability is running.</p>
+      <div class="smi-review-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">
+        {% for name, first, second, href in [
+          ('Expose & Fix','Expose','Fix','/mission/improvement'),
+          ('Truth & Investigation','Truth Mode','Deep Investigation','/mission/war-room'),
+          ('Red Team & Defence','Red Team','Defence Intelligence','/mission/war-room'),
+          ("Devil’s Advocate & Judgement","Devil’s Advocate",'Decision Intelligence','/mission/judgement'),
+          ('Verification & Validation','Verification','Validation','/mission/smi/function-health'),
+          ('Upgrade & Optimisation','Upgrade Intelligence','Optimisation','/mission/improvement'),
+          ('Foresight & Recovery','Foresight','Recovery & Resilience','/mission/war-room'),
+          ('Green Gate & Accountability','Green Gate','Accountability','/mission/smi/green-gate')
+        ] %}
+        <a href="{{ href }}" style="display:block;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);min-width:0" aria-label="Open {{ name }} related existing SMI review route">
+          <strong style="display:block;font-size:.81rem">{{ loop.index }}. {{ name }}</strong>
+          <span style="display:block;color:var(--muted);font-size:.71rem;margin-top:7px">{{ first }} · {{ second }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      <p style="color:var(--muted);font-size:.7rem;margin:12px 0 0">Review-only navigation to existing SMI routes. No new execution permission. Truth Mode, Guardian, HRM and Founder Final remain mandatory where applicable. Runtime proof: unknown until tested.</p>
+    </section>
 
     <section class="panel important-signals" aria-labelledby="important-signals-title">
       <div class="section-title"><strong id="important-signals-title">🚨 Important Signals</strong><span>what matters first · live evidence only</span></div>
@@ -262,7 +285,7 @@
       </aside>
     </section>
 
-    <p class="footer">ONE WORLD · ONE FRONT DOOR · MANY SYSTEMS INSIDE · SMI remains one brain.</p>
+    <p class="footer">ONE WORLD · ONE FRONT DOOR · MANY SYSTEMS INSIDE · SMI remains one sovereign digital organism.</p>
   </main>
 </div>
 
