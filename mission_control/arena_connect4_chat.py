@@ -52,7 +52,7 @@ def send(*, room_id: object, reconnect_token: object, request_id: object,
     token_hash = arena_rooms._token_hash(reconnect_token)
     req = arena_rooms._request_id(request_id)
     if not isinstance(message, str):
-        raise ValueError("arena_chat_message_invalid")
+        raise TypeError("arena_chat_message_invalid")
     text = message.strip()
     if not text or len(text) > 280 or any(ord(ch) < 32 and ch not in '\n\t' for ch in text):
         raise ValueError("arena_chat_message_invalid")
