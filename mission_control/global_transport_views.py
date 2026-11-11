@@ -54,7 +54,7 @@ PUBLIC_DOORS = (
     ("Journey", "End-to-end journey planning", "/travel"),
     ("Move", "Movement, maps and navigation", "/movement/workspace"),
     ("Ride", "OAP Rider and Driver", "/transport/ride"),
-    ("Logistics", "Cargo, deliveries and fleet", "/distribution"),
+    ("Logistics", "Cargo, deliveries and fleet", "/transport/logistics"),
     ("Guardian", "Journey safety and protection", "/transport/guardian"),
     ("Operators", "Provider and shared-bike discovery", "/transport/operators"),
     ("Control Center", "Transport execution readiness", "/transport/control-center"),
@@ -316,6 +316,14 @@ a:focus-visible{outline:3px solid #e7c764;outline-offset:3px}.card:hover,.card:f
 </main></body></html>"""
 
 _INSIDE_DOORS = {
+    "logistics": (
+        "Logistics", "Cargo, deliveries and fleet.",
+        (
+            ("Cargo", "Private distribution status · sign-in required", "/distribution"),
+            ("Deliver", "Private Movement booking · sign-in required", "/movement/workspace#book-title"),
+            ("Fleet", "Driver workspace", "/transport/ride/driver"),
+        ),
+    ),
     "guardian": (
         "Guardian", "Safety tools for your journey.",
         (
@@ -348,6 +356,12 @@ def _inside_door(name: str):
     return _no_store(make_response(render_template_string(
         _TRANSPORT_INSIDE_PAGE, title=title, description=description, items=items,
     )))
+
+
+@bp.get("/transport/logistics")
+def transport_logistics_home():
+    """Public navigation only; distribution, booking and dispatch stay gated."""
+    return _inside_door("logistics")
 
 
 @bp.get("/transport/guardian")
