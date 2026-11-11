@@ -173,3 +173,22 @@ def test_connect4_level_search_blocks_immediate_win_and_stays_legal():
     for level in ["easy", "standard", "strong", "a7"]:
         for agent in ["fox", "tiger"]:
             assert connect4_column(board, difficulty=level, agent_key=agent) == 3
+
+
+def test_connect4_character_banter_contract(client):
+    """Agent banter stays client-local, distinct, and driven by real moves."""
+    html = client.get("/arena/connect4").get_data(as_text=True)
+    js = client.get("/static/connect4.js").get_data(as_text=True)
+    assert 'data-agent-banter' in html
+    assert 'data-agent-talk' in html
+    assert 'data-agent-persona' in html
+    assert 'const personalities={' in js
+    for agent in ('fox', 'tiger', 'neo', 'queen-bee', 'octopus', 'panther', 'falcon', 'owl', 'gorilla'):
+        assert agent + ':{name:' in js or '"' + agent + '":{name:' in js
+    assert 'winningColumns(previous.board,1)' in js
+    assert 'next.winner_id==="p2"' in js
+    assert 'document.createTextNode(line)' in js
+    assert 'transcript.children.length>5' in js
+    assert 'sayAgent("intro")' in js
+    assert 'sayAgent("loss")' in js
+    assert 'sayAgent("draw")' in js
