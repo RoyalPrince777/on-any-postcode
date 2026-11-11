@@ -210,28 +210,28 @@ _PAGE = """<!doctype html>
 :root{color-scheme:dark;--bg:#090909;--panel:#161616;--edge:#323232;--gold:#f0cf63;--muted:#b9b9b9}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:#f7f7f7;font:16px/1.5 system-ui,-apple-system,sans-serif}
-main{max-width:800px;margin:auto;padding:20px 16px 48px}
+main{max-width:800px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
 .brand{color:var(--gold);font-weight:800;font-size:.78rem;letter-spacing:.075em}
 .return{color:#dedede;text-decoration:none;font-weight:650;padding:10px 0;min-height:44px}
-h1{font-size:clamp(2rem,8vw,3.2rem);line-height:1.08;letter-spacing:-.035em;margin:0 0 10px}
+h1{font-size:clamp(1.85rem,7vw,2.8rem);line-height:1.12;letter-spacing:-.03em;margin:0 0 20px}
 .intro{color:var(--muted);margin:0 0 24px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.card{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:80px;
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:80px;min-width:0;
 padding:16px;border-radius:16px;background:var(--panel);border:1px solid var(--edge);
 text-decoration:none;color:inherit;transition:border-color .15s}
-.card:hover,.card:focus-visible{border-color:var(--gold)}
+.card:hover,.card:focus-visible{border-color:var(--gold)}.card:active{background:#22201a}
 .card:focus-visible,.return:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
-.card strong{display:block;color:#f7f7f7;font-size:1.05rem}
+.card strong{display:block;color:#f7f7f7;font-size:1rem;line-height:1.25;overflow-wrap:break-word}
 
 .card .arrow{font-size:1.1rem;color:var(--gold);flex:none}
 .card:last-child{grid-column:1/-1;min-height:80px}
 footer{margin-top:28px;color:#aaa;font-size:.82rem}
-.install{margin-top:18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.install{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}.install:has(> button[hidden]):has(> [role=status]:empty){display:none}
 .install button{background:#242016;border:1px solid #7a6420;border-radius:12px;color:var(--gold);padding:12px;font:inherit;font-weight:700}
 .install [role=status]{color:var(--muted);font-size:.82rem}
-@media(max-width:390px){.card{padding:14px;min-height:76px}.card strong{font-size:.96rem}}
-@media(max-width:330px){.grid{grid-template-columns:1fr}.card:last-child{grid-column:auto}}
+@media(max-width:390px){main{padding-inline:14px}.grid{gap:9px}.card{padding:12px;min-height:76px}.card strong{font-size:.94rem}.card .arrow{font-size:1rem}}
+@media(max-width:320px){.grid{grid-template-columns:1fr}.card:last-child{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
 </head>
@@ -291,19 +291,19 @@ _TRANSPORT_INSIDE_PAGE = """<!doctype html>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}
 body{margin:0;background:#090909;color:#f5f5f5;font:16px system-ui,-apple-system,sans-serif}
-main{max-width:760px;margin:auto;padding:20px 16px 48px}
-nav{display:flex;justify-content:space-between;align-items:center;gap:12px}
+main{max-width:760px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
+nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 a{color:inherit;text-decoration:none}
-.back{color:#e7c764;font-weight:650;min-height:44px;display:inline-flex;align-items:center}
-h1{font-size:clamp(1.8rem,6vw,2.5rem);margin:20px 0 6px}
+.back{color:#e7c764;font-weight:650;min-height:44px;display:inline-flex;align-items:center;font-size:.91rem}
+h1{font-size:clamp(1.75rem,6vw,2.4rem);line-height:1.15;margin:18px 0 8px}
 p{line-height:1.5;color:#bdbdbd;margin:0 0 20px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.card{background:#151515;border:1px solid #333;border-radius:16px;padding:18px 14px;
-min-height:96px;display:flex;flex-direction:column;justify-content:center;gap:8px}
-.card strong{color:#efd06b;font-size:1rem}.card span{font-size:.85rem;color:#bdbdbd}
-a:focus-visible{outline:3px solid #e7c764;outline-offset:3px}
-.note{margin-top:22px;color:#a9a9a9;font-size:.82rem}
-@media(max-width:360px){.grid{grid-template-columns:1fr}}
+.card{background:#151515;border:1px solid #333;border-radius:16px;padding:14px;
+min-height:84px;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.card strong{color:#efd06b;font-size:.98rem;line-height:1.25;overflow-wrap:break-word}.card span{font-size:.8rem;line-height:1.35;color:#bdbdbd}
+a:focus-visible{outline:3px solid #e7c764;outline-offset:3px}.card:hover,.card:focus-visible{border-color:#efd06b}
+.note{margin-top:18px;color:#a9a9a9;font-size:.82rem;line-height:1.4}
+@media(max-width:320px){.grid{grid-template-columns:1fr}}
 </style></head><body><main>
 <nav><a class="back" href="/transport">← Global Transport</a><a class="back" href="/transport/my">My Transport</a></nav>
 <h1>{{ title }}</h1><p>{{ description }}</p>
