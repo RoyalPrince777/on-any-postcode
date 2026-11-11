@@ -1,6 +1,8 @@
 """Focused Shere Khan conversational routing and governance regression."""
 from mission_control.smi_shere_khan_dialogue import (
     SHERE_KHAN_CAPABILITIES,
+    SHERE_KHAN_ASSURANCE_TIERS,
+    assurance_instruction,
     SHERE_KHAN_INSTRUCTION,
     SHERE_KHAN_WORKING_PROTOCOL,
     TIGER_INTELLIGENCE,
@@ -56,3 +58,13 @@ def test_working_protocol_is_seven_distinct_honest_behaviours():
     for boundary in ("Founder Final", "Guardian", "do not invent status percentages",
                      "never flatter", "Do not claim actual independent agency"):
         assert boundary in instruction
+
+
+def test_apex_assurance_tiers_remain_advisory_and_evidence_bound():
+    names = [name for name, _ in SHERE_KHAN_ASSURANCE_TIERS]
+    assert names == ["claw_test", "apex_hunt", "apex_claw_777", "apex_adversarial_assurance_1000"]
+    guidance = assurance_instruction()
+    for name in names:
+        assert name in guidance
+    for boundary in ("Unknown", "Apex Reality Test", "Hold Green", "Guardian", "HRM", "Founder Final", "A7 certification"):
+        assert boundary in guidance
