@@ -511,7 +511,7 @@ def test_logistics_has_real_public_front_door_without_exposing_private_distribut
     for label, path in (("Cargo", "/distribution"), ("Deliver", "/movement/workspace#book-title"), ("Fleet", "/transport/ride/driver")):
         assert f"<strong>{label}</strong>" in html
         assert f'href="{path}"' in html
-    assert "sign-in required" in html
+    assert "Sign-in required" in html
     assert global_transport_views.status()["capability_count"] == 21
 
 
