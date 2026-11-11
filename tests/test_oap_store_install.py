@@ -310,7 +310,7 @@ def test_spot_apps_uses_existing_governed_store(client):
     assert 'href="/the-spot"' in store_html
     assert 'href="/world"' in store_html
     assert 'Install OAP World' in store_html
-    assert 'signed native Android APK' in store_html
+    assert 'signed Android APK' in store_html
 
 
 def test_arena_existing_world_install_route_is_truthful(client):
