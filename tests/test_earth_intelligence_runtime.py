@@ -42,3 +42,26 @@ def test_weather_status_exposes_earth_connection_truthfully():
     earth = status["earth_intelligence"]
     assert earth["world_id"] == "earth"
     assert earth["full_earth_runtime_ready"] is False
+
+
+def test_earth_lab_private_research_boundary():
+    """The public destination never turns an internal research status into permission."""
+    for earth in (
+        earth_intelligence.status(weather_ready=False),
+        earth_intelligence.from_weather({}),
+    ):
+        policy = earth["research_publication_boundary"]
+        assert policy["law"] == "Research has no ceiling. Deployment has boundaries."
+        assert policy["research_home"] == "OAP Lab"
+        assert policy["research_visibility"] == "founder_private"
+        assert policy["public_destination"] == "OAP World"
+        assert policy["specialist_division"] == "Off-Grid Survival"
+        assert policy["promotion_mode"] == "explicit_founder_final_only"
+        assert policy["guardian_hrm_required"] is True
+        assert policy["evidence_verification_required"] is True
+        assert policy["publication_authorised"] is False
+        assert policy["deployment_authorised"] is False
+        assert policy["access_controls_verified"] is False
+        assert policy["status"] == "architecture_only"
+        assert earth["can_execute"] is False
+        assert earth["full_earth_runtime_ready"] is False

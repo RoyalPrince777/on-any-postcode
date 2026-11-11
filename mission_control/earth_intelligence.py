@@ -89,6 +89,30 @@ def _place_model() -> dict[str, Any]:
     }
 
 
+def research_publication_boundary() -> dict[str, Any]:
+    """Founder-approved placement contract; never grants access or release rights.
+
+    OAP Lab is the private research home. OAP World is only a potential
+    destination after independently verified evidence and explicit Founder
+    Final authorisation. This status projection is not an access-control
+    implementation or a deployment approval.
+    """
+    return {
+        "law": "Research has no ceiling. Deployment has boundaries.",
+        "research_home": "OAP Lab",
+        "research_visibility": "founder_private",
+        "public_destination": "OAP World",
+        "specialist_division": "Off-Grid Survival",
+        "promotion_mode": "explicit_founder_final_only",
+        "guardian_hrm_required": True,
+        "evidence_verification_required": True,
+        "publication_authorised": False,
+        "deployment_authorised": False,
+        "access_controls_verified": False,
+        "status": "architecture_only",
+    }
+
+
 def from_weather(weather: Mapping[str, Any]) -> dict[str, Any]:
     """Project verified Weather Intelligence into bounded Earth context."""
 
@@ -135,6 +159,7 @@ def from_weather(weather: Mapping[str, Any]) -> dict[str, Any]:
         "full_earth_runtime_ready": False,
         "human_authority_final": True,
         "can_execute": False,
+        "research_publication_boundary": research_publication_boundary(),
         "truth_boundary": (
             "Earth Intelligence currently uses verified place context and Weather Intelligence only. "
             "EARTH OUR TURF composition is defined, but water, ecosystem, agriculture, resource, "
@@ -161,6 +186,7 @@ def status(*, weather_ready: bool) -> dict[str, Any]:
         "full_earth_runtime_ready": False,
         "human_authority_final": True,
         "can_execute": False,
+        "research_publication_boundary": research_publication_boundary(),
         "truth_boundary": (
             "The Earth Intelligence world, EARTH OUR TURF place model and OAP Nature organ are present. "
             "Weather is the first live sensing connection; broader Earth and place observations remain gated."
