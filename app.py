@@ -2066,7 +2066,19 @@ def _auth_page_for(next_path: str):
 @app.get("/auth")
 @app.get("/enter-my-world")
 def auth_page():
-    return _auth_page_for(_safe_next(request.args.get("next")))
+    next_path = _safe_next(request.args.get("next"))
+    # Gorilla/Alliance: one visible Founder entry for SMI-bound requests.
+    # Retain the legacy /auth page for non-SMI clients and their existing
+    # sessions; never redirect sign-in POSTs or change the identity backend.
+    if request.path == "/auth":
+        destination = urlparse.urlsplit(next_path).path.rstrip("/") or "/"
+        if destination in {"/mission", "/smi"} or any(
+            destination.startswith(prefix + "/") for prefix in ("/mission", "/smi")
+        ):
+            response = redirect(url_for("auth_page", next=next_path), code=302)
+            response.headers["Cache-Control"] = "no-store"
+            return response
+    return _auth_page_for(next_path)
 
 
 @app.get("/library/sign-in")
