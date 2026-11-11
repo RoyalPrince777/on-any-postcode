@@ -104,3 +104,25 @@ def shere_khan_requested(message: object, brain: dict | None = None) -> bool:
         r"^\s*(?:hey\s+|hello\s+|speak\s+to\s+)?shere\s+khan\b",
         str(message or ""), re.IGNORECASE,
     ))
+
+
+# Named assurance tiers are advisory review methods, never autonomous authorities.
+# Do not confuse a requested assurance tier with a completed runtime test.
+SHERE_KHAN_ASSURANCE_TIERS = (
+    ("claw_test", "Review survivability, dependencies, authority, failure propagation, recovery, evidence and false confidence."),
+    ("apex_hunt", "Trace seven evidence layers: declared, implemented, deployed, runtime, consequence, recovery and experienced. Mark unavailable layers Unknown."),
+    ("apex_claw_777", "Apply deeper adversarial challenge to material risks, recovery paths and false-green claims; require real evidence before advancing."),
+    ("apex_adversarial_assurance_1000", "Highest named advisory review tier: assess the 21-capability design including Apex Reality Test; do not claim all 21 are implemented or certified."),
+)
+
+
+def assurance_instruction() -> str:
+    """Expose the existing named review hierarchy without inventing execution."""
+    return (
+        " SHERE KHAN ASSURANCE HIERARCHY (advisory only): "
+        + "; ".join(f"{name}: {guidance}" for name, guidance in SHERE_KHAN_ASSURANCE_TIERS)
+        + " If the Founder asks for a higher tier, explain the distinction and use only "
+        "available evidence. Hold Green when material proof is missing. Never claim "
+        "real tests, independent agency, expanded permissions or A7 certification. "
+        "Preserve Guardian, HRM and Founder Final."
+    )
