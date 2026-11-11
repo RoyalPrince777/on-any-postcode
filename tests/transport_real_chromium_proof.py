@@ -46,6 +46,34 @@ def assert_layout(page):
     ), "Transport surface has horizontal overflow"
 
 
+def assert_seven_door_alignment(page, viewport):
+    """Exercise actual Chromium layout, focus and routes instead of CSS-only claims."""
+    cards = page.locator('nav[aria-label="Global Transport main menu"] a.card')
+    assert cards.count() == 7, "Seven main doors must remain visible"
+    bounds = [cards.nth(i).bounding_box() for i in range(7)]
+    assert all(box is not None for box in bounds), "Hidden transport door"
+    for i, box in enumerate(bounds):
+        assert box["width"] >= 120, (i, box)
+        assert box["height"] >= 44, (i, box)
+        assert box["x"] >= 0
+        assert box["x"] + box["width"] <= viewport["width"] + 2
+    if viewport["width"] > 320:
+        for left, right in ((0, 1), (2, 3), (4, 5)):
+            a, b = bounds[left], bounds[right]
+            assert abs(a["y"] - b["y"]) <= 2, (left, right, bounds)
+            assert abs(a["height"] - b["height"]) <= 2, (left, right, bounds)
+            assert b["x"] > a["x"] + a["width"], (left, right, bounds)
+        assert bounds[6]["y"] > bounds[4]["y"], "Control Center must follow last pair"
+        assert bounds[6]["width"] > bounds[0]["width"], "Last door spans remaining row"
+    links = [cards.nth(i).get_attribute("href") for i in range(7)]
+    assert len(set(links)) == 7, "Duplicate door routes"
+    for href in links:
+        assert href and href.startswith("/")
+        assert_navigation_target(page.context, href)
+    cards.nth(0).focus()
+    assert cards.nth(0).evaluate("(el) => document.activeElement === el")
+
+
 def assert_navigation_target(context, href: str):
     target = urlsplit(href)
     path = target.path or "/"
@@ -68,6 +96,17 @@ def prove_transport(browser, viewport):
     )
     expect(page.locator("[data-oap-install-status]")).to_be_visible()
     assert_layout(page)
+    assert_seven_door_alignment(page, viewport)
+    for submenu in ("/transport/guardian", "/transport/operators", "/transport/control-center"):
+        result = page.goto(BASE + submenu, wait_until="domcontentloaded")
+        assert result is not None and result.status == 200
+        assert_layout(page)
+        items = page.locator('section.grid a.card')
+        assert items.count() == 3, submenu
+        for i in range(items.count()):
+            rect = items.nth(i).bounding_box()
+            assert rect and rect["height"] >= 44 and rect["width"] >= 120, (submenu, i, rect)
+            assert_navigation_target(context, items.nth(i).get_attribute("href"))
 
     api = page.evaluate(
         """async () => {
@@ -123,7 +162,9 @@ def main():
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
+            prove_transport(browser, {"width": 320, "height": 750})
             prove_transport(browser, {"width": 393, "height": 852})
+            prove_transport(browser, {"width": 768, "height": 900})
             prove_transport(browser, {"width": 1280, "height": 800})
             browser.close()
     finally:
