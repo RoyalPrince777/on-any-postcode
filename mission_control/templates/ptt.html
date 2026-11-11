@@ -9,20 +9,49 @@
   <meta name="oap-csrf-token" content="{{ oap_csrf_token }}">
   <title>PTT — ON ANY POSTCODE</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<style>
+  :root{color-scheme:dark}
+  body[data-oap-ptt-standalone]{background:#101922;color:#f1f5f9;font-family:system-ui,-apple-system,sans-serif;margin:0}
+  body[data-oap-ptt-standalone] .shell{width:min(100% - 24px,520px);max-width:520px;margin:0 auto;padding:18px 0 36px;display:flex;flex-direction:column;gap:12px}
+  body[data-oap-ptt-standalone] .card{background:#1c2a36;border:1px solid #344450;border-radius:20px;padding:20px;margin:0;color:#f1f5f9;box-shadow:none}
+  body[data-oap-ptt-standalone] h1,body[data-oap-ptt-standalone] h2{color:#f6d28b;letter-spacing:-.02em;margin:0 0 12px}
+  body[data-oap-ptt-standalone] .ptt-head{background:transparent;border:0;padding:5px 4px 12px}
+  body[data-oap-ptt-standalone] .ptt-head h1{font-size:1.6rem;margin:0}
+  body[data-oap-ptt-standalone] .ptt-head p{font-size:.87rem;color:#bac7d3;margin:6px 0}
+  body[data-oap-ptt-standalone] .ptt-radio{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;background:linear-gradient(155deg,#233541,#192833);padding:28px 18px}
+  body[data-oap-ptt-standalone] .ptt-radio h2{font-size:1.55rem;margin:0;color:#fff}
+  body[data-oap-ptt-standalone] .ptt-radio [role=status]{color:#c8d3dd;min-height:24px}
+  body[data-oap-ptt-standalone] [data-oap-ptt-control]{width:168px;height:168px;border-radius:50%;background:#b9914d;color:#0d1820;font-size:1.1rem;font-weight:800;letter-spacing:.035em;border:5px solid #e6c98a;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 0 0 8px #3b4851}
+  body[data-oap-ptt-standalone] [data-oap-ptt-control]:disabled{background:#35444f;color:#c8d0d5;border-color:#65717a;box-shadow:0 0 0 8px #26343f;cursor:not-allowed}
+  body[data-oap-ptt-standalone] [data-oap-ptt-control][aria-pressed=true]{background:#e18472;color:#15191e;border-color:#f2b6a9}
+  body[data-oap-ptt-standalone] .ptt-radio button:not([data-oap-ptt-control]){min-height:48px}
+  body[data-oap-ptt-standalone] button,body[data-oap-ptt-standalone] input,body[data-oap-ptt-standalone] select{font:inherit}
+  body[data-oap-ptt-standalone] button:not([data-oap-ptt-control]){padding:12px 16px;border-radius:12px;min-height:48px;background:#304453;color:#f7e1b7;border:1px solid #637382;font-weight:600}
+  body[data-oap-ptt-standalone] button:focus-visible,body[data-oap-ptt-standalone] a:focus-visible,body[data-oap-ptt-standalone] input:focus-visible{outline:3px solid #f3d48e;outline-offset:3px}
+  body[data-oap-ptt-standalone] input,body[data-oap-ptt-standalone] select{max-width:100%;box-sizing:border-box;padding:12px;border-radius:10px;background:#111e29;color:#fff;border:1px solid #637382;min-height:48px}
+  body[data-oap-ptt-standalone] form{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+  body[data-oap-ptt-standalone] form label{width:100%}
+  body[data-oap-ptt-standalone] .ptt-secondary{font-size:.9rem}
+  body[data-oap-ptt-standalone] .ptt-secondary summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+  body[data-oap-ptt-standalone] .ptt-secondary p{color:#bccbd6}
+  body[data-oap-ptt-standalone] nav a{display:inline-flex;align-items:center;min-height:44px;margin-right:20px;color:#f3cf86}
+  body[data-oap-ptt-standalone] [hidden]{display:none!important}
+  @media(prefers-reduced-motion:reduce){body[data-oap-ptt-standalone] *{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body data-oap-ptt-identity="{{ guest.identity_id or '' }}" data-oap-ptt-standalone="true" data-oap-ptt-endpoint="/ptt" data-oap-ptt-status-endpoint="/ptt/status">
   <main class="shell">
-    <section class="card">
+    <section class="card ptt-head">
       <p>OAP WORLD · PTT</p>
       <h1>🎙️ PTT</h1>
-      <p>Live digital PTT only. No recordings or message history. Live voice is not available until the real-time connection is verified.</p>
+      <p>Private, press-to-talk communication. No audio recording or message history.</p>
       <p><button type="button" data-oap-install hidden>Install OAP PTT</button></p>
       <p><strong data-oap-install-status role="status">Checking install support…</strong></p>
       <p><strong data-oap-voice-status role="status">Checking PTT…</strong></p>
     </section>
 
     <section class="card" aria-labelledby="ptt-pair-title" data-oap-ptt-pair>
-      <h2 id="ptt-pair-title">Contacts · Connect another phone</h2>
+      <h2 id="ptt-pair-title">Connect a phone</h2>
       {% if guest.active %}
         <p><strong>CONNECTED · TEMPORARY PTT</strong></p>
         <p>This pair expires automatically. No email, password or account is required.</p>
@@ -55,8 +84,8 @@
     </section>
 
     {% if guest.active %}
-    <section class="card" aria-labelledby="ptt-live-title">
-      <h2 id="ptt-live-title">Talk</h2>
+    <section class="card ptt-radio" aria-labelledby="ptt-live-title">
+      <h2 id="ptt-live-title">Direct Talk</h2>
       <input id="ptt-guest-peer" type="hidden" value="{{ guest.peer_id }}">
       <button
         type="button"
@@ -64,26 +93,26 @@
         data-recipient-source="#ptt-guest-peer"
         aria-label="Hold to talk"
         disabled
-      >🎙️ HOLD TO TALK · LIVE COMING SOON</button>
+      >HOLD TO TALK</button>
       <button
         type="button"
         data-oap-ptt-stop
         data-recipient-source="#ptt-guest-peer"
         hidden
       >🛑 STOP</button>
-      <p role="status">Live audio disconnected. Connect only after pairing; recorded voice delivery is disabled.</p>
+      <p role="status">Disconnected · microphone off</p>
     </section>
     {% endif %}
 
 
 
-    <section class="card" aria-labelledby="ptt-settings-title">
-      <h2 id="ptt-settings-title">Settings</h2>
-      <p><strong>Microphone:</strong> off until HOLD TO TALK is pressed.</p>
-      <p><strong>Account:</strong> not required for temporary pairing.</p>
-      <p><strong>Install:</strong> available through OAP Store as standalone OAP PTT.</p>
-      <p><strong>Safety:</strong> temporary Links expire automatically; STOP/Disconnect revokes the active connection.</p>
-    </section>
+    <details class="card ptt-secondary" aria-labelledby="ptt-settings-title"><summary id="ptt-settings-title">Settings &amp; safety</summary>
+      
+      <p>Microphone stays off until an authorised connection and an explicit hold.</p>
+      
+      
+      <p>STOP ends local audio immediately. Guest pairing expires automatically.</p>
+    </details>
 
     {% if contacts %}
     <section class="card" aria-labelledby="ptt-contact-title">
