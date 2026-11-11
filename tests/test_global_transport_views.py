@@ -580,3 +580,39 @@ def test_human_readable_control_center_preserves_legacy_json_and_all_gates(monke
     assert "Not authorised · 0 requirements outstanding" not in html
     assert client.get("/transport/execution-readiness").mimetype == "application/json"
     assert client.get("/transport/status").mimetype == "application/json"
+
+
+def test_global_transport_offline_shell_preserves_seven_doors_without_private_data():
+    client = _app().test_client()
+    response = client.get("/transport/offline")
+    assert response.status_code == 200
+    assert response.mimetype == "text/html"
+    assert response.headers["Cache-Control"] == "public, max-age=3600"
+    assert "Set-Cookie" not in response.headers
+    html = response.get_data(as_text=True)
+    for name, _, _ in global_transport_views.PUBLIC_DOORS:
+        assert f'class="tile">{name}</div>' in html
+    assert html.count('class="tile"') == 7
+    assert "Offline shell only" in html
+    assert "Unknown · blocked" in html
+    assert "Guardian, HRM and" in html
+    assert "Founder Final restrictions remain in force." in html
+    assert "No actions are queued or executed offline." in html
+    assert 'href="/transport"' in html
+    assert '<form' not in html.lower()
+    assert 'data-oap-install' not in html
+    assert "live transport data unavailable" in html
+
+
+def test_offline_transport_worker_precaches_only_public_snapshot():
+    from pathlib import Path
+
+    worker = Path("static/oap-os-sw.js").read_text(encoding="utf-8")
+    assert '"/transport/offline"' in worker
+    assert 'const offlineFallback = transportPage ? "/transport/offline" : "/offline";' in worker
+    assert 'fetch(request).catch(() => caches.match(offlineFallback))' in worker
+    assert 'request.method !== "GET"' in worker
+    assert "isPrivatePath(url.pathname)" in worker
+    assert "cache.put" not in worker
+    assert '"/transport/status"' not in worker.split("const PRIVATE_PREFIXES", 1)[0]
+    assert '"/transport/ride/current"' not in worker.split("const PRIVATE_PREFIXES", 1)[0]
