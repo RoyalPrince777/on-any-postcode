@@ -39,24 +39,46 @@ function winningColumns(board,piece){
  }
  return cols;
 }
-const quips={
- fox:{win:["Fox business. Four connected. 🦊","Outfoxed you that time!"],block:["Saw that coming a postcode away!","Nice try. I was watching."],trap:["One threat? Look again. 🦊","That board's getting rather interesting."],move:["Cheeky little move. 😏","Watch those diagonals."]},
- tiger:{win:["The jungle has its champion. 🐅","Four in a row. A royal finish."],block:["A rather obvious ambush. Denied.","You didn't think I'd leave that open?"],trap:["Two threats. One decision.","The tiger is circling."] ,move:["The centre is my territory.","Interesting. But I am not impressed."]},
- default:{win:["Four connected. Well played."],block:["That threat is now blocked."],trap:["Two winning routes are opening."],move:["Your opponent has moved."]}
+const personalities={
+ fox:{name:"Fox",icon:"🦊",tone:"Quick hands, quicker wit.",intro:["Welcome to the trap department.","I promise nothing. Especially an easy win."],win:["Four connected. You got outfoxed!","Caught you looking the other way."],block:["Not today. I saw that postcode away.","That trap was missing a fox."],trap:["Two doors. Pick carefully.","That's what I call options."],move:["Quietly setting something up.","Don't mind me. Just being clever."],loss:["Fair play. You outfoxed the fox.","I'm filing an appeal with the woodland."],draw:["A draw? That wasn't in my cunning plan."],talk:["Trick is to watch what isn't played.","I can read the board. Your mind? Not so much."]},
+ tiger:{name:"Shere Khan",icon:"🐅",tone:"Royal pressure. No empty threats.",intro:["Welcome to my jungle. Play well.","Your move. Earn my respect."],win:["Four in a row. The jungle has spoken.","A royal finish. Respect the board."],block:["I saw the ambush. Denied.","Good idea. I had a better one."],trap:["Two threats. Choose wisely.","The tiger controls the clearing."],move:["Patience is part of power.","I don't roar at every move."],loss:["A worthy victory. I respect good play.","You earned that. We go again."],draw:["Neither yields. Respect."],talk:["Strength without strategy is noise.","I challenge the move, not the player."]},
+ neo:{name:"Neo",icon:"🕶️",tone:"Quiet. Precise. Sees patterns.",intro:["There is always another line.","Let's see the board for what it is."],win:["Four. The pattern was there.","You saw one path. I saw another."],block:["That line closes here.","The obvious move wasn't the only move."],trap:["Different paths. Same destination.","Watch the diagonals."],move:["The board is changing.","Some choices only make sense later."],loss:["You found the line. Good game.","I missed that path. Well played."],draw:["No winner in this version."],talk:["Look at the empty spaces.","A prediction isn't a guarantee."]},
+ "queen-bee":{name:"Queen Bee",icon:"🐝",tone:"Organised and sharp.",intro:["The hive is ready. Are you?","Let's make every move count."],win:["The hive delivers. Four!","Flawless coordination, darling."],block:["The swarm covers that gap.","Not through my hive."],trap:["Two lanes. One queen.","A little teamwork goes a long way."],move:["Every piece has a job.","Sweet move. Mine is sweeter."],loss:["Well played. The hive learns.","I'll have to brief the workers."],draw:["A diplomatic result for the hive."],talk:["One piece is nothing without the pattern.","My workers call that strategic honey."]},
+ octopus:{name:"Octopus",icon:"🐙",tone:"Flexible, many angles.",intro:["Eight arms. One board.","I'll keep my options open."],win:["Four connected. Plenty of arms left.","You covered one line. Not the other."],block:["Caught that with a spare arm.","That route is occupied."],trap:["Several lines, one move.","I'm reaching in more than one direction."],move:["Let's explore another angle.","I can change direction."],loss:["You slipped through. Well played.","Even eight arms can't catch everything."],draw:["A tangled finish."],talk:["Look for intersecting lines.","Eight arms don't mean eight turns."]},
+ panther:{name:"Bagheera",icon:"🐈‍⬛",tone:"Calm, observant, disciplined.",intro:["A quiet board rewards patience.","Observe before you strike."],win:["Precision wins. Four.","A calm finish."],block:["That path was visible.","Patience made that easy."],trap:["Two openings. Neither accidental.","Every line has a purpose."],move:["Watch carefully.","Steady play is still dangerous."],loss:["A fine move. You earned it.","Well played. I misread that."],draw:["A balanced contest."],talk:["The centre matters, but not at any cost.","Think first. Move once."]},
+ falcon:{name:"Falcon",icon:"🦅",tone:"Fast, sharp, decisive.",intro:["Eyes up. Game on.","I see the opening."],win:["Target acquired. Four!","Fast finish."],block:["Intercepted.","Too slow on that lane."],trap:["Two targets in sight.","The board's opening up."],move:["Quick decision.","Eyes on the next move."],loss:["You got there first. Respect.","That one flew past me."],draw:["Both held altitude."],talk:["Scan every column.","Speed without vision misses the target."]},
+ owl:{name:"Owl",icon:"🦉",tone:"Thoughtful and dry.",intro:["Shall we think before we drop?","The night favours careful minds."],win:["A wise four, if I may say.","Interesting. Precisely as planned."],block:["I noticed that.","A most educational attempt."],trap:["Two answers to one question.","Consider the consequences."],move:["Hmm. Noted.","An intriguing development."],loss:["A lesson for us both. Well played.","Even owls occasionally blink."],draw:["A thoughtful stalemate."],talk:["Count the diagonals, not the compliments.","The board rarely lies."]},
+ gorilla:{name:"Gorilla",icon:"🦍",tone:"Solid defence, warm humour.",intro:["Big hands. Gentle opening.","Let's build something solid."],win:["Four locked in. Gorilla power!","That's a strong finish."],block:["No getting through this wall.","I hold the line."],trap:["Strong on both sides.","Built that like a fortress."],move:["Solid move.","I like a sturdy position."],loss:["You broke the wall. Fair play.","Good game. I'll reinforce next time."],draw:["Two strong sides. No collapse."],talk:["Defence gives attack a foundation.","I don't throw the pieces. I place them."]}
 };
-let lastQuip="";
+let lastQuip="", lastAgentEvent="", banterCount=0, seenQuips=new Set();
+function sayAgent(kind, details=""){
+ if(!agentMode)return;
+ const agent=personalities[q("[data-agent]").value]||personalities.panther;
+ const lines=agent[kind]||agent.move;
+ const fresh=lines.filter(line=>!seenQuips.has(kind+":"+line));
+ const pool=fresh.length?fresh:lines;
+ const index=(banterCount+String(state?.game_id||"").length)%pool.length;
+ const line=pool[index];
+ seenQuips.add(kind+":"+line);banterCount++;
+ lastQuip=line;
+ const output=q("[data-agent-status]");
+ output.textContent=agent.icon+" "+agent.name+" · "+line;
+ output.dataset.event=kind;
+ const transcript=q("[data-agent-banter]");
+ if(transcript){
+  const entry=document.createElement("li");
+  const who=document.createElement("strong");who.textContent=agent.icon+" "+agent.name+": ";
+  entry.append(who,document.createTextNode(line));
+  transcript.append(entry);
+  while(transcript.children.length>5)transcript.firstElementChild.remove();
+ }
+}
 function announceAgent(previous,next){
- const key=q("[data-agent]").value;
- const source=quips[key]||quips.default;
  const blocks=winningColumns(previous.board,1);
  const kind=next.winner_id==="p2"?"win":blocks.includes(next.agent_column)?"block":
   winningColumns(next.board,2).length>=2?"trap":"move";
- const choices=source[kind]||source.move;
- const index=Math.floor(next.moves/2)%choices.length;
- let line=choices[index];
- if(line===lastQuip)line=choices[(index+1)%choices.length];
- lastQuip=line;
- q("[data-agent-status]").textContent=next.agent.name+" · "+line;
+ lastAgentEvent=kind;
+ sayAgent(kind);
 }
 function applyState(next){
  const previous=state?.board;
@@ -143,9 +165,12 @@ async function runAgent(){
 async function action(path,payload,followAgent=false){
  if(busy)return;busy=true;q("[data-error]").textContent="";render();
  try{
-  if(path==="/arena/connect4/start"){lastQuip="";lastMove=null;}
+  if(path==="/arena/connect4/start"){lastQuip="";lastMove=null;lastAgentEvent="";banterCount=0;seenQuips.clear();q("[data-agent-banter]").replaceChildren();}
   applyState(await post(path,payload));
   render();
+  if(path==="/arena/connect4/start" && agentMode)sayAgent("intro");
+  if(path==="/arena/connect4/drop" && agentMode && state.status==="completed" && state.winner_id==="p1")sayAgent("loss");
+  if(path==="/arena/connect4/drop" && agentMode && state.status==="completed" && state.result==="draw_full_board")sayAgent("draw");
   if(followAgent)await runAgent();
  }catch(e){
   error(e);
@@ -180,7 +205,10 @@ function updateAgentLevels(){
  }
  select.value=choices.some(([,value])=>value===previous)?previous:choices[1][1];
 }
-q("[data-agent]").onchange=updateAgentLevels;
+q("[data-agent]").onchange=()=>{updateAgentLevels();const p=personalities[q("[data-agent]").value];q("[data-agent-persona]").textContent=p?.tone||"";};
+q("[data-agent-persona]").textContent=(personalities[q("[data-agent]").value]||personalities.panther).tone;
+q("[data-agent-talk]").onclick=()=>{if(!agentMode||!state)return;sayAgent("talk");};
+
 updateAgentLevels();
 q("[data-piece-style]").onchange=()=>{pieceSelection();render();};
 q("[data-piece-choice]").onchange=()=>render();
