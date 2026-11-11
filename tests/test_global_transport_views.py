@@ -42,13 +42,16 @@ def test_global_transport_home_and_status_are_mobile_public_surfaces():
     assert home.status_code == 200
     assert b"OAP Global Transport" not in home.data or b"Global Transport" in home.data
     assert b"Journey" in home.data
-    assert b"Cargo" in home.data
+    assert b"Logistics" in home.data
+    assert b"Guardian" in home.data
+    assert b"Operators" in home.data
+    assert b"Control Center" in home.data
     assert home.headers["Cache-Control"] == "no-store, private"
 
     payload = client.get("/transport/status").get_json()
     assert payload["front_door"] == "/transport"
     assert payload["public_doors"] == [
-        "journey", "move", "ride", "transit", "drive", "fly", "cargo", "deliver", "fleet"
+        "journey", "move", "ride", "logistics", "guardian", "operators", "control_center"
     ]
 
 
@@ -287,21 +290,329 @@ def test_transport_cards_route_to_real_app_destinations():
         "/travel",
         "/movement/workspace",
         "/transport/ride",
-        "/oap-map?profile=driving",
-        "/distribution",
-        "/movement/workspace#book-title",
-        "/transport/ride/driver",
+        "/transport/logistics",
+        "/transport/guardian",
+        "/transport/operators",
+        "/transport/control-center",
     ):
         assert f'href="{href}"' in body
     assert "/transport/status#" not in body
 
 
-def test_transport_status_exposes_public_route_map():
+def test_transport_status_exposes_seven_doors_and_legacy_route_compatibility():
     payload = _app().test_client().get("/transport/status").get_json()
+    assert len(payload["public_doors"]) == 7
+    assert set(payload["public_routes"]) == set(payload["public_doors"])
     assert payload["public_routes"]["journey"] == "/travel"
-    assert payload["public_routes"]["move"] == "/movement/workspace"
     assert payload["public_routes"]["ride"] == "/transport/ride"
-    assert payload["public_routes"]["drive"] == "/oap-map?profile=driving"
-    assert payload["public_routes"]["cargo"] == "/distribution"
-    assert payload["public_routes"]["deliver"] == "/movement/workspace#book-title"
-    assert payload["public_routes"]["fleet"] == "/transport/ride/driver"
+    assert payload["public_routes"]["logistics"] == "/transport/logistics"
+    assert payload["public_routes"]["guardian"] == "/transport/guardian"
+    assert payload["public_routes"]["operators"] == "/transport/operators"
+    assert payload["public_routes"]["control_center"] == "/transport/control-center"
+    assert payload["legacy_public_routes"]["drive"] == "/oap-map?profile=driving"
+    assert payload["legacy_public_routes"]["cargo"] == "/distribution"
+    assert payload["legacy_public_routes"]["deliver"] == "/movement/workspace#book-title"
+    assert payload["legacy_public_routes"]["fleet"] == "/transport/ride/driver"
+    assert set(payload["door_groups"]) == set(payload["public_doors"])
+    grouped = [cap for members in payload["door_groups"].values() for cap in members]
+    assert len(grouped) == 21
+    assert len(set(grouped)) == 21
+    assert set(grouped) == set(payload["capabilities"])
+
+
+def test_rider_driver_dashboards_preserved_under_seven_door_navigation():
+    client = _app().test_client()
+    for path, marker in (
+        ("/transport/ride/rider", b"Request Journey"),
+        ("/transport/ride/driver", b"Incoming Journey"),
+        ("/transport/my", b"Rider"),
+    ):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert marker in response.data
+
+
+def test_transport_inside_doors_are_html_not_technical_json():
+    client = _app().test_client()
+    for path, title, expected_links in (
+        ("/transport/guardian", "Guardian", ("/transport/ride/current", "/transport/ride/guardian/status")),
+        ("/transport/operators", "Operators", ("/transport/shared-bikes/mitcham", "/transport/shared-bikes/status")),
+        ("/transport/control-center", "Control Center", ("/transport/control-center/readiness", "/transport/control-center/capabilities")),
+    ):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.mimetype == "text/html"
+        assert response.headers["Cache-Control"] == "no-store, private"
+        html = response.get_data(as_text=True)
+        assert f"<h1>{title}</h1>" in html
+        assert 'href="/transport"' in html
+        for href in expected_links:
+            assert f'href="{href}"' in html
+
+
+def test_original_transport_truth_apis_preserved_after_ui_upgrade():
+    client = _app().test_client()
+    for path in (
+        "/transport/status",
+        "/transport/capabilities",
+        "/transport/execution-readiness",
+        "/transport/shared-bikes/status",
+    ):
+        response = client.get(path)
+        assert response.mimetype == "application/json"
+        assert response.headers["Cache-Control"] == "no-store, private"
+
+
+def test_guardian_status_stays_protected_not_a_public_menu_api():
+    app = _app()
+    routes = {rule.rule for rule in app.url_map.iter_rules()}
+    assert "/transport/ride/guardian/status" in routes
+    assert global_transport_views.status()["public_routes"]["guardian"] == "/transport/guardian"
+
+
+def test_transport_front_menu_has_one_clear_seven_door_navigation():
+    response = _app().test_client().get("/transport")
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'aria-label="Global Transport main menu"' in html
+    assert 'href="/world"' in html
+    assert "One World → One Front Door → Many Transport Systems Inside." not in html
+    assert "Software surface ready" not in html
+    assert html.count('class="card" href=') == 7
+    for name, _, href in global_transport_views.PUBLIC_DOORS:
+        assert f"<strong>{name}</strong>" in html
+        assert f'href="{href}"' in html
+
+
+def test_execution_readiness_human_page_preserves_json_api_and_truth_boundaries(monkeypatch):
+    from mission_control import global_transport_views as views
+
+    sample = {
+        "product": "OAP Global Transport",
+        "software_execution_layer_ready": True,
+        "live_execution_authorised": False,
+        "evidence_store_reachable": True,
+        "software_verified_external_authenticity": False,
+        "human_authority_final": True,
+        "areas": {
+            "ride_dispatch": {
+                "software_ready": True,
+                "live_execution_authorised": False,
+                "requires": ["eligible_driver_binding", "vehicle_evidence", "dispatch_receipt"],
+                "verified": ["eligible_driver_binding"],
+                "missing": ["vehicle_evidence", "dispatch_receipt"],
+            }
+        },
+    }
+    monkeypatch.setattr(views, "execution_readiness", lambda: sample)
+    client = _app().test_client()
+    page = client.get("/transport/control-center/readiness")
+    assert page.status_code == 200
+    assert page.mimetype == "text/html"
+    assert page.headers["Cache-Control"] == "no-store, private"
+    html = page.get_data(as_text=True)
+    assert "Execution Readiness" in html
+    assert "Not authorised" in html
+    assert "1/3 recorded" in html
+    assert "Eligible driver binding" in html
+    assert "Verified reference recorded" in html
+    assert "Vehicle evidence" in html
+    assert "Missing" in html
+    assert 'href="/transport/control-center"' in html
+
+    api = client.get("/transport/execution-readiness")
+    assert api.status_code == 200
+    assert api.mimetype == "application/json"
+    assert api.get_json() == sample
+
+
+def test_execution_readiness_page_is_unknown_not_falsely_green_when_store_unreachable(monkeypatch):
+    from mission_control import global_transport_views as views
+
+    monkeypatch.setattr(views, "execution_readiness", lambda: {
+        "software_execution_layer_ready": True,
+        "live_execution_authorised": False,
+        "evidence_store_reachable": False,
+        "areas": {
+            "vehicle_control": {
+                "requires": ["vehicle_identity_binding", "device_or_oem_authority", "command_receipt"],
+                "verified": [],
+                "missing": ["vehicle_identity_binding", "device_or_oem_authority", "command_receipt"],
+                "live_execution_authorised": False,
+            },
+        },
+    })
+    html = _app().test_client().get("/transport/control-center/readiness").get_data(as_text=True)
+    assert "Unknown · blocked" in html
+    assert "Evidence store not reachable" in html
+    assert "Evidence unavailable" in html
+    assert "not confirmed missing records" in html
+    assert "Requirements recorded" not in html
+
+
+def test_transport_noise_stripped_without_removing_seven_doors_or_authority_gates():
+    client = _app().test_client()
+    response = client.get("/transport")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert html.count('class="card" href=') == 7
+    assert "Travel, ride and move through your world." not in html
+    assert "Checking install support" not in html
+    assert "Live transport requires verified providers and authorisation." in html
+    for name, _, href in global_transport_views.PUBLIC_DOORS:
+        assert f"<strong>{name}</strong>" in html
+        assert f'href="{href}"' in html
+    assert '<span>{{ description }}</span>' not in html
+    status = client.get("/transport/status").get_json()
+    assert status["capability_count"] == 21
+    assert status["human_authority_final"] is True
+    assert status["physical_operations_in_scope"] is False
+    inside = client.get("/transport/control-center")
+    assert inside.status_code == 200
+    assert "Live services require verified availability and authorisation." in inside.get_data(as_text=True)
+
+
+def test_transport_mobile_alignment_and_uncluttered_install_placeholder():
+    """Both seven-door home and specialist menus keep readable touch targets."""
+    from pathlib import Path
+
+    source = Path("mission_control/global_transport_views.py").read_text(encoding="utf-8")
+    page = _app().test_client().get("/transport").get_data(as_text=True)
+    assert 'min-height:80px;min-width:0' in source
+    assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in source
+    assert '@media(max-width:320px){.grid{grid-template-columns:1fr}' in source
+    assert 'overflow-wrap:break-word' in source
+    assert '.install:has(> button[hidden]):has(> [role=status]:empty){display:none}' in source
+    assert 'data-oap-install-status role="status" aria-live="polite"></span>' in page
+    assert page.count('class="card" href=') == 7
+    assert 'Live transport requires verified providers and authorisation.' in page
+
+    for route in ("/transport/guardian", "/transport/operators", "/transport/control-center"):
+        response = _app().test_client().get(route)
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert 'min-height:84px;min-width:0' in html
+        assert 'min-height:44px' in html
+        assert 'aria-label=' in html
+
+
+def test_logistics_has_real_public_front_door_without_exposing_private_distribution():
+    """A first-party Logistics tile must not link directly to a private JSON API."""
+    client = _app().test_client()
+    response = client.get("/transport")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'href="/transport/logistics"' in html
+    assert 'class="card" href="/distribution"' not in html
+    logistics = client.get("/transport/logistics")
+    assert logistics.status_code == 200
+    html = logistics.get_data(as_text=True)
+    assert "<h1>Logistics</h1>" in html
+    for label, path in (("Cargo", "/distribution"), ("Deliver", "/movement/workspace#book-title"), ("Fleet", "/transport/ride/driver")):
+        assert f"<strong>{label}</strong>" in html
+        assert f'href="{path}"' in html
+    assert "Sign-in required" in html
+    assert global_transport_views.status()["capability_count"] == 21
+
+
+def test_specialist_menu_alignment_and_truthful_destination_labels():
+    client = _app().test_client()
+    for route, title in (
+        ("/transport/logistics", "Logistics"),
+        ("/transport/guardian", "Guardian"),
+        ("/transport/operators", "Operators"),
+        ("/transport/control-center", "Control Center"),
+    ):
+        response = client.get(route)
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert f"<h1>{title}</h1>" in html
+        assert html.count('class="card" href=') == 3
+        assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in html
+        assert "overflow-wrap:anywhere" in html
+        assert 'href="/transport"' in html
+        assert 'href="/transport/my"' in html
+        assert "<h1>" in html and "</h1><p>" not in html
+        assert "Live services require verified availability and authorisation." in html
+    logistics = client.get("/transport/logistics").get_data(as_text=True)
+    assert "Sign-in required" in logistics
+    operators = client.get("/transport/operators").get_data(as_text=True)
+    assert "Technical availability data" in operators
+    control = client.get("/transport/control-center").get_data(as_text=True)
+    assert "View the 21 capability groups" in control
+    assert "Evidence-gated operational status" in control
+    assert global_transport_views.status()["capability_count"] == 21
+    assert global_transport_views.status()["human_authority_final"] is True
+
+
+def test_human_readable_control_center_preserves_legacy_json_and_all_gates(monkeypatch):
+    from mission_control import global_transport_views as views
+
+    client = _app().test_client()
+    caps = client.get("/transport/control-center/capabilities")
+    assert caps.status_code == 200
+    assert caps.mimetype == "text/html"
+    assert caps.headers["Cache-Control"] == "no-store, private"
+    content = caps.get_data(as_text=True)
+    assert 'aria-label="21 grouped transport capabilities"' in content
+    for group in views.DOOR_GROUPS:
+        assert group.replace("_", " ").title() in content
+    assert sum(map(len, views.DOOR_GROUPS.values())) == 21
+    assert "not permissions to operate" in content
+    assert client.get("/transport/capabilities").mimetype == "application/json"
+
+    sample = {
+        "software_execution_layer_ready": True,
+        "evidence_store_reachable": False,
+        "live_execution_authorised": False,
+        "areas": {"vehicle_control": {"live_execution_authorised": False, "missing": [], "verified": [], "requires": ["vehicle_identity_binding"]}},
+    }
+    monkeypatch.setattr(views, "execution_readiness", lambda: sample)
+    page = client.get("/transport/control-center/status")
+    assert page.status_code == 200
+    assert page.mimetype == "text/html"
+    assert page.headers["Cache-Control"] == "no-store, private"
+    html = page.get_data(as_text=True)
+    assert "Unknown · blocked" in html
+    assert "Guardian, HRM and Founder Final remain in force." in html
+    assert "independently verified authority" in html
+    assert "Human Authority remains final" in html
+    assert "Not authorised · 0 requirements outstanding" not in html
+    assert client.get("/transport/execution-readiness").mimetype == "application/json"
+    assert client.get("/transport/status").mimetype == "application/json"
+
+
+def test_global_transport_offline_shell_preserves_seven_doors_without_private_data():
+    client = _app().test_client()
+    response = client.get("/transport/offline")
+    assert response.status_code == 200
+    assert response.mimetype == "text/html"
+    assert response.headers["Cache-Control"] == "public, max-age=3600"
+    assert "Set-Cookie" not in response.headers
+    html = response.get_data(as_text=True)
+    for name, _, _ in global_transport_views.PUBLIC_DOORS:
+        assert f'class="tile">{name}</div>' in html
+    assert html.count('class="tile"') == 7
+    assert "Offline shell only" in html
+    assert "Unknown · blocked" in html
+    assert "Guardian, HRM and" in html
+    assert "Founder Final restrictions remain in force." in html
+    assert "No actions are queued or executed offline." in html
+    assert 'href="/transport"' in html
+    assert '<form' not in html.lower()
+    assert 'data-oap-install' not in html
+    assert "live transport data unavailable" in html
+
+
+def test_offline_transport_worker_precaches_only_public_snapshot():
+    from pathlib import Path
+
+    worker = Path("static/oap-os-sw.js").read_text(encoding="utf-8")
+    assert '"/transport/offline"' in worker
+    assert 'const offlineFallback = transportPage ? "/transport/offline" : "/offline";' in worker
+    assert 'fetch(request).catch(() => caches.match(offlineFallback))' in worker
+    assert 'request.method !== "GET"' in worker
+    assert "isPrivatePath(url.pathname)" in worker
+    assert "cache.put" not in worker
+    assert '"/transport/status"' not in worker.split("const PRIVATE_PREFIXES", 1)[0]
+    assert '"/transport/ride/current"' not in worker.split("const PRIVATE_PREFIXES", 1)[0]

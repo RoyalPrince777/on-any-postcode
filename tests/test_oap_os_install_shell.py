@@ -65,7 +65,9 @@ def test_service_worker_is_root_scoped_and_never_runtime_caches_private_data(cli
     assert response.headers["Service-Worker-Allowed"] == "/"
     assert 'request.method !== "GET"' in worker
     assert "isPrivatePath(url.pathname)" in worker
-    assert 'caches.match("/offline")' in worker
+    assert 'const offlineFallback = transportPage ? "/transport/offline" : "/offline";' in worker
+    assert "caches.match(offlineFallback)" in worker
+    assert '"/transport/offline"' in worker
     assert "cache.put" not in worker
 
     public_shell = worker.split("const PRIVATE_PREFIXES", 1)[0]
