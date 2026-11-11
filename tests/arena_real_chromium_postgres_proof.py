@@ -323,7 +323,7 @@ def prove_local_gameplay_percentages(browser):
         expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 0%")
         expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "0")
         if game == "connect4":
-            page.locator("[data-controls] button:not([disabled])").first.click()
+            page.locator("[data-board] button:not([disabled])").first.click()
             expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 2%")
             expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "2")
         elif game == "oware":
