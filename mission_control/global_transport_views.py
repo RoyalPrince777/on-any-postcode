@@ -292,21 +292,22 @@ _TRANSPORT_INSIDE_PAGE = """<!doctype html>
 :root{color-scheme:dark}*{box-sizing:border-box}
 body{margin:0;background:#090909;color:#f5f5f5;font:16px system-ui,-apple-system,sans-serif}
 main{max-width:760px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+nav{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 a{color:inherit;text-decoration:none}
 .back{color:#e7c764;font-weight:650;min-height:44px;display:inline-flex;align-items:center;font-size:.91rem}
 h1{font-size:clamp(1.75rem,6vw,2.4rem);line-height:1.15;margin:18px 0 8px}
 p{line-height:1.5;color:#bdbdbd;margin:0 0 20px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .card{background:#151515;border:1px solid #333;border-radius:16px;padding:14px;
 min-height:84px;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px}
-.card strong{color:#efd06b;font-size:.98rem;line-height:1.25;overflow-wrap:break-word}.card span{font-size:.8rem;line-height:1.35;color:#bdbdbd}
+.card strong{color:#efd06b;font-size:.98rem;line-height:1.25;overflow-wrap:anywhere}.card span{font-size:.8rem;line-height:1.35;color:#bdbdbd;overflow-wrap:anywhere}
 a:focus-visible{outline:3px solid #e7c764;outline-offset:3px}.card:hover,.card:focus-visible{border-color:#efd06b}
 .note{margin-top:18px;color:#a9a9a9;font-size:.82rem;line-height:1.4}
+@media(max-width:380px){.grid{gap:9px}.card{padding:12px}.back{font-size:.87rem}}
 @media(max-width:320px){.grid{grid-template-columns:1fr}}
 </style></head><body><main>
 <nav><a class="back" href="/transport">← Global Transport</a><a class="back" href="/transport/my">My Transport</a></nav>
-<h1>{{ title }}</h1><p>{{ description }}</p>
+<h1>{{ title }}</h1>
 <section class="grid" aria-label="{{ title }} options">
 {% for name, detail, href in items %}
 <a class="card" href="{{ href }}"><strong>{{ name }}</strong><span>{{ detail }}</span></a>
@@ -319,8 +320,8 @@ _INSIDE_DOORS = {
     "logistics": (
         "Logistics", "Cargo, deliveries and fleet.",
         (
-            ("Cargo", "Private distribution status · sign-in required", "/distribution"),
-            ("Deliver", "Private Movement booking · sign-in required", "/movement/workspace#book-title"),
+            ("Cargo", "Sign-in required · distribution status", "/distribution"),
+            ("Deliver", "Sign-in required · Movement workspace", "/movement/workspace#book-title"),
             ("Fleet", "Driver workspace", "/transport/ride/driver"),
         ),
     ),
@@ -336,7 +337,7 @@ _INSIDE_DOORS = {
         "Operators", "Discover available transport information.",
         (
             ("Shared bikes", "Mitcham discovery information", "/transport/shared-bikes/mitcham"),
-            ("Provider status", "Read operator availability information", "/transport/shared-bikes/status"),
+            ("Provider status", "Technical availability data", "/transport/shared-bikes/status"),
             ("Ride", "OAP Rider and Driver", "/transport/ride"),
         ),
     ),
@@ -344,8 +345,8 @@ _INSIDE_DOORS = {
         "Control Center", "Transport software status and readiness.",
         (
             ("Readiness", "Review execution requirements", "/transport/control-center/readiness"),
-            ("Capabilities", "Review the 21 transport capabilities", "/transport/capabilities"),
-            ("Transport status", "Read current software status", "/transport/status"),
+            ("Capabilities", "Technical capability data", "/transport/capabilities"),
+            ("Transport status", "Technical software status", "/transport/status"),
         ),
     ),
 }
