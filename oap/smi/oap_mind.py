@@ -396,3 +396,83 @@ def review_octopus_a7_readiness(arms: tuple[str, ...]) -> OctopusA7Review:
         missing_a6_proof=tuple(gate["a6_missing"]),
         missing_a7_proof=tuple(gate["a7_missing"]),
     )
+
+# Evolution Intelligence is a capability within SMI metacognition.
+# Intelligent Evolution is the rule governing its improvement cycles.
+# This is a review contract, not autonomous execution or self-modification.
+EVOLUTION_INTELLIGENCE_CAPABILITY = "Evolution Intelligence"
+INTELLIGENT_EVOLUTION_LAW = "Intelligent Evolution"
+EVOLUTION_QUALITY_GATES: tuple[str, ...] = (
+    "stability", "clarity", "pace", "performance",
+    "accuracy", "consistency", "reliability", "quality",
+)
+
+
+@dataclass(frozen=True)
+class IntelligentEvolutionReview:
+    """Advisory action/result/reflection/refinement review, never a Green receipt."""
+
+    action: str
+    result: str
+    reflection: str
+    refinement: str
+    proposed_next_action: str
+    evidence_assessment: MindAssessment
+    decision: Literal["REFINE", "HOLD"]
+    missing_quality_proof: tuple[str, ...] = EVOLUTION_QUALITY_GATES
+    changed_method: bool = False
+    repeat_authorized: bool = False
+    deployment_authorized: bool = False
+    self_modification_authorized: bool = False
+    advisory_only: bool = True
+    founder_final: bool = True
+
+
+def review_intelligent_evolution(
+    *,
+    action: str,
+    result: str,
+    reflection: str,
+    refinement: str,
+    proposed_next_action: str,
+    evidence: tuple[OAPEvidence, ...] = (),
+) -> IntelligentEvolutionReview:
+    """Review learning from a result without rewarding blind repetition.
+
+    All evidence remains untrusted until separately authenticated by existing
+    SMI/HRM/Guardian readback. Meaningful reflection and a changed proposed
+    method are necessary for a REFINE recommendation, not sufficient for
+    execution, deployment, claimed progress or Green Gate certification.
+    """
+    fields = (action, result, reflection, refinement, proposed_next_action)
+    if any(not isinstance(value, str) or not value.strip() for value in fields):
+        raise ValueError("Action, result, reflection, refinement and next action required")
+
+    normalized = tuple(value.strip() for value in fields)
+    current, observed, learned, improvement, next_action = normalized
+    assessment = assess_oap_evidence(
+        observed, evidence, required_kinds=("runtime", "test"),
+    )
+    changed = next_action.casefold() != current.casefold()
+    # Even a changed action is held if its reflection/refinement is just a
+    # verbatim restatement of the result or the proposed action.
+    substantive = (
+        learned.casefold() not in {observed.casefold(), current.casefold()}
+        and improvement.casefold() not in {
+            observed.casefold(), current.casefold(), learned.casefold(),
+        }
+    )
+    decision: Literal["REFINE", "HOLD"] = (
+        "REFINE" if changed and substantive
+        and assessment.verdict != "HOLD" else "HOLD"
+    )
+    return IntelligentEvolutionReview(
+        action=current,
+        result=observed,
+        reflection=learned,
+        refinement=improvement,
+        proposed_next_action=next_action,
+        evidence_assessment=assessment,
+        decision=decision,
+        changed_method=changed,
+    )
