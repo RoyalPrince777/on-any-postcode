@@ -12,18 +12,18 @@ from typing import Any
 SMI_LINEAGE: tuple[dict[str, str], ...] = (
     {
         "name": "Synthetic Mind Intelligence",
-        "position": "cognitive_origin",
+        "position": "cognitive_capability",
         "meaning": "Thinking, perception, memory and reasoning lineage.",
     },
     {
         "name": "Sovereign Megaverse Intelligence",
-        "position": "architectural_expansion",
-        "meaning": "OAP-wide first-party coordination and sovereign control lineage.",
+        "position": "canonical_current",
+        "meaning": "Founder-approved master identity for the complete first-party SMI digital organism; Human Authority remains final.",
     },
     {
         "name": "Synthetic Machine Intelligence",
-        "position": "canonical_current",
-        "meaning": "Current technical definition of the single OAP machine-intelligence brain.",
+        "position": "technical_capability",
+        "meaning": "Machine execution and engineering capability within the one SMI organism.",
     },
     {
         "name": "Stealth Mode Intelligence",
@@ -31,6 +31,18 @@ SMI_LINEAGE: tuple[dict[str, str], ...] = (
         "meaning": "Authorised low-exposure processing, data minimisation and selective disclosure; required audit, safety and human approval remain mandatory.",
     },
 )
+
+REVIEW_FUNCTIONS_8X2: tuple[tuple[str, str, str], ...] = (
+    ("Expose & Fix", "Expose", "Fix"),
+    ("Truth & Investigation", "Truth Mode", "Deep Investigation"),
+    ("Red Team & Defence", "Red Team", "Defence Intelligence"),
+    ("Devil's Advocate & Judgement", "Devil's Advocate", "Decision Intelligence"),
+    ("Verification & Validation", "Verification", "Validation"),
+    ("Upgrade & Optimisation", "Upgrade Intelligence", "Optimisation"),
+    ("Foresight & Recovery", "Foresight", "Recovery & Resilience"),
+    ("Green Gate & Accountability", "Green Gate", "Accountability"),
+)
+
 
 ARCHIVE_SECTIONS: tuple[dict[str, str], ...] = (
     {"id": "identity-lineage", "name": "Identity & Lineage", "purpose": "SMI names, meanings and evolution."},
@@ -119,6 +131,9 @@ def status() -> dict[str, Any]:
         "mode": "read_only_organised_projection",
         "current_name": current["name"],
         "lineage": tuple(dict(item) for item in SMI_LINEAGE),
+        "review_functions": tuple({"name": name, "capabilities": (first, second)} for name, first, second in REVIEW_FUNCTIONS_8X2),
+        "review_function_count": len(REVIEW_FUNCTIONS_8X2),
+        "review_capability_count": 2 * len(REVIEW_FUNCTIONS_8X2),
         "sections": tuple(dict(item) for item in ARCHIVE_SECTIONS),
         "council": tuple(dict(item) for item in COUNCIL_ROLES),
         "shere_khan": {
