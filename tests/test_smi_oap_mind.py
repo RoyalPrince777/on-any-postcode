@@ -440,3 +440,98 @@ def test_octopus_a7_rejects_contradictory_certification_evidence(
     monkeypatch.setattr(a7_certification, "status", lambda: gate)
     with pytest.raises(RuntimeError):
         review_octopus_a7_readiness(("VERIFY",))
+
+
+def test_evolution_intelligence_requires_reflection_and_changed_method() -> None:
+    from oap.smi.oap_mind import (
+        EVOLUTION_INTELLIGENCE_CAPABILITY,
+        INTELLIGENT_EVOLUTION_LAW,
+        EVOLUTION_QUALITY_GATES,
+        review_intelligent_evolution,
+    )
+
+    assert EVOLUTION_INTELLIGENCE_CAPABILITY == "Evolution Intelligence"
+    assert INTELLIGENT_EVOLUTION_LAW == "Intelligent Evolution"
+    assert len(EVOLUTION_QUALITY_GATES) == 8
+    review = review_intelligent_evolution(
+        action="Retry login unchanged",
+        result="Browser still displays obsolete route",
+        reflection="The server route is correct but browser state may differ",
+        refinement="Check server response against the observed browser page",
+        proposed_next_action="Inspect browser response and session",
+        evidence=(OAPEvidence("browser:reported", "device",
+                              "Browser still displays obsolete route",
+                              verified_receipt=True),),
+    )
+    assert review.decision == "REFINE"
+    assert review.changed_method
+    assert review.evidence_assessment.verdict == "INVESTIGATE"
+    assert review.missing_quality_proof == EVOLUTION_QUALITY_GATES
+    assert not review.repeat_authorized
+    assert not review.deployment_authorized
+    assert not review.self_modification_authorized
+    assert review.founder_final
+
+
+def test_intelligent_evolution_holds_blind_repetition() -> None:
+    from oap.smi.oap_mind import review_intelligent_evolution
+
+    result = review_intelligent_evolution(
+        action="Restart server",
+        result="Same login error",
+        reflection="Restarting has not changed the response",
+        refinement="Inspect the authentication session",
+        proposed_next_action="Restart server",
+    )
+    assert result.decision == "HOLD"
+    assert not result.changed_method
+
+
+def test_intelligent_evolution_holds_contradictory_evidence() -> None:
+    from oap.smi.oap_mind import review_intelligent_evolution
+
+    result = review_intelligent_evolution(
+        action="Check route",
+        result="Route works",
+        reflection="Server and browser reports disagree",
+        refinement="Inspect the rendered document and cookie scope",
+        proposed_next_action="Compare server and browser responses",
+        evidence=(OAPEvidence("device:failure", "device",
+                              "Route works", supports_claim=False),),
+    )
+    assert result.decision == "HOLD"
+    assert result.evidence_assessment.verdict == "HOLD"
+
+
+@pytest.mark.parametrize("override", [
+    {"action": ""},
+    {"result": "  "},
+    {"reflection": ""},
+    {"refinement": None},
+    {"proposed_next_action": ""},
+])
+def test_intelligent_evolution_rejects_empty_stages(override: dict) -> None:
+    from oap.smi.oap_mind import review_intelligent_evolution
+
+    inputs = {
+        "action": "Try a fix",
+        "result": "No change",
+        "reflection": "Investigate earlier assumption",
+        "refinement": "Change diagnosis",
+        "proposed_next_action": "Inspect runtime",
+    }
+    inputs.update(override)
+    with pytest.raises(ValueError):
+        review_intelligent_evolution(**inputs)
+
+
+def test_evolution_does_not_treat_parroted_result_as_reflection() -> None:
+    from oap.smi.oap_mind import review_intelligent_evolution
+
+    result = review_intelligent_evolution(
+        action="Try login", result="Login failed",
+        reflection="Login failed",
+        refinement="Inspect cookie handling",
+        proposed_next_action="Inspect server cookie flags",
+    )
+    assert result.decision == "HOLD"
