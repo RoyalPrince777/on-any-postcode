@@ -163,6 +163,8 @@ def route_action(
     authority_change: bool | None = None,
     privacy_sensitive: bool = False,
     safety_critical: bool = False,
+    public_exposure_change: bool = False,
+    regulated_activation: bool = False,
 ) -> ActionRiskDecision:
     """Classify one request into the smallest safe OAP governance path.
 
@@ -186,6 +188,8 @@ def route_action(
         )
 
     informational = _is_informational(text)
+    # Explicit effects are supplied by a governed caller, never inferred from
+    # a reassuring UI label or product name. Neither flag grants execution.
     bypass_request = bool(
         not informational and _contains_any(text, _BLOCKED_TERMS)
     )
@@ -217,6 +221,10 @@ def route_action(
     reasons: list[str] = []
     if safety_critical:
         reasons.append("Safety-critical action.")
+    if public_exposure_change:
+        reasons.append("Private-to-public exposure or material public access change.")
+    if regulated_activation:
+        reasons.append("Regulated product, funds, or licensed distribution activation.")
     if authority:
         reasons.append("Authority, governance, production, security, or compliance boundary.")
     if money:
@@ -228,10 +236,10 @@ def route_action(
     if not reversible:
         reasons.append("Action is not safely reversible.")
 
-    if safety_critical or authority:
+    if safety_critical or authority or public_exposure_change or regulated_activation:
         return ActionRiskDecision(
             route=ROUTE_GOVERNANCE,
-            risk_level="CRITICAL" if safety_critical else "HIGH",
+            risk_level="CRITICAL" if safety_critical or regulated_activation else "HIGH",
             smi_depth=21,
             confirmation_required=True,
             guardian_required=True,
