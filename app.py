@@ -1303,6 +1303,42 @@ def arena_room_route_empire_action():
     return _arena_json(result)
 
 
+@app.post("/arena/rooms/connect4/chat/read")
+def arena_connect4_chat_read():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        from mission_control import arena_connect4_chat
+        result = arena_connect4_chat.read(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
+@app.post("/arena/rooms/connect4/chat/send")
+def arena_connect4_chat_send():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        from mission_control import arena_connect4_chat
+        result = arena_connect4_chat.send(
+            room_id=payload.get("room_id"),
+            reconnect_token=payload.get("reconnect_token"),
+            request_id=payload.get("request_id"),
+            message=payload.get("message"),
+        )
+    except (TypeError, ValueError, arena_rooms.ArenaRoomUnavailable) as exc:
+        return _arena_error(exc)
+    return _arena_json(result)
+
+
 @app.post("/arena/rooms/connect4/action")
 def arena_room_connect4_action():
     denied = _arena_write_allowed()
