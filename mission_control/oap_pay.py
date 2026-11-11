@@ -267,6 +267,15 @@ def bank_status_api():
     return response
 
 
+@bp.get("/pay/bank/control-center")
+@web_security.login_required(founder_only=True)
+def bank_founder_control_center():
+    """Founder-only SIKA readiness and operational control navigation."""
+    response = make_response(render_template("oap_bank_founder.html", bank=bank_status()))
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @bp.get("/pay/bank/me")
 @web_security.login_required()
 def bank_customer_page():
@@ -275,11 +284,16 @@ def bank_customer_page():
             web_security.authenticated_identity()
         )
         response = make_response(
-            render_template("oap_my_bank.html", customer=customer)
+            render_template("oap_my_bank.html", customer=customer,
+                            founder_allowed=web_security.private_authority_allowed(
+                                web_security.current_authenticated_user() or {}
+                            ),
+                            sika_csrf=web_security.csrf_token())
         )
     except RuntimeError:
         response = make_response(
-            render_template("oap_my_bank.html", customer=None), 503
+            render_template("oap_my_bank.html", customer=None,
+                            founder_allowed=False, sika_csrf=None), 503
         )
     response.headers["Cache-Control"] = "no-store"
     return response

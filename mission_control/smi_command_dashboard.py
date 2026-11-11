@@ -200,6 +200,17 @@ def status() -> dict[str, Any]:
         },
         "important_signals": important_signals,
         "smi_21_dimensions": smi_21_dimensions,
+        "financial_mission": {
+            "route": "sika_review",
+            "source": "sika_execution_gate.capability_matrix",
+            "evidence_state": "Confirmed" if unlock_matrix["evidence_available"] else "Unknown",
+            "execution_state": "Not Tested",
+            "capabilities": unlock_matrix["capabilities"],
+            "regulated_capabilities_open": unlock_matrix["unlocked_count"],
+            "provider_calling": False,
+            "money_movement": False,
+            "founder_final": True,
+        },
         "risk_router": risk,
         "bank": {
             "name": bank_identity.get("name"),
