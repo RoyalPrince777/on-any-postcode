@@ -496,8 +496,9 @@ def test_transport_mobile_alignment_and_uncluttered_install_placeholder():
         assert 'aria-label=' in html
 
 
-def test_logistics_has_real_public_front_door_without_exposing_private_distribution(client):
+def test_logistics_has_real_public_front_door_without_exposing_private_distribution():
     """A first-party Logistics tile must not link directly to a private JSON API."""
+    client = _app().test_client()
     response = client.get("/transport")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
