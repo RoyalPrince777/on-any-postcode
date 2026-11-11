@@ -470,3 +470,27 @@ def test_transport_noise_stripped_without_removing_seven_doors_or_authority_gate
     inside = client.get("/transport/control-center")
     assert inside.status_code == 200
     assert "Live services require verified availability and authorisation." in inside.get_data(as_text=True)
+
+
+def test_transport_mobile_alignment_and_uncluttered_install_placeholder():
+    """Both seven-door home and specialist menus keep readable touch targets."""
+    from pathlib import Path
+
+    source = Path("mission_control/global_transport_views.py").read_text(encoding="utf-8")
+    page = _app().test_client().get("/transport").get_data(as_text=True)
+    assert 'min-height:80px;min-width:0' in source
+    assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in source
+    assert '@media(max-width:320px){.grid{grid-template-columns:1fr}' in source
+    assert 'overflow-wrap:break-word' in source
+    assert '.install:has(> button[hidden]):has(> [role=status]:empty){display:none}' in source
+    assert 'data-oap-install-status role="status" aria-live="polite"></span>' in page
+    assert page.count('class="card" href=') == 7
+    assert 'Live transport requires verified providers and authorisation.' in page
+
+    for route in ("/transport/guardian", "/transport/operators", "/transport/control-center"):
+        response = _app().test_client().get(route)
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert 'min-height:84px;min-width:0' in html
+        assert 'min-height:44px' in html
+        assert 'aria-label=' in html
