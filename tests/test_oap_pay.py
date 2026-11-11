@@ -203,8 +203,8 @@ def test_oap_pay_bank_page_and_status_are_no_store(client):
     assert page.headers["Cache-Control"] == "no-store"
     body = page.get_data(as_text=True)
     assert "OAP Bank" in body
-    assert "Regulated capability truth" in body
-    assert "does not itself accept deposits" in body or "does not itself" in body
+    assert "Financial capability status" in body
+    assert "No deposits or money transfers are available." in body
 
     status = client.get("/pay/bank/status")
     assert status.status_code == 200
@@ -249,13 +249,13 @@ def test_oap_bank_page_is_installable_mobile_shell(client):
     assert page.status_code == 200
     assert page.headers["Cache-Control"] == "no-store"
     assert 'rel="manifest" href="/pay/bank/manifest.webmanifest"' in body
-    assert 'data-oap-install hidden' in body
-    assert "Install OAP Bank" in body
+    assert "Install unavailable" in body
+    assert "Install OAP Bank" not in body
     assert 'aria-label="OAP Bank navigation"' in body
     assert 'id="capabilities"' in body
     assert ">Home</a>" in body
-    assert ">Accounts</a>" in body
-    assert ">Transfers</a>" in body
+    assert ">Wallet</a>" in body
+    assert ">Card</a>" in body
     assert ">Activity</a>" in body
     assert ">More</a>" in body
 
@@ -304,13 +304,13 @@ def test_oap_bank_page_contains_full_app_structure(client):
     page = client.get("/pay/bank")
     body = page.get_data(as_text=True)
 
-    assert "Bank Home" in body
-    assert 'aria-label="OAP Bank primary menu"' in body
+    assert "My SIKA" in body
+    assert 'aria-label="Core SIKA navigation"' in body
     assert "Accounts" in body
     assert "SIKA" in body
     assert "Transfers" in body
     assert "Activity" in body
-    assert "More Bank Tools" in body
+    assert "<summary>Other services</summary>" in body
     assert "Cards" in body
     assert "Cash / Post Office" in body
     assert "FX" in body
@@ -319,11 +319,11 @@ def test_oap_bank_page_contains_full_app_structure(client):
     assert "Rights &amp; Remedy" in body
     assert "Guardian" in body
     assert "Settings" in body
-    assert "Founder / Control Center" in body
+    assert "Founder / Control Center" not in body
     assert 'aria-label="OAP Bank navigation"' in body
     assert ">Home</a>" in body
-    assert ">Accounts</a>" in body
-    assert ">Transfers</a>" in body
+    assert ">Wallet</a>" in body
+    assert ">Card</a>" in body
     assert ">Activity</a>" in body
     assert ">More</a>" in body
 
@@ -372,16 +372,16 @@ def test_oap_bank_feature_routes_are_real_and_fail_closed(client, monkeypatch):
 def test_oap_bank_home_links_to_real_feature_routes(client):
     body = client.get("/pay/bank").get_data(as_text=True)
     assert 'href="/pay/bank/accounts"' in body
-    assert 'href="/pay/bank/transfers"' in body
+    assert 'href="/pay/bank/me"' in body
     assert 'href="/pay/bank/activity"' in body
     assert 'href="/pay/bank/cards"' in body
-    assert 'href="/pay/bank/rights"' in body
-    assert 'href="/pay/bank/control-center"' in body
+    assert 'href="/pay/bank/sika"' in body
+    assert 'href="/pay/bank/control-center"' not in body
 
 
 def test_oap_bank_page_shows_canonical_sika_software_readiness(client):
     body = client.get("/pay/bank").get_data(as_text=True)
     assert "SIKA software" in body
-    assert "SIKA software readiness" in body
-    assert "external licence/payment rails excluded" in body
+    assert "<summary>Readiness details</summary>" in body
+    assert "Bank authorisation" in body
 
