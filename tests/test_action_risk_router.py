@@ -134,3 +134,33 @@ def test_real_sika_transfer_still_requires_confirmation_after_semantic_hardening
     decision = route_action("Send 20 SIKA")
     assert decision.route == ROUTE_CONFIRM
     assert decision.red_team_required is True
+
+
+def test_public_exposure_change_requires_founder_governance():
+    decision = route_action(
+        "Make private OAP Lab content public",
+        asks_to_execute=True,
+        public_exposure_change=True,
+    )
+    assert decision.route == ROUTE_GOVERNANCE
+    assert decision.founder_final_required is True
+    assert decision.guardian_required is True
+    assert decision.execution_allowed_by_router is False
+
+
+def test_regulated_activation_requires_founder_and_guardian():
+    decision = route_action(
+        "Enable real-money checkout",
+        asks_to_execute=True,
+        regulated_activation=True,
+    )
+    assert decision.route == ROUTE_GOVERNANCE
+    assert decision.risk_level == "CRITICAL"
+    assert decision.founder_final_required is True
+    assert decision.execution_allowed_by_router is False
+
+
+def test_routine_ui_work_does_not_create_founder_approval():
+    decision = route_action("Adjust Enter My World button spacing")
+    assert decision.founder_final_required is False
+    assert decision.execution_allowed_by_router is False
