@@ -211,26 +211,26 @@ _PAGE = """<!doctype html>
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:#f7f7f7;font:16px/1.5 system-ui,-apple-system,sans-serif}
 main{max-width:800px;margin:auto;padding:20px 16px 48px}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
 .brand{color:var(--gold);font-weight:800;font-size:.78rem;letter-spacing:.075em}
 .return{color:#dedede;text-decoration:none;font-weight:650;padding:10px 0;min-height:44px}
 h1{font-size:clamp(2rem,8vw,3.2rem);line-height:1.08;letter-spacing:-.035em;margin:0 0 10px}
 .intro{color:var(--muted);margin:0 0 24px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.card{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:108px;
-padding:18px;border-radius:18px;background:var(--panel);border:1px solid var(--edge);
+.card{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:80px;
+padding:16px;border-radius:16px;background:var(--panel);border:1px solid var(--edge);
 text-decoration:none;color:inherit;transition:border-color .15s}
 .card:hover,.card:focus-visible{border-color:var(--gold)}
 .card:focus-visible,.return:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .card strong{display:block;color:#f7f7f7;font-size:1.05rem}
-.card span{display:block;color:var(--muted);font-size:.83rem;line-height:1.4;margin-top:5px}
+
 .card .arrow{font-size:1.1rem;color:var(--gold);flex:none}
-.card:last-child{grid-column:1/-1;min-height:84px}
+.card:last-child{grid-column:1/-1;min-height:80px}
 footer{margin-top:28px;color:#aaa;font-size:.82rem}
 .install{margin-top:18px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .install button{background:#242016;border:1px solid #7a6420;border-radius:12px;color:var(--gold);padding:12px;font:inherit;font-weight:700}
 .install [role=status]{color:var(--muted);font-size:.82rem}
-@media(max-width:390px){.card{padding:14px;min-height:100px}.card strong{font-size:.96rem}}
+@media(max-width:390px){.card{padding:14px;min-height:76px}.card strong{font-size:.96rem}}
 @media(max-width:330px){.grid{grid-template-columns:1fr}.card:last-child{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
@@ -238,16 +238,16 @@ footer{margin-top:28px;color:#aaa;font-size:.82rem}
 <body><main>
 <header><div class="brand">ON ANY POSTCODE</div><a class="return" href="/world">OAP World</a></header>
 <h1>Global Transport</h1>
-<p class="intro">Travel, ride and move through your world.</p>
+
 <nav class="grid" aria-label="Global Transport main menu">
 {% for name, description, href in doors %}
-<a class="card" href="{{ href }}"><div><strong>{{ name }}</strong><span>{{ description }}</span></div><b class="arrow" aria-hidden="true">›</b></a>
+<a class="card" href="{{ href }}"><strong>{{ name }}</strong><b class="arrow" aria-hidden="true">›</b></a>
 {% endfor %}
 </nav>
 <div class="install"><button type="button" data-oap-install hidden>Install OAP Transport</button>
-<span data-oap-install-status role="status" aria-live="polite">Checking install support</span>
+<span data-oap-install-status role="status" aria-live="polite"></span>
 <span data-oap-install-platform hidden></span></div>
-<footer>Transport services and external actions are available only when independently authorised and verified.</footer>
+<footer>Live transport requires verified providers and authorisation.</footer>
 <script src="/assets/oap-os.js" defer></script>
 </main></body></html>"""
 
@@ -312,7 +312,7 @@ a:focus-visible{outline:3px solid #e7c764;outline-offset:3px}
 <a class="card" href="{{ href }}"><strong>{{ name }}</strong><span>{{ detail }}</span></a>
 {% endfor %}
 </section>
-<p class="note">Software navigation only. Availability and external actions require independent evidence and authority.</p>
+<p class="note">Live services require verified availability and authorisation.</p>
 </main></body></html>"""
 
 _INSIDE_DOORS = {
