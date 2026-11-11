@@ -18,6 +18,15 @@
     .room-columns{display:grid;grid-template-columns:repeat(7,minmax(32px,55px));gap:5px;max-width:430px}
     .room-columns button{min-width:0;min-height:44px}
     .room-secret{font-family:monospace;word-break:break-all}
+    .room-chat{margin-top:16px;padding:14px;border:1px solid #9f783b;border-radius:14px;background:linear-gradient(145deg,#171518,#0c0d12);color:#f4e4c3}
+    .room-chat h2{margin:0 0 8px;color:#f4c76a;font-size:1.1rem}
+    .room-chat-log{min-height:90px;max-height:210px;overflow:auto;padding:8px;background:#08090d;border-radius:8px;list-style:none;margin:0 0 10px}
+    .room-chat-log li{padding:7px 5px;border-bottom:1px solid #ffffff1b;overflow-wrap:anywhere}
+    .room-chat-log strong{color:#eac16d}
+    .room-chat form{display:flex;gap:8px;align-items:center}
+    .room-chat input{min-width:0;flex:1;margin:0;max-width:none}
+    .room-chat button{min-height:44px}
+    .room-chat p{font-size:.85rem;margin:5px 0}
     [hidden]{display:none!important}
   </style>
 </head>
@@ -51,10 +60,17 @@
       <div class="room-columns" data-columns aria-label="Choose Connect 4 column"></div>
       <div class="room-board" data-board role="img" aria-label="Connect 4 board"></div>
       <div class="room-actions"><button type="button" data-refresh>Refresh Match</button><button type="button" data-stop>STOP</button></div>
+      <section class="room-chat" aria-label="Private match chat">
+        <h2>💬 Match Chat</h2>
+        <p>Only players in this room can read and send messages. Text only · 280 characters.</p>
+        <ul class="room-chat-log" data-chat-log aria-label="Room messages" aria-live="polite"><li>Chat loads after joining.</li></ul>
+        <form data-chat-form><input data-chat-input type="text" maxlength="280" autocomplete="off" aria-label="Chat message" placeholder="Message your opponent…" required><button type="submit" data-chat-send>Send</button></form>
+        <p data-chat-status role="status" aria-live="polite"></p>
+      </section>
     </section>
     <p data-message role="status" aria-live="polite"></p>
     <p data-error role="alert"></p>
-    <p>Unranked room; no chat, payment or prize execution. If another player moves first, refresh your match before acting.</p>
+    <p>Unranked room; no payment or prize execution. If another player moves first, refresh your match before acting.</p>
   </section>
 </main></body>
 </html>
