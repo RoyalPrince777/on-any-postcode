@@ -20,6 +20,8 @@ from urllib import error as urlerror
 from urllib import parse as urlparse
 from urllib import request as urlrequest
 
+from flask import has_request_context, request
+
 from . import founder_local_auth
 
 AUTH_COOKIE_NAMES_SESSION_KEY: Final = "oap_neon_auth_cookie_names"
@@ -356,7 +358,19 @@ def scoped_set_cookie(header: str) -> str | None:
         key = attribute.partition("=")[0].strip().lower()
         if key in {"expires", "max-age"} and "\r" not in attribute:
             retained.append(attribute)
-    attributes = ["Path=/", "Secure", "HttpOnly", "SameSite=Lax", *retained]
+    # The first-party Termux HTTP origin can be accessed only through loopback.
+    # Browsers may reject Secure cookies over local HTTP, breaking Founder login.
+    # Never relax the flag for a remote client, proxy or non-loopback Host header.
+    loopback_http = (
+        has_request_context()
+        and os.environ.get("OAP_LOCAL_MODE", "").casefold() == "true"
+        and request.scheme == "http"
+        and request.remote_addr in {"127.0.0.1", "::1"}
+        and request.host in {"127.0.0.1", "127.0.0.1:5000", "127.0.0.1:5001",
+                             "localhost", "localhost:5000", "localhost:5001",
+                             "[::1]", "[::1]:5000", "[::1]:5001"}
+    )
+    attributes = ["Path=/", *([] if loopback_http else ["Secure"]), "HttpOnly", "SameSite=Lax", *retained]
     return "; ".join([f"{name}={value}", *attributes])
 
 
