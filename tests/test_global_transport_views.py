@@ -337,7 +337,7 @@ def test_transport_inside_doors_are_html_not_technical_json():
     for path, title, expected_links in (
         ("/transport/guardian", "Guardian", ("/transport/ride/current", "/transport/ride/guardian/status")),
         ("/transport/operators", "Operators", ("/transport/shared-bikes/mitcham", "/transport/shared-bikes/status")),
-        ("/transport/control-center", "Control Center", ("/transport/control-center/readiness", "/transport/capabilities")),
+        ("/transport/control-center", "Control Center", ("/transport/control-center/readiness", "/transport/control-center/capabilities")),
     ):
         response = client.get(path)
         assert response.status_code == 200
@@ -539,7 +539,44 @@ def test_specialist_menu_alignment_and_truthful_destination_labels():
     operators = client.get("/transport/operators").get_data(as_text=True)
     assert "Technical availability data" in operators
     control = client.get("/transport/control-center").get_data(as_text=True)
-    assert "Technical capability data" in control
-    assert "Technical software status" in control
+    assert "View the 21 capability groups" in control
+    assert "Evidence-gated operational status" in control
     assert global_transport_views.status()["capability_count"] == 21
     assert global_transport_views.status()["human_authority_final"] is True
+
+
+def test_human_readable_control_center_preserves_legacy_json_and_all_gates(monkeypatch):
+    from mission_control import global_transport_views as views
+
+    client = _app().test_client()
+    caps = client.get("/transport/control-center/capabilities")
+    assert caps.status_code == 200
+    assert caps.mimetype == "text/html"
+    assert caps.headers["Cache-Control"] == "no-store, private"
+    content = caps.get_data(as_text=True)
+    assert 'aria-label="21 grouped transport capabilities"' in content
+    for group in views.DOOR_GROUPS:
+        assert group.replace("_", " ").title() in content
+    assert sum(map(len, views.DOOR_GROUPS.values())) == 21
+    assert "not permissions to operate" in content
+    assert client.get("/transport/capabilities").mimetype == "application/json"
+
+    sample = {
+        "software_execution_layer_ready": True,
+        "evidence_store_reachable": False,
+        "live_execution_authorised": False,
+        "areas": {"vehicle_control": {"live_execution_authorised": False, "missing": [], "verified": [], "requires": ["vehicle_identity_binding"]}},
+    }
+    monkeypatch.setattr(views, "execution_readiness", lambda: sample)
+    page = client.get("/transport/control-center/status")
+    assert page.status_code == 200
+    assert page.mimetype == "text/html"
+    assert page.headers["Cache-Control"] == "no-store, private"
+    html = page.get_data(as_text=True)
+    assert "Unknown · blocked" in html
+    assert "Guardian, HRM and Founder Final remain in force." in html
+    assert "independently verified authority" in html
+    assert "Human Authority remains final" in html
+    assert "Not authorised · 0 requirements outstanding" not in html
+    assert client.get("/transport/execution-readiness").mimetype == "application/json"
+    assert client.get("/transport/status").mimetype == "application/json"
