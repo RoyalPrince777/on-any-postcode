@@ -1,6 +1,7 @@
 """Bounded Connect 4 room chat contract checks; DB integration needs migrated test DB."""
-from mission_control import arena_connect4_chat
 import pytest
+
+from mission_control import arena_connect4_chat
 
 
 def test_room_chat_page_and_client_wiring(client):
