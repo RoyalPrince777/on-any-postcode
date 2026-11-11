@@ -598,3 +598,41 @@ def test_sign_out_forwards_only_auth_cookie_and_clears_session(
         for header in response.headers.getlist("Set-Cookie")
     )
     assert client.get("/my-world").status_code == 302
+
+
+def test_smi_private_auth_alias_uses_single_founder_entry(anonymous_client):
+    from urllib.parse import parse_qs, urlsplit
+
+    for target in ("/mission/smi", "/mission/ollama", "/smi"):
+        response = anonymous_client.get(
+            "/auth", query_string={"next": target}, follow_redirects=False,
+        )
+        assert response.status_code == 302
+        parsed = urlsplit(response.headers["Location"])
+        assert parsed.path == "/enter-my-world"
+        assert parse_qs(parsed.query)["next"] == [target]
+        assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_canonical_smi_login_preserves_other_auth_and_rejects_external_next(
+    anonymous_client,
+):
+    from urllib.parse import parse_qs, urlsplit
+
+    assert anonymous_client.get(
+        "/auth?next=/the-spot/market", follow_redirects=False,
+    ).status_code == 200
+    unsafe = anonymous_client.get(
+        "/auth", query_string={"next": "//attacker.example/mission/smi"},
+        follow_redirects=False,
+    )
+    assert unsafe.status_code == 200
+    page = anonymous_client.get(
+        "/enter-my-world", query_string={"next": "/mission/smi"},
+        follow_redirects=False,
+    )
+    assert page.status_code in (200, 302)
+    if page.status_code == 302:
+        parsed = urlsplit(page.headers["Location"])
+        assert parsed.netloc == ""
+        assert parse_qs(parsed.query).get("next", ["/mission/smi"])[0] == "/mission/smi"
