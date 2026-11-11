@@ -1,11 +1,11 @@
 """Focused Shere Khan conversational routing and governance regression."""
 from mission_control.smi_shere_khan_dialogue import (
-    SHERE_KHAN_CAPABILITIES,
     SHERE_KHAN_ASSURANCE_TIERS,
-    assurance_instruction,
+    SHERE_KHAN_CAPABILITIES,
     SHERE_KHAN_INSTRUCTION,
     SHERE_KHAN_WORKING_PROTOCOL,
     TIGER_INTELLIGENCE,
+    assurance_instruction,
     capability_instruction,
     shere_khan_requested,
     tiger_intelligence_instruction,
