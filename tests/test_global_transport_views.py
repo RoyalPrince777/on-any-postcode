@@ -513,3 +513,33 @@ def test_logistics_has_real_public_front_door_without_exposing_private_distribut
         assert f'href="{path}"' in html
     assert "sign-in required" in html
     assert global_transport_views.status()["capability_count"] == 21
+
+
+def test_specialist_menu_alignment_and_truthful_destination_labels():
+    client = _app().test_client()
+    for route, title in (
+        ("/transport/logistics", "Logistics"),
+        ("/transport/guardian", "Guardian"),
+        ("/transport/operators", "Operators"),
+        ("/transport/control-center", "Control Center"),
+    ):
+        response = client.get(route)
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert f"<h1>{title}</h1>" in html
+        assert html.count('class="card" href=') == 3
+        assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in html
+        assert "overflow-wrap:anywhere" in html
+        assert 'href="/transport"' in html
+        assert 'href="/transport/my"' in html
+        assert "<h1>" in html and "</h1><p>" not in html
+        assert "Live services require verified availability and authorisation." in html
+    logistics = client.get("/transport/logistics").get_data(as_text=True)
+    assert "Sign-in required" in logistics
+    operators = client.get("/transport/operators").get_data(as_text=True)
+    assert "Technical availability data" in operators
+    control = client.get("/transport/control-center").get_data(as_text=True)
+    assert "Technical capability data" in control
+    assert "Technical software status" in control
+    assert global_transport_views.status()["capability_count"] == 21
+    assert global_transport_views.status()["human_authority_final"] is True
