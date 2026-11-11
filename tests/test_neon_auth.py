@@ -31,6 +31,43 @@ def test_scoped_cookie_removes_upstream_domain_and_enforces_first_party_flags():
     )
 
 
+
+def test_local_loopback_http_can_receive_founder_cookie_without_remote_downgrade(monkeypatch):
+    from flask import Flask
+
+    app = Flask(__name__)
+    monkeypatch.setenv("OAP_LOCAL_MODE", "true")
+    upstream = (
+        "oap_founder_session=signed-value; Path=/; Secure; HttpOnly; "
+        "SameSite=Lax; Max-Age=3600"
+    )
+
+    with app.test_request_context(
+        "http://127.0.0.1:5001/enter-my-world",
+        environ_base={"REMOTE_ADDR": "127.0.0.1"},
+    ):
+        local_cookie = neon_auth.scoped_set_cookie(upstream)
+    assert "Path=/; HttpOnly; SameSite=Lax" in local_cookie
+    assert "; Secure;" not in local_cookie
+
+    with app.test_request_context(
+        "http://127.0.0.1:5001/enter-my-world",
+        environ_base={"REMOTE_ADDR": "198.51.100.5"},
+    ):
+        assert "; Secure;" in neon_auth.scoped_set_cookie(upstream)
+
+    with app.test_request_context(
+        "http://oap.example.test/enter-my-world",
+        environ_base={"REMOTE_ADDR": "127.0.0.1"},
+    ):
+        assert "; Secure;" in neon_auth.scoped_set_cookie(upstream)
+
+    with app.test_request_context(
+        "https://127.0.0.1:5001/enter-my-world",
+        environ_base={"REMOTE_ADDR": "127.0.0.1"},
+    ):
+        assert "; Secure;" in neon_auth.scoped_set_cookie(upstream)
+
 def test_cookie_header_forwards_only_recorded_auth_cookie_names():
     header = neon_auth.cookie_header(
         ["better-auth.session_token", "session", "missing"],
