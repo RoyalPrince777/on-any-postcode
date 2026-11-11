@@ -448,3 +448,25 @@ def test_execution_readiness_page_is_unknown_not_falsely_green_when_store_unreac
     assert "Evidence unavailable" in html
     assert "not confirmed missing records" in html
     assert "Requirements recorded" not in html
+
+
+def test_transport_noise_stripped_without_removing_seven_doors_or_authority_gates():
+    client = _app().test_client()
+    response = client.get("/transport")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert html.count('class="card" href=') == 7
+    assert "Travel, ride and move through your world." not in html
+    assert "Checking install support" not in html
+    assert "Live transport requires verified providers and authorisation." in html
+    for name, _, href in global_transport_views.PUBLIC_DOORS:
+        assert f"<strong>{name}</strong>" in html
+        assert f'href="{href}"' in html
+    assert '<span>{{ description }}</span>' not in html
+    status = client.get("/transport/status").get_json()
+    assert status["capability_count"] == 21
+    assert status["human_authority_final"] is True
+    assert status["physical_operations_in_scope"] is False
+    inside = client.get("/transport/control-center")
+    assert inside.status_code == 200
+    assert "Live services require verified availability and authorisation." in inside.get_data(as_text=True)
