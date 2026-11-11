@@ -345,8 +345,8 @@ _INSIDE_DOORS = {
         "Control Center", "Transport software status and readiness.",
         (
             ("Readiness", "Review execution requirements", "/transport/control-center/readiness"),
-            ("Capabilities", "Technical capability data", "/transport/capabilities"),
-            ("Transport status", "Technical software status", "/transport/status"),
+            ("Capabilities", "View the 21 capability groups", "/transport/control-center/capabilities"),
+            ("Transport status", "Evidence-gated operational status", "/transport/control-center/status"),
         ),
     ),
 }
@@ -356,6 +356,73 @@ def _inside_door(name: str):
     title, description, items = _INSIDE_DOORS[name]
     return _no_store(make_response(render_template_string(
         _TRANSPORT_INSIDE_PAGE, title=title, description=description, items=items,
+    )))
+
+
+# Human-readable views; the original JSON endpoints remain unchanged.
+_TRANSPORT_CONTROL_SUMMARY_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>{{ title }} · OAP Global Transport</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:760px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
+a{color:#e7c764}.back{display:inline-flex;align-items:center;min-height:44px;text-decoration:none;font-weight:650}
+h1{font-size:clamp(1.8rem,6vw,2.5rem);margin:18px 0}
+h2{font-size:1rem;margin:0 0 8px;color:#efcf73}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.panel{background:#151515;border:1px solid #353535;border-radius:16px;padding:16px;min-width:0}
+.panel p{margin:0;color:#c8c8c8;overflow-wrap:anywhere}
+.notice{margin:18px 0 0;border-left:3px solid #efcf73;padding:12px 14px;background:#211d14}
+.note{font-size:.85rem;color:#bdbdbd;margin-top:16px}
+a:focus-visible{outline:3px solid #efcf73;outline-offset:3px}
+@media(max-width:360px){.grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<a class="back" href="/transport/control-center">← Control Center</a>
+<h1>{{ title }}</h1>
+{% if groups is defined %}
+<section class="grid" aria-label="21 grouped transport capabilities">
+{% for name, items in groups %}
+<article class="panel"><h2>{{ name }}</h2>
+<p>{{ items|join(", ") }}</p></article>
+{% endfor %}
+</section>
+<p class="note">Capabilities describe the software catalogue, not permissions to operate transport services.</p>
+{% else %}
+<section class="grid" aria-label="Execution gate status">
+<article class="panel"><h2>Software</h2><p>Configured contracts; no physical operations</p></article>
+<article class="panel"><h2>Live execution</h2>
+<p>{% if not readiness.evidence_store_reachable %}Unknown · blocked{% elif readiness.live_execution_authorised %}Evidence requirements recorded; external authenticity unverified{% else %}Not authorised{% endif %}</p></article>
+{% for name, area in readiness.areas.items() %}
+<article class="panel"><h2>{{ name.replace("_", " ").title() }}</h2>
+<p>{% if not readiness.evidence_store_reachable %}Unknown · blocked{% elif area.live_execution_authorised %}Required references recorded; authenticity unverified{% else %}Not authorised · {{ area.missing|length }} requirements outstanding{% endif %}</p></article>
+{% endfor %}
+</section>
+<div class="notice">Live bookings, payments, dispatch and vehicle control require independently verified authority and evidence. Guardian, HRM and Founder Final remain in force.</div>
+<a class="back" href="/transport/control-center/readiness">Review required evidence</a>
+<p class="note">Human Authority remains final. Recorded references alone do not verify external authenticity.</p>
+{% endif %}
+</main></body></html>"""
+
+
+@bp.get("/transport/control-center/capabilities")
+def transport_capabilities_page():
+    """Human-readable 21-capability grouping, never a live service authorisation."""
+    groups = [(name.replace("_", " ").title(), [item.replace("_", " ").title() for item in members])
+              for name, members in DOOR_GROUPS.items()]
+    return _no_store(make_response(render_template_string(
+        _TRANSPORT_CONTROL_SUMMARY_PAGE, title="Capabilities", groups=groups,
+    )))
+
+
+@bp.get("/transport/control-center/status")
+def transport_status_page():
+    """Evidence-based human status; fail closed when runtime evidence is unknown."""
+    return _no_store(make_response(render_template_string(
+        _TRANSPORT_CONTROL_SUMMARY_PAGE, title="Transport Status",
+        readiness=execution_readiness(),
     )))
 
 
