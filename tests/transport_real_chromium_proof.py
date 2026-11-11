@@ -109,6 +109,18 @@ def prove_transport(browser, viewport):
             href = items.nth(i).get_attribute("href")
             assert href and href.startswith("/"), (submenu, i, href)
 
+    # Human-facing Control Center must not dump JSON or hide an unknown gate.
+    for route, title in (
+        ("/transport/control-center/capabilities", "Capabilities"),
+        ("/transport/control-center/status", "Transport Status"),
+    ):
+        result = page.goto(BASE + route, wait_until="domcontentloaded")
+        assert result is not None and result.status == 200, route
+        assert_layout(page)
+        expect(page.locator("h1")).to_have_text(title)
+        expect(page.locator('a.back[href="/transport/control-center"]')).to_be_visible()
+    expect(page.get_by_text("Unknown · blocked").first).to_be_visible()
+
     api = page.evaluate(
         """async () => {
           const [status, caps, readiness] = await Promise.all([
