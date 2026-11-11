@@ -48,6 +48,12 @@ def send(identity: str, kind: str, payload: object) -> str:
         raise ValueError("signal_too_large")
     signal_id = str(uuid.uuid4())
     with postgres_db.connect() as connection:
+        # Sweep expired negotiation messages on writes as well as reads.
+        # This is bounded to ephemeral signalling; never touch guest users,
+        # accepted Links, or unrelated records.
+        connection.execute(
+            "DELETE FROM oap_ptt_signals WHERE expires_at <= CURRENT_TIMESTAMP"
+        )
         connection.execute(
             """INSERT INTO oap_ptt_signals(signal_id,sender_id,recipient_id,kind,payload)
                VALUES (%s,%s,%s,%s,%s::jsonb)""",
