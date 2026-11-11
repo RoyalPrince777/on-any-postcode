@@ -72,6 +72,7 @@ def test_render_database_status_caches_fail_closed_result(monkeypatch):
 def test_non_render_database_status_remains_live(monkeypatch):
     database._clear_db_status_cache()
     monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.delenv("OAP_LOCAL_MODE", raising=False)
     monkeypatch.setattr(database.postgres_db, "configured", lambda: True)
 
     calls = []
