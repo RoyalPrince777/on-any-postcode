@@ -57,8 +57,8 @@ def test_store_routes_expose_installable_pwa_without_native_claim(client):
     assert "Open OAP Arena" in body
     assert "Open OAP Library" in body
     assert "Open OAP Music" in body
-    assert "OPEN READY · INSTALL NOT YET PROVEN" in body
-    assert "signed native Android APK" in body
+    assert "Browser only" in body
+    assert "signed Android APK" in body
 
     entry = client.get("/oap-store/apps/oap.world")
     assert entry.status_code == 200
@@ -172,7 +172,10 @@ def test_only_apps_with_dedicated_install_proof_expose_install_buttons():
         if app_id not in installable:
             assert app["manifest_url"] is None
             assert app["install_url"] is None
-            assert app["release_state"] in {"open_ready", "planned"}
+            assert app["release_state"] in {"open_ready", "planned", "release_pending"}
+            if app["release_state"] == "release_pending":
+                assert app_id == "oap.usa_royalty_bank"
+                assert app["install_enabled"] is False
             if app["release_state"] == "planned":
                 assert app["open_url"] is None
             else:
@@ -220,7 +223,7 @@ def test_store_renders_planned_apps_without_open_or_install_claim(client):
     assert 'href="/search"' in body
     assert "OAP VPN" in body
     assert "OAP Cyber Security" in body
-    assert "PLANNED · SURFACE NOT YET PROVEN" in body
+    assert "Not available" in body
     assert 'href="/mail"' not in body
     assert 'href="/vpn"' not in body
     assert 'href="/cyber-security"' not in body
