@@ -290,7 +290,7 @@ def test_transport_cards_route_to_real_app_destinations():
         "/travel",
         "/movement/workspace",
         "/transport/ride",
-        "/distribution",
+        "/transport/logistics",
         "/transport/guardian",
         "/transport/operators",
         "/transport/control-center",
@@ -305,7 +305,7 @@ def test_transport_status_exposes_seven_doors_and_legacy_route_compatibility():
     assert set(payload["public_routes"]) == set(payload["public_doors"])
     assert payload["public_routes"]["journey"] == "/travel"
     assert payload["public_routes"]["ride"] == "/transport/ride"
-    assert payload["public_routes"]["logistics"] == "/distribution"
+    assert payload["public_routes"]["logistics"] == "/transport/logistics"
     assert payload["public_routes"]["guardian"] == "/transport/guardian"
     assert payload["public_routes"]["operators"] == "/transport/operators"
     assert payload["public_routes"]["control_center"] == "/transport/control-center"
@@ -494,3 +494,21 @@ def test_transport_mobile_alignment_and_uncluttered_install_placeholder():
         assert 'min-height:84px;min-width:0' in html
         assert 'min-height:44px' in html
         assert 'aria-label=' in html
+
+
+def test_logistics_has_real_public_front_door_without_exposing_private_distribution(client):
+    """A first-party Logistics tile must not link directly to a private JSON API."""
+    response = client.get("/transport")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'href="/transport/logistics"' in html
+    assert 'class="card" href="/distribution"' not in html
+    logistics = client.get("/transport/logistics")
+    assert logistics.status_code == 200
+    html = logistics.get_data(as_text=True)
+    assert "<h1>Logistics</h1>" in html
+    for label, path in (("Cargo", "/distribution"), ("Deliver", "/movement/workspace#book-title"), ("Fleet", "/transport/ride/driver")):
+        assert f"<strong>{label}</strong>" in html
+        assert f'href="{path}"' in html
+    assert "sign-in required" in html
+    assert global_transport_views.status()["capability_count"] == 21
