@@ -119,7 +119,9 @@ def prove_transport(browser, viewport):
         assert_layout(page)
         expect(page.locator("h1")).to_have_text(title)
         expect(page.locator('a.back[href="/transport/control-center"]')).to_be_visible()
-    expect(page.get_by_text("Unknown · blocked").first).to_be_visible()
+    gate_state = page.locator('section[aria-label="Execution gate status"]').inner_text()
+    assert "Unknown · blocked" in gate_state or "Not authorised" in gate_state, gate_state
+    assert "Guardian, HRM and Founder Final remain in force." in page.locator("main").inner_text()
 
     api = page.evaluate(
         """async () => {
