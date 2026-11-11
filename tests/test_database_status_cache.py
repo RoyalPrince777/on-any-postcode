@@ -86,3 +86,56 @@ def test_non_render_database_status_remains_live(monkeypatch):
     database.db_status()
 
     assert calls == [1, 2]
+
+
+def test_local_termux_readiness_cache_is_bounded_to_five_seconds(monkeypatch):
+    database._clear_db_status_cache()
+    monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.setenv("OAP_LOCAL_MODE", "true")
+    monkeypatch.setenv("OAP_DB_STATUS_CACHE_SECONDS", "300")
+    monkeypatch.setattr(database.postgres_db, "configured", lambda: True)
+    calls = []
+    clock = {"now": 10.0}
+    monkeypatch.setattr(database.time, "monotonic", lambda: clock["now"])
+    monkeypatch.setattr(
+        database.postgres_db, "postgres_status",
+        lambda: calls.append("probe") or _status(),
+    )
+
+    assert database.db_status()["reachable"]
+    assert database.db_status()["reachable"]
+    assert calls == ["probe"]
+    clock["now"] = 15.1
+    assert database.db_status()["reachable"]
+    assert calls == ["probe", "probe"]
+
+
+def test_local_readiness_cache_does_not_promote_unreachable_database(monkeypatch):
+    database._clear_db_status_cache()
+    monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.setenv("OAP_LOCAL_MODE", "true")
+    monkeypatch.setattr(database.postgres_db, "configured", lambda: True)
+    monkeypatch.setattr(database.time, "monotonic", lambda: 3.0)
+    monkeypatch.setattr(
+        database.postgres_db, "postgres_status",
+        lambda: _status(reachable=False, initialized=False, pending=["missing"]),
+    )
+    first = database.db_status()
+    second = database.db_status()
+    assert not first["reachable"] and not first["initialized"]
+    assert not second["reachable"] and not second["initialized"]
+
+
+def test_local_cache_is_disabled_without_explicit_local_mode(monkeypatch):
+    database._clear_db_status_cache()
+    monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.delenv("OAP_LOCAL_MODE", raising=False)
+    monkeypatch.setattr(database.postgres_db, "configured", lambda: True)
+    calls = []
+    monkeypatch.setattr(
+        database.postgres_db, "postgres_status",
+        lambda: calls.append(1) or _status(),
+    )
+    database.db_status()
+    database.db_status()
+    assert calls == [1, 1]
