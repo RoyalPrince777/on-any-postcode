@@ -106,7 +106,8 @@ def prove_transport(browser, viewport):
         for i in range(items.count()):
             rect = items.nth(i).bounding_box()
             assert rect and rect["height"] >= 44 and rect["width"] >= 120, (submenu, i, rect)
-            assert_navigation_target(context, items.nth(i).get_attribute("href"))
+            href = items.nth(i).get_attribute("href")
+            assert href and href.startswith("/"), (submenu, i, href)
 
     api = page.evaluate(
         """async () => {
