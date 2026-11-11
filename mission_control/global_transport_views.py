@@ -252,6 +252,53 @@ footer{margin-top:28px;color:#aaa;font-size:.82rem}
 </main></body></html>"""
 
 
+# Static, public-safe offline navigation. No session, personal location or write actions.
+_TRANSPORT_OFFLINE_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>Global Transport · Offline</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:760px;margin:auto;padding:20px 16px 48px}
+h1{font-size:clamp(1.85rem,7vw,2.8rem);line-height:1.12;margin:8px 0 12px}
+p{color:#c8c8c8;margin:0 0 18px}
+.brand{color:#f0cf63;font-weight:800;font-size:.8rem;letter-spacing:.075em}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{background:#161616;border:1px solid #353535;border-radius:16px;min-height:76px;
+padding:14px;display:flex;align-items:center;font-weight:700;color:#dedede}
+.tile:last-child{grid-column:1/-1}
+.notice{border-left:3px solid #f0cf63;padding:12px 14px;margin:20px 0;background:#211d14}
+.retry{display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;border-radius:12px;
+color:#090909;background:#f0cf63;text-decoration:none;font-weight:700}
+.retry:focus-visible{outline:3px solid #fff;outline-offset:3px}
+small{display:block;color:#bdbdbd;margin-top:16px}
+@media(max-width:320px){.grid{grid-template-columns:1fr}.tile:last-child{grid-column:auto}}
+</style></head><body><main>
+<p class="brand">ON ANY POSTCODE</p><h1>Global Transport</h1>
+<p role="status">Offline shell only · live transport data unavailable</p>
+<section class="grid" aria-label="Seven transport doors, unavailable while the server is offline">
+{% for name, description, href in doors %}<div class="tile">{{ name }}</div>{% endfor %}
+</section>
+<div class="notice">Bookings, payments, dispatch, tracking, vehicle control and private journeys
+are unavailable. No actions are queued or executed offline. Guardian, HRM and
+Founder Final restrictions remain in force. Unverified status: Unknown · blocked.</div>
+<a class="retry" href="/transport">Retry Global Transport</a>
+<small>If your first-party Termux Flask server is running on this device, the full local
+interface can open without internet. Otherwise only this public offline shell is available.</small>
+</main></body></html>"""
+
+
+@bp.get("/transport/offline")
+def transport_offline():
+    """Bounded public snapshot only; service worker may precache this exact route."""
+    response = make_response(render_template_string(_TRANSPORT_OFFLINE_PAGE, doors=PUBLIC_DOORS))
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 @bp.get("/transport")
 def transport_home():
     return _no_store(make_response(render_template_string(_PAGE, doors=PUBLIC_DOORS)))
