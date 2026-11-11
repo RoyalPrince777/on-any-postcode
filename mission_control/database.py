@@ -34,10 +34,17 @@ def _clear_db_status_cache() -> None:
 
 
 def _postgres_status() -> dict[str, Any]:
-    """Read PostgreSQL status without letting platform probes hammer Neon."""
+    """Bound repeat readiness probes; never cache authorization decisions.
+
+    Offline Termux can be hurt by repeated connections just as the hosted
+    origin can. Local caching is deliberately short (at most five seconds)
+    and applies only to coarse status, never to Founder identity/HRM checks.
+    """
 
     global _DB_STATUS_CACHE_VALUE, _DB_STATUS_CACHE_EXPIRES_AT
-    if os.environ.get("RENDER", "").lower() != "true":
+    hosted = os.environ.get("RENDER", "").lower() == "true"
+    local = os.environ.get("OAP_LOCAL_MODE", "").lower() == "true"
+    if not hosted and not local:
         return postgres_db.postgres_status()
 
     now = time.monotonic()
@@ -46,7 +53,8 @@ def _postgres_status() -> dict[str, Any]:
 
     status = postgres_db.postgres_status()
     _DB_STATUS_CACHE_VALUE = deepcopy(status)
-    _DB_STATUS_CACHE_EXPIRES_AT = now + _cache_seconds()
+    duration = _cache_seconds() if hosted else min(_cache_seconds(), 5.0)
+    _DB_STATUS_CACHE_EXPIRES_AT = now + duration
     return status
 
 
