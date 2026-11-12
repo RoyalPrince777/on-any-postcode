@@ -402,7 +402,9 @@ def execute_generation(
     else:  # pragma: no cover - guarded by _tool
         raise ValueError("unsupported_studio_tool")
 
-    artifact_proven = bool(artifact.get("artifact_proven"))
+    # A video provider job (even "completed") is not a verified deliverable.
+    # Only a retrieved and validated artifact can earn artifact-level proof.
+    artifact_proven = bool(artifact.get("artifact_proven")) and tool["output"] != "video"
     receipt = smi_receipt_backend.write_receipt(
         "studio_generation_receipt",
         {
@@ -448,8 +450,9 @@ def generation_content(video_id: object) -> tuple[bytes, str]:
 
     clean_id = str(video_id or "").strip()
     status_payload = studio_media_backend.video_status(clean_id)
-    if not status_payload.get("artifact_proven"):
+    if status_payload.get("status") != "completed":
         raise RuntimeError("studio_video_not_completed")
+    # Retrieval validates MP4 bytes. Provider status alone cannot certify video.
     return studio_media_backend.video_content(clean_id)
 
 
@@ -457,7 +460,9 @@ def generation_status(video_id: object) -> dict[str, Any]:
     """Check one Studio video job and Chronicle its current proof state."""
 
     artifact = studio_media_backend.video_status(str(video_id or ""))
-    artifact_proven = bool(artifact.get("artifact_proven"))
+    # Read-only status may report availability, never verified artifact proof.
+    # Content validation happens separately when actual bytes are retrieved.
+    artifact_proven = False
     receipt = smi_receipt_backend.write_receipt(
         "studio_generation_receipt",
         {
