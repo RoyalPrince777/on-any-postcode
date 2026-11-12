@@ -193,6 +193,11 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
         "best_for": "multi-agent coordination and bounded work distribution",
         "authority": "advisory_review_only",
     },
+    "Queen Bee": {
+        "role": "Swarm assignment coordinator (no worker creation)",
+        "best_for": "bounded parallel review assignments, evidence consolidation and resource limits",
+        "authority": "advisory_review_only",
+    },
     "Octopus": {
         "role": "Multi-system dependency / interface reviewer",
         "best_for": "connected subsystems, async dependencies, interface timing, fan-out and recovery paths",
@@ -231,6 +236,16 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
 }
 
 _AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
+    (
+        ("founder sign", "founder login", "authentication", "passwordless",
+         "auth bypass", "smi port 5000", "smi 5000", "sign-in unavailable"),
+        ("Twinz", "Agent Smith", "Bagheera", "Spider", "Octopus",
+         "Queen Bee", "Shere Khan", "Fox"),
+        "Founder-access recovery: the Twins coordinate dual-path investigation and "
+        "restoration; Smith challenges sessions; Spider traces dependencies; "
+        "Octopus reviews contradictions; Queen Bee allocates bounded advisory work. "
+        "No sign-in bypass, worker creation, automatic cutover or approval transfer.",
+    ),
     (
         ("map loading", "loading map", "old route", "old routes", "map route", "route loading", "maps still loading"),
         ("Shere Khan", "Bagheera", "Agent Smith", "Twinz", "Octopus", "Spider", "Fox", "Shark", "Bee"),
