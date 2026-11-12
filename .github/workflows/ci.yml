@@ -60,6 +60,8 @@ jobs:
           node tests/smi_exact_character_rig_foundation_test.cjs
           node --check mission_control/static/smi_source_pixel_motion.js
           node tests/smi_source_pixel_motion_test.cjs
+          node --check mission_control/static/smi_bagheera_lens.js
+          node tests/smi_bagheera_lens_test.cjs
           node --check mission_control/static/smi_reply_audio_player.js
           node tests/smi_reply_audio_player_test.cjs
           node --check mission_control/smi_character_motion_candidate.js
