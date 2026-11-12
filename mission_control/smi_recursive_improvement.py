@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 from collections.abc import Callable, Iterable, Mapping
+from itertools import islice
 from datetime import UTC, datetime
 from typing import Any
 
@@ -78,7 +79,10 @@ def _values(value: object) -> tuple[str, ...]:
         return (value,) if value.strip() else ()
     if not isinstance(value, Iterable) or isinstance(value, (bytes, Mapping)):
         return ()
-    return tuple(str(item).strip() for item in value if str(item).strip())
+    # Bound intake, not merely the final output: arbitrary evidence generators
+    # must not stall the worker or allocate unbounded diagnostic reports.
+    values = (str(item).strip()[:160] for item in islice(value, 22))
+    return tuple(item for item in values if item)
 
 
 def _collect_weaknesses(
