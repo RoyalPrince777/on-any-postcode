@@ -247,6 +247,7 @@ def test_completed_video_status_does_not_fake_artifact_green(monkeypatch):
 
     assert result["state"] != "generated"
     assert result["output_generated"] is False
+    assert result["artifact"]["artifact_proven"] is False
     assert captured["receipt"]["payload"]["signal"] == "🟣"
     assert captured["receipt"]["payload"]["green_gate"] == "awaiting_artifact_proof"
     assert result["execution_granted"] is False
