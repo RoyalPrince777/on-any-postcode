@@ -16,6 +16,11 @@ def test_default_is_lightweight_and_sensors_off():
     assert not profile.microphone_enabled
     assert not profile.runtime_verified
     assert profile.founder_final and profile.advisory_only
+    assert "Seeonee" in profile.jungle_home
+    assert "Oodeypore" in profile.literary_origin
+    assert "cunning" in profile.personality
+    assert "spatial_awareness" in profile.panther_intelligence_analogies
+    assert not profile.runtime_verified
 
 
 def test_hybrid_voice_needs_both_permissions():
