@@ -13,6 +13,7 @@ from typing import Any
 
 from . import (
     autonomy_levels,
+    matrix_signal_bus,
     oap_core_autonomy,
     organism_autonomy,
     postgres_db,
@@ -98,6 +99,11 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         "smi_autonomy": smi_cycle,
         "organism_autonomy": organism_cycle,
         "github_failure_evidence": github_evidence,
+        "neo_operational_self_review": matrix_signal_bus.neo_operational_self_review(
+            database_ready=bool(database.get("initialized")),
+            founder_authority_present=human_authority_present,
+            github_failure_evidence=github_evidence,
+        ),
         "human_authority_final": True,
         "independent_execution": False,
         "consequential_action": False,
