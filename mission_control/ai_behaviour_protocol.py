@@ -235,6 +235,24 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
     },
 }
 
+# Alignment Intelligence positions are mission assignments, not passport transfers.
+# Existing canonical homes and Founder/Guardian/HRM authority remain unchanged.
+MISSION_FIT_POSITIONS: dict[str, tuple[str, str]] = {
+    "Twinz": ("joint_mission_leads", "Matrix / Merovingian Exiles"),
+    "Agent Smith": ("adversarial_integrity", "Matrix / Independent Smith"),
+    "Bagheera": ("safe_recovery", "Jungle"),
+    "Spider": ("dependency_tracing", "Existing specialist"),
+    "Octopus": ("metacognitive_review", "SMI / Internal Metacognitive Intelligence"),
+    "Queen Bee": ("bounded_parallel_coordination", "Insect / Queen Bee and Swarm"),
+    "Shere Khan": ("evidence_challenge", "Jungle"),
+    "Fox": ("tactical_fault_isolation", "Fox specialist"),
+    "Bee": ("coordination_review", "Insect"),
+    "Shark": ("hidden_risk", "Animal specialist"),
+    "Elephant": ("memory_provenance", "Memory specialist"),
+    "Eagle": ("system_impact", "Awareness specialist"),
+    "Falcon": ("performance_bottlenecks", "Speed specialist"),
+}
+
 _AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
     (
         ("founder sign", "founder login", "authentication", "passwordless",
@@ -431,6 +449,10 @@ def recommend_agent_team(
                 "role": REVIEW_AGENT_CATALOG[name]["role"],
                 "best_for": REVIEW_AGENT_CATALOG[name]["best_for"],
                 "authority": REVIEW_AGENT_CATALOG[name]["authority"],
+                "mission_position": MISSION_FIT_POSITIONS[name][0],
+                "canonical_home": MISSION_FIT_POSITIONS[name][1],
+                "home_changed": False,
+                "execution_granted": False,
             }
             for name in names
         )
@@ -471,6 +493,18 @@ def recommend_agent_team(
         "recommendation_reason": reason,
         "recommended_team": _team_payload(tuple(recommended)),
         "active_team": _team_payload(active_names),
+        "mission_leads": tuple(
+            name for name in active_names
+            if MISSION_FIT_POSITIONS[name][0] == "joint_mission_leads"
+        ),
+        "alignment_intelligence": {
+            "selection_basis": "mission_fit_not_family_reassignment",
+            "canonical_homes_preserved": True,
+            "duplicate_agent_creation": False,
+            "execution_granted": False,
+            "agent_authority_transferred": False,
+            "live_agent_activation_proven": False,
+        },
         "founder_can_change": True,
         "founder_override_applied": manual,
         "smi_can_silently_override_founder": False,
