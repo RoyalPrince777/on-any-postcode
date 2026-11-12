@@ -98,6 +98,15 @@ def _collect_weaknesses(
         if snapshot.get("available") is not True:
             weaknesses.append(f"unknown:{label}_evidence")
 
+    # The worker and the improvement dashboard must consume the same SMI
+    # self-model/coherence verdict. A disagreement can never become a Green.
+    if smi.get("available") is True:
+        smi_awareness = recurring_awareness_from_probe(smi, core, organism)
+        weaknesses.extend(smi_awareness["issues"])
+        weaknesses.extend(f"unknown:{key}" for key in smi_awareness["unknown_evidence"])
+        if smi.get("health_status") not in (None, "healthy", "ready", "green"):
+            weaknesses.append("smi_health_not_ready")
+
     smi_proposal = smi.get("proposal")
     if isinstance(smi_proposal, Mapping):
         weaknesses.extend(_values(smi_proposal.get("evidence")))
