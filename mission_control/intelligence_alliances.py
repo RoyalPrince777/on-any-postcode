@@ -133,7 +133,38 @@ def _family_homes() -> tuple[dict[str, Any], ...]:
         reference("Winifred", source="Disney 1967", note="Colonel Hathi's wife"),
         reference("Elephant Patrol", source="Disney 1967", note="Collective patrol, not individual passports"),
     )
+    bird_names = ("Owl", "Eagle", "Falcon")
+    bird_members = tuple(
+        {
+            "name": str(agent["name"]),
+            "agent_id": str(agent["agent_id"]),
+            "role": str(agent["role"]),
+            "registered": True,
+        }
+        for name in bird_names
+        for agent in agents.AGENT_REGISTRY
+        if agent["family_id"] == "animal" and agent["name"] == name
+    )
     return (
+        {
+            "id": "bird_intelligence",
+            "name": "Bird Intelligence",
+            "world_id": "life",
+            "home_system": "Life System",
+            "family_id": "animal",
+            "classification": "specialist_home_not_new_intelligence_world",
+            "status": "canonical_agent_projection",
+            "members": bird_members,
+            "responsibilities": (
+                {"name": "Owl", "focus": "Evidence judgement and uncertainty"},
+                {"name": "Eagle", "focus": "Long-range awareness and system-wide perspective"},
+                {"name": "Falcon", "focus": "Precision monitoring and bounded prioritisation"},
+            ),
+            "excluded_character_references": (
+                "Buzzie", "Flaps", "Ziggy", "Dizzy",
+            ),
+            "can_execute": False,
+        },
         {
             "id": "jungle_book_home",
             "name": "Jungle Book Home",
