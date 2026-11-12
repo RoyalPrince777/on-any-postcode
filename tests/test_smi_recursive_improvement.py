@@ -145,3 +145,26 @@ def test_personal_smi_and_mission_control_link_the_improvement_loop():
     assert "Improvement Loop" in mission
     assert "improvementUrl" in chat
     assert "Improvement Loop" in controller
+
+
+def test_recurring_awareness_reports_unknown_without_required_evidence():
+    result = smi_recursive_improvement.recurring_awareness_from_probe({}, {}, {})
+    assert result["health_state"] == "unknown"
+    assert "smi_self_model" in result["unknown_evidence"]
+    assert result["recurrence_proven"] is False
+    assert result["consciousness_claimed"] is False
+    assert result["independent_execution"] is False
+
+
+def test_recurring_awareness_reuses_existing_probe_and_exposes_issues():
+    result = smi_recursive_improvement.recurring_awareness_from_probe(
+        {"self_model": {"observed": True}, "coherence_report": {"issues": ["identity_drift"]}},
+        {"observation": {"runtime_worker_fresh": False}, "coherence": {"issues": ["runtime_worker_not_fresh"]}},
+        {"coherence": {"issues": []}},
+    )
+    assert result["health_state"] == "attention"
+    assert result["unknown_evidence"] == ()
+    assert "identity_drift" in result["issues"]
+    assert "runtime_worker_fresh_unproven" in result["issues"]
+    assert result["automatic_approval"] is False
+    assert result["human_authority_final"] is True
