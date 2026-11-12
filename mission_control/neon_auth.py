@@ -304,6 +304,12 @@ def get_session(cookie_header: str) -> AuthResult:
             status_code=200,
             payload={"session": {"id": "render-local-founder"}, "user": local_user},
         )
+    # An invalid/expired local Founder credential must never fall through to
+    # managed Auth. That fallback makes a private local route depend on a remote
+    # provider, adds avoidable latency and obscures which authority authenticated.
+    # Other managed-member cookies retain their existing provider path.
+    if founder_local_auth._token_from_cookie_header(cookie_header):
+        return AuthResult(status_code=401, payload={"code": "LOCAL_FOUNDER_SESSION_INVALID"})
     return _request(
         "/get-session", method="GET", cookie_header=cookie_header or None
     )
