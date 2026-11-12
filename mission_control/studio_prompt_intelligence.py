@@ -57,7 +57,10 @@ def compile_prompt(
     # Preserve the actual user instruction before advisory guidance.
     if len(text) > limit:
         raise ValueError("studio_prompt_too_long")
-    compiled = (text + guidance[:max(0, limit - len(text))]).strip()
+    # Never chop production guidance mid-sentence. A truncated instruction can
+    # reverse or obscure continuity requirements and mislead the model.
+    # User-authored instructions always take precedence over optional guidance.
+    compiled = text + guidance if len(text) + len(guidance) <= limit else text
     return {
         "tool_id": tool,
         "media": "video" if tool in VIDEO_TOOLS else "image",
