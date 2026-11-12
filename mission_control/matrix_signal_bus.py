@@ -295,6 +295,75 @@ def neo_unlock_status() -> dict[str, Any]:
     }
 
 
+def neo_operational_self_review(
+    *,
+    database_ready: bool,
+    founder_authority_present: bool,
+    github_failure_evidence: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Bounded Neo self-assessment inside SMI's existing health-probe cycle.
+
+    Operational self-monitoring only: no consciousness, self-modification,
+    background scheduler, approval, independent execution or new storage.
+    """
+    if not isinstance(database_ready, bool) or not isinstance(
+        founder_authority_present, bool
+    ):
+        raise TypeError("Neo health observations must be boolean")
+    if github_failure_evidence is not None and not isinstance(
+        github_failure_evidence, dict
+    ):
+        raise TypeError("GitHub health observation must be a dictionary")
+    github = github_failure_evidence or {}
+    github_ready = github.get("ready") is True
+    github_failure_seen = bool(
+        github_ready and github.get("current_failure") is True
+    )
+    rows = (
+        {
+            "gate": "hrm_store",
+            "status": "unknown" if database_ready else "failing",
+            "artifact": "",
+            "timestamp": "",
+        },
+        {
+            "gate": "founder_authority",
+            "status": "unknown" if founder_authority_present else "failing",
+            "artifact": "",
+            "timestamp": "",
+        },
+        {
+            "gate": "github_failure_intake",
+            "status": (
+                "failing" if github_failure_seen else
+                "unknown" if github_ready else "not_tested"
+            ),
+            "artifact": "",
+            "timestamp": "",
+        },
+    )
+    review = neo_truth_review(rows)
+    return {
+        "agent_id": "NEO-001",
+        "kind": "operational_self_review",
+        "source": "smi_existing_runtime_health_probe",
+        "configured_autonomy": neo_unlock_status(),
+        "truth_review": review,
+        "issues_need_independent_verification": True,
+        "github_intake_ready": github_ready,
+        "github_failure_reported": github_failure_seen,
+        "recurring_when_health_probe_runs": True,
+        "new_scheduler_created": False,
+        "persisted_memory_claimed": False,
+        "consciousness_claimed": False,
+        "self_modification_allowed": False,
+        "independent_execution": False,
+        "guardian_required": True,
+        "human_authority_final": True,
+        "consequential_action": False,
+    }
+
+
 ALLOWED_URGENCY: tuple[str, ...] = ("low", "normal", "high", "critical")
 
 
