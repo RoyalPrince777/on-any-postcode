@@ -20,6 +20,7 @@ from . import (
     smi_receipt_backend,
     studio_build_preview,
     studio_media_backend,
+    studio_prompt_intelligence,
 )
 
 STUDIO_ID = "oap-studio-intelligence"
@@ -367,19 +368,21 @@ def execute_generation(
     if tool["id"] == "imagine":
         if lock_enabled:
             artifact = studio_media_backend.edit_image(
-                clean_prompt,
+                studio_prompt_intelligence.compile_prompt("imagine", clean_prompt, has_reference=True, character_lock=lock_enabled)["compiled_prompt"],
                 source_image_data=source_data,
                 input_fidelity="high",
             )
         else:
-            artifact = studio_media_backend.generate_image(clean_prompt)
+            artifact = studio_media_backend.generate_image(
+                studio_prompt_intelligence.compile_prompt("imagine", clean_prompt)["compiled_prompt"]
+            )
     elif tool["id"] == "edit_image":
         if not source_data:
             raise ValueError("studio_source_image_data_required")
         if not user_prompt:
             raise ValueError("studio_prompt_required")
         artifact = studio_media_backend.edit_image(
-            clean_prompt,
+            studio_prompt_intelligence.compile_prompt("edit_image", clean_prompt, has_reference=True, character_lock=lock_enabled)["compiled_prompt"],
             source_image_data=source_data,
             input_fidelity="high",
         )
@@ -395,7 +398,7 @@ def execute_generation(
         if lock_enabled:
             refine_prompt = (refine_prompt + continuity).strip()
         artifact = studio_media_backend.edit_image(
-            refine_prompt,
+            studio_prompt_intelligence.compile_prompt("refine_image", refine_prompt, has_reference=True, character_lock=lock_enabled)["compiled_prompt"],
             source_image_data=source_data,
             input_fidelity="high",
         )
@@ -403,7 +406,7 @@ def execute_generation(
         if tool["id"] == "bring_alive" and not source_data:
             raise ValueError("studio_source_image_data_required")
         artifact = studio_media_backend.create_video(
-            clean_prompt,
+            studio_prompt_intelligence.compile_prompt(tool["id"], clean_prompt, has_reference=bool(source_data), character_lock=lock_enabled)["compiled_prompt"],
             source_image_data=source_data,
         )
     else:  # pragma: no cover - guarded by _tool
