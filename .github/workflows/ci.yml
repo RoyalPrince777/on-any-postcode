@@ -92,6 +92,8 @@ jobs:
         run: |
           set -o pipefail
           python -m pytest -q tests/test_oap_data_product.py 2>&1 | tee /tmp/oap-pytest.log
+      - name: Verify Shere Khan dialogue and character boundaries at exact head
+        run: python -m pytest -q tests/test_smi_shere_khan_dialogue.py tests/test_smi_shere_khan_character.py tests/test_smi_shere_khan_provider_boundary.py
       - name: Lint active application code
         run: ruff check app.py mission_control oap tests
       - name: Run OAP RTL proof slice
