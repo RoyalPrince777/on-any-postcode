@@ -137,3 +137,48 @@ def test_neo_unlock_does_not_misrepresent_a6_configuration_as_proof(monkeypatch)
     assert not status["a6_operation_evidence_verified"]
     assert not status["independent_agent_execution"]
     assert not status["a7_enabled"]
+
+
+def test_neo_operational_self_review_is_worker_bounded_and_fail_closed():
+    result = matrix_signal_bus.neo_operational_self_review(
+        database_ready=False,
+        founder_authority_present=False,
+        github_failure_evidence={"ready": True, "current_failure": True},
+    )
+    assert result["kind"] == "operational_self_review"
+    assert result["recurring_when_health_probe_runs"] is True
+    assert result["new_scheduler_created"] is False
+    assert not result["consciousness_claimed"]
+    assert not result["self_modification_allowed"]
+    assert not result["independent_execution"]
+    assert result["truth_review"]["failing_gates"] == (
+        "hrm_store", "founder_authority", "github_failure_intake"
+    )
+    assert not result["truth_review"]["certified"]
+
+
+def test_neo_operational_self_review_does_not_promote_healthy_inputs_to_green():
+    result = matrix_signal_bus.neo_operational_self_review(
+        database_ready=True,
+        founder_authority_present=True,
+        github_failure_evidence={"ready": True, "current_failure": False},
+    )
+    assert result["truth_review"]["missing_proof_gates"] == (
+        "hrm_store", "founder_authority", "github_failure_intake"
+    )
+    assert result["truth_review"]["completion_percentage"] is None
+    assert not result["truth_review"]["certified"]
+
+
+def test_neo_self_review_fails_closed_on_wrong_input_types():
+    import pytest
+
+    with pytest.raises(TypeError):
+        matrix_signal_bus.neo_operational_self_review(
+            database_ready="yes", founder_authority_present=False
+        )
+    with pytest.raises(TypeError):
+        matrix_signal_bus.neo_operational_self_review(
+            database_ready=True, founder_authority_present=True,
+            github_failure_evidence="unverified"
+        )
