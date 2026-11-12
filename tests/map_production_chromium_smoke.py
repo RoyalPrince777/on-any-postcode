@@ -10,7 +10,21 @@ from urllib.parse import urlsplit
 
 from playwright.sync_api import sync_playwright
 
-TARGET = os.environ.get("OAP_MAP_URL", "https://on-any-postcode.onrender.com/oap-map").strip()
+# Production proof must target the Founder-approved first-party HTTPS origin.
+# Never silently fall back to a legacy third-party deployment.
+TARGET = os.environ.get("OAP_MAP_URL", "").strip()
+parsed_target = urlsplit(TARGET)
+if (
+    parsed_target.scheme != "https"
+    or parsed_target.hostname not in {"onanypostcode.global", "www.onanypostcode.global"}
+    or parsed_target.path != "/oap-map"
+    or parsed_target.username
+    or parsed_target.password
+    or parsed_target.port not in (None, 443)
+    or parsed_target.query
+    or parsed_target.fragment
+):
+    raise SystemExit("map_production_target_not_authorised: set OAP_MAP_URL to the approved first-party HTTPS /oap-map endpoint")
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
