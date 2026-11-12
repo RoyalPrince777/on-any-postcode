@@ -52,7 +52,7 @@
       <video id="faceup-video" autoplay playsinline muted></video>
       <div class="smi-faceup-controls">
         <button type="button" class="tool-btn" id="faceup-camera-toggle" aria-pressed="true">📷 Camera on</button>
-        <button type="button" class="tool-btn" id="faceup-mic-toggle" aria-pressed="true">🎙️ Mic on</button>
+        <button type="button" class="tool-btn" id="faceup-mic-toggle" aria-pressed="false">🎙️ Mic off</button>
         <button type="button" class="tool-btn" id="faceup-capture">👁️ Send frame to Vision</button>
         <button type="button" class="tool-btn smi-faceup-stop" id="faceup-stop">■ End</button>
       </div>
@@ -180,21 +180,23 @@
     }
 
     let faceUpStream = null;
+    let faceUpEpoch = 0;
     const faceVideo = drawer.querySelector("#faceup-video");
     const faceStatus = drawer.querySelector("#faceup-status");
     const faceCamera = drawer.querySelector("#faceup-camera-toggle");
     const faceMic = drawer.querySelector("#faceup-mic-toggle");
 
     const stopFaceUp = () => {
+      faceUpEpoch += 1;
       if (faceUpStream) faceUpStream.getTracks().forEach((track) => track.stop());
       faceUpStream = null;
       faceVideo.srcObject = null;
       drawer.hidden = true;
       faceStatus.textContent = "Ended.";
       faceCamera.setAttribute("aria-pressed", "true");
-      faceMic.setAttribute("aria-pressed", "true");
+      faceMic.setAttribute("aria-pressed", "false");
       faceCamera.textContent = "📷 Camera on";
-      faceMic.textContent = "🎙️ Mic on";
+      faceMic.textContent = "🎙️ Mic off";
       activate("chat-mode-button");
       setStatus("Face Up ended by Human Authority.");
     };
@@ -209,20 +211,26 @@
         return;
       }
       try {
-        faceStatus.textContent = "Requesting camera and microphone permission…";
-        faceUpStream = await navigator.mediaDevices.getUserMedia({
+        faceStatus.textContent = "Requesting camera permission…";
+        const epoch = ++faceUpEpoch;
+        const cameraStream = await navigator.mediaDevices.getUserMedia({
           video: {facingMode: "user"},
-          audio: true,
+          audio: false,
         });
+        if (epoch !== faceUpEpoch) {
+          cameraStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        faceUpStream = cameraStream;
         faceVideo.srcObject = faceUpStream;
         await faceVideo.play();
-        faceStatus.textContent = "Local Face Up session active. Nothing is sent until you capture and send.";
-        setStatus("Face Up active · camera/mic under your control");
+        faceStatus.textContent = "Camera preview active · mic off. Nothing is sent until you capture and send.";
+        setStatus("Face Up active · microphone off until explicitly enabled");
         recordSurfaceProof("face-up", "face-up-" + Date.now());
       } catch (error) {
         faceUpStream = null;
         faceVideo.srcObject = null;
-        faceStatus.textContent = "Camera/mic permission blocked or unavailable.";
+        faceStatus.textContent = "Camera permission blocked or unavailable.";
         setStatus("Face Up did not start.");
       }
     }
@@ -235,13 +243,42 @@
       faceCamera.setAttribute("aria-pressed", String(track.enabled));
       faceCamera.textContent = track.enabled ? "📷 Camera on" : "📷 Camera off";
     });
-    faceMic.addEventListener("click", () => {
+    faceMic.addEventListener("click", async () => {
       if (!faceUpStream) return;
       const track = faceUpStream.getAudioTracks()[0];
-      if (!track) return;
-      track.enabled = !track.enabled;
-      faceMic.setAttribute("aria-pressed", String(track.enabled));
-      faceMic.textContent = track.enabled ? "🎙️ Mic on" : "🎙️ Mic off";
+      if (track) {
+        track.enabled = !track.enabled;
+        faceMic.setAttribute("aria-pressed", String(track.enabled));
+        faceMic.textContent = track.enabled ? "🎙️ Mic on" : "🎙️ Mic off";
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        faceStatus.textContent = "Microphone is unavailable in this browser.";
+        return;
+      }
+      const epoch = faceUpEpoch;
+      try {
+        faceStatus.textContent = "Requesting microphone permission…";
+        const micStream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+        if (!faceUpStream || epoch !== faceUpEpoch) {
+          micStream.getTracks().forEach((item) => item.stop());
+          return;
+        }
+        const micTrack = micStream.getAudioTracks()[0];
+        if (!micTrack) {
+          micStream.getTracks().forEach((item) => item.stop());
+          faceStatus.textContent = "No microphone track was provided.";
+          return;
+        }
+        faceUpStream.addTrack(micTrack);
+        faceMic.setAttribute("aria-pressed", "true");
+        faceMic.textContent = "🎙️ Mic on";
+        faceStatus.textContent = "Mic enabled · capture and send remain separate actions.";
+      } catch (_) {
+        faceMic.setAttribute("aria-pressed", "false");
+        faceMic.textContent = "🎙️ Mic off";
+        faceStatus.textContent = "Microphone permission declined or unavailable.";
+      }
     });
     drawer.querySelector("#faceup-capture").addEventListener("click", () => {
       if (!faceUpStream || !faceVideo.videoWidth) {
@@ -322,6 +359,7 @@
     }
 
     window.addEventListener("pagehide", () => {
+      faceUpEpoch += 1;
       if (faceUpStream) faceUpStream.getTracks().forEach((track) => track.stop());
     }, {once: true});
   }
