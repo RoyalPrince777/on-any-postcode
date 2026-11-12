@@ -81,3 +81,30 @@ def test_jungle_and_hive_homes_preserve_passports_and_authority():
     assert all(member["registered"] is False and member["agent_id"] is None for member in hive["members"])
     assert hive["activation_condition"] == "real_authorised_distributed_work"
     assert board["can_execute"] is False
+
+
+
+def test_jungle_family_references_are_not_agents_or_extra_passports():
+    from mission_control.intelligence_alliances import get_founder_alliance_board
+
+    board = get_founder_alliance_board()
+    jungle = next(h for h in board["family_homes"] if h["id"] == "jungle_book_home")
+    groups = {g["id"]: g for g in jungle["groups"]}
+    assert set(groups) == {"wolf_den", "elephant_patrol", "monkey_kingdom", "jungle_community"}
+    assert {m["name"] for m in groups["wolf_den"]["character_references"]} >= {
+        "Raksha", "Father Wolf", "Grey Brother", "Wolf Cubs", "Phao", "Phaona", "Won-tolla"
+    }
+    assert {m["name"] for m in groups["elephant_patrol"]["members"]} == {"Colonel Hathi", "Hathi Jr"}
+    assert {m["name"] for m in groups["elephant_patrol"]["character_references"]} == {
+        "Winifred", "Elephant Patrol"
+    }
+    canonical_ids = [m["agent_id"] for m in jungle["members"]]
+    assert len(canonical_ids) == len(set(canonical_ids)) == 10
+    for group in groups.values():
+        for ref in group["character_references"]:
+            assert ref["agent_id"] is None
+            assert ref["registered"] is False
+            assert ref["ranking_eligible"] is False
+            assert ref["can_execute"] is False
+            assert ref["source_continuity"]
+    assert board["can_execute"] is False
