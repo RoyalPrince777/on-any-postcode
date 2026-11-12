@@ -168,3 +168,39 @@ def test_recurring_awareness_reuses_existing_probe_and_exposes_issues():
     assert "runtime_worker_fresh_unproven" in result["issues"]
     assert result["automatic_approval"] is False
     assert result["human_authority_final"] is True
+
+
+def test_awareness_catches_smi_conflicts_not_reported_as_issues():
+    awareness = smi_recursive_improvement.recurring_awareness_from_probe(
+        {
+            "self_model": {"overall_ready": True, "degraded_components": (), "unknown_components": ()},
+            "coherence_report": {
+                "coherent": False,
+                "conflicts": ({"claim": "human_authority_final", "values": ("True", "False")},),
+            },
+        },
+        {"observation": {"runtime_worker_fresh": True}, "coherence": {"issues": ()}},
+        {"coherence": {"issues": ()}},
+    )
+    assert awareness["health_state"] == "attention"
+    assert "smi_coherence_failed" in awareness["issues"]
+    assert "smi_coherence_conflicts:1" in awareness["issues"]
+    assert awareness["recurrence_proven"] is False
+
+
+def test_awareness_refuses_healthy_when_self_model_degraded():
+    awareness = smi_recursive_improvement.recurring_awareness_from_probe(
+        {
+            "self_model": {
+                "overall_ready": False,
+                "degraded_components": ("Founder identity",),
+                "unknown_components": (),
+            },
+            "coherence_report": {"coherent": True, "conflicts": ()},
+        },
+        {"observation": {"runtime_worker_fresh": True}, "coherence": {"issues": ()}},
+        {"coherence": {"issues": ()}},
+    )
+    assert awareness["health_state"] == "attention"
+    assert "smi_self_model_not_ready" in awareness["issues"]
+    assert "smi_degraded_components:1" in awareness["issues"]
