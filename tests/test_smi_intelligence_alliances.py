@@ -108,3 +108,28 @@ def test_jungle_family_references_are_not_agents_or_extra_passports():
             assert ref["can_execute"] is False
             assert ref["source_continuity"]
     assert board["can_execute"] is False
+
+
+def test_bird_intelligence_reuses_animal_passports_without_vulture_crew():
+    from mission_control import agents
+    from mission_control.intelligence_alliances import get_founder_alliance_board
+
+    board = get_founder_alliance_board()
+    homes = {home["id"]: home for home in board["family_homes"]}
+    birds = homes["bird_intelligence"]
+    assert birds["world_id"] == "life"
+    assert birds["family_id"] == "animal"
+    assert birds["classification"] == "specialist_home_not_new_intelligence_world"
+    assert {m["name"] for m in birds["members"]} == {"Owl", "Eagle", "Falcon"}
+    passports = {a["name"]: a["agent_id"] for a in agents.AGENT_REGISTRY
+                 if a["family_id"] == "animal"}
+    assert all(m["registered"] and m["agent_id"] == passports[m["name"]]
+               for m in birds["members"])
+    assert birds["can_execute"] is False
+    assert set(birds["excluded_character_references"]) == {
+        "Buzzie", "Flaps", "Ziggy", "Dizzy"
+    }
+    assert "vulture_crew" not in {
+        group["id"] for group in homes["jungle_book_home"]["groups"]
+    }
+    assert board["can_execute"] is False
