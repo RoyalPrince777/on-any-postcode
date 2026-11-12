@@ -148,11 +148,27 @@ def recurring_awareness_from_probe(
     }
     unknown = tuple(k for k, present in evidence.items() if not present)
     issues = []
-    for value in (coherence, core_coherence, organism_coherence):
-        if isinstance(value, Mapping):
-            raw = value.get("issues", ())
-            if isinstance(raw, (list, tuple)):
-                issues.extend(str(x)[:120] for x in raw[:12] if str(x).strip())
+    for name, value in (("smi", coherence), ("core", core_coherence),
+                        ("organism", organism_coherence)):
+        if not isinstance(value, Mapping):
+            continue
+        raw = value.get("issues", ())
+        if isinstance(raw, (list, tuple)):
+            issues.extend(str(x)[:120] for x in raw[:12] if str(x).strip())
+        # SMI's CoherenceEngine reports 'conflicts', not 'issues'. Detect a
+        # negative coherence verdict even when details are absent or malformed.
+        if value.get("coherent") is False:
+            issues.append(f"{name}_coherence_failed")
+        conflicts = value.get("conflicts", ())
+        if isinstance(conflicts, (list, tuple)) and conflicts:
+            issues.append(f"{name}_coherence_conflicts:{min(len(conflicts), 99)}")
+    if isinstance(self_model, Mapping):
+        if self_model.get("overall_ready") is not True:
+            issues.append("smi_self_model_not_ready")
+        for key in ("degraded_components", "unknown_components"):
+            items = self_model.get(key, ())
+            if isinstance(items, (list, tuple)) and items:
+                issues.append(f"smi_{key}:{min(len(items), 99)}")
     if isinstance(core_observation, Mapping) and core_observation.get("runtime_worker_fresh") is not True:
         issues.append("runtime_worker_fresh_unproven")
     # A completed probe establishes only one observation, not a continuous service.
