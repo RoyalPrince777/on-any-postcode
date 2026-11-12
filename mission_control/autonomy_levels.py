@@ -219,7 +219,7 @@ def level_ladder() -> tuple[dict[str, object], ...]:
         elif level == "A3":
             state = "bounded_policy_ready"
         elif level == "A4":
-            state = "live_governed" if configured == "A4" else "policy_ready"
+            state = "configured_runtime_unverified" if configured == "A4" else "policy_ready"
         elif level == "A5":
             if A5_ENABLED and configured in {"A5", "A6"}:
                 state = "governed_preparation"
