@@ -88,3 +88,27 @@ def test_high_impact_domains_and_a5_remain_locked(monkeypatch):
         "self_permission_change",
         "self_constitution_change",
     } <= set(status["forbidden_domains"])
+
+
+def test_a4_workflow_consumes_no_more_than_bounded_input(monkeypatch):
+    monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A4")
+    observed = {"count": 0}
+
+    def unbounded_actions():
+        while True:
+            observed["count"] += 1
+            yield "RUNTIME_HEARTBEAT"
+
+    decision = autonomy_levels.evaluate_a4_workflow(unbounded_actions())
+    assert observed["count"] == autonomy_levels.A4_MAX_WORKFLOW_STEPS + 1
+    assert decision["allowed"] is False
+    assert decision["reason"] == "a4_workflow_size_out_of_bounds"
+
+
+def test_a4_workflow_rejects_empty_steps_without_silent_filtering(monkeypatch):
+    monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A4")
+    decision = autonomy_levels.evaluate_a4_workflow(
+        ["RUNTIME_HEARTBEAT", " ", "RUNTIME_HEALTH_PROBE"]
+    )
+    assert decision["allowed"] is False
+    assert decision["reason"] == "a4_workflow_contains_unapproved_action"
