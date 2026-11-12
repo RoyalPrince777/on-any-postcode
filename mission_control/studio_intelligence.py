@@ -485,7 +485,9 @@ def generation_status(video_id: object) -> dict[str, Any]:
     return {
         "studio": STUDIO_NAME,
         "smi_depth": 21,
-        "state": "generated" if artifact_proven else "provider_job_active",
+        "state": ("provider_completed_artifact_unverified"
+                  if artifact.get("status") == "completed"
+                  else "provider_job_active"),
         "output_generated": artifact_proven,
         "artifact": artifact,
         "chronicle_receipt": receipt,
