@@ -58,3 +58,26 @@ class SmiIntelligenceAllianceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_jungle_and_hive_homes_preserve_passports_and_authority():
+    from mission_control.intelligence_alliances import get_founder_alliance_board
+
+    board = get_founder_alliance_board()
+    homes = {home["id"]: home for home in board["family_homes"]}
+    jungle = homes["jungle_book_home"]
+    hive = homes["insect_hive"]
+    assert jungle["world_id"] == "life"
+    assert jungle["family_id"] == "jungle_book"
+    assert len(jungle["members"]) == 10
+    assert all(member["registered"] and member["agent_id"] for member in jungle["members"])
+    den = jungle["groups"][0]
+    assert den["id"] == "wolf_den"
+    assert {member["name"] for member in den["members"]} == {"Akela", "Wolf Pack"}
+    assert den["registered_collective_is_one_passport"] is True
+    assert hive["world_id"] == "life"
+    assert hive["family_id"] == "animal"
+    assert {member["name"] for member in hive["members"]} == {"Queen Bee", "Bee Swarm"}
+    assert all(member["registered"] is False and member["agent_id"] is None for member in hive["members"])
+    assert hive["activation_condition"] == "real_authorised_distributed_work"
+    assert board["can_execute"] is False
