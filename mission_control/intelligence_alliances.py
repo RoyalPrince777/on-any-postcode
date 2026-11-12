@@ -88,6 +88,57 @@ def _historical_top_21(career_stars: Mapping[str, int]) -> tuple[dict[str, Any],
     )
 
 
+
+def _family_homes() -> tuple[dict[str, Any], ...]:
+    """Founder-private home placement; reference-only groups do not gain passports.
+
+    Family residence is distinct from temporary cross-family mission selection.
+    """
+    jungle = tuple(
+        {
+            "name": str(agent["name"]),
+            "agent_id": str(agent["agent_id"]),
+            "role": str(agent["role"]),
+            "registered": True,
+        }
+        for agent in agents.AGENT_REGISTRY
+        if agent["family_id"] == "jungle_book"
+    )
+    wolf = tuple(member for member in jungle if member["name"] in {"Akela", "Wolf Pack"})
+    return (
+        {
+            "id": "jungle_book_home",
+            "name": "Jungle Book Home",
+            "world_id": "life",
+            "home_system": "Life System",
+            "family_id": "jungle_book",
+            "members": jungle,
+            "groups": ({
+                "id": "wolf_den",
+                "name": "Akela's Wolf Den",
+                "members": wolf,
+                "registered_collective_is_one_passport": True,
+            },),
+        },
+        {
+            "id": "insect_hive",
+            "name": "Queen Bee's Hive",
+            "world_id": "life",
+            "home_system": "Life System",
+            "family_id": "animal",
+            "status": "advisory_home_reference",
+            "members": (
+                {"name": "Queen Bee", "agent_id": None, "registered": False,
+                 "role": "Distributed work coordination"},
+                {"name": "Bee Swarm", "agent_id": None, "registered": False,
+                 "role": "Bounded worker collective"},
+            ),
+            "distinct_from_canonical_bee": True,
+            "activation_condition": "real_authorised_distributed_work",
+        },
+    )
+
+
 def get_founder_alliance_board(
     *, career_rankings: Iterable[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
@@ -135,6 +186,7 @@ def get_founder_alliance_board(
             "separate_from_career_stars": True,
             "entries": _historical_top_21(stars_by_id),
         },
+        "family_homes": _family_homes(),
         "oversight": ("Guardian", "HRM Core"),
         "alliances": (
             {
