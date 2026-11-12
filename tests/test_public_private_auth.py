@@ -600,6 +600,31 @@ def test_sign_out_forwards_only_auth_cookie_and_clears_session(
     assert client.get("/my-world").status_code == 302
 
 
+def test_smi_command_dashboard_and_status_reject_anonymous_sessions(anonymous_client):
+    """No session cookie may unlock either Founder command surface."""
+    dashboard = anonymous_client.get("/mission/smi", follow_redirects=False)
+    assert dashboard.status_code == 302
+    assert "/enter-my-world?next=" in dashboard.headers["Location"]
+    assert dashboard.headers.get("Cache-Control") == "no-store"
+
+    status = anonymous_client.get("/mission/smi/status", follow_redirects=False)
+    assert status.status_code == 401
+    assert status.get_json()["error"]["code"] == "authentication_required"
+    assert status.headers.get("Cache-Control") == "no-store"
+
+
+def test_smi_command_dashboard_and_status_reject_non_founder(
+    anonymous_client, monkeypatch
+):
+    """A valid member session is insufficient for SMI Founder access."""
+    _set_non_founder_session(anonymous_client, monkeypatch)
+    for path in ("/mission/smi", "/mission/smi/status"):
+        result = anonymous_client.get(path, follow_redirects=False)
+        assert result.status_code == 403
+        assert result.get_json()["error"]["code"] == "human_authority_required"
+        assert result.headers.get("Cache-Control") == "no-store"
+
+
 def test_smi_private_auth_alias_uses_single_founder_entry(anonymous_client):
     from urllib.parse import parse_qs, urlsplit
 
