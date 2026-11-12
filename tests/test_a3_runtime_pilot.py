@@ -112,3 +112,15 @@ def test_a4_workflow_rejects_empty_steps_without_silent_filtering(monkeypatch):
     )
     assert decision["allowed"] is False
     assert decision["reason"] == "a4_workflow_contains_unapproved_action"
+
+
+
+def test_a4_configured_does_not_claim_live_proof(monkeypatch):
+    monkeypatch.setenv("OAP_AUTONOMY_LEVEL", "A4")
+    rows = autonomy_levels.level_ladder()
+    a4 = next(item for item in rows if item["level"] == "A4")
+    a7 = next(item for item in rows if item["level"] == "A7")
+    assert a4["state"] == "configured_runtime_unverified"
+    assert a4["execution_authority_expanded"] is False
+    assert a7["state"] == "constitutional_locked"
+    assert autonomy_levels.status()["a7_enabled"] is False
