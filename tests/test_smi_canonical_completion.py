@@ -425,3 +425,32 @@ def test_smi_status_auto_exposes_maps_board_only_for_map_target():
 
     generic = ai_behaviour_protocol.status("SMI")
     assert generic["smi_cc_auto"]["map_build_board"] is None
+
+
+def test_founder_recovery_selects_existing_twins_and_bounded_alliance():
+    mission = "Fix SMI port 5000 founder sign-in unavailable and passwordless access"
+    selected = ai_behaviour_protocol.recommend_agent_team(mission)
+    names = tuple(agent["name"] for agent in selected["active_team"])
+    assert names == (
+        "Twinz", "Agent Smith", "Bagheera", "Spider", "Octopus",
+        "Queen Bee", "Shere Khan", "Fox",
+    )
+    assert all(agent["authority"] == "advisory_review_only"
+               for agent in selected["active_team"])
+    assert selected["founder_override_applied"] is False
+    assert selected["smi_can_silently_override_founder"] is False
+    assert "Guardian" in selected["mandatory_gates_unchanged"]
+    assert "Human Authority / Founder Final where required" in selected["mandatory_gates_unchanged"]
+
+
+def test_founder_override_remains_final_during_smi_recovery():
+    selected = ai_behaviour_protocol.recommend_agent_team(
+        "Founder authentication broken", founder_selection=["Bagheera", "Fox"]
+    )
+    assert tuple(x["name"] for x in selected["active_team"]) == (
+        "Bagheera", "Fox",
+    )
+    assert selected["founder_override_applied"] is True
+    assert selected["smi_can_silently_override_founder"] is False
+    assert selected["mandatory_gates_unchanged"]
+
