@@ -155,6 +155,22 @@ def _family_homes() -> tuple[dict[str, Any], ...]:
             "classification": "specialist_home_not_new_intelligence_world",
             "status": "canonical_agent_projection",
             "members": bird_members,
+            "homes": tuple(
+                {
+                    "id": home_id,
+                    "name": home_name,
+                    "member": next(member for member in bird_members if member["name"] == bird_name),
+                    "responsibility": duty,
+                    "home_system": "Life System",
+                    "advisory_only": True,
+                    "execution_authority": False,
+                }
+                for bird_name, home_id, home_name, duty in (
+                    ("Owl", "owl_wisdom_grove", "Owl's Wisdom Grove", "Evidence judgement, truth and uncertainty"),
+                    ("Eagle", "eagle_high_nest", "Eagle's High Nest", "Whole-system awareness and long-range vision"),
+                    ("Falcon", "falcon_flight_perch", "Falcon's Flight Perch", "Precision monitoring and time-critical prioritisation"),
+                )
+            ),
             "responsibilities": (
                 {"name": "Owl", "focus": "Evidence judgement and uncertainty"},
                 {"name": "Eagle", "focus": "Long-range awareness and system-wide perspective"},
