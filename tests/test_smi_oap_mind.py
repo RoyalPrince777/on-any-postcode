@@ -535,3 +535,71 @@ def test_evolution_does_not_treat_parroted_result_as_reflection() -> None:
         proposed_next_action="Inspect server cookie flags",
     )
     assert result.decision == "HOLD"
+
+
+@pytest.mark.parametrize(
+    "cycle,expected_status,expected_action",
+    [
+        (
+            {"production_invariants": {"execution_locked": False,
+                                       "human_authority_final": True},
+             "gates_green": 21, "gates_total": 21, "health_status": "healthy"},
+            "HOLD", "RESTORE_GOVERNANCE_INVARIANTS",
+        ),
+        (
+            {"production_invariants": {"execution_locked": True,
+                                       "human_authority_final": True},
+             "gates_green": 0, "gates_total": 0, "health_status": "degraded"},
+            "UNKNOWN", "RETRIEVE_VERIFIED_HEALTH_GATES",
+        ),
+        (
+            {"production_invariants": {"execution_locked": True,
+                                       "human_authority_final": True},
+             "gates_green": 12, "gates_total": 21, "health_status": "degraded"},
+            "INVESTIGATE", "REVIEW_FAILED_HEALTH_GATES",
+        ),
+        (
+            {"production_invariants": {"execution_locked": True,
+                                       "human_authority_final": True},
+             "gates_green": 21, "gates_total": 21, "health_status": "healthy"},
+            "REVIEW", "VERIFY_ARM_EXECUTION_INDEPENDENTLY",
+        ),
+    ],
+)
+def test_octopus_internal_health_cycle_never_invents_execution(
+    cycle, expected_status, expected_action,
+) -> None:
+    from oap.smi.oap_mind import assess_octopus_runtime_cycle
+
+    result = assess_octopus_runtime_cycle(cycle)
+    assert result.status == expected_status
+    assert result.action_required == expected_action
+    assert not result.eight_arm_execution_verified
+    assert not result.execution_granted
+    assert not result.runtime_activation_proven
+    assert result.founder_final
+
+
+def test_octopus_health_cycle_rejects_invalid_denominator_and_boolean_counts() -> None:
+    from oap.smi.oap_mind import assess_octopus_runtime_cycle
+
+    result = assess_octopus_runtime_cycle({
+        "production_invariants": {
+            "execution_locked": True, "human_authority_final": True,
+        },
+        "gates_green": True, "gates_total": 21, "health_status": "healthy",
+    })
+    assert result.status == "UNKNOWN"
+    with pytest.raises(ValueError):
+        assess_octopus_runtime_cycle(None)
+
+
+def test_octopus_uses_existing_internal_worker_not_a_new_scheduler() -> None:
+    from pathlib import Path
+
+    source = Path("mission_control/organism_worker.py").read_text()
+    assert "octopus_cycle = assess_octopus_runtime_cycle(smi_cycle)" in source
+    assert '"octopus_coordination": {' in source
+    assert '"RUNTIME_HEALTH_PROBE": _health_probe' in source
+    assert '"OCTOPUS_WORKER"' not in source
+    assert '"OCTOPUS_RUN"' not in source
