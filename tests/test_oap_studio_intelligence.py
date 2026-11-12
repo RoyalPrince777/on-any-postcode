@@ -221,7 +221,7 @@ def test_studio_routes_are_founder_only_and_fail_closed():
     assert "studio_generation_unavailable" in views
 
 
-def test_completed_video_status_can_promote_with_receipt(monkeypatch):
+def test_completed_video_status_does_not_fake_artifact_green(monkeypatch):
     monkeypatch.setattr(
         studio_intelligence.studio_media_backend,
         "video_status",
@@ -245,11 +245,10 @@ def test_completed_video_status_can_promote_with_receipt(monkeypatch):
 
     result = studio_intelligence.generation_status("video_test")
 
-    assert result["state"] == "generated"
-    assert result["output_generated"] is True
-    assert result["artifact"]["artifact_proven"] is True
-    assert captured["receipt"]["payload"]["signal"] == "🟢"
-    assert captured["receipt"]["payload"]["green_gate"] == "artifact_proven"
+    assert result["state"] != "generated"
+    assert result["output_generated"] is False
+    assert captured["receipt"]["payload"]["signal"] == "🟣"
+    assert captured["receipt"]["payload"]["green_gate"] == "awaiting_artifact_proof"
     assert result["execution_granted"] is False
 
 
@@ -374,3 +373,47 @@ def test_studio_media_backend_has_real_edit_endpoint_contract():
     assert '"images": [{"image_url": source}]' in media
     assert '"input_fidelity": fidelity' in media
     assert '"output_format": "png"' in media
+
+
+def test_studio_video_completion_requires_real_content_fetch(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend, "video_status",
+        lambda video_id: {"status": "completed", "artifact_proven": False},
+    )
+    expected = (b"\\x00\\x00\\x00\\x18ftypisom\\x00\\x00\\x00\\x00isom", "video/mp4")
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend, "video_content",
+        lambda video_id: expected,
+    )
+    assert studio_intelligence.generation_content("video_test") == expected
+
+
+def test_studio_video_incomplete_never_fetches_content(monkeypatch):
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend, "video_status",
+        lambda video_id: {"status": "queued", "artifact_proven": True},
+    )
+    monkeypatch.setattr(
+        studio_intelligence.studio_media_backend, "video_content",
+        lambda video_id: (_ for _ in ()).throw(
+            AssertionError("incomplete job must not be fetched")
+        ),
+    )
+    try:
+        studio_intelligence.generation_content("video_test")
+    except RuntimeError as exc:
+        assert str(exc) == "studio_video_not_completed"
+    else:
+        raise AssertionError("queued video must fail closed")
+
+
+def test_studio_provider_video_status_never_claims_artifact_proof(monkeypatch):
+    from mission_control import studio_media_backend
+
+    monkeypatch.setattr(
+        studio_media_backend, "_json_call",
+        lambda *args, **kwargs: {"status": "completed", "progress": 100},
+    )
+    result = studio_media_backend.video_status("video_test")
+    assert result["artifact_available"] is True
+    assert result["artifact_proven"] is False
