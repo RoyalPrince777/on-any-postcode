@@ -324,7 +324,7 @@ jobs:
 
       - name: Prove live public OAP map renders real roads
         env:
-          OAP_MAP_URL: https://on-any-postcode.onrender.com/oap-map
+          OAP_MAP_URL: ${{ vars.OAP_MAP_PRODUCTION_URL }}
         run: python tests/map_production_chromium_smoke.py
 
   bank-production-browser-proof:
