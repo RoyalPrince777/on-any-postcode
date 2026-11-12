@@ -42,9 +42,13 @@
     panel.style.cssText="position:absolute;z-index:30;top:100%;right:10px;max-width:min(330px,85vw);padding:12px;border:1px solid #7b8d80;border-radius:12px;background:#101d19;color:#f4f7f4;box-shadow:0 8px 22px #0008;font:inherit;line-height:1.45";
     const heading=doc.createElement("strong");heading.textContent="Bagheera · Protection & Truth";
     const copy=doc.createElement("p");
-    copy.textContent="Advisory lens only. SMI owns this conversation. No separate Bagheera voice, camera, microphone or agent execution.";
+    copy.textContent="Jungle Family · Mowgli’s mentor · calm, courageous, protective, cunning and dryly humorous. Literary home: Seeonee jungle; origin: Oodeypore palace menagerie.";
+    const instincts=doc.createElement("p");
+    instincts.textContent="Panther intelligence lens: observation · stealth · spatial awareness · adaptive planning · efficient effort. These are advisory analogies, not animal senses or independent AI abilities.";
+    const boundary=doc.createElement("p");
+    boundary.textContent="Advisory only. SMI owns this conversation. No separate Bagheera voice, camera, microphone, autonomous agent or permissions.";
     const status=doc.createElement("p");status.textContent="SMI: Ready";
-    panel.append(heading,copy,status);
+    panel.append(heading,copy,instincts,boundary,status);
     // The switch never modifies the chat form, prompt, render pipeline or audio.
     head.append(toggle,panel);
     let opened=false;
