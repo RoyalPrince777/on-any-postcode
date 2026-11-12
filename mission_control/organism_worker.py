@@ -19,6 +19,7 @@ from . import (
     smi_auto,
     smi_github_failure_evidence,
     smi_runtime_autonomy,
+    smi_recursive_improvement,
 )
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
 
@@ -62,6 +63,9 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
     oap_core_cycle = oap_core_autonomy.run_cycle()
     smi_cycle = smi_runtime_autonomy.run_cycle()
     organism_cycle = organism_autonomy.run_cycle()
+    awareness = smi_recursive_improvement.recurring_awareness_from_probe(
+        smi_cycle, oap_core_cycle, organism_cycle,
+    )
     # Read-only GitHub observation piggybacks on the existing scheduled
     # health probe; no new job type, scheduler or elevated authority.
     # A dedicated least-privilege read token is required to activate it.
@@ -97,6 +101,7 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         "oap_core_autonomy": oap_core_cycle,
         "smi_autonomy": smi_cycle,
         "organism_autonomy": organism_cycle,
+        "smi_recurring_self_awareness": awareness,
         "github_failure_evidence": github_evidence,
         "human_authority_final": True,
         "independent_execution": False,
