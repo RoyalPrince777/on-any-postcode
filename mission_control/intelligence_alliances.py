@@ -104,7 +104,35 @@ def _family_homes() -> tuple[dict[str, Any], ...]:
         for agent in agents.AGENT_REGISTRY
         if agent["family_id"] == "jungle_book"
     )
-    wolf = tuple(member for member in jungle if member["name"] in {"Akela", "Wolf Pack"})
+    by_name = {member["name"]: member for member in jungle}
+
+    def member(name: str) -> dict[str, Any]:
+        # Reuse canonical identity and passport, never create a second agent.
+        return by_name[name]
+
+    def reference(name: str, *, source: str, note: str = "") -> dict[str, Any]:
+        # Story references have no execution, permissions or career ranking.
+        return {
+            "name": name, "agent_id": None, "registered": False,
+            "source_continuity": source, "note": note,
+            "ranking_eligible": False, "can_execute": False,
+        }
+
+    wolf = (member("Akela"), member("Wolf Pack"))
+    wolf_references = (
+        reference("Raksha", source="Kipling and Disney", note="Mother Wolf"),
+        reference("Father Wolf", source="Kipling", note="Called Rama in Disney's 1967 adaptation"),
+        reference("Grey Brother", source="Kipling", note="Mowgli's adoptive wolf brother"),
+        reference("Wolf Cubs", source="Kipling and Disney", note="Unnamed siblings; collective character reference"),
+        reference("Phao", source="Kipling", note="Later pack leader"),
+        reference("Phaona", source="Kipling", note="Named wolf; not a pack leader by default"),
+        reference("Won-tolla", source="Kipling", note="Solitary wolf; allied outsider"),
+    )
+    elephant = (member("Colonel Hathi"), member("Hathi Jr"))
+    elephant_references = (
+        reference("Winifred", source="Disney 1967", note="Colonel Hathi's wife"),
+        reference("Elephant Patrol", source="Disney 1967", note="Collective patrol, not individual passports"),
+    )
     return (
         {
             "id": "jungle_book_home",
@@ -117,8 +145,26 @@ def _family_homes() -> tuple[dict[str, Any], ...]:
                 "id": "wolf_den",
                 "name": "Akela's Wolf Den",
                 "members": wolf,
+                "character_references": wolf_references,
                 "registered_collective_is_one_passport": True,
-            },),
+            }, {
+                "id": "elephant_patrol",
+                "name": "Colonel Hathi's Elephant Family & Patrol",
+                "members": elephant,
+                "character_references": elephant_references,
+            }, {
+                "id": "monkey_kingdom",
+                "name": "King Louie's Monkey Kingdom",
+                "members": (member("King Louie"), member("Bandar Log")),
+                "character_references": (
+                    reference("Flunkey", source="Disney 1967", note="Monkey character; adaptation reference"),
+                ),
+            }, {
+                "id": "jungle_community",
+                "name": "Jungle Community",
+                "members": (member("Mowgli"), member("Baloo"), member("Bagheera"), member("Shere Khan")),
+                "character_references": (),
+            }),
         },
         {
             "id": "insect_hive",
