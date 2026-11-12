@@ -214,7 +214,9 @@ def create_video(prompt: str, *, source_image_data: str = "", seconds: str = "4"
         "model": str(payload.get("model") or VIDEO_MODEL),
         "status": state,
         "progress": int(payload.get("progress") or 0),
-        "artifact_proven": state == "completed",
+        # A provider completion state is not evidence of a retrieved, validated MP4.
+        "artifact_proven": False,
+        "artifact_available": state == "completed",
         "provider_is_authority": False,
     }
 
@@ -243,7 +245,11 @@ def video_content(video_id: str) -> tuple[bytes, str]:
             body = response.read(MAX_VIDEO_BYTES + 1)
     except (HTTPError, URLError, TimeoutError, OSError) as exc:
         raise RuntimeError("studio_generation_provider_unavailable") from exc
-    if not body or len(body) > MAX_VIDEO_BYTES:
+    # Accept only a plausible MP4 container, never an HTML/JSON error body that
+    # happens to arrive with HTTP 200 or a video Content-Type header.
+    if (not body or len(body) > MAX_VIDEO_BYTES or len(body) < 16
+            or body[4:8] != b"ftyp"
+            or int.from_bytes(body[:4], "big") < 16):
         raise RuntimeError("studio_video_content_invalid")
     mime_type = (
         content_type.split(";", 1)[0].strip()
@@ -265,7 +271,8 @@ def video_status(video_id: str) -> dict[str, Any]:
         "model": str(payload.get("model") or VIDEO_MODEL),
         "status": state,
         "progress": int(payload.get("progress") or 0),
-        "artifact_proven": state == "completed",
+        "artifact_proven": False,
+        "artifact_available": state == "completed",
         "content_path": f"/videos/{clean_id}/content" if state == "completed" else None,
         "provider_is_authority": False,
     }
