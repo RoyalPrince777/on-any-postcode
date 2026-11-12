@@ -242,3 +242,16 @@ def test_recursive_improvement_blocks_green_when_self_model_unavailable():
         {"available": True, "missing_proof_gates": ()},
     )
     assert "unknown:smi_self_model" in weaknesses
+
+
+def test_recursive_improvement_bounds_untrusted_evidence_generator():
+    seen = {"count": 0}
+
+    def endless_evidence():
+        while True:
+            seen["count"] += 1
+            yield f"diagnostic:{seen['count']}"
+
+    values = smi_recursive_improvement._values(endless_evidence())
+    assert len(values) == 22
+    assert seen["count"] == 22
