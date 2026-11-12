@@ -62,3 +62,30 @@ def select_alliance(
         else:
             unassigned.append(capability)
     return AllianceSelection(capabilities, tuple(selected), tuple(unassigned))
+
+
+def select_learning_work_alliance(
+    query: str,
+    *,
+    pack_work: bool = False,
+    distributed_work: bool = False,
+) -> AllianceSelection:
+    """Select a task-fit learning/work review without creating a second registry.
+
+    Akela represents the existing permanent Wolf Pack when pack discipline is
+    materially relevant; the pack is not duplicated as separate agents.
+    Queen Bee remains conditional on *real* distributed work.
+    Spider and Octopus stay available through the canonical capability mapping.
+    The returned selection is advisory only, not a performance grade or a grant.
+    """
+    base = select_alliance(
+        "TECHNICAL", query, distributed_work=distributed_work, limit=12
+    )
+    selected = list(base.specialists)
+    if pack_work and "Akela" not in selected:
+        selected.append("Akela")
+    return AllianceSelection(
+        capabilities=base.capabilities,
+        specialists=tuple(selected),
+        unassigned_capabilities=base.unassigned_capabilities,
+    )
