@@ -39,3 +39,18 @@ def test_reject_unknown_tool_empty_prompt_and_oversize_prompt():
         prompt.compile_prompt("scene_builder", "  ")
     with pytest.raises(ValueError, match="studio_prompt_too_long"):
         prompt.compile_prompt("scene_builder", "a" * 4001)
+
+
+def test_near_limit_video_prompt_does_not_append_partial_guidance():
+    original = "Keep the same actors and original music. " + "x" * 3930
+    assert len(original) < prompt.MAX_VIDEO_PROMPT
+    result = prompt.compile_prompt("bring_alive", original, has_reference=True)
+    assert result["compiled_prompt"] == original
+    assert result["prompt_instruction_preserved"] is True
+
+
+def test_guidance_is_complete_when_it_fits():
+    result = prompt.compile_prompt("scene_builder", "Slow camera pan.")
+    assert result["compiled_prompt"].endswith(
+        "These instructions do not establish rendered continuity or beat synchronisation."
+    )
