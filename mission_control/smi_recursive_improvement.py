@@ -120,6 +120,61 @@ def _collect_weaknesses(
     return tuple(dict.fromkeys(weaknesses))[:21]
 
 
+
+def recurring_awareness_from_probe(
+    smi: object, core: object, organism: object
+) -> dict[str, Any]:
+    """Project self-awareness from an *existing* scheduled health probe.
+
+    This does not create another sensor, schedule, AI brain, memory write,
+    approval or execution path. Missing evidence is UNKNOWN, never healthy.
+    """
+    def layer(value: object) -> dict[str, Any]:
+        return dict(value) if isinstance(value, Mapping) else {}
+
+    smi_layer, core_layer, organism_layer = map(layer, (smi, core, organism))
+    self_model = smi_layer.get("self_model")
+    coherence = smi_layer.get("coherence_report")
+    core_observation = core_layer.get("observation")
+    core_coherence = core_layer.get("coherence")
+    organism_coherence = organism_layer.get("coherence")
+
+    evidence = {
+        "smi_self_model": isinstance(self_model, Mapping),
+        "smi_coherence": isinstance(coherence, Mapping),
+        "oap_core_observation": isinstance(core_observation, Mapping),
+        "oap_core_coherence": isinstance(core_coherence, Mapping),
+        "organism_coherence": isinstance(organism_coherence, Mapping),
+    }
+    unknown = tuple(k for k, present in evidence.items() if not present)
+    issues = []
+    for value in (coherence, core_coherence, organism_coherence):
+        if isinstance(value, Mapping):
+            raw = value.get("issues", ())
+            if isinstance(raw, (list, tuple)):
+                issues.extend(str(x)[:120] for x in raw[:12] if str(x).strip())
+    if isinstance(core_observation, Mapping) and core_observation.get("runtime_worker_fresh") is not True:
+        issues.append("runtime_worker_fresh_unproven")
+    # A completed probe establishes only one observation, not a continuous service.
+    return {
+        "kind": "smi_recurring_self_awareness_observation",
+        "source": "existing_runtime_health_probe",
+        "observed_at": _now(),
+        "self_model_observed": evidence["smi_self_model"],
+        "evidence_present": evidence,
+        "unknown_evidence": unknown,
+        "issues": tuple(dict.fromkeys(issues))[:21],
+        "health_state": "unknown" if unknown else ("attention" if issues else "observed_no_reported_issues"),
+        "cycle_observed": True,
+        "recurrence_proven": False,
+        "consciousness_claimed": False,
+        "automatic_approval": False,
+        "automatic_deploy": False,
+        "independent_execution": False,
+        "human_authority_final": True,
+    }
+
+
 def status() -> dict[str, Any]:
     """Return the stable authority contract without running a live probe."""
 
