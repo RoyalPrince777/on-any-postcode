@@ -133,8 +133,7 @@ def test_neo_unlock_does_not_misrepresent_a6_configuration_as_proof(monkeypatch)
         return {**result, "configured_level": "A6", "a5_enabled": True, "a6_enabled": True}
     monkeypatch.setattr(autonomy_levels, "status", configured_policy)
     status = matrix_signal_bus.neo_unlock_status()
-    assert status["a6_execution_configured"]
-    assert not status["a6_operation_evidence_verified"]
     assert not status["a6_execution_configured"]
+    assert not status["a6_operation_evidence_verified"]
     assert not status["independent_agent_execution"]
     assert not status["a7_enabled"]
