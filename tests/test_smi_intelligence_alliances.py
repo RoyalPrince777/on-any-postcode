@@ -133,3 +133,24 @@ def test_bird_intelligence_reuses_animal_passports_without_vulture_crew():
         group["id"] for group in homes["jungle_book_home"]["groups"]
     }
     assert board["can_execute"] is False
+
+
+def test_bird_specialists_have_unique_homes_and_canonical_passports():
+    from mission_control.intelligence_alliances import get_founder_alliance_board
+
+    board = get_founder_alliance_board()
+    bird = next(h for h in board["family_homes"] if h["id"] == "bird_intelligence")
+    assert {home["id"] for home in bird["homes"]} == {
+        "owl_wisdom_grove", "eagle_high_nest", "falcon_flight_perch"
+    }
+    assert {home["member"]["name"] for home in bird["homes"]} == {
+        "Owl", "Eagle", "Falcon"
+    }
+    assert len({home["member"]["agent_id"] for home in bird["homes"]}) == 3
+    canonical = {m["name"]: m["agent_id"] for m in bird["members"]}
+    for home in bird["homes"]:
+        assert home["member"]["agent_id"] == canonical[home["member"]["name"]]
+        assert home["home_system"] == "Life System"
+        assert home["advisory_only"] is True
+        assert home["execution_authority"] is False
+    assert board["can_execute"] is False
