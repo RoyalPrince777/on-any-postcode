@@ -204,3 +204,41 @@ def test_awareness_refuses_healthy_when_self_model_degraded():
     assert awareness["health_state"] == "attention"
     assert "smi_self_model_not_ready" in awareness["issues"]
     assert "smi_degraded_components:1" in awareness["issues"]
+
+
+def test_recursive_improvement_blocks_green_on_smi_coherence_conflict(monkeypatch):
+    monkeypatch.setattr(smi_recursive_improvement.smi_runtime_autonomy, "run_cycle", lambda: {
+        "self_model": {"overall_ready": True, "degraded_components": (), "unknown_components": ()},
+        "coherence_report": {
+            "coherent": False,
+            "conflicts": ({"claim": "human_authority_final"},),
+        },
+        "controlled_self_improvement_runtime": {"ready": True},
+        "health_status": "healthy",
+    })
+    monkeypatch.setattr(smi_recursive_improvement.oap_core_autonomy, "run_cycle", lambda: {
+        "observation": {"runtime_worker_fresh": True},
+        "coherence": {"issues": ()},
+    })
+    monkeypatch.setattr(smi_recursive_improvement.organism_autonomy, "run_cycle", lambda: {
+        "coherence": {"issues": ()},
+    })
+    monkeypatch.setattr(smi_recursive_improvement.smi_completion_contract, "completion_status", lambda: {
+        "missing_proof_gates": (),
+        "runtime_evidence": {"store_reachable": True},
+    })
+    cycle = smi_recursive_improvement.run_cycle()
+    assert cycle["light"] != "green"
+    assert cycle["candidate"] is not None
+    assert "smi_coherence_failed" in cycle["weaknesses"]
+    assert "smi_coherence_conflicts:1" in cycle["weaknesses"]
+
+
+def test_recursive_improvement_blocks_green_when_self_model_unavailable():
+    weaknesses = smi_recursive_improvement._collect_weaknesses(
+        {"available": True, "coherence_report": {"coherent": True}, "health_status": "healthy"},
+        {"available": True, "observation": {"runtime_worker_fresh": True}, "coherence": {"issues": ()}},
+        {"available": True, "coherence": {"issues": ()}},
+        {"available": True, "missing_proof_gates": ()},
+    )
+    assert "unknown:smi_self_model" in weaknesses
