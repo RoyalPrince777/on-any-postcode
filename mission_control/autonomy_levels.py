@@ -157,11 +157,18 @@ def evaluate_a4_workflow(action_types: object, *, supervised: bool = True) -> di
     if isinstance(action_types, str):
         actions = (action_types.strip().upper(),)
     else:
+        # Inspect at most one item beyond the 21-step bound: never exhaust an
+        # arbitrary input generator or allocate an unbounded workflow in memory.
+        from itertools import islice
+
         try:
-            actions = tuple(str(item).strip().upper() for item in action_types)  # type: ignore[arg-type]
+            iterator = iter(action_types)
         except TypeError:
             actions = ()
-    actions = tuple(item for item in actions if item)
+        else:
+            actions = tuple(str(item).strip().upper() for item in
+                            islice(iterator, A4_MAX_WORKFLOW_STEPS + 1))
+    # Do not silently omit empty steps: an invalid action is an invalid plan.
     level = configured_level()
     within_size = 1 <= len(actions) <= A4_MAX_WORKFLOW_STEPS
     all_allowlisted = bool(actions) and all(
