@@ -460,6 +460,8 @@ def generation_status(video_id: object) -> dict[str, Any]:
     """Check one Studio video job and Chronicle its current proof state."""
 
     artifact = studio_media_backend.video_status(str(video_id or ""))
+    # Never trust an adapter or mocked status to carry artifact-level proof.
+    artifact = {**artifact, "artifact_proven": False}
     # Read-only status may report availability, never verified artifact proof.
     # Content validation happens separately when actual bytes are retrieved.
     artifact_proven = False
