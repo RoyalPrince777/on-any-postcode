@@ -603,3 +603,47 @@ def test_octopus_uses_existing_internal_worker_not_a_new_scheduler() -> None:
     assert '"RUNTIME_HEALTH_PROBE": _health_probe' in source
     assert '"OCTOPUS_WORKER"' not in source
     assert '"OCTOPUS_RUN"' not in source
+
+
+def test_octopus_recurring_self_review_reads_existing_model_without_self_claim() -> None:
+    from oap.smi.oap_mind import assess_octopus_runtime_cycle
+
+    result = assess_octopus_runtime_cycle({
+        "production_invariants": {
+            "execution_locked": True, "human_authority_final": True,
+        },
+        "gates_green": 18, "gates_total": 21,
+        "health_status": "degraded",
+        "self_model": {"components_observed": 21},
+        "coherence_report": {"status": "REVIEW"},
+    })
+    assert result.self_observation_status == "PRESENT_UNVERIFIED"
+    assert result.coherence_review_status == "PRESENT_UNVERIFIED"
+    assert not result.independent_self_awareness_claim
+    assert not result.runtime_activation_proven
+
+
+def test_octopus_self_review_missing_evidence_is_unknown() -> None:
+    from oap.smi.oap_mind import assess_octopus_runtime_cycle
+
+    result = assess_octopus_runtime_cycle({
+        "production_invariants": {
+            "execution_locked": True, "human_authority_final": True,
+        },
+        "gates_green": 21, "gates_total": 21,
+        "health_status": "healthy",
+        "self_model": {}, "coherence_report": None,
+    })
+    assert result.self_observation_status == "UNKNOWN"
+    assert result.coherence_review_status == "UNKNOWN"
+    assert not result.independent_self_awareness_claim
+
+
+def test_octopus_recurring_self_review_uses_same_worker_health_probe() -> None:
+    from pathlib import Path
+
+    worker = Path("mission_control/organism_worker.py").read_text()
+    assert '"self_observation_status": octopus_cycle.self_observation_status' in worker
+    assert '"coherence_review_status": octopus_cycle.coherence_review_status' in worker
+    assert '"RUNTIME_HEALTH_PROBE": _health_probe' in worker
+    assert '"OCTOPUS_SELF_AWARENESS"' not in worker
