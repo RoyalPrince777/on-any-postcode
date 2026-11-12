@@ -454,3 +454,36 @@ def test_founder_override_remains_final_during_smi_recovery():
     assert selected["smi_can_silently_override_founder"] is False
     assert selected["mandatory_gates_unchanged"]
 
+
+
+def test_alignment_intelligence_places_agents_by_mission_without_changing_home():
+    selection = ai_behaviour_protocol.recommend_agent_team(
+        "Repair SMI 5000 founder sign-in unavailable and authentication"
+    )
+    active = {row["name"]: row for row in selection["active_team"]}
+    assert selection["mission_leads"] == ("Twinz",)
+    assert active["Twinz"]["mission_position"] == "joint_mission_leads"
+    assert active["Agent Smith"]["mission_position"] == "adversarial_integrity"
+    assert active["Spider"]["mission_position"] == "dependency_tracing"
+    assert active["Octopus"]["canonical_home"] == (
+        "SMI / Internal Metacognitive Intelligence"
+    )
+    assert active["Queen Bee"]["mission_position"] == "bounded_parallel_coordination"
+    assert all(row["home_changed"] is False for row in active.values())
+    assert all(row["execution_granted"] is False for row in active.values())
+    assert selection["alignment_intelligence"]["canonical_homes_preserved"] is True
+    assert selection["alignment_intelligence"]["live_agent_activation_proven"] is False
+    assert selection["smi_can_silently_override_founder"] is False
+    assert "Guardian" in selection["mandatory_gates_unchanged"]
+
+
+def test_alignment_intelligence_preserves_founder_selected_positions():
+    selection = ai_behaviour_protocol.recommend_agent_team(
+        "Review a private SMI mission", founder_selection=["Spider", "Fox"]
+    )
+    assert tuple(row["name"] for row in selection["active_team"]) == (
+        "Spider", "Fox",
+    )
+    assert selection["mission_leads"] == ()
+    assert selection["active_team"][0]["mission_position"] == "dependency_tracing"
+    assert selection["founder_override_applied"] is True
