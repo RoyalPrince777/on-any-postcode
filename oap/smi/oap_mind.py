@@ -8,6 +8,7 @@ existing canonical readback integration is in oap_mind_kernel.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Mapping
 from typing import Literal
 
 # Octopus is the existing SMI systems-coordination specialist, not OAP MIND
@@ -475,4 +476,71 @@ def review_intelligent_evolution(
         evidence_assessment=assessment,
         decision=decision,
         changed_method=changed,
+    )
+
+
+@dataclass(frozen=True)
+class OctopusCycleAssessment:
+    """Read-only coordination result for the existing SMI health-probe cycle."""
+
+    status: str
+    selected_arms: tuple[str, ...]
+    missing_evidence: tuple[str, ...]
+    action_required: str
+    eight_arm_execution_verified: bool = False
+    execution_granted: bool = False
+    runtime_activation_proven: bool = False
+    founder_final: bool = True
+
+
+def assess_octopus_runtime_cycle(cycle: Mapping[str, object]) -> OctopusCycleAssessment:
+    """Route actual SMI health evidence, never launch workers or infer A7.
+
+    Designed for the *existing* organism health probe. This assessment does
+    not create a job, access private data, self-approve or claim arm execution.
+    """
+    if not isinstance(cycle, Mapping):
+        raise ValueError("SMI cycle evidence must be a mapping")
+    invariants = cycle.get("production_invariants")
+    if not isinstance(invariants, Mapping):
+        invariants = {}
+    locked = invariants.get("execution_locked") is True
+    human = invariants.get("human_authority_final") is True
+    total = cycle.get("gates_total")
+    green = cycle.get("gates_green")
+    valid_counts = (
+        type(total) is int and type(green) is int
+        and 0 < total and 0 <= green <= total
+    )
+    if not locked or not human:
+        arms = ("OBSERVE", "TRACE", "RECOVER", "VERIFY")
+        missing = tuple(
+            name for name, proven in (
+                ("execution_lock", locked),
+                ("human_authority", human),
+            ) if not proven
+        )
+        status = "HOLD"
+        action = "RESTORE_GOVERNANCE_INVARIANTS"
+    elif not valid_counts:
+        arms = ("OBSERVE", "TRACE", "VERIFY")
+        missing = ("valid_health_gate_denominator",)
+        status = "UNKNOWN"
+        action = "RETRIEVE_VERIFIED_HEALTH_GATES"
+    elif green < total or cycle.get("health_status") != "healthy":
+        arms = ("OBSERVE", "TRACE", "PLAN", "COORDINATE", "VERIFY")
+        missing = ("health_gates_or_runtime_health",)
+        status = "INVESTIGATE"
+        action = "REVIEW_FAILED_HEALTH_GATES"
+    else:
+        arms = ("OBSERVE", "VERIFY")
+        missing = ("independent_octopus_arm_execution_receipts",)
+        status = "REVIEW"
+        action = "VERIFY_ARM_EXECUTION_INDEPENDENTLY"
+    review_octopus_arms(arms)
+    return OctopusCycleAssessment(
+        status=status,
+        selected_arms=arms,
+        missing_evidence=missing,
+        action_required=action,
     )
