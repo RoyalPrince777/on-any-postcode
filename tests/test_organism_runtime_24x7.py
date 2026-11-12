@@ -92,6 +92,10 @@ def test_worker_handlers_are_bounded_nonconsequential(monkeypatch):
     assert health["consequential_action"] is False
     assert health["database_ready"] is False
     assert health["human_authority_present"] is False
+    awareness = health["smi_recurring_self_awareness"]
+    assert awareness["source"] == "existing_runtime_health_probe"
+    assert awareness["recurrence_proven"] is False
+    assert awareness["independent_execution"] is False
 
 
 def test_runtime_migration_contains_durable_queue_recovery_and_receipts():
