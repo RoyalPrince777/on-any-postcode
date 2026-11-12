@@ -184,3 +184,17 @@ def test_road_network_does_not_self_cancel_slow_successful_batches():
     assert "loadRoadNetwork(b,mode,batchAttempt+1,request)" in template
     assert "},6000):null;" not in template
     assert "if(recoveryTimer)clearTimeout(recoveryTimer);" not in template
+
+
+def test_map_production_proof_requires_explicit_first_party_https_origin():
+    smoke = Path("tests/map_production_chromium_smoke.py").read_text(encoding="utf-8")
+    workflow = Path(".github/workflows/runtime-image.yml").read_text(encoding="utf-8")
+    assert 'TARGET = os.environ.get("OAP_MAP_URL", "").strip()' in smoke
+    assert 'parsed_target.scheme != "https"' in smoke
+    assert '"onanypostcode.global"' in smoke
+    assert '"www.onanypostcode.global"' in smoke
+    assert 'parsed_target.path != "/oap-map"' in smoke
+    assert "map_production_target_not_authorised" in smoke
+    assert "onrender.com" not in smoke
+    assert 'OAP_MAP_URL: ${{ vars.OAP_MAP_PRODUCTION_URL }}' in workflow
+    assert "OAP_MAP_URL: https://on-any-postcode.onrender.com/oap-map" not in workflow
