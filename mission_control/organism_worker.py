@@ -21,6 +21,7 @@ from . import (
     smi_auto,
 )
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
+from oap.smi.oap_mind import assess_octopus_runtime_cycle
 
 Handler = Callable[[RuntimeJob], dict[str, Any]]
 
@@ -61,6 +62,7 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
             )
     oap_core_cycle = oap_core_autonomy.run_cycle()
     smi_cycle = smi_runtime_autonomy.run_cycle()
+    octopus_cycle = assess_octopus_runtime_cycle(smi_cycle)
     organism_cycle = organism_autonomy.run_cycle()
     # Read-only GitHub observation piggybacks on the existing scheduled
     # health probe; no new job type, scheduler or elevated authority.
@@ -96,6 +98,16 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         "human_authority_present": human_authority_present,
         "oap_core_autonomy": oap_core_cycle,
         "smi_autonomy": smi_cycle,
+        "octopus_coordination": {
+            "status": octopus_cycle.status,
+            "selected_arms": octopus_cycle.selected_arms,
+            "missing_evidence": octopus_cycle.missing_evidence,
+            "next_evidence_action": octopus_cycle.action_required,
+            "arm_execution_verified": octopus_cycle.eight_arm_execution_verified,
+            "execution_granted": octopus_cycle.execution_granted,
+            "runtime_activation_proven": octopus_cycle.runtime_activation_proven,
+            "founder_final": octopus_cycle.founder_final,
+        },
         "organism_autonomy": organism_cycle,
         "github_failure_evidence": github_evidence,
         "human_authority_final": True,
