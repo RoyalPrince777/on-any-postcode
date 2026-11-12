@@ -11,6 +11,8 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
+from oap.smi.oap_mind import assess_octopus_runtime_cycle
+
 from . import (
     autonomy_levels,
     oap_core_autonomy,
@@ -21,7 +23,6 @@ from . import (
     smi_auto,
 )
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
-from oap.smi.oap_mind import assess_octopus_runtime_cycle
 
 Handler = Callable[[RuntimeJob], dict[str, Any]]
 
