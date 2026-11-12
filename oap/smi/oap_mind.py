@@ -487,6 +487,9 @@ class OctopusCycleAssessment:
     selected_arms: tuple[str, ...]
     missing_evidence: tuple[str, ...]
     action_required: str
+    self_observation_status: str = "UNKNOWN"
+    coherence_review_status: str = "UNKNOWN"
+    independent_self_awareness_claim: bool = False
     eight_arm_execution_verified: bool = False
     execution_granted: bool = False
     runtime_activation_proven: bool = False
@@ -537,10 +540,25 @@ def assess_octopus_runtime_cycle(cycle: Mapping[str, object]) -> OctopusCycleAss
         missing = ("independent_octopus_arm_execution_receipts",)
         status = "REVIEW"
         action = "VERIFY_ARM_EXECUTION_INDEPENDENTLY"
+    # Inspect the self-model and coherence outputs already calculated by
+    # the SMI autonomy cycle. Their presence is telemetry, not consciousness,
+    # independently authenticated proof or permission to modify itself.
+    self_model = cycle.get("self_model")
+    coherence = cycle.get("coherence_report")
+    self_status = (
+        "PRESENT_UNVERIFIED" if isinstance(self_model, Mapping) and self_model
+        else "UNKNOWN"
+    )
+    coherence_status = (
+        "PRESENT_UNVERIFIED" if isinstance(coherence, Mapping) and coherence
+        else "UNKNOWN"
+    )
     review_octopus_arms(arms)
     return OctopusCycleAssessment(
         status=status,
         selected_arms=arms,
         missing_evidence=missing,
         action_required=action,
+        self_observation_status=self_status,
+        coherence_review_status=coherence_status,
     )
