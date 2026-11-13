@@ -2,8 +2,10 @@
 import pytest
 
 from mission_control.smi_voice_culture_profiles import (
-    N247_SOUTH_LONDON, get_voice_profile,
-    require_voice_reference_authorisation, voice_claims,
+    N247_SOUTH_LONDON,
+    get_voice_profile,
+    require_voice_reference_authorisation,
+    voice_claims,
 )
 
 
