@@ -15,7 +15,7 @@ _DB_STATUS_CACHE_EXPIRES_AT = 0.0
 
 
 def _cache_seconds() -> float:
-    """Return a bounded Render-only readiness cache duration."""
+    """Return a bounded readiness cache duration for all PostgreSQL runtimes."""
 
     raw = os.environ.get("OAP_DB_STATUS_CACHE_SECONDS", "60").strip()
     try:
@@ -37,9 +37,6 @@ def _postgres_status() -> dict[str, Any]:
     """Read PostgreSQL status without letting platform probes hammer Neon."""
 
     global _DB_STATUS_CACHE_VALUE, _DB_STATUS_CACHE_EXPIRES_AT
-    if os.environ.get("RENDER", "").lower() != "true":
-        return postgres_db.postgres_status()
-
     now = time.monotonic()
     if _DB_STATUS_CACHE_VALUE is not None and now < _DB_STATUS_CACHE_EXPIRES_AT:
         return deepcopy(_DB_STATUS_CACHE_VALUE)
