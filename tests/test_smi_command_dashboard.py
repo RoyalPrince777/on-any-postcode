@@ -324,3 +324,19 @@ def test_smi_command_centre_prioritises_one_auto_conversation(client):
     assert 'href="/mission/agents"' in page
     assert "NOT CHECKED" in page
     assert "setInterval(" not in page
+
+
+def test_one_canonical_smi_dashboard_no_legacy_templates():
+    """Old dashboard presentations are absent, backend functionality remains."""
+    from pathlib import Path
+
+    templates = Path(__file__).resolve().parents[1] / "mission_control" / "templates"
+    assert (templates / "smi_visual_home.html").is_file()
+    assert not (templates / "smi_command_dashboard.html").exists()
+    assert not (templates / "smi_fast_local.html").exists()
+
+    visual = (templates / "smi_visual_home.html").read_text(encoding="utf-8")
+    for route in ("/mission/ollama", "/mission/war-room", "/mission/agents",
+                  "/mission/brain", "/hrm", "/guardian", "/sika", "/oap-lab"):
+        assert 'href="' + route + '"' in visual
+    assert "UNKNOWN" in visual
