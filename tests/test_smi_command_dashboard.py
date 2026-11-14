@@ -53,15 +53,13 @@ def test_smi_command_dashboard_route_is_read_only(client):
 
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    assert "SMI Home" in page
-    assert "Sovereign Megaverse Intelligence" in page
-    assert "Your intelligence, visible without the noise." in page
-    assert "Mission to 100" in page
-    assert "Essential controls" in page
-    assert "Movement Intelligence" in page
-    assert "Learning Intelligence" in page
+    assert "SMI Command Centre" in page
+    assert "SOVEREIGN MEGAVERSE INTELLIGENCE" in page
+    assert "SMI central command" in page
+    assert "OAP WORLD" in page
+    assert "SYSTEM STATUS" in page
     assert "War Room" in page
-    assert "Human Authority final" in page
+    assert "Founder Final" in page
     assert "Telecom truth review" not in page
     assert ">Graphs<" not in page
     assert ">Monitors<" not in page
@@ -198,9 +196,9 @@ def test_smi_home_renders_clear_control_functions_and_founder_final_route(client
         assert label in page
 
     assert 'href="/mission/war-room"' in page
-    assert 'href="/mission/improvement"' in page
     assert 'href="/mission/organism"' in page
-    assert "clear function · real route · named owner" in page
+    assert 'href="/mission/ollama"' in page
+    assert 'href="/world"' in page
 
 
 def test_smi_command_dashboard_exposes_truthful_inference_readiness():
@@ -219,7 +217,7 @@ def test_smi_command_dashboard_front_surface_has_backend_controls(client):
     assert "SMI Inference" in page
     assert "Check backend" in page
     assert "Talk to SMI" in page
-    assert "Start the OAP Core worker" in page
+    assert "No invented global counts" in page
 
 
 
@@ -272,9 +270,9 @@ def test_smi_home_does_not_wait_for_full_evidence_projection(client, monkeypatch
     response = client.get("/mission/smi")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "SMI Home" in html
-    assert "Evidence not checked" in html
-    assert "Check backend" in html
+    assert "SMI Command Centre" in html
+    assert "NOT CHECKED" in html
+    assert "Check evidence" in html
     assert "setInterval(check" not in html
 
 
