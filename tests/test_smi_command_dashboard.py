@@ -230,3 +230,24 @@ def test_smi_command_dashboard_puts_important_signals_first():
     assert signals[0]["id"] == "inference"
     assert signals[0]["label"] == "SMI Inference"
     assert signals[-1]["id"] == "human_authority"
+
+
+def test_smi_slow_status_logs_only_component_and_duration(monkeypatch, caplog):
+    clock = iter((10.0, 10.6))
+    monkeypatch.setattr(smi_command_dashboard.time, "monotonic", lambda: next(clock))
+    with caplog.at_level("WARNING", logger=smi_command_dashboard.__name__):
+        result = smi_command_dashboard._timed_status(
+            "inference", lambda: {"private": "must-not-log"}
+        )
+    assert result == {"private": "must-not-log"}
+    assert "component=inference" in caplog.text
+    assert "duration_ms=600.0" in caplog.text
+    assert "must-not-log" not in caplog.text
+
+
+def test_smi_fast_status_does_not_emit_warning(monkeypatch, caplog):
+    clock = iter((10.0, 10.01))
+    monkeypatch.setattr(smi_command_dashboard.time, "monotonic", lambda: next(clock))
+    with caplog.at_level("WARNING", logger=smi_command_dashboard.__name__):
+        assert smi_command_dashboard._timed_status("brain", lambda: True) is True
+    assert "smi_dashboard_slow_component" not in caplog.text
