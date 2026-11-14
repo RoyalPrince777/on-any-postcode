@@ -289,3 +289,23 @@ def test_smi_fast_shell_does_not_claim_unchecked_evidence_is_green():
         for signal in shell["important_signals"]
         if signal["id"] != "human_authority"
     )
+
+
+def test_single_smi_command_centre_and_chat_tool_share_existing_routes(client):
+    """Only the visual home is the command centre; chat remains a separate tool."""
+    home = client.get("/mission/smi")
+    assert home.status_code == 200
+    page = home.get_data(as_text=True)
+    assert "SMI Command Centre" in page
+    assert 'href="/mission/ollama"' in page
+    assert "NOT CHECKED" in page
+    assert 'href="/mission/smi/status"' in page
+    assert "smi_command_dashboard.status()" not in page
+
+    chat = client.get("/mission/ollama")
+    assert chat.status_code == 200
+    html = chat.get_data(as_text=True)
+    assert 'smi-chat-tool-only' in html
+    assert 'href="/mission/smi"' in html
+    assert 'id="chat-form"' in html
+    assert "smi_canonical_controller.js" in html
