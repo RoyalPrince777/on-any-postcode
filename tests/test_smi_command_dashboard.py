@@ -214,8 +214,8 @@ def test_smi_command_dashboard_exposes_truthful_inference_readiness():
 
 def test_smi_command_dashboard_front_surface_has_backend_controls(client):
     page = client.get("/mission/smi").get_data(as_text=True)
-    assert "SMI Inference" in page
-    assert "Check backend" in page
+    assert "SMI inference" in page
+    assert "Check evidence" in page
     assert "Talk to SMI" in page
     assert "No invented global counts" in page
 
