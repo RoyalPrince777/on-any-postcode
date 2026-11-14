@@ -340,3 +340,35 @@ def test_member_auth_email_generates_private_alias_when_blank():
 
 def test_member_auth_email_preserves_supplied_email():
     assert neon_auth._member_auth_email(" Person@Example.Test ") == "person@example.test"
+
+
+def test_invalid_local_founder_cookie_fails_closed_without_external_auth(monkeypatch):
+    from mission_control import founder_local_auth
+
+    monkeypatch.setattr(founder_local_auth, "session_user", lambda header: None)
+
+    def external_auth_must_not_run(*args, **kwargs):
+        raise AssertionError("invalid local Founder cookie must not reach external Auth")
+
+    monkeypatch.setattr(neon_auth, "_request", external_auth_must_not_run)
+    result = neon_auth.get_session("oap_founder_session=invalid.payload")
+    assert result.status_code == 401
+    assert result.payload == {"code": "LOCAL_FOUNDER_SESSION_INVALID"}
+
+
+def test_managed_auth_cookie_retains_existing_path(monkeypatch):
+    from mission_control import founder_local_auth
+
+    monkeypatch.setattr(founder_local_auth, "session_user", lambda header: None)
+    observed = {}
+
+    def managed_request(path, *, method, cookie_header):
+        observed["call"] = (path, method, cookie_header)
+        return neon_auth.AuthResult(status_code=401, payload=None)
+
+    monkeypatch.setattr(neon_auth, "_request", managed_request)
+    result = neon_auth.get_session("better-auth.session_token=opaque")
+    assert result.status_code == 401
+    assert observed["call"] == (
+        "/get-session", "GET", "better-auth.session_token=opaque"
+    )
