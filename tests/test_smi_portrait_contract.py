@@ -1,12 +1,10 @@
-"""Regression contract for the SMI dashboard portrait truth boundary."""
-
+"""Regression contract for the one SMI visual command centre."""
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PAGE = ROOT / "mission_control/templates/smi_command_dashboard.html"
+PAGE = ROOT / "mission_control/templates/smi_visual_home.html"
 ASSET = ROOT / "static/oap/smi_global_intelligence_command_centre.png"
-
 
 class SMIPortraitContract(unittest.TestCase):
     @classmethod
@@ -17,20 +15,19 @@ class SMIPortraitContract(unittest.TestCase):
         self.assertTrue(ASSET.is_file())
         self.assertGreater(ASSET.stat().st_size, 0)
 
-    def test_artwork_is_visible_without_background_crop(self):
-        self.assertIn('src="/static/oap/smi_global_intelligence_command_centre.png"', self.html)
-        self.assertIn("object-fit:contain", self.html)
-        self.assertNotIn("background-size:auto 475px", self.html)
-        self.assertNotIn("center 16% / auto 620px", self.html)
+    def test_artwork_is_the_existing_smi_identity(self):
+        self.assertIn("/static/oap/smi_global_intelligence_command_centre.png", self.html)
+        self.assertIn("SMI central command", self.html)
 
-    def test_unverified_full_body_is_not_claimed(self):
-        self.assertIn("full-body character asset not yet verified", self.html)
-        self.assertIn("LIVE MOTION UNVERIFIED", self.html)
+    def test_unverified_telemetry_not_presented_as_live(self):
+        self.assertIn("NOT CHECKED", self.html)
+        self.assertIn("UNKNOWN", self.html)
+        self.assertIn("No invented global counts", self.html)
 
     def test_founder_navigation_still_exists(self):
         self.assertIn('href="/mission/war-room"', self.html)
         self.assertIn('href="/mission/agents"', self.html)
-
+        self.assertIn('href="/mission/ollama"', self.html)
 
 if __name__ == "__main__":
     unittest.main()
