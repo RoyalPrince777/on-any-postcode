@@ -3320,14 +3320,17 @@ def my_world():
         "continent": "",
     }
     try:
-        if public_store.status()["configured"]:
-            public_store.ensure_authenticated_user(
-                identity_id,
-                email=str(user["email"]),
-                display_name=str(user["name"]),
-                store_email=False,
+        if _timed_auth_dependency("my_world_store_readiness", public_store.status)["configured"]:
+            _timed_auth_dependency(
+                "my_world_identity_sync",
+                lambda: public_store.ensure_authenticated_user(
+                    identity_id,
+                    email=str(user["email"]),
+                    display_name=str(user["name"]),
+                    store_email=False,
+                ),
             )
-            profile = public_store.get_profile(identity_id) or profile
+            profile = _timed_auth_dependency("my_world_profile_read", lambda: public_store.get_profile(identity_id)) or profile
         else:
             profile = profiles.get(identity_id, profile)
     except public_store.PublicStoreUnavailable:
