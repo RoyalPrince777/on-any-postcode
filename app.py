@@ -2419,6 +2419,20 @@ def activate_founder():
     return redirect(url_for("auth_page", next="/my-world"))
 
 
+def _timed_auth_dependency(name: str, callback):
+    """Log only slow auth dependency names and durations, never credentials."""
+    started = time.monotonic()
+    try:
+        return callback()
+    finally:
+        elapsed_ms = (time.monotonic() - started) * 1000.0
+        if elapsed_ms >= 500.0:
+            app.logger.warning(
+                "auth_slow_dependency component=%s duration_ms=%.1f",
+                name, elapsed_ms,
+            )
+
+
 @app.post("/auth/sign-in")
 @app.post("/library/auth/sign-in", endpoint="library_auth_sign_in")
 def auth_sign_in():
@@ -2445,7 +2459,7 @@ def auth_sign_in():
             ),
             next_path=next_path,
         )
-    local_founder_ready = founder_only and neon_auth.local_founder_ready()
+    local_founder_ready = founder_only and _timed_auth_dependency("local_founder_readiness", neon_auth.local_founder_ready)
     email = (
         neon_auth.configured_founder_email()
         if founder_only
@@ -2469,7 +2483,7 @@ def auth_sign_in():
             next_path=next_path,
         )
     try:
-        result = neon_auth.sign_in(email, password)
+        result = _timed_auth_dependency("credential_verification", lambda: neon_auth.sign_in(email, password))
     except neon_auth.AuthUnavailable:
         return _auth_page_response(
             status_code=503,
@@ -2494,7 +2508,7 @@ def auth_sign_in():
         )
     web_security.AUTH_BURST_LIMITER.reset_key(auth_rate_key)
     response = redirect(next_path)
-    if not _apply_auth_cookies(response, result.set_cookie_headers):
+    if not _timed_auth_dependency("session_cookie_issuance", lambda: _apply_auth_cookies(response, result.set_cookie_headers)):
         return _auth_page_response(
             status_code=502,
             error="A secure session could not be established. Try again.",
