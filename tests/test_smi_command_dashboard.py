@@ -350,7 +350,9 @@ def test_talk_to_smi_opens_existing_chat_only_on_user_action(client):
     assert html.count('data-smi-talk') >= 2
     assert 'id="smi-chat-panel"' in html
     assert 'data-src="/mission/ollama"' in html
-    assert 'src="/mission/ollama"' not in html
+    import re
+
+    assert not re.search(r'(?<![\\w-])src="/mission/ollama"', html)
     assert "if (!frame.hasAttribute('src'))" in html
     assert "frame.removeAttribute('src')" in html
     assert 'href="/mission/war-room"' in html
