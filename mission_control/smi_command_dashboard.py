@@ -5,6 +5,8 @@ authority, runtime, registry, proof system, or duplicate intelligence model.
 """
 from __future__ import annotations
 
+import logging
+import time
 from typing import Any
 
 from oap.smi.action_risk_router import status as action_risk_status
@@ -33,6 +35,24 @@ from . import (
     smi_library_mission,
     war_room,
 )
+
+
+_LOG = logging.getLogger(__name__)
+_SLOW_COMPONENT_MS = 500.0
+
+
+def _timed_status(name: str, callback):
+    """Log slow status-source names and durations, never their contents."""
+    started = time.monotonic()
+    try:
+        return callback()
+    finally:
+        duration_ms = (time.monotonic() - started) * 1000.0
+        if duration_ms >= _SLOW_COMPONENT_MS:
+            _LOG.warning(
+                "smi_dashboard_slow_component component=%s duration_ms=%.1f",
+                name, duration_ms,
+            )
 
 
 def _regulated_unlock_matrix() -> dict[str, object]:
@@ -66,23 +86,23 @@ def _regulated_unlock_matrix() -> dict[str, object]:
 
 
 def status() -> dict[str, Any]:
-    brain_status = brain.get_public_brain_status()
-    war_status = war_room.get_war_room_dashboard()
-    intelligence = all_intelligence.public_safe_status()
-    runtime = intelligence_runtime_proof.status()
-    risk = action_risk_status()
-    bank_identity = prince_sovereign_bank.status()
-    account = sika_account_engine.status()
-    pay = sika_pay_gateway.status()
-    orchestrator = sika_payment_orchestrator.status()
-    unlock_matrix = _regulated_unlock_matrix()
-    telecom = personal_telecom.status()
-    mail = mail_outbound.status()
-    mailbox = mail_mailbox.status()
-    movement = movement_intelligence.movement_intelligence_status()
-    mission_field = smi_73_signal_field.definition_status()
-    inference = oap_inference_gateway.status(probe=True)
-    smi_health = smi_chat_runtime.health()
+    brain_status = _timed_status("brain", brain.get_public_brain_status)
+    war_status = _timed_status("war_room", war_room.get_war_room_dashboard)
+    intelligence = _timed_status("intelligence", all_intelligence.public_safe_status)
+    runtime = _timed_status("runtime", intelligence_runtime_proof.status)
+    risk = _timed_status("risk", action_risk_status)
+    bank_identity = _timed_status("bank", prince_sovereign_bank.status)
+    account = _timed_status("account", sika_account_engine.status)
+    pay = _timed_status("pay", sika_pay_gateway.status)
+    orchestrator = _timed_status("orchestrator", sika_payment_orchestrator.status)
+    unlock_matrix = _timed_status("regulated_unlock", _regulated_unlock_matrix)
+    telecom = _timed_status("telecom", personal_telecom.status)
+    mail = _timed_status("mail", mail_outbound.status)
+    mailbox = _timed_status("mailbox", mail_mailbox.status)
+    movement = _timed_status("movement", movement_intelligence.movement_intelligence_status)
+    mission_field = _timed_status("signal_field", smi_73_signal_field.definition_status)
+    inference = _timed_status("inference", lambda: oap_inference_gateway.status(probe=True))
+    smi_health = _timed_status("smi_health", smi_chat_runtime.health)
     mission_evaluation = smi_health.get("mission_to_100") or {}
 
     smi_21_dimensions = tuple(
@@ -395,7 +415,7 @@ def status() -> dict[str, Any]:
                 },
             ),
         },
-        "library_mission": smi_library_mission.status(),
+        "library_mission": _timed_status("library", smi_library_mission.status),
         "mission_to_100": {
             "signal_count": mission_field.get("signal_count"),
             "major_dimension_count": mission_field.get("major_dimension_count"),
