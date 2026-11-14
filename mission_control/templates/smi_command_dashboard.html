@@ -220,12 +220,12 @@
     </section>
 
     <section class="panel card inference-panel" aria-live="polite" aria-labelledby="inference-title">
-      <div class="section-title"><strong id="inference-title">SMI Inference</strong><span id="inference-checked">Checking live readiness…</span></div>
+      <div class="section-title"><strong id="inference-title">SMI Inference</strong><span id="inference-checked">Evidence not checked</span></div>
       <div class="inference-row">
-        <div class="inference-state" id="inference-state"><span class="dot">●</span><strong>Checking</strong></div>
+        <div class="inference-state" id="inference-state"><span class="dot">●</span><strong>UNKNOWN</strong></div>
         <div class="inference-copy">
           <strong id="inference-title-text">First-party inference</strong>
-          <span id="inference-detail">Checking local OAP inference and OAP Core worker.</span>
+          <span id="inference-detail">Use Check backend for an on-demand, authenticated evidence refresh.</span>
         </div>
         <div class="inference-actions">
           <button class="btn" id="inference-refresh" type="button">↻ Check backend</button>
@@ -302,8 +302,7 @@
     }
   }
   refresh.addEventListener('click', check);
-  check();
-  window.setInterval(check, 15000);
+  // Manual only: never repeat expensive regulated evidence queries in the background.
 })();
 </script>
 </body>
