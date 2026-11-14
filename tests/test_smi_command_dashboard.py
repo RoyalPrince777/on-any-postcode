@@ -251,3 +251,43 @@ def test_smi_fast_status_does_not_emit_warning(monkeypatch, caplog):
     with caplog.at_level("WARNING", logger=smi_command_dashboard.__name__):
         assert smi_command_dashboard._timed_status("brain", lambda: True) is True
     assert "smi_dashboard_slow_component" not in caplog.text
+
+
+def test_smi_home_does_not_wait_for_full_evidence_projection(client, monkeypatch):
+    """The Founder landing screen must not block on War Room/regulated DB reads."""
+    def fail_if_called():
+        raise AssertionError("heavy evidence should not run on initial SMI page")
+
+    monkeypatch.setattr(smi_command_dashboard, "status", fail_if_called)
+    monkeypatch.setattr(
+        smi_command_dashboard.war_room,
+        "get_war_room_dashboard",
+        fail_if_called,
+    )
+    monkeypatch.setattr(
+        smi_command_dashboard.sika_execution_gate,
+        "capability_matrix",
+        fail_if_called,
+    )
+    response = client.get("/mission/smi")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "SMI Home" in html
+    assert "Evidence not checked" in html
+    assert "Check backend" in html
+    assert "setInterval(check" not in html
+
+
+def test_smi_fast_shell_does_not_claim_unchecked_evidence_is_green():
+    shell = smi_command_dashboard.home_shell_status()
+    assert shell["evidence_state"] == "UNKNOWN"
+    assert shell["war_room"]["validation_passed"] is False
+    assert shell["execution_granted"] is False
+    assert shell["approval_granted"] is False
+    assert shell["human_authority_final"] is True
+    assert len(shell["sovereign_ui"]["essential_controls"]) == 9
+    assert all(
+        signal["state"] == "UNKNOWN"
+        for signal in shell["important_signals"]
+        if signal["id"] != "human_authority"
+    )
