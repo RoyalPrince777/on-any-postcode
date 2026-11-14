@@ -43,7 +43,9 @@ def _postgres_status() -> dict[str, Any]:
 
     status = postgres_db.postgres_status()
     _DB_STATUS_CACHE_VALUE = deepcopy(status)
-    _DB_STATUS_CACHE_EXPIRES_AT = now + _cache_seconds()
+    hosted = os.environ.get("RENDER", "").lower() == "true"
+    duration = _cache_seconds() if hosted else min(_cache_seconds(), 5.0)
+    _DB_STATUS_CACHE_EXPIRES_AT = now + duration
     return status
 
 
