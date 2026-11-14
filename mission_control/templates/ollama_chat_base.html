@@ -29,10 +29,55 @@
   body.smi-noise-strip .chat-head{min-height:44px!important}
   body.smi-noise-strip .composer{position:fixed!important;left:50%!important;bottom:8px!important;transform:translateX(-50%)!important;width:min(920px,calc(100vw - 16px))!important}
 </style>
+  <style id="smi-chat-tool-only-style">
+    /* One command centre, one chat tool. Retain all canonical chat form IDs. */
+    body.smi-chat-tool-only { background:#050916; color:#f7f6ff; }
+    body.smi-chat-tool-only .smi-return-to-centre {
+      position:fixed;z-index:500;left:12px;top:8px;display:inline-flex;
+      align-items:center;min-height:34px;padding:6px 12px;
+      border:1px solid #b28b65;border-radius:999px;
+      background:#090e22f2;color:#efd5a1;text-decoration:none;
+      box-shadow:0 3px 15px #0009;font:600 12px system-ui,sans-serif;
+    }
+    body.smi-chat-tool-only .smi-return-to-centre:focus-visible {
+      outline:3px solid #e1c17a;outline-offset:3px;
+    }
+    body.smi-chat-tool-only .navs,
+    body.smi-chat-tool-only .smi-hero,
+    body.smi-chat-tool-only .qualities,
+    body.smi-chat-tool-only .lights,
+    body.smi-chat-tool-only .status-row { display:none!important; }
+    body.smi-chat-tool-only .workspace-grid {
+      display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+      min-height:0!important;flex:1!important;
+    }
+    body.smi-chat-tool-only .history:not(.mobile-open) { display:none!important; }
+    body.smi-chat-tool-only .chatbox {
+      min-width:0!important;min-height:0!important;
+      width:100%!important;max-width:100%!important;
+      padding-top:48px!important;background:#050916!important;
+    }
+    body.smi-chat-tool-only .composer,
+    body.smi-chat-tool-only .composer-box {
+      max-width:min(960px,100%)!important;
+      min-width:0!important;
+    }
+    body.smi-chat-tool-only .composer-bar {
+      flex-wrap:wrap!important;gap:5px!important;
+    }
+    body.smi-chat-tool-only .composer-bar button,
+    body.smi-chat-tool-only .composer-bar select {max-width:100%!important}
+    @media(max-width:620px) {
+      body.smi-chat-tool-only .smi-return-to-centre{top:5px;left:7px;font-size:11px}
+      body.smi-chat-tool-only .chatbox{padding-top:44px!important}
+      body.smi-chat-tool-only .composer {width:100%!important;left:0!important;right:0!important}
+    }
+  </style>
 </head>
 
-<body class="mc-workspace-body smi-noise-strip">
+<body class="mc-workspace-body smi-noise-strip smi-chat-tool-only">
 <main class="smi-shell">
+  <a class="smi-return-to-centre" href="/mission/smi" aria-label="Return to the sole SMI command centre">♛ SMI Command Centre</a>
   <nav class="navs" hidden inert aria-hidden="true"><a href="{{ url_for('mission_control.brain_dashboard') }}">Brain</a><a href="{{ url_for('mission_control.agent_intelligence') }}">Agents</a><a href="{{ url_for('mission_control.mission_workspace') }}">Mission Control</a><a href="/">OAP Front Door</a></nav>
   <section class="smi-hero" hidden inert aria-hidden="true">
     <p class="mc-eyebrow">OAP MIND · PRIVATE FOUNDER WORKSPACE</p>
