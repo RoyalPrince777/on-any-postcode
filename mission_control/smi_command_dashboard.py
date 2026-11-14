@@ -535,3 +535,84 @@ def status() -> dict[str, Any]:
             "live-external and operationally-certified remain separate claims."
         ),
     }
+
+
+def home_shell_status() -> dict[str, Any]:
+    """Fast, read-only SMI landing projection without runtime or database probes.
+
+    The shell never advertises live readiness: expensive evidence is available
+    only through the existing Founder-gated /mission/smi/status endpoint.
+    """
+    controls = (
+        ("smi_chat", "Talk to SMI", "Ask, analyse and receive governed recommendations.", "SMI", "/mission/ollama", "SMI Chat", "🧠"),
+        ("intelligence", "Intelligence", "Open the existing intelligence directory.", "SMI", "/mission/agents", "Intelligence Directory", "◈"),
+        ("movement", "Movement", "Open movement and maps intelligence.", "Movement Intelligence", "/movement", "Movement Intelligence", "⌁"),
+        ("learning", "Learning", "Review bounded learning and improvement receipts.", "HRM + SMI", "/mission/improvement", "Learning", "◉"),
+        ("memory", "Memory", "Inspect governed records and context.", "HRM", "/mission/organism", "Memory", "▤"),
+        ("protection", "Protection", "Review independent protection boundaries.", "Guardian", "/mission/war-room", "Protection", "◇"),
+        ("war_room", "War Room", "Review live evidence on its separate route.", "War Room", "/mission/war-room", "War Room", "⚔"),
+        ("recovery", "Recovery", "Review governed STOP and recovery controls.", "SMI", "/mission/organism", "Recovery", "↺"),
+        ("founder_final", "Founder Final", "Human authority remains final.", "Founder", "/mission/war-room", "Founder Final", "♛"),
+    )
+    signals = (
+        ("inference", "SMI Inference", "/mission/ollama"),
+        ("signal_field", "73 Signal Field", "/mission/intelligence"),
+        ("runtime", "Runtime", "/mission/war-room"),
+        ("war_room", "War Room", "/mission/war-room"),
+        ("movement", "Movement", "/movement"),
+        ("learning", "Learning", "/mission/improvement"),
+        ("human_authority", "Human Authority", "/mission/war-room"),
+    )
+    dimensions = tuple(
+        {
+            "name": dimension.replace("_", " ").title(),
+            "state": "unknown",
+            "family": family.replace("_", " ").title(),
+            "checks": tuple(checks),
+        }
+        for family, family_dimensions in smi_73_signal_field.DIMENSION_FAMILIES
+        for dimension, checks in family_dimensions
+    )
+    return {
+        "component": "SMI Founder Command Dashboard",
+        "sovereign_ui": {
+            "primary_route": "/mission/ollama",
+            "essential_controls": tuple(
+                dict(zip(
+                    ("id", "label", "function", "owner", "href", "route_label", "icon"),
+                    control,
+                ))
+                for control in controls
+            ),
+        },
+        "important_signals": tuple(
+            {"id": key, "label": label, "href": href,
+             "state": "FINAL" if key == "human_authority" else "UNKNOWN",
+             "summary": "Evidence not checked on this fast landing screen."}
+            for key, label, href in signals
+        ),
+        "smi_21_dimensions": dimensions,
+        "mission_to_100": {
+            "signal_count": "—", "major_dimension_count": len(dimensions),
+            "reviewer_count": "—",
+        },
+        "brain": {"count": "—"},
+        "intelligence": {"worlds": "—"},
+        "character": {
+            "href": "/mission/ollama",
+            "states": ("ready", "listening", "thinking", "speaking", "paused", "stopped"),
+        },
+        "movement": {
+            "href": "/movement", "architecture_ready": False,
+            "component_count": "—", "mode_count": "—",
+        },
+        "learning": {
+            "href": "/mission/improvement",
+            "receipt_learning_defined": False,
+        },
+        "war_room": {"validation_passed": False},
+        "evidence_state": "UNKNOWN",
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
