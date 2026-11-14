@@ -69,9 +69,10 @@ def test_render_database_status_caches_fail_closed_result(monkeypatch):
     assert calls == [1]
 
 
-def test_non_render_database_status_remains_live(monkeypatch):
+def test_non_render_database_status_is_cached_and_expires(monkeypatch):
     database._clear_db_status_cache()
     monkeypatch.delenv("RENDER", raising=False)
+    monkeypatch.setenv("OAP_DB_STATUS_CACHE_SECONDS", "60")
     monkeypatch.setattr(database.postgres_db, "configured", lambda: True)
 
     calls = []
@@ -80,9 +81,19 @@ def test_non_render_database_status_remains_live(monkeypatch):
         calls.append(len(calls) + 1)
         return _status()
 
+    clock = {"now": 100.0}
+    monkeypatch.setattr(database.time, "monotonic", lambda: clock["now"])
     monkeypatch.setattr(database.postgres_db, "postgres_status", fake_status)
 
-    database.db_status()
-    database.db_status()
+    first = database.db_status()
+    second = database.db_status()
 
+    assert first["reachable"] is True
+    assert second["reachable"] is True
+    assert calls == [1]
+
+    clock["now"] = 106.0
+    third = database.db_status()
+
+    assert third["reachable"] is True
     assert calls == [1, 2]

@@ -2,7 +2,7 @@ import json
 import urllib.request
 from datetime import datetime, UTC
 
-OAP_URL = "http://127.0.0.1:5050"
+OAP_URL = "http://127.0.0.1:5000"
 
 
 def fetch_page(path):
