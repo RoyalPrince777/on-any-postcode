@@ -72,7 +72,7 @@ def test_render_database_status_caches_fail_closed_result(monkeypatch):
 def test_non_render_database_status_is_cached_and_expires(monkeypatch):
     database._clear_db_status_cache()
     monkeypatch.delenv("RENDER", raising=False)
-    monkeypatch.setenv("OAP_DB_STATUS_CACHE_SECONDS", "5")
+    monkeypatch.setenv("OAP_DB_STATUS_CACHE_SECONDS", "60")
     monkeypatch.setattr(database.postgres_db, "configured", lambda: True)
 
     calls = []
