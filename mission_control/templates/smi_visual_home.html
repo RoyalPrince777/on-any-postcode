@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>SMI Command Centre · ON ANY POSTCODE</title>
+<style>
+:root{color-scheme:dark;--gold:#e1c17a;--ink:#050a18;--nav:#070d1edb;--line:#7655b591;--blue:#3ce1ff;--white:#f7f6ff;--muted:#b3bbd4}
+*{box-sizing:border-box}
+html{background:#050916}body{margin:0;background:#050916;color:var(--white);font:14px system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:inherit;text-decoration:none}a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.skip{position:absolute;left:-9999px}.skip:focus{left:10px;top:10px;z-index:50;background:#000;padding:10px}
+.shell{min-height:100dvh;display:grid;grid-template-columns:clamp(205px,19vw,270px) minmax(0,1fr) clamp(195px,20vw,280px);grid-template-rows:auto minmax(0,1fr) auto;gap:10px;padding:10px;background:radial-gradient(ellipse at 48% 33%,#27316a66,transparent 55%),linear-gradient(130deg,#01050e,#0d0927 67%,#060b18)}
+header{grid-column:1/-1;display:grid;grid-template-columns:1fr minmax(0,2.4fr) 1fr;align-items:center;gap:12px;min-height:90px}
+.logo,.heading,.captain{background:var(--nav);border:1px solid #aa7b3970;border-radius:16px;padding:12px 15px;box-shadow:0 0 20px #261f59 inset}
+.logo b{font-size:2.4rem;color:var(--gold);line-height:1}.logo small{display:block;color:#dfb963;font-size:10px;letter-spacing:.11em}
+.heading{text-align:center;background:linear-gradient(100deg,#050a16cc,#110e30c8,#050a16ce);min-width:0}.heading h1{font-size:clamp(28px,3.7vw,55px);color:#f5dfaa;margin:0;letter-spacing:.11em;text-shadow:0 0 15px #c79659}.heading strong{display:block;font-size:clamp(9px,1.1vw,13px);letter-spacing:.12em}.heading span{color:var(--muted);font-size:11px}
+.captain{text-align:right;color:var(--gold)}.captain strong{font-size:15px}.captain small{display:block;color:var(--muted)}.left,.right{min-width:0;display:flex;flex-direction:column;gap:10px}
+.panel{background:linear-gradient(140deg,#07142eea,#10102de5);border:1px solid var(--line);border-radius:15px;box-shadow:0 0 18px #220e49b5,0 0 0 1px #3696d122 inset;overflow:hidden}
+.panel h2{margin:0;padding:10px 13px;color:var(--gold);font-size:14px;letter-spacing:.09em;border-bottom:1px solid #795eab66}
+.navlinks{padding:6px;display:grid;gap:3px}
+.navlinks a{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid transparent;border-radius:10px;background:#050b20b8;font-size:13px;min-height:36px}
+.navlinks a:hover,.navlinks a[aria-current="page"]{border-color:#be70ef9c;background:#4323697a}
+.navlinks span{width:26px;text-align:center;font-size:19px}
+.navlinks small{margin-left:auto;color:var(--gold)}
+.centre{min-width:0;position:relative;min-height:570px;display:flex;flex-direction:column;justify-content:space-between;isolation:isolate;overflow:hidden;border:1px solid #6b5baa7a;border-radius:18px;background:radial-gradient(ellipse at 45% 30%,#155fb95c,transparent 55%),#060c22}
+.centre:before{content:"";position:absolute;inset:0;background:url('/static/oap/smi_global_intelligence_command_centre.png') center 45%/cover no-repeat;z-index:-2;opacity:.92}
+.centre:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#030917c9 0%,transparent 18%,transparent 62%,#030917e3 100%);z-index:-1}
+.motto{text-align:center;align-self:center;margin:15px 8px;padding:11px 16px;background:#030917c9;border:1px solid #9e8bcc7a;border-radius:12px;max-width:390px;text-shadow:0 1px 4px black}
+.motto b{color:var(--gold)}.motto small{display:block;color:var(--muted);margin-top:4px}
+.centre-bottom{padding:16px;display:flex;justify-content:center;flex-wrap:wrap;gap:8px}
+.action{padding:12px 13px;min-width:110px;text-align:center;font-weight:650;background:#060e24e8;border:1px solid #8f62bbaa;border-radius:14px;box-shadow:0 0 12px #2247ac66}.action:hover{background:#27225b}
+.action .symbol{font-size:22px;display:block;margin-bottom:4px}
+.caption{font-size:11px;color:var(--muted);line-height:1.5;padding:11px}
+.status{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #7b5c8c3d;font-size:12px}
+.status:last-child{border:0}.unknown{color:#ffcf7a}.offline{color:#f6aeab}.good{color:#8ee7c1}
+.planet{padding:16px;text-align:center;background:radial-gradient(circle at 50% 44%,#1656b2aa,#060d29 70%)}.planet-icon{font-size:86px;filter:drop-shadow(0 0 14px #1d77f2)}.planet p{font-size:11px;color:var(--muted);margin:2px 0}
+.tiles{padding:9px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.tiles a{border:1px solid #4c6d9b9c;border-radius:11px;min-height:70px;padding:10px 5px;text-align:center;background:#081732be;font-size:12px}
+.tiles a span{display:block;font-size:23px;margin-bottom:5px}
+footer{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px;border:1px solid #a8804666;border-radius:16px;background:#030916ea}
+footer nav{display:flex;gap:8px;flex-wrap:wrap}footer a{padding:10px 13px;border:1px solid #5886b377;border-radius:22px;background:#09122c;white-space:nowrap}
+footer .primary{background:#42207b;color:white;border-color:#c279ff}footer .ask{border-color:#d7b16d}
+.note{font-size:11px;color:var(--muted);line-height:1.4}
+@media(max-width:950px){.shell{grid-template-columns:185px minmax(0,1fr);grid-template-rows:auto auto auto auto}.left{grid-column:1}.centre{grid-column:2;min-height:570px}.right{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr}.right .panel:nth-child(3){grid-column:1/-1}header{grid-template-columns:1fr 2fr}.captain{display:none}}
+@media(max-width:620px){.shell{display:flex;flex-direction:column;padding:6px;gap:7px}header{display:flex;gap:6px;min-height:auto}.logo{width:95px;flex:none;padding:8px}.logo b{font-size:22px}.logo small{font-size:8px}.heading{padding:9px;flex:1}.heading h1{font-size:29px}.heading strong{font-size:8px}.heading span{display:none}.left{order:2}.centre{order:1;min-height:69dvh}.right{order:3;display:grid;grid-template-columns:1fr 1fr}.navlinks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.navlinks a{flex-direction:column;text-align:center;gap:3px;font-size:11px;padding:6px 2px}.navlinks a span{font-size:20px}.navlinks small{display:none}.centre:before{background-position:center top}.motto{font-size:12px}.centre-bottom{padding:10px 4px}.action{min-width:0;flex:1;padding:9px 4px;font-size:11px}.action .symbol{font-size:18px}footer{order:4;flex-direction:column}footer nav{justify-content:center}footer a{font-size:12px;padding:9px}.right .panel:nth-child(3){grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to SMI</a>
+<div class="shell">
+<header>
+  <a href="/world" class="logo" aria-label="ON ANY POSTCODE · OAP World"><b>♛ OAP</b><small>ON ANY POSTCODE</small><small>BORN LOCAL · BUILT GLOBAL</small></a>
+  <div class="heading"><h1>SMI</h1><strong>SOVEREIGN MEGAVERSE INTELLIGENCE</strong><span>One brain · One living system · Evidence before Green</span></div>
+  <div class="captain"><strong>♛ FOUNDER CONTROL</strong><small>Private · Guardian/HRM · Founder Final</small></div>
+</header>
+<aside class="left" aria-label="OAP navigation">
+  <section class="panel"><h2>🌐 OAP WORLD</h2><nav class="navlinks" aria-label="Main routes">
+    <a href="/world"><span>🌍</span>OAP World</a>
+    <a href="/spot"><span>📍</span>The Spot</a>
+    <a href="/signal"><span>📡</span>Signal</a>
+    <a href="/linkup"><span>🔗</span>Link Up</a>
+    <a href="/chronicle"><span>💬</span>OAP Chronicle</a>
+    <a href="/tv"><span>📺</span>OAP TV</a>
+    <a href="/my-world"><span>👤</span>My World</a>
+    <a href="/arena"><span>🎮</span>OAP Arena</a>
+    <a href="/records"><span>🎼</span>OAP Records</a>
+    <a href="/market"><span>🛍</span>OAP Market</a>
+    <a href="/mission/war-room"><span>⚔</span>War Room</a>
+    <a href="/mission/agents"><span>🧠</span>SMI Intelligence</a>
+    <a href="/mission/brain"><span>◉</span>SMI Brain</a>
+    <a href="/mission/organism"><span>♻</span>Recovery</a>
+  </nav></section>
+</aside>
+<main id="main" class="centre" aria-label="SMI central command">
+  <div class="motto"><b>“A brighter world through better intelligence.”</b><small>SMI · Digital organism · Founder-governed</small></div>
+  <div class="centre-bottom" aria-label="SMI essential controls">
+    <a class="action" href="/mission/war-room"><span class="symbol">⚔</span>War Room</a>
+    <a class="action" href="/mission/agents"><span class="symbol">◈</span>Intelligence</a>
+    <a class="action" href="/mission/brain"><span class="symbol">🧠</span>SMI Brain</a>
+    <a class="action" href="/mission/organism"><span class="symbol">🛡</span>Protection</a>
+    <a class="action" href="/mission/smi/status"><span class="symbol">◎</span>Check evidence</a>
+  </div>
+</main>
+<aside class="right" aria-label="Information and systems">
+ <section class="panel"><h2>🌍 GLOBAL INTELLIGENCE</h2><div class="planet"><div class="planet-icon" aria-hidden="true">🌐</div><p>Earth Intelligence · Live data not loaded</p></div><div class="caption">Maps and postcode intelligence open only when requested.</div><div class="tiles"><a href="/on-any-place"><span>🗺</span>Maps</a><a href="/mission/agents"><span>🔎</span>Research</a></div></section>
+ <section class="panel"><h2>SYSTEM STATUS</h2>
+   <div class="status"><span>SMI inference</span><b class="unknown">UNKNOWN</b></div>
+   <div class="status"><span>War Room evidence</span><b class="unknown">NOT CHECKED</b></div>
+   <div class="status"><span>Guardian/HRM</span><b class="unknown">NOT CHECKED</b></div>
+   <div class="status"><span>Database health</span><b class="unknown">NOT CHECKED</b></div>
+   <div class="status"><span>Green Gate</span><b class="unknown">NOT CHECKED</b></div>
+   <div class="caption">No invented global counts, health percentages, or automatic status polling.</div>
+ </section>
+ <section class="panel"><h2>OAP UNIVERSE</h2><div class="tiles"><a href="/world"><span>🌍</span>World</a><a href="/arena"><span>🎮</span>Arena</a><a href="/spot"><span>📍</span>The Spot</a><a href="/market"><span>🛍</span>Market</a><a href="/mission/ollama"><span>🧠</span>Talk to SMI</a><a href="/movement"><span>🧭</span>Movement</a></div></section>
+</aside>
+<footer>
+ <nav aria-label="OAP dock"><a class="primary" href="/mission/smi" aria-current="page">⌂ Home</a><a href="/world">🌍 OAP World</a><a href="/mission/agents">⌕ Search</a><a href="/linkup/incoming">✉ Incoming</a></nav>
+ <a class="ask" href="/mission/ollama" aria-label="Open SMI chat">🧠 Ask SMI · Talk to SMI</a>
+ <div class="note">PRIVATE FOUNDER · Evidence on demand · No automatic loading</div>
+</footer>
+</div>
+</body>
+</html>
