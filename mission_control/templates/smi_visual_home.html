@@ -56,6 +56,18 @@ footer .primary{background:#42207b;color:white;border-color:#c279ff}footer .ask{
 .smi-support-nav a{border:1px solid #65559b99;border-radius:12px;padding:8px 11px;background:#071029df;color:#d5d8f2;font-size:12px}
 .smi-talk-dock{border:2px solid #e0bb77!important;background:linear-gradient(100deg,#4b268d,#122b59)!important;font-weight:800}
 @media(max-width:620px){.centre-bottom{display:block!important;padding:11px 5px!important}.smi-talk-primary{width:calc(100% - 12px);min-height:70px;margin-bottom:7px;padding:13px;font-size:18px}.smi-support-nav{gap:5px;padding:0 5px 5px}.smi-support-nav a{font-size:10px;padding:7px}.smi-talk-primary .smi-talk-icon{font-size:27px}footer .smi-talk-dock{width:100%;text-align:center}}
+
+/* Single-screen SMI: open the existing protected chat tool on demand. */
+.smi-talk-primary,.smi-talk-dock{font:inherit;color:inherit;cursor:pointer}
+.smi-talk-primary{font-weight:800;font-size:clamp(18px,2vw,25px)}
+.smi-talk-dock{font-weight:800}
+.smi-chat-panel[hidden]{display:none!important}
+.smi-chat-panel{position:fixed;z-index:1000;inset:0;display:flex;flex-direction:column;background:#050916;color:#f7f6ff}
+.smi-chat-panel-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid #8a5cae;background:#0c1030}
+.smi-chat-panel-bar b{color:#e1c17a;font-size:16px}
+.smi-chat-panel-bar button{padding:9px 14px;background:#241f4c;color:#fff;border:1px solid #b78e6f;border-radius:11px;font-weight:700;cursor:pointer}
+.smi-chat-frame{display:block;width:100%;height:100%;min-height:0;flex:1;border:0;background:#050916}
+body.smi-chat-open{overflow:hidden}
 </style>
 </head>
 <body>
@@ -93,10 +105,10 @@ footer .primary{background:#42207b;color:white;border-color:#c279ff}footer .ask{
 <main id="main" class="centre" aria-label="SMI central command">
   <div class="motto"><b>“A brighter world through better intelligence.”</b><small>SMI · Digital organism · Founder-governed</small></div>
   <div class="centre-bottom" aria-label="SMI conversation first">
-    <a class="smi-talk-primary" href="/mission/ollama" aria-label="Talk to SMI, automatic 3 7 21 mode">
+    <button class="smi-talk-primary" type="button" data-smi-talk aria-haspopup="dialog" aria-label="Talk to SMI, automatic 3 7 21 mode">
       <span class="smi-talk-icon" aria-hidden="true">🎙</span>
       <span>Talk to SMI<small>One conversation · AUTO 3 / 7 / 21 · Founder-governed</small></span>
-    </a>
+    </button>
     <nav class="smi-support-nav" aria-label="Secondary intelligence routes">
       <a href="/mission/war-room">⚔ War Room</a>
       <a href="/mission/agents">◈ Intelligence</a>
@@ -120,9 +132,39 @@ footer .primary{background:#42207b;color:white;border-color:#c279ff}footer .ask{
 </aside>
 <footer>
  <nav aria-label="OAP dock"><a class="primary" href="/mission/smi" aria-current="page">⌂ Home</a><a href="/world">🌍 OAP World</a><a href="/mission/agents">⌕ Search</a><a href="/linkup/incoming">✉ Incoming</a></nav>
- <a class="ask smi-talk-dock" href="/mission/ollama" aria-label="Talk to SMI in automatic 3 7 21 mode">🎙 Talk to SMI · AUTO</a>
+ <button class="ask smi-talk-dock" type="button" data-smi-talk aria-haspopup="dialog" aria-label="Talk to SMI in automatic 3 7 21 mode">🎙 Talk to SMI · AUTO</button>
  <div class="note">PRIVATE FOUNDER · Evidence on demand · No automatic loading</div>
 </footer>
 </div>
+<section id="smi-chat-panel" class="smi-chat-panel" role="dialog" aria-modal="true" aria-label="Talk to SMI" hidden>
+ <div class="smi-chat-panel-bar"><b>🧠 Talk to SMI · AUTO 3 / 7 / 21</b><button id="smi-chat-close" type="button" aria-label="Close SMI conversation and return to command centre">✕ Close</button></div>
+ <iframe id="smi-chat-frame" class="smi-chat-frame" title="Existing governed SMI conversation" data-src="/mission/ollama" referrerpolicy="same-origin"></iframe>
+</section>
+<script>
+(() => {
+  const panel = document.getElementById('smi-chat-panel');
+  const frame = document.getElementById('smi-chat-frame');
+  const close = document.getElementById('smi-chat-close');
+  let trigger = null;
+  for (const button of document.querySelectorAll('[data-smi-talk]')) {
+    button.addEventListener('click', () => {
+      trigger = button;
+      panel.hidden = false;
+      document.body.classList.add('smi-chat-open');
+      if (!frame.hasAttribute('src')) frame.setAttribute('src', frame.dataset.src);
+      close.focus();
+    });
+  }
+  const dismiss = () => {
+    panel.hidden = true;
+    document.body.classList.remove('smi-chat-open');
+    if (trigger) trigger.focus();
+  };
+  close.addEventListener('click', dismiss);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !panel.hidden) dismiss();
+  });
+})();
+</script>
 </body>
 </html>
