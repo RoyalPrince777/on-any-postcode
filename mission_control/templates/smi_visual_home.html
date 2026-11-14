@@ -156,7 +156,10 @@ body.smi-chat-open{overflow:hidden}
     });
   }
   const dismiss = () => {
+    // Explicit Founder exit: release the embedded chat worker and stop polling.
+    // The existing streaming STOP/disconnect handling remains authoritative.
     panel.hidden = true;
+    frame.removeAttribute('src');
     document.body.classList.remove('smi-chat-open');
     if (trigger) trigger.focus();
   };
