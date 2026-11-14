@@ -36,7 +36,6 @@ from . import (
     war_room,
 )
 
-
 _LOG = logging.getLogger(__name__)
 _SLOW_COMPONENT_MS = 500.0
 
