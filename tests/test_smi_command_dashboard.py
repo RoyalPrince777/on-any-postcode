@@ -352,5 +352,6 @@ def test_talk_to_smi_opens_existing_chat_only_on_user_action(client):
     assert 'data-src="/mission/ollama"' in html
     assert 'src="/mission/ollama"' not in html
     assert "if (!frame.hasAttribute('src'))" in html
+    assert "frame.removeAttribute('src')" in html
     assert 'href="/mission/war-room"' in html
     assert "setInterval(" not in html
