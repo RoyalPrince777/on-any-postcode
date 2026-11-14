@@ -309,3 +309,18 @@ def test_single_smi_command_centre_and_chat_tool_share_existing_routes(client):
     assert 'href="/mission/smi"' in html
     assert 'id="chat-form"' in html
     assert "smi_canonical_controller.js" in html
+
+
+def test_smi_command_centre_prioritises_one_auto_conversation(client):
+    """SMI dialogue is the primary action; specialist routes are secondary."""
+    response = client.get("/mission/smi")
+    assert response.status_code == 200
+    page = response.get_data(as_text=True)
+    assert 'class="smi-talk-primary"' in page
+    assert 'href="/mission/ollama"' in page
+    assert "AUTO 3 / 7 / 21" in page
+    assert 'aria-label="Secondary intelligence routes"' in page
+    assert 'href="/mission/war-room"' in page
+    assert 'href="/mission/agents"' in page
+    assert "NOT CHECKED" in page
+    assert "setInterval(" not in page
