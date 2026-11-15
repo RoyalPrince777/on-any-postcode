@@ -382,12 +382,14 @@ def test_ludo_link_up_entry_reuses_protected_chat_without_room_leak(client):
     assert "no in-room chat" in room_html
 
 
-def test_ludo_my_card_has_single_entry_in_main_menu(client):
+def test_ludo_my_card_starts_from_oap_world_not_an_arena_duplicate(client):
     menu = client.get("/arena/ludo")
     assert menu.status_code == 200
-    assert menu.get_data(as_text=True).count('href="/my-card"') == 1
+    html = menu.get_data(as_text=True)
+    assert 'href="/world"' in html
+    assert 'href="/my-card"' not in html
+    assert "get your My Card through OAP World" in html
+    assert "Guest names do not earn ranked results" in html
     room = client.get("/arena/ludo/room")
     assert room.status_code == 200
     assert 'href="/my-card"' not in room.get_data(as_text=True)
-    card = client.get("/my-card")
-    assert card.status_code in (200, 302, 303)
