@@ -17,7 +17,7 @@
 | Voice and synchronisation foundations | `mission_control/smi_reply_voice_local.py`, `mission_control/static/smi_reply_audio_player.js`, `mission_control/smi_real_reply_motion_bridge.js` | SMI speech and embodiment hooks | Studio voice asset chain and timestamped mouth-motion proof |
 | Character geometry foundations | `oap/smi/character_rig_geometry.py`, `mission_control/static/smi_exact_character_rig.js` | Existing SMI character/rig work | Suitable actor full-body rig, tracking acceptance |
 | Character-swap preflight (draft) | `mission_control/studio_character_swap.py` | UUID input and duration validation, hard-deny payment/render | Owner verification, live quote, adapter and render |
-| Studio tests | `tests/test_oap_studio_intelligence.py`, `tests/test_studio_character_swap.py`, `tests/test_rights_studio_adapter.py` | API/receipt/governance coverage | End-to-end authenticated real-device evidence |
+| Local still/audio MP4 composition | `mission_control/studio_local_media.py` | FFmpeg-based still-image and optional audio MP4 assembly | Render-worker and output verification |\n| Owned-video inspection and trim | `mission_control/studio_video_tools.py` | ffprobe + guarded FFmpeg normalisation | Runtime ffmpeg, rights-owned source and real clip tests |\n| Studio tests | `tests/test_oap_studio_intelligence.py`, `tests/test_studio_character_swap.py`, `tests/test_studio_video_tools.py`, `tests/test_studio_local_media.py`, `tests/test_rights_studio_adapter.py` | API/receipt/governance coverage | End-to-end authenticated real-device evidence |
 
 ## External code to evaluate (link rather than wholesale vendor into OAP)
 
