@@ -1,5 +1,6 @@
 """Fail-closed contract for SMI's character swap prep (no provider execution)."""
 import pytest
+
 from mission_control import studio_character_swap
 
 
@@ -30,9 +31,11 @@ def test_source_duration_outside_provider_limit_fails_closed(duration):
 
 
 def test_unregistered_media_or_changed_target_rejected():
-    base = dict(source_video_id="4db19aff-ebd2-441e-ba6c-c0d7cfa94e12",
-                character_image_id="fb53cdb9-0776-4aa0-baf8-e433f8940b5e",
-                source_duration_seconds=29.7)
+    base = {
+        "source_video_id": "4db19aff-ebd2-441e-ba6c-c0d7cfa94e12",
+        "character_image_id": "fb53cdb9-0776-4aa0-baf8-e433f8940b5e",
+        "source_duration_seconds": 29.7,
+    }
     with pytest.raises(ValueError, match="registered_media"):
         studio_character_swap.prepare(**{**base, "source_video_id": "https://example.test/file.mp4"})
     with pytest.raises(ValueError, match="target_unsupported"):
