@@ -52,7 +52,7 @@ def test_render_produces_verified_mp4_without_publishing(tmp_path, monkeypatch):
         assert "-loop" in args and "-pix_fmt" in args
         Path(args[-1]).write_bytes(b"\x00\x00\x00\x18ftypisom" + b"test" * 32)
         return Result()
-    monkeypatch.setattr(render.shutil, "which", lambda _: "/usr/bin/ffmpeg")
+    monkeypatch.setattr(render.shutil, "which", lambda name: "/usr/bin/" + name)
     monkeypatch.setattr(render.subprocess, "run", fake_run)
     result = render.render_still_video(owner_directory=str(tmp_path),
                                       image_name="scene.png", output_name="scene.mp4")
