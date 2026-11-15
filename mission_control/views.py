@@ -70,6 +70,7 @@ BUTTON_PROOF_TARGETS = {
     "studio-refine": "/mission/studio/generate",
     "studio-bring-alive": "/mission/studio/generate",
     "studio-scene-builder": "/mission/studio/generate",
+    "studio-character-swap": "/mission/studio/character-swap/prepare",
     "studio-orchestrate": "/mission/studio/orchestrate/plan",
     "studio-build-preview": "/mission/studio/build-preview",
     "studio-workspace-research": "/mission/studio/workspace/research",
@@ -1163,6 +1164,31 @@ def smi_android_live_evidence_receipt():
     if result.get("reasons") == ["durable_hrm_receipt_unconfirmed"]:
         status_code = 503
     return _no_store(make_response(jsonify(result), status_code))
+
+
+@bp.post("/studio/character-swap/prepare")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_character_swap_prepare():
+    """Founder-only SMI character-swap preflight. Never spends credits."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh the page and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = studio_intelligence.prepare_character_swap(
+            source_video_id=payload.get("source_video_id"),
+            character_image_id=payload.get("character_image_id"),
+            source_duration_seconds=payload.get("source_duration_seconds"),
+            quoted_credits=payload.get("quoted_credits"),
+        )
+    except ValueError as exc:
+        return _error("invalid_studio_request", str(exc), 400)
+    except RuntimeError:
+        return _error("studio_preparation_unavailable", "Studio preparation is unavailable.", 503)
+    if not result.get("receipt_proven"):
+        return _error("studio_receipt_unconfirmed", "HRM receipt is not verified.", 503)
+    return _no_store(make_response(jsonify(result), 200))
 
 
 @bp.post("/studio/generate")
