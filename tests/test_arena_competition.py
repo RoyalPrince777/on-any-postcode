@@ -227,3 +227,43 @@ def test_competition_status_does_not_claim_locked_layers():
         "deployed": False,
         "no_fake_green": True,
     }
+
+
+def test_completed_result_rejects_resealed_forged_scores_winners_and_receipt():
+    state = _active_match()
+    for index, question in enumerate(arena_intelligence.CHALLENGE_CATALOG, start=1):
+        for suffix, player in (("alpha", "player-alpha"), ("beta", "player-beta")):
+            state, _ = arena_competition.submit_answer(
+                state,
+                player_id=player,
+                question_id=question["id"],
+                choice_id=question["correct_choice_id"],
+                request_id=f"proof-{suffix}-{index:04d}",
+            )
+    assert arena_competition.validate_match(state)["passed"]
+
+    forged_scores = copy.deepcopy(state)
+    forged_scores["scores"]["player-alpha"] = 0
+    forged_scores = arena_competition._seal(forged_scores)
+    assert "arena_match_result_scores_invalid" in arena_competition.validate_match(forged_scores)["errors"]
+
+    forged_winners = copy.deepcopy(state)
+    forged_winners["result"]["winner_ids"] = ["player-alpha"]
+    forged_winners = arena_competition._seal(forged_winners)
+    assert "arena_match_result_invalid" in arena_competition.validate_match(forged_winners)["errors"]
+
+    forged_receipt = copy.deepcopy(state)
+    forged_receipt["receipts"][-1]["detail"]["winner_ids"] = ["player-alpha"]
+    forged_receipt["receipts"][-1]["hash"] = arena_competition._digest(
+        {key: value for key, value in forged_receipt["receipts"][-1].items() if key != "hash"}
+    )
+    forged_receipt = arena_competition._seal(forged_receipt)
+    assert "arena_match_completion_receipt_invalid" in arena_competition.validate_match(forged_receipt)["errors"]
+
+
+def test_isolated_competition_cannot_claim_ranked_from_resealed_state():
+    state = _active_match()
+    forged = copy.deepcopy(state)
+    forged["ranked"] = True
+    forged = arena_competition._seal(forged)
+    assert "arena_match_ranked_boundary_invalid" in arena_competition.validate_match(forged)["errors"]
