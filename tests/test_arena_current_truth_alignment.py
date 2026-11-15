@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 
-def test_arena_hub_surfaces_my_card_and_all_proven_room_modes(anonymous_client):
+def test_arena_hub_routes_my_card_through_oap_world_and_proven_rooms(anonymous_client):
     response = anonymous_client.get("/arena")
     page = response.get_data(as_text=True)
 
     assert response.status_code == 200
-    assert 'href="/my-card"' in page
-    assert "My Card" in page
+    assert 'href="/my-card"' not in page
+    assert "One My Card" in page
+    assert "Guest games stay unranked" in page
     for room_path in (
         "/arena/connect4/room",
         "/arena/dot/room",
@@ -19,7 +20,7 @@ def test_arena_hub_surfaces_my_card_and_all_proven_room_modes(anonymous_client):
     ):
         assert f'href="{room_path}"' in page
     assert "Create / Join Chess Room" in page
-    assert "My Card history" in page
+    assert "One authenticated OAP World My Card per ranked player" in page
 
 
 def test_my_card_is_canonical_arena_identity_door(anonymous_client):
