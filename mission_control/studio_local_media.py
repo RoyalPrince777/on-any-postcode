@@ -8,6 +8,7 @@ No third-party source code is embedded.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -34,6 +35,37 @@ def _owner_file(root: Path, name: str, suffixes: frozenset[str]) -> Path:
     if not 0 < path.stat().st_size <= _MAX_INPUT_BYTES:
         raise ValueError("studio_asset_size_invalid")
     return path
+
+
+def _verify_mp4(binary_path: Path, *, expected_seconds: int) -> None:
+    """Require a decoder-readable video stream before declaring a render complete."""
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe:
+        raise StudioRenderUnavailable("studio_ffprobe_unavailable")
+    try:
+        result = subprocess.run(
+            [
+                ffprobe, "-v", "error", "-select_streams", "v:0",
+                "-show_entries", "format=duration:stream=codec_type,width,height",
+                "-of", "json", str(binary_path),
+            ],
+            stdin=subprocess.DEVNULL, capture_output=True, text=True,
+            timeout=20, check=False,
+        )
+        if result.returncode:
+            raise StudioRenderUnavailable("studio_mp4_probe_failed")
+        metadata = json.loads(result.stdout)
+        tracks = metadata.get("streams") or []
+        duration = float((metadata.get("format") or {}).get("duration", 0))
+        if not (
+            tracks and tracks[0].get("codec_type") == "video"
+            and int(tracks[0].get("width", 0)) > 0
+            and int(tracks[0].get("height", 0)) > 0
+            and 0 < duration <= expected_seconds + 0.2
+        ):
+            raise StudioRenderUnavailable("studio_mp4_probe_invalid")
+    except (OSError, subprocess.TimeoutExpired, ValueError, TypeError, KeyError) as exc:
+        raise StudioRenderUnavailable("studio_mp4_probe_failed") from exc
 
 
 def render_still_video(
@@ -84,6 +116,7 @@ def render_still_video(
             header = file.read(32)
         if b"ftyp" not in header[:16]:
             raise StudioRenderUnavailable("studio_mp4_header_invalid")
+        _verify_mp4(temp, expected_seconds=seconds)
         # Avoid replacing any existing user asset.
         try:
             os.link(temp, target)
