@@ -368,3 +368,15 @@ def test_all_authoritative_room_games_expose_quick_match(client):
         assert "/arena/rooms/matchmake" in text
         assert f'game_key:"{game_key}"' in text
         assert text.count('q("[data-matchmake]").onclick=') == 1, asset_path
+
+
+def test_ludo_link_up_entry_reuses_protected_chat_without_room_leak(client):
+    for route in ("/arena/ludo", "/arena/ludo/room"):
+        response = client.get(route)
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert 'href="/linkup"' in html
+        assert "Link Up" in html
+        assert "reconnect_token=" not in html
+    room_html = client.get("/arena/ludo/room").get_data(as_text=True)
+    assert "no in-room chat" in room_html
