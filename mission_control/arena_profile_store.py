@@ -11,7 +11,6 @@ from typing import Any
 
 from . import postgres_db
 
-
 # Display tiers for future verified Arena XP. Existing match points are not XP.
 # These tiers must never be derived from the legacy points column.
 ARENA_XP_TIERS: tuple[tuple[int, str], ...] = (
