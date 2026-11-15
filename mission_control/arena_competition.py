@@ -141,6 +141,55 @@ def validate_match(state: object) -> dict[str, Any]:
         errors.append("arena_match_active_players_invalid")
     if state.get("status") == "completed" and index != len(arena_intelligence.CHALLENGE_CATALOG):
         errors.append("arena_match_completion_invalid")
+    if state.get("ranked") is not False or state.get("durable") is not False:
+        errors.append("arena_match_ranked_boundary_invalid")
+
+    if state.get("status") == "completed" and len(ids) == 2:
+        expected = {player_id: 0 for player_id in ids}
+        all_rounds_complete = True
+        for question in arena_intelligence.CHALLENGE_CATALOG:
+            by_player = answers.get(question["id"])
+            if not isinstance(by_player, dict) or set(by_player) != set(ids):
+                all_rounds_complete = False
+                break
+            for player_id in ids:
+                answer = by_player[player_id]
+                if not isinstance(answer, dict):
+                    all_rounds_complete = False
+                    break
+                choice = answer.get("choice_id")
+                if choice not in {item["id"] for item in question["choices"]}:
+                    all_rounds_complete = False
+                    break
+                correct = choice == question["correct_choice_id"]
+                if answer.get("correct") is not correct:
+                    all_rounds_complete = False
+                    break
+                expected[player_id] += int(correct)
+            if not all_rounds_complete:
+                break
+        if not all_rounds_complete or scores != expected:
+            errors.append("arena_match_result_scores_invalid")
+        else:
+            top = max(expected.values())
+            winner_ids = sorted(pid for pid, value in expected.items() if value == top)
+            result = state.get("result")
+            if not isinstance(result, dict) or (
+                result.get("scores") != expected
+                or sorted(result.get("winner_ids") or ()) != winner_ids
+                or result.get("tie") is not (len(winner_ids) > 1)
+            ):
+                errors.append("arena_match_result_invalid")
+            receipts = state.get("receipts")
+            terminal = receipts[-1] if isinstance(receipts, list) and receipts else {}
+            if (
+                terminal.get("action") != "match_completed"
+                or terminal.get("detail") != {
+                    "winner_ids": winner_ids,
+                    "tie": len(winner_ids) > 1,
+                }
+            ):
+                errors.append("arena_match_completion_receipt_invalid")
 
     for qid, by_player in answers.items():
         try:
