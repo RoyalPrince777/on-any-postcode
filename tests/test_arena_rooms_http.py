@@ -393,3 +393,14 @@ def test_ludo_my_card_starts_from_oap_world_not_an_arena_duplicate(client):
     room = client.get("/arena/ludo/room")
     assert room.status_code == 200
     assert 'href="/my-card"' not in room.get_data(as_text=True)
+
+
+def test_arena_hub_uses_one_oap_world_my_card_for_rankings(client):
+    response = client.get("/arena")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'href="/my-card"' not in html
+    assert "One My Card" in html
+    assert "Guest games stay unranked" in html
+    assert "same authenticated My Card identity" in html
+    assert "Ranking and XP eligibility enforcement remains locked" in html
