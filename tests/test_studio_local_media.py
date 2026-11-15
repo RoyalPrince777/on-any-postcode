@@ -44,7 +44,10 @@ def test_render_produces_verified_mp4_without_publishing(tmp_path, monkeypatch):
     (tmp_path / "scene.png").write_bytes(b"image")
     class Result:
         returncode = 0
+        stdout = '{"streams":[{"codec_type":"video","width":720,"height":1280}],"format":{"duration":"4.0"}}'
     def fake_run(args, **_kwargs):
+        if args[0].endswith("ffprobe"):
+            return Result()
         assert args[1:5] == ["-nostdin", "-hide_banner", "-loglevel", "error"]
         assert "-loop" in args and "-pix_fmt" in args
         Path(args[-1]).write_bytes(b"\x00\x00\x00\x18ftypisom" + b"test" * 32)
@@ -57,4 +60,26 @@ def test_render_produces_verified_mp4_without_publishing(tmp_path, monkeypatch):
     assert result["published"] is False
     assert len(result["sha256"]) == 64
     assert (tmp_path / "scene.mp4").is_file()
+    assert not list(tmp_path.glob(".*.mp4"))
+
+def test_invalid_mp4_probe_never_creates_published_artifact(tmp_path, monkeypatch):
+    (tmp_path / "scene.png").write_bytes(b"image")
+
+    class BadResult:
+        returncode = 0
+        stdout = '{"streams":[],"format":{"duration":"4.0"}}'
+
+    def fake_run(args, **_kwargs):
+        if args[0].endswith("ffprobe"):
+            return BadResult()
+        Path(args[-1]).write_bytes(b"\x00\x00\x00\x18ftypisom" + b"test" * 32)
+        return BadResult()
+
+    monkeypatch.setattr(render.shutil, "which", lambda name: "/usr/bin/" + name)
+    monkeypatch.setattr(render.subprocess, "run", fake_run)
+    with pytest.raises(render.StudioRenderUnavailable, match="probe_invalid"):
+        render.render_still_video(
+            owner_directory=str(tmp_path), image_name="scene.png", output_name="scene.mp4",
+        )
+    assert not (tmp_path / "scene.mp4").exists()
     assert not list(tmp_path.glob(".*.mp4"))
