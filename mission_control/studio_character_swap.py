@@ -32,9 +32,12 @@ def prepare(*, source_video_id: object, character_image_id: object,
         raise ValueError("studio_swap_duration_out_of_range")
     if str(target or "") != "primary_person":
         raise ValueError("studio_swap_target_unsupported")
-    if quoted_credits is not None:
-        if isinstance(quoted_credits, bool) or not isinstance(quoted_credits, int) or quoted_credits < 1:
-            raise ValueError("studio_swap_quote_invalid")
+    if quoted_credits is not None and (
+        isinstance(quoted_credits, bool)
+        or not isinstance(quoted_credits, int)
+        or quoted_credits < 1
+    ):
+        raise ValueError("studio_swap_quote_invalid")
     return {
         "operation": "character_swap",
         "workspace": "motion",
