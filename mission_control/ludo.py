@@ -89,6 +89,7 @@ def new_game(players: object):
             "winner_id": None,
             "result": None,
             "pending_roll": None,
+            "consecutive_sixes": 0,
             "request_receipts": [],
         }
     )
@@ -193,6 +194,7 @@ def public_state(state):
         "winner_name": next((item["name"] for item in state["players"] if item["id"] == state["winner_id"]), None),
         "result": state.get("result"),
         "pending_roll": pending_roll,
+        "consecutive_sixes": state.get("consecutive_sixes", 0),
         "movable_piece_ids": (
             _movable_piece_ids(state, pending_roll)
             if state["status"] == "active" and pending_roll is not None
@@ -222,10 +224,19 @@ def roll(state, *, request_id: object, die_value: int | None = None):
     else:
         raise ValueError("ludo_roll_invalid")
 
-    current["pending_roll"] = value
+    # Three consecutive sixes forfeit the third roll and pass the turn.
+    count = (current.get("consecutive_sixes", 0) + 1) if value == 6 else 0
+    current["consecutive_sixes"] = count
     current["request_receipts"].append(
-        {"request_id": request_id, "action": "roll", "value": value}
+        {"request_id": request_id, "action": "roll", "value": value,
+         "forfeited": count == 3}
     )
+    if count == 3:
+        current["pending_roll"] = None
+        current["consecutive_sixes"] = 0
+        _advance_turn(current)
+        return _seal(current)
+    current["pending_roll"] = value
     if not _movable_piece_ids(current, value):
         current["pending_roll"] = None
         if value != 6:
