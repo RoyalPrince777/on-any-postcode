@@ -19,6 +19,7 @@ from . import (
     smi_founder_assets,
     smi_receipt_backend,
     studio_build_preview,
+    studio_character_swap,
     studio_media_backend,
 )
 
@@ -272,6 +273,45 @@ def _tool(tool_id: str) -> dict[str, str]:
         if tool["id"] == clean:
             return dict(tool)
     raise ValueError("unsupported_studio_tool")
+
+
+def prepare_character_swap(*, source_video_id: object, character_image_id: object,
+                           source_duration_seconds: object, quoted_credits: object = None) -> dict[str, Any]:
+    """Record an SMI-governed preparation receipt; no paid provider call occurs."""
+    prepared = studio_character_swap.prepare(
+        source_video_id=source_video_id,
+        character_image_id=character_image_id,
+        source_duration_seconds=source_duration_seconds,
+        quoted_credits=quoted_credits,
+    )
+    receipt = smi_receipt_backend.write_receipt(
+        "studio_generation_receipt",
+        {
+            "brain_part": "studio_intelligence",
+            "gate": 21,
+            "command": "character_swap_prepare",
+            "signal": "🟣",
+            "guardian": "required",
+            "green_gate": "blocked_until_verified_render",
+            "founder_final": "required_before_credit_spend",
+            "safe_payload": {
+                "source_ref_present": True,
+                "character_ref_present": True,
+                "duration_accepted": True,
+                "quote_claimed": quoted_credits is not None,
+                "quote_verified": False,
+                "render_submitted": False,
+                "execution_authority_expanded": False,
+            },
+        },
+    )
+    return {
+        **prepared,
+        "studio": STUDIO_NAME,
+        "smi_depth": 21,
+        "chronicle_receipt": receipt,
+        "receipt_proven": bool(receipt and receipt.get("read_back_ok")),
+    }
 
 
 def prepare_generation(tool_id: str, *, prompt: object = "", source_ref: object = "") -> dict[str, Any]:
