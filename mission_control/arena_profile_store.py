@@ -12,6 +12,35 @@ from typing import Any
 from . import postgres_db
 
 
+# Display tiers for future verified Arena XP. Existing match points are not XP.
+# These tiers must never be derived from the legacy points column.
+ARENA_XP_TIERS: tuple[tuple[int, str], ...] = (
+    (0, "Rookie"),
+    (100, "Street Player"),
+    (300, "Postcode Pro"),
+    (600, "OAP Legend"),
+    (1000, "Royal Master"),
+    (2000, "Royal Elite"),
+    (4000, "Royal Sovereign"),
+)
+
+
+def rank_for_verified_xp(xp: int) -> dict[str, int | str]:
+    """Resolve the approved seven-tier title from *verified* XP only.
+
+    No award, storage, or leaderboard claim is made by this pure resolver.
+    """
+    if isinstance(xp, bool) or not isinstance(xp, int) or xp < 0:
+        raise ValueError("arena_verified_xp_invalid")
+    level = 1
+    title = ARENA_XP_TIERS[0][1]
+    for index, (minimum, name) in enumerate(ARENA_XP_TIERS, start=1):
+        if xp < minimum:
+            break
+        level, title = index, name
+    return {"level": level, "title": title, "xp": xp}
+
+
 class ArenaStoreUnavailable(RuntimeError):
     """Raised when durable Arena storage cannot complete safely."""
 
