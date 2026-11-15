@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import hashlib
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import uuid
+from pathlib import Path
 
 
 class StudioRenderUnavailable(RuntimeError):
