@@ -45,7 +45,7 @@ def probe_owned_video(*, root: Path, source: Path) -> dict[str, Any]:
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError) as exc:
         raise RuntimeError("studio_ffprobe_failed") from exc
     if not isinstance(payload, dict):
-        raise ValueError("studio_video_metadata_invalid")
+        raise TypeError("studio_video_metadata_invalid")
     streams = payload.get("streams") or []
     video = next((item for item in streams if item.get("codec_type") == "video"), None)
     if not video:
