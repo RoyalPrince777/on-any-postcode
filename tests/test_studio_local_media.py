@@ -6,6 +6,11 @@ import pytest
 from mission_control import studio_local_media as render
 
 
+@pytest.fixture(autouse=True)
+def configure_private_root(tmp_path, monkeypatch):
+    monkeypatch.setenv("OAP_STUDIO_PRIVATE_ASSET_ROOT", str(tmp_path.parent))
+
+
 def test_duration_and_filename_guards(tmp_path):
     (tmp_path / "scene.png").write_bytes(b"image")
     with pytest.raises(ValueError, match="duration"):
@@ -83,3 +88,32 @@ def test_invalid_mp4_probe_never_creates_published_artifact(tmp_path, monkeypatc
         )
     assert not (tmp_path / "scene.mp4").exists()
     assert not list(tmp_path.glob(".*.mp4"))
+
+
+def test_private_root_required(tmp_path, monkeypatch):
+    (tmp_path / "scene.png").write_bytes(b"image")
+    monkeypatch.delenv("OAP_STUDIO_PRIVATE_ASSET_ROOT")
+    with pytest.raises(render.StudioRenderUnavailable, match="private_asset_root_unconfigured"):
+        render.render_still_video(
+            owner_directory=str(tmp_path), image_name="scene.png",
+            output_name="scene.mp4",
+        )
+
+
+def test_outside_owner_folder_and_symlink_rejected(tmp_path):
+    (tmp_path / "scene.png").write_bytes(b"image")
+    with pytest.raises(ValueError, match="owner_directory_invalid"):
+        render.render_still_video(
+            owner_directory=str(tmp_path.parent), image_name="scene.png",
+            output_name="scene.mp4",
+        )
+    linked = tmp_path.parent / (tmp_path.name + "-linked")
+    linked.symlink_to(tmp_path, target_is_directory=True)
+    try:
+        with pytest.raises(ValueError, match="owner_directory_invalid"):
+            render.render_still_video(
+                owner_directory=str(linked), image_name="scene.png",
+                output_name="scene.mp4",
+            )
+    finally:
+        linked.unlink(missing_ok=True)
