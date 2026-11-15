@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}"><link rel="stylesheet" href="{{ url_for('static', filename='arena_games.css') }}">
 <script src="{{ url_for('static', filename='arena_ludo_room.js') }}" defer></script></head>
 <body><main class="mc-shell arena-game" data-ludo-room>
-<section class="card room-panel"><nav class="arena-nav"><a href="/arena">← All games</a> · <a href="/arena/ludo">Local Ludo</a></nav>
+<section class="card room-panel"><nav class="arena-nav"><a href="/arena">← All games</a> · <a href="/arena/ludo">Local Ludo</a> · <a href="/linkup" aria-label="Open Link Up private chat">💬 Link Up</a></nav>
 <p class="arena-hint">OAP Arena · First-party two-player room</p><h1>🎲 Ludo · Room</h1>
 <p>Server-authoritative two-player Ludo. Share only the six-character room code; keep reconnect tokens private.</p>
 <div data-entry>
@@ -20,5 +20,5 @@
 <div class="arena-actions"><button data-roll type="button">Roll die</button><button data-refresh type="button">Refresh Match</button><button data-stop type="button">STOP</button></div>
 <div data-pieces class="arena-game-content"></div>
 </section>
-<p data-error role="alert"></p><p>Unranked room; no chat, payment or prize execution. Server state is authoritative.</p>
+<p data-error role="alert"></p><p>Unranked room; no in-room chat, payment or prize execution. Link Up opens separately and requires its own authorised identity.</p>
 </section></main></body></html>
