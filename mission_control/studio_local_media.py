@@ -80,9 +80,22 @@ def render_still_video(
     """
     if type(seconds) is not int or not 1 <= seconds <= 30:
         raise ValueError("studio_render_duration_invalid")
-    root = Path(owner_directory).resolve(strict=True)
-    if not root.is_dir() or root.is_symlink():
+    # A caller's directory is not itself evidence of ownership. The worker
+    # must configure a private asset root and the target must be a direct
+    # child directory under it; reject symlink traversal before resolving.
+    private_root = os.environ.get("OAP_STUDIO_PRIVATE_ASSET_ROOT", "").strip()
+    if not private_root:
+        raise StudioRenderUnavailable("studio_private_asset_root_unconfigured")
+    base = Path(private_root).absolute()
+    candidate = Path(owner_directory).absolute()
+    if (
+        not base.is_dir() or base.is_symlink()
+        or candidate.parent != base
+        or candidate.is_symlink() or not candidate.is_dir()
+        or candidate.resolve(strict=True).parent != base.resolve(strict=True)
+    ):
         raise ValueError("studio_owner_directory_invalid")
+    root = candidate
     source = _owner_file(root, image_name, _IMAGE_SUFFIXES)
     audio = _owner_file(root, audio_name, _AUDIO_SUFFIXES) if audio_name else None
     if not isinstance(output_name, str) or output_name != Path(output_name).name or not output_name.endswith(".mp4"):
