@@ -374,3 +374,24 @@ def test_studio_media_backend_has_real_edit_endpoint_contract():
     assert '"images": [{"image_url": source}]' in media
     assert '"input_fidelity": fidelity' in media
     assert '"output_format": "png"' in media
+
+
+def test_factory_combines_existing_studio_without_execution_escalation():
+    snapshot = studio_intelligence.status()
+    factory = snapshot["factory"]
+    assert snapshot["id"] == "oap-studio-intelligence"
+    assert factory["name"] == "OAP Factory"
+    assert factory["controller"] == "SMI"
+    assert factory["creative_division"] == snapshot["id"]
+    assert factory["factory_is_second_studio_engine"] is False
+    assert factory["factory_is_separate_auth_system"] is False
+    assert factory["capability_truth"]["character_swap"] == "preparation_only"
+    assert factory["creative_tools"] == [tool["id"] for tool in snapshot["generation_tools"]]
+    assert factory["guardian_required"] is True
+    assert factory["hrm_required"] is True
+    assert factory["stop_available"] is True
+    assert factory["execution_granted"] is False
+    assert factory["payment_authorised"] is False
+    assert factory["publishing_granted"] is False
+    assert factory["deployment_authorised"] is False
+    assert factory["founder_final"] is True
