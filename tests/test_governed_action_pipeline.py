@@ -139,3 +139,28 @@ def test_record_outcome_rejects_incomplete_body_plane():
             evidence_proven=True,
             checks=checks,
         )
+
+
+def test_approval_lookup_requires_completed_judgement_and_unconsumed_receipt(monkeypatch):
+    class Cursor:
+        def fetchone(self):
+            return None
+
+    class Connection:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def execute(self, statement, params):
+            assert "JOIN smi_judgement_reviews" in statement
+            assert "j.sections_completed=5" in statement
+            assert "j.human_decision='APPROVED'" in statement
+            assert "a.consumed_at IS NULL" in statement
+            assert len(params) == 1
+            return Cursor()
+
+    monkeypatch.setattr(pipeline.postgres_db, "connect", lambda **kwargs: Connection())
+    with pytest.raises(pipeline.ActionBlocked, match="human_authority_approval_missing"):
+        pipeline._approval_row(str(uuid.uuid4()))
