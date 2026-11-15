@@ -531,6 +531,44 @@ def generation_status(video_id: object) -> dict[str, Any]:
     }
 
 
+def factory_structure() -> dict[str, Any]:
+    """Single SMI → OAP Factory → Studio hierarchy; contract only.
+
+    Reuses the canonical Studio and its existing rights, asset and governance
+    systems. Does not register another engine, create a dashboard, or grant
+    automatic execution.
+    """
+    return {
+        "name": "OAP Factory",
+        "controller": "SMI",
+        "creative_division": STUDIO_ID,
+        "creative_division_name": STUDIO_NAME,
+        "factory_is_second_studio_engine": False,
+        "factory_is_separate_auth_system": False,
+        "canonical_media_backend": "mission_control.studio_media_backend",
+        "canonical_studio_orchestrator": "mission_control.studio_workspace_orchestrator",
+        "creative_tools": [tool["id"] for tool in GENERATION_TOOLS],
+        "divisions": (
+            "studio", "engineering", "creative_intelligence", "automation",
+            "quality", "delivery", "protection", "assets",
+        ),
+        "capability_truth": {
+            "creative_media_generation": "provider_and_artifact_proof_required",
+            "character_swap": "preparation_only",
+            "video_render": "runtime_proof_required",
+            "device_acceptance": "not_certified",
+        },
+        "guardian_required": True,
+        "hrm_required": True,
+        "stop_available": True,
+        "execution_granted": False,
+        "payment_authorised": False,
+        "publishing_granted": False,
+        "deployment_authorised": False,
+        "founder_final": True,
+    }
+
+
 def status() -> dict[str, Any]:
     """Return the secret-free Studio contract for the Founder workbench."""
 
@@ -549,6 +587,7 @@ def status() -> dict[str, Any]:
         "name": STUDIO_NAME,
         "ready": True,
         "powered_by": "SMI",
+        "factory": factory_structure(),
         "pipeline": list(PIPELINE),
         "generation_tools": [dict(tool) for tool in GENERATION_TOOLS],
         "workspaces": [dict(item) for item in STUDIO_WORKSPACES],
