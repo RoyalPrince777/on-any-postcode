@@ -58,11 +58,15 @@ def _uuid(value: object, name: str) -> str:
 def _approval_row(request_id: str) -> tuple[Any, ...]:
     with postgres_db.connect(readonly=True) as connection:
         row = connection.execute(
-            """SELECT receipt_id,request_id,identity_id,authority_level,
-                      decision,issued_at,expires_at,action_digest,nonce,signature
-               FROM smi_approval_receipts
-               WHERE request_id=%s
-               ORDER BY issued_at DESC LIMIT 1""",
+            """SELECT a.receipt_id,a.request_id,a.identity_id,a.authority_level,
+                      a.decision,a.issued_at,a.expires_at,a.action_digest,a.nonce,a.signature
+               FROM smi_approval_receipts a
+               JOIN smi_judgement_reviews j ON j.request_id=a.request_id
+               WHERE a.request_id=%s
+                 AND j.sections_completed=5
+                 AND j.human_decision='APPROVED'
+                 AND a.consumed_at IS NULL
+               ORDER BY a.issued_at DESC LIMIT 1""",
             (request_id,),
         ).fetchone()
     if row is None:
