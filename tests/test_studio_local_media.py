@@ -1,4 +1,6 @@
 """Focused fail-closed tests for OAP-owned local media composition."""
+from pathlib import Path
+
 import pytest
 
 from mission_control import studio_local_media as render
