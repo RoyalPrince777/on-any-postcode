@@ -452,3 +452,16 @@ def test_all_seven_arena_online_rooms_auto_sync_on_distinct_devices(client):
         assert "needsRefresh=true;" in sync_body, script
         assert "localStorage" not in js, script
         assert "sessionStorage" not in js, script
+
+
+def test_arena_monetisation_reuses_membership_and_does_not_sell_ranked_results(client):
+    response = client.get("/arena")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'aria-label="Arena support and monetisation"' in html
+    assert 'href="/membership"' in html
+    assert "Membership is optional" in html
+    assert "does not grant ranked wins, XP" in html
+    assert "No Arena-specific checkout" in html
+    assert "Arena purchases, player entitlements, prizes and payouts are not verified" in html
+    assert "paid entry is active here" in html
