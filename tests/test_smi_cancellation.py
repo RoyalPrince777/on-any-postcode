@@ -208,3 +208,15 @@ def test_cleanup_error_does_not_block_human_stop():
     assert token.cancel("human_stop")
     assert token.cancelled
     assert closed == ["second_cleanup"]
+
+
+def test_stop_recovery_exercise_does_not_claim_authorised_runtime_resume():
+    proof = smi_cancellation.bounded_stop_recovery_proof()
+
+    assert proof["passed"] is True
+    assert proof["human_stop_observed"] is True
+    assert proof["replacement_token_ready"] is True
+    assert proof["safe_resume"] is False
+    assert proof["runtime_inference_halted"] is False
+    assert proof["human_resume_authorized"] is False
+    assert proof["exercise_only"] is True
