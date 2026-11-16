@@ -26,7 +26,7 @@ _VIDEO_ID = re.compile(r"video_[A-Za-z0-9_-]{1,128}")
 
 def _validated_video_id(value: object) -> str:
     """Require a bounded provider identifier, not a URL or path segment."""
-    candidate = str(value or "").strip()
+    candidate = str(value or "")
     if not _VIDEO_ID.fullmatch(candidate):
         raise ValueError("studio_video_id_invalid")
     return candidate
