@@ -43,3 +43,20 @@ def test_spot_apps_entry_remains_available_after_world_startup(client):
     assert response.status_code == 200
     assert b'data-spot-apps-entry' in response.data
     assert b'href="/store"' in response.data
+
+
+
+def test_koradaso_internet_intelligence_is_public_home_with_separate_world(client):
+    root = client.get("/", follow_redirects=False)
+    assert root.status_code == 302
+    assert root.headers["Location"].endswith("/koradaso")
+    home = client.get("/koradaso")
+    assert home.status_code == 200
+    page = home.get_data(as_text=True)
+    assert "KORADASO Internet Intelligence" in page
+    assert "INTERNET INTELLIGENCE" in page
+    assert 'href="/arena"' in page
+    assert 'href="/world"' in page
+    assert "OAP web search is not yet connected" in page
+    assert "\\n<a" not in page
+    assert client.get("/world").status_code == 200
