@@ -632,7 +632,8 @@ def test_koradaso_launcher_refuses_missing_or_invalid_royal_logo():
 def test_koradaso_destinations_and_arena_games_have_a_home_return(client):
     """Keep the browser front door reachable without trusting browser Back history."""
     routes = (
-        "/world", "/oap-map", "/the-link", "/the-spot/market",
+        "/world", "/world?source=oap-os", "/oap-map", "/the-link",
+        "/the-spot", "/the-spot/market", "/the-spot/maps-weather-travel",
         "/arena", "/studio?source=koradaso", "/search",
         "/koradaso/web-search", "/arena/ludo", "/arena/oware",
         "/arena/chess", "/arena/dot", "/arena/connect4",
