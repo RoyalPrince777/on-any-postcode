@@ -68,6 +68,26 @@ footer .primary{background:#42207b;color:white;border-color:#c279ff}footer .ask{
 .smi-chat-panel-bar button{padding:9px 14px;background:#241f4c;color:#fff;border:1px solid #b78e6f;border-radius:11px;font-weight:700;cursor:pointer}
 .smi-chat-frame{display:block;width:100%;height:100%;min-height:0;flex:1;border:0;background:#050916}
 body.smi-chat-open{overflow:hidden}
+
+/* Mobile conversation first: full route inventory remains available on demand. */
+.smi-route-drawer>summary{list-style:none;color:var(--gold);font-size:14px;font-weight:700;letter-spacing:.05em;padding:12px 14px;cursor:pointer}
+.smi-route-drawer>summary::-webkit-details-marker{display:none}
+.smi-route-drawer>summary:after{content:"⌄";float:right;color:var(--muted)}
+.smi-route-drawer[open]>summary:after{content:"⌃"}
+.smi-route-drawer>summary:focus-visible{outline:3px solid var(--gold);outline-offset:-3px}
+@media(max-width:620px){
+ .shell{gap:6px}
+ .centre{min-height:58dvh}
+ .motto{padding:8px 10px;background:#030917a8;border-color:#9e8bcc45}
+ .motto small{display:none}
+ .smi-talk-dock{display:none}
+ .smi-support-nav a{min-height:38px;display:inline-flex;align-items:center}
+ .left{order:2}
+ .right{order:3;grid-template-columns:minmax(0,1fr)}
+ .right .panel:nth-child(3){grid-column:1}
+ footer .note{display:none}
+ .panel{box-shadow:none}
+}
 </style>
 </head>
 <body>
@@ -79,7 +99,7 @@ body.smi-chat-open{overflow:hidden}
   <div class="captain"><strong>♛ FOUNDER CONTROL</strong><small>Private · Guardian/HRM · Founder Final</small></div>
 </header>
 <aside class="left" aria-label="OAP navigation">
-  <section class="panel"><h2>🌐 OAP WORLD</h2><nav class="navlinks" aria-label="Main routes">
+  <section class="panel"><details class="smi-route-drawer" open><summary>🌐 OAP systems</summary><nav class="navlinks" aria-label="Main routes">
     <a href="/world"><span>🌍</span>OAP World</a>
     <a href="/the-spot"><span>📍</span>The Spot</a>
     <a href="/signal"><span>📡</span>Signal</a>
@@ -100,7 +120,7 @@ body.smi-chat-open{overflow:hidden}
     <a href="/mission/improvement"><span>🧩</span>Learning</a>
     <a href="/mission/organism"><span>▤</span>Memory</a>
     <a href="/mission/organism"><span>♻</span>Recovery</a>
-  </nav></section>
+  </nav></details></section>
 </aside>
 <main id="main" class="centre" aria-label="SMI central command">
   <div class="motto"><b>“A brighter world through better intelligence.”</b><small>SMI · Digital organism · Founder-governed</small></div>
@@ -142,6 +162,10 @@ body.smi-chat-open{overflow:hidden}
 </section>
 <script>
 (() => {
+  const routes = document.querySelector('.smi-route-drawer');
+  // A first visit on a phone should show the conversation, not twenty route tiles.
+  // Desktop keeps the original visible navigation; the user can expand on mobile.
+  if (routes && window.matchMedia('(max-width: 620px)').matches) routes.open = false;
   const panel = document.getElementById('smi-chat-panel');
   const frame = document.getElementById('smi-chat-frame');
   const close = document.getElementById('smi-chat-close');
