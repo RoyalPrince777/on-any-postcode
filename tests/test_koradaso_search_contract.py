@@ -652,3 +652,14 @@ def test_koradaso_destinations_and_arena_games_have_a_home_return(client):
     assert logo.mimetype == "image/jpeg"
     progress = client.get("/static/arena_gameplay_progress.js")
     assert progress.status_code == 200
+
+
+def test_koradaso_direct_termux_launch_defaults_to_private_5052():
+    """A direct python app.py launch must not silently start 5050 or bind publicly."""
+    source = Path("app.py").read_text(encoding="utf-8")
+    launch = source.rsplit('if __name__ == "__main__":', 1)[-1]
+    assert 'os.environ.get("OAP_HOST", "127.0.0.1")' in launch
+    assert 'os.environ.get("PORT", os.environ.get("OAP_KORADASO_PORT", "5052"))' in launch
+    assert 'debug=os.environ.get("OAP_DEBUG") == "1"' in launch
+    assert 'use_reloader=False' in launch
+    assert 'port=5050, debug=True' not in launch
