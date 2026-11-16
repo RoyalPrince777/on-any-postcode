@@ -116,16 +116,18 @@ def bounded_stop_recovery_proof() -> dict[str, Any]:
         and snapshot["human_authority_final"] is True
     )
     replacement = new_token("human-authority-proof")
-    safe_resume = bool(
+    replacement_token_ready = bool(
         replacement.cancelled is False
         and replacement.control_id != token.control_id
     )
+    # A fresh token is not proof of authorised runtime resume.
+    safe_resume = False
     passed = bool(
         first_cancel
         and not second_cancel
         and stopped
         and secret_safe
-        and safe_resume
+        and replacement_token_ready
     )
     return {
         "passed": passed,
@@ -133,6 +135,10 @@ def bounded_stop_recovery_proof() -> dict[str, Any]:
         "idempotent_stop": bool(first_cancel and not second_cancel),
         "secret_safe": secret_safe,
         "safe_resume": safe_resume,
+        "replacement_token_ready": replacement_token_ready,
+        "runtime_inference_halted": False,
+        "human_resume_authorized": False,
+        "exercise_only": True,
         "production_state_mutated": False,
         "execution_authority_expanded": False,
         "human_authority_final": True,
