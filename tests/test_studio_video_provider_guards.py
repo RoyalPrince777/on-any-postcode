@@ -56,7 +56,8 @@ def test_video_content_rejects_provider_error_body(monkeypatch):
     monkeypatch.setattr(backend, "_key", lambda: "fake-test-key")
 
     class Response:
-        headers = {"Content-Type": "video/mp4"}
+        def __init__(self):
+            self.headers = {"Content-Type": "video/mp4"}
 
         def __enter__(self):
             return self
