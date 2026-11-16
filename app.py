@@ -4274,4 +4274,11 @@ def global_affairs_recovery(authority_record_id: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5050, debug=True)
+    # Local KORADASO starts on 5052, consistent with Termux and the Android shell.
+    # Never bind to every network interface or enable the debugger by default.
+    app.run(
+        host=os.environ.get("OAP_HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", os.environ.get("OAP_KORADASO_PORT", "5052"))),
+        debug=os.environ.get("OAP_DEBUG") == "1",
+        use_reloader=False,
+    )
