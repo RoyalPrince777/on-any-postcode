@@ -25,6 +25,34 @@ from . import (
 
 STUDIO_ID = "oap-studio-intelligence"
 STUDIO_NAME = "OAP Studio Intelligence"
+
+# A reproducible description of the user-directed ChatGPT animation, not
+# OpenAI's private model, weights or an executable generation receipt.
+SOUTH_LONDON_ANIMATION_RECIPE = {
+    "id": "south_london_rainy_tracking_walk",
+    "format": "gif",
+    "width": 676,
+    "height": 376,
+    "frame_count": 6,
+    "frame_duration_ms": 140,
+    "loop": True,
+    "total_duration_ms": 840,
+    "brief": (
+        "Create an original ON ANY POSTCODE scene in cinematic realism style, "
+        "set on a South London urban street, with rainy neon night lighting and "
+        "a smooth tracking shot. Use the single approved character reference, "
+        "preserving facial identity, proportions, wardrobe and branding across "
+        "frames. Preserve spatial continuity and natural movement. "
+        "Use no extra slogans or unrelated branding."
+    ),
+    "identity_lock": "approved_reference_required",
+    "rendering_origin": "chatgpt_image_generation_not_smi",
+    "replay_requires_owned_gif": True,
+    "new_generation_requires_configured_provider": True,
+    "render_verified_in_smi": False,
+    "founder_review_required": True,
+}
+
 PIPELINE = (
     "Create",
     "Edit",
@@ -604,6 +632,7 @@ def status() -> dict[str, Any]:
         "factory": factory_structure(),
         "pipeline": list(PIPELINE),
         "generation_tools": [dict(tool) for tool in GENERATION_TOOLS],
+        "animation_recipe": dict(SOUTH_LONDON_ANIMATION_RECIPE),
         "workspaces": [dict(item) for item in STUDIO_WORKSPACES],
         "workspace_default": "auto",
         "first_party_workspace_identity": True,
