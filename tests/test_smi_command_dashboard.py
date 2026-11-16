@@ -357,3 +357,22 @@ def test_talk_to_smi_opens_existing_chat_only_on_user_action(client):
     assert "frame.removeAttribute('src')" in html
     assert 'href="/mission/war-room"' in html
     assert "setInterval(" not in html
+
+
+def test_smi_mobile_home_keeps_dynamic_controls_but_collapses_route_noise():
+    """The first phone view is Talk to SMI; existing protected routes remain reachable."""
+    from pathlib import Path
+
+    template = (Path(__file__).resolve().parents[1] / "mission_control" /
+                "templates" / "smi_visual_home.html").read_text(encoding="utf-8")
+    assert '<details class="smi-route-drawer" open>' in template
+    assert '<summary>🌐 OAP systems</summary>' in template
+    assert "if (routes && window.matchMedia('(max-width: 620px)').matches) routes.open = false;" in template
+    assert '.smi-route-drawer>summary:focus-visible' in template
+    assert '.smi-talk-dock{display:none}' in template
+    assert 'class="smi-talk-primary"' in template
+    for required in ('/my-world', '/mission/ollama', '/guardian', '/hrm',
+                     '/mission/war-room', '/mission/smi/status', '/arena'):
+        assert required in template
+    assert 'UNKNOWN' in template and 'NOT CHECKED' in template
+    assert "frame.removeAttribute('src')" in template
