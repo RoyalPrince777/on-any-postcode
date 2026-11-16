@@ -697,7 +697,8 @@ def public_studio_chat():
 
 @app.get("/")
 def root_front_door():
-    return redirect("/world", code=302)
+    """KORADASO is the public browser front door; OAP World stays at /world."""
+    return redirect("/koradaso", code=302)
 
 
 @app.get("/koradaso")
