@@ -30,8 +30,8 @@ def validate_image(media: bytes, mime_type: str) -> None:
     if not isinstance(media, bytes) or not 1 <= len(media) <= MAX_ARTWORK_BYTES:
         raise ValueError("pod_artwork_size_invalid")
     valid = (
-        (mime_type == "image/png" and media.startswith(b"\\x89PNG\\r\\n\\x1a\\n"))
-        or (mime_type == "image/jpeg" and media.startswith(b"\\xff\\xd8\\xff"))
+        (mime_type == "image/png" and media.startswith(b"\x89PNG\r\n\x1a\n"))
+        or (mime_type == "image/jpeg" and media.startswith(b"\xff\xd8\xff"))
         or (mime_type == "image/webp" and len(media) >= 12
             and media[:4] == b"RIFF" and media[8:12] == b"WEBP")
     )
