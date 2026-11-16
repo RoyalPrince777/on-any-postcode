@@ -510,3 +510,30 @@ def test_arena_hub_game_first_noise_reduction_preserves_every_route(client):
     assert "OAP Challenge Engine" in html
     assert "Global Arena" in html
     assert "Guest games stay unranked" in html
+
+
+def test_arena_and_all_game_routes_offer_direct_koradaso_home(client):
+    routes = (
+        "/arena", "/arena/chess", "/arena/connect4", "/arena/oware",
+        "/arena/ludo", "/arena/dot", "/arena/iq", "/arena/route-empire",
+        "/arena/chess/room", "/arena/connect4/room", "/arena/oware/room",
+        "/arena/ludo/room", "/arena/dot/room", "/arena/iq/room",
+        "/arena/route-empire/room", "/arena/snakes-ladders",
+        "/arena/scramble", "/arena/postcode-empire",
+    )
+    for route in routes:
+        response = client.get(route)
+        assert response.status_code == 200, route
+        assert 'href="/koradaso"' in response.get_data(as_text=True), route
+    homepage = client.get("/koradaso")
+    assert homepage.status_code == 200
+    assert 'href="/arena"' in homepage.get_data(as_text=True)
+
+
+def test_arena_default_view_is_game_first_with_secondary_info_collapsed(client):
+    html = client.get("/arena").get_data(as_text=True)
+    assert "Choose a game. Play your way." in html
+    assert '<details class="arena-more">' in html
+    assert '<summary>More Arena options' in html
+    assert 'aria-label="Arena progression" hidden' in html
+    assert '<a class="mc-secondary-link" href="/koradaso">' in html
