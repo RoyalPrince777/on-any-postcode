@@ -40,7 +40,7 @@
   <section class="linkup-install-network" aria-label="Link Up app status">
     <span data-oap-linkup-network-status role="status" aria-live="polite">Checking connection…</span>
     <button type="button" data-oap-install hidden>Install Link Up</button>
-    <span data-oap-install-status role="status">Checking install support…</span>
+    <span data-oap-install-status role="status" aria-live="polite"></span>
   </section>
   <header class="linkup-topbar">
     <a href="{{ url_for('the_link_front_door') }}" aria-label="Back to The Link">‹</a>
@@ -76,38 +76,20 @@
         {% endif %}
       </section>
 
-      <nav class="linkup-public-master" aria-label="Explore Link Up" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.6rem;margin:1rem .65rem">
-        <a class="linkup-public-action" href="/linkup?intent=message"><strong>💬 Messages</strong><small>Secure sign-in required</small></a>
-        <a class="linkup-public-action" href="{{ url_for('my_card_create_page') }}"><strong>🪪 Identity</strong><small>My Card is optional</small></a>
-        <a class="linkup-public-action" href="/world"><strong>🌍 OAP World</strong><small>Explore the wider world</small></a>
+      <nav class="linkup-royal-tools" aria-label="Link Up master tools">
+        <a href="/linkup?intent=message"><span class="royal-symbol">💬</span><strong>Messages</strong><small>Private Link Ups</small></a>
+        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-world">👥</span><strong>People</strong><small>Open The Link</small></a>
+        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🔗</span><strong>Opportunities</strong><small>Connect through The Link</small></a>
+        <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-scroll">▤</span><strong>My Card</strong><small>Create your identity</small></a>
+        <a href="{{ url_for('home') }}"><span class="royal-symbol royal-world">🌍</span><strong>OAP World</strong><small>Explore OAP</small></a>
       </nav>
-      <section class="linkup-public-welcome" aria-label="Link Up public access">
-        <p>Discover Link Up without creating an account. Private conversations remain protected by secure sign-in.</p>
-      </section>
-      <section id="linkup-discovery" aria-label="Link Up discovery" style="margin:1rem .65rem;display:grid;gap:.75rem">
-        <h2 style="margin:0">Discover your world</h2>
-        <p>People search is available only when its privacy and directory controls are verified.</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem">
-          <div class="linkup-public-action"><strong>👥 People</strong><small>Public discovery; private contacts require sign-in.</small></div>
-          <div class="linkup-public-action"><strong>⭐ Certified</strong><small>Trust status is shown only when verified.</small></div>
-          <div class="linkup-public-action"><strong>🛡️ Safety</strong><small>Private communication remains protected.</small></div>
-          <div class="linkup-public-action"><strong>🌍 Nearby People</strong><small>Location-based discovery requires consent and a verified service.</small></div>
-          <div class="linkup-public-action"><strong>💼 Opportunities</strong><small>Explore opportunities as they become available.</small></div>
-          <div class="linkup-public-action"><strong>✨ Spotlight</strong><small>Community highlights when available.</small></div>
-          <div class="linkup-public-action"><strong>📣 Community Signals</strong><small>Public announcements remain part of OAP World.</small></div>
-          <div class="linkup-public-action"><strong>🔒 Private / Public</strong><small>Choose what you share; private Links require sign-in.</small></div>
-        </div>
-      </section>
-      <nav aria-label="Link Up public bottom navigation" style="display:flex;flex-wrap:wrap;justify-content:space-around;gap:.5rem;margin:1rem .65rem;padding:.8rem;border-top:1px solid currentColor">
-        <a href="/linkup" aria-current="page">🏠 Home</a>
-        <a href="#linkup-discovery">👥 People</a>
-        <a href="/world">🌍 OAP</a>
-        <a href="/linkup?intent=message">💬 Messages</a>
-        <a href="{{ url_for('my_card_create_page') }}">🪪 My Card</a>
+      <nav class="linkup-royal-bottom" aria-label="Link Up public bottom navigation">
+        <a href="/linkup" aria-current="page">⌂<span>Home</span></a>
+        <a href="{{ url_for('the_link_front_door') }}">👥<span>People</span></a>
+        <a class="linkup-oap-home" href="{{ url_for('home') }}" aria-label="OAP World">♛<span>OAP</span></a>
+        <a href="/linkup?intent=message">💬<span>Messages</span></a>
+        <a href="{{ url_for('my_card_create_page') }}">▤<span>My Card</span></a>
       </nav>
-      <section class="linkup-public-welcome" aria-label="Link Up private communication">
-        <p><strong>Simple private chat.</strong> Create My Card, Link with someone, then keep the conversation inside Link Up.</p>
-      </section>
     </main>
   {% else %}
     <main class="linkup-shell" aria-label="Private Link Up messenger">
