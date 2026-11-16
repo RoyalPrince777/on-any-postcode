@@ -168,6 +168,22 @@ h2{letter-spacing:.03em;text-transform:none}
 .browser-bar{border:0;background:transparent;margin:9px 0;padding:0;justify-content:flex-start}
 .browser-bar button{border:1px solid #80613c;background:#100e19;border-radius:11px;min-width:82px}
 @media(max-width:520px){.hero img{width:min(100%,240px)}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.tile,.tile:nth-child(-n+3){min-height:82px}.top .brand{font-size:.9rem}}
+
+/* Royal reference refinement: presentation only, no fictitious browser functions. */
+body{background:radial-gradient(ellipse at 50% -6%,#241138 0%,#080918 49%,#040511 100%)}
+.top{border-bottom:1px solid #ae7a344d}
+.hero{background:transparent}
+.hero img{width:min(100%,310px);filter:drop-shadow(0 7px 20px #7c37bf55)}
+.search{background:linear-gradient(115deg,#0c0d1d,#10091d);border:1px solid #dbb56d;border-radius:22px}
+.search-row{margin-top:14px}
+.search:focus-within{outline:2px solid #e0b46d;outline-offset:2px}
+.grid{gap:9px}
+.tile,.tile:nth-child(-n+3){background:linear-gradient(145deg,#231434,#0b0b19 75%);border:1px solid #ae8142;border-radius:16px;min-height:100px;gap:7px}
+.tile .ico{display:grid;place-items:center;width:46px;height:46px;border:1px solid #b58b4c;border-radius:14px;background:radial-gradient(circle at 45% 30%,#432254,#171021);box-shadow:0 0 15px #8139b94d;font-size:1.45rem}
+.tile strong{color:#efd196;font-weight:700}
+.tile:hover,.tile:focus-visible{border-color:#e7c57c;background:linear-gradient(140deg,#301943,#101126)}
+.public-smi{background:linear-gradient(145deg,#392050,#160f26);border-color:#d8a75c;color:#ffe0a0}
+@media(max-width:520px){.hero img{width:min(100%,280px)}.tile,.tile:nth-child(-n+3){min-height:96px;padding:9px 4px}.tile .ico{width:43px;height:43px}.grid{gap:7px}}
 </style>
 </head>
 <body>
