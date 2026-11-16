@@ -532,7 +532,7 @@ def generation_status(video_id: object) -> dict[str, Any]:
 
 
 def factory_structure() -> dict[str, Any]:
-    """Single SMI → OAP Factory → Studio hierarchy; contract only.
+    """Founder → SMI → OAP Factory → approved member/public access; contract only.
 
     Reuses the canonical Studio and its existing rights, asset and governance
     systems. Does not register another engine, create a dashboard, or grant
@@ -540,7 +540,21 @@ def factory_structure() -> dict[str, Any]:
     """
     return {
         "name": "OAP Factory",
+        "authority_origin": "founder",
         "controller": "SMI",
+        "access_hierarchy": (
+            "founder_master_control",
+            "smi_command_centre",
+            "oap_factory",
+            "my_oap_world_members_creators",
+            "public_oap_world",
+        ),
+        "one_canonical_studio": True,
+        "public_access_is_permission_scoped": True,
+        "public_inherits_founder_authority": False,
+        "founder_private_assets_public": False,
+        "public_media_generation_proven": False,
+        "public_studio_surface": "read_only_or_bounded_public_assistant",
         "creative_division": STUDIO_ID,
         "creative_division_name": STUDIO_NAME,
         "factory_is_second_studio_engine": False,
