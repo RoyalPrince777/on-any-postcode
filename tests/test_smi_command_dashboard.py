@@ -56,7 +56,7 @@ def test_smi_command_dashboard_route_is_read_only(client):
     assert "SMI Command Centre" in page
     assert "SOVEREIGN MEGAVERSE INTELLIGENCE" in page
     assert "SMI central command" in page
-    assert "OAP WORLD" in page
+    assert "OAP systems" in page
     assert "SYSTEM STATUS" in page
     assert "War Room" in page
     assert "Founder Final" in page
