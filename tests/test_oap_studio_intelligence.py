@@ -408,3 +408,17 @@ def test_factory_combines_existing_studio_without_execution_escalation():
     assert factory["publishing_granted"] is False
     assert factory["deployment_authorised"] is False
     assert factory["founder_final"] is True
+
+
+def test_south_london_animation_recipe_is_provenance_safe():
+    recipe = studio_intelligence.status()["animation_recipe"]
+    assert recipe["width"] == 676
+    assert recipe["height"] == 376
+    assert recipe["frame_count"] == 6
+    assert recipe["frame_duration_ms"] == 140
+    assert recipe["total_duration_ms"] == 840
+    assert recipe["rendering_origin"] == "chatgpt_image_generation_not_smi"
+    assert recipe["render_verified_in_smi"] is False
+    assert recipe["identity_lock"] == "approved_reference_required"
+    assert recipe["replay_requires_owned_gif"] is True
+    assert recipe["founder_review_required"] is True
