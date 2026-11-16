@@ -24,7 +24,7 @@ def test_sovereign_dashboard_front_surface_is_talk_first_and_no_fake_green():
         "SMI central command",
         "smi-talk-primary",
         "AUTO 3 / 7 / 21",
-        "OAP WORLD",
+        "OAP systems",
         "GLOBAL INTELLIGENCE",
         "SYSTEM STATUS",
         "NOT CHECKED",
