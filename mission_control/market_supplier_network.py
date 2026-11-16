@@ -213,6 +213,11 @@ class SupplierNetworkStore:
             raise ValueError("invalid_supplier_slug")
         if not label:
             raise ValueError("supplier_label_required")
+        # A crafted POST can bypass the browser's paired manufacturer selector.
+        # Reject conflicting identities before creating any product or binding.
+        known_labels = {"printful": "Printful", "prodigi": "Prodigi"}
+        if slug in known_labels and label.casefold() != known_labels[slug].casefold():
+            raise ValueError("supplier_identity_mismatch")
         if not product_ref:
             raise ValueError("supplier_product_ref_required")
 

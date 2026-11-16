@@ -18,6 +18,7 @@ from oap.war_room import WarRoomEngine
 from . import (
     agent_achievements,
     agents,
+    ai_behaviour,
     authority,
     brain,
     infrastructure,
@@ -306,6 +307,8 @@ def _rating(
     impact: int,
     parent: str | None = None,
     truth_boundary: str | None = None,
+    independent_verification: str | None = None,
+    sustained_certification: str | None = None,
 ) -> dict[str, Any]:
     if len(stages) != 5:
         raise ValueError("Every War Room rating requires exactly five evidence stages")
@@ -318,6 +321,12 @@ def _rating(
         else:
             stage_blocked = True
 
+    legacy_stars = stars
+    # A receipt *reference* is not independently authenticated evidence.
+    # Remain at the five proven gates until a durable, subject-bound,
+    # independent verifier is wired into the canonical HRM proof path.
+    # Never promote from caller-controlled strings alone.
+    stars = legacy_stars
     rubric = RATING_RUBRIC[stars]
     first_missing = next(
         (stage["stage"] for stage in stages if not stage["passed"]),
@@ -330,15 +339,21 @@ def _rating(
         "parent": parent,
         "summary": summary,
         "stars": stars,
-        "stars_display": "★" * stars + "☆" * (5 - stars),
-        "score": stars * 20,
-        "label": rubric["label"],
+        "stars_display": "★" * stars + "☆" * (7 - stars),
+        "stars_max": 7,
+        "legacy_proof_gates_passed": legacy_stars,
+        "higher_star_proof": "CERTIFIED" if stars == 7 else "INDEPENDENT_VERIFIED" if stars == 6 else "UNRATED",
+        "independent_verification_receipt": None,
+        "sustained_certification_receipt": None,
+        "higher_star_gate_reason": "authenticated_subject_bound_hrm_receipt_verification_pending",
+        "score": round(stars * 100 / 7),
+        "label": "Sustained operationally certified" if stars == 7 else "Independently verified" if stars == 6 else rubric["label"],
         "signal": rubric["signal"],
         "first_missing_stage": first_missing,
         "next_gate": next_gate,
         "impact": impact,
         "truth_boundary": truth_boundary,
-        "human_approval_required": stars < 5,
+        "human_approval_required": stars < 7,
         "stages": stages,
     }
 
@@ -1389,7 +1404,7 @@ def get_war_room_dashboard() -> dict[str, Any]:
                 if items
                 else 0,
                 "runtime_verified": sum(int(item["stars"]) >= 4 for item in items),
-                "certified": sum(int(item["stars"]) == 5 for item in items),
+                "certified": sum(int(item["stars"]) == 7 for item in items),
             }
         )
 
@@ -1415,10 +1430,10 @@ def get_war_room_dashboard() -> dict[str, Any]:
     )
     star_counts = {
         str(stars): sum(int(item["stars"]) == stars for item in ratings)
-        for stars in range(6)
+        for stars in range(8)
     }
     overall = round(
-        sum(int(item["stars"]) for item in ratings) / (len(ratings) * 5) * 100
+        sum(int(item["stars"]) for item in ratings) / (len(ratings) * 7) * 100
     )
     conflict_audit = _conflict_audit(snapshot)
     scope = validate_war_room_scope()
@@ -1444,6 +1459,7 @@ def get_war_room_dashboard() -> dict[str, Any]:
         "flow": WAR_ROOM_FLOW,
         "review_lenses": REVIEW_LENSES,
         "smi_autonomy": _a1_a7_evidence_projection(ratings),
+        "thinking_check_profiles": ai_behaviour.status()["thinking_check_profiles"],
         "categories": tuple(categories),
         "summary": {
             "overall_evidence_score": overall,
@@ -1453,9 +1469,11 @@ def get_war_room_dashboard() -> dict[str, Any]:
             "rated_areas": len(ratings),
             "runtime_verified": sum(int(item["stars"]) >= 4 for item in ratings),
             "operationally_certified": sum(
-                int(item["stars"]) == 5 for item in ratings
+                int(item["stars"]) == 7 for item in ratings
             ),
             "star_counts": star_counts,
+            "star_max": 7,
+            "higher_star_certification": "blocked_pending_authenticated_hrm_proof",
             "meaning": "Portfolio evidence view; not a release or safety certification.",
         },
         "intelligence_alliance_board": intelligence_alliances.get_founder_alliance_board(

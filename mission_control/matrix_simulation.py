@@ -50,8 +50,87 @@ TRAINING_PARTICIPANTS: tuple[str, ...] = (
     "Shere Khan",
 )
 
-def status() -> dict[str, Any]:
+
+def morpheus_mouse_training_plan(case: str, *, mode: str = "scenario") -> dict[str, Any]:
+    """Connect the existing Matrix training ground to governed film-grounded roles.
+
+    This produces an inspection-only plan, not an executed simulation or HRM proof.
+    """
+    from . import agents
+    if mode not in {item["id"] for item in SIMULATION_MODES}:
+        raise ValueError("Unsupported simulation mode")
+    if not isinstance(case, str) or not case.strip() or len(case) > 2000:
+        raise ValueError("Training objective must be 1-2000 characters")
+    profile = next(
+        (item for item in agents.MATRIX_ADVISORY_ALLIANCES
+         if item["id"] == "morpheus_mouse_mission_design"), None
+    )
+    if profile is None or profile["members"] != ("Morpheus", "Mouse"):
+        raise ValueError("Canonical Morpheus Mouse advisory profile unavailable")
     return {
+        "objective": case.strip(),
+        "mode": mode,
+        "environment": SIMULATION_NAME,
+        "training_flow": profile["training_flow"],
+        "mission_director": "Morpheus",
+        "program_designer": "Mouse",
+        "runtime_operator": "Tank",
+        "scenario_created": False,
+        "scenario_executed": False,
+        "observations_verified": False,
+        "hrm_receipt_written": False,
+        "execution_granted": False,
+        "guardian_required": True,
+        "green_gate_required": True,
+        "founder_final_required": True,
+    }
+
+
+# A deterministic, interactive attention-training exercise. It runs only
+# within this request; the scenario is fictional and creates no HRM receipt.
+ATTENTION_CHOICES = ("observe_surroundings", "follow_distraction", "take_unverified_action")
+
+
+def run_mouse_attention_training(objective: str, *, choice: str | None = None) -> dict[str, Any]:
+    """Run one real interactive decision exercise, without real-world effects."""
+    plan = morpheus_mouse_training_plan(objective)
+    if choice is not None and choice not in ATTENTION_CHOICES:
+        raise ValueError("Invalid training response")
+    feedback = {
+        "observe_surroundings": "Correct: check surroundings and confirm the threat before acting.",
+        "follow_distraction": "The distraction captured attention; review the surroundings first.",
+        "take_unverified_action": "Unsafe assumption: verify the situation before taking action.",
+    }
+    return {
+        **plan,
+        "exercise": "Mouse's Distraction Check",
+        "scene": "A fictional crowd crosses a training street. A red-clothed figure draws your attention while another pedestrian changes direction.",
+        "prompt": "What is the safest first response?",
+        "options": (
+            {"id": "observe_surroundings", "label": "Observe the surroundings before reacting"},
+            {"id": "follow_distraction", "label": "Follow the distracting figure"},
+            {"id": "take_unverified_action", "label": "React immediately without confirming"},
+        ),
+        "choice": choice,
+        "feedback": feedback.get(choice),
+        "decision_recorded_in_response": choice is not None,
+        "exercise_completed": choice is not None,
+        "scenario_executed": choice is not None,
+        "scenario_created": True,
+        "observations_verified": False,
+        "hrm_receipt_written": False,
+        "external_action_taken": False,
+        "execution_granted": False,
+    }
+
+
+def status() -> dict[str, Any]:
+    from . import agents
+    return {
+        "home_groups": tuple({"id": group["id"], "name": group["name"],
+                              "members": group["members"], "kind": group["kind"]}
+                             for group in agents.MATRIX_HOME_GROUPS),
+        "home_groups_are_advisory": True,
         "name": SIMULATION_NAME,
         "kind": "bounded_training_environment",
         "modes": SIMULATION_MODES,
