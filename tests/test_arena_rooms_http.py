@@ -422,3 +422,28 @@ def test_ludo_two_device_room_autosync_is_bounded_and_server_authoritative(clien
     assert '"/arena/rooms/ludo/action"' in js
     assert "localStorage" not in js
     assert "sessionStorage" not in js
+
+
+def test_all_seven_arena_online_rooms_auto_sync_on_distinct_devices(client):
+    scripts = (
+        "arena_connect4_room.js",
+        "arena_dot_room.js",
+        "arena_chess_room.js",
+        "arena_ludo_room.js",
+        "arena_oware_room.js",
+        "arena_iq_room.js",
+        "arena_route_empire_room.js",
+    )
+    for script in scripts:
+        response = client.get(f"/static/{script}")
+        assert response.status_code == 200
+        js = response.get_data(as_text=True)
+        assert "setInterval(syncRoom,2500)" in js, script
+        assert "visibilitychange" in js, script
+        assert "refreshInFlight" in js, script
+        assert 'document.visibilityState!=="visible"' in js, script
+        assert '["WAITING","ACTIVE"].includes(' in js, script
+        assert 'needsRefresh' in js, script
+        assert '"/arena/rooms/state"' in js, script
+        assert "localStorage" not in js, script
+        assert "sessionStorage" not in js, script
