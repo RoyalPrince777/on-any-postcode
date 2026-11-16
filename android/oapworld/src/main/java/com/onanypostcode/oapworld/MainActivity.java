@@ -304,7 +304,7 @@ public final class MainActivity extends ComponentActivity {
                 webView.goBack();
             }
         });
-        homeButton.setOnClickListener(v -> loadWebViewUrl(activeOrigin + "/world?source=oap-os"));
+        homeButton.setOnClickListener(v -> openFirstPartyPath("/koradaso"));
         modeButton.setOnClickListener(v -> switchOrigin());
         engineSearchButton.setOnClickListener(v -> submitNativeSearch());
         engineSearchInput.setOnEditorActionListener((view, actionId, event) -> {
