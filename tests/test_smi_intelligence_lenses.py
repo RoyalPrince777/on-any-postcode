@@ -27,7 +27,7 @@ def test_full_intelligence_uses_all_registered_lenses():
     assert routed["mode"] == "full"
     assert routed["subject"] == "SIKA"
     assert tuple(routed["lens_ids"]) == intelligence_lenses.FULL_LENS_IDS
-    assert len(routed["lens_ids"]) == 26
+    assert len(routed["lens_ids"]) == 28
 
 
 def test_core_intelligence_uses_decision_chain_without_every_deep_lens():
@@ -63,3 +63,14 @@ def test_public_route_never_grants_execution():
     assert public["execution_granted"] is False
     assert public["human_authority_final"] is True
     assert public["lenses"] == ({"id": "readiness", "name": "Readiness Intelligence"},)
+
+
+def test_full_intelligence_is_four_distinct_groups_of_seven():
+    groups = intelligence_lenses.LENS_GROUPS
+    assert len(groups) == 4
+    assert all(len(items) == 7 for items in groups.values())
+    flattened = tuple(item for items in groups.values() for item in items)
+    assert len(set(flattened)) == 28
+    assert set(flattened) == set(intelligence_lenses.FULL_LENS_IDS)
+    assert intelligence_lenses.route("Run Causality Intelligence on OAP Core")["lens_ids"] == ("causality",)
+    assert intelligence_lenses.route("Run Verification Intelligence on OAP Core")["lens_ids"] == ("verification",)

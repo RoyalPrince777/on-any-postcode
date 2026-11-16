@@ -91,6 +91,43 @@ INTELLIGENCE_WORLDS: tuple[dict[str, Any], ...] = (
 
 # Non-executing Matrix advisory alliances. These profiles do not inflate the
 # locked 78-agent passport roster or acquire tool/approval permissions.
+# Film-grounded home groups inside the existing SMI Matrix family.
+# These are organisational labels, not additional agents or new passports.
+MATRIX_HOME_GROUPS: tuple[dict[str, Any], ...] = (
+    {"id": "nebuchadnezzar", "name": "Nebuchadnezzar Crew",
+     "members": ("Morpheus", "Trinity", "Neo", "Mouse", "Tank", "Dozer", "Apoc", "Switch", "Link"),
+     "kind": "human_crew"},
+    {"id": "logos", "name": "Logos Crew",
+     "members": ("Niobe", "Ghost"), "kind": "human_crew"},
+    {"id": "oracle_circle", "name": "Oracle and Protector",
+     "members": ("Oracle", "Seraph"), "kind": "machine_programs"},
+    {"id": "machine_system", "name": "Machine System and Source",
+     "members": ("Architect",), "kind": "machine_programs"},
+    {"id": "access_exiles", "name": "Keymaker — Exile Access Program",
+     "members": ("Keymaker",), "kind": "machine_programs",
+     "note": "Held captive by the Merovingian during The Matrix Reloaded; not his voluntary subordinate."},
+    {"id": "merovingian", "name": "Merovingian's Exiles",
+     "members": ("Merovingian", "Persephone", "Twin One", "Twin Two"),
+     "kind": "machine_programs"},
+    {"id": "agents", "name": "Matrix Agents",
+     "members": ("Brown", "Jones", "Johnson", "Jackson", "Thompson"),
+     "kind": "machine_programs",
+     "note": "Legacy SMI advisory roster; individual film appearances must be verified separately."},
+    {"id": "smith_rogue", "name": "Smith — Independent / Replicating Program",
+     "members": ("Agent Smith",), "kind": "machine_programs",
+     "note": "Smith starts as an Agent and becomes an independent replicating threat in Reloaded."},
+)
+
+
+def matrix_home_for(character: str) -> dict[str, Any] | None:
+    """Return a canon-inspired home grouping without changing agent authority."""
+    return next(({"group_id": group["id"], "group_name": group["name"],
+                  "family_id": "matrix", "kind": group["kind"],
+                  "membership_type": "film_home_reference",
+                  "execution_granted": False}
+                 for group in MATRIX_HOME_GROUPS if character in group["members"]), None)
+
+
 MATRIX_ADVISORY_ALLIANCES: tuple[dict[str, Any], ...] = (
     {
         "id": "tank_dozer_brothers",
@@ -100,6 +137,44 @@ MATRIX_ADVISORY_ALLIANCES: tuple[dict[str, Any], ...] = (
         "home_system": "Matrix System",
         "roles": ("Build diagnostics and recovery", "Infrastructure continuity review"),
         "allies": ("Neo", "Morpheus", "Trinity", "Mouse"),
+    },
+    {
+        "id": "mouse_creative_simulation",
+        "name": "Mouse — Creative Simulation & Edge-Case Intelligence",
+        "members": ("Mouse",),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Interactive world and training-scene design review",
+                  "Game and UI edge-case analysis",
+                  "Explicit separation of simulations from runtime proof"),
+        "allies": ("Morpheus", "Neo", "Tank", "Dozer"),
+        "external_smi_advisors": ("Nirmata",),
+    },
+    {
+        "id": "morpheus_mouse_mission_design",
+        "name": "Morpheus & Mouse — Mission Design Review",
+        "members": ("Morpheus", "Mouse"),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Morpheus directs training objectives, instruction and outcome review",
+                  "Mouse designs training programs, virtual characters, interactive scenes and distraction/edge-case exercises",
+                  "Tank operates or loads an authorised existing training environment; Neo participates as trainee",
+                  "No simulation outcome is accepted as a real runtime or production proof",
+                  "Guardian, Green Gate, HRM and Founder Final remain mandatory"),
+        "training_flow": ("Morpheus defines lesson", "Mouse designs scenario",
+                          "Tank operates approved runtime", "Neo or authorised user trains",
+                          "Morpheus reviews observed outcome", "HRM records evidence only when verified"),
+        "runtime_execution": False,
+        "allies": ("Oracle", "Neo", "Trinity", "Tank", "Dozer"),
+        "external_smi_advisors": ("Nirmata",),
+        "film_role_boundaries": {
+            "Morpheus": "Nebuchadnezzar captain, mission leader and training instructor",
+            "Mouse": "Agent training-program programmer and Woman in the Red Dress designer",
+            "Tank": "Operator for program loading, monitoring and exits",
+            "Dozer": "Ship crew and physical support; Tank brother",
+            "Neo": "Trainee and field operative",
+            "Trinity": "Hacker and field operative",
+        },
     },
     {
         "id": "matrix_twins",
