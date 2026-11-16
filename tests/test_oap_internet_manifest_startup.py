@@ -57,6 +57,6 @@ def test_koradaso_internet_intelligence_is_public_home_with_separate_world(clien
     assert "INTERNET INTELLIGENCE" in page
     assert 'href="/arena"' in page
     assert 'href="/world"' in page
-    assert "OAP web search is not yet connected" in page
-    assert "\\n<a" not in page
+    assert "Own WWW search not connected" in page
+    assert "KORADASO Internet Intelligence" in page
     assert client.get("/world").status_code == 200
