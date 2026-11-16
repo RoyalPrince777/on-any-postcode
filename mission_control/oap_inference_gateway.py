@@ -436,6 +436,8 @@ def generate(
             if cancel_check is not None:
                 cancel_check()
             first_party_error = exc
+        if OFFLINE_ONLY:
+            raise RuntimeError("first_party_inference_required") from first_party_error
         try:
             text = _call_bridge(
                 message,
@@ -501,9 +503,9 @@ def generate_public(
         )
     except RuntimeError as exc:
         first_party_error = exc
+    if OFFLINE_ONLY:
+        raise RuntimeError("first_party_inference_required") from first_party_error
     try:
-        if OFFLINE_ONLY:
-            raise RuntimeError("offline_only_bridge_blocked")
         return _call_bridge_public(
             message,
             history,
