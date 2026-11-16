@@ -97,3 +97,13 @@ def test_captain_uses_responses_api_and_extracts_sources(monkeypatch):
     assert result["mission_status"]["percentage"] == 100
     assert result["mission_status"]["green"] is True
     assert result["mission_status"]["stages"]["live_provider_proof"] is True
+
+
+def test_captain_identity_is_single_gpt_mission_role():
+    prompt = captain._system_prompt()
+    assert "one GPT-backed mission role" in prompt
+    assert "do not count GPT as a second commander" in prompt
+    assert "separate sessions" in prompt
+    assert "DONE / NEXT / RECOVERY" in prompt
+    assert "never fabricate agent votes or career stars" in prompt
+    assert "Founder remains final Human Authority" in prompt

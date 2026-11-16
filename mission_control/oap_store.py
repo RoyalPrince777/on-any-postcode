@@ -59,6 +59,30 @@ LINK_UP = {
 }
 
 
+OAP_PTT = {
+    "app_id": "oap.ptt",
+    "name": "OAP PTT",
+    "publisher": "ON ANY POSTCODE LTD",
+    "distribution": "OAP Store",
+    "first_party": True,
+    "description": "Standalone push-to-talk. Installable without account sign-in; person-to-person guest pairing remains fail-closed until connected.",
+    "release_state": "install_ready",
+    "install_enabled": True,
+    "install_mode": "PWA",
+    "manifest_url": "/ptt/manifest.webmanifest",
+    "service_worker_url": "/service-worker.js",
+    "start_url": "/ptt?source=oap-store",
+    "open_url": "/ptt",
+    "category": "Communication",
+    "install_url": "/ptt?source=oap-store&install=1",
+    "offline_url": "/offline",
+    "native_apk": False,
+    "native_package_available": False,
+    "physical_device_certified": False,
+    "human_authority_final": True,
+}
+
+
 
 OAP_TRANSPORT = {
     "app_id": "oap.transport",
@@ -248,6 +272,7 @@ def catalogue() -> tuple[dict[str, object], ...]:
     items = (
         dict(OAP_WORLD),
         dict(LINK_UP),
+        dict(OAP_PTT),
         dict(OAP_MUSIC),
         dict(OAP_TRANSPORT),
         *PUBLIC_STORE_APPS,
@@ -333,6 +358,51 @@ def link_up_manifest():
 @bp.get("/oap-store/apps/oap.linkup")
 def link_up_store_entry():
     response = make_response(jsonify(dict(LINK_UP)), 200)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/ptt/manifest.webmanifest")
+def ptt_manifest():
+    payload = {
+        "name": "OAP PTT · ON ANY POSTCODE",
+        "short_name": "PTT",
+        "description": "Standalone ON ANY POSTCODE push-to-talk.",
+        "id": "/ptt",
+        "start_url": "/ptt?source=oap-store",
+        "scope": "/ptt",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
+        "orientation": "any",
+        "background_color": "#050807",
+        "theme_color": "#050807",
+        "prefer_related_applications": False,
+        "launch_handler": {"client_mode": "navigate-existing"},
+        "categories": ["communication", "utilities"],
+        "icons": [
+            {
+                "src": "/assets/oap-os-icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable",
+            },
+            {
+                "src": "/assets/oap-os-icon-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable",
+            },
+        ],
+    }
+    response = make_response(jsonify(payload), 200)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@bp.get("/oap-store/apps/oap.ptt")
+def ptt_store_entry():
+    response = make_response(jsonify(dict(OAP_PTT)), 200)
     response.headers["Cache-Control"] = "no-store"
     return response
 

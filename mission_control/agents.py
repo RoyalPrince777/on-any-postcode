@@ -89,6 +89,146 @@ INTELLIGENCE_WORLDS: tuple[dict[str, Any], ...] = (
     },
 )
 
+# Non-executing Matrix advisory alliances. These profiles do not inflate the
+# locked 78-agent passport roster or acquire tool/approval permissions.
+# Film-grounded home groups inside the existing SMI Matrix family.
+# These are organisational labels, not additional agents or new passports.
+MATRIX_HOME_GROUPS: tuple[dict[str, Any], ...] = (
+    {"id": "nebuchadnezzar", "name": "Nebuchadnezzar Crew",
+     "members": ("Morpheus", "Trinity", "Neo", "Mouse", "Tank", "Dozer", "Apoc", "Switch", "Link"),
+     "kind": "human_crew"},
+    {"id": "logos", "name": "Logos Crew",
+     "members": ("Niobe", "Ghost"), "kind": "human_crew"},
+    {"id": "oracle_circle", "name": "Oracle and Protector",
+     "members": ("Oracle", "Seraph"), "kind": "machine_programs"},
+    {"id": "machine_system", "name": "Machine System and Source",
+     "members": ("Architect",), "kind": "machine_programs"},
+    {"id": "access_exiles", "name": "Keymaker — Exile Access Program",
+     "members": ("Keymaker",), "kind": "machine_programs",
+     "note": "Held captive by the Merovingian during The Matrix Reloaded; not his voluntary subordinate."},
+    {"id": "merovingian", "name": "Merovingian's Exiles",
+     "members": ("Merovingian", "Persephone", "Twin One", "Twin Two"),
+     "kind": "machine_programs"},
+    {"id": "agents", "name": "Matrix Agents",
+     "members": ("Brown", "Jones", "Johnson", "Jackson", "Thompson"),
+     "kind": "machine_programs",
+     "note": "Legacy SMI advisory roster; individual film appearances must be verified separately."},
+    {"id": "smith_rogue", "name": "Smith — Independent / Replicating Program",
+     "members": ("Agent Smith",), "kind": "machine_programs",
+     "note": "Smith starts as an Agent and becomes an independent replicating threat in Reloaded."},
+)
+
+
+def matrix_home_for(character: str) -> dict[str, Any] | None:
+    """Return a canon-inspired home grouping without changing agent authority."""
+    return next(({"group_id": group["id"], "group_name": group["name"],
+                  "family_id": "matrix", "kind": group["kind"],
+                  "membership_type": "film_home_reference",
+                  "execution_granted": False}
+                 for group in MATRIX_HOME_GROUPS if character in group["members"]), None)
+
+
+MATRIX_ADVISORY_ALLIANCES: tuple[dict[str, Any], ...] = (
+    {
+        "id": "tank_dozer_brothers",
+        "name": "Tank & Dozer — Brothers Intelligence",
+        "members": ("Tank", "Dozer"),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Build diagnostics and recovery", "Infrastructure continuity review"),
+        "allies": ("Neo", "Morpheus", "Trinity", "Mouse"),
+    },
+    {
+        "id": "mouse_creative_simulation",
+        "name": "Mouse — Creative Simulation & Edge-Case Intelligence",
+        "members": ("Mouse",),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Interactive world and training-scene design review",
+                  "Game and UI edge-case analysis",
+                  "Explicit separation of simulations from runtime proof"),
+        "allies": ("Morpheus", "Neo", "Tank", "Dozer"),
+        "external_smi_advisors": ("Nirmata",),
+    },
+    {
+        "id": "morpheus_mouse_mission_design",
+        "name": "Morpheus & Mouse — Mission Design Review",
+        "members": ("Morpheus", "Mouse"),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Morpheus directs training objectives, instruction and outcome review",
+                  "Mouse designs training programs, virtual characters, interactive scenes and distraction/edge-case exercises",
+                  "Tank operates or loads an authorised existing training environment; Neo participates as trainee",
+                  "No simulation outcome is accepted as a real runtime or production proof",
+                  "Guardian, Green Gate, HRM and Founder Final remain mandatory"),
+        "training_flow": ("Morpheus defines lesson", "Mouse designs scenario",
+                          "Tank operates approved runtime", "Neo or authorised user trains",
+                          "Morpheus reviews observed outcome", "HRM records evidence only when verified"),
+        "runtime_execution": False,
+        "allies": ("Oracle", "Neo", "Trinity", "Tank", "Dozer"),
+        "external_smi_advisors": ("Nirmata",),
+        "film_role_boundaries": {
+            "Morpheus": "Nebuchadnezzar captain, mission leader and training instructor",
+            "Mouse": "Agent training-program programmer and Woman in the Red Dress designer",
+            "Tank": "Operator for program loading, monitoring and exits",
+            "Dozer": "Ship crew and physical support; Tank brother",
+            "Neo": "Trainee and field operative",
+            "Trinity": "Hacker and field operative",
+        },
+    },
+    {
+        "id": "matrix_twins",
+        "name": "The Twins — Dual Intelligence",
+        "members": ("Twin One", "Twin Two"),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Alternative-path review", "Contradiction and mirrored-evidence review"),
+        "allies": ("Fox", "Spider", "Architect"),
+    },
+    {
+        "id": "smith_adversarial",
+        "name": "Agent Smith — Adversarial Intelligence",
+        "members": ("Agent Smith", "Brown", "Jones", "Johnson", "Jackson", "Thompson"),
+        "world_id": "matrix",
+        "home_system": "Matrix System",
+        "roles": ("Threat modelling", "Hostile-assumption and update-gate review"),
+        "allies": ("Bagheera", "Seraph", "Guardian"),
+    },
+)
+MATRIX_ALLIANCE_POLICY = {
+    "status": "ADVISORY_PROFILE_ONLY",
+    "execution": "DISABLED",
+    "independent_votes": False,
+    "can_modify_permissions": False,
+    "guardian_hrm_required": True,
+    "founder_final_required": True,
+}
+
+# Seven evidence-led review rounds: advisory plans, never simulated executions.
+MATRIX_SEVEN_ROUND_UPGRADE: tuple[dict[str, Any], ...] = (
+    {"round": 1, "name": "Source truth", "leads": ("Tank", "Neo"),
+     "check": "Identify current commit, files, and real implementation evidence.",
+     "evidence": "Repository revision and exact source paths"},
+    {"round": 2, "name": "Build continuity", "leads": ("Dozer", "Trinity"),
+     "check": "Review build dependencies, existing CI, and recovery paths.",
+     "evidence": "Exact-head build results or explicit unverified status"},
+    {"round": 3, "name": "Dual-path challenge", "leads": ("Twin One", "Architect"),
+     "check": "Compare minimal integration against alternate implementation risks.",
+     "evidence": "Traceable diff and documented tradeoffs"},
+    {"round": 4, "name": "Contradiction check", "leads": ("Twin Two", "Oracle"),
+     "check": "Challenge unsupported completion claims and conflicting reports.",
+     "evidence": "Contradictions resolved or recorded as blockers"},
+    {"round": 5, "name": "Adversarial security", "leads": ("Agent Smith", "Seraph"),
+     "check": "Assess signing, update gates, permissions, and hostile inputs.",
+     "evidence": "Security tests and identified gaps; never fabricated attacks"},
+    {"round": 6, "name": "Guardian and HRM", "leads": ("Bagheera", "Morpheus"),
+     "check": "Require attributable review, restricted permissions, and human authority.",
+     "evidence": "Guardian/HRM receipts if actually available"},
+    {"round": 7, "name": "Founder release gate", "leads": ("Neo", "Tank", "Dozer"),
+     "check": "Separate source changes from verified CI, signed APK, and device acceptance.",
+     "evidence": "Founder Final decision and actual release proof"},
+)
+
 LOCKED_WORLD_IDS = tuple(world["id"] for world in INTELLIGENCE_WORLDS)
 INTELLIGENCE_WORLD_NAMES = tuple(world["name"] for world in INTELLIGENCE_WORLDS)
 
@@ -324,6 +464,25 @@ def validate_agent_registry(
         if "EXECUTE" in nirmata["permissions"] or nirmata["body"]["execution"] != "Disabled":
             errors.append("Nirmata cannot hold execution authority.")
 
+    # Fail closed if advisory rounds are altered, duplicated or granted authority.
+    round_numbers = tuple(item["round"] for item in MATRIX_SEVEN_ROUND_UPGRADE)
+    if round_numbers != (1, 2, 3, 4, 5, 6, 7):
+        errors.append("Matrix review rounds must be exactly 1 through 7.")
+    if any(not item.get("leads") or not item.get("evidence") or not item.get("check")
+           for item in MATRIX_SEVEN_ROUND_UPGRADE):
+        errors.append("Every Matrix round needs leads, an evidence requirement and a check.")
+    alliance_ids = tuple(item["id"] for item in MATRIX_ADVISORY_ALLIANCES)
+    if len(alliance_ids) != len(set(alliance_ids)):
+        errors.append("Matrix advisory alliances must have unique identifiers.")
+    if any(item.get("world_id") != "matrix" or item.get("home_system") != "Matrix System"
+           for item in MATRIX_ADVISORY_ALLIANCES):
+        errors.append("Matrix advisory alliances must remain in Matrix Intelligence.")
+    if (MATRIX_ALLIANCE_POLICY.get("execution") != "DISABLED"
+            or MATRIX_ALLIANCE_POLICY.get("independent_votes") is not False
+            or MATRIX_ALLIANCE_POLICY.get("founder_final_required") is not True
+            or MATRIX_ALLIANCE_POLICY.get("guardian_hrm_required") is not True):
+        errors.append("Matrix advisory alliance authority boundary has changed.")
+
     passed = not errors
     result = dict(base)
     result["errors"] = errors
@@ -414,6 +573,9 @@ def get_public_agent_directory(
         "providers": INTELLIGENCE_PROVIDERS,
         "agent_anatomy": AGENT_ANATOMY,
         "non_agent_systems": ORGANISM_NON_AGENT_SYSTEMS,
+        "matrix_advisory_alliances": MATRIX_ADVISORY_ALLIANCES,
+        "matrix_alliance_policy": MATRIX_ALLIANCE_POLICY,
+        "matrix_seven_round_upgrade": MATRIX_SEVEN_ROUND_UPGRADE,
         "validation": validation,
         "filters": {"family_id": family_id, "query": query.strip()[:80]},
         "human_authority": {

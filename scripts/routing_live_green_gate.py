@@ -3,11 +3,21 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import os
 import statistics
 import time
 from urllib import error, parse, request
 
-BASE = "https://oap-routing.onrender.com"
+BASE = os.environ.get("OAP_ROUTING_PROOF_ORIGIN", "").strip().rstrip("/")
+
+
+def _verified_base() -> str:
+    parsed = parse.urlparse(BASE)
+    if (not BASE or parsed.scheme != "https" or not parsed.hostname
+            or parsed.username or parsed.password or parsed.query or parsed.fragment
+            or parsed.path not in ("", "/")):
+        raise ValueError("OAP routing proof requires a configured HTTPS origin")
+    return BASE
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
     (-0.1687, 51.4036, -0.1238, 51.5308, "mitcham_kings_cross"),
@@ -32,7 +42,7 @@ def _route_url(index: int) -> str:
             "geometries": "geojson",
         }
     )
-    return f"{BASE}/route/v1/driving/{coords}?{query}"
+    return f"{_verified_base()}/route/v1/driving/{coords}?{query}"
 
 
 def wait_until_ready() -> dict[str, object]:
@@ -125,6 +135,11 @@ def run_one(index: int) -> dict[str, object]:
 
 
 def main() -> None:
+    try:
+        _verified_base()
+    except ValueError:
+        print(json.dumps({"event": "oap_routing_origin_gate", "ready": False, "failure_type": "missing_or_invalid_https_origin", "dispatch_performed": False, "payment_performed": False, "tracking_performed": False}, sort_keys=True))
+        raise SystemExit("OAP routing HTTPS origin not configured") from None
     warmup = wait_until_ready()
     print(
         json.dumps(

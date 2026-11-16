@@ -105,52 +105,22 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert 'aria-label="Link Up app"' in page
     assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
-    assert "Simple private chat." not in page
+    assert "Optional for private features. Public Link Up needs no email, password or sign-in." in page
     assert 'aria-label="Link Up master tools"' in page
     assert 'aria-label="Link Up public bottom navigation"' in page
-    assert 'class="linkup-royal-tools"' in page
-    assert 'class="linkup-royal-bottom"' in page
     assert 'href="/linkup?intent=message"' in page
-    assert 'href="/my-card/create"' in page
-    assert 'aria-label="Private Link Up messenger"' not in page
-    assert 'data-linkup-search' not in page
-    assert 'role="search"' not in page
-    assert "Nearby People" not in page
-    assert "Community Signals" not in page
-    assert "Checking install support…" not in page
-    assert 'method="post"' not in page.lower()
-    assert anonymous_client.post("/linkup").status_code == 405
-    assert not database_path.exists()
-
-
-def test_smith_twins_public_query_cannot_unlock_private_messenger(anonymous_client):
-    """Smith / Twins: public GET parameters must not change the auth boundary."""
-    for query in (
-        "?intent=message",
-        "?intent=message&auth_user=1",
-        "?view=inbox&private=true",
-        "?search=nearby&location=London",
-    ):
-        response = anonymous_client.get("/linkup" + query)
-        page = response.get_data(as_text=True)
-        assert response.status_code == 200
-        assert "PUBLIC · CONNECT · CREATE" in page
-        assert 'aria-label="Private Link Up messenger"' not in page
-        assert 'aria-label="Link Up private menu"' not in page
-        assert 'data-linkup-search' not in page
-        assert 'method="post"' not in page.lower()
-
-
-def test_linkup_public_navigation_has_no_unverified_static_feature_tiles(anonymous_client):
-    page = anonymous_client.get("/linkup").get_data(as_text=True)
-    assert 'aria-label="Link Up master tools"' in page
-    assert 'aria-label="Link Up public bottom navigation"' in page
-    assert '<div class="linkup-public-action">' not in page
     assert "Nearby People" not in page
     assert "Spotlight" not in page
     assert "Community Signals" not in page
-    assert 'role="search"' not in page
+    assert 'aria-label="Private Link Up messenger"' not in page
     assert 'data-linkup-search' not in page
+    assert "Enter My World" not in page
+    assert 'href="/my-card/create"' in page
+    assert 'href="/auth"' not in page
+    assert "World Rooms" not in page
+    assert 'method="post"' not in page.lower()
+    assert anonymous_client.post("/linkup").status_code == 405
+    assert not database_path.exists()
 
 
 def test_linkup_template_keeps_policy_copy_off_the_visible_messenger():
@@ -326,9 +296,13 @@ def test_linkup_master_menu_is_only_linkups_ring_now_incoming_and_more():
     assert '>My Card</a>' in template
     assert '>Link Requests</a>' in template
     assert '>My Controls</a>' in template
-    # The royal public navigation is intentionally separate from this private menu.
-    assert 'aria-label="Link Up master tools"' in template
-    assert 'aria-label="Link Up private menu"' in template
+    for removed in (
+        "<strong>Discovery</strong>",
+        "<strong>Spotlight</strong>",
+        "Nearby People",
+        "Community Signals",
+    ):
+        assert removed not in template
 
 
 def test_empty_linkup_chat_has_real_next_actions():

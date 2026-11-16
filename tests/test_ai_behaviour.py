@@ -30,3 +30,29 @@ def test_grounded_contract_exposes_a4_truth_without_granting_chat_execution(monk
     assert "never grants chat permission to spend, deploy, dispatch, publish" in contract
     assert "adaptive private reasoning depth 3" in contract
     assert "Never reveal hidden chain-of-thought" in contract
+
+
+def test_thinking_depth_uses_existing_mind_body_soul_checks_without_new_authority():
+    for mode, expected in (("simple", 3), ("review", 7), ("war_room", 21)):
+        result = ai_behaviour.review_checks_for(mode)
+        assert result["thinking_depth"] == expected
+        assert len(result["selected_checks"]) == expected
+        assert result["total_available_checks"] == 21
+        assert result["checks_executed"] is False
+        assert result["checks_passed"] is False
+        assert result["execution_granted"] is False
+        assert result["approval_granted"] is False
+        assert result["human_authority_final"] is True
+    full = ai_behaviour.review_checks_for("war_room")
+    assert {item["block"] for item in full["selected_checks"]} == {"Mind", "Body", "Soul"}
+    assert full["selected_checks"][:7] == ai_behaviour.review_checks_for("review")["selected_checks"]
+
+
+def test_existing_behaviour_status_exposes_real_3_7_21_check_profiles():
+    profiles = ai_behaviour.status()["thinking_check_profiles"]
+    assert tuple(profiles) == ("3", "7", "21")
+    for depth in (3, 7, 21):
+        profile = profiles[str(depth)]
+        assert len(profile["selected_checks"]) == depth
+        assert profile["checks_executed"] is False
+        assert profile["execution_granted"] is False

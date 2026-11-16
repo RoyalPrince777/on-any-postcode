@@ -9,6 +9,27 @@ import pytest
 from scripts import routing_live_green_gate as gate
 
 
+@pytest.fixture(autouse=True)
+def configured_test_origin(monkeypatch):
+    monkeypatch.setattr(gate, "BASE", "https://routing.example.test")
+
+
+def test_missing_https_routing_origin_fails_closed(monkeypatch, capsys):
+    monkeypatch.setattr(gate, "BASE", "")
+    with pytest.raises(SystemExit, match="HTTPS origin not configured"):
+        gate.main()
+    receipt = json.loads(capsys.readouterr().out.strip())
+    assert receipt["ready"] is False
+    assert receipt["failure_type"] == "missing_or_invalid_https_origin"
+
+
+@pytest.mark.parametrize("origin", ["http://routing.example.test", "https://user:pass@routing.example.test", "https://routing.example.test/unsafe", "https://routing.example.test?x=1"])
+def test_invalid_routing_origin_rejected(monkeypatch, origin):
+    monkeypatch.setattr(gate, "BASE", origin)
+    with pytest.raises(ValueError, match="configured HTTPS origin"):
+        gate._verified_base()
+
+
 @pytest.mark.parametrize(
     ("failure", "expected_type"),
     [
@@ -51,7 +72,6 @@ def test_non_object_json_is_bounded_failure(monkeypatch):
 
 
 def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
-    # Unit receipt checks must not depend on external routing warmup availability.
     monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)
@@ -79,7 +99,6 @@ def test_probe_prints_failure_receipt_before_failing(monkeypatch, capsys):
 
 
 def test_probe_preserves_p95_limit(monkeypatch, capsys):
-    # Unit receipt checks must not depend on external routing warmup availability.
     monkeypatch.setattr(gate, "wait_until_ready", lambda: {"ready": True, "attempts": 1, "elapsed_s": 0.0})
     monkeypatch.setattr(gate, "TOTAL_REQUESTS", 2)
     monkeypatch.setattr(gate, "WORKERS", 1)

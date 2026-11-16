@@ -151,3 +151,36 @@ def test_facade_chat_translates_and_deduplicates_stage_events(monkeypatch):
     assert result["thinking_process"]["evidence_state"] == "SUPPORTED"
     assert result["thinking_process_contract"]["stage_count"] == 7
     assert result["thinking_process_contract"]["chain_of_thought_exposed"] is False
+
+
+def test_completion_summary_fails_closed_on_malformed_metrics_and_unproved_coherence():
+    summary = smi_thinking_process.completion_summary({
+        "brain_regions": "not-a-number",
+        "guardian": "UNKNOWN",
+        "coherent": {"passed": False, "score": float("nan")},
+        "judgement": {"confidence": float("inf")},
+        "adaptive": {"hrm_lessons": -3},
+    })
+    assert summary["coherence_score"] is None
+    assert summary["judgement_confidence"] is None
+    assert summary["brain_region_count"] == 0
+    assert summary["hrm_lessons_used"] == 0
+    assert summary["evidence_state"] == "PARTIAL"
+    misleading = smi_thinking_process.completion_summary({
+        "guardian": "PASSED",
+        "coherent": {"passed": False, "score": 99},
+    })
+    assert misleading["evidence_state"] == "PARTIAL"
+
+
+def test_unknown_guardian_outcome_never_reports_completion_signal():
+    unknown = smi_thinking_process.completion_summary({
+        "guardian": "UNKNOWN",
+        "output_state": "RECOMMENDATION_READY",
+        "coherent": {"passed": True, "score": 99},
+    })
+    assert unknown["evidence_state"] == "PARTIAL"
+    assert unknown["signal"]["id"] == "warning"
+    blocked = smi_thinking_process.completion_summary({"guardian": "BLOCKED"})
+    assert blocked["evidence_state"] == "BLOCKED"
+    assert blocked["signal"]["id"] == "critical"

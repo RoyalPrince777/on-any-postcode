@@ -38,7 +38,7 @@ SMI + Captain ALL IN select the smallest sufficient specialists. Examples: Neo (
 
 ## Mission-to-100 operating law
 
-Do the smallest real change and available real tests. Eliminate duplicate reports, cosmetic percentages, repeated approvals for previously authorised bounded work, unnecessary stages, and demos presented as proof. Never weaken Guardian, privacy, consent, youth safety, HRM, audit integrity or Founder Final. Existing 25/50/75/100 evidence gates and risk-appropriate 3/7/21 review remain binding: the protocol reduces needless ceremony, not mandatory safety evidence. Report **DONE / NEXT / RECOVERY** and a compact mission status only when meaningful evidence changes. 100% requires exact tested artifact, target runtime readback, Green Gate and Founder Final.
+Do the smallest real change and available real tests. Eliminate duplicate reports, cosmetic percentages, repeated approvals for previously authorised bounded work, unnecessary stages, and demos presented as proof. Never weaken Guardian, privacy, consent, youth safety, HRM, audit integrity or Founder Final. Existing three-stage 777 evidence gates and risk-appropriate 3/7/21 review remain binding: the protocol reduces needless ceremony, not mandatory safety evidence. Report **DONE / NEXT / RECOVERY** and a compact mission status only when meaningful evidence changes. 100% requires exact tested artifact, target runtime readback, Green Gate and Founder Final.
 
 ## Current truth boundary
 
