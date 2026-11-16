@@ -250,6 +250,11 @@
             <label><input type="checkbox" name="made_to_order" value="1"> This is a made-to-order design product</label>
             <label for="market-garment-type">Garment type</label>
             <input id="market-garment-type" name="garment_type" maxlength="120" placeholder="T-shirt, hoodie, tracksuit">
+            <label for="market-local-artwork">Preview artwork on this device (PNG, JPEG or WebP, up to 5 MB)</label>
+            <input id="market-local-artwork" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="market-local-artwork-status">
+            <p id="market-local-artwork-status" class="market-meta" role="status" aria-live="polite">Local preview only. The selected image is not uploaded, saved or sent to a manufacturer.</p>
+            <img id="market-local-artwork-preview" alt="Selected local design artwork preview" hidden style="max-width:260px;max-height:260px;object-fit:contain;border-radius:12px;border:1px solid var(--mc-line)">
+            <button id="market-upload-artwork" type="button" class="mc-secondary-link">Save selected artwork privately to OAP</button>
             <label for="market-artwork-ref">Artwork / design reference</label>
             <input id="market-artwork-ref" name="artwork_reference" maxlength="500" placeholder="OAP design asset or supplier design reference">
             <label for="market-placements">Print placements</label>
@@ -258,10 +263,16 @@
             <input id="market-colors" name="colors" maxlength="400" placeholder="black, gold, white">
             <label for="market-sizes">Sizes</label>
             <input id="market-sizes" name="sizes" maxlength="240" placeholder="S, M, L, XL, 2XL">
-            <label for="market-supplier-label">Manufacturer</label>
-            <input id="market-supplier-label" name="supplier_label" maxlength="120" placeholder="Tapstitch or another supplier">
-            <label for="market-supplier-slug">Supplier key</label>
-            <input id="market-supplier-slug" name="supplier_slug" maxlength="64" placeholder="tapstitch">
+            <p class="market-meta">Design setup only: this form saves an OAP product record. It does not upload artwork, create a manufacturer mockup, collect payment or submit an order.</p>
+            <label for="market-supplier-slug">Manufacturer</label>
+            <select id="market-supplier-slug" name="supplier_slug">
+              <option value="">Choose a manufacturer</option>
+              <option value="printful">Printful</option>
+              <option value="prodigi">Prodigi</option>
+            </select>
+            <input id="market-supplier-label" name="supplier_label" type="hidden" value="">
+            <p class="market-meta">Manufacturer selection sets the supplier key automatically, avoiding mismatched label/key records.</p>
+            <p class="market-meta">Printful and Prodigi are the first integration targets. Selecting a manufacturer does not activate its API. Tapstitch direct ordering remains restricted.</p>
             <label for="market-supplier-product-ref">Supplier garment reference</label>
             <input id="market-supplier-product-ref" name="supplier_product_ref" maxlength="240">
             <label for="market-supplier-variant-ref">Supplier variant reference</label>
@@ -282,6 +293,77 @@
   </main>
   <script>
   (() => {
+    const artworkFile = document.getElementById('market-local-artwork');
+    const artworkPreview = document.getElementById('market-local-artwork-preview');
+    const artworkStatus = document.getElementById('market-local-artwork-status');
+    let localArtworkUrl = null;
+    if (artworkFile && artworkPreview && artworkStatus) {
+      artworkFile.addEventListener('change', () => {
+        if (localArtworkUrl) URL.revokeObjectURL(localArtworkUrl);
+        localArtworkUrl = null;
+        artworkPreview.removeAttribute('src');
+        artworkPreview.hidden = true;
+        const file = artworkFile.files && artworkFile.files[0];
+        if (!file) {
+          artworkStatus.textContent = 'No image selected. Local preview only; no artwork is uploaded.';
+          return;
+        }
+        const allowed = ['image/png', 'image/jpeg', 'image/webp'];
+        if (!allowed.includes(file.type) || file.size < 1 || file.size > 5 * 1024 * 1024) {
+          artworkFile.value = '';
+          artworkStatus.textContent = 'Choose a PNG, JPEG or WebP file no larger than 5 MB.';
+          return;
+        }
+        localArtworkUrl = URL.createObjectURL(file);
+        artworkPreview.src = localArtworkUrl;
+        artworkPreview.hidden = false;
+        artworkStatus.textContent = 'Artwork previewed locally only. Save product still requires an existing artwork reference; image bytes are not uploaded.';
+      });
+      window.addEventListener('pagehide', () => {
+        if (localArtworkUrl) URL.revokeObjectURL(localArtworkUrl);
+      });
+    }
+    const uploadArtworkButton = document.getElementById('market-upload-artwork');
+    uploadArtworkButton?.addEventListener('click', async () => {
+      const file = artworkFile?.files?.[0];
+      if (!file || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size < 1 || file.size > 5 * 1024 * 1024) {
+        if (artworkStatus) artworkStatus.textContent = 'Select a valid image up to 5 MB first.';
+        return;
+      }
+      const form = new FormData();
+      form.append('artwork', file);
+      uploadArtworkButton.disabled = true;
+      if (artworkStatus) artworkStatus.textContent = 'Saving private artwork…';
+      try {
+        const response = await fetch('/mission/organs/market/pod/artwork', {
+          method: 'POST',
+          headers: { 'X-OAP-CSRF': {{ oap_csrf_token|tojson }} },
+          body: form,
+          credentials: 'same-origin'
+        });
+        if (!response.ok) throw new Error('Artwork save failed');
+        const result = await response.json();
+        if (typeof result.artwork_reference !== 'string' || !result.artwork_reference.startsWith('oap-pod-artwork:')) {
+          throw new Error('Unexpected artwork reference');
+        }
+        document.getElementById('market-artwork-ref').value = result.artwork_reference;
+        if (artworkStatus) artworkStatus.textContent = 'Artwork saved privately to OAP. Product is not published or ordered.';
+      } catch (_) {
+        if (artworkStatus) artworkStatus.textContent = 'Artwork not saved. Check your connection and try again.';
+      } finally {
+        uploadArtworkButton.disabled = false;
+      }
+    });
+    const podSupplier = document.getElementById('market-supplier-slug');
+    const podSupplierLabel = document.getElementById('market-supplier-label');
+    if (podSupplier && podSupplierLabel) {
+      const names = { printful: 'Printful', prodigi: 'Prodigi' };
+      const syncSupplier = () => {
+        podSupplierLabel.value = names[podSupplier.value] || '';
+      };
+      podSupplier.addEventListener('change', syncSupplier);
+      syncSupplier();
+    }
     const authenticated = {{ 'true' if auth_user else 'false' }};
     if (!authenticated) return;
     const csrf = {{ oap_csrf_token|tojson }};

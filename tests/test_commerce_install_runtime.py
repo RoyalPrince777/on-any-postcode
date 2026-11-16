@@ -27,6 +27,7 @@ def test_commerce_installer_covers_required_first_party_schemas(monkeypatch):
     assert result["schema_ready"] is True
     assert {name for name, _, _ in calls} == {
         "supplier_network",
+        "pod_artwork",
         "payment_orchestrator",
         "payment_submission_evidence",
         "distribution_runtime",
