@@ -144,3 +144,97 @@ def render_still_video(
         raise StudioRenderUnavailable("studio_ffmpeg_timeout") from exc
     finally:
         temp.unlink(missing_ok=True)
+
+
+
+def export_owned_gif_as_mp4(
+    *, owner_directory: str, gif_name: str, output_name: str,
+) -> dict[str, object]:
+    """Export an existing owner-authorised GIF; NEVER claim AI generation.
+
+    Requires the same configured private asset boundary as still-video
+    rendering. No remote input, shell, publishing or external spending.
+    """
+    private_root = os.environ.get("OAP_STUDIO_PRIVATE_ASSET_ROOT", "").strip()
+    if not private_root:
+        raise StudioRenderUnavailable("studio_private_asset_root_unconfigured")
+    base = Path(private_root).absolute()
+    candidate = Path(owner_directory).absolute()
+    if (
+        not base.is_dir() or base.is_symlink()
+        or candidate.parent != base or candidate.is_symlink()
+        or not candidate.is_dir()
+        or candidate.resolve(strict=True).parent != base.resolve(strict=True)
+    ):
+        raise ValueError("studio_owner_directory_invalid")
+    source = _owner_file(candidate, gif_name, frozenset({".gif"}))
+    if (
+        not isinstance(output_name, str)
+        or output_name != Path(output_name).name
+        or not output_name.endswith(".mp4")
+    ):
+        raise ValueError("studio_output_filename_invalid")
+    target = candidate / output_name
+    if target.exists() or target.is_symlink():
+        raise ValueError("studio_output_already_exists")
+    ffmpeg = shutil.which("ffmpeg")
+    ffprobe = shutil.which("ffprobe")
+    if not ffmpeg or not ffprobe:
+        raise StudioRenderUnavailable("studio_ffmpeg_unavailable")
+    # Probe before rendering; bound duration and resolution to protect worker.
+    try:
+        check = subprocess.run(
+            [ffprobe, "-v", "error", "-show_entries",
+             "format=duration:stream=codec_type,width,height",
+             "-of", "json", str(source)],
+            stdin=subprocess.DEVNULL, capture_output=True, text=True,
+            timeout=20, check=False,
+        )
+        if check.returncode:
+            raise StudioRenderUnavailable("studio_gif_probe_failed")
+        info = json.loads(check.stdout)
+        streams = info.get("streams") or []
+        video = next((s for s in streams if s.get("codec_type") == "video"), None)
+        duration = float((info.get("format") or {}).get("duration") or 0)
+        if (
+            video is None or not 0 < duration <= 30
+            or not 1 <= int(video.get("width", 0)) <= 1920
+            or not 1 <= int(video.get("height", 0)) <= 1920
+        ):
+            raise StudioRenderUnavailable("studio_gif_probe_invalid")
+    except (ValueError, TypeError, KeyError, OSError, subprocess.TimeoutExpired) as exc:
+        raise StudioRenderUnavailable("studio_gif_probe_failed") from exc
+    temp = candidate / ("." + uuid.uuid4().hex + ".mp4")
+    try:
+        result = subprocess.run(
+            [ffmpeg, "-nostdin", "-hide_banner", "-loglevel", "error", "-n",
+             "-stream_loop", "-1", "-i", str(source), "-t", f"{duration:.3f}",
+             "-vf", "fps=25,format=yuv420p", "-c:v", "libx264",
+             "-movflags", "+faststart", str(temp)],
+            stdin=subprocess.DEVNULL, capture_output=True, timeout=90, check=False,
+        )
+        if result.returncode or not temp.is_file():
+            raise StudioRenderUnavailable("studio_gif_export_failed")
+        size = temp.stat().st_size
+        if not 0 < size <= _MAX_OUTPUT_BYTES:
+            raise StudioRenderUnavailable("studio_mp4_size_invalid")
+        _verify_mp4(temp, expected_seconds=duration)
+        try:
+            os.link(temp, target)
+        except FileExistsError as exc:
+            raise ValueError("studio_output_already_exists") from exc
+        with target.open("rb") as file:
+            digest = hashlib.file_digest(file, "sha256").hexdigest()
+        with source.open("rb") as file:
+            source_digest = hashlib.file_digest(file, "sha256").hexdigest()
+        return {
+            "filename": output_name, "mime_type": "video/mp4",
+            "sha256": digest, "source_sha256": source_digest,
+            "size_bytes": size, "rendered": True, "ai_generated_in_smi": False,
+            "kind": "existing_gif_export", "published": False,
+            "payment_authorised": False, "founder_final": True,
+        }
+    except subprocess.TimeoutExpired as exc:
+        raise StudioRenderUnavailable("studio_gif_export_timeout") from exc
+    finally:
+        temp.unlink(missing_ok=True)
