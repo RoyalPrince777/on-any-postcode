@@ -724,7 +724,8 @@ def test_koradaso_intelligence_royal_ui_requires_first_party_route(client):
     assert "source:koradasoMode?'koradaso':'studio'" in html
     assert "/studio/chat" in html
     assert "/mission/smi" not in html
-    assert "Founder SMI is never used" in html
+    assert "Founder session, memory and authority are never used" in html
+    assert "SMI · KORADASO Intelligence" in html
 
 
 def test_koradaso_intelligence_first_party_never_uses_compatibility_fallback(monkeypatch):
