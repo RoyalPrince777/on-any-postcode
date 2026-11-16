@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_interaction_layer.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_sovereign_dashboard.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_live_character.css') }}">
+<link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_shere_khan_character.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_command_centre.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_review_cards.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_approved_presence.css') }}">
@@ -83,6 +84,7 @@ window.OAP_SMI_UI={
 <script src="{{ url_for('mission_control.static', filename='smi_exact_character_rig.js') }}"></script>
 <script>window.OAP_SMI_RIG_FOUNDATION=window.OAP_SMI_EXACT_CHARACTER_RIG.attachStateListener(window);</script>
 <script src="{{ url_for('mission_control.static', filename='smi_live_chat_presence.js') }}"></script>
+<script src="{{ url_for('mission_control.static', filename='smi_shere_khan_character.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_source_pixel_motion.js') }}"></script>
 <script>window.OAP_SMI_SOURCE_PIXEL_MOTION_READY=window.OAP_SMI_SOURCE_PIXEL_MOTION.attach().then(session=>{window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION=session;if(session&&window.OAP_SMI_RIG_FOUNDATION?.bindMotionSession)window.OAP_SMI_RIG_FOUNDATION.bindMotionSession(session);return session;}).catch(()=>null);</script>
 <script src="{{ url_for('mission_control.static', filename='smi_reply_audio_player.js') }}"></script>
