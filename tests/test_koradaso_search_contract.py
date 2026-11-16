@@ -679,3 +679,19 @@ def test_koradaso_royal_home_excludes_founder_smi_and_old_shortcuts_wall(client)
     assert 'id="browser-settings"' in html
     assert 'id="bookmark-list"' in html
     assert 'href="/arena"' in html
+
+
+def test_koradaso_existing_5052_refresh_preserves_working_checkout():
+    """An older runtime must refuse the new UI rather than install broken routes."""
+    script = Path("scripts/koradaso_refresh_existing.sh").read_text(encoding="utf-8")
+    assert "git rev-parse --show-toplevel" in script
+    assert "http://127.0.0.1:5052/koradaso" in script
+    for route in ("/search", "/koradaso/web-search", "/studio", "/arena", "/oap-map"):
+        assert route in script
+    assert "SAFE STOP: this running checkout lacks newer KORADASO routes" in script
+    assert ".koradaso-refresh-backups/" in script
+    assert "084232dca39f3309cce29014680bfb5e3a30679b" in script
+    assert "git reset --hard" not in script
+    assert "git pull" not in script
+    assert "kill " not in script
+    assert "nohup " not in script
