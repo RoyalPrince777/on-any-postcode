@@ -55,7 +55,7 @@ LOCAL_ENABLED = os.environ.get("OAP_INFERENCE_LOCAL_ENABLED", "1").strip().lower
     "off",
 }
 FALLBACK_ENABLED = os.environ.get(
-    "OAP_INFERENCE_COMPATIBILITY_FALLBACK", "1"
+    "OAP_INFERENCE_COMPATIBILITY_FALLBACK", "0"
 ).strip().lower() not in {
     "0",
     "false",
