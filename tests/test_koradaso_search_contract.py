@@ -663,3 +663,19 @@ def test_koradaso_direct_termux_launch_defaults_to_private_5052():
     assert 'debug=os.environ.get("OAP_DEBUG") == "1"' in launch
     assert 'use_reloader=False' in launch
     assert 'port=5050, debug=True' not in launch
+
+
+def test_koradaso_royal_home_excludes_founder_smi_and_old_shortcuts_wall(client):
+    """Public browser has only its bounded assistant, never a Founder-SMI tile."""
+    page = client.get("/koradaso")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert 'href="/studio?source=koradaso"' in html
+    assert 'href="/mission/smi"' not in html
+    assert "Founder access" not in html
+    assert "FIRST-PARTY SHORTCUTS" not in html
+    assert "EXPLORE YOUR WORLD" not in html
+    assert "Search results are not connected." not in html
+    assert 'id="browser-settings"' in html
+    assert 'id="bookmark-list"' in html
+    assert 'href="/arena"' in html
