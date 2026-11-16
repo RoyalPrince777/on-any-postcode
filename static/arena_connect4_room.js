@@ -136,4 +136,9 @@ q("[data-columns]").onclick=e=>{
  action("drop",Number(target.dataset.column));
 };
 q("[data-stop]").onclick=()=>action("stop",null);
+
+// Keep separate devices on the same authoritative room, without overlapping requests.
+async function syncRoom(){if(!membership||!snapshot||busy||entryBusy||needsRefresh||refreshInFlight||document.visibilityState!=="visible"||!["WAITING","ACTIVE"].includes(snapshot.status))return;try{await refresh();}catch(e){needsRefresh=true;error(e);render();}}
+setInterval(syncRoom,2500);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void syncRoom();});
 })();
