@@ -695,3 +695,19 @@ def test_koradaso_existing_5052_refresh_preserves_working_checkout():
     assert "git pull" not in script
     assert "kill " not in script
     assert "nohup " not in script
+
+
+def test_koradaso_first_party_route_repair_is_bounded_and_keeps_homepage():
+    """Older Redmi checkouts receive the missing route, not a new server or public release."""
+    script = Path("scripts/koradaso_repair_search_route.sh").read_text(encoding="utf-8")
+    assert "127.0.0.1:5052/koradaso" in script
+    assert "ALREADY PRESENT" in script
+    assert "SAFE STOP" in script
+    assert "SAFE ROLLBACK" in script
+    assert '@bp.get("/koradaso/web-search")' in script
+    assert "OAP_KORADASO_WEB_INDEX" not in script
+    assert "koradaso_web_index.py" in script
+    assert "koradaso_web_search.html" in script
+    assert "EXISTING homepage untouched" in script
+    for forbidden in ("git reset --hard", "git pull", "flask run", "kill -9", "systemctl", "npm install"):
+        assert forbidden not in script
