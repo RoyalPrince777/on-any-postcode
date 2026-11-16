@@ -538,7 +538,8 @@ def status(*, probe: bool = False) -> dict[str, Any]:
     first_party_ready = bool(
         (proof.get("reachable") and proof.get("model_available"))
         or (
-            bridge.get("configured")
+            not OFFLINE_ONLY
+            and bridge.get("configured")
             and (
                 bridge.get("worker_recently_seen")
                 or bridge.get("durable_worker_fresh")
@@ -549,7 +550,7 @@ def status(*, probe: bool = False) -> dict[str, Any]:
         "gateway": "OAP Inference Gateway",
         "local_first": True,
         "offline_only_policy_enabled": OFFLINE_ONLY,
-        "offline_only_model_proven": bool(OFFLINE_ONLY and proof.get("reachable") and proof.get("model_available")),
+        "offline_only_model_available": bool(OFFLINE_ONLY and proof.get("reachable") and proof.get("model_available")),
         "device_wide_no_egress_proven": False,
         "local_endpoint_loopback": _local_endpoint_allowed(),
         "local_enabled": LOCAL_ENABLED,
