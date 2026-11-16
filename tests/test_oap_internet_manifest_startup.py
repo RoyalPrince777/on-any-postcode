@@ -54,7 +54,7 @@ def test_koradaso_internet_intelligence_is_public_home_with_separate_world(clien
     assert home.status_code == 200
     page = home.get_data(as_text=True)
     assert "KORADASO Internet Intelligence" in page
-    assert "INTERNET INTELLIGENCE" in page
+    assert 'aria-label="KORADASO Internet"' in page
     assert 'href="/arena"' in page
     assert 'href="/world"' in page
     assert "Own WWW search not connected" in page
