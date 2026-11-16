@@ -269,7 +269,7 @@ def ask(message: object, *, rate_key: str, history: object = None, first_party_o
             smi_history,
             brain,
             code_mode=(mode == "code"),
-            first_party_only=first_party_only,
+            **({"first_party_only": True} if first_party_only else {}),
         )
     except (RuntimeError, PublicStudioUnavailable) as exc:
         raise PublicStudioUnavailable("public_smi_unavailable") from exc
