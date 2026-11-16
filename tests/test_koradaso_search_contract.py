@@ -711,3 +711,37 @@ def test_koradaso_first_party_route_repair_is_bounded_and_keeps_homepage():
     assert "EXISTING homepage untouched" in script
     for forbidden in ("git reset --hard", "git pull", "flask run", "kill -9", "systemctl", "npm install"):
         assert forbidden not in script
+
+
+def test_koradaso_intelligence_royal_ui_requires_first_party_route(client):
+    """KORADASO stays on the existing Studio gateway and never requests Founder authority."""
+    response = client.get("/studio?source=koradaso")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "koradaso-intelligence" in html
+    assert "First-party inference only" in html
+    assert "No external AI fallback" in html
+    assert "source:koradasoMode?'koradaso':'studio'" in html
+    assert "/studio/chat" in html
+    assert "/mission/smi" not in html
+    assert "Founder SMI is never used" in html
+
+
+def test_koradaso_intelligence_first_party_never_uses_compatibility_fallback(monkeypatch):
+    """Actual gateway dispatch must fail closed on unavailable first-party routes."""
+    from mission_control import oap_inference_gateway as gateway
+
+    def unavailable(*args, **kwargs):
+        raise RuntimeError("offline")
+
+    def forbidden_compatibility(*args, **kwargs):
+        raise AssertionError("third_party_fallback_called")
+
+    monkeypatch.setattr(gateway, "_call_local_public", unavailable)
+    monkeypatch.setattr(gateway, "_call_bridge_public", unavailable)
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        gateway.generate_public(
+            forbidden_compatibility,
+            "hello",
+            first_party_only=True,
+        )
