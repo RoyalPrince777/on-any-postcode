@@ -937,6 +937,30 @@ def world_arena():
     return _arena_intelligence_response()
 
 
+# Three first-party local-play games; no money, ranked XP or remote opponent claims.
+_ARENA_NEW_GAME_PAGES = {
+    "snakes-ladders": ("Snakes & Ladders", "Climb ladders, dodge snakes and reach 100 exactly. Two local players."),
+    "scramble": ("OAP Word Scramble", "Unscramble postcode, culture and community words. Solo skill game."),
+    "postcode-empire": ("Postcode Empire", "An original two-player neighbourhood-building circuit. Invest in community places over twelve rounds."),
+}
+
+
+@app.get("/arena/<game_slug>")
+def arena_new_game_page(game_slug):
+    details = _ARENA_NEW_GAME_PAGES.get(game_slug)
+    if details is None:
+        return ("Not found", 404)
+    response = make_response(
+        render_template("arena_new_game.html", game={
+            "snakes-ladders": "snakes", "scramble": "scramble",
+            "postcode-empire": "empire",
+        }[game_slug], title=details[0], description=details[1])
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
+
+
 @app.get("/arena/earth-is-our-turf")
 def earth_is_our_turf_page():
     state = session.get(earth_is_our_turf.SESSION_KEY)
