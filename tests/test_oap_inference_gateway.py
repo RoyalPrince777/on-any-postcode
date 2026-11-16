@@ -182,5 +182,5 @@ def test_offline_status_does_not_claim_network_proof(monkeypatch):
     monkeypatch.setattr(gateway, "probe_local", lambda **_kw: {"reachable": True, "model_available": True})
     status = gateway.status(probe=True)
     assert status["offline_only_policy_enabled"] is True
-    assert status["offline_only_model_proven"] is True
+    assert status["offline_only_model_available"] is True
     assert status["device_wide_no_egress_proven"] is False
