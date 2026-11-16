@@ -301,8 +301,8 @@ def test_linkup_public_shell_uses_free_my_card_actions():
     assert "Create My Card" in template
     assert "PUBLIC · CONNECT · CREATE" in template
     assert "linkup-royal-home" in template
-    assert "linkup-royal-tools" not in template
-    assert "linkup-royal-bottom" not in template
+    assert "linkup-royal-tools" in template
+    assert "linkup-royal-bottom" in template
 
 
 
@@ -326,11 +326,9 @@ def test_linkup_master_menu_is_only_linkups_ring_now_incoming_and_more():
     assert '>My Card</a>' in template
     assert '>Link Requests</a>' in template
     assert '>My Controls</a>' in template
-    for removed in (
-        "linkup-royal-tools",
-        "linkup-royal-bottom",
-    ):
-        assert removed not in template
+    # The royal public navigation is intentionally separate from this private menu.
+    assert 'aria-label="Link Up master tools"' in template
+    assert 'aria-label="Link Up private menu"' in template
 
 
 def test_empty_linkup_chat_has_real_next_actions():
