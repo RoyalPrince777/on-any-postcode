@@ -21,7 +21,7 @@ VIDEO_MODEL = os.environ.get("OAP_STUDIO_VIDEO_MODEL", "sora-2").strip() or "sor
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
 MAX_VIDEO_BYTES = 100 * 1024 * 1024
 
-_VIDEO_ID = re.compile(r"video_[A-Za-z0-9_-]{1,128}\\Z")
+_VIDEO_ID = re.compile(r"video_[A-Za-z0-9_-]{1,128}")
 
 
 def _validated_video_id(value: object) -> str:
