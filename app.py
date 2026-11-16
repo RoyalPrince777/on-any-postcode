@@ -4213,4 +4213,5 @@ def global_affairs_recovery(authority_record_id: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5050, debug=True)
+    # Local Termux defaults to KORADASO port 5052; allow explicit override.
+    app.run(host=os.environ.get("OAP_HOST", "127.0.0.1"), port=int(os.environ.get("PORT", "5052")), debug=os.environ.get("OAP_DEBUG") == "1", use_reloader=False)
