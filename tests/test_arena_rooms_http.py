@@ -445,5 +445,10 @@ def test_all_seven_arena_online_rooms_auto_sync_on_distinct_devices(client):
         assert '["WAITING","ACTIVE"].includes(' in js, script
         assert 'needsRefresh' in js, script
         assert '"/arena/rooms/state"' in js, script
+        # Automatic refresh must retry after a transient network failure.
+        # During the failure, move handlers still respect needsRefresh.
+        sync_body = js.split("async function syncRoom(){", 1)[1].split("setInterval(syncRoom,2500)", 1)[0]
+        assert "||needsRefresh||" not in sync_body, script
+        assert "needsRefresh=true;" in sync_body, script
         assert "localStorage" not in js, script
         assert "sessionStorage" not in js, script
