@@ -232,3 +232,37 @@ def test_founder_final_stays_locked_when_green_gate_is_incomplete(monkeypatch):
 
     with pytest.raises(RuntimeError, match="green_gate_incomplete"):
         smi_proof_gate.run_founder_final("00000000-0000-0000-0000-000000000001")
+
+
+def test_rollback_audit_marks_exercise_as_non_operational(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from mission_control import approval_service, authority, postgres_db
+
+    connection = MagicMock()
+    ctx = MagicMock()
+    ctx.__enter__.return_value = connection
+    monkeypatch.setattr(postgres_db, "connect", lambda: ctx)
+    monkeypatch.setattr(
+        authority,
+        "require_human_authority",
+        lambda connection, identity: {"authority_level": 0},
+    )
+    recorded = {}
+    monkeypatch.setattr(
+        approval_service,
+        "_write_audit",
+        lambda connection, **kwargs: recorded.update(kwargs),
+    )
+
+    result = smi_proof_gate.run_rollback_recovery_proof(
+        "00000000-0000-0000-0000-000000000001"
+    )
+
+    assert result["audit_recorded"] is True
+    assert recorded["metadata"]["exercise_only"] is True
+    assert recorded["metadata"]["runtime_inference_halted"] is False
+    assert recorded["metadata"]["runtime_resume_verified"] is False
+    assert recorded["metadata"]["human_resume_authorized"] is False
+    assert "in-memory rollback exercise" in recorded["reason"]
+    connection.commit.assert_called_once()
