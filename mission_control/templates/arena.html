@@ -23,15 +23,15 @@
 <body class="mc-workspace-body">
   <header class="mc-workspace-header arena-hero">
     <div>
-      <p class="mc-eyebrow">👑 OAP Live + Events · First-party Challenge Engine</p>
+      <p class="mc-eyebrow">👑 ON ANY POSTCODE · GAMES</p>
       <h1 class="arena-title">OAP <span class="arena-gold">ARENA</span></h1>
-      <p class="arena-tagline">{{ hub.tagline }} — sports, music, gaming and creator competition can share one governed path without becoming one unfair scoring system.</p>
-      <div class="arena-route" aria-label="Arena progression">
+      <p class="arena-tagline">Choose a game. Play your way.</p>
+      <div class="arena-route" aria-label="Arena progression" hidden>
         {% for level in hub.progression %}<span>{{ level }}</span>{% if not loop.last %}<b aria-hidden="true">→</b>{% endif %}{% endfor %}
       </div>
     </div>
     <div class="mc-header-actions">
-      <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
+      <a class="mc-secondary-link" href="/koradaso">⌂ KORADASO Home</a>
       <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
     </div>
   </header>
