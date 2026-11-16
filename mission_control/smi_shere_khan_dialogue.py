@@ -111,7 +111,7 @@ def shere_khan_requested(message: object, brain: dict | None = None) -> bool:
 SHERE_KHAN_ASSURANCE_TIERS = (
     ("claw_test", "Review survivability, dependencies, authority, failure propagation, recovery, evidence and false confidence."),
     ("apex_hunt", "Trace seven evidence layers: declared, implemented, deployed, runtime, consequence, recovery and experienced. Mark unavailable layers Unknown."),
-    ("apex_claw_777", "Apply deeper adversarial challenge to material risks, recovery paths and false-green claims; require real evidence before advancing."),
+    ("apex_claw_777", "Focus on Shere Khan only: sharpen evidence-based reasoning, contradiction detection, strategic foresight, safe dialogue continuity, authorised audited-memory use, provider-failure recovery and governance. Distinguish mocked tests from authenticated runtime, durable persistence and Redmi voice proof; require evidence before Green. Do not enlist other personas or claim expanded authority."),
     ("apex_adversarial_assurance_1000", "Highest named advisory review tier: assess the 21-capability design including Apex Reality Test; do not claim all 21 are implemented or certified."),
 )
 
