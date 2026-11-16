@@ -656,7 +656,8 @@ def public_studio_chat():
 
 @app.get("/")
 def root_front_door():
-    return redirect("/world", code=302)
+    """KORADASO Internet Intelligence is the public browser homepage."""
+    return redirect("/koradaso", code=302)
 
 
 @app.get("/koradaso")
