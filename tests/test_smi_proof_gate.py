@@ -55,7 +55,10 @@ def test_bounded_rollback_exercise_restores_and_resumes_without_product_mutation
     assert proof["safe_resume"] is True
     assert proof["human_stop_observed"] is True
     assert proof["human_stop_idempotent"] is True
-    assert proof["human_stop_safe_resume"] is True
+    assert proof["human_stop_safe_resume"] is False
+    assert proof["human_stop_recovery"]["replacement_token_ready"] is True
+    assert proof["human_stop_recovery"]["runtime_inference_halted"] is False
+    assert proof["human_stop_recovery"]["human_resume_authorized"] is False
     assert proof["passed"] is True
     assert proof["production_state_mutated"] is False
     assert proof["execution_authority_expanded"] is False
