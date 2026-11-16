@@ -105,25 +105,19 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert 'aria-label="Link Up app"' in page
     assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
-    assert "Optional for private features. Public Link Up needs no email, password or sign-in." in page
-    assert "Simple private chat." in page
-    for public_section in ("Nearby People", "Spotlight", "Opportunities", "Community Signals"):
-        assert public_section in page
-    assert "Private conversations remain protected by secure sign-in." in page
-    # Public discovery is presentation-only; it cannot expose the private workspace.
-    assert 'id="linkup-discovery"' in page
-    assert 'href="#linkup-discovery"' in page
+    assert "Simple private chat." not in page
+    assert 'aria-label="Link Up master tools"' in page
     assert 'aria-label="Link Up public bottom navigation"' in page
+    assert 'class="linkup-royal-tools"' in page
+    assert 'class="linkup-royal-bottom"' in page
+    assert 'href="/linkup?intent=message"' in page
+    assert 'href="/my-card/create"' in page
     assert 'aria-label="Private Link Up messenger"' not in page
     assert 'data-linkup-search' not in page
     assert 'role="search"' not in page
-    assert "People search is available only when its privacy and directory controls are verified." in page
-    assert 'aria-label="Link Up private menu"' not in page
-    assert "Enter My World" not in page
-    assert 'href="/my-card/create"' in page
-    assert 'href="/auth"' not in page
-    assert "Message your Links." not in page
-    assert "World Rooms" not in page
+    assert "Nearby People" not in page
+    assert "Community Signals" not in page
+    assert "Checking install support…" not in page
     assert 'method="post"' not in page.lower()
     assert anonymous_client.post("/linkup").status_code == 405
     assert not database_path.exists()
@@ -147,16 +141,14 @@ def test_smith_twins_public_query_cannot_unlock_private_messenger(anonymous_clie
         assert 'method="post"' not in page.lower()
 
 
-def test_smith_brothers_discovery_cards_are_not_live_controls(anonymous_client):
-    """Informational cards must not pretend to be working services."""
-    response = anonymous_client.get("/linkup")
-    page = response.get_data(as_text=True)
-    assert response.status_code == 200
-    for label in ("Nearby People", "Opportunities", "Spotlight", "Community Signals", "Certified"):
-        assert label in page
-    assert "Location-based discovery requires consent and a verified service." in page
-    assert "People search is available only when its privacy and directory controls are verified." in page
-    assert 'id="linkup-discovery"' in page
+def test_linkup_public_navigation_has_no_unverified_static_feature_tiles(anonymous_client):
+    page = anonymous_client.get("/linkup").get_data(as_text=True)
+    assert 'aria-label="Link Up master tools"' in page
+    assert 'aria-label="Link Up public bottom navigation"' in page
+    assert '<div class="linkup-public-action">' not in page
+    assert "Nearby People" not in page
+    assert "Spotlight" not in page
+    assert "Community Signals" not in page
     assert 'role="search"' not in page
     assert 'data-linkup-search' not in page
 
