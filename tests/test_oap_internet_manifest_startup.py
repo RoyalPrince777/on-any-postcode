@@ -43,3 +43,18 @@ def test_spot_apps_entry_remains_available_after_world_startup(client):
     assert response.status_code == 200
     assert b'data-spot-apps-entry' in response.data
     assert b'href="/store"' in response.data
+
+
+def test_koradaso_links_to_existing_store_and_spot_without_duplicate_install_claim(client):
+    response = client.get("/koradaso")
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert 'href="/store" data-koradaso-store-entry' in body
+    assert 'href="/the-spot"' in body
+    assert 'href="/the-spot/market"' in body
+    assert 'href="/oap-store"' not in body
+    assert "signed APK" not in body
+
+    store = client.get("/store")
+    assert store.status_code == 200
+    assert "OAP Store" in store.get_data(as_text=True)
