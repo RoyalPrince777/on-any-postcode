@@ -465,3 +465,26 @@ def test_arena_monetisation_reuses_membership_and_does_not_sell_ranked_results(c
     assert "No Arena-specific checkout" in html
     assert "Arena purchases, player entitlements, prizes and payouts are not verified" in html
     assert "paid entry is active here" in html
+
+
+def test_oware_local_board_is_carved_wood_with_real_seed_elements(client):
+    page = client.get("/arena/oware")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert 'data-board' in html
+    assert 'oware-game-card' in html
+    script = client.get("/static/oware.js")
+    assert script.status_code == 200
+    js = script.get_data(as_text=True)
+    assert 'className="oware-pit"' in js
+    assert 'className="oware-bowl"' in js
+    assert 'className="oware-seed"' in js
+    assert "Math.min(count,18)" in js
+    assert 'state.legal_pits.includes(index)' in js
+    assert '"/arena/oware/move"' in js
+    css = client.get("/static/arena_games.css")
+    assert css.status_code == 200
+    sheet = css.get_data(as_text=True)
+    assert ".arena-game[data-oware-root] .oware-bowl" in sheet
+    assert "grid-template-columns:repeat(6,minmax(0,1fr))" in sheet
+    assert ".arena-game[data-oware-root] .oware-seed" in sheet
