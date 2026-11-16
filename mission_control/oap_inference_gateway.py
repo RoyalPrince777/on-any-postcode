@@ -14,11 +14,11 @@ import re
 import time
 from collections.abc import Callable
 from contextvars import ContextVar
+from ipaddress import ip_address
 from typing import Any
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
-from ipaddress import ip_address
 
 from oap.smi.capability_fabric import capability_descriptions, select_capabilities
 from oap.smi.capability_fabric import status as capability_fabric_status
