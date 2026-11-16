@@ -34,7 +34,7 @@ q("[data-reconnect]").onclick=()=>enter(async()=>{membership={room_id:q("[data-r
 q("[data-refresh]").onclick=async()=>{clear();try{await refresh();}catch(e){error(e);needsRefresh=true;render();}};
 q("[data-move]").onclick=move;q("[data-stop]").onclick=()=>action({action:"stop"});
 // Refresh the authoritative room across devices without overlapping requests.
-async function syncRoom(){if(!membership||!snapshot||busy||entryBusy||needsRefresh||refreshInFlight||document.visibilityState!=="visible"||!["WAITING","ACTIVE"].includes(snapshot.status))return;try{await refresh();}catch(e){needsRefresh=true;error(e);render();}}
+async function syncRoom(){if(!membership||!snapshot||busy||entryBusy||refreshInFlight||document.visibilityState!=="visible"||!["WAITING","ACTIVE"].includes(snapshot.status))return;try{await refresh();}catch(e){needsRefresh=true;error(e);render();}}
 setInterval(syncRoom,2500);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void syncRoom();});
 })();
