@@ -217,16 +217,19 @@ def status() -> dict[str, object]:
         "secure_provider_runtime": sika_secure_provider_runtime.status(),
         "payment_provider_runtime_built": True,
         "pod_provider_runtime_built": True,
-        "external_payment_execution_proven": bool(
+        # Configuration is not evidence of a completed provider transaction.
+        "payment_provider_configuration_ready": bool(
             sika_secure_provider_runtime.configuration_status("payment").get(
                 "configuration_complete"
             )
         ),
-        "external_manufacturer_execution_proven": bool(
+        "pod_provider_configuration_ready": bool(
             sika_secure_provider_runtime.configuration_status("pod").get(
                 "configuration_complete"
             )
         ),
+        "external_payment_execution_proven": False,
+        "external_manufacturer_execution_proven": False,
         "money_movement_proven": False,
         "human_authority_final": True,
     }

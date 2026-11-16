@@ -28,6 +28,21 @@
         const title = document.querySelector("[data-oap-offline-title]");
         const copy = document.querySelector("[data-oap-offline-copy]");
         const retry = document.querySelector("[data-oap-offline-retry]");
+        const isTV = ["/tv", "/oap-tv", "/media", "/oap-media", "/tv-media", "/the-spot/tv-media"].includes(location.pathname);
+        const blockedPrefixes = ["/auth", "/enter-my-world", "/my-world", "/mission", "/infrastructure"];
+        const isProtected = blockedPrefixes.some(prefix => location.pathname === prefix || location.pathname.startsWith(prefix + "/"));
+        // Preserve the intended public route on reconnect instead of sending
+        // every offline visitor back to the site homepage.
+        if (!isProtected && location.pathname !== "/offline") {
+          retry.href = location.pathname + location.search;
+          retry.textContent = "Retry this page";
+        }
+        if (isTV) {
+          document.title = "OAP TV · Offline";
+          title.textContent = "OAP TV is offline";
+          copy.textContent = "OAP TV needs a connection for its current catalogue and playback. Private films, rights checks, purchases and publishing are never cached or queued by this public shell.";
+          retry.textContent = "Reconnect to OAP TV";
+        }
         if (isLinkUp) {
           document.title = "Link Up · Offline";
           title.textContent = "Link Up is offline";

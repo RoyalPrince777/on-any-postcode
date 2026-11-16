@@ -1,6 +1,9 @@
 "use strict";
 
 const CACHE_VERSION = "oap-os-public-v1.1";
+// Reinstall the reviewed public shell when this worker changes so existing
+// installations receive the corrected offline return-route UI, without
+// changing the cache key or storing private navigation responses.
 const PUBLIC_SHELL = Object.freeze([
   "/offline",
   "/manifest.webmanifest",

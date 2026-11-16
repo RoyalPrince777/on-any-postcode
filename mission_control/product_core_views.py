@@ -5,6 +5,7 @@ import base64
 import binascii
 import uuid
 
+import psycopg
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
@@ -30,6 +31,7 @@ from . import (
     open_cinema,
     open_cinema_evidence,
     open_music_intake,
+    pod_artwork,
     pod_provider_registry,
     printful_pod_adapter,
     prodigi_pod_adapter,
@@ -42,10 +44,56 @@ from . import (
     sika_payment_orchestrator,
     sika_payment_submission_evidence,
     sika_secure_provider_runtime,
+    tv_founder_intake,
     web_security,
 )
 
 bp = Blueprint("product_core_organs", __name__)
+
+
+@bp.post("/market/pod/artwork")
+@web_security.login_required(api=True, founder_only=True)
+def upload_pod_artwork():
+    """Authenticated owner-only artwork storage; never calls a manufacturer."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_invalid", "Invalid request token.", 403)
+    identity = _identity(sync=True)
+    upload = request.files.get("artwork")
+    if upload is None or not upload.filename:
+        return _error("pod_artwork_required", "Choose an artwork image.", 400)
+    media = upload.read(pod_artwork.MAX_ARTWORK_BYTES + 1)
+    try:
+        reference = pod_artwork.save(
+            owner_identity_id=identity,
+            filename=upload.filename,
+            mime_type=upload.mimetype or "",
+            media=media,
+        )
+    except (ValueError, TypeError):
+        return _error("pod_artwork_invalid", "Invalid image format, name or size.", 400)
+    except (OSError, RuntimeError, psycopg.Error):
+        return _error("pod_artwork_unavailable", "Artwork storage unavailable.", 503)
+    return _no_store(make_response(jsonify(artwork_reference=reference), 201))
+
+
+@bp.get("/market/pod/artwork/<asset_id>")
+@web_security.login_required(api=True, founder_only=True)
+def read_pod_artwork(asset_id: str):
+    """Private image access; no cross-owner media exposure."""
+    try:
+        row = pod_artwork.load(owner_identity_id=_identity(), asset_id=asset_id)
+    except (ValueError, TypeError):
+        return _error("pod_artwork_not_found", "Artwork not found.", 404)
+    except (OSError, RuntimeError, psycopg.Error):
+        return _error("pod_artwork_unavailable", "Artwork storage unavailable.", 503)
+    if row is None:
+        return _error("pod_artwork_not_found", "Artwork not found.", 404)
+    response = make_response(row[1], 200)
+    response.headers["Content-Type"] = row[0]
+    return _no_store(response)
+
+
+
 _store = product_cores.PostgresProductCoreStore()
 _music_evidence_store = music_evidence.MusicEvidenceStore()
 _music_market_purchase_store = music_market_purchase.MusicMarketPurchaseStore()
@@ -529,6 +577,41 @@ def append_tune_release_acceptance(release_id: str):
 def music_civilization_status():
     """Single Music/Radio/Records/Live contract with no execution authority."""
     return _no_store(make_response(jsonify(music_civilization.contracts())))
+
+
+@bp.get("/entertainment/tv/founder-upload")
+@web_security.login_required(api=False, founder_only=True)
+def tv_founder_upload_page():
+    """Private Royal Cinema Founder upload form."""
+    return _no_store(make_response(render_template(
+        "tv_founder_upload.html",
+        csrf_token=web_security.csrf_token(),
+        max_video_mib=tv_founder_intake.MAX_VIDEO_BYTES // (1024 * 1024),
+    )))
+
+
+@bp.post("/entertainment/tv/founder-upload")
+@web_security.login_required(api=True, founder_only=True)
+def tv_founder_upload():
+    """Private OAP TV video intake. No publication or playback authority."""
+    if not _write_allowed():
+        return _error("csrf_failed", "The secure session expired. Refresh and try again.", 403)
+    upload = request.files.get("video")
+    if upload is None:
+        return _error("invalid_request", "Video file required.", 400)
+    try:
+        receipt = tv_founder_intake.intake(
+            upload.stream,
+            content_type=upload.mimetype,
+            title=request.form.get("title", ""),
+            owner_id=_identity(),
+            content_kind=request.form.get("content_kind", "film"),
+        )
+    except (ValueError, TypeError):
+        return _error("invalid_request", "Invalid video, title or media type.", 400)
+    except (OSError, RuntimeError):
+        return _error("tv_storage_unavailable", "Private TV storage is unavailable.", 503)
+    return _no_store(make_response(jsonify(receipt), 201))
 
 
 @bp.post("/entertainment/open-cinema/preview")

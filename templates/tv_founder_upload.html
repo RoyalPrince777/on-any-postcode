@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Legacy · OAP TV</title>
+<style>
+:root{color-scheme:dark}body{margin:0;background:#090909;color:#f7edda;font:16px system-ui,sans-serif}
+main{max-width:760px;margin:auto;padding:16px clamp(14px,4vw,28px) 96px}*{box-sizing:border-box}button,input,select{min-height:44px} :focus-visible{outline:3px solid #e9c574;outline-offset:3px}header{border-bottom:2px solid #a77d34;padding:24px 0;text-align:center}
+small,.muted{color:#c8bca4}h1{font-size:clamp(30px,7vw,48px);margin:.2em 0;color:#e9c574}
+.panel{border:1px solid #7d632f;background:#17130f;border-radius:18px;padding:24px;margin-top:24px}
+label{display:block;margin:16px 0 8px;font-weight:600}input,select{display:block;box-sizing:border-box;width:100%;padding:13px;background:#0d0d0d;border:1px solid #9d875f;border-radius:8px;color:#fff;font:inherit}
+button{background:#d3ac5b;color:#16100a;border:0;border-radius:9px;padding:15px 24px;font:inherit;font-weight:800;width:100%;margin-top:22px}
+button:disabled{opacity:.5;cursor:not-allowed}.topnav{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}.topnav a{color:#f7edda;padding:10px 12px;border:1px solid #7d632f;border-radius:10px;text-decoration:none}.topnav [aria-current]{background:#513f1f}.badge{border:1px solid #957a41;border-radius:8px;padding:5px 9px;font-size:13px;display:inline-block}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.tile{border:1px solid #52462e;border-radius:12px;padding:14px;background:#110f0e}.tile p{font-size:13px;margin:7px 0 0}.tile strong{display:block}.locked{color:#d1c5af}.skip{position:absolute;left:-10000px}.skip:focus{left:12px;top:12px;background:#222;padding:10px;z-index:10}p{line-height:1.5}#message{white-space:pre-wrap;overflow-wrap:anywhere}
+</style></head><body><a class="skip" href="#main">Skip to content</a><main id="main">
+<header><small>POWERED BY ON ANY POSTCODE</small><h1>🎬 MY LEGACY</h1><p>Royal Cinema · Founder Film Intake</p><nav class="topnav" aria-label="OAP TV Founder navigation"><a href="#upload-section" aria-current="page">Upload</a><a href="#local-preview">Preview</a><a href="#tv-sections">Inside OAP TV</a></nav></header>
+<section class="panel" id="upload-section">
+<h2>Upload a video</h2><p class="muted">Private draft only. Uploading does not publish, license, sell, or enable playback.</p>
+<form method="post" enctype="multipart/form-data" id="upload">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+<label for="content_kind">Upload type</label><select id="content_kind" name="content_kind" style="width:100%;padding:13px;background:#0d0d0d;border:1px solid #9d875f;border-radius:8px;color:#fff;font:inherit"><option value="film">Film</option><option value="clip">Clip</option><option value="trailer">Trailer</option><option value="episode">Episode</option></select><label for="title">Video title</label><input id="title" name="title" maxlength="180" required autocomplete="off">
+<label for="video">Choose MP4 or WebM (maximum {{ max_video_mib }} MiB)</label>
+<input id="video" name="video" type="file" accept="video/mp4,video/webm,.mp4,.webm" required>
+<div id="local-preview"><h3>Preview on this device</h3><video id="preview" controls playsinline preload="metadata" style="display:none;width:100%;margin-top:16px;max-height:350px" aria-label="Private local video preview"></video><p id="preview-status" class="muted">Choose a video to preview it privately on this device before upload.</p><button type="button" id="fullscreen" disabled>Fullscreen preview</button></div><button type="submit" id="send">Save private draft</button>
+</form><p id="message" role="status" aria-live="polite"></p>
+</section><section class="panel" id="tv-sections"><h2>Inside OAP TV</h2><div class="grid"><div class="tile"><strong>Royal Cinema</strong><p class="locked">Saved playback · not ready</p></div><div class="tile"><strong>The Lineup</strong><p class="locked">Schedule · not ready</p></div><div class="tile"><strong>Video Store</strong><p class="locked">Rental catalogue · not ready</p></div><div class="tile"><strong>My Legacy</strong><p>Private upload is in development</p></div><div class="tile"><strong>OAP Cast</strong><p class="locked">Receiver connection · not ready</p></div><div class="tile"><strong>SIKA Pay</strong><p class="locked">Checkout · not enabled</p></div></div></section><p class="muted">Only upload media you have permission to use. Rights review and public release remain locked.</p>
+</main><script>
+const form=document.getElementById('upload'), message=document.getElementById('message'), btn=document.getElementById('send');
+const video=document.getElementById('preview'), status=document.getElementById('preview-status'), full=document.getElementById('fullscreen'), picker=document.getElementById('video');
+let blobUrl=null;
+picker.addEventListener('change',()=>{
+ if(blobUrl){URL.revokeObjectURL(blobUrl);blobUrl=null;}
+ video.pause();video.removeAttribute('src');video.load();video.style.display='none';full.disabled=true;
+ const file=picker.files[0];
+ if(!file){status.textContent='Choose an MP4 or WebM to preview.';return;}
+ if(!['video/mp4','video/webm'].includes(file.type)){status.textContent='Select MP4 or WebM.';return;}
+ if(!file.size||file.size> {{ max_video_mib }}*1024*1024){status.textContent='Video must be non-empty and no larger than {{ max_video_mib }} MiB.';return;}
+ blobUrl=URL.createObjectURL(file);video.src=blobUrl;video.style.display='block';full.disabled=false;
+ status.textContent='Private on-device preview. Not yet uploaded or published.';
+});
+full.addEventListener('click',()=>{if(video.requestFullscreen)video.requestFullscreen().catch(()=>{status.textContent='Fullscreen unavailable on this device.';});});
+window.addEventListener('pagehide',()=>{if(blobUrl)URL.revokeObjectURL(blobUrl);});
+form.addEventListener('submit',async e=>{
+ e.preventDefault();const file=document.getElementById('video').files[0];
+ if(!file){message.textContent='Select a video first.';return;}
+ if(!file.size||file.size> {{ max_video_mib }}*1024*1024){message.textContent='Video must be non-empty and no larger than {{ max_video_mib }} MiB.';return;}
+ if(!navigator.onLine){message.textContent='Offline. Reconnect before saving your private draft; no video has been queued.';return;}
+ btn.disabled=true;message.textContent='Saving private draft…';
+ try{
+   const r=await fetch(form.action||location.pathname,{method:'POST',body:new FormData(form),credentials:'same-origin'});
+   const data=await r.json().catch(()=>null);
+   if(!r.ok)throw Error(data?.error?.message||'Upload unavailable. Check your connection and try again.');
+   if(!data||!data.candidate_id||!data.sha256)throw Error('Upload confirmation unavailable. Check private drafts before retrying to avoid duplicates.');
+   message.textContent='Private '+data.content_kind+' draft saved. Candidate ID: '+data.candidate_id+'\nSHA-256: '+data.sha256+'\nNot published or playable.';
+   // Keep the selected local preview available until the Founder chooses another file.
+ }catch(err){message.textContent='Upload not completed: '+err.message}
+ finally{btn.disabled=false}
+});
+</script></body></html>

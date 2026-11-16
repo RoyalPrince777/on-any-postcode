@@ -121,3 +121,15 @@ def test_os_boundary_and_war_room_rating_are_truthful():
         boundary["components"] == "OAP OS / OAP CORE / Living Kernel / Android-Linux"
         for boundary in projection["conflict_audit"]["resolved_boundaries"]
     )
+
+
+def test_offline_fallback_preserves_original_public_route_and_tv_truth(client):
+    page = client.get("/offline").get_data(as_text=True)
+    assert 'retry.href = location.pathname + location.search' in page
+    for route in ('"/tv"', '"/oap-tv"', '"/media"', '"/oap-media"', '"/tv-media"', '"/the-spot/tv-media"'):
+        assert route in page
+    assert 'OAP TV is offline' in page
+    assert 'never cached or queued' in page
+    assert 'location.pathname !== "/offline"' in page
+    assert 'isProtected' in page
+    assert '"/mission"' in page
