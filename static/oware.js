@@ -5,8 +5,25 @@ const q=s=>root.querySelector(s);const csrf=document.querySelector('meta[name="o
 let state=null,busy=false;const requestId=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
 const error=e=>q("[data-error]").textContent=e?.message||String(e);
 async function post(url,payload){const r=await fetch(url,{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(payload)});const result=await r.json();if(!r.ok)throw new Error(result?.error?.code||"arena_request_failed");return result;}
-function pitButton(index){const b=document.createElement("button");b.type="button";b.className="arena-choice";b.dataset.pit=String(index);b.textContent=String(state.pits[index]);b.setAttribute("aria-label","House "+(index+1)+": "+state.pits[index]+" seeds");const legal=state.status==="active"&&state.legal_pits.includes(index);b.disabled=busy||!legal;if(legal)b.setAttribute("aria-pressed","false");return b;}
-function row(indices,label){const wrap=document.createElement("div");wrap.className="arena-choices";wrap.setAttribute("role","group");wrap.setAttribute("aria-label",label);for(const index of indices)wrap.append(pitButton(index));return wrap;}
+function pitButton(index){
+ const b=document.createElement("button");b.type="button";b.className="oware-pit";
+ b.dataset.pit=String(index);
+ const count=state.pits[index];
+ b.setAttribute("aria-label","House "+(index+1)+": "+count+" seeds");
+ const legal=state.status==="active"&&state.legal_pits.includes(index);
+ b.disabled=busy||!legal;
+ if(legal){b.classList.add("is-legal");b.setAttribute("aria-pressed","false");}
+ const bowl=document.createElement("span");bowl.className="oware-bowl";bowl.setAttribute("aria-hidden","true");
+ const seeds=document.createElement("span");seeds.className="oware-seeds";
+ // Keep the physical pit readable when a move collects many seeds.
+ for(let n=0;n<Math.min(count,18);n++){
+  const seed=document.createElement("span");seed.className="oware-seed";seeds.append(seed);
+ }
+ bowl.append(seeds);b.append(bowl);
+ const badge=document.createElement("span");badge.className="oware-count";badge.textContent=String(count);badge.setAttribute("aria-hidden","true");b.append(badge);
+ return b;
+}
+function row(indices,label){const wrap=document.createElement("div");wrap.className="oware-row";wrap.setAttribute("role","group");wrap.setAttribute("aria-label",label);for(const index of indices)wrap.append(pitButton(index));return wrap;}
 function render(){
  if(!state)return;
  q("[data-game]").hidden=false;
