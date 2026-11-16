@@ -2,7 +2,7 @@
 <html lang="en" data-koradaso-release="{{ koradaso_release }}">
 <head>
 <meta charset="utf-8">
-<title>{% if koradaso_mode %}KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</title>
+<title>{% if koradaso_mode %}SMI · KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 {% include "_oap_install_head.html" %}
 <style>
@@ -36,7 +36,7 @@
 <body class="{% if koradaso_mode %}koradaso-intelligence{% endif %}">
 <div class="shell">
   <aside class="side">
-    <div><div class="brand">{% if koradaso_mode %}♛ KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</div><div class="sub">{% if koradaso_mode %}SMI-guided · First-party inference only{% else %}Public AI experience · SMI{% endif %}</div></div>
+    <div><div class="brand">{% if koradaso_mode %}♛ SMI · KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</div><div class="sub">{% if koradaso_mode %}One SMI · KORADASO interface · First-party inference only{% else %}Public AI experience · SMI{% endif %}</div></div>
     <a class="new" href="{% if koradaso_mode %}/studio?source=koradaso{% else %}/studio{% endif %}">＋ New chat</a>
     <nav class="nav" aria-label="Studio navigation">
       <a href="{% if koradaso_mode %}/studio?source=koradaso{% else %}/studio{% endif %}">💬 Chats</a>
@@ -48,12 +48,12 @@
     <div class="private-note">Public Studio contains public creation tools only. Private operational controls remain separate and inaccessible.</div>
   </aside>
   <main class="main">
-    <header class="top"><strong>{% if koradaso_mode %}KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</strong><div class="actions">{% if koradaso_mode %}<a class="pill" href="/koradaso">KORADASO Home</a>{% else %}<a class="pill" href="/">OAP World</a><a class="pill" href="/the-spot">Enter My World</a>{% endif %}</div></header>
+    <header class="top"><strong>{% if koradaso_mode %}SMI · KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</strong><div class="actions">{% if koradaso_mode %}<a class="pill" href="/koradaso">KORADASO Home</a>{% else %}<a class="pill" href="/">OAP World</a><a class="pill" href="/the-spot">Enter My World</a>{% endif %}</div></header>
     <section class="chat">
       <div class="welcome">
-        <h1>{% if koradaso_mode %}KORADASO Intelligence{% else %}What can OAP help you create?{% endif %}</h1>
+        <h1>{% if koradaso_mode %}SMI · KORADASO Intelligence{% else %}What can OAP help you create?{% endif %}</h1>
         <p>{% if koradaso_mode %}Ask, research and create with KORADASO. First-party inference only; unavailable means unavailable.{% else %}Ask, create, research and work with media from one public OAP AI surface.{% endif %}</p>
-        {% if koradaso_mode %}<p class="status-inline" id="koradaso-ai-status" role="status"><strong>First-party only</strong> · Connection not checked. Your private Founder SMI is never used.</p>{% endif %}
+        {% if koradaso_mode %}<p class="status-inline" id="koradaso-ai-status" role="status"><strong>First-party only</strong> · Connection not checked. Founder session, memory and authority are never used.</p>{% endif %}
         <div class="tools" id="tools" aria-label="Seven intelligence suggestions">
           <button class="tool" type="button" data-smi-prompt="Explain this topic clearly, distinguishing facts from uncertainty: "><strong>Explain</strong><small>Understand a topic clearly</small></button>
           <button class="tool" type="button" id="research" data-smi-prompt="Research this question using available evidence. Distinguish verified facts, limitations and missing sources: "><strong>Research</strong><small>Evidence and limitations</small></button>
@@ -65,13 +65,13 @@
         </div>
         <div class="composer" aria-label="Studio composer">
           <div id="messages" aria-live="polite"></div>
-          <textarea id="studio-input" placeholder="{% if koradaso_mode %}Ask KORADASO Intelligence...{% else %}Ask OAP Studio Intelligence...{% endif %}"></textarea>
+          <textarea id="studio-input" placeholder="{% if koradaso_mode %}Ask SMI · KORADASO Intelligence...{% else %}Ask OAP Studio Intelligence...{% endif %}"></textarea>
           <div class="bar">
             <div class="left">{% if koradaso_mode %}<a class="btn" href="/koradaso" aria-label="Back to KORADASO home">⌂ Home</a>{% else %}<button class="btn" type="button" disabled title="Files are available only in the signed-in private workspace">＋ Files</button><button class="btn" type="button" disabled title="Voice is available only in the signed-in private workspace">🎙 Voice</button>{% endif %}</div>
             <div class="right"><button class="btn send" id="studio-send" type="button">Send</button></div>
           </div>
         </div>
-        <div class="truth">{% if koradaso_mode %}KORADASO never forwards this chat to an external AI fallback. If the OAP inference node is unavailable, your request fails safely.{% else %}Public interface updates are checked automatically when online. Open chats are never refreshed without your action.{% endif %}</div>
+        <div class="truth">{% if koradaso_mode %}SMI's KORADASO interface never forwards this chat to an external AI fallback. If the OAP inference node is unavailable, your request fails safely.{% else %}Public interface updates are checked automatically when online. Open chats are never refreshed without your action.{% endif %}</div>
         <div class="truth">Chat availability is confirmed only when a request succeeds. Founder controls, Files, Voice and private SMI remain separate.</div>
       </div>
     </section>
@@ -113,8 +113,8 @@ async function submitStudio(){
     const data=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error((data.error&&data.error.message)||'OAP Studio Intelligence is unavailable.');
     if(koradasoMode&&koradasoStatus){koradasoStatus.textContent='First-party response received · Exact node identity not attested';}
-    add(koradasoMode?'KORADASO Intelligence':'OAP Studio Intelligence',data.answer||'No response returned.'); history.push({role:'assistant',text:data.answer||''}); if(data.chat_intelligence){const m=data.chat_intelligence.mode||'chat'; const r=data.chat_intelligence.routing||{}; const s=data.chat_intelligence.specialist||{}; const note=document.createElement('div'); note.className='truth'; const spec=s.name?(' · '+s.name+(s.ready===false?' 🔒':'')):''; note.textContent='🧠 Chat Intelligence · '+m+spec+(r.active?' · '+r.mode:''); messages.appendChild(note);}
-  }catch(err){if(koradasoMode&&koradasoStatus){koradasoStatus.textContent='First-party node unavailable or request failed · No external AI fallback';} add(koradasoMode?'KORADASO Intelligence':'OAP Studio Intelligence',err.message||'Request failed safely.'); }
+    add(koradasoMode?'SMI · KORADASO Intelligence':'OAP Studio Intelligence',data.answer||'No response returned.'); history.push({role:'assistant',text:data.answer||''}); if(data.chat_intelligence){const m=data.chat_intelligence.mode||'chat'; const r=data.chat_intelligence.routing||{}; const s=data.chat_intelligence.specialist||{}; const note=document.createElement('div'); note.className='truth'; const spec=s.name?(' · '+s.name+(s.ready===false?' 🔒':'')):''; note.textContent='🧠 Chat Intelligence · '+m+spec+(r.active?' · '+r.mode:''); messages.appendChild(note);}
+  }catch(err){if(koradasoMode&&koradasoStatus){koradasoStatus.textContent='First-party node unavailable or request failed · No external AI fallback';} add(koradasoMode?'SMI · KORADASO Intelligence':'OAP Studio Intelligence',err.message||'Request failed safely.'); }
   finally{send.disabled=false;send.textContent='Send';input.focus();}
 }
 send.addEventListener('click',submitStudio);
