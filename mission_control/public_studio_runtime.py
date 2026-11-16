@@ -276,7 +276,7 @@ def ask(message: object, *, rate_key: str, history: object = None, first_party_o
 
     return {
         "answer": answer,
-        "assistant": "KORADASO Intelligence" if first_party_only else "OAP Studio Intelligence",
+        "assistant": "SMI · KORADASO Intelligence" if first_party_only else "OAP Studio Intelligence",
         "brain": "SMI",
         "smi_surface": "public",
         "first_party_only": first_party_only,
