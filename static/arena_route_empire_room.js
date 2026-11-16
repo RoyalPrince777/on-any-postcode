@@ -1,6 +1,6 @@
 (()=>{"use strict";
 const root=document.querySelector("[data-route-room]");if(!root)return;const q=s=>root.querySelector(s);
-const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";let membership=null,snapshot=null,busy=false,entryBusy=false,needsRefresh=false;
+const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";let membership=null,snapshot=null,busy=false,entryBusy=false,needsRefresh=false,refreshInFlight=null;
 const req=()=>crypto.randomUUID().replaceAll("-","").slice(0,20);const err=e=>q("[data-error]").textContent=e?.message||String(e);const clear=()=>q("[data-error]").textContent="";
 async function post(path,body){const r=await fetch(path,{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d?.error?.code||"arena_room_request_failed");return d;}
 function identity(d,seat){membership={room_id:d.room_id,reconnect_token:d.reconnect_token,seat};q("[data-entry]").hidden=true;q("[data-room]").hidden=false;q("[data-id]").textContent=membership.room_id;q("[data-token]").textContent=membership.reconnect_token;q("[data-code]").textContent=d.room_code||"";}
@@ -13,7 +13,7 @@ const claim=document.createElement("button");claim.type="button";claim.textConte
 const dev=document.createElement("button");dev.type="button";dev.textContent="Develop";dev.disabled=busy||needsRefresh||!myTurn||node.owner_id!==mine||node.level>=3;dev.onclick=()=>action({action:"develop",node_id:node.id});acts.append(claim,dev);wrap.append(label,acts);nodes.append(wrap);
 for(const sel of [from,to]){const o=document.createElement("option");o.value=node.id;o.textContent=node.label;sel.append(o);}}
 q("[data-build-route]").disabled=busy||needsRefresh||!myTurn;q("[data-end-turn]").disabled=busy||needsRefresh||!myTurn;q("[data-stop]").disabled=busy||needsRefresh||snapshot.status!=="ACTIVE";}
-async function refresh(){const d=await post("/arena/rooms/state",{room_id:membership.room_id,reconnect_token:membership.reconnect_token});if(d.game_key!=="route-empire")throw new Error("arena_room_game_invalid");snapshot=d;membership.seat=d.your_seat;needsRefresh=false;render();}
+async function refresh(){if(refreshInFlight)return refreshInFlight;const current=membership;if(!current)throw new Error("arena_room_membership_required");refreshInFlight=(async()=>{const d=await post("/arena/rooms/state",{room_id:current.room_id,reconnect_token:current.reconnect_token});if(d.game_key!=="route-empire")throw new Error("arena_room_game_invalid");if(membership!==current)return;snapshot=d;membership.seat=d.your_seat;needsRefresh=false;render();})();try{return await refreshInFlight;}finally{refreshInFlight=null;}}
 async function enter(task){if(entryBusy||busy)return;entryBusy=true;clear();try{await task();}catch(e){err(e);}finally{entryBusy=false;}}
 async function action(body){if(busy||needsRefresh||!membership||!snapshot)return;busy=true;render();clear();try{await post("/arena/rooms/route-empire/action",{...membership,expected_revision:snapshot.revision,request_id:req(),...body});await refresh();}catch(e){err(e);needsRefresh=true;try{await refresh();}catch(_){}}finally{busy=false;render();}}
 q("[data-matchmake]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/matchmake",{game_key:"route-empire",display_name:q("[data-host]").value.trim()});identity(d,d.seat);await refresh();});
@@ -21,4 +21,9 @@ q("[data-create]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/
 q("[data-join]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/join",{room_code:q("[data-join-code]").value.trim().toUpperCase(),display_name:q("[data-guest]").value.trim()});identity(d,d.seat);await refresh();});
 q("[data-reconnect]").onclick=()=>enter(async()=>{membership={room_id:q("[data-reconnect-id]").value.trim(),reconnect_token:q("[data-reconnect-token]").value.trim(),seat:0};await refresh();q("[data-entry]").hidden=true;q("[data-room]").hidden=false;q("[data-id]").textContent=membership.room_id;q("[data-token]").textContent=membership.reconnect_token;});
 q("[data-build-route]").onclick=()=>action({action:"route",node_id:q("[data-from]").value,target_node_id:q("[data-to]").value});q("[data-end-turn]").onclick=()=>action({action:"end_turn"});q("[data-refresh]").onclick=async()=>{clear();try{await refresh();}catch(e){err(e);needsRefresh=true;render();}};q("[data-stop]").onclick=()=>action({action:"stop"});
+
+// Refresh the authoritative room across devices without overlapping requests.
+async function syncRoom(){if(!membership||!snapshot||busy||entryBusy||needsRefresh||refreshInFlight||document.visibilityState!=="visible"||!["WAITING","ACTIVE"].includes(snapshot.status))return;try{await refresh();}catch(e){needsRefresh=true;err(e);render();}}
+setInterval(syncRoom,2500);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void syncRoom();});
 })();
