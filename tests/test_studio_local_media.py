@@ -117,3 +117,68 @@ def test_outside_owner_folder_and_symlink_rejected(tmp_path):
             )
     finally:
         linked.unlink(missing_ok=True)
+
+
+def test_gif_export_requires_private_root(tmp_path, monkeypatch):
+    (tmp_path / "scene.gif").write_bytes(b"GIF89a")
+    monkeypatch.delenv("OAP_STUDIO_PRIVATE_ASSET_ROOT", raising=False)
+    with pytest.raises(render.StudioRenderUnavailable, match="private_asset_root_unconfigured"):
+        render.export_owned_gif_as_mp4(
+            owner_directory=str(tmp_path), gif_name="scene.gif", output_name="scene.mp4",
+        )
+
+
+def test_gif_export_rejects_unowned_input_and_existing_output(tmp_path):
+    (tmp_path / "scene.gif").write_bytes(b"GIF89a")
+    (tmp_path / "scene.mp4").write_bytes(b"existing")
+    with pytest.raises(ValueError, match="output_already_exists"):
+        render.export_owned_gif_as_mp4(
+            owner_directory=str(tmp_path), gif_name="scene.gif", output_name="scene.mp4",
+        )
+    with pytest.raises(ValueError, match="asset_filename_invalid"):
+        render.export_owned_gif_as_mp4(
+            owner_directory=str(tmp_path), gif_name="../scene.gif", output_name="fresh.mp4",
+        )
+
+
+def test_gif_export_fails_closed_on_invalid_probe(tmp_path, monkeypatch):
+    (tmp_path / "scene.gif").write_bytes(b"GIF89a")
+    monkeypatch.setattr(render.shutil, "which", lambda name: "/usr/bin/" + name)
+
+    class Result:
+        returncode = 0
+        stdout = '{"streams":[],"format":{"duration":"0.84"}}'
+
+    monkeypatch.setattr(render.subprocess, "run", lambda *_args, **_kwargs: Result())
+    with pytest.raises(render.StudioRenderUnavailable, match="gif_probe_invalid"):
+        render.export_owned_gif_as_mp4(
+            owner_directory=str(tmp_path), gif_name="scene.gif", output_name="scene.mp4",
+        )
+    assert not (tmp_path / "scene.mp4").exists()
+
+
+def test_gif_export_is_an_export_not_an_ai_generation(tmp_path, monkeypatch):
+    (tmp_path / "scene.gif").write_bytes(b"GIF89a" + b"test" * 64)
+    monkeypatch.setattr(render.shutil, "which", lambda name: "/usr/bin/" + name)
+
+    class Probe:
+        returncode = 0
+        stdout = '{"streams":[{"codec_type":"video","width":676,"height":376}],"format":{"duration":"0.84"}}'
+
+    def run(args, **_kwargs):
+        if args[0].endswith("ffprobe"):
+            return Probe()
+        Path(args[-1]).write_bytes(b"fake mp4 fixture")
+        return Probe()
+
+    monkeypatch.setattr(render.subprocess, "run", run)
+    result = render.export_owned_gif_as_mp4(
+        owner_directory=str(tmp_path), gif_name="scene.gif", output_name="scene.mp4",
+    )
+    assert result["rendered"] is True
+    assert result["ai_generated_in_smi"] is False
+    assert result["published"] is False
+    assert result["payment_authorised"] is False
+    assert result["kind"] == "existing_gif_export"
+    assert result["source_sha256"] and result["sha256"]
+    assert (tmp_path / "scene.mp4").exists()
