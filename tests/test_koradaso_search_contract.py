@@ -627,3 +627,27 @@ def test_koradaso_launcher_refuses_missing_or_invalid_royal_logo():
     assert "image.read(3) != bytes((0xFF, 0xD8, 0xFF))" in launcher
     assert Path("static/oap/koradaso_internet_logo.jpg").read_bytes()[:3] == bytes((0xFF, 0xD8, 0xFF))
     assert "git reset --hard" not in launcher
+
+
+def test_koradaso_destinations_and_arena_games_have_a_home_return(client):
+    """Keep the browser front door reachable without trusting browser Back history."""
+    routes = (
+        "/world", "/oap-map", "/the-link", "/the-spot/market",
+        "/arena", "/studio?source=koradaso", "/search",
+        "/koradaso/web-search", "/arena/ludo", "/arena/oware",
+        "/arena/chess", "/arena/dot", "/arena/connect4",
+        "/arena/iq", "/arena/route-empire",
+        "/arena/ludo/room", "/arena/oware/room",
+        "/arena/chess/room", "/arena/dot/room",
+        "/arena/connect4/room", "/arena/iq/room",
+        "/arena/route-empire/room",
+    )
+    for route in routes:
+        page = client.get(route, follow_redirects=False)
+        assert page.status_code == 200, (route, page.status_code)
+        assert 'href="/koradaso"' in page.get_data(as_text=True), route
+    logo = client.get("/static/oap/koradaso_internet_logo.jpg")
+    assert logo.status_code == 200
+    assert logo.mimetype == "image/jpeg"
+    progress = client.get("/static/arena_gameplay_progress.js")
+    assert progress.status_code == 200
