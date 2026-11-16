@@ -139,3 +139,57 @@ body:has(.arena-game){overflow-x:hidden}
  .oap-ludo .ludo-player .arena-actions{margin:4px 0}
 }
 @media(prefers-reduced-motion:reduce){.oap-ludo .ludo-token.ludo-legal{animation:none}}
+
+
+/* Oware: a physical 2×6 Ghanaian seed board. Scoped to the local Oware page. */
+.arena-game[data-oware-root] .oware-game-card{background:#eee3d1;color:#34251b;border:0}
+.arena-game[data-oware-root] .oware-game-card .arena-hint{color:#584838}
+.arena-game[data-oware-root] [data-board]{
+ display:grid;gap:clamp(4px,1.6vw,12px);
+ width:100%;overflow:visible;padding:clamp(8px,2vw,20px);
+ border:clamp(5px,1.3vw,11px) solid #211b17;border-radius:clamp(14px,3vw,28px);
+ background:repeating-linear-gradient(4deg,transparent 0 12px,#ffffff07 13px 15px,transparent 17px 29px),linear-gradient(110deg,#30241e,#171311 42%,#33271f 84%,#1e1714);
+ box-shadow:0 18px 35px #0005,inset 0 2px 4px #ffffff14,inset 0 -4px 9px #0008;
+}
+.arena-game[data-oware-root] .oware-row{
+ display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+ gap:clamp(2px,1vw,12px);min-width:0;
+}
+.arena-game[data-oware-root] .oware-pit{
+ position:relative;width:100%;height:auto;aspect-ratio:1/1;min-width:0;min-height:0;
+ display:grid;place-items:center;padding:0;border:0;border-radius:50%;
+ background:transparent;overflow:visible;
+}
+.arena-game[data-oware-root] .oware-pit:disabled{opacity:1;cursor:default}
+.arena-game[data-oware-root] .oware-bowl{
+ position:absolute;inset:4%;border-radius:50%;
+ display:grid;place-items:center;overflow:hidden;
+ background:radial-gradient(ellipse at 47% 74%,#452517 0 14%,#67391f 48%,#a96d44 76%,#492e22 97%);
+ box-shadow:inset 2px 6px 8px #0009,inset -3px -4px 6px #d18a5230,0 1px 1px #ffffff22;
+}
+.arena-game[data-oware-root] .oware-seeds{
+ display:flex;flex-wrap:wrap;align-content:center;justify-content:center;
+ gap:clamp(1px,.5vw,4px);width:77%;max-height:78%;overflow:hidden;transform:translateY(10%);
+}
+.arena-game[data-oware-root] .oware-seed{
+ display:block;flex:0 0 auto;width:clamp(5px,1.7vw,14px);aspect-ratio:1;border-radius:50%;
+ background:radial-gradient(circle at 28% 22%,#d1c790,#aaa273 46%,#6e7045 83%,#444829 100%);
+ box-shadow:1px 2px 2px #0009,inset 1px 1px 2px #f4ebbb55;
+}
+.arena-game[data-oware-root] .oware-count{
+ position:absolute;right:0;bottom:-4px;display:grid;place-items:center;
+ border-radius:999px;min-width:20px;padding:1px 4px;font-size:clamp(10px,2.3vw,14px);
+ line-height:1.25;background:#17130fed;color:#fff1d5;border:1px solid #aa8c54;
+}
+.arena-game[data-oware-root] .oware-pit.is-legal .oware-bowl{
+ outline:clamp(2px,.6vw,4px) solid #f2ce73;outline-offset:1px;
+ box-shadow:inset 2px 6px 8px #0009,0 0 0 2px #21160e,0 0 9px #f7d56b9c;
+}
+.arena-game[data-oware-root] .oware-pit:focus-visible{outline:3px solid #ffe9a8;outline-offset:2px}
+@media(max-width:430px){
+ .arena-game[data-oware-root] [data-board]{padding:7px;border-width:5px;gap:5px}
+ .arena-game[data-oware-root] .oware-row{gap:2px}
+ .arena-game[data-oware-root] .oware-bowl{inset:2%}
+ .arena-game[data-oware-root] .oware-seeds{width:87%;gap:1px}
+ .arena-game[data-oware-root] .oware-seed{width:clamp(5px,1.7vw,8px)}
+}
