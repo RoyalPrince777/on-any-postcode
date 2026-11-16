@@ -5,6 +5,7 @@ import base64
 import binascii
 import uuid
 
+import psycopg
 from flask import Blueprint, jsonify, make_response, render_template, request
 
 from . import (
@@ -50,7 +51,7 @@ bp = Blueprint("product_core_organs", __name__)
 
 
 @bp.post("/market/pod/artwork")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def upload_pod_artwork():
     """Authenticated owner-only artwork storage; never calls a manufacturer."""
     if not web_security.csrf_valid(request):
@@ -69,20 +70,20 @@ def upload_pod_artwork():
         )
     except (ValueError, TypeError):
         return _error("pod_artwork_invalid", "Invalid image format, name or size.", 400)
-    except Exception:
+    except (OSError, RuntimeError, psycopg.Error):
         return _error("pod_artwork_unavailable", "Artwork storage unavailable.", 503)
     return _no_store(make_response(jsonify(artwork_reference=reference), 201))
 
 
 @bp.get("/market/pod/artwork/<asset_id>")
-@web_security.login_required(api=True)
+@web_security.login_required(api=True, founder_only=True)
 def read_pod_artwork(asset_id: str):
     """Private image access; no cross-owner media exposure."""
     try:
         row = pod_artwork.load(owner_identity_id=_identity(), asset_id=asset_id)
     except (ValueError, TypeError):
         return _error("pod_artwork_not_found", "Artwork not found.", 404)
-    except Exception:
+    except (OSError, RuntimeError, psycopg.Error):
         return _error("pod_artwork_unavailable", "Artwork storage unavailable.", 503)
     if row is None:
         return _error("pod_artwork_not_found", "Artwork not found.", 404)
