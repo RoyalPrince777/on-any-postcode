@@ -488,3 +488,25 @@ def test_oware_local_board_is_carved_wood_with_real_seed_elements(client):
     assert ".arena-game[data-oware-root] .oware-bowl" in sheet
     assert "grid-template-columns:repeat(6,minmax(0,1fr))" in sheet
     assert ".arena-game[data-oware-root] .oware-seed" in sheet
+
+
+def test_arena_hub_game_first_noise_reduction_preserves_every_route(client):
+    response = client.get("/arena")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'aria-label="Play OAP Arena games"' in html
+    assert '<details class="arena-more">' in html
+    assert "More Arena options" in html
+    assert html.index('aria-label="Play OAP Arena games"') < html.index('aria-label="Arena identity and ranking eligibility"')
+    for path in (
+        "/arena/ludo", "/arena/oware", "/arena/chess", "/arena/dot",
+        "/arena/connect4", "/arena/iq", "/arena/route-empire",
+        "/arena/snakes-ladders", "/arena/scramble", "/arena/postcode-empire",
+        "/arena/connect4/room", "/arena/dot/room", "/arena/chess/room",
+        "/arena/ludo/room", "/arena/oware/room", "/arena/iq/room",
+        "/arena/route-empire/room",
+    ):
+        assert f'href="{path}"' in html, path
+    assert "OAP Challenge Engine" in html
+    assert "Global Arena" in html
+    assert "Guest games stay unranked" in html
