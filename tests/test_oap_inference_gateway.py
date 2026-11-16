@@ -114,6 +114,12 @@ def test_gateway_enriches_all_provider_paths_with_oap_capabilities():
     assert oap_inference_gateway.status()["capability_fabric"]["ready"] is True
 
 
+def test_compatibility_fallback_defaults_disabled():
+    """A fresh SMI install must never enable external compatibility by default."""
+    source = (ROOT / "mission_control" / "oap_inference_gateway.py").read_text()
+    assert '"OAP_INFERENCE_COMPATIBILITY_FALLBACK", "0"' in source
+
+
 def test_founder_chat_never_uses_external_compatibility_on_local_failure(monkeypatch):
     def unavailable(*args, **kwargs):
         raise RuntimeError("local_unavailable")
