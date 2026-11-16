@@ -29,7 +29,7 @@ for file in mission_control/koradaso_web_index.py mission_control/templates/kora
   fi
 done
 BASE='https://raw.githubusercontent.com/RoyalPrince777/on-any-postcode/6a0441674975c5847bb699de7955c4300851816a'
-STAGE="$(mktemp -d)"
+STAGE="$(mktemp -d "${TMPDIR:-${PREFIX:-$HOME}/tmp}/koradaso-repair.XXXXXXXX")"
 trap 'rm -rf -- "$STAGE"' EXIT
 mkdir -p "$STAGE/mission_control/templates"
 curl -fLsS --retry 2 "$BASE/mission_control/koradaso_web_index.py" -o "$STAGE/mission_control/koradaso_web_index.py"
@@ -58,11 +58,19 @@ STAMP="$(date +%Y%m%d_%H%M%S)"
 BACKUP="$ROOT/.koradaso-refresh-backups/search_route_$STAMP"
 mkdir -p "$BACKUP/mission_control"
 cp -p mission_control/oap_store.py "$BACKUP/mission_control/oap_store.py"
+UPDATED=false
+VERIFIED=false
 rollback() {
   cp -p "$BACKUP/mission_control/oap_store.py" mission_control/oap_store.py
   rm -f mission_control/koradaso_web_index.py mission_control/templates/koradaso_web_search.html
   echo "SAFE ROLLBACK: original OAP Store restored; new files removed." >&2
 }
+cleanup() {
+  if [[ "$UPDATED" == true && "$VERIFIED" != true ]]; then rollback; fi
+  rm -rf -- "$STAGE"
+}
+trap cleanup EXIT
+UPDATED=true
 cp -- "$STAGE/mission_control/koradaso_web_index.py" mission_control/koradaso_web_index.py
 cp -- "$STAGE/mission_control/templates/koradaso_web_search.html" mission_control/templates/koradaso_web_search.html
 cat >> mission_control/oap_store.py <<'PY'
@@ -100,9 +108,9 @@ assert b'KORADASO' in response.data, 'unrecognised search template'
 print(f'KORADASO compatibility verified: route returns HTTP {response.status_code} in Flask test client.')
 PY
 then
-  rollback
   exit 2
 fi
+VERIFIED=true
 echo "KORADASO first-party route source repaired. Backup: $BACKUP"
 echo "EXISTING homepage untouched; WWW Search is NOT claimed ready or publicly approved."
 echo "Existing 5052 Flask process must be restarted once to load the route; no restart performed."
