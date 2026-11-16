@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<title>KORADASO Internet · ON ANY POSTCODE</title>
+<title>KORADASO Internet Intelligence · ON ANY POSTCODE</title>
 <style>
 :root{--night:#050713;--panel:#111121;--gold:#f4cb74;--muted:#c5b5a0;--violet:#9b62e8;--line:#765b37;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 52% -13%,#302050 0%,#0d1024 41%,var(--night) 75%);color:#fff8ea;font:16px/1.45 system-ui,sans-serif}
@@ -17,7 +17,7 @@ a{color:inherit;text-decoration:none}button,input{font:inherit}
 .crest{display:grid;place-items:center;width:142px;height:142px;margin:auto;border:2px solid var(--gold);border-radius:50%;background:radial-gradient(circle,#744eac 0,#29274d 30%,#090d20 70%);box-shadow:0 0 42px #ae79e55e,inset 0 0 22px #edc76b55;position:relative}
 .crest span{font:700 6.4rem/.9 Georgia,serif;color:var(--gold);text-shadow:0 0 12px #d49a65}
 .crown{font-size:2rem;color:var(--gold);line-height:1}.hero h1{font:700 clamp(2.3rem,8vw,4rem)/1.02 Georgia,serif;letter-spacing:.04em;margin:18px 0 4px;color:var(--gold);text-shadow:0 0 18px #bf7e6c66}
-.subtitle{font-weight:600;letter-spacing:.4em;font-size:.8rem}.powered{color:var(--muted);font-size:.75rem;letter-spacing:.16em;margin-top:9px}
+.subtitle{font-weight:600;letter-spacing:.18em;font-size:clamp(.7rem,2.7vw,.9rem)}.powered{color:var(--muted);font-size:.75rem;letter-spacing:.16em;margin-top:9px}
 .search{display:flex;gap:8px;border:1px solid var(--gold);border-radius:24px;padding:7px;margin:20px 0 6px;background:#10111e;box-shadow:0 0 15px #b8894933}
 .search input{flex:1;min-width:0;background:transparent;border:0;padding:10px;color:white;outline-offset:4px}.search button,.action{background:linear-gradient(135deg,#ffe1a1,#b88736);border:0;border-radius:16px;color:#211407;font-weight:750;padding:10px 14px;cursor:pointer}
 .search button:focus-visible,.tile:focus-visible,a:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}
@@ -39,23 +39,24 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <main id="main">
 <section class="hero" aria-label="KORADASO Internet home">
 <div class="crown" aria-hidden="true">♛</div><div class="crest" aria-hidden="true"><span>K</span></div>
-<h1>KORADASO</h1><div class="subtitle">INTERNET</div><div class="powered">POWERED BY ON ANY POSTCODE</div>
+<h1>KORADASO</h1><div class="subtitle">INTERNET INTELLIGENCE</div><div class="powered">POWERED BY ON ANY POSTCODE</div>
 </section>
 <form class="search" id="address-form" role="search">
 <input id="address" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Website address" placeholder="Search or type a website address…" required>
 <button type="submit">GO</button>
 </form>
-<p class="note" id="address-note" role="status">Website addresses open outside OAP only with your confirmation. Search results are not connected.</p>
-<h2>EXPLORE YOUR WORLD</h2>
+<p class="note" id="address-note" role="status">Website addresses open outside OAP only with your confirmation. OAP web search is not yet connected.</p>
+<h2>YOUR DESTINATIONS</h2>
 <div class="grid">
 <a class="tile" href="/world"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>Discover OAP World</span></a>
 <a class="tile" href="/maps"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Places & routes</span></a>
 <a class="tile" href="/the-link"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>The Link</span></a>
 <a class="tile" href="/the-spot/market"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>First-party market</span></a>
 <a class="tile" href="/studio"><span class="ico" aria-hidden="true">✦</span><strong>Studio</strong><span>Create & explore</span></a>
-<a class="tile" href="/arena"><span class="ico" aria-hidden="true">🎮</span><strong>Arena</strong><span>Play OAP games</span></a>\n<a class="tile" href="/library"><span class="ico" aria-hidden="true">📚</span><strong>Library</strong><span>Knowledge & legacy</span></a>
+<a class="tile" href="/arena"><span class="ico" aria-hidden="true">🎮</span><strong>Arena</strong><span>Play OAP games</span></a>
+<a class="tile" href="/library"><span class="ico" aria-hidden="true">📚</span><strong>Library</strong><span>Knowledge & legacy</span></a>
 </div>
-<nav class="nav" aria-label="KORADASO navigation"><a href="/world">OAP World</a><a href="/">OAP Home</a></nav>
+<nav class="nav" aria-label="KORADASO navigation"><a href="/world">OAP World</a></nav>
 </main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
 </div>
 <script>
