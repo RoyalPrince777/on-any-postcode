@@ -183,6 +183,21 @@ h2{letter-spacing:.03em;text-transform:none}
 .grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 .tile:nth-child(-n+3){grid-column:auto;min-height:100px}
 @media(max-width:520px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.tile,.tile:nth-child(-n+3){min-height:93px}.tile strong{font-size:.81rem}.public-smi{min-width:52px}}
+
+/* Quiet KORADASO home: one image, one omnibox, five destinations and Back. */
+.shell{max-width:610px}
+.top{min-height:48px;padding-block:3px 8px}
+.hero{background:#050306;border:0;border-radius:0;box-shadow:none;margin:5px auto 0}
+.hero img{width:min(100%,260px);height:auto}
+.search-row{margin:12px 0 9px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile,.tile:nth-child(-n+3){min-height:86px;padding:10px 5px;border-color:#755536;border-radius:12px;background:#100e19;box-shadow:none}
+.tile .ico{font-size:1.55rem;filter:none}
+.tile strong{font-size:.86rem}
+.public-smi{background:#20152e;border-color:#987348}
+.browser-bar{border:0;background:transparent;margin:9px 0;padding:0;justify-content:flex-start}
+.browser-bar button{border:1px solid #80613c;background:#100e19;border-radius:11px;min-width:82px}
+@media(max-width:520px){.hero img{width:min(100%,240px)}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.tile,.tile:nth-child(-n+3){min-height:82px}.top .brand{font-size:.9rem}}
 </style>
 </head>
 <body>
@@ -194,20 +209,20 @@ h2{letter-spacing:.03em;text-transform:none}
 <details class="royal-menu" id="browser-settings">
 <summary aria-label="Browser menu" title="Browser menu"><span aria-hidden="true">☰</span></summary>
 <div class="settings-panel">
-<div class="drawer-heading"><h2>Browser</h2><button type="button" id="drawer-close" aria-label="Close browser menu">×</button></div>
+<div class="drawer-heading"><h2>Settings</h2><button type="button" id="drawer-close" aria-label="Close browser menu">×</button></div>
 <section aria-labelledby="settings-downloads">
 <h3 id="settings-downloads">Downloads</h3>
-<p>Use the browser or Android Downloads manager to access downloaded files. KORADASO does not yet provide its own file manager.</p>
+<p>Downloads are managed by your browser or Android.</p>
 </section>
 <section aria-labelledby="drawer-bookmarks">
 <div class="bookmark-heading"><h3 id="drawer-bookmarks">Bookmarks</h3><button type="button" class="action" id="bookmark-add">+ Save page</button></div>
 <div class="shortcuts" aria-label="Website shortcuts" id="bookmark-list"><a href="/koradaso">KORADASO</a><a href="/world?source=oap-os">OAP World</a><a href="/search">OAP Search</a></div>
-<p class="note" id="bookmark-note" role="status">Saved bookmarks stay on this device.</p>
+<p class="note" id="bookmark-note" role="status"></p>
 </section>
 <section aria-labelledby="settings-search">
 <h3 id="settings-search">Search</h3>
 <label for="open-web-search"><input type="checkbox" id="open-web-search"> Use WWW Search by default</label>
-<p>WWW Search covers pages in the KORADASO index. OAP Search covers public OAP apps.</p>
+<p>OAP apps or indexed public web pages.</p>
 <nav class="discovery-strip" aria-label="Search destinations"><a href="/search">OAP Search</a><a href="/koradaso/web-search">Web Index</a></nav>
 </section>
 <section aria-labelledby="settings-accessibility">
@@ -216,9 +231,9 @@ h2{letter-spacing:.03em;text-transform:none}
 </section>
 <section aria-labelledby="settings-privacy">
 <h3 id="settings-privacy">Privacy &amp; local data</h3>
-<p>External HTTPS addresses require confirmation. Bookmarks and preferences stay in this browser.</p>
+<p>External websites require confirmation; settings stay on this device.</p>
 <div class="settings-actions"><button type="button" id="clear-browser-preferences">Clear saved bookmarks and preferences</button></div>
-<p class="note" id="settings-note" role="status">Local storage may be unavailable in private browsing.</p>
+<p class="note" id="settings-note" role="status"></p>
 </section>
 </div>
 </details>
@@ -234,7 +249,7 @@ h2{letter-spacing:.03em;text-transform:none}
 </form><a class="public-smi" href="/studio?source=koradaso" aria-label="Open KORADASO public intelligence assistant">SMI</a></div>
 <p class="trust-state screen-reader-only" id="trust-state" role="status">OAP FIRST PARTY · Catalogue search</p>
 <p class="note address-feedback" id="address-note" role="status" aria-live="polite"></p>
-<div class="grid">
+<nav class="grid" aria-label="KORADASO destinations">
 <a class="tile" href="/world?source=oap-os"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong></a>
 <a class="tile" href="/oap-map"><span class="ico" aria-hidden="true">🗺️</span><strong>Maps</strong></a>
 <a class="tile" href="/the-link"><span class="ico" aria-hidden="true">🔗</span><strong>Mail</strong></a>
@@ -245,7 +260,7 @@ h2{letter-spacing:.03em;text-transform:none}
 
 
 
-</div>
+</nav>
 <nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button></nav>
 </main><footer>Born Local. Built Global.</footer>
 </div>
