@@ -381,7 +381,20 @@ def test_factory_combines_existing_studio_without_execution_escalation():
     factory = snapshot["factory"]
     assert snapshot["id"] == "oap-studio-intelligence"
     assert factory["name"] == "OAP Factory"
+    assert factory["authority_origin"] == "founder"
     assert factory["controller"] == "SMI"
+    assert factory["access_hierarchy"] == (
+        "founder_master_control",
+        "smi_command_centre",
+        "oap_factory",
+        "my_oap_world_members_creators",
+        "public_oap_world",
+    )
+    assert factory["one_canonical_studio"] is True
+    assert factory["public_access_is_permission_scoped"] is True
+    assert factory["public_inherits_founder_authority"] is False
+    assert factory["founder_private_assets_public"] is False
+    assert factory["public_media_generation_proven"] is False
     assert factory["creative_division"] == snapshot["id"]
     assert factory["factory_is_second_studio_engine"] is False
     assert factory["factory_is_separate_auth_system"] is False
