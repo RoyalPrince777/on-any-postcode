@@ -20,7 +20,7 @@ q("[data-join]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/jo
 q("[data-reconnect]").onclick=()=>enter(async()=>{membership={room_id:q("[data-reconnect-id]").value.trim(),reconnect_token:q("[data-reconnect-token]").value.trim(),seat:0};await refresh();q("[data-entry]").hidden=true;q("[data-room]").hidden=false;q("[data-id]").textContent=membership.room_id;q("[data-token]").textContent=membership.reconnect_token;});
 // Sync the same authoritative room across phones; never create competing local game state.
 // Stop background traffic for hidden pages, completed rooms, and failed/uncertain state.
-async function syncRoom(){if(!membership||!snapshot||busy||entryBusy||needsRefresh||refreshInFlight||document.visibilityState!=="visible"||!["WAITING","ACTIVE"].includes(snapshot.status))return;try{await refresh();}catch(e){needsRefresh=true;err(e);render();}}
+async function syncRoom(){if(!membership||!snapshot||busy||entryBusy||refreshInFlight||document.visibilityState!=="visible"||!["WAITING","ACTIVE"].includes(snapshot.status))return;try{await refresh();}catch(e){needsRefresh=true;err(e);render();}}
 setInterval(syncRoom,2500);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void syncRoom();});
 q("[data-roll]").onclick=()=>action({action:"roll"});q("[data-refresh]").onclick=async()=>{clear();try{await refresh();}catch(e){err(e);needsRefresh=true;render();}};q("[data-stop]").onclick=()=>action({action:"stop"});
