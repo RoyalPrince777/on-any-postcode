@@ -404,3 +404,21 @@ def test_arena_hub_uses_one_oap_world_my_card_for_rankings(client):
     assert "Guest games stay unranked" in html
     assert "same authenticated My Card identity" in html
     assert "Ranking and XP eligibility enforcement remains locked" in html
+
+
+def test_ludo_two_device_room_autosync_is_bounded_and_server_authoritative(client):
+    page = client.get("/arena/ludo/room")
+    assert page.status_code == 200
+    script = client.get("/static/arena_ludo_room.js")
+    assert script.status_code == 200
+    js = script.get_data(as_text=True)
+    assert 'setInterval(syncRoom,2500)' in js
+    assert 'document.visibilityState!=="visible"' in js
+    assert '["WAITING","ACTIVE"].includes(snapshot.status)' in js
+    assert 'refreshInFlight' in js
+    assert 'membership!==current' in js
+    assert 'needsRefresh=true;err(e);render();' in js
+    assert '"/arena/rooms/state"' in js
+    assert '"/arena/rooms/ludo/action"' in js
+    assert "localStorage" not in js
+    assert "sessionStorage" not in js
