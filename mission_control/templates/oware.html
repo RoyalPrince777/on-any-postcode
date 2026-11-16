@@ -7,8 +7,8 @@
 <label class="arena-field">Players (2, separated by comma)<input data-players maxlength="100" value="Player One, Player Two" autocomplete="off"></label>
 <div class="arena-actions"><button class="arena-primary" type="button" data-start>Start match</button><button class="arena-stop" type="button" data-stop disabled>STOP</button></div>
 <p class="arena-error" role="alert" data-error></p></section>
-<section class="card" data-game hidden>
+<section class="card oware-game-card" data-game hidden>
 <div class="arena-metrics" aria-live="polite"><span>Turn: <strong data-turn></strong></span><span>Status: <strong data-status></strong></span><span>Score: <strong data-score></strong></span></div>
-<p class="arena-hint" data-gameplay-percent aria-live="polite">Gameplay: 0%</p><progress data-gameplay-bar max="100" value="0" aria-label="Observable gameplay percentage"></progress><h2>Board</h2><p class="arena-hint">Opponent row is shown right-to-left above your row. Select only a highlighted legal house.</p>
+<p class="arena-hint" data-gameplay-percent aria-live="polite">Gameplay: 0%</p><progress data-gameplay-bar max="100" value="0" aria-label="Observable gameplay percentage"></progress><h2 class="sr-only">Board</h2><p class="arena-hint">Tap a highlighted bowl to sow seeds. Opponent houses are the upper row.</p>
 <div class="arena-game-content" data-board></div>
 <p class="arena-feedback" role="status" aria-live="polite" data-feedback></p></section></main></body></html>
