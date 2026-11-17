@@ -1,0 +1,12 @@
+# OAP Core web/auth runtime on the Founder Termux device.
+# Separate from requirements-termux-home-node.txt; never install into .venv.
+# psycopg uses the Termux system libpq; no incompatible binary wheel.
+Flask==3.0.3
+PyJWT[crypto]>=2.8,<3
+pyotp>=2.9,<3
+qrcode[pil]>=7.4,<9
+slowapi>=0.1.9,<1
+starlette>=0.37,<1
+psycopg>=3.2,<4
+mapbox-vector-tile>=2.2,<3
+espeak-english==0.1.1

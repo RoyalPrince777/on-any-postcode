@@ -13,8 +13,10 @@ services:
     environment:
       OAP_DOMAIN: ${OAP_DOMAIN:?Set OAP_DOMAIN to your verified domain}
       OAP_TLS_EMAIL: ${OAP_TLS_EMAIL:?Set valid TLS contact email}
+      OAP_SMI_DOMAIN: ${OAP_SMI_DOMAIN:?Set verified dedicated SMI subdomain}
     depends_on:
       - world
+      - smi
   world:
     image: ${OAP_RUNTIME_IMAGE:?Set exact verified GHCR digest}
     restart: unless-stopped
@@ -25,8 +27,26 @@ services:
       PORT: "10000"
       OAP_AUTH_REQUIRED: "true"
       OAP_PUBLIC_ORIGIN: https://${OAP_DOMAIN:?Set OAP_DOMAIN}
+      OAP_SURFACE_ROLE: public
+      OAP_PRIVATE_SMI_ORIGIN: https://${OAP_SMI_DOMAIN:?Set verified dedicated SMI subdomain}
+      OAP_SMI_GATEWAY_SECRET: ${OAP_SMI_GATEWAY_SECRET:?Set a high-entropy shared secret locally}
       OAP_PRIMARY_DATABASE_URL: ${OAP_PRIMARY_DATABASE_URL:?Set first-party database secret locally}
     # No host port: only the HTTPS edge reaches the app.
+  smi:
+    image: ${OAP_RUNTIME_IMAGE:?Set exact verified GHCR digest}
+    restart: unless-stopped
+    expose:
+      - "10000"
+    environment:
+      OAP_RUNTIME_TARGET: smi_gateway:app
+      PORT: "10000"
+      OAP_AUTH_REQUIRED: "true"
+      OAP_SURFACE_ROLE: public
+      OAP_SMI_LOCAL_DISPATCH: "1"
+      OAP_PUBLIC_ORIGIN: https://${OAP_DOMAIN:?Set OAP_DOMAIN}
+      OAP_SMI_GATEWAY_SECRET: ${OAP_SMI_GATEWAY_SECRET:?Set a high-entropy shared secret locally}
+      OAP_PRIMARY_DATABASE_URL: ${OAP_PRIMARY_DATABASE_URL:?Set first-party database secret locally}
+    # Never publish SMI's container port; ingress is only through the HTTPS edge.
 volumes:
   caddy_data:
   caddy_config:

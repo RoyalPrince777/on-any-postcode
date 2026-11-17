@@ -67,7 +67,8 @@ def _production_counts() -> dict[str, object]:
                     WHERE task_type='OAP_EVENT'),
                   (SELECT COUNT(*) FROM audit_events
                     WHERE action=%s AND metadata->>'passed'='true'
-                      AND metadata->>'proof_revision'=%s),
+                      AND metadata->>'proof_revision'=%s
+                      AND metadata->>'operational_rollback_verified'='true'),
                   (SELECT COUNT(*) FROM audit_events
                     WHERE action=%s AND metadata->>'passed'='true'
                       AND metadata->>'proof_revision'=%s),
@@ -172,18 +173,10 @@ def status() -> dict[str, object]:
         store_reachable and int(counts["rollback_recovery_receipts"] or 0) > 0
     )
     runtime_guard = bool(
-        store_reachable
-        and (
-            "runtime_guard_receipts" not in counts
-            or int(counts.get("runtime_guard_receipts") or 0) > 0
-        )
+        store_reachable and int(counts.get("runtime_guard_receipts") or 0) > 0
     )
     isolation_recovery = bool(
-        store_reachable
-        and (
-            "isolation_recovery_receipts" not in counts
-            or int(counts.get("isolation_recovery_receipts") or 0) > 0
-        )
+        store_reachable and int(counts.get("isolation_recovery_receipts") or 0) > 0
     )
     observability = bool(
         store_reachable and live_observability.get("observability_ready")
@@ -293,7 +286,7 @@ def run_rollback_recovery_proof(identity_id: object) -> dict[str, object]:
             actor_id=identity_value,
             action=ROLLBACK_PROOF_ACTION,
             target="SMI_A5_A6_BOUNDARY",
-            reason="Bounded rollback and safe-resume proof completed.",
+            reason="Bounded in-memory rollback exercise completed; live runtime recovery not verified.",
             correlation_id=correlation_id,
             metadata={
                 "passed": True,
@@ -304,6 +297,10 @@ def run_rollback_recovery_proof(identity_id: object) -> dict[str, object]:
                 "human_stop_observed": bool(proof["human_stop_observed"]),
                 "human_stop_idempotent": bool(proof["human_stop_idempotent"]),
                 "human_stop_safe_resume": bool(proof["human_stop_safe_resume"]),
+                "exercise_only": True,
+                "runtime_inference_halted": False,
+                "runtime_resume_verified": False,
+                "human_resume_authorized": False,
                 "production_state_mutated": False,
                 "execution_authority_expanded": False,
                 "authority_level": 0,

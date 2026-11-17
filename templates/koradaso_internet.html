@@ -14,7 +14,7 @@ a{color:inherit;text-decoration:none}button,input{font:inherit}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 20px}.brand{font:700 1rem Georgia,serif;letter-spacing:.09em;color:var(--gold)}.tag{border:1px solid #795b4d;border-radius:20px;padding:5px 10px;font-size:.75rem;color:#e8cbaf}
 .hero{text-align:center;position:relative;isolation:isolate;padding:32px 12px 26px;border:1px solid #917043;border-radius:24px;overflow:hidden;background:radial-gradient(circle at 50% 46%,#2a2052 0,#14192d 34%,#070916 75%);box-shadow:0 0 30px #b2763426,inset 0 0 30px #9b62e80b}
 .hero:before{content:"";position:absolute;inset:-110px 12% auto;border:1px solid #a576c262;border-radius:50%;height:285px;transform:rotate(-16deg);z-index:-1}
-.crest{display:grid;place-items:center;width:142px;height:142px;margin:auto;border:2px solid var(--gold);border-radius:50%;background:radial-gradient(circle,#744eac 0,#29274d 30%,#090d20 70%);box-shadow:0 0 42px #ae79e55e,inset 0 0 22px #edc76b55;position:relative}
+.crest{display:grid;place-items:center;width:min(100%,320px);aspect-ratio:1;margin:auto;position:relative;isolation:isolate}.crest img{width:100%;height:100%;object-fit:contain;display:block}.crest .fallback{display:none;font:700 6.4rem/.9 Georgia,serif;color:var(--gold)}.crest img:not([src]),.crest img[hidden]{display:none}.crest img[hidden]+.fallback{display:block}
 .crest span{font:700 6.4rem/.9 Georgia,serif;color:var(--gold);text-shadow:0 0 12px #d49a65}
 .crown{font-size:2rem;color:var(--gold);line-height:1}.hero h1{font:700 clamp(2.3rem,8vw,4rem)/1.02 Georgia,serif;letter-spacing:.04em;margin:18px 0 4px;color:var(--gold);text-shadow:0 0 18px #bf7e6c66}
 .subtitle{font-weight:600;letter-spacing:.4em;font-size:.8rem}.powered{color:var(--muted);font-size:.75rem;letter-spacing:.16em;margin-top:9px}
@@ -23,12 +23,23 @@ a{color:inherit;text-decoration:none}button,input{font:inherit}
 .search button:focus-visible,.tile:focus-visible,a:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}
 .note{font-size:.8rem;color:#d1c5b1;margin:8px 3px 22px;min-height:19px}
 h2{font-size:.9rem;letter-spacing:.12em;color:#edcb83;margin:22px 0 12px}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:11px}
+.tile{grid-column:span 4}
+.tile.small{grid-column:span 3}
+.tile[aria-disabled="true"]{opacity:.63;cursor:not-allowed}
+.tile .ico{display:grid;place-items:center;width:64px;height:64px;border:1px solid #b68750;border-radius:18px;background:radial-gradient(circle at 45% 30%,#56337a,#1a132c 65%,#080a15);box-shadow:0 0 18px #aa63d94a,inset 0 0 12px #bd914e33}
+.bookmarks{margin-top:18px;border:1px solid #8a693b;border-radius:18px;background:#0b0b18;padding:12px}
+.bookmarks h2{margin:0 0 10px}
+.bookmark-links{display:flex;gap:8px}
+.bookmark-links a{flex:1;min-width:0;padding:12px 6px;border:1px solid #6f5739;border-radius:12px;background:#171522;text-align:center;font-size:.76rem}
+.bookmark-links a:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}
+.trust-label{color:#ceb08b;font-size:.75rem}
+
 .tile{min-height:130px;border:1px solid #9a7644;border-radius:18px;background:linear-gradient(145deg,#1a2035,#0c0d19 78%);padding:19px 10px 12px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;box-shadow:inset 0 1px #fff2}
 .tile .ico{font-size:2rem;filter:drop-shadow(0 0 7px #9162f8)}.tile strong{color:var(--gold);font:700 1.05rem Georgia,serif}.tile span:last-child{font-size:.73rem;color:#c7bbaf}
 .nav{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}.nav a{flex:1;text-align:center;min-width:135px;border:1px solid #776044;border-radius:12px;padding:11px;font-weight:600;color:#f1cf91}
 footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 0;margin-top:16px}
-@media(max-width:490px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:118px}.hero{padding-top:24px}.hero h1{font-size:2.35rem}.crest{width:119px;height:119px}.crest span{font-size:5.5rem}}
+@media(max-width:490px){.grid{grid-template-columns:repeat(12,minmax(0,1fr))}.tile{grid-column:span 4}.tile.small{grid-column:span 3}.tile{min-height:118px;padding:13px 5px}.tile .ico{width:48px;height:48px;font-size:1.55rem}.tile strong{font-size:.86rem}.tile span:last-child{font-size:.65rem}.tile{min-height:118px}.hero{padding-top:24px}.hero h1{font-size:2.35rem}.crest{width:min(100%,240px)}.crest .fallback{font-size:5.5rem}}
 @media(prefers-reduced-motion:reduce){*,*:before{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -38,7 +49,7 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 <header class="top"><span class="brand">♛ KORADASO</span><span class="tag">OAP LOCAL · FIRST PARTY</span></header>
 <main id="main">
 <section class="hero" aria-label="KORADASO Internet home">
-<div class="crown" aria-hidden="true">♛</div><div class="crest" aria-hidden="true"><span>K</span></div>
+<div class="crest" role="img" aria-label="KORADASO Internet crown, diamond IK emblem, globe and purple gold orbit"><img src="/static/oap/koradaso_internet_logo.jpg" alt="" width="320" height="320" decoding="async" onerror="this.hidden=true" fetchpriority="high"><span class="fallback" aria-hidden="true">K</span></div>
 <h1>KORADASO</h1><div class="subtitle">INTERNET</div><div class="powered">POWERED BY ON ANY POSTCODE</div>
 </section>
 <form class="search" id="address-form" role="search">
@@ -47,14 +58,24 @@ footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 
 </form>
 <p class="note" id="address-note" role="status">Website addresses open outside OAP only with your confirmation. Search results are not connected.</p>
 <h2>EXPLORE YOUR WORLD</h2>
-<div class="grid">
-<a class="tile" href="/world"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>Discover OAP World</span></a>
-<a class="tile" href="/maps"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Places & routes</span></a>
+<div class="grid" aria-label="KORADASO destinations">
+<a class="tile" href="/world"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>OAP World</span></a>
+<a class="tile" href="/maps"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Places &amp; routes</span></a>
 <a class="tile" href="/the-link"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>The Link</span></a>
-<a class="tile" href="/the-spot/market"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>First-party market</span></a>
-<a class="tile" href="/studio"><span class="ico" aria-hidden="true">✦</span><strong>Studio</strong><span>Create & explore</span></a>
-<a class="tile" href="/library"><span class="ico" aria-hidden="true">📚</span><strong>Library</strong><span>Knowledge & legacy</span></a>
+<a class="tile small" href="/the-spot/market"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>OAP Market</span></a>
+<a class="tile small" href="/mission/ollama"><span class="ico" aria-hidden="true">✦</span><strong>SMI</strong><span>Founder access</span></a>
+<div class="tile small" aria-disabled="true" title="Downloads manager is not yet implemented"><span class="ico" aria-hidden="true">⬇️</span><strong>Downloads</strong><span>Building · no manager yet</span></div>
+<a class="tile small" href="/settings"><span class="ico" aria-hidden="true">⚙️</span><strong>Settings</strong><span>Existing OAP settings</span></a>
 </div>
+<section class="bookmarks" aria-label="First-party shortcuts">
+<h2>★ FIRST-PARTY SHORTCUTS</h2>
+<div class="bookmark-links">
+<a href="/world">🌍 World</a>
+<a href="/koradaso">♛ KORADASO</a>
+<a href="/library">📚 Library</a>
+</div>
+<p class="trust-label">OAP WORLD routes stay inside OAP. External HTTPS sites require confirmation. Personal bookmarks are not yet stored.</p>
+</section>
 <nav class="nav" aria-label="KORADASO navigation"><a href="/world">OAP World</a><a href="/">OAP Home</a></nav>
 </main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
 </div>

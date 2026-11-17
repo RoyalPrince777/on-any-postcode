@@ -124,7 +124,10 @@ function oapUpdateLiveToggle(){
 function oapSetLive(enabled){
  if(!oapRuntime||!oapStateApi){oapSetStatus('Live SMI state engine unavailable');return false;}
  if(enabled){
-  if(oapRuntime.stopped)oapApply('RESUME_FROM_STOP');
+  if(oapRuntime.stopped){
+   window.dispatchEvent(new CustomEvent('oap-smi-human-motion-reset',{detail:{approved:true,source:'live-toggle'}}));
+   oapApply('RESUME_FROM_STOP');
+  }
   oapApply('LIVE_ON');
   oapVoiceEnabled=true;
   oapWriteVoicePreference(true);
@@ -291,7 +294,11 @@ async function oapFounderFinal(){
 async function oapSubmit(options={}){
  if(oapVoiceEnabled)oapLocalPlayer?.prepare?.();
  const fromLive=options?.fromLive===true;
- if(oapRuntime?.stopped){if(fromLive)return;oapApply('RESUME_FROM_STOP');}
+ if(oapRuntime?.stopped){
+   if(fromLive)return;
+   window.dispatchEvent(new CustomEvent('oap-smi-human-motion-reset',{detail:{approved:true,source:'manual-submit'}}));
+   oapApply('RESUME_FROM_STOP');
+  }
  if(oapLocked||oapSend.disabled)return;const text=oapInput.value.trim();const hasImage=typeof selectedImage!=='undefined'&&Boolean(selectedImage);const hasAttachment=typeof selectedAttachment!=='undefined'&&Boolean(selectedAttachment);if(!text&&!hasImage&&!hasAttachment)return;
  const selectedThinkingLevel=oapThinkingLevel?.value||'auto';
  const selectedStudioMode=(typeof studioMode!=='undefined')?Boolean(studioMode):Boolean(document.getElementById('studio-button')?.classList.contains('active'));

@@ -60,6 +60,8 @@ jobs:
           node tests/smi_exact_character_rig_foundation_test.cjs
           node --check mission_control/static/smi_source_pixel_motion.js
           node tests/smi_source_pixel_motion_test.cjs
+          node --check mission_control/static/smi_organism_anatomy.js
+          node tests/smi_organism_anatomy_test.cjs
           node --check mission_control/static/smi_reply_audio_player.js
           node tests/smi_reply_audio_player_test.cjs
           node --check mission_control/smi_character_motion_candidate.js
@@ -91,7 +93,7 @@ jobs:
       - name: Run focused OAP Data security regressions
         run: |
           set -o pipefail
-          python -m pytest -q tests/test_oap_data_product.py 2>&1 | tee /tmp/oap-pytest.log
+          python -m pytest -q tests/test_oap_data_product.py tests/test_surface_split.py 2>&1 | tee /tmp/oap-pytest.log
       - name: Lint active application code
         run: ruff check app.py mission_control oap tests
       - name: Run OAP RTL proof slice

@@ -6,3 +6,8 @@
     encode zstd gzip
     reverse_proxy world:10000
 }
+
+{$OAP_SMI_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy smi:10000
+}

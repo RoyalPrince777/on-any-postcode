@@ -6,6 +6,7 @@
 
 const APPROVED_SHA="f9503174f6f18b815f1c73e24faff3b4966c2e1fbae8d20a8d2bcc22e4a84a4b";
 const STATES=new Set(["ready","listening","thinking","speaking","paused"]);
+const VISEMES=new Set(["silence","closed","wide","round","teeth","tongue"]);
 
 function proofAccepted(proof){
   return Boolean(proof &&
@@ -65,11 +66,26 @@ function createCandidate(proof){
     if(state==="thinking")return frozenFrame(state,t,{...neutral,
       eyes:{x:0.7,y:-0.35},head:{rotateDeg:0.7,y:-0.25},
       breathing:{scaleY:1+breathe/140},face:{browY:-0.35}});
+    // Never animate speech from an arbitrary viseme or unproven decoded audio.
+    // This isolated renderer is not a substitute for the authenticated audio gate.
     const audioClockValid=Number.isFinite(audio.playedAudioMs) &&
+      audio.playedAudioMs>=0 && audio.playedAudioMs<=30000 &&
       Math.abs(audio.playedAudioMs-t)<=80;
-    const viseme=audioClockValid&&typeof audio.viseme==="string"?audio.viseme:"silence";
-    const mouthScale=audioClockValid&&Number.isFinite(audio.amplitude)?
-      1+Math.max(0,Math.min(1,audio.amplitude))*0.12:1;
+    const audioAccepted=audioClockValid && audio.decodedAudio===true &&
+      audio.source==="oap-first-party-pcm" && VISEMES.has(audio.viseme);
+    const viseme=audioAccepted?audio.viseme:"silence";
+    // Source-backed phoneme cues are sufficient to articulate a mouth even when
+    // the audio renderer does not expose amplitude; untrusted audio stays neutral.
+    const shapes={silence:1,closed:1,wide:1.12,round:1.08,teeth:1.05,tongue:1.06};
+    const baseScale=shapes[viseme];
+    const amplitude=Number.isFinite(audio.amplitude)?
+      Math.max(0,Math.min(1,audio.amplitude)):null;
+    const mouthScale=audioAccepted&&viseme!=="silence"?
+      (amplitude===null?baseScale:1+(baseScale-1)*amplitude):1;
+    if(!audioAccepted || viseme==="silence"){
+      return frozenFrame(state,t,{...neutral,
+        mouth_visemes:{scaleY:1,viseme:"silence"}});
+    }
     return frozenFrame(state,t,{...neutral,
       head:{rotateDeg:Math.sin(t/900)*0.3,y:0},
       breathing:{scaleY:1+breathe/120},mouth_visemes:{scaleY:mouthScale,viseme},

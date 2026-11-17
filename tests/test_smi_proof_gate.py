@@ -55,7 +55,10 @@ def test_bounded_rollback_exercise_restores_and_resumes_without_product_mutation
     assert proof["safe_resume"] is True
     assert proof["human_stop_observed"] is True
     assert proof["human_stop_idempotent"] is True
-    assert proof["human_stop_safe_resume"] is True
+    assert proof["human_stop_safe_resume"] is False
+    assert proof["human_stop_recovery"]["replacement_token_ready"] is True
+    assert proof["human_stop_recovery"]["runtime_inference_halted"] is False
+    assert proof["human_stop_recovery"]["human_resume_authorized"] is False
     assert proof["passed"] is True
     assert proof["production_state_mutated"] is False
     assert proof["execution_authority_expanded"] is False
@@ -72,6 +75,8 @@ def _proven_counts():
         "founder_smi_reviews": 1,
         "oap_event_receipts": 1,
         "rollback_recovery_receipts": 1,
+        "runtime_guard_receipts": 1,
+        "isolation_recovery_receipts": 1,
         "error": None,
     }
 
@@ -229,3 +234,62 @@ def test_founder_final_stays_locked_when_green_gate_is_incomplete(monkeypatch):
 
     with pytest.raises(RuntimeError, match="green_gate_incomplete"):
         smi_proof_gate.run_founder_final("00000000-0000-0000-0000-000000000001")
+
+
+def test_rollback_audit_marks_exercise_as_non_operational(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from mission_control import approval_service, authority, postgres_db
+
+    connection = MagicMock()
+    ctx = MagicMock()
+    ctx.__enter__.return_value = connection
+    monkeypatch.setattr(postgres_db, "connect", lambda: ctx)
+    monkeypatch.setattr(
+        authority,
+        "require_human_authority",
+        lambda connection, identity: {"authority_level": 0},
+    )
+    recorded = {}
+    monkeypatch.setattr(
+        approval_service,
+        "_write_audit",
+        lambda connection, **kwargs: recorded.update(kwargs),
+    )
+
+    result = smi_proof_gate.run_rollback_recovery_proof(
+        "00000000-0000-0000-0000-000000000001"
+    )
+
+    assert result["audit_recorded"] is True
+    assert recorded["metadata"]["exercise_only"] is True
+    assert recorded["metadata"]["runtime_inference_halted"] is False
+    assert recorded["metadata"]["runtime_resume_verified"] is False
+    assert recorded["metadata"]["human_resume_authorized"] is False
+    assert "in-memory rollback exercise" in recorded["reason"]
+    connection.commit.assert_called_once()
+
+
+@pytest.mark.parametrize("missing_key", [
+    "runtime_guard_receipts",
+    "isolation_recovery_receipts",
+])
+def test_green_gate_fails_closed_when_required_proof_field_is_missing(
+    monkeypatch, missing_key
+):
+    counts = _proven_counts()
+    del counts[missing_key]
+    monkeypatch.setattr(smi_proof_gate, "_production_counts", lambda: counts)
+    monkeypatch.setattr(
+        coherent_automation, "status",
+        lambda: {"ready": True, "signals_valid": True, "signal_count": 21},
+    )
+    monkeypatch.setattr(
+        telemetry, "status", lambda: {"observability_ready": True},
+    )
+
+    snapshot = smi_proof_gate.status()
+
+    assert snapshot["green"] is False
+    assert missing_key.removesuffix("_receipts") in snapshot["missing"]
+    assert snapshot["execution_granted"] is False

@@ -110,7 +110,7 @@ def main() -> None:
             page.locator("button.js-war-mode").click()
             expect(page.locator("#war-action-result")).to_contain_text("WAR ROOM selected")
 
-            page.locator(".mission").fill("prove the upgraded War Room interaction path")
+            page.get_by_role("textbox", name="War Room mission").fill("prove the upgraded War Room interaction path")
             page.locator('button[data-action="alignment-check"]').click()
             page.wait_for_function(
                 """() => {

@@ -76,18 +76,27 @@ if (( ${#bridge_secret} < 32 )); then
   exit 2
 fi
 
+printf '%s' "Enter verified private OAP HTTPS bridge (e.g. https://smi.onanypostcode.global/mission): "
+IFS= read -r bridge_url
+# An unverified or missing destination must never silently fall back to Render.
+if [[ ! "$bridge_url" =~ ^https://[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.onanypostcode\.global/mission/?$ ]]; then
+  printf '%s\n' "Refused: expected an explicit OAP-owned HTTPS SMI subdomain /mission bridge." >&2
+  exit 2
+fi
+bridge_url="${bridge_url%/}"
+
 worker_id="termux-$(hostname 2>/dev/null || printf '%s' android)"
 {
   printf 'export OAP_NEON_DATABASE_URL=%q\n' "$database_url"
   printf 'export OAP_WORKER_ID=%q\n' "$worker_id"
   printf 'export OAP_HOME_NODE_BRIDGE_SECRET=%q\n' "$bridge_secret"
-  printf 'export OAP_HOME_NODE_BRIDGE_URL=%q\n' "https://oap-smi.onrender.com/mission"
+  printf 'export OAP_HOME_NODE_BRIDGE_URL=%q\n' "$bridge_url"
   printf 'export OAP_HOME_REPO=%q\n' "$REPO_DIR"
   printf 'export PSYCOPG_IMPL=python\n'
   printf 'export LD_LIBRARY_PATH=%q\n' "$termux_lib_path"
 } > "$ENV_FILE"
 chmod 600 "$ENV_FILE"
-unset database_url bridge_secret
+unset database_url bridge_secret bridge_url
 
 cat > "$BOOT_FILE" <<EOF
 #!/data/data/com.termux/files/usr/bin/bash

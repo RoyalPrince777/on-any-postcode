@@ -51,6 +51,8 @@ assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:1020}),null)
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"boundary",clockSource:"audio-context"}),null);
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"playing",clockSource:"media-element"}),null);
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1000,eventType:"playing",clockSource:"audio-context"}).type,"playback-start");
+assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:1001,eventType:"playing",clockSource:"audio-context"}),null,
+  "duplicate start must not reset the playback clock anchor");
 for(const [audioClockMs,expected] of [[20,"closed"],[80,"wide"],[140,"round"],[200,"teeth"],[260,"tongue"],[400,"silence"]]){
   const cue=candidate.playbackSample({audioClockMs,observedAtMs:1002+audioClockMs});
   assert.equal(cue.viseme,expected);assert.ok(cue.audioClockDeltaMs<=api.MAX_AUDIO_CLOCK_DELTA_MS);
@@ -62,6 +64,9 @@ assert.ok(candidate.snapshot().maxObservedClockDeltaMs<=40);
 assert.equal(candidate.snapshot().accurateHumanLipSyncProven,false);
 assert.equal(candidate.playbackEnd({audioClockMs:400,observedAtMs:1402,eventType:"ended"}).viseme,"silence");
 assert.equal(candidate.playbackStart({audioClockMs:0,observedAtMs:2000,eventType:"playing",clockSource:"audio-context"}).type,"playback-start");
+assert.equal(candidate.snapshot().sampleCount,0,"new playback must not inherit prior cue samples");
+assert.equal(candidate.snapshot().accurateSoftwareLipSyncProven,false,"new playback must not inherit prior proof");
+assert.equal(candidate.snapshot().maxObservedClockDeltaMs,0,"new playback must reset clock drift statistics");
 const stoppedEpoch=candidate.humanStop({pointerAtMs:2010,handledAtMs:2012}).epoch;
 assert.equal(candidate.snapshot().lastStopAcknowledgementMs,2);assert.equal(candidate.snapshot().physicalAndroidStopProven,false);
 assert.equal(candidate.playbackSample({audioClockMs:20,observedAtMs:2020}),null);

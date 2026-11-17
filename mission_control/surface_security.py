@@ -71,16 +71,21 @@ def _gateway_secret_matches(value: object) -> bool:
     )
 
 
-def _private_gateway_origin() -> str:
-    value = os.environ.get("OAP_PRIVATE_SMI_ORIGIN", _PRIVATE_GATEWAY_DEFAULT).strip().rstrip("/")
+def _private_gateway_origin() -> str | None:
+    """Use only a configured OAP-owned HTTPS SMI host, never a provider fallback."""
+    value = os.environ.get("OAP_PRIVATE_SMI_ORIGIN", "").strip()
+    if not value:
+        return None
     try:
         parsed = urlparse.urlparse(value)
         _ = parsed.port
     except ValueError:
-        return _PRIVATE_GATEWAY_DEFAULT
+        return None
+    hostname = (parsed.hostname or "").lower()
     if not (
         parsed.scheme == "https"
-        and bool(parsed.hostname)
+        and hostname.endswith(".onanypostcode.global")
+        and parsed.netloc
         and not parsed.username
         and not parsed.password
         and parsed.path in {"", "/"}
@@ -88,8 +93,8 @@ def _private_gateway_origin() -> str:
         and not parsed.query
         and not parsed.fragment
     ):
-        return _PRIVATE_GATEWAY_DEFAULT
-    return value
+        return None
+    return value.rstrip("/")
 
 
 class OAPRequest(Request):
@@ -161,7 +166,10 @@ def _private_handoff(path: str):
     if target is None or request.method not in {"GET", "HEAD"}:
         return None
     query = request.query_string.decode("ascii", "ignore")
-    destination = f"{_private_gateway_origin()}{target}"
+    origin = _private_gateway_origin()
+    if origin is None:
+        return _private_not_found()
+    destination = f"{origin}{target}"
     if query:
         destination = f"{destination}?{query}"
     response = redirect(destination, code=302)

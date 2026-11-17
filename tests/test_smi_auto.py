@@ -117,6 +117,13 @@ def test_smi_intelligence_selects_minimum_sufficient_a1_to_a7_level():
     assert base["smi_intelligence"]["stop"] is True
     assert consequential["execution_granted"] is False
     assert consequential["approval_granted"] is False
+    assert consequential["smi_intelligence"]["advisory_level"] == consequential["smi_intelligence"]["level"]
+    assert consequential["smi_intelligence"]["configured_runtime_level"] in {
+        "A1", "A2", "A3", "A4", "A5", "A6", "A7"
+    }
+    assert consequential["smi_intelligence"]["runtime_escalation_granted"] is False
+    assert consequential["smi_intelligence"]["certification_granted"] is False
+    assert consequential["smi_intelligence"]["recommendation_only"] is True
 
 
 def test_smi_intelligence_does_not_escalate_depth_without_need():
@@ -263,3 +270,42 @@ def test_matrix_home_groups_preserve_character_home_and_external_smi_boundary():
     assert agents.matrix_home_for('Niobe')['group_id'] == 'logos'
     assert agents.matrix_home_for('Nirmata') is None
     assert agents.matrix_home_for('Mouse')['execution_granted'] is False
+
+
+def test_dynamic_autofix_requires_verified_failure_logs_and_no_execution():
+    missing = smi_auto.classify_dynamic_autofix({})
+    assert missing["decision"] == "EVIDENCE_REQUIRED"
+    assert missing["auto_edit_granted"] is False
+
+    proof = {
+        "ready": True,
+        "log_analysis": {
+            "ready": True,
+            "log_categories": [
+                {"categories": ["source_verification", "gradle_compile"]}
+            ],
+        },
+    }
+    review = smi_auto.classify_dynamic_autofix(proof)
+    assert review["decision"] == "BOUNDED_REPAIR_REVIEW"
+    assert review["repair_scope"] == ("gradle_compile", "source_verification")
+    assert review["source_evidence_verified"] is True
+    assert review["auto_edit_granted"] is False
+    assert review["execution_granted"] is False
+    assert review["merge_granted"] is False
+    assert review["deploy_granted"] is False
+    assert review["a7_enabled"] is False
+    assert review["human_authority_final"] is True
+
+
+def test_dynamic_autofix_holds_signing_and_unknown_evidence():
+    proof = {
+        "ready": True,
+        "log_analysis": {
+            "ready": True,
+            "log_categories": [{"categories": ["signing_configuration", "gradle_compile"]}],
+        },
+    }
+    assert smi_auto.classify_dynamic_autofix(proof)["decision"] == "FOUNDER_REVIEW"
+    proof["log_analysis"]["log_categories"] = [{"categories": ["unrecognised_failure"]}]
+    assert smi_auto.classify_dynamic_autofix(proof)["decision"] == "EVIDENCE_REQUIRED"

@@ -11,6 +11,8 @@ def _counts(*, durable_receipts: int, store_present: bool = True):
         "founder_smi_reviews": 1,
         "oap_event_receipts": 1,
         "rollback_recovery_receipts": 1,
+        "runtime_guard_receipts": 1,
+        "isolation_recovery_receipts": 1,
         "error": None,
     }
 

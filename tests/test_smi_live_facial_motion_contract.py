@@ -17,7 +17,8 @@ def test_source_pixel_motion_keeps_lip_sync_truth_boundary():
     text = MOTION.read_text(encoding="utf-8")
     assert 'cue?.source!=="oap-first-party-pcm"' in text
     assert "cue?.synthesisPhonemeTiming!==true" in text
-    assert "audioCues>=3" in text
+    assert "audioCues+=1" in text
+    assert "const accurateSoftwareLipSyncProven=false;" in text
     assert "accurateHumanLipSyncProven:false" in text
     assert "source:'browser-speech-synthesis',decodedAudio:false,phonemeAligned:false" in Path(
         "mission_control/static/smi_canonical_controller.js"

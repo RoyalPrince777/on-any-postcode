@@ -57,9 +57,13 @@ def _evolution_evidence(health: dict[str, Any]) -> dict[str, object]:
     checks = health.get("checks")
     if not isinstance(checks, dict):
         checks = {}
-    ready = all(
-        checks.get(name) is True
-        for name in ("audit", "human_authority", "approval_receipt")
+    invariants = health.get("invariants")
+    if not isinstance(invariants, dict):
+        invariants = {}
+    ready = (
+        all(checks.get(name) is True for name in ("audit", "human_authority", "approval_receipt"))
+        and invariants.get("execution_locked") is True
+        and invariants.get("human_authority_final") is True
     )
     return {
         "component": "Controlled Self-Improvement Runtime Gate",
