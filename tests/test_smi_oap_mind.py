@@ -1,0 +1,649 @@
+"""Focused protection against forged evidence and false Green Gate claims."""
+
+import pytest
+
+from oap.smi.oap_mind import OAPEvidence, assess_oap_evidence, assess_smi_agent_claim
+
+
+def test_missing_proof_investigates_instead_of_inventing_green() -> None:
+    result = assess_oap_evidence("Octopus runs on device", ())
+    assert result.verdict == "INVESTIGATE"
+    assert result.missing_proof == ("source",)
+    assert result.confidence == "UNVERIFIED"
+    assert result.next_evidence_action == "RETRIEVE_AND_AUTHENTICATE_OAP_PROOF"
+    assert result.advisory_only and result.founder_final
+    assert not result.runtime_certified
+
+
+def test_unverified_record_does_not_create_verified_confidence() -> None:
+    evidence = (
+        OAPEvidence("repo:octopus-definition", "source", "Octopus mapped"),
+    )
+    result = assess_oap_evidence("Octopus mapped", evidence)
+    assert result.verdict == "INVESTIGATE"
+    assert result.unverified_references == ("repo:octopus-definition",)
+
+
+def test_contradiction_holds_even_with_claimed_receipts() -> None:
+    evidence = (
+        OAPEvidence("ci:pass", "ci", "CI passed", verified_receipt=True),
+        OAPEvidence(
+            "ci:fail", "ci", "CI passed", supports_claim=False,
+            verified_receipt=True,
+        ),
+    )
+    result = assess_oap_evidence("CI passed", evidence, required_kinds=("ci",))
+    assert result.verdict == "HOLD"
+    assert result.confidence == "CONFLICTED_UNVERIFIED"
+    assert result.next_evidence_action == "RESOLVE_CONTRADICTORY_OAP_RECORDS"
+    assert result.contradicting_references == ("ci:fail",)
+
+
+def test_forged_receipt_boolean_cannot_make_claim_review_ready() -> None:
+    evidence = (
+        OAPEvidence("source:sha", "source", "Capability mapped", verified_receipt=True),
+        OAPEvidence("ci:run", "ci", "Capability mapped", verified_receipt=True),
+    )
+    result = assess_oap_evidence(
+        "Capability mapped", evidence, required_kinds=("source", "ci")
+    )
+    assert result.verdict == "INVESTIGATE"
+    assert result.confidence == "UNVERIFIED"
+    assert result.missing_proof == ("source", "ci")
+    assert result.unverified_references == ("source:sha", "ci:run")
+    assert not result.runtime_certified
+    assert result.advisory_only and result.founder_final
+
+
+@pytest.mark.parametrize(
+    "claim,evidence,required",
+    [
+        ("", (), ("source",)),
+        ("ok", (), ()),
+        ("ok", (OAPEvidence("", "source", "ok"),), ("source",)),
+        ("ok", (OAPEvidence("id", "source", ""),), ("source",)),
+        ("ok", (OAPEvidence("id", "unknown", "ok"),), ("source",)),
+        (
+            "ok",
+            (OAPEvidence("id", "source", "ok"),
+             OAPEvidence("id", "ci", "ok")),
+            ("source",),
+        ),
+        ("ok", (OAPEvidence("id", "source", "ok", supports_claim="yes"),), ("source",)),
+        ("ok", [OAPEvidence("id", "source", "ok")], ("source",)),
+    ],
+)
+def test_invalid_or_ambiguous_inputs_fail_closed(claim, evidence, required) -> None:
+    with pytest.raises(ValueError):
+        assess_oap_evidence(claim, evidence, required_kinds=required)
+
+
+def test_unrelated_claim_cannot_count_as_evidence() -> None:
+    result = assess_oap_evidence(
+        "Runtime verified",
+        (OAPEvidence("source:123", "source", "Code exists", verified_receipt=True),),
+    )
+    assert result.verdict == "INVESTIGATE"
+    assert result.missing_proof == ("source",)
+    assert result.supporting_references == ()
+
+
+def test_cross_agent_claim_remains_advisory_and_unverified() -> None:
+    review = assess_smi_agent_claim(
+        "Neo",
+        "Neo deployed",
+        (OAPEvidence("agent:claimed", "runtime", "Neo deployed", verified_receipt=True),),
+        required_kinds=("runtime",),
+    )
+    assert review.agent_name == "Neo"
+    assert review.assessment.verdict == "INVESTIGATE"
+    assert review.assessment.missing_proof == ("runtime",)
+    assert review.independent_review_required
+    assert not review.independent_review_verified
+    assert not review.permissions_granted
+    assert not review.council_vote_recorded
+    assert review.assessment.founder_final
+
+
+def test_octopus_cannot_self_certify() -> None:
+    review = assess_smi_agent_claim(
+        "Octopus", "OAP MIND is production ready",
+        (OAPEvidence("caller:receipt", "ci", "OAP MIND is production ready",
+                     verified_receipt=True),),
+        required_kinds=("ci",),
+    )
+    assert review.assessment.verdict != "REVIEW_READY"
+    assert not review.independent_review_verified
+    assert not review.assessment.runtime_certified
+
+
+def test_cross_agent_contradiction_holds_and_empty_agent_rejected() -> None:
+    records = (OAPEvidence("test:failure", "test", "Agent works", False),)
+    review = assess_smi_agent_claim("Owl", "Agent works", records)
+    assert review.assessment.verdict == "HOLD"
+    with pytest.raises(ValueError):
+        assess_smi_agent_claim(" ", "Agent works", records)
+
+
+def test_octopus_eight_arm_identity_is_distinct_from_smi_metacognition() -> None:
+    from oap.smi.oap_mind import (
+        OAP_MIND_COORDINATOR,
+        OAP_MIND_OWNER,
+        OAP_MIND_SUPPORTING_ARMS,
+        OCTOPUS_OPERATIONAL_ARMS,
+        OCTOPUS_PERMISSION_BOUNDARIES,
+    )
+
+    assert OAP_MIND_OWNER == "SMI"
+    assert OAP_MIND_COORDINATOR == "Octopus"
+    assert OCTOPUS_OPERATIONAL_ARMS == (
+        "OBSERVE", "TRACE", "PLAN", "COORDINATE",
+        "EXECUTE", "ADAPT", "RECOVER", "VERIFY",
+    )
+    assert OCTOPUS_PERMISSION_BOUNDARIES == (
+        "SENSE", "READ", "ANALYSE", "INFER",
+        "REMEMBER", "LEARN", "SHARE", "ACT",
+    )
+    assert set(OAP_MIND_SUPPORTING_ARMS).issubset(OCTOPUS_OPERATIONAL_ARMS)
+
+
+def test_octopus_arm_selection_is_advisory_even_when_execute_requested() -> None:
+    from oap.smi.oap_mind import review_octopus_arms
+
+    review = review_octopus_arms(
+        ("OBSERVE", "TRACE", "EXECUTE"), permissions=("READ", "ACT"),
+    )
+    assert review.selected_arms == ("OBSERVE", "TRACE", "EXECUTE")
+    assert review.action_gate_required
+    assert review.advisory_only and review.founder_final
+    assert not review.authority_granted
+    assert not review.runtime_verified
+
+
+def test_octopus_read_only_arm_selection_requires_no_execution_authority() -> None:
+    from oap.smi.oap_mind import review_octopus_arms
+
+    review = review_octopus_arms(("TRACE", "VERIFY"), permissions=("READ",))
+    assert not review.action_gate_required
+    assert not review.authority_granted
+
+
+@pytest.mark.parametrize(
+    "arms,permissions",
+    [
+        ((), ()),
+        (("OTHER",), ()),
+        (("OBSERVE", "OBSERVE"), ()),
+        (("OBSERVE",), ("ROOT",)),
+        (("OBSERVE",), ("ACT", "ACT")),
+        (["OBSERVE"], ()),
+        (("OBSERVE",), ["READ"]),
+    ],
+)
+def test_invalid_octopus_arm_proposals_fail_closed(arms, permissions) -> None:
+    from oap.smi.oap_mind import review_octopus_arms
+
+    with pytest.raises(ValueError):
+        review_octopus_arms(arms, permissions=permissions)
+
+
+def test_octopus_mission_checkpoint_never_proves_arm_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mission_control import all_in_ai_mission_store
+    from oap.smi.oap_mind import review_octopus_mission
+
+    monkeypatch.setattr(
+        all_in_ai_mission_store, "read",
+        lambda identity_id, mission_id: {
+            "mission_id": mission_id,
+            "state": "planned",
+            "read_back_verified": True,
+            "audit_verified": True,
+            "hrm_verified": True,
+            "execution_granted": False,
+            "approval_granted": False,
+            "human_authority_final": True,
+        },
+    )
+    review = review_octopus_mission(
+        identity_id="owner", mission_id="mission", arms=("TRACE", "VERIFY"),
+    )
+    assert review.checkpoint_verified
+    assert review.mission_state == "planned"
+    assert review.arm_execution_status == "UNKNOWN"
+    assert not review.arm_execution_proven
+    assert not review.authority_granted
+    assert review.founder_final
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"mission_id": "different"},
+        {"hrm_verified": False},
+        {"execution_granted": True},
+        {"approval_granted": True},
+        {"human_authority_final": False},
+        {"state": "executing"},
+    ],
+)
+def test_octopus_mission_rejects_untrusted_or_mismatched_readback(
+    monkeypatch: pytest.MonkeyPatch, override: dict,
+) -> None:
+    from mission_control import all_in_ai_mission_store
+    from oap.smi.oap_mind import review_octopus_mission
+
+    receipt = {
+        "mission_id": "mission",
+        "state": "planned",
+        "read_back_verified": True,
+        "audit_verified": True,
+        "hrm_verified": True,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+    receipt.update(override)
+    monkeypatch.setattr(all_in_ai_mission_store, "read", lambda *_: receipt)
+    with pytest.raises(ValueError):
+        review_octopus_mission(
+            identity_id="owner", mission_id="mission", arms=("OBSERVE",),
+        )
+
+
+def test_octopus_authorized_handoff_is_not_arm_execution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mission_control import all_in_ai_action_bridge
+    from oap.smi.oap_mind import review_octopus_action_handoff
+
+    monkeypatch.setattr(
+        all_in_ai_action_bridge, "handoff_status",
+        lambda identity, mission, **kwargs: {
+            "mission_id": mission,
+            "reviewed_request_id": kwargs["reviewed_request_id"],
+            "action_name": kwargs["action_name"],
+            "status": "AUTHORIZED_NOT_EXECUTED",
+            "execution_authorized": True,
+            "execution_performed": False,
+            "authority_transferred": False,
+            "human_authority_final": True,
+        },
+    )
+    review = review_octopus_action_handoff(
+        identity_id="owner", mission_id="mission", reviewed_request_id="request",
+        proposed_arm="EXECUTE",
+    )
+    assert review.action_authorized
+    assert review.handoff_state == "AUTHORIZED_NOT_EXECUTED"
+    assert review.arm_execution_status == "UNKNOWN"
+    assert not review.arm_attribution_verified
+    assert not review.action_performed
+    assert not review.authority_granted_by_octopus
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"mission_id": "another-mission"},
+        {"reviewed_request_id": "another-request"},
+        {"execution_performed": True},
+        {"authority_transferred": True},
+        {"human_authority_final": False},
+        {"status": "EXECUTED"},
+        {"status": "AUTHORIZED_NOT_EXECUTED", "execution_authorized": False},
+    ],
+)
+def test_octopus_handoff_rejects_spoofed_or_inconsistent_status(
+    monkeypatch: pytest.MonkeyPatch, override: dict,
+) -> None:
+    from mission_control import all_in_ai_action_bridge
+    from oap.smi.oap_mind import review_octopus_action_handoff
+
+    status = {
+        "mission_id": "mission",
+        "reviewed_request_id": "request",
+        "action_name": "SYNC_INTERNAL_RECORD",
+        "status": "AUTHORIZED_NOT_EXECUTED",
+        "execution_authorized": True,
+        "execution_performed": False,
+        "authority_transferred": False,
+        "human_authority_final": True,
+    }
+    status.update(override)
+    monkeypatch.setattr(all_in_ai_action_bridge, "handoff_status", lambda *a, **k: status)
+    with pytest.raises(ValueError):
+        review_octopus_action_handoff(
+            identity_id="owner", mission_id="mission",
+            reviewed_request_id="request", proposed_arm="EXECUTE",
+        )
+
+
+def test_octopus_a7_review_never_unlocks_autonomy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mission_control import a7_certification
+    from oap.smi.oap_mind import review_octopus_a7_readiness
+
+    monkeypatch.setattr(
+        a7_certification, "status",
+        lambda: {
+            "level": "A7",
+            "a6_missing": ("independent_proof_runner",),
+            "a7_missing": ("external_audit",),
+            "a7_enabled": False,
+            "certification_granted": False,
+            "execution_granted": False,
+            "authority_moves_with_level": False,
+            "human_authority_final": True,
+        },
+    )
+    review = review_octopus_a7_readiness(("TRACE", "VERIFY"))
+    assert review.ceiling == "A7"
+    assert review.missing_a6_proof == ("independent_proof_runner",)
+    assert review.missing_a7_proof == ("external_audit",)
+    assert review.arm_execution_attribution == "UNKNOWN"
+    assert not review.a7_enabled
+    assert not review.certification_granted
+    assert not review.execution_authority_granted
+    assert review.founder_final
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"level": "A8"},
+        {"a7_enabled": True},
+        {"certification_granted": True},
+        {"execution_granted": True},
+        {"authority_moves_with_level": True},
+        {"human_authority_final": False},
+        {"a6_missing": None},
+    ],
+)
+def test_octopus_a7_review_rejects_unsafe_gate_readback(
+    monkeypatch: pytest.MonkeyPatch, override: dict,
+) -> None:
+    from mission_control import a7_certification
+    from oap.smi.oap_mind import review_octopus_a7_readiness
+
+    gate = {
+        "level": "A7",
+        "a6_missing": (),
+        "a7_missing": (),
+        "a7_enabled": False,
+        "certification_granted": False,
+        "execution_granted": False,
+        "authority_moves_with_level": False,
+        "human_authority_final": True,
+    }
+    gate.update(override)
+    monkeypatch.setattr(a7_certification, "status", lambda: gate)
+    with pytest.raises(RuntimeError):
+        review_octopus_a7_readiness(("OBSERVE",))
+
+
+def test_octopus_a7_accepts_consistent_canonical_proof_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from mission_control import a7_certification
+    from oap.smi.oap_mind import review_octopus_a7_readiness
+
+    monkeypatch.setattr(a7_certification, "status", lambda: {
+        "level": "A7",
+        "a6_checks": {"guardian_pass": True, "independent_proof": False},
+        "a7_checks": {"all_a6_proof": False, "external_audit": False},
+        "a6_missing": ("independent_proof",),
+        "a7_missing": ("all_a6_proof", "external_audit"),
+        "a6_proof_complete": False,
+        "ready_for_founder_certification": False,
+        "a7_enabled": False,
+        "certification_granted": False,
+        "execution_granted": False,
+        "authority_moves_with_level": False,
+        "human_authority_final": True,
+    })
+    review = review_octopus_a7_readiness(("TRACE",))
+    assert review.missing_a6_proof == ("independent_proof",)
+    assert not review.a7_enabled
+
+
+@pytest.mark.parametrize("override", [
+    {"a6_missing": ()},
+    {"a7_missing": ()},
+    {"a6_proof_complete": True},
+    {"ready_for_founder_certification": True},
+    {"a7_checks": {"all_a6_proof": "passed"}},
+])
+def test_octopus_a7_rejects_contradictory_certification_evidence(
+    monkeypatch: pytest.MonkeyPatch, override: dict,
+) -> None:
+    from mission_control import a7_certification
+    from oap.smi.oap_mind import review_octopus_a7_readiness
+
+    gate = {
+        "level": "A7",
+        "a6_checks": {"guardian_pass": False},
+        "a7_checks": {"all_a6_proof": False},
+        "a6_missing": ("guardian_pass",),
+        "a7_missing": ("all_a6_proof",),
+        "a6_proof_complete": False,
+        "ready_for_founder_certification": False,
+        "a7_enabled": False,
+        "certification_granted": False,
+        "execution_granted": False,
+        "authority_moves_with_level": False,
+        "human_authority_final": True,
+    }
+    gate.update(override)
+    monkeypatch.setattr(a7_certification, "status", lambda: gate)
+    with pytest.raises(RuntimeError):
+        review_octopus_a7_readiness(("VERIFY",))
+
+
+def test_evolution_intelligence_requires_reflection_and_changed_method() -> None:
+    from oap.smi.oap_mind import (
+        EVOLUTION_INTELLIGENCE_CAPABILITY,
+        INTELLIGENT_EVOLUTION_LAW,
+        EVOLUTION_QUALITY_GATES,
+        review_intelligent_evolution,
+    )
+
+    assert EVOLUTION_INTELLIGENCE_CAPABILITY == "Evolution Intelligence"
+    assert INTELLIGENT_EVOLUTION_LAW == "Intelligent Evolution"
+    assert len(EVOLUTION_QUALITY_GATES) == 8
+    review = review_intelligent_evolution(
+        action="Retry login unchanged",
+        result="Browser still displays obsolete route",
+        reflection="The server route is correct but browser state may differ",
+        refinement="Check server response against the observed browser page",
+        proposed_next_action="Inspect browser response and session",
+        evidence=(OAPEvidence("browser:reported", "device",
+                              "Browser still displays obsolete route",
+                              verified_receipt=True),),
+    )
+    assert review.decision == "REFINE"
+    assert review.changed_method
+    assert review.evidence_assessment.verdict == "INVESTIGATE"
+    assert review.missing_quality_proof == EVOLUTION_QUALITY_GATES
+    assert not review.repeat_authorized
+    assert not review.deployment_authorized
+    assert not review.self_modification_authorized
+    assert review.founder_final
+
+
+def test_intelligent_evolution_holds_blind_repetition() -> None:
+    from oap.smi.oap_mind import review_intelligent_evolution
+
+    result = review_intelligent_evolution(
+        action="Restart server",
+        result="Same login error",
+        reflection="Restarting has not changed the response",
+        refinement="Inspect the authentication session",
+        proposed_next_action="Restart server",
+    )
+    assert result.decision == "HOLD"
+    assert not result.changed_method
+
+
+def test_intelligent_evolution_holds_contradictory_evidence() -> None:
+    from oap.smi.oap_mind import review_intelligent_evolution
+
+    result = review_intelligent_evolution(
+        action="Check route",
+        result="Route works",
+        reflection="Server and browser reports disagree",
+        refinement="Inspect the rendered document and cookie scope",
+        proposed_next_action="Compare server and browser responses",
+        evidence=(OAPEvidence("device:failure", "device",
+                              "Route works", supports_claim=False),),
+    )
+    assert result.decision == "HOLD"
+    assert result.evidence_assessment.verdict == "HOLD"
+
+
+@pytest.mark.parametrize("override", [
+    {"action": ""},
+    {"result": "  "},
+    {"reflection": ""},
+    {"refinement": None},
+    {"proposed_next_action": ""},
+])
+def test_intelligent_evolution_rejects_empty_stages(override: dict) -> None:
+    from oap.smi.oap_mind import review_intelligent_evolution
+
+    inputs = {
+        "action": "Try a fix",
+        "result": "No change",
+        "reflection": "Investigate earlier assumption",
+        "refinement": "Change diagnosis",
+        "proposed_next_action": "Inspect runtime",
+    }
+    inputs.update(override)
+    with pytest.raises(ValueError):
+        review_intelligent_evolution(**inputs)
+
+
+def test_evolution_does_not_treat_parroted_result_as_reflection() -> None:
+    from oap.smi.oap_mind import review_intelligent_evolution
+
+    result = review_intelligent_evolution(
+        action="Try login", result="Login failed",
+        reflection="Login failed",
+        refinement="Inspect cookie handling",
+        proposed_next_action="Inspect server cookie flags",
+    )
+    assert result.decision == "HOLD"
+
+
+@pytest.mark.parametrize(
+    "cycle,expected_status,expected_action",
+    [
+        (
+            {"production_invariants": {"execution_locked": False,
+                                       "human_authority_final": True},
+             "gates_green": 21, "gates_total": 21, "health_status": "healthy"},
+            "HOLD", "RESTORE_GOVERNANCE_INVARIANTS",
+        ),
+        (
+            {"production_invariants": {"execution_locked": True,
+                                       "human_authority_final": True},
+             "gates_green": 0, "gates_total": 0, "health_status": "degraded"},
+            "UNKNOWN", "RETRIEVE_VERIFIED_HEALTH_GATES",
+        ),
+        (
+            {"production_invariants": {"execution_locked": True,
+                                       "human_authority_final": True},
+             "gates_green": 12, "gates_total": 21, "health_status": "degraded"},
+            "INVESTIGATE", "REVIEW_FAILED_HEALTH_GATES",
+        ),
+        (
+            {"production_invariants": {"execution_locked": True,
+                                       "human_authority_final": True},
+             "gates_green": 21, "gates_total": 21, "health_status": "healthy"},
+            "REVIEW", "VERIFY_ARM_EXECUTION_INDEPENDENTLY",
+        ),
+    ],
+)
+def test_octopus_internal_health_cycle_never_invents_execution(
+    cycle, expected_status, expected_action,
+) -> None:
+    from oap.smi.oap_mind import assess_octopus_runtime_cycle
+
+    result = assess_octopus_runtime_cycle(cycle)
+    assert result.status == expected_status
+    assert result.action_required == expected_action
+    assert not result.eight_arm_execution_verified
+    assert not result.execution_granted
+    assert not result.runtime_activation_proven
+    assert result.founder_final
+
+
+def test_octopus_health_cycle_rejects_invalid_denominator_and_boolean_counts() -> None:
+    from oap.smi.oap_mind import assess_octopus_runtime_cycle
+
+    result = assess_octopus_runtime_cycle({
+        "production_invariants": {
+            "execution_locked": True, "human_authority_final": True,
+        },
+        "gates_green": True, "gates_total": 21, "health_status": "healthy",
+    })
+    assert result.status == "UNKNOWN"
+    with pytest.raises(ValueError):
+        assess_octopus_runtime_cycle(None)
+
+
+def test_octopus_uses_existing_internal_worker_not_a_new_scheduler() -> None:
+    from pathlib import Path
+
+    source = Path("mission_control/organism_worker.py").read_text()
+    assert "octopus_cycle = assess_octopus_runtime_cycle(smi_cycle)" in source
+    assert '"octopus_coordination": {' in source
+    assert '"RUNTIME_HEALTH_PROBE": _health_probe' in source
+    assert '"OCTOPUS_WORKER"' not in source
+    assert '"OCTOPUS_RUN"' not in source
+
+
+def test_octopus_recurring_self_review_reads_existing_model_without_self_claim() -> None:
+    from oap.smi.oap_mind import assess_octopus_runtime_cycle
+
+    result = assess_octopus_runtime_cycle({
+        "production_invariants": {
+            "execution_locked": True, "human_authority_final": True,
+        },
+        "gates_green": 18, "gates_total": 21,
+        "health_status": "degraded",
+        "self_model": {"components_observed": 21},
+        "coherence_report": {"status": "REVIEW"},
+    })
+    assert result.self_observation_status == "PRESENT_UNVERIFIED"
+    assert result.coherence_review_status == "PRESENT_UNVERIFIED"
+    assert not result.independent_self_awareness_claim
+    assert not result.runtime_activation_proven
+
+
+def test_octopus_self_review_missing_evidence_is_unknown() -> None:
+    from oap.smi.oap_mind import assess_octopus_runtime_cycle
+
+    result = assess_octopus_runtime_cycle({
+        "production_invariants": {
+            "execution_locked": True, "human_authority_final": True,
+        },
+        "gates_green": 21, "gates_total": 21,
+        "health_status": "healthy",
+        "self_model": {}, "coherence_report": None,
+    })
+    assert result.self_observation_status == "UNKNOWN"
+    assert result.coherence_review_status == "UNKNOWN"
+    assert not result.independent_self_awareness_claim
+
+
+def test_octopus_recurring_self_review_uses_same_worker_health_probe() -> None:
+    from pathlib import Path
+
+    worker = Path("mission_control/organism_worker.py").read_text()
+    assert '"self_observation_status": octopus_cycle.self_observation_status' in worker
+    assert '"coherence_review_status": octopus_cycle.coherence_review_status' in worker
+    assert '"RUNTIME_HEALTH_PROBE": _health_probe' in worker
+    assert '"OCTOPUS_SELF_AWARENESS"' not in worker
