@@ -4188,4 +4188,5 @@ def global_affairs_recovery(authority_record_id: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5050, debug=True)
+    # Founder-local launch: never expose the private SMI server or debugger by default.
+    app.run(host="127.0.0.1", port=5000, debug=False)
