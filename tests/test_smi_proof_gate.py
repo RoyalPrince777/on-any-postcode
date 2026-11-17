@@ -75,6 +75,8 @@ def _proven_counts():
         "founder_smi_reviews": 1,
         "oap_event_receipts": 1,
         "rollback_recovery_receipts": 1,
+        "runtime_guard_receipts": 1,
+        "isolation_recovery_receipts": 1,
         "error": None,
     }
 
@@ -266,3 +268,28 @@ def test_rollback_audit_marks_exercise_as_non_operational(monkeypatch):
     assert recorded["metadata"]["human_resume_authorized"] is False
     assert "in-memory rollback exercise" in recorded["reason"]
     connection.commit.assert_called_once()
+
+
+@pytest.mark.parametrize("missing_key", [
+    "runtime_guard_receipts",
+    "isolation_recovery_receipts",
+])
+def test_green_gate_fails_closed_when_required_proof_field_is_missing(
+    monkeypatch, missing_key
+):
+    counts = _proven_counts()
+    del counts[missing_key]
+    monkeypatch.setattr(smi_proof_gate, "_production_counts", lambda: counts)
+    monkeypatch.setattr(
+        coherent_automation, "status",
+        lambda: {"ready": True, "signals_valid": True, "signal_count": 21},
+    )
+    monkeypatch.setattr(
+        telemetry, "status", lambda: {"observability_ready": True},
+    )
+
+    snapshot = smi_proof_gate.status()
+
+    assert snapshot["green"] is False
+    assert missing_key.removesuffix("_receipts") in snapshot["missing"]
+    assert snapshot["execution_granted"] is False
