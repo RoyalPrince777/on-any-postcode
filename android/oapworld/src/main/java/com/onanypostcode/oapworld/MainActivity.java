@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
@@ -47,6 +48,40 @@ public final class MainActivity extends ComponentActivity {
     private Button backButton;
     private final List<String> engineHistory = new ArrayList<>();
     private int engineHistoryIndex = -1;
+
+    // Sensitive SIKA paths may never appear in Android screenshots, screen
+    // recordings or recent-app thumbnails while displayed in this shell.
+    private static boolean isSensitiveSikaUrl(String rawUrl) {
+        if (rawUrl == null) return false;
+        Uri uri = Uri.parse(rawUrl);
+        Uri trusted = Uri.parse(OAP_ORIGIN);
+        boolean localPath = rawUrl.startsWith("/") && !rawUrl.startsWith("//");
+        boolean trustedOrigin = "https".equalsIgnoreCase(uri.getScheme())
+                && trusted.getHost() != null
+                && trusted.getHost().equalsIgnoreCase(uri.getHost())
+                && uri.getPort() == -1;
+        if (!localPath && !trustedOrigin) return false;
+        String path = uri.getPath();
+        return path != null && (path.equals("/pay") || path.startsWith("/pay/")
+                || path.equals("/oap-pay") || path.equals("/auth")
+                || path.equals("/enter-my-world"));
+    }
+
+    private void protectSikaScreen(String url) {
+        if (isSensitiveSikaUrl(url)) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
+    }
+
+    private void updateScreenProtection(String url) {
+        if (isSensitiveSikaUrl(url)) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        } else {
+            // Clear only after the destination has committed visibly; clearing
+            // during navigation can expose the previous financial screen.
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -212,6 +247,19 @@ public final class MainActivity extends ComponentActivity {
             }
 
             @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                // Covers redirects, history and in-page navigation not initiated
+                // by the native toolbar before sensitive content can be drawn.
+                protectSikaScreen(url);
+            }
+
+            @Override
+            public void onPageCommitVisible(WebView view, String url) {
+                // The previous page can no longer be drawn at this boundary.
+                updateScreenProtection(url);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 omnibox.setText(url);
                 refreshNavigationState();
@@ -307,6 +355,7 @@ public final class MainActivity extends ComponentActivity {
 
     private void openFirstPartyPath(String sourcePath, boolean recordHistory) {
         final String path = sourcePath == null || sourcePath.isEmpty() ? "/" : sourcePath;
+        protectSikaScreen(path);
         int viewportWidth = engineScrollView != null && engineScrollView.getWidth() > 0
                 ? engineScrollView.getWidth()
                 : getResources().getDisplayMetrics().widthPixels;
@@ -324,6 +373,7 @@ public final class MainActivity extends ComponentActivity {
     }
 
     private void loadWebViewUrl(String url) {
+        protectSikaScreen(url);
         engineClient.cancelPending();
         showWebViewFallback();
         webView.loadUrl(url);
@@ -346,6 +396,7 @@ public final class MainActivity extends ComponentActivity {
             webView.setVisibility(View.GONE);
             engineActive = true;
             engineSourcePath = sourcePath;
+            updateScreenProtection(sourcePath);
             if (recordHistory && sourcePath != null) {
                 while (engineHistory.size() > engineHistoryIndex + 1) {
                     engineHistory.remove(engineHistory.size() - 1);

@@ -15,6 +15,9 @@ def test_smi_command_dashboard_composes_canonical_sources():
     assert command["bank"]["software_controls_present"] is True
     assert command["bank"]["account_engine_present"] is True
     assert command["bank"]["single_pay_gateway"] is True
+    assert command["financial_mission"]["route"] == "sika_review"
+    assert command["financial_mission"]["money_movement"] is False
+    assert command["financial_mission"]["founder_final"] is True
     assert command["bank"]["rights_record_required"] is True
     assert command["bank"]["orchestrator_present"] is True
     assert command["bank"]["direct_authorisation_bypass_allowed"] is False

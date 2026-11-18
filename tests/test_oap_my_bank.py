@@ -71,6 +71,7 @@ def test_my_bank_never_invents_unprovisioned_value(client, monkeypatch):
 
 def test_unprovisioned_my_bank_offers_server_owned_founder_provisioning(client, monkeypatch):
     _authenticated(monkeypatch)
+    monkeypatch.setattr(oap_pay.web_security, "private_authority_allowed", lambda user: True)
     monkeypatch.setattr(
         oap_pay.sika_customer_view,
         "snapshot",
