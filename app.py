@@ -2778,6 +2778,18 @@ def linkup_front_door():
     except neon_auth.AuthUnavailable:
         user = None
 
+    # A private Messages / Link Call action must enter the existing secure
+    # member sign-in flow, not loop back to the anonymous Link Up landing page.
+    # The plain /linkup public front door stays accessible without sign-in.
+    requested_private_intent = str(request.args.get("intent") or "").strip().casefold()
+    if not user and requested_private_intent in {"message", "link-call"}:
+        return redirect(
+            url_for(
+                "auth_page",
+                next=url_for("linkup_front_door", intent=requested_private_intent),
+            )
+        )
+
     if not user:
         public_card = session.get(PUBLIC_MY_CARD_SESSION_KEY)
         if isinstance(public_card, dict):
