@@ -52,7 +52,10 @@ def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     assert "📡 Pulse" in page
     assert "See what’s happening around you." in page
     assert 'href="/pulse"' in page
-    assert "📣 Drop a Signal" in page
+    assert "📣 Signal" in page
+    assert 'data-spot-apps-entry aria-label="OAP Store apps"' in page
+    assert page.count('<summary>More</summary>') == 1
+    assert 'href="/store"' in page
 
     ordered_labels = (
         "🌍 Earth",
