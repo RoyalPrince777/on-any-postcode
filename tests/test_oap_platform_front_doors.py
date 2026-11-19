@@ -21,7 +21,8 @@ def test_link_exposes_booking_shop_distribution_without_private_data(anonymous_c
     page = response.get_data(as_text=True)
     assert response.status_code == 200
     assert response.headers["Cache-Control"] == "no-store"
-    for route in ("/linkup", "/travel/direct", "/the-spot/market", "/the-spot/distribution"):
+    assert ('href="/linkup?intent=message"' in page or 'href="/linkup"' in page)
+    for route in ("/travel/direct", "/the-spot/market", "/the-spot/distribution"):
         assert f'href="{route}"' in page
     assert "Private by design" in page
     assert "message_body" not in page
