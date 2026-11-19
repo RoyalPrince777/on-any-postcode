@@ -18,7 +18,7 @@
   <style>
     .linkup-now{display:grid;gap:.5rem;margin:.65rem;padding:.75rem;border:1px solid rgba(126,240,163,.28);border-radius:14px;background:rgba(126,240,163,.06)}
     .linkup-now>label:first-child{font-weight:800}.linkup-now input,.linkup-now select,.linkup-now button{min-height:2.5rem;border-radius:10px}.linkup-now input,.linkup-now select{padding:.55rem;border:1px solid rgba(255,255,255,.18);background:#0a1710;color:inherit}.linkup-free{display:flex;align-items:center;gap:.45rem}.linkup-free input{min-height:auto}
-    .linkup-master-nav{display:flex;gap:.45rem;padding:.1rem .65rem .65rem}.linkup-master-nav a{flex:1;text-align:center;padding:.58rem .7rem;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:#18232d;color:#fff;text-decoration:none;font-weight:800}
+    .linkup-master-nav{display:flex;gap:.25rem;padding:.1rem .4rem .5rem}.linkup-master-nav a{flex:1 1 0;min-width:0;text-align:center;padding:.6rem .2rem;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#18232d;color:#fff;text-decoration:none;font-weight:800;font-size:clamp(.6rem,2.2vw,.82rem);white-space:nowrap}.linkup-master-nav a:focus-visible{outline:2px solid #ffd25e;outline-offset:2px}
     .linkup-new-actions{display:flex;gap:.5rem;flex-wrap:wrap}.linkup-new-actions button{min-width:46px;min-height:42px;border:0;border-radius:14px;background:#1a232d;color:inherit}
     .linkup-card{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:center;margin:.15rem .65rem .65rem;padding:.75rem;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c24}
     .linkup-card-copy{display:grid;gap:.12rem;min-width:0}.linkup-card-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.linkup-card-copy small{color:rgba(255,255,255,.68);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -45,7 +45,7 @@
   <header class="linkup-topbar">
     <a href="{{ url_for('the_link_front_door') }}" aria-label="Back to The Link">‹</a>
     <h1>{{ motion_icon('link-up', 'oap-motion-link') }} Link Up</h1>
-    <a href="{{ url_for('home') }}" aria-label="OAP World">OAP</a>
+    {% if auth_user %}<a href="{{ url_for('home') }}" aria-label="OAP World">OAP</a>{% endif %}
   </header>
 
   {% if not auth_user %}
@@ -76,10 +76,6 @@
         {% endif %}
       </section>
 
-      <nav class="linkup-royal-tools" aria-label="Link Up master tools">
-        <a href="/linkup?intent=message"><span class="royal-symbol">💬</span><strong>Messages</strong><small>Private · sign-in</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🔗</span><strong>Opportunities</strong><small>Open The Link</small></a>
-      </nav>
       <nav class="linkup-royal-bottom" aria-label="Link Up public bottom navigation">
         <a href="/linkup" aria-current="page">⌂<span>Home</span></a>
         <a href="{{ url_for('auth_page', next='/linkup') }}">👥<span>People</span></a>
