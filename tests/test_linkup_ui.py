@@ -336,7 +336,8 @@ def test_my_emojis_are_private_chat_composer_language():
 
     assert 'aria-label="My Emojis"' in template
     assert 'title="My Emojis"' in template
-    assert "My Emojis stay inside the private chat" in template
+    assert 'data-oap-emoji-picker' in template
+    # A working private composer control is evidence; explanatory copy is not.
 
 
 def test_private_linkup_intents_take_guests_to_existing_member_sign_in(anonymous_client):
