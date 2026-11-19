@@ -107,14 +107,16 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
     assert "Free and optional. Browse without signing in." in page
-    assert 'aria-label="Link Up master tools"' in page
+    assert 'aria-label="Link Up master tools"' not in page
     assert 'aria-label="Link Up public bottom navigation"' in page
+    assert 'href="/the-link"' in page
+    assert page.count('<nav class="linkup-royal-bottom"') == 1
     # Both public People actions lead to the protected accepted-Links view
     # via the existing member sign-in gate, not back around a public UI loop.
     assert page.count("next=/linkup") + page.count("next=%2Flinkup") == 1
     assert 'href="/linkup?intent=message"' in page
-    assert page.count('href="/linkup?intent=message"') == 2
-    assert page.count('aria-label="Link Up master tools"') == 1
+    assert page.count('href="/linkup?intent=message"') == 1
+    assert page.count('aria-label="Link Up public bottom navigation"') == 1
     assert "Nearby People" not in page
     assert "Spotlight" not in page
     assert "Community Signals" not in page
@@ -277,7 +279,7 @@ def test_linkup_public_shell_uses_free_my_card_actions():
     assert "Create My Card" in template
     assert "PUBLIC · CONNECT · CREATE" in template
     assert "linkup-royal-home" in template
-    assert "linkup-royal-tools" in template
+    assert "linkup-royal-tools" not in template
     assert "linkup-royal-bottom" in template
 
 
