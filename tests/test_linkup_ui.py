@@ -366,3 +366,50 @@ def test_public_spot_link_linkup_chain_is_navigable(anonymous_client):
     assert 'href="/linkup?intent=message"' in link.get_data(as_text=True)
     assert 'href="/linkup?intent=message"' in public_linkup.get_data(as_text=True)
 
+
+
+def test_combined_world_spot_linkup_secure_handoff(anonymous_client):
+    """Exercise the combined public journey and the actual private sign-in gate.
+
+    Source/HTTP acceptance only: this does not claim a device, call, or
+    provider-backed two-member message was completed.
+    """
+    world = anonymous_client.get("/world", query_string={"source": "oap-os"})
+    assert world.status_code == 200
+    assert 'href="/the-spot"' in world.get_data(as_text=True)
+
+    spot = anonymous_client.get("/the-spot")
+    assert spot.status_code == 200
+    assert spot.headers["Cache-Control"] == "no-store"
+    spot_html = spot.get_data(as_text=True)
+    assert 'href="/pulse"' in spot_html
+    assert 'href="/the-link"' in spot_html
+    assert spot_html.count('href="/the-link"') == 1
+    assert spot_html.count("<summary>More</summary>") == 1
+    assert 'href="/studio"' in spot_html
+    assert 'href="/arena"' in spot_html
+    assert 'href="/my-card/create"' in spot_html
+
+    link = anonymous_client.get("/the-link")
+    assert link.status_code == 200
+    assert link.headers["Cache-Control"] == "no-store"
+    link_html = link.get_data(as_text=True)
+    assert 'href="/linkup?intent=message"' in link_html
+    assert 'href="/the-spot/postcode-rooms"' in link_html
+    assert link_html.count("<summary>More</summary>") == 1
+
+    public_linkup = anonymous_client.get("/linkup")
+    assert public_linkup.status_code == 200
+    assert 'aria-label="Link Up public bottom navigation"' in public_linkup.get_data(as_text=True)
+    assert 'aria-label="Private Link Up messenger"' not in public_linkup.get_data(as_text=True)
+
+    for private_intent in ("message", "link-call"):
+        response = anonymous_client.get(
+            "/linkup", query_string={"intent": private_intent}
+        )
+        assert response.status_code == 302
+        auth_target = urlsplit(response.headers["Location"])
+        assert auth_target.path in {"/auth", "/enter-my-world"}
+        assert parse_qs(auth_target.query)["next"] == [
+            f"/linkup?intent={private_intent}"
+        ]
