@@ -8,6 +8,11 @@ on:
       - 'app.py'
       - 'templates/home.html'
       - 'templates/world.html'
+      - 'templates/koradaso_internet.html'
+      - 'mission_control/oap_data.py'
+      - 'mission_control/telemetry.py'
+      - 'static/oap-os.js'
+      - 'static/oap-os-sw.js'
       - '.github/workflows/oap-data-no-meta.yml'
   pull_request:
     branches:
@@ -17,6 +22,11 @@ on:
       - 'app.py'
       - 'templates/home.html'
       - 'templates/world.html'
+      - 'templates/koradaso_internet.html'
+      - 'mission_control/oap_data.py'
+      - 'mission_control/telemetry.py'
+      - 'static/oap-os.js'
+      - 'static/oap-os-sw.js'
       - '.github/workflows/oap-data-no-meta.yml'
   workflow_dispatch:
 permissions:
