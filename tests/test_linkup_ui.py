@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 from mission_control import config, linkup, product_store
 
@@ -331,3 +332,26 @@ def test_my_emojis_are_private_chat_composer_language():
     assert 'aria-label="My Emojis"' in template
     assert 'title="My Emojis"' in template
     assert "My Emojis stay inside the private chat" in template
+
+
+def test_private_linkup_intents_take_guests_to_existing_member_sign_in(anonymous_client):
+    # Public browsing must not require sign-in or expose private member records.
+    assert anonymous_client.get("/linkup").status_code == 200
+    for intent in ("message", "link-call"):
+        response = anonymous_client.get("/linkup", query_string={"intent": intent})
+        assert response.status_code == 302
+        destination = urlsplit(response.headers["Location"])
+        assert destination.path in {"/auth", "/enter-my-world"}
+        assert parse_qs(destination.query)["next"] == [f"/linkup?intent={intent}"]
+        assert response.headers["Location"].startswith("/")
+
+
+def test_public_spot_link_linkup_chain_is_navigable(anonymous_client):
+    spot = anonymous_client.get("/the-spot")
+    link = anonymous_client.get("/the-link")
+    public_linkup = anonymous_client.get("/linkup")
+    assert spot.status_code == link.status_code == public_linkup.status_code == 200
+    assert 'href="/the-link"' in spot.get_data(as_text=True)
+    assert 'href="/linkup?intent=message"' in link.get_data(as_text=True)
+    assert 'href="/linkup?intent=message"' in public_linkup.get_data(as_text=True)
+
