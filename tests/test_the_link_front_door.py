@@ -22,8 +22,11 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
         "Private by design",
     ):
         assert label in page
-    assert "Open your accepted Links and Certified connections." in page
+    assert "Your accepted Links and Certified connections." in page
     assert "Public Empire links" in page
+    assert '<summary>More from The Link</summary>' in page
+    assert page.count('href="/travel/direct"') == 1
+    assert page.count('href="/the-spot/distribution"') == 1
     assert "Community Power" not in page
     assert "World Rooms" not in page
     assert "verified people" not in page.casefold()
