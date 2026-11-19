@@ -109,6 +109,9 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert "Optional for private features. Public Link Up needs no email, password or sign-in." in page
     assert 'aria-label="Link Up master tools"' in page
     assert 'aria-label="Link Up public bottom navigation"' in page
+    # Both public People actions lead to the protected accepted-Links view
+    # via the existing member sign-in gate, not back around a public UI loop.
+    assert page.count("next=/linkup") + page.count("next=%2Flinkup") >= 2
     assert 'href="/linkup?intent=message"' in page
     assert "Nearby People" not in page
     assert "Spotlight" not in page
