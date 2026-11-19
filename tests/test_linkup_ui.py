@@ -107,6 +107,9 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
     assert "Free and optional. Browse without signing in." in page
+    assert 'data-network="unknown"' in page
+    assert 'class="linkup-create-card"' not in page
+    assert page.count('class="linkup-card-summary"') == 1
     assert 'aria-label="Link Up master tools"' not in page
     assert 'aria-label="Link Up public bottom navigation"' in page
     assert 'href="/the-link"' in page
