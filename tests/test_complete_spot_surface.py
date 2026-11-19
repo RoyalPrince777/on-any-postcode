@@ -147,15 +147,14 @@ def test_creator_business_and_support_handoffs_preserve_boundaries(client):
 
 def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
     page = client.get("/the-spot").get_data(as_text=True)
-
-    assert "On Any Postcode Maps · Booking · Movement" in page
+    assert "📅 Booking · 📦 Distribution" in page
+    assert "🗺️ Maps · 🚶 Movement" in page
     assert "🌍 On Any Postcode Maps" in page
-    assert "📅 Booking" in page
+    assert "📅 OAP Booking" in page
     assert "🚶 Movement" in page
-    assert 'href="/travel/direct"' in page
-    assert "Quote, hold and reservation request through OAP Direct." in page
-    assert "supplier confirmation is required before a booking is confirmed" in page.lower()
-    assert "Payment and automatic dispatch remain separate." in page
+    assert "supplier confirmation required" in page
+    assert page.count('href="/travel/direct"') == 1
+    assert page.count('href="/the-spot/distribution"') == 1
 
 
 def test_booking_and_maps_public_front_doors_are_reachable(client):
