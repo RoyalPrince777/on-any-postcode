@@ -8,18 +8,17 @@
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
     .spot-hero{display:grid;gap:12px}.spot-pulse{display:block;border:1px solid var(--mc-line);border-radius:18px;background:var(--mc-panel-soft);padding:20px;color:var(--mc-text);text-decoration:none}.spot-pulse:hover,.spot-pulse:focus-visible{border-color:var(--mc-green);outline:none}.spot-pulse strong{display:block;font-size:1.25rem;margin-bottom:5px}.spot-core{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px}.spot-core a,.spot-world{display:flex;flex-direction:column;gap:5px;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-core a:hover,.spot-core a:focus-visible,.spot-world:hover,.spot-world:focus-visible{border-color:var(--mc-green);outline:none}.spot-core strong{display:block}.spot-core small{color:var(--mc-muted);line-height:1.35}.spot-more{margin-top:4px}.spot-more summary{cursor:pointer;font-weight:800;padding:10px 0}.spot-more-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.spot-more-grid a{border:1px solid var(--mc-line);border-radius:12px;padding:11px;color:var(--mc-text);text-decoration:none}.spot-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.spot-bar a{border:1px solid var(--mc-line);border-radius:999px;padding:8px 12px;color:var(--mc-text);text-decoration:none}.spot-intro{max-width:760px}.spot-media,.spot-platform{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}.spot-media a,.spot-platform a{display:flex;flex-direction:column;gap:6px;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none}.spot-media a:hover,.spot-media a:focus-visible,.spot-platform a:hover,.spot-platform a:focus-visible{border-color:var(--mc-green);outline:none}.spot-platform strong{font-size:1.03rem}.spot-platform small{color:var(--mc-muted);line-height:1.35}.spot-note{margin:0;color:var(--mc-muted)}.spot-truth{margin:10px 0 0;color:var(--mc-muted);font-size:.9rem}.spot-platform-title{margin-bottom:8px}.spot-platform-law{margin:10px 0 0;border-left:3px solid var(--mc-green);padding:8px 11px;color:var(--mc-muted)}
+    @media(max-width:640px){.spot-bar{gap:6px}.spot-bar a{padding:9px 11px;min-height:44px;display:inline-flex;align-items:center}.spot-core{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.spot-core a{justify-content:center;min-height:50px;padding:11px 9px}.spot-core small{display:none}.spot-welcome{padding:12px}.spot-welcome-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.spot-welcome-actions a{padding:12px;min-height:52px}.spot-welcome-actions small{display:none}.spot-more summary{min-height:44px;display:flex;align-items:center}.spot-more-content{gap:9px}}
+    .spot-more-content{display:grid;gap:10px}.spot-more-content .spot-platform small,.spot-more-content .spot-media span{display:none}.spot-more-content .spot-platform a,.spot-more-content .spot-media a,.spot-more-content .spot-more-grid a{min-height:44px;justify-content:center}.spot-core a{min-height:56px;justify-content:center}.spot-welcome-actions a{justify-content:center}
+    .spot-welcome{display:grid;gap:12px;padding:18px;border:1px solid var(--mc-line);border-radius:18px;background:var(--mc-panel-soft)}.spot-welcome h2,.spot-welcome p{margin:0}.spot-welcome-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.spot-welcome-actions a{display:flex;flex-direction:column;gap:7px;border:1px solid var(--mc-line);border-radius:14px;padding:16px;background:var(--mc-panel-soft);color:var(--mc-text);text-decoration:none}.spot-welcome-actions a:hover,.spot-welcome-actions a:focus-visible{border-color:var(--mc-green);outline:2px solid transparent}.spot-welcome-actions small,.spot-welcome-note{color:var(--mc-muted);line-height:1.45}.spot-welcome-note a{color:var(--mc-green);text-underline-offset:3px}
   </style>
 </head>
 <body class="mc-workspace-body">
   <header class="mc-workspace-header">
     <div class="spot-intro">
-      <p class="mc-eyebrow">📍 Your Spot</p>
       <h1>The Spot</h1>
-      <p class="spot-note">Local-first HQ inside OAP World. Pulse leads; Earth connects continent to postcode; The Link, Nature, Chronicle, Market and My World stay one front door without exposing Founder controls.</p>
       <div class="spot-bar">
         <a href="{{ url_for('home') }}">🌍 OAP World</a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">📣 Drop a Signal</a>
-        <a href="/store" data-spot-apps-entry>📱 Apps · Open / Install</a>
       </div>
     </div>
   </header>
@@ -31,79 +30,60 @@
         <span>See what’s happening around you.</span>
       </a>
 
+      <section class="spot-welcome" aria-labelledby="spot-welcome-title">
+        <h2 id="spot-welcome-title">Explore</h2>
+        <div class="spot-welcome-actions" aria-label="Start exploring OAP">
+          <a href="/studio">
+            <strong>✨ Studio</strong>
+            <small>Public chat · provider-dependent.</small>
+          </a>
+          <a href="/arena">
+            <strong>🎮 Arena</strong>
+          </a>
+        </div>
+        <p class="spot-welcome-note"><a href="/my-card/create">My Card is free and optional</a> · Private Link Up requires sign-in.</p>
+      </section>
+
       <div class="spot-core" aria-label="The Spot core order">
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}"><strong>🌍 Earth</strong><small>Continent → Country + National Anthem → County / Region → Borough / District → Postcode.</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><strong>🔗 The Link</strong><small>People, opportunities and Link Up.</small></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='news') }}"><strong>📰 OAP Chronicle</strong><small>Human-centred local-to-global news.</small></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='nature') }}"><strong>🌿 Nature</strong><small>Weather, environment, green spaces and wellbeing.</small></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='events') }}"><strong>🎪 Activity / Adventure</strong><small>Gatherings, sport, culture and things to do.</small></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}"><strong>🧭 Explorer</strong><small>Places, services and discovery.</small></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='market') }}"><strong>🏪 Market</strong><small>Listings, local value and My Shop.</small></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='my-world') }}"><strong>👤 My World</strong><small>Your OAP identity and private personal space.</small></a>
-      </div>
-    </section>
-
-    <section class="mc-panel" aria-labelledby="spot-platform-title">
-      <p class="mc-eyebrow">🌍 ON ANY PLATFORM · One front door</p>
-      <h2 id="spot-platform-title" class="spot-platform-title">Link. Book. Sell. Distribute.</h2>
-      <p>Move through one clean OAP path. Public discovery stays open; private conversations, booking holds, seller actions and consequential distribution steps stay protected.</p>
-      <div class="spot-platform" aria-label="OAP platform front doors">
-        <a href="{{ url_for('the_link_front_door') }}">
-          <strong>🔗 The Link</strong>
-          <span>People, opportunities and Link Up.</span>
-          <small>The Link lives inside The Spot. Link Up stays protected inside The Link.</small>
-        </a>
-        <a href="{{ url_for('travel_supply.public_marketplace') }}">
-          <strong>📅 OAP Booking</strong>
-          <span>Discover, quote, hold and request a reservation.</span>
-          <small>Supplier confirmation remains required before anything is called confirmed.</small>
-        </a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">
-          <strong>🛍️ My Shop</strong>
-          <span>Your OAP storefront path inside Market.</span>
-          <small>Listings are live where durable identity is available; checkout stays separately governed.</small>
-        </a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='distribution') }}">
-          <strong>📦 OAP Distribution</strong>
-          <span>Own release engine for cleared OAP content and campaigns.</span>
-          <small>External platform delivery remains locked until approved API, rights and legal routes exist.</small>
-        </a>
-      </div>
-      <p class="spot-platform-law"><strong>OAP law:</strong> The Spot → The Link → Link Up. Booking, My Shop and Distribution connect from The Spot without crossing the Founder-only private dashboard.</p>
-    </section>
-
-    <section class="mc-panel" aria-labelledby="spot-book-move-title">
-      <p class="mc-eyebrow">🌍 On Any Postcode Maps · Booking · Movement</p>
-      <h2 id="spot-book-move-title">Find it. Move. Book.</h2>
-      <div class="spot-media" aria-label="On Any Postcode Maps Booking and Movement">
-        <a href="{{ url_for('travel_supply.public_atlas') }}"><strong>🌍 On Any Postcode Maps</strong><span>Place search, source-bound weather and local context.</span></a>
-        <a href="{{ url_for('travel_supply.public_marketplace') }}"><strong>📅 Booking</strong><span>Quote, hold and reservation request through OAP Direct.</span></a>
-        <a href="{{ url_for('movement.movement_home') }}"><strong>🚶 Movement</strong><span>Consent-first routes and movement.</span></a>
-      </div>
-      <p class="spot-truth">Supplier confirmation is required before a booking is confirmed. Payment and automatic dispatch remain separate.</p>
-    </section>
-
-    <section class="mc-panel" aria-labelledby="spot-media-title">
-      <p class="mc-eyebrow">🎵 OAP Music / Media</p>
-      <h2 id="spot-media-title">Own player. Own radio. Own release engine.</h2>
-      <p>Streams build attention. Money paths stay with memberships, merch, events, direct support, creator stores, campaigns and SIKA value records.</p>
-      <div class="spot-media" aria-label="OAP Music and Media modules">
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='music') }}"><strong>🎵 OAP Music</strong></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='player') }}"><strong>▶️ OAP Player</strong></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='radio') }}"><strong>📻 OAP Radio</strong></a>
-        <a href="{{ url_for('spot_capability_front_door', capability_slug='distribution') }}"><strong>📦 OAP Distribution</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}" aria-label="Earth · Continent to postcode · National Anthem"><strong>🌍 Earth</strong></a>
+        <a href="{{ url_for('the_link_front_door') }}" aria-label="The Link · People and Link Up"><strong>🔗 The Link</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='news') }}"><strong>📰 OAP Chronicle</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='nature') }}"><strong>🌿 Nature</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='events') }}"><strong>🎪 Activity / Adventure</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}"><strong>🧭 Explorer</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='market') }}"><strong>🏪 Market</strong></a>
+        <a href="{{ url_for('spot_capability_front_door', capability_slug='my-world') }}"><strong>👤 My World</strong></a>
       </div>
     </section>
 
     <section class="mc-panel">
       <details class="spot-more">
         <summary>More</summary>
-        <div class="spot-more-grid">
-          {% for capability in hierarchy.capabilities %}
-            {% if capability.slug not in ('pulse','signal','news','nature','postcode-rooms','events','market','discovery','carnival','my-world','music','player','radio','distribution','maps-weather-travel','movement-delivery') %}
-            <a href="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">{{ capability.name }}</a>
-            {% endif %}
-          {% endfor %}
+        <div class="spot-more-content">
+          <div class="spot-more-grid" aria-label="Signal and apps">
+            <a href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}">📣 Signal</a>
+            <a href="/store" data-spot-apps-entry aria-label="OAP Store apps">📱 Apps</a>
+          </div>
+          <div class="spot-platform" aria-label="OAP platform front doors">
+            <a href="{{ url_for('travel_supply.public_marketplace') }}"><strong>📅 OAP Booking</strong><small>Request a booking; supplier confirmation required.</small></a>
+            <a href="{{ url_for('spot_capability_front_door', capability_slug='distribution') }}"><strong>📦 OAP Distribution</strong><small>Prepare releases; external delivery stays gated.</small></a>
+          </div>
+          <div class="spot-media" aria-label="On Any Postcode Maps and Movement">
+            <a href="{{ url_for('travel_supply.public_atlas') }}"><strong>🌍 On Any Postcode Maps</strong><span>Places, routes and source-bound weather.</span></a>
+            <a href="{{ url_for('movement.movement_home') }}"><strong>🚶 Movement</strong><span>Routes and transport.</span></a>
+          </div>
+          <div class="spot-media" aria-label="OAP Music and Media modules">
+            <a href="{{ url_for('spot_capability_front_door', capability_slug='music') }}"><strong>🎵 OAP Music</strong></a>
+            <a href="{{ url_for('spot_capability_front_door', capability_slug='player') }}"><strong>▶️ OAP Player</strong></a>
+            <a href="{{ url_for('spot_capability_front_door', capability_slug='radio') }}"><strong>📻 OAP Radio</strong></a>
+          </div>
+          <div class="spot-more-grid">
+            {% for capability in hierarchy.capabilities %}
+              {% if capability.slug not in ('pulse','signal','news','nature','postcode-rooms','events','market','discovery','carnival','my-world','music','player','radio','distribution','maps-weather-travel','movement-delivery') %}
+              <a href="{{ url_for('spot_capability_front_door', capability_slug=capability.slug) }}">{{ capability.name }}</a>
+              {% endif %}
+            {% endfor %}
+          </div>
         </div>
       </details>
     </section>
