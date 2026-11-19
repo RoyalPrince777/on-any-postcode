@@ -55,6 +55,10 @@ def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     assert "📣 Signal" in page
     assert 'data-spot-apps-entry aria-label="OAP Store apps"' in page
     assert page.count('<summary>More</summary>') == 1
+    assert page.count('aria-label="The Spot core order"') == 1
+    assert '<h2 id="spot-welcome-title">Explore</h2>' in page
+    assert '<h2>Explore more</h2>' not in page
+    assert '<p class="spot-note">' not in page
     assert 'href="/store"' in page
 
     ordered_labels = (
@@ -353,7 +357,6 @@ def test_spot_guest_welcome_prioritises_studio_and_arena_without_forcing_my_card
     assert response.status_code == 200
     assert page.index('href="/pulse"') < page.index('id="spot-welcome-title"')
     assert page.index('id="spot-welcome-title"') < page.index('aria-label="The Spot core order"')
-    assert "Explore freely. No My Card needed to browse." in page
     assert 'href="/studio"' in page
     assert 'href="/arena"' in page
     assert 'href="/the-link"' in page
@@ -361,7 +364,7 @@ def test_spot_guest_welcome_prioritises_studio_and_arena_without_forcing_my_card
     assert 'href="/my-card/create"' in page
     assert "My Card is free and optional" in page
     assert "Private Link Up requires sign-in." in page
-    assert "depends on provider availability" in page
+    assert "provider-dependent" in page
     assert 'href="/mission/studio' not in page
     assert "📅 Booking · 📦 Distribution" in page
     assert "🗺️ Maps · 🚶 Movement" in page
