@@ -78,14 +78,14 @@
 
       <nav class="linkup-royal-tools" aria-label="Link Up master tools">
         <a href="/linkup?intent=message"><span class="royal-symbol">💬</span><strong>Messages</strong><small>Private Link Ups</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-world">👥</span><strong>People</strong><small>Open The Link</small></a>
+        <a href="{{ url_for('auth_page', next='/linkup') }}"><span class="royal-symbol royal-world">👥</span><strong>People</strong><small>Open your private Links</small></a>
         <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🔗</span><strong>Opportunities</strong><small>Connect through The Link</small></a>
         <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-scroll">▤</span><strong>My Card</strong><small>Create your identity</small></a>
         <a href="{{ url_for('home') }}"><span class="royal-symbol royal-world">🌍</span><strong>OAP World</strong><small>Explore OAP</small></a>
       </nav>
       <nav class="linkup-royal-bottom" aria-label="Link Up public bottom navigation">
         <a href="/linkup" aria-current="page">⌂<span>Home</span></a>
-        <a href="{{ url_for('the_link_front_door') }}">👥<span>People</span></a>
+        <a href="{{ url_for('auth_page', next='/linkup') }}">👥<span>People</span></a>
         <a class="linkup-oap-home" href="{{ url_for('home') }}" aria-label="OAP World">♛<span>OAP</span></a>
         <a href="/linkup?intent=message">💬<span>Messages</span></a>
         <a href="{{ url_for('my_card_create_page') }}">▤<span>My Card</span></a>
