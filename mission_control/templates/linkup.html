@@ -63,25 +63,22 @@
           <span aria-hidden="true">▤✓</span>
           <span>
             <strong>{{ my_card.display_name }}</strong>
-            <small>{{ my_card.card_id }} · Basic My Card active. No password required. Private Link Up stays locked until secure sign-in is added.</small>
+            <small>{{ my_card.card_id }} · Basic My Card. Private chat requires sign-in.</small>
           </span>
           <b aria-hidden="true">🔒</b>
         </div>
         {% else %}
         <a class="linkup-create-card" href="{{ url_for('my_card_create_page') }}">
           <span aria-hidden="true">▤＋</span>
-          <span><strong>Create My Card</strong><small>Optional for private features. Public Link Up needs no email, password or sign-in.</small></span>
+          <span><strong>Create My Card</strong><small>Free and optional. Browse without signing in.</small></span>
           <b aria-hidden="true">›</b>
         </a>
         {% endif %}
       </section>
 
       <nav class="linkup-royal-tools" aria-label="Link Up master tools">
-        <a href="/linkup?intent=message"><span class="royal-symbol">💬</span><strong>Messages</strong><small>Private Link Ups</small></a>
-        <a href="{{ url_for('auth_page', next='/linkup') }}"><span class="royal-symbol royal-world">👥</span><strong>People</strong><small>Open your private Links</small></a>
-        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🔗</span><strong>Opportunities</strong><small>Connect through The Link</small></a>
-        <a href="{{ url_for('my_card_create_page') }}"><span class="royal-symbol royal-scroll">▤</span><strong>My Card</strong><small>Create your identity</small></a>
-        <a href="{{ url_for('home') }}"><span class="royal-symbol royal-world">🌍</span><strong>OAP World</strong><small>Explore OAP</small></a>
+        <a href="/linkup?intent=message"><span class="royal-symbol">💬</span><strong>Messages</strong><small>Private · sign-in</small></a>
+        <a href="{{ url_for('the_link_front_door') }}"><span class="royal-symbol royal-rocket">🔗</span><strong>Opportunities</strong><small>Open The Link</small></a>
       </nav>
       <nav class="linkup-royal-bottom" aria-label="Link Up public bottom navigation">
         <a href="/linkup" aria-current="page">⌂<span>Home</span></a>
@@ -213,13 +210,12 @@
           <summary>More</summary>
           <p><a href="{{ url_for('my_card_page') }}">My Card</a></p>
           <p><a href="#linkup-requests">Link Requests</a></p>
-          <p><a href="#linkup-ring">My Controls</a> · open a Link Up and use ⚙ My Controls.</p>
+          <p><a href="#linkup-ring">My Controls</a></p>
           <form method="post" action="{{ url_for('auth_sign_out') }}">
             <input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
             <button class="mc-secondary" type="submit">Leave My World</button>
           </form>
-          <p>Voice, My Spot, Live Spot and My Emojis stay inside the private chat where they are used.</p>
-        </details>
+         </details>
 
         {% if dashboard and dashboard.threads %}
           {% for thread in dashboard.threads %}
