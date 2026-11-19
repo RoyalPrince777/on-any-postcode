@@ -23,7 +23,7 @@
     if (status) {
       status.dataset.online = online ? "true" : "false";
       status.textContent = online
-        ? "Online · Link Up is live"
+        ? "Network online · Link Up service not verified"
         : "Offline · private actions paused until you reconnect";
     }
   };
