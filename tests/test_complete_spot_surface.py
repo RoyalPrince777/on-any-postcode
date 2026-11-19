@@ -81,7 +81,7 @@ def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     assert "▶️ OAP Player" in page
     assert "📻 OAP Radio" in page
     assert "📦 OAP Distribution" in page
-    assert "Streams build attention" in page
+    assert 'aria-label="OAP Music and Media modules"' in page
     assert "More" in page
     assert "Carnival Intelligence" not in page
     assert "LinkUp" not in page
@@ -154,8 +154,10 @@ def test_creator_business_and_support_handoffs_preserve_boundaries(client):
 
 def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
     page = client.get("/the-spot").get_data(as_text=True)
-    assert "📅 Booking · 📦 Distribution" in page
-    assert "🗺️ Maps · 🚶 Movement" in page
+    assert 'aria-label="OAP platform front doors"' in page
+    assert 'aria-label="On Any Postcode Maps and Movement"' in page
+    assert "📅 Booking · 📦 Distribution" not in page
+    assert "🗺️ Maps · 🚶 Movement" not in page
     assert "🌍 On Any Postcode Maps" in page
     assert "📅 OAP Booking" in page
     assert "🚶 Movement" in page
@@ -366,8 +368,10 @@ def test_spot_guest_welcome_prioritises_studio_and_arena_without_forcing_my_card
     assert "Private Link Up requires sign-in." in page
     assert "provider-dependent" in page
     assert 'href="/mission/studio' not in page
-    assert "📅 Booking · 📦 Distribution" in page
-    assert "🗺️ Maps · 🚶 Movement" in page
+    assert 'aria-label="OAP platform front doors"' in page
+    assert 'aria-label="On Any Postcode Maps and Movement"' in page
+    assert "📅 Booking · 📦 Distribution" not in page
+    assert "🗺️ Maps · 🚶 Movement" not in page
     assert page.count('href="/travel/direct"') == 1
 
     for route, heading in (
