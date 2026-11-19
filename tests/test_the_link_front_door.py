@@ -24,14 +24,15 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
         assert label in page
     assert "Your accepted Links and Certified connections." in page
     assert "Public Empire links" in page
-    assert '<summary>More from The Link</summary>' in page
+    assert '<summary>More</summary>' in page
     assert page.count('href="/travel/direct"') == 1
     assert page.count('href="/the-spot/distribution"') == 1
     assert "Community Power" not in page
     assert "World Rooms" not in page
     assert "verified people" not in page.casefold()
-    assert 'href="/linkup"' in page
     assert 'href="/linkup?intent=message"' in page
+    assert 'href="/linkup"' not in page
+    assert page.count('<summary>More</summary>') == 1
     # The People action must reach protected connections, not bounce between
     # the two anonymous landing pages without a working directory.
     assert "next=/linkup" in page or "next=%2Flinkup" in page
