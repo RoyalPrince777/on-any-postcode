@@ -29,9 +29,9 @@
     <section class="mc-panel" aria-labelledby="link-views-title">
       <h2 id="link-views-title">Choose where to go</h2>
       <div class="link-grid">
-        <a class="link-card" href="{{ url_for('linkup_front_door') }}">
+        <a class="link-card" href="{{ url_for('auth_page', next='/linkup') }}">
           <strong>👥 People</strong>
-          <span>Find Certified people and local connections.</span>
+          <span>Open your accepted Links and Certified connections.</span>
           <small>Protected identity required to view members.</small>
         </a>
         <a class="link-card" href="{{ url_for('linkup_front_door', intent='message') }}">
