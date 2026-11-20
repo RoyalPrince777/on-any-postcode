@@ -499,13 +499,16 @@ def evidence_swot_for_failed_build(evidence: object) -> dict[str, object]:
     if not isinstance(evidence, dict) or evidence.get("ready") is not True:
         return base
     log_analysis = evidence.get("log_analysis")
-    if not isinstance(log_analysis, dict) or log_analysis.get("ready") is not True:
+    if (not isinstance(log_analysis, dict)
+            or log_analysis.get("ready") is not True
+            or log_analysis.get("classified") is not True):
         return base
     categories = log_analysis.get("log_categories")
     if not isinstance(categories, (tuple, list)) or not categories:
         return base
     allowed = {"signing_configuration", "source_verification",
-               "gradle_compile", "dependency_resolution", "android_sdk"}
+               "gradle_compile", "dependency_resolution", "android_sdk",
+               "python_lint", "python_tests", "python_import", "browser_tests"}
     seen = set()
     for row in categories:
         if not isinstance(row, dict) or not isinstance(row.get("categories"), (tuple, list)):
