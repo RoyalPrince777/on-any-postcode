@@ -129,3 +129,30 @@ def test_third_eye_is_one_tool_in_smi_not_a_public_duplicate():
     assert "getCurrentPosition" not in script
     assert "setInterval" not in script
     assert "Full Third Eye ready" not in script
+
+
+def test_third_eye_seven_views_are_nested_inside_one_smi_tool():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "mission_control"
+    script = (root / "static" / "smi_third_eye.js").read_text(encoding="utf-8")
+    css = (root / "static" / "smi_third_eye.css").read_text(encoding="utf-8")
+
+    for name in (
+        "Earth Vision",
+        "Ground Vision",
+        "Air Vision",
+        "Space Vision",
+        "Earth Intelligence",
+        "SMI Analysis",
+        "Controls",
+    ):
+        assert f'name: "{name}"' in script
+    assert 'id="smi-third-eye-internal-menu"' in script
+    assert 'id="smi-third-eye-back"' in script
+    assert "internalMenu.appendChild(button)" in script
+    assert script.count("menu.appendChild(menuButton)") == 1
+    assert "smi-third-eye-menu-item" in css
+    assert 'document.getElementById("faceup-button")' in script
+    assert "getUserMedia" not in script
+    assert "setInterval" not in script
