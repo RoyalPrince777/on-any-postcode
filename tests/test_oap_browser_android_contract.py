@@ -104,7 +104,7 @@ def test_oap_android_webview_requires_explicit_world_open_web_consent():
     assert 'result.cancel();' in source
     assert 'result.confirm()' in source
     assert 'setNegativeButton("Stay in OAP World"' in source
-    assert 'setOnCancelListener(dialog -> result.cancel())' in source
+    assert 'dialog.setOnCancelListener(prompt -> result.cancel()).show();' in source
 
 
 def test_koradaso_public_https_confirmation_matches_android_webview():
