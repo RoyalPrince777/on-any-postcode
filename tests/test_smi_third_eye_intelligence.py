@@ -93,3 +93,40 @@ def test_anonymous_earth_and_status_requests_are_denied(client, monkeypatch):
         assert response.status_code == 401
         assert response.get_json()["error"]["code"] == "authentication_required"
         assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_founder_authorised_status_is_read_only_and_uncached(client, monkeypatch):
+    monkeypatch.setattr(
+        web_security, "current_authenticated_user",
+        lambda: {"id": "00000000-0000-4000-8000-000000000001"},
+    )
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: True)
+    response = client.get("/mission/smi/third-eye/status")
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    state = response.get_json()
+    assert state["founder_private_only"] is True
+    assert state["camera_view"]["device_camera_started"] is False
+    assert state["sources"]["earthquakes"]["feed_proven"] is False
+
+
+def test_third_eye_is_one_tool_in_smi_not_a_public_duplicate():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "mission_control"
+    template = (root / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    script = (root / "static" / "smi_third_eye.js").read_text(encoding="utf-8")
+    assert "thirdEyeStatusUrl:" in template
+    assert "thirdEyeEarthquakesUrl:" in template
+    assert "filename='smi_third_eye.js'" in template
+    assert "smi-third-eye-menu-button" in script
+    assert "attach-menu" in script
+    assert "smi-third-eye-panel" in script
+    assert "credentials: \"same-origin\"" in script
+    assert "cache: \"no-store\"" in script
+    assert "events.replaceChildren()" in script
+    assert "li.textContent" in script
+    assert "getUserMedia" not in script
+    assert "getCurrentPosition" not in script
+    assert "setInterval" not in script
+    assert "Full Third Eye ready" not in script
