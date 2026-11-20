@@ -121,7 +121,10 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
                         "log_categories": log_analysis.get("log_categories", ()),
                         "log_evidence_retrieved": log_analysis.get("ready") is True,
                         "classification": log_analysis.get("classification", "unknown"),
-                        "verified": classified,
+                        # Pattern classification is evidence, not confirmed causation.
+                        "category_detected": classified,
+                        "verified": False,
+                        "root_cause_verified": False,
                         "repair_authorized": False,
                         "next_safe_action": (
                             swot.get("next_action") if swot.get("ready") is True
