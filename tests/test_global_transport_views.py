@@ -676,6 +676,11 @@ def test_founder_transport_control_uses_actual_gates_and_governed_routes(client,
     assert "Global Transport" in html and "Control Room" in html
     assert "Not authorised" in html
     assert "Locked · 2 requirements outstanding" in html
+    assert 'href="/all-in-ai/app"' in html
+    assert 'fetch("/all-in-ai/mission/latest"' in html
+    assert 'data-mission-status role="status"' in html
+    assert 'method: "GET"' in html
+    assert 'No execution authority' in html
     for destination in (
         "/mission/ollama", "/mission/war-room", "/movement/workspace",
         "/distribution", "/transport/guardian", "/transport/control-center/readiness",
@@ -688,6 +693,7 @@ def test_founder_transport_control_uses_actual_gates_and_governed_routes(client,
     assert 'href="/my-world/transport-control"' in founder
     assert 'href="/transport/my"' in founder
     assert 'href="/my-world/transport-control"' not in client.get("/transport").get_data(as_text=True)
+    assert '/all-in-ai/app' in {rule.rule for rule in client.application.url_map.iter_rules()}
 
 
 def test_founder_transport_evidence_unavailable_never_shows_green(client, monkeypatch):
