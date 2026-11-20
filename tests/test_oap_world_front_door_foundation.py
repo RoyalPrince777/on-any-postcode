@@ -18,7 +18,9 @@ def test_direct_address_field_does_not_pretend_ai_search_is_live():
     assert 'role="search"' in page
     assert 'inputmode="url"' in page
     assert '["http:","https:"]' in page
-    assert "SMI Direct answers and cross-world search are not yet enabled here." in page
+    assert '<details class="world-web-extra"' in page
+    assert '<summary>Open external website</summary>' in page
+    assert "External sites ask for confirmation." in page
     assert "AI search is not yet enabled." in page
     assert "OPEN WEB" in page
     assert "window.confirm" in page
