@@ -10,6 +10,9 @@ def test_oap_world_is_first_installable_store_entry():
     assert app["install_enabled"] is True
     assert app["install_mode"] == "PWA"
     assert app["manifest_url"] == "/manifest.webmanifest"
+    assert app["start_url"] == "/koradaso?source=oap-store"
+    assert app["open_url"] == "/koradaso"
+    assert app["install_url"] == "/?source=oap-store&install=1"
     assert app["service_worker_url"] == "/service-worker.js"
     assert app["native_apk"] is False
     assert app["physical_device_certified"] is False

@@ -244,7 +244,7 @@ document.getElementById("browser-back").addEventListener("click",()=>{
  try{const ref=document.referrer?new URL(document.referrer):null;
   if(ref&&ref.origin===location.origin&&history.length>1){history.back();return;}
  }catch(_){}
- location.assign("/world?source=oap-os");
+ note.textContent="KORADASO is home. Use OAP World from the destinations above.";
 });
 form.addEventListener("submit",event=>{
  event.preventDefault();

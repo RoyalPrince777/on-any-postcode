@@ -10,10 +10,10 @@ from urllib.parse import parse_qs, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_installed_app_opens_world_without_root_redirect():
+def test_installed_app_opens_koradaso_home_without_root_redirect():
     manifest = json.loads((ROOT / "static" / "manifest.webmanifest").read_text(encoding="utf-8"))
     start = urlsplit(manifest["start_url"])
-    assert start.path == "/world"
+    assert start.path == "/koradaso"
     assert parse_qs(start.query).get("source") == ["oap-os"]
     assert manifest["scope"] == "/"
     assert manifest["id"] == "/"
@@ -26,7 +26,14 @@ def test_installed_app_does_not_start_in_market():
     assert start.path != "/"
 
 
-def test_installed_launch_serves_world_front_door(client):
+def test_installed_launch_serves_koradaso_browser_home(client):
+    response = client.get("/koradaso?source=oap-os")
+    assert response.status_code == 200
+    assert b"KORADASO Internet" in response.data
+    assert b'aria-label="KORADASO destinations"' in response.data
+    assert b'href="/world?source=oap-os"' in response.data
+
+def test_world_remains_accessible_from_browser_home(client):
     response = client.get("/world?source=oap-os")
     assert response.status_code == 200
     assert b"<title>OAP World</title>" in response.data
@@ -126,3 +133,8 @@ def test_koradaso_royal_compass_restores_useful_public_extras_without_private_da
     launch = client.get("/world?source=oap-os")
     assert launch.status_code == 200
     assert 'href="/koradaso"' in launch.get_data(as_text=True)
+
+def test_public_browser_back_fallback_stays_on_koradaso_home(client):
+    page = client.get("/koradaso").get_data(as_text=True)
+    assert 'note.textContent="KORADASO is home.' in page
+    assert 'location.assign("/world?source=oap-os");' not in page

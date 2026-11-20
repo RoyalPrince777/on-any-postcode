@@ -3,10 +3,12 @@ from pathlib import Path
 SOURCE = Path("android/oapworld/src/main/java/com/onanypostcode/oapworld/MainActivity.java")
 
 
-def test_oap_browser_keeps_oap_as_home_and_routes_search_first_party():
+def test_oap_browser_opens_koradaso_home_and_routes_search_first_party():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com"' in source
-    assert 'openFirstPartyPath("/world")' in source
+    assert 'homeButton.setOnClickListener(v -> openFirstPartyPath("/koradaso"));' in source
+    assert 'if (state == null) {\n            openFirstPartyPath("/koradaso");' in source
+    assert 'homeButton.setContentDescription("KORADASO home")' in source
     assert 'openFirstPartyPath("/search?q=" + Uri.encode(input))' in source
 
 
@@ -31,7 +33,7 @@ def test_oap_browser_has_approved_minimal_navigation_controls():
     source = SOURCE.read_text(encoding="utf-8")
     for marker in (
         'navButton("‹")',
-        'navButton("OAP")',
+        'navButton("⌂")',
         "webView.goBack()",
     ):
         assert marker in source

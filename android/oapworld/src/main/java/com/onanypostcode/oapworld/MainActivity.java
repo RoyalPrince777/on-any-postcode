@@ -63,7 +63,8 @@ public final class MainActivity extends ComponentActivity {
         toolbar.setPadding(8, 8, 8, 8);
 
         backButton = navButton("‹");
-        Button homeButton = navButton("OAP");
+        Button homeButton = navButton("⌂");
+        homeButton.setContentDescription("KORADASO home");
 
         omnibox = new EditText(this);
         omnibox.setSingleLine(true);
@@ -244,7 +245,7 @@ public final class MainActivity extends ComponentActivity {
                 webView.goBack();
             }
         });
-        homeButton.setOnClickListener(v -> openFirstPartyPath("/world"));
+        homeButton.setOnClickListener(v -> openFirstPartyPath("/koradaso"));
         engineSearchButton.setOnClickListener(v -> submitNativeSearch());
         engineSearchInput.setOnEditorActionListener((view, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
@@ -262,7 +263,7 @@ public final class MainActivity extends ComponentActivity {
         });
 
         if (state == null) {
-            openFirstPartyPath("/world");
+            openFirstPartyPath("/koradaso");
         }
         refreshNavigationState();
     }
