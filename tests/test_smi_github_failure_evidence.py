@@ -184,7 +184,8 @@ def _mission_fetch(runs, *, number=1413, sha="a" * 40,
 
 def test_mission_continues_to_runtime_proof_only_after_all_exact_head_ci():
     from mission_control.smi_github_failure_evidence import (
-        MISSION_PR_CHECKS, inspect_mission_continuity,
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
     )
     runs = _mission_runs(MISSION_PR_CHECKS[1413])
     result = inspect_mission_continuity(
@@ -200,7 +201,8 @@ def test_mission_continues_to_runtime_proof_only_after_all_exact_head_ci():
 
 def test_mission_does_not_auto_green_when_ci_missing_or_pending():
     from mission_control.smi_github_failure_evidence import (
-        MISSION_PR_CHECKS, inspect_mission_continuity,
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
     )
     checks = MISSION_PR_CHECKS[1413]
     for runs in (
@@ -218,7 +220,8 @@ def test_mission_does_not_auto_green_when_ci_missing_or_pending():
 
 def test_mission_failure_selects_automatic_diagnosis_not_repair_permission():
     from mission_control.smi_github_failure_evidence import (
-        MISSION_PR_CHECKS, inspect_mission_continuity,
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
     )
     runs = _mission_runs(MISSION_PR_CHECKS[1411])
     runs[1]["conclusion"] = "failure"
@@ -234,7 +237,8 @@ def test_mission_failure_selects_automatic_diagnosis_not_repair_permission():
 
 def test_mission_rejects_unknown_pr_wrong_repo_and_stale_run():
     from mission_control.smi_github_failure_evidence import (
-        MISSION_PR_CHECKS, inspect_mission_continuity,
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
     )
     assert inspect_mission_continuity(999, token="read-only")["ready"] is False
     assert inspect_mission_continuity(1413, token="")["ready"] is False
