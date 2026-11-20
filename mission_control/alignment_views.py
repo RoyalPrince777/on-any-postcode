@@ -46,6 +46,31 @@ def smi_third_eye_earthquakes():
     return _no_store(make_response(jsonify(third_eye_intelligence.latest_earthquakes())))
 
 
+@bp.get("/smi/third-eye/london/cameras")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_london_cameras():
+    """Return TfL public road-camera catalogue metadata on Founder request."""
+    search = request.args.get("q") or ""
+    return _no_store(make_response(jsonify(third_eye_intelligence.london_jamcams(search=search))))
+
+
+@bp.get("/smi/third-eye/london/frame/<camera_id>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_london_frame(camera_id: str):
+    """Serve one vetted public TfL still through the existing private SMI origin."""
+    result = third_eye_intelligence.london_jamcam_frame(camera_id)
+    if result is None:
+        return _no_store(make_response(jsonify(error={"code": "camera_unavailable"}), 503))
+    frame, last_modified = result
+    response = make_response(frame)
+    response.headers["Content-Type"] = "image/jpeg"
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    if last_modified:
+        response.headers["Last-Modified"] = last_modified
+    return response
+
+
 @bp.get("/war-room/deep-dive")
 @bp.get("/war-room/actions/deep-dive")
 @bp.get("/smi/deep-dive")
