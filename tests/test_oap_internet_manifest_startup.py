@@ -37,7 +37,7 @@ def test_world_remains_accessible_from_browser_home(client):
     response = client.get("/world?source=oap-os")
     assert response.status_code == 200
     assert b"<title>OAP World</title>" in response.data
-    assert b"One World. One Front Door." in response.data
+    assert b"Places, people and services across OAP." in response.data
 
 
 def test_normal_world_route_remains_available(client):
@@ -119,7 +119,7 @@ def test_koradaso_royal_compass_restores_useful_public_extras_without_private_da
         'href="/oap-map"',
         'href="/search"',
         'href="/the-spot"',
-        'WWW Index — not connected',
+        'WWW Index results are not connected',
         'allowedRoutes=new Set(',
         'if(window.confirm("OPEN WEB — "+url.hostname+" is outside OAP. Continue?"))',
     ):
@@ -157,3 +157,53 @@ def test_public_oap_world_commerce_route_also_exposes_koradaso_browse_and_apps(c
     shell = client.get("/world?source=oap-os")
     assert shell.status_code == 200
     assert 'aria-label="Browse and Apps across OAP World"' in shell.get_data(as_text=True)
+
+def test_world_browse_and_apps_share_one_layout_and_primary_navigation(client):
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    shared = (root / "static/oap-browse-apps.css").read_text(encoding="utf-8")
+    assert ".oap-browse-apps" in shared
+    assert "@media(max-width:560px)" in shared
+
+    for route in ("/world", "/world?source=oap-os"):
+        response = client.get(route)
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert 'class="oap-browse-apps"' in html
+        assert html.count('data-oap-browse-koradaso') == 1
+        assert html.count('data-oap-world-apps') == 1
+        assert html.count('data-oap-world-search') == 1
+        assert '/static/oap-browse-apps.css' in html
+        assert html.count('href="/koradaso"') == 1
+        assert 'href="/mission/smi"' not in html
+
+    shop = client.get("/world").get_data(as_text=True)
+    assert shop.index('data-oap-browse-koradaso') < shop.index('class="counter"')
+    shell = client.get("/world?source=oap-os").get_data(as_text=True)
+    assert 'class="world-web-extra"' in shell
+    assert 'id="world-search"' in shell  # Old web action remains on demand.
+
+
+def test_store_search_and_koradaso_keep_accessible_nav_and_compact_extras(client):
+    store = client.get("/store").get_data(as_text=True)
+    assert 'aria-label="OAP Store navigation"' in store
+    assert 'href="/koradaso"' in store
+    assert 'class="app-info"' in store
+    assert store.count('<summary>Access details</summary>') > 0
+    assert 'data-oap-koradaso-integrated' in store
+    assert "Install KORADASO Internet" not in store
+
+    search = client.get("/search?q=koradaso").get_data(as_text=True)
+    assert 'aria-label="OAP Search navigation"' in search
+    assert 'href="/koradaso"' in search
+    assert 'href="/store"' in search
+    assert "KORADASO Internet" in search
+
+    page = client.get("/koradaso").get_data(as_text=True)
+    assert page.count("WWW Index results are not connected") == 1
+    assert 'aria-label="KORADASO destinations"' in page
+    assert 'href="/my-world"' in page
+    assert "No offline private-data access." not in page
+    assert 'window.confirm("OPEN WEB — "+url.hostname+' in page
+

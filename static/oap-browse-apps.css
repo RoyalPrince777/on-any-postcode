@@ -1,0 +1,11 @@
+/* One first-party Browse & Apps and section-navigation system for OAP World. */
+.oap-browse-apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0 18px}
+.oap-browse-apps a{min-width:0;min-height:76px;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:12px 13px;border:1px solid #9a7544;border-radius:14px;background:linear-gradient(135deg,#241634,#120e20);text-decoration:none;color:#f9dc9f}
+.oap-browse-apps a:first-child{border-color:#d6b46d;background:linear-gradient(135deg,#3b2056,#201529)}
+.oap-browse-apps strong{font-size:.88rem;font-weight:850;line-height:1.25}
+.oap-browse-apps small{font-size:.72rem;line-height:1.3;color:#d2c4ad}
+.oap-browse-apps a:focus-visible,.oap-subnav a:focus-visible{outline:3px solid #c995f5;outline-offset:3px}
+.oap-subnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 17px}
+.oap-subnav a{min-height:44px;display:inline-flex;align-items:center;padding:9px 12px;border:1px solid #987542;border-radius:11px;background:#1b1422;color:#f9dc9f;text-decoration:none;font-weight:750;font-size:.83rem}
+@media(max-width:560px){.oap-browse-apps{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.oap-browse-apps a:first-child{grid-column:1/-1}.oap-browse-apps a{min-height:66px;padding:10px 12px}.oap-subnav{gap:6px}.oap-subnav a{padding:8px 9px;font-size:.78rem}}
+@media(max-width:350px){.oap-browse-apps a{padding:9px}.oap-browse-apps strong{font-size:.8rem}.oap-browse-apps small{font-size:.68rem}}

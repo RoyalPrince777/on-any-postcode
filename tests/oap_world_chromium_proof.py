@@ -29,6 +29,9 @@ def main():
                 page.on("pageerror", lambda exc, sink=errors: sink.append(str(exc)))
                 response = page.goto(BASE + "/world?source=oap-os")
                 assert response is not None and response.status == 200
+                expect(page.locator("#world-web-extra")).to_be_visible()
+                expect(page.locator("#world-query")).to_be_hidden()
+                page.locator("#world-web-extra summary").click()
                 expect(page.locator("#world-query")).to_be_visible()
                 expect(page.locator('nav[aria-label="Quick destinations"] a')).to_have_count(4)
                 assert page.locator('a[href="/the-spot"]').count() > 0
@@ -55,6 +58,9 @@ def main():
                 world = page.goto(BASE + "/world")
                 assert world is not None and world.status == 200
                 expect(page.locator('nav[aria-label="Browse and Apps across OAP World"] a')).to_have_count(3)
+                assert page.locator('nav[aria-label="Browse and Apps across OAP World"]').evaluate(
+                    "(nav) => getComputedStyle(nav).display === 'grid'"
+                )
                 page.locator('[data-oap-browse-koradaso]').click()
                 assert page.url.startswith(BASE + "/koradaso")
                 page.goto(BASE + "/world")
@@ -75,6 +81,12 @@ def main():
                 browser_home = page.goto(BASE + "/koradaso")
                 assert browser_home is not None and browser_home.status == 200
                 expect(page.locator("#address")).to_be_visible()
+                expect(page.locator(".grid.tile-collection")).to_have_count(0)
+                icon_columns = page.locator('nav[aria-label="KORADASO destinations"]').evaluate(
+                    "(nav) => getComputedStyle(nav).gridTemplateColumns.split(' ').length"
+                )
+                assert icon_columns == 4, (mobile, icon_columns)
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
                 expect(page.locator('a[href="/store"]')).to_have_count(1)
                 expect(page.locator('a[href="/my-world"]')).to_have_count(1)
                 # The restored Compass, Saved Places and session Open Places

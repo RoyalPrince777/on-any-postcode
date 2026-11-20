@@ -37,8 +37,8 @@ a{color:inherit;text-decoration:none}button,input{font:inherit}button{cursor:poi
 .drawer-section .muted{color:#9f98aa;font-size:.8rem}
 .note{font-size:.78rem;color:var(--soft);margin:5px 0;min-height:0}
 .note:empty{display:none}
-.hero{display:grid;place-items:center;padding:3px 0}
-.hero img{display:block;width:min(100%,285px);height:auto;filter:drop-shadow(0 7px 20px #7837ae77)}
+.hero{display:grid;place-items:center;padding:0}.hero h1{margin:6px 0 0}
+.hero img{display:block;width:min(100%,225px);height:auto;filter:drop-shadow(0 6px 14px #7837ae55)}
 .search-row{display:flex;gap:8px;align-items:stretch;margin:9px 0 8px}
 .search{display:flex;align-items:center;flex:1;gap:6px;min-width:0;min-height:54px;padding:5px;border:1px solid #e2bc75;border-radius:18px;background:linear-gradient(130deg,#111022,#0c0d19)}
 .search:focus-within{outline:2px solid #e2bc75;outline-offset:2px}
@@ -55,8 +55,10 @@ a{color:inherit;text-decoration:none}button,input{font:inherit}button{cursor:poi
 footer{border-top:1px solid #5d405c;margin-top:12px;padding-top:13px;color:#b3a4a1;font-size:.77rem}
 body.quiet-appearance{background:#090a16}body.quiet-appearance .tile{box-shadow:none;background:#171425}body.quiet-appearance .hero img{filter:none}
 body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
-@media(max-width:540px){.shell{padding:8px 11px calc(25px + env(safe-area-inset-bottom,0px))}.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.tile{min-height:91px;padding:7px 3px}.hero img{width:min(100%,255px)}.search{min-width:0}.search input{font-size:.86rem;padding:7px 3px}.search button{padding:8px 9px;font-size:.83rem}.public-smi{min-width:50px;padding:6px}.tile strong{font-size:.78rem}}
-@media(max-width:340px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero img{width:200px}}
+@media(max-width:540px){.shell{padding:8px 11px calc(25px + env(safe-area-inset-bottom,0px))}.tile{min-height:87px;padding:7px 3px;gap:5px}.hero img{width:min(100%,190px)}.search{min-width:0}.search input{font-size:.86rem;padding:7px 3px}.search button{padding:8px 9px;font-size:.83rem}.public-smi{min-width:50px;padding:6px}.tile strong{font-size:.76rem}}
+@media(min-width:381px) and (max-width:540px){.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.tile .ico{width:37px;height:37px}}
+@media(min-width:321px) and (max-width:380px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.hero img{width:176px}}
+@media(max-width:320px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.hero img{width:165px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -72,7 +74,7 @@ body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{an
 <section class="drawer-section" aria-label="Explore">
 <h3>Explore</h3>
 <nav class="drawer-links" aria-label="KORADASO navigation"><a href="/search" data-koradaso-destination>OAP Search</a><a href="/the-spot" data-koradaso-destination>The Spot</a></nav>
-<p>WWW Index — not connected. Public web addresses still open with consent.</p>
+<p>Use OAP Search for public apps and places.</p>
 </section>
 <section class="drawer-section" aria-label="My Internet">
 <h3>My Internet</h3>
@@ -98,19 +100,19 @@ body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{an
 <ul id="bookmark-list" class="place-list" aria-label="Saved Places"></ul>
 <h4>Journey Threads · This session</h4>
 <ul id="recent-place-list" class="place-list" aria-label="Recently opened OAP destinations"></ul>
-<h4>Downloads</h4><p>Downloads are managed by your browser or Android. No private files are stored here.</p>
+<p>Downloads are handled by your browser or Android.</p>
 <p class="note" id="places-note" role="status" aria-live="polite"></p>
 </section>
 <section class="drawer-section" aria-label="Browser controls">
 <h3>Control</h3>
 <label for="quiet-appearance"><input id="quiet-appearance" type="checkbox"> Quiet appearance</label>
 <label for="reduce-motion"><input id="reduce-motion" type="checkbox"> Reduce motion</label>
-<h4>Search</h4><p>OAP Search is first-party. WWW Index results are not connected.</p>
+<h4>Search</h4><p>WWW Index results are not connected. OAP Search finds public apps.</p>
 <h4>Privacy &amp; Security · Trust Lens</h4>
-<p>External HTTPS requires confirmation. Saved Places require your action; recent public OAP routes last only for this session. My World remains behind Founder sign-in.</p>
+<p>External HTTPS asks first. Recent places are session-only. My World requires sign-in.</p>
 <button type="button" id="clear-browser-preferences">Clear local browser extras</button>
 <p id="settings-note" class="note" role="status"></p>
-<h4>About KORADASO</h4><p>Born Local. Built Global. First-party public browser home.</p>
+<h4>About</h4><p>One first-party browser home.</p>
 </section>
 </div>
 </details>
@@ -126,7 +128,7 @@ body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{an
 </form>
 <a class="public-smi" href="/studio?source=koradaso" aria-label="Open public SMI Studio" data-koradaso-destination>SMI</a>
 </div>
-<p id="trust-state" class="trust-state">OAP Search · First party · External HTTPS requires consent</p>
+<p id="trust-state" class="trust-state">Public OAP search · External HTTPS asks first</p>
 <p class="note" id="address-note" role="status" aria-live="polite"></p>
 <nav class="grid" aria-label="KORADASO destinations">
 <a class="tile" href="/world?source=oap-os" data-koradaso-destination><span class="ico" aria-hidden="true">🌍</span><strong>World</strong></a>
@@ -143,7 +145,7 @@ body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{an
 <a href="/my-world" aria-label="Enter My World through Founder sign-in">Enter My World</a>
 </nav>
 </main>
-<footer>Born Local. Built Global. · Earth is our turf. <span>No offline private-data access.</span></footer>
+<footer>Born Local. Built Global. · Earth is our turf.</footer>
 </div>
 <script>
 (function(){

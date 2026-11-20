@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 {% include "_oap_install_head.html" %}
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<link rel="stylesheet" href="/static/oap-browse-apps.css">
 <style>
 :root{color-scheme:dark;--bg:#080806;--panel:#13120e;--panel2:#1a1811;--line:#3a3423;--gold:#efc85d;--ticket:#ffe26d;--ticketText:#17130a;--text:#fffaf0;--muted:#aaa38e;--green:#64d98b}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}a{text-decoration:none;color:inherit}button,input{font:inherit}
@@ -17,7 +18,7 @@
 .search{display:grid;grid-template-columns:1fr auto;margin:0;border-top:1px solid var(--line);background:#0b0a07}.search input{min-width:0;padding:15px 14px;border:0;background:transparent;color:var(--text);outline:none}.search button{border:0;border-left:1px solid var(--line);padding:0 18px;background:var(--ticket);color:var(--ticketText);font-weight:950}
 .aisles{display:flex;gap:8px;overflow:auto;padding:4px 0 14px;scrollbar-width:none}.aisles::-webkit-scrollbar{display:none}.aisle{white-space:nowrap;padding:10px 12px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:.76rem;font-weight:900}.aisle:first-child{background:var(--gold);color:#17130a;border-color:#ffe08a}
 .quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 18px}.quick a{min-height:82px;padding:11px 9px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:flex;flex-direction:column;justify-content:space-between}.quick b{font-size:1.1rem}.quick strong{font-size:.79rem}.quick span{font-size:.66rem;color:var(--muted)}
-.world-browse-apps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 18px}.world-browse-apps a{display:flex;flex-direction:column;justify-content:center;gap:5px;min-height:60px;min-width:0;padding:9px 11px;border:1px solid #98743d;border-radius:12px;background:#1a1423}.world-browse-apps strong{color:#f6d590;font-size:.82rem}.world-browse-apps small{font-size:.68rem;line-height:1.25;color:#c5b6a5}.world-browse-apps a:focus-visible{outline:3px solid #bd8ce7;outline-offset:3px}@media(max-width:430px){.world-browse-apps{grid-template-columns:repeat(2,minmax(0,1fr))}.world-browse-apps a:first-child{grid-column:1/-1}}.section{margin-top:19px}.section-head{display:flex;justify-content:space-between;align-items:end;margin:0 1px 9px}.section-head h2{font-size:1rem;margin:0}.section-head a{font-size:.74rem;color:var(--gold);font-weight:900}
+.section{margin-top:19px}.section-head{display:flex;justify-content:space-between;align-items:end;margin:0 1px 9px}.section-head h2{font-size:1rem;margin:0}.section-head a{font-size:.74rem;color:var(--gold);font-weight:900}
 .shop-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(150px,38%);gap:9px;overflow-x:auto;padding-bottom:3px;scroll-snap-type:x proximity}.shop-tile{scroll-snap-align:start;padding:13px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.shop-logo{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;background:var(--gold);color:#17130a;font-weight:1000;margin-bottom:10px}.shop-tile strong{display:block;font-size:.88rem}.shop-tile small{display:block;color:var(--muted);margin-top:4px;font-size:.7rem}
 .shelf{position:relative;border-top:5px solid #3d3520;padding-top:9px}.product-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.product-card{position:relative;padding:10px;border:1px solid var(--line);border-radius:14px;background:#f0ead9;color:#16140f;min-width:0;box-shadow:inset 0 -8px 0 #d7cfb9}.product-image{aspect-ratio:1.1;border-radius:10px;background:linear-gradient(145deg,#fff,#ddd5c3);display:grid;place-items:center;font-size:2rem;margin-bottom:8px}.product-card strong{display:block;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.product-card small{display:block;color:#5d584a;margin:4px 0 8px;font-size:.7rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.price-ticket{display:inline-block;padding:6px 8px;background:var(--ticket);color:var(--ticketText);border:1px solid #bda844;border-radius:7px;font-size:.93rem;font-weight:1000;transform:rotate(-1deg)}.empty{padding:20px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center}
 .nearby{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.nearby a{padding:13px 8px;text-align:center;border:1px solid var(--line);border-radius:13px;background:var(--panel);font-size:.77rem;font-weight:900}
@@ -38,6 +39,12 @@
 </div>
 <p class="install-status" data-oap-install-status aria-live="polite"></p>
 </header>
+
+<nav class="oap-browse-apps" aria-label="Browse and Apps across OAP World">
+<a href="/koradaso" data-oap-browse-koradaso><strong>🌐 KORADASO Internet</strong><small>Browser home · HTTPS consent</small></a>
+<a href="/store" data-oap-world-apps><strong>📱 Apps</strong><small>OAP Store</small></a>
+<a href="/search" data-oap-world-search><strong>🔎 Search</strong><small>Public OAP catalogue</small></a>
+</nav>
 
 <section class="counter">
 <div class="counter-box">
@@ -72,11 +79,7 @@
 <a href="/basket"><b>🧺</b><div><strong>Basket</strong><span>Ready to go</span></div></a>
 </section>
 
-<nav class="world-browse-apps" aria-label="Browse and Apps across OAP World">
-<a href="/koradaso" data-oap-browse-koradaso><strong>🌐 KORADASO Internet</strong><small>Browse public OAP and external HTTPS with consent.</small></a>
-<a href="/store" data-oap-world-apps><strong>📱 OAP Store · Apps</strong><small>One catalogue; no duplicate installs.</small></a>
-<a href="/search" data-oap-world-search><strong>🔎 OAP Search</strong><small>Search public OAP apps.</small></a>
-</nav>
+
 
 <section class="section">
 <div class="section-head"><h2>Local shops</h2><a href="/the-spot/market">See all</a></div>

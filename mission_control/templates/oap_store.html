@@ -7,22 +7,23 @@
   {% include "_oap_install_head.html" %}
   <title>OAP Store · ON ANY POSTCODE</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <link rel="stylesheet" href="/static/oap-browse-apps.css">
   <style>
     body{margin:0;background:#050403;color:#fff8e8;font-family:system-ui,sans-serif}
     main{max-width:900px;margin:auto;padding:32px 20px 80px}
     .eyebrow{color:#d5a33f;font-weight:800;letter-spacing:.08em}
-    .card{border:1px solid #6b4c18;background:#0b0905;border-radius:18px;padding:22px;margin-top:18px}
+    .card{border:1px solid #6b4c18;background:#0b0905;border-radius:16px;padding:16px;margin-top:12px}
     .badge{display:inline-block;padding:5px 9px;border:1px solid #35e77c;border-radius:999px;color:#35e77c;font-size:.82rem}.badge.open{border-color:#d5a33f;color:#d5a33f}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{margin-top:0}.category{color:#b8aa89;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.open-link{display:inline-block;border:1px solid #6b4c18;color:#fff8e8;border-radius:12px;padding:11px 16px;font-weight:800;text-decoration:none}
     button,.install-link{display:inline-block;background:#d5a33f;color:#111;border:0;border-radius:12px;padding:12px 18px;font-weight:800;cursor:pointer;text-decoration:none}
-    .muted{color:#b8aa89}.truth{margin-top:12px;font-size:.9rem;color:#cfc3a6}
+    .muted{color:#b8aa89}.truth{margin-top:10px;font-size:.82rem;color:#cfc3a6}.app-info{margin-top:10px;border-top:1px solid #503b24}.app-info summary{min-height:44px;cursor:pointer;display:flex;align-items:center;font-weight:750;font-size:.82rem;color:#e3c184}.app-info summary:focus-visible{outline:3px solid #c995f5;outline-offset:3px}.card h2{font-size:1.16rem;margin:12px 0 6px}.card>p{font-size:.84rem;line-height:1.4;margin:5px 0}.actions .open-link,.actions .install-link{min-height:44px}
   </style>
 </head>
 <body>
 <main>
   <p class="eyebrow">👑 ON ANY POSTCODE · OAP STORE</p>
-  <nav aria-label="OAP Store navigation"><a class="open-link" href="/the-spot">← The Spot</a> <a class="open-link" href="/world">🌍 OAP World</a></nav>
-  <h1>Install OAP</h1>
-  <p class="muted">First-party apps only. Install becomes available only where the release evidence supports it.</p>
+  <nav class="oap-subnav" aria-label="OAP Store navigation"><a href="/koradaso">🏠 KORADASO</a><a href="/world">🌍 OAP World</a><a href="/the-spot">📍 The Spot</a></nav>
+  <h1>OAP Apps</h1>
+  <p class="muted">Open public apps. Web installs are not certified Android APKs.</p>
   <div class="grid">
   {% for app in apps %}
   <section class="card" data-oap-store-app="{{ app.app_id }}">
@@ -38,13 +39,15 @@
     {% endif %}
     <h2>{{ app.name }}</h2>
     <p>{{ app.description }}</p>
-    <p><strong>Publisher:</strong> {{ app.publisher }}</p>
     <div class="actions">
       {% if app.open_url %}<a class="open-link" href="{{ app.open_url }}">Open {{ app.name }}</a>{% endif %}
       {% if app.install_enabled and app.install_url %}
         <a class="install-link" href="{{ app.install_url }}">Install {{ app.name }}</a>
       {% endif %}
     </div>
+    <details class="app-info">
+      <summary>Access details</summary>
+      <p class="truth"><strong>Publisher:</strong> {{ app.publisher }}</p>
     {% if app.app_id == "oap.arena" %}
       <p class="truth" data-oap-arena-world-install-path>
         OAP Arena opens inside the existing OAP World app. To add OAP World to your Android home screen,
@@ -71,6 +74,7 @@
     {% else %}
       <p class="truth">Architecture approved. No public Open or Install claim until a real route, runtime behaviour and regression proof exist.</p>
     {% endif %}
+    </details>
   </section>
   {% endfor %}
   </div>

@@ -8,7 +8,7 @@ def test_oap_world_reference_ui_contract():
     page = WORLD.read_text(encoding="utf-8")
     for marker in (
         "OAP World",
-        "One World. One Front Door. Many systems inside.",
+        "Places, people and services across OAP.",
         "The Spot",
         "The Link",
         "Link Up",
@@ -46,6 +46,6 @@ def test_oap_browse_and_apps_links_to_existing_koradaso_and_store_without_duplic
     assert '<a href="/store" data-oap-world-apps>' in page
     assert '<a href="/search" data-oap-world-search>' in page
     assert page.count('href="/koradaso"') == 1
-    assert "HTTPS consent required." in page
+    assert "Browser home · HTTPS consent" in page
     assert 'href="/world/languages"' not in page
     assert 'window.confirm' in page
