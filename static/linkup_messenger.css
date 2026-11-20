@@ -39,8 +39,6 @@ linear-gradient(180deg,#090604 0%,#160d06 42%,#070504 100%);color:#fff7df}
 @media(max-width:620px){.linkup-royal-home{padding-left:10px;padding-right:10px}.linkup-royal-brand h2{font-size:3rem}.linkup-royal-card{grid-template-columns:72px 1fr auto}.royal-card-art{height:66px}.royal-symbol{width:54px;height:54px}}
 
 /* Navigation alignment: preserve all controls and allow small-screen labels to wrap. */
-.linkup-master-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
-.linkup-master-nav a{display:flex;align-items:center;justify-content:center;min-height:48px;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;line-height:1.2;padding:6px 2px}
 .linkup-royal-bottom{padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
 .linkup-royal-bottom a{min-width:0;box-sizing:border-box;padding:5px 2px}
 .linkup-royal-bottom a span{font-size:clamp(.6rem,2.5vw,.72rem);white-space:nowrap}
