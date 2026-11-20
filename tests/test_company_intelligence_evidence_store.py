@@ -1,6 +1,5 @@
 from mission_control import company_intelligence_evidence_store as store
 
-
 OWNER = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 
 
