@@ -186,7 +186,7 @@ def prove_transport(browser, viewport):
     expect(page.locator("#ride-action")).to_have_text("Continue to E-Bike request")
     page.locator('button[data-mode="drive"]').click()
     expect(page.locator("#ride-action")).to_have_text("Plan drive")
-    expect(page.locator("#ride-fare")).to_contain_text("no fare")
+    expect(page.locator("#ride-fare")).to_contain_text("No fare")
     page.locator('button[data-mode="ride"]').click()
     expect(page.locator("#ride-action")).to_have_text("Continue to booking")
     assert_layout(page)
