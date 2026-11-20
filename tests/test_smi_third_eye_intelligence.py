@@ -210,3 +210,87 @@ def test_third_eye_live_weather_reuses_existing_ecosystem_source():
     assert "getCurrentPosition" not in script
     assert "setInterval" not in script
     assert ".smi-third-eye-place{" in css
+
+
+def _tfl_camera(camera_id="00001.00001", *, available="true", image=None):
+    return {
+        "id": "JamCams_" + camera_id,
+        "commonName": "Westminster Road",
+        "lat": 51.5072,
+        "lon": -0.1276,
+        "additionalProperties": [
+            {"key": "available", "value": available},
+            {"key": "imageUrl", "value": image or (
+                third_eye_intelligence.TFL_IMAGE_PREFIX + camera_id + ".jpg"
+            )},
+        ],
+    }
+
+
+def test_real_london_camera_catalogue_accepts_only_available_vetted_public_stills():
+    rows = [
+        _tfl_camera(),
+        _tfl_camera("00001.00002", available="false"),
+        _tfl_camera("00001.00003", image="https://example.invalid/private.jpg"),
+        {**_tfl_camera("00001.00004"), "lat": 900},
+    ]
+    cameras = third_eye_intelligence.parse_london_jamcams(rows)
+    assert [cam["id"] for cam in cameras] == ["00001.00001"]
+    assert cameras[0]["name"] == "Westminster Road"
+    assert all("imageUrl" not in cam for cam in cameras)
+
+
+def test_tfl_jamcam_catalogue_source_can_fail_closed_without_fabricated_live_state(monkeypatch):
+    third_eye_intelligence._TFL_CACHE = None
+    monkeypatch.setattr(
+        third_eye_intelligence, "urlopen",
+        lambda *args, **kwargs: (_ for _ in ()).throw(TimeoutError("upstream unavailable")),
+    )
+    result = third_eye_intelligence.london_jamcams()
+    assert result["source_verified"] is False
+    assert result["cameras"] == []
+    assert result["continuous_live_video"] is False
+
+
+def test_unknown_camera_id_cannot_trigger_external_fetch(monkeypatch):
+    monkeypatch.setattr(
+        third_eye_intelligence, "urlopen",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("must not fetch")),
+    )
+    assert third_eye_intelligence.london_jamcam_frame("http://localhost/secret") is None
+    assert third_eye_intelligence.london_jamcam_frame("../../etc/passwd") is None
+
+
+def test_public_london_cameras_have_existing_founder_auth_and_deny_anonymous(client, monkeypatch):
+    for endpoint in ("alignment.smi_third_eye_london_cameras", "alignment.smi_third_eye_london_frame"):
+        view = app_module.app.view_functions[endpoint]
+        assert view._oap_login_required is True
+        assert view._oap_founder_only is True
+        assert view._oap_api is True
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: None)
+    for path in (
+        "/mission/smi/third-eye/london/cameras",
+        "/mission/smi/third-eye/london/frame/00001.00001",
+    ):
+        response = client.get(path)
+        assert response.status_code == 401
+        assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_london_jamcam_ui_is_same_origin_manual_and_attributed():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "mission_control"
+    template = (root / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    script = (root / "static" / "smi_third_eye.js").read_text(encoding="utf-8")
+    assert "thirdEyeLondonCamerasUrl:{{ url_for('alignment.smi_third_eye_london_cameras')|tojson }}" in template
+    assert "thirdEyeLondonFrameUrl:{{ url_for('alignment.smi_third_eye_london_frame'" in template
+    assert "requestKind = \"london\"" in script
+    assert "function loadLondonCameras(" in script
+    assert "function showLondonCamera(" in script
+    assert "cameraImage.src = base.toString()" in script
+    assert "base.origin !== window.location.origin" in script
+    assert "Powered by TfL Open Data" in script
+    assert "Capture time not supplied" in script
+    assert "getUserMedia" not in script
+    assert "setInterval" not in script
