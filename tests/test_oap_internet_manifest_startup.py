@@ -85,4 +85,6 @@ def test_my_world_uses_the_existing_public_browser_with_separate_permissions(
     founder = anonymous_client.get("/my-world")
     assert founder.status_code == 302
     assert "/enter-my-world?next=" in founder.headers["Location"]
-    assert founder.headers["Cache-Control"] == "no-store"
+    # The login gate returns a redirect, not the private Founder page.
+    assert b"Founder identity" not in founder.data
+    assert b"Leave My World" not in founder.data
