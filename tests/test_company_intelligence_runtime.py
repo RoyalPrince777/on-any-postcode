@@ -201,3 +201,80 @@ def test_company_map_remains_collapsed_inside_existing_founder_only_page():
     assert "founder_only=True" in Path(
         company_intelligence_views.__file__
     ).read_text()
+
+
+
+def test_swot_first_uses_only_normalised_source_evidence():
+    ingest = company_intelligence_runtime.company_evidence_ingestion.ingest_snapshot
+    observed = "2026-11-20T09:00:00+00:00"
+    evidence = ingest([
+        {
+            "domain": "market_commerce", "state": "PROVEN",
+            "source_reference": "oap:test:market",
+            "observed_at": observed,
+        },
+        {
+            "domain": "company_registry", "state": "CONFLICTING",
+            "source_reference": "oap:test:registry",
+            "observed_at": observed,
+        },
+    ])
+    departments = company_intelligence_runtime.department_map(evidence)
+    swot = company_intelligence_runtime.swot_first_review(
+        evidence, departments, {"receipt_chain_verified": False},
+    )
+    assert [item["domain"] for item in swot["strengths"]] == ["market_commerce"]
+    assert swot["source_proven"] == 1
+    assert swot["source_unresolved"] == 6
+    assert any(item["domain"] == "company_registry"
+               for item in swot["threats"])
+    assert any(item["domain"] == "artist_rights"
+               and item["state"] == "UNKNOWN"
+               for item in swot["weaknesses"])
+    assert swot["opportunities"]
+    assert all(item["state"] == "PROPOSED"
+               for item in swot["opportunities"])
+    assert swot["live_operations_verified"] is False
+    assert swot["independent_agent_votes_claimed"] is False
+    assert swot["execution_granted"] is False
+    assert swot["full_green"] is False
+
+
+def test_swot_first_does_not_promote_invalid_or_missing_receipts():
+    invalid = {"states": {
+        "market_commerce": {
+            "state": "PROVEN", "source_reference": "oap:unsigned",
+            "observed_at": "2026-11-20T09:00:00+00:00", "valid": False,
+        },
+    }}
+    result = company_intelligence_runtime.swot_first_review(
+        invalid, company_intelligence_runtime.department_map(invalid),
+        {"receipt_chain_verified": True},
+    )
+    assert result["strengths"] == ()
+    assert len(result["weaknesses"]) == 7
+    assert result["threats"] == ()
+    assert result["protocol_receipt_chain_verified"] is True
+    assert result["live_operations_verified"] is False
+    assert result["full_green"] is False
+    assert company_intelligence_runtime.swot_first_review(
+        None, None, None,
+    )["source_unresolved"] == 7
+
+
+def test_truth_mode_swot_precedes_company_map_without_fake_green():
+    from pathlib import Path
+
+    html = Path("mission_control/templates/company_intelligence.html").read_text()
+    assert html.index("Truth Mode:") < html.index('id="swot-first-title"')
+    assert html.index('id="swot-first-title"') < html.index(
+        'id="company-department-map"'
+    )
+    assert "runtime.swot_first.strengths" in html
+    assert "runtime.swot_first.weaknesses" in html
+    assert "runtime.swot_first.opportunities" in html
+    assert "runtime.swot_first.threats" in html
+    assert "Source implementation:" in html
+    assert "Software core: {{ '100%'" not in html
+    assert "No independent agent votes" in html
+    assert "Founder Final required" in html
