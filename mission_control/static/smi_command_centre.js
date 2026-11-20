@@ -626,6 +626,31 @@
  evidence.append(refresh);
  addLink(evidence,"🌍","OAP World","Explore · connect","/on-any-place");
  addLink(evidence,"📚","Founder Library","Governed records",cfg.founderLibraryUrl);
+ addLink(evidence,"🛡️","OAP Data · Privacy","Founder-only data evidence · no global exposure proof","/mission/data");
+ // VPN status is read-only: OAP Store release state is not tunnel proof.
+ const vpnNotice=document.createElement("div");
+ vpnNotice.className="smi-command-proof";
+ vpnNotice.dataset.proven="false";
+ const vpnTitle=document.createElement("strong");vpnTitle.textContent="🔐 VPN · Privacy";
+ const vpnState=document.createElement("small");vpnState.textContent="OAP VPN status: Not checked";
+ const deviceState=document.createElement("small");
+ deviceState.textContent="Proton VPN on your device: Unknown · SMI cannot see Android VPN state";
+ vpnNotice.append(vpnTitle,vpnState,deviceState);evidence.append(vpnNotice);
+ async function refreshPrivacyVpn(){
+  vpnNotice.dataset.proven="false";vpnState.textContent="OAP VPN status: Checking catalogue…";
+  try{
+   const response=await fetch("/oap-store/apps",{cache:"no-store",credentials:"same-origin"});
+   if(!response.ok)throw new Error("Store unavailable");
+   const payload=await response.json();
+   const apps=Array.isArray(payload?.apps)?payload.apps:[];
+   const vpn=apps.find(app=>app&&app.app_id==="oap.vpn");
+   if(!vpn)throw new Error("OAP VPN missing");
+   const release=String(vpn.release_state||"unknown");
+   vpnState.textContent="OAP VPN: "+release+" · tunnel, DNS and device proof not verified";
+  }catch(_){
+   vpnState.textContent="OAP VPN: Unknown · catalogue unavailable · no Green";
+  }
+ }
  let active=false,request=null,roomRequest=null;
  const setRoom=(node,proven,message)=>{
   if(!node)return;
@@ -729,6 +754,7 @@
   }
  }
  async function refreshEvidence(){
+  refreshPrivacyVpn(); // Independent from SMI health endpoint; never assume VPN connected.
   if(!cfg.healthUrl)return;
   if(request)request.abort();
   request=new AbortController();
