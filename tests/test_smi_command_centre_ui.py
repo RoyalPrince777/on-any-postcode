@@ -96,6 +96,17 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertNotIn('["🕶 Matrix","agents"]', source)
         self.assertNotIn('["🛡 Guardian","guardian"]', source)
 
+    def test_vpn_and_privacy_evidence_keeps_device_truth_unknown(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        self.assertIn('"/mission/data"', source)
+        self.assertIn('fetch("/oap-store/apps",{cache:"no-store",credentials:"same-origin"})', source)
+        self.assertIn('app.app_id==="oap.vpn"', source)
+        self.assertIn("Proton VPN on your device: Unknown", source)
+        self.assertIn("tunnel, DNS and device proof not verified", source)
+        self.assertIn('vpnNotice.dataset.proven="false"', source)
+        self.assertIn('refreshPrivacyVpn(); // Independent from SMI health endpoint', source)
+        self.assertNotIn("Proton VPN: Connected", source)
+
     def test_health_truth_is_fail_closed(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         self.assertIn("data.checks[key]===true", source)
