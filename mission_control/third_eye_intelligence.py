@@ -30,6 +30,10 @@ TFL_MEDIA_LIMIT = 800_000
 TFL_VIDEO_LIMIT = 12_000_000
 TFL_CATALOGUE_LIMIT = 5_000_000
 TFL_CACHE_SECONDS = 240
+# Public CR4 district reference, not a device or personal location.
+CR4_CENTRE_LAT = 51.4026
+CR4_CENTRE_LON = -0.14516
+TFL_PAGE_SIZE = 20
 _TFL_LOCK = threading.Lock()
 _TFL_CACHE: tuple[float, list[dict[str, Any]]] | None = None
 
@@ -218,8 +222,21 @@ def parse_london_jamcams(payload: Any) -> list[dict[str, Any]]:
     return cameras
 
 
-def london_jamcams(*, search: str = "") -> dict[str, Any]:
-    """Founder-triggered TfL lookup. Freshly reported cameras are not live-video proof."""
+def _distance_from_cr4_km(latitude: float, longitude: float) -> float:
+    """Approximate ground distance from the public CR4 district centre."""
+    lat1, lat2 = math.radians(CR4_CENTRE_LAT), math.radians(latitude)
+    dlat = lat2 - lat1
+    dlon = math.radians(longitude - CR4_CENTRE_LON)
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    return 6371.0 * 2.0 * math.asin(min(1.0, math.sqrt(a)))
+
+
+def london_jamcams(*, search: str = "", page: int = 1, radius_km: int = 0) -> dict[str, Any]:
+    """Founder-triggered TfL catalogue, CR4-first and fully paginated.
+
+    Radius 0 means all available publicly published London cameras; 5/15/30
+    focus CR4 surroundings. Never derive this centre from device location.
+    """
     global _TFL_CACHE
     now = time.monotonic()
     with _TFL_LOCK:
@@ -254,18 +271,35 @@ def london_jamcams(*, search: str = "") -> dict[str, Any]:
             _TFL_CACHE = (time.monotonic() + TFL_CACHE_SECONDS, cameras)
     else:
         cameras = cached[1]
-    query = " ".join(search.lower().split())[:80]
-    if query == "london":
+    query = " ".join(search.casefold().split())[:80]
+    # CR4 and Mitcham select the fixed locality anchor, not name matching.
+    if query in {"cr4", "mitcham", "london", "cr4 mitcham"}:
         query = ""
-    ranked = (
-        [camera for camera in cameras if query in camera["name"].lower()]
-        if query
-        else sorted(
-            cameras,
-            key=lambda camera: (camera["latitude"] - 51.5074) ** 2 +
-            (camera["longitude"] + 0.1278) ** 2,
-        )
+    page = max(1, min(int(page), 1000))
+    radius_km = int(radius_km)
+    if radius_km not in {0, 5, 15, 30}:
+        raise ValueError("invalid_camera_radius")
+    ranked = sorted(
+        (
+            {
+                **camera,
+                "distance_km": round(_distance_from_cr4_km(
+                    camera["latitude"], camera["longitude"]
+                ), 1),
+            }
+            for camera in cameras
+            if not query or query in camera["name"].casefold()
+        ),
+        key=lambda camera: (
+            _distance_from_cr4_km(camera["latitude"], camera["longitude"]),
+            camera["id"],
+        ),
     )
+    if radius_km:
+        ranked = [camera for camera in ranked if camera["distance_km"] <= radius_km]
+    total_matching = len(ranked)
+    offset = (page - 1) * TFL_PAGE_SIZE
+    page_cameras = ranked[offset:offset + TFL_PAGE_SIZE]
     return {
         "provider": "Transport for London (TfL)",
         "availability": "catalogue_received",
@@ -275,8 +309,17 @@ def london_jamcams(*, search: str = "") -> dict[str, Any]:
         "continuous_live_video": False,
         "refresh_guidance_seconds": 300,
         "region": "London",
-        "cameras": ranked[:15],
+        "cameras": page_cameras,
         "total_available_catalogued": len(cameras),
+        "total_matching": total_matching,
+        "page": page,
+        "page_size": TFL_PAGE_SIZE,
+        "has_more": offset + len(page_cameras) < total_matching,
+        "has_previous": page > 1,
+        "radius_km": radius_km,
+        "sort": "distance_from_cr4_nearest_first",
+        "origin": {"label": "CR4 / Mitcham district", "latitude": CR4_CENTRE_LAT,
+                   "longitude": CR4_CENTRE_LON, "precision": "district_reference_not_device"},
         "attribution": "Powered by TfL Open Data",
         "terms_url": TFL_TERMS,
         "note": (
