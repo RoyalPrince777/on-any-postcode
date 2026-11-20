@@ -158,3 +158,105 @@ def test_logs_fail_closed_without_prior_job_proof():
     from mission_control.smi_github_failure_evidence import inspect_failed_job_logs
     assert inspect_failed_job_logs({}, token="read-only")["ready"] is False
     assert inspect_failed_job_logs({"ready": True, "failed_jobs": ()}, token="read-only")["ready"] is False
+
+
+# Mission Keeper continuity uses exact PR head evidence, not guessed Green.
+def _mission_runs(names, *, sha="a" * 40, status="completed", conclusion="success"):
+    return [{"id": 100 + index, "name": name, "status": status,
+             "conclusion": conclusion, "head_sha": sha, "event": "pull_request",
+             "repository": {"full_name": REPO}}
+            for index, name in enumerate(names)]
+
+
+def _mission_fetch(runs, *, number=1413, sha="a" * 40,
+                   state="open", head_repo=REPO):
+    def fetch(url, token):
+        assert token == "read-only"
+        if url == f"{API}/pulls/{number}":
+            return {"number": number, "state": state, "draft": True,
+                    "head": {"sha": sha, "repo": {"full_name": head_repo}},
+                    "base": {"ref": "main"}}
+        if url == f"{API}/actions/runs?head_sha={sha}&event=pull_request&per_page=100":
+            return {"total_count": len(runs), "workflow_runs": runs}
+        raise AssertionError(url)
+    return fetch
+
+
+def test_mission_continues_to_runtime_proof_only_after_all_exact_head_ci():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS, inspect_mission_continuity,
+    )
+    runs = _mission_runs(MISSION_PR_CHECKS[1413])
+    result = inspect_mission_continuity(
+        1413, token="read-only", fetch=_mission_fetch(runs),
+    )
+    assert result["ready"] is True
+    assert result["ci_proven"] is True
+    assert result["next_move"] == "continue_target_proof"
+    assert result["head_sha"] == "a" * 40
+    assert result["execution_granted"] is False
+    assert result["consequential_action"] is False
+
+
+def test_mission_does_not_auto_green_when_ci_missing_or_pending():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS, inspect_mission_continuity,
+    )
+    checks = MISSION_PR_CHECKS[1413]
+    for runs in (
+        _mission_runs(checks[:-1]),
+        _mission_runs(checks, status="in_progress", conclusion=None),
+        _mission_runs(checks, conclusion="skipped"),
+    ):
+        result = inspect_mission_continuity(
+            1413, token="read-only", fetch=_mission_fetch(runs),
+        )
+        assert result["ci_proven"] is False
+        assert result["next_move"] == "await_exact_head_evidence"
+        assert result["execution_granted"] is False
+
+
+def test_mission_failure_selects_automatic_diagnosis_not_repair_permission():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS, inspect_mission_continuity,
+    )
+    runs = _mission_runs(MISSION_PR_CHECKS[1411])
+    runs[1]["conclusion"] = "failure"
+    result = inspect_mission_continuity(
+        1411, token="read-only", fetch=_mission_fetch(runs, number=1411),
+    )
+    assert result["ready"] is True
+    assert result["ci_proven"] is False
+    assert result["next_move"] == "inspect_failed_ci"
+    assert result["failed_run_id"] == 101
+    assert result["human_authority_final"] is True
+
+
+def test_mission_rejects_unknown_pr_wrong_repo_and_stale_run():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS, inspect_mission_continuity,
+    )
+    assert inspect_mission_continuity(999, token="read-only")["ready"] is False
+    assert inspect_mission_continuity(1413, token="")["ready"] is False
+    checks = MISSION_PR_CHECKS[1413]
+    wrong = inspect_mission_continuity(
+        1413, token="read-only",
+        fetch=_mission_fetch(_mission_runs(checks), head_repo="attacker/other"),
+    )
+    assert wrong["ready"] is False
+    stale = inspect_mission_continuity(
+        1413, token="read-only",
+        fetch=_mission_fetch(_mission_runs(checks, sha="b" * 40)),
+    )
+    assert stale["ready"] is False
+
+
+def test_closed_mission_pr_blocks_automatic_continuation():
+    from mission_control.smi_github_failure_evidence import inspect_mission_continuity
+    result = inspect_mission_continuity(
+        1413, token="read-only",
+        fetch=_mission_fetch([], state="closed"),
+    )
+    assert result["ready"] is True
+    assert result["ci_proven"] is False
+    assert result["next_move"] == "hold_closed_pr"
