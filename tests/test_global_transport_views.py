@@ -241,16 +241,23 @@ def test_oap_rides_front_door_is_mobile_app_surface():
     body = response.get_data(as_text=True)
     for marker in (
         'aria-label="OAP Rides navigation"',
-        'href="/movement/workspace#book-title"',
+        'id="ride-pickup"',
+        'id="ride-destination"',
+        'action="/movement/workspace#book-title"',
+        'sessionStorage.setItem("oap_transport_ride_draft"',
+        'href="/transport/ride/rider"',
+        'href="/transport/ride/driver"',
         'href="/oap-map"',
         'href="/transport/ride/current"',
         'href="/transport/ride/guardian/status"',
         'href="/pay/bank"',
         'href="/eats"',
-        "From this postcode to the next.",
-        "Physical vehicle operation and external dispatch remain outside this build.",
+        "Where to?",
     ):
         assert marker in body
+    assert "Software surface active." not in body
+    assert "Choose pickup" not in body
+    assert "Choose destination" not in body
 
 
 def test_oap_rides_app_config_exposes_real_shared_routes():
@@ -472,7 +479,8 @@ def test_transport_noise_stripped_without_removing_seven_doors_or_authority_gate
     assert html.count('class="card" href=') == 7
     assert "Travel, ride and move through your world." not in html
     assert "Checking install support" not in html
-    assert "Live transport requires verified providers and authorisation." in html
+    assert "Software surface ready" not in html
+    assert "Where to?" in html
     for name, _, href in global_transport_views.PUBLIC_DOORS:
         assert f"<strong>{name}</strong>" in html
         assert f'href="{href}"' in html
@@ -499,7 +507,8 @@ def test_transport_mobile_alignment_and_uncluttered_install_placeholder():
     assert '.install:has(> button[hidden]):has(> [role=status]:empty){display:none}' in source
     assert 'data-oap-install-status role="status" aria-live="polite"></span>' in page
     assert page.count('class="card" href=') == 7
-    assert 'Live transport requires verified providers and authorisation.' in page
+    assert "Software surface ready" not in page
+    assert 'href="/transport/ride"' in page
 
     for route in ("/transport/guardian", "/transport/operators", "/transport/control-center"):
         response = _app().test_client().get(route)
@@ -709,3 +718,20 @@ def test_founder_transport_evidence_unavailable_never_shows_green(client, monkey
     body = client.get("/my-world/transport-control").get_data(as_text=True)
     assert "Unknown · blocked" in body
     assert "Missing proof never becomes Green" in body
+
+
+def test_transport_ride_draft_flows_to_existing_movement_booking_fields():
+    from pathlib import Path
+
+    ride = _app().test_client().get("/transport/ride").get_data(as_text=True)
+    workspace = Path("mission_control/templates/movement_workspace.html").read_text(encoding="utf-8")
+    assert 'id="ride-pickup"' in ride
+    assert 'id="ride-destination"' in ride
+    assert 'action="/movement/workspace#book-title"' in ride
+    assert 'sessionStorage.setItem("oap_transport_ride_draft"' in ride
+    assert 'sessionStorage.getItem("oap_transport_ride_draft")' in workspace
+    assert 'sessionStorage.removeItem("oap_transport_ride_draft")' in workspace
+    assert 'id="pickup-query"' in workspace
+    assert 'id="destination-query"' in workspace
+    assert 'service.value = "ride"' in workspace
+    assert "10 * 60 * 1000" in workspace
