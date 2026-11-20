@@ -901,8 +901,14 @@ refreshOps();
     }
 
     async function runStudioTool(toolId,button){
+      const projectShell=toolId==="scene_builder"?window.OAP_SMI_PENDING_PROJECT_SHELL:null;
+      window.OAP_SMI_PENDING_PROJECT_SHELL=null;
       const prompt=input.value.trim();
       const sourceImage=(typeof selectedImage!=="undefined"&&selectedImage)?selectedImage:"";
+      if(projectShell&&!sourceImage){
+        setStatus("PROJECT SHELL needs the approved OAP character reference attached in SMI. No render submitted.");
+        return;
+      }
       if((toolId==="imagine"||toolId==="scene_builder")&&!prompt){
         setStatus("Add a written brief first.");
         input.focus();
@@ -939,7 +945,11 @@ refreshOps();
             tool_id:toolId,
             prompt:prompt||(toolId==="bring_alive"?"Bring this image alive with natural cinematic motion.":""),
             source_image_data:sourceImage,
-            character_lock:Boolean(window.OAP_SMI_CHARACTER_LOCK),
+            character_lock:Boolean(window.OAP_SMI_CHARACTER_LOCK||projectShell),
+            ...(projectShell?{
+              video_size:projectShell.video_size,
+              video_seconds:projectShell.video_seconds
+            }:{}),
             conversation_id:conversationId||"",
             studio_request_id:(globalThis.crypto?.randomUUID?.()||"")
           })
