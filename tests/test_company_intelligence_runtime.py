@@ -128,14 +128,21 @@ def test_company_intelligence_routes_exist():
 
 
 def test_company_department_map_reuses_canonical_evidence_without_inventing_activity():
+    def receipt(state):
+        return {
+            "state": state, "valid": True,
+            "source_reference": "oap:test:canonical",
+            "observed_at": "2026-11-20T10:00:00+00:00",
+        }
+
     evidence = {"states": {
-        "market_commerce": {"state": "PROVEN"},
-        "pricing_margin": {"state": "PROVEN"},
-        "company_registry": {"state": "CONFLICTING"},
-        "clothing_supplier": {"state": "UNAVAILABLE"},
-        "print_on_demand_supplier": {"state": "PROVEN"},
-        "music_catalogue": {"state": "PROVEN"},
-        "artist_rights": {"state": "UNKNOWN"},
+        "market_commerce": receipt("PROVEN"),
+        "pricing_margin": receipt("PROVEN"),
+        "company_registry": receipt("CONFLICTING"),
+        "clothing_supplier": receipt("UNAVAILABLE"),
+        "print_on_demand_supplier": receipt("PROVEN"),
+        "music_catalogue": receipt("PROVEN"),
+        "artist_rights": receipt("UNKNOWN"),
     }}
     result = company_intelligence_runtime.department_map(
         evidence, protocol_proven_count=28,
@@ -156,6 +163,8 @@ def test_company_department_map_reuses_canonical_evidence_without_inventing_acti
     assert nodes["operations"]["source_state"] == "BLOCKED"
     assert nodes["marketing"]["source_state"] == "UNKNOWN"
     assert nodes["deals"]["source_state"] == "UNKNOWN"
+    assert result["priority_department"] == "Operations"
+    assert "clothing supplier" in result["priority_next_proof"]
     assert all(node["execution_granted"] is False for node in nodes.values())
     assert all(node["active_agents_claimed"] is False for node in nodes.values())
     assert all(node["revenue_claimed"] is False for node in nodes.values())
@@ -174,6 +183,8 @@ def test_company_department_map_fails_closed_when_evidence_missing_or_invalid():
         assert all(node["operational_state"] == "UNKNOWN"
                    for node in result["departments"])
         assert result["operational_green"] is False
+        assert result["priority_department"] == "Sales"
+
 
 
 def test_company_map_remains_collapsed_inside_existing_founder_only_page():
