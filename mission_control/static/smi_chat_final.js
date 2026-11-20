@@ -901,8 +901,14 @@ refreshOps();
     }
 
     async function runStudioTool(toolId,button){
+      const projectShell=toolId==="scene_builder"?window.OAP_SMI_PENDING_PROJECT_SHELL:null;
+      window.OAP_SMI_PENDING_PROJECT_SHELL=null;
       const prompt=input.value.trim();
       const sourceImage=(typeof selectedImage!=="undefined"&&selectedImage)?selectedImage:"";
+      if(projectShell&&!sourceImage){
+        setStatus("PROJECT SHELL needs the approved OAP character reference attached in SMI. No render submitted.");
+        return;
+      }
       if((toolId==="imagine"||toolId==="scene_builder")&&!prompt){
         setStatus("Add a written brief first.");
         input.focus();
@@ -921,6 +927,13 @@ refreshOps();
       const chip=q(".connector-state",button);
       if(chip)chip.textContent="Running";
       try{
+        if(toolId==="scene_builder"||toolId==="bring_alive"){
+          const readinessResponse=await fetch(cfg.studioStatusUrl,{credentials:"same-origin",cache:"no-store"});
+          const readiness=await readinessResponse.json().catch(()=>({}));
+          if(!readinessResponse.ok||readiness?.generation_backend_proven!==true){
+            throw new Error("OAP Studio video renderer unavailable or unconfigured. No generation was submitted.");
+          }
+        }
         const response=await fetch(cfg.studioGenerateUrl,{
           method:"POST",
           credentials:"same-origin",
@@ -933,6 +946,11 @@ refreshOps();
             prompt:prompt||(toolId==="bring_alive"?"Bring this image alive with natural cinematic motion.":""),
             source_image_data:sourceImage,
             character_lock:Boolean(window.OAP_SMI_CHARACTER_LOCK),
+            ...(projectShell?{
+              character_lock:true,
+              video_size:projectShell.video_size,
+              video_seconds:projectShell.video_seconds
+            }:{}),
             conversation_id:conversationId||"",
             studio_request_id:(globalThis.crypto?.randomUUID?.()||"")
           })
@@ -971,7 +989,9 @@ refreshOps();
         }
         menu.classList.remove("show");
         plus.setAttribute("aria-expanded","false");
-        setStatus(toolName+" complete/current state recorded · Human Authority final");
+        setStatus(artifact.kind==="video_job"&&!artifact.artifact_proven
+          ?toolName+" job submitted · final MP4 unverified"
+          :toolName+" result recorded · Human Authority final");
       }catch(error){
         addCard("OAP Studio",error?.message||"Studio generation unavailable","red");
         if(chip){chip.textContent="Blocked";chip.classList.add("attention");}
@@ -980,6 +1000,32 @@ refreshOps();
         button.disabled=false;
       }
     }
+
+    // Explicit Founder commands reuse the canonical Studio runner.
+    // Normal conversation does not start generation or create another Factory.
+    function isExplicitFactoryVideoCommand(value){
+      const command=String(value||"").trim();
+      return /^(?:🎬\s*)?SMI\s*[—–:-]\s*EXECUTE\s+OAP\s+FACTORY\s+VIDEO\s+GENERATION\b/i.test(command)
+        || /^\/(?:oap-factory|studio)\s+(?:video|scene)\s+\S/i.test(command);
+    }
+    document.addEventListener("submit",event=>{
+      if(event.target?.id!=="chat-form")return;
+      if(!isExplicitFactoryVideoCommand(input.value))return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const form=event.target;
+      if(form.dataset.oapFactoryPending==="1"){
+        setStatus("OAP Factory job request already in progress");
+        return;
+      }
+      form.dataset.oapFactoryPending="1";
+      const trigger=document.createElement("button");
+      trigger.type="button";
+      trigger.dataset.proofAction="studio-scene-builder";
+      const sourceImage=(typeof selectedImage!=="undefined"&&selectedImage)?selectedImage:"";
+      runStudioTool(sourceImage?"bring_alive":"scene_builder",trigger)
+        .finally(()=>{delete form.dataset.oapFactoryPending;});
+    },true);
 
     const inspectTargets={
       "function-health":["Function Health",cfg.functionHealthUrl],
