@@ -70,3 +70,78 @@ def test_worker_continues_smi_mission_without_button_or_new_job(monkeypatch):
     assert result["consequential_action"] is False
     assert result["independent_execution"] is False
     assert result["human_authority_final"] is True
+
+
+def test_failure_diagnosis_requires_classification_and_never_authorizes_repair(monkeypatch):
+    from mission_control import organism_worker
+
+    monkeypatch.setenv("OAP_SMI_GITHUB_READ_TOKEN", "test-only-private-token")
+    monkeypatch.setattr(
+        organism_worker.postgres_db, "postgres_status",
+        lambda: {"initialized": False},
+    )
+    for module in (organism_worker.oap_core_autonomy,
+                   organism_worker.smi_runtime_autonomy,
+                   organism_worker.organism_autonomy):
+        monkeypatch.setattr(
+            module, "run_cycle",
+            lambda: {"consequential_action": False, "independent_execution": False},
+        )
+    monkeypatch.setattr(
+        organism_worker.smi_github_failure_evidence,
+        "discover_recent_failed_runs",
+        lambda *, token: {"ready": True, "current_failure": False, "run_ids": ()},
+    )
+    monkeypatch.setattr(
+        organism_worker.smi_github_failure_evidence,
+        "inspect_mission_continuity",
+        lambda pr_number, *, token: {
+            "ready": True, "pr_number": pr_number,
+            "next_move": "inspect_failed_ci" if pr_number == 1413 else "await_exact_head_evidence",
+            "failed_run_id": 71 if pr_number == 1413 else None,
+            "ci_proven": False, "consequential_action": False,
+        },
+    )
+    monkeypatch.setattr(
+        organism_worker.smi_github_failure_evidence,
+        "inspect_failed_run",
+        lambda run_id, *, token: {"ready": True,
+                                   "failed_jobs": ({"job_id": 72},)},
+    )
+    monkeypatch.setattr(
+        organism_worker.smi_github_failure_evidence,
+        "inspect_failed_job_logs",
+        lambda evidence, *, token: {
+            "ready": True, "classified": False, "classification": "unknown",
+            "log_categories": ({"job_id": 72, "categories": ()},),
+        },
+    )
+
+    unknown = organism_worker._health_probe(None)
+    diagnosis = unknown["github_failure_evidence"]["mission_continuity"][0][
+        "automatic_failure_diagnosis"
+    ]
+    assert unknown["github_failure_evidence"]["captain_next_move"] == "inspect_failed_ci"
+    assert diagnosis["log_evidence_retrieved"] is True
+    assert diagnosis["category_detected"] is False
+    assert diagnosis["verified"] is False
+    assert diagnosis["repair_authorized"] is False
+    assert unknown["consequential_action"] is False
+    assert "test-only-private-token" not in str(unknown)
+
+    monkeypatch.setattr(
+        organism_worker.smi_github_failure_evidence,
+        "inspect_failed_job_logs",
+        lambda evidence, *, token: {
+            "ready": True, "classified": True, "classification": "classified",
+            "log_categories": ({"job_id": 72, "categories": ("python_lint",)},),
+        },
+    )
+    classified = organism_worker._health_probe(None)
+    diagnosis = classified["github_failure_evidence"]["mission_continuity"][0][
+        "automatic_failure_diagnosis"
+    ]
+    assert diagnosis["category_detected"] is True
+    assert diagnosis["verified"] is False  # category is not confirmed root cause
+    assert diagnosis["repair_authorized"] is False
+    assert "NIRMATA" in diagnosis["next_safe_action"]
