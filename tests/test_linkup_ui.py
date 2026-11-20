@@ -413,3 +413,41 @@ def test_combined_world_spot_linkup_secure_handoff(anonymous_client):
         assert parse_qs(auth_target.query)["next"] == [
             f"/linkup?intent={private_intent}"
         ]
+
+
+def test_private_linkup_mobile_menu_reveals_ring_incoming_and_more():
+    """A mobile sidebar hash must reveal the chat before scrolling to it."""
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+    script = Path("static/linkup_messenger.js").read_text(encoding="utf-8")
+    style = Path("static/linkup_messenger.css").read_text(encoding="utf-8")
+
+    for target in ("linkup-chats", "linkup-now", "linkup-ring", "linkup-incoming", "linkup-more"):
+        assert f'href="#{target}"' in template
+        assert f'id="{target}"' in template
+    assert script.count('["#linkup-ring", "#linkup-incoming", "#linkup-more"]') == 1
+    assert 'openPanel(active.dataset.linkupPanel, { focusComposer: false })' in script
+    assert 'if (targetId === "#linkup-more") target.open = true' in script
+    assert 'app.dataset.chatOpen = "true"' in script
+    assert '.linkup-master-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))' in style
+    assert '.linkup-royal-bottom{padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}' in style
+
+
+def test_combined_guest_menu_keeps_one_route_per_core_destination(anonymous_client):
+    spot = anonymous_client.get("/the-spot")
+    link = anonymous_client.get("/the-link")
+    public_linkup = anonymous_client.get("/linkup")
+    assert spot.status_code == link.status_code == public_linkup.status_code == 200
+
+    spot_html = spot.get_data(as_text=True)
+    link_html = link.get_data(as_text=True)
+    public_html = public_linkup.get_data(as_text=True)
+
+    assert spot_html.count('href="/the-link"') == 1
+    assert spot_html.count('href="/store"') == 1
+    assert link_html.count('href="/linkup?intent=message"') == 1
+    assert link_html.count('href="/the-spot"') == 1
+    assert public_html.count('href="/linkup?intent=message"') == 1
+    assert public_html.count('aria-label="Link Up public bottom navigation"') == 1
+    assert 'class="linkup-topbar linkup-guest-topbar"' in public_html
+    for path in ("/store", "/oap-map", "/movement"):
+        assert anonymous_client.get(path).status_code in (200, 302)
