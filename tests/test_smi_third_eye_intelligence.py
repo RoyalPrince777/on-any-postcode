@@ -463,3 +463,150 @@ def test_cr4_mobile_camera_list_pages_all_available_public_tfl_sources():
     assert "cameraImage.src = base.toString()" in script
     assert "setInterval" not in script
     assert ".smi-third-eye-pages{" in css
+
+
+def test_london_adsb_source_validates_observation_time_and_location():
+    timestamp = NOW.timestamp()
+    payload = {
+        "now": timestamp,
+        "ac": [
+            {"lat": 51.4, "lon": -0.145, "seen_pos": 5, "flight": "TEST123 ",
+             "alt_baro": 13500},
+            {"lat": 60.0, "lon": 20.0, "seen_pos": 3, "flight": "OUT"},
+            {"lat": 51.4, "lon": -0.145, "seen_pos": 900, "flight": "OLD"},
+        ],
+    }
+    result = third_eye_intelligence.parse_london_aircraft(payload, now=NOW)
+    assert result["provider"] == "adsb.lol"
+    assert result["freshness"] == "fresh"
+    assert result["live_claim_allowed"] is True
+    assert len(result["positions"]) == 1
+    assert result["positions"][0]["callsign"] == "TEST123"
+    assert result["positions"][0]["position_age_seconds"] == 5
+    result = third_eye_intelligence.parse_london_aircraft(
+        {**payload, "now": timestamp - 500}, now=NOW
+    )
+    assert result["freshness"] == "stale"
+    assert result["live_claim_allowed"] is False
+
+
+def test_iss_position_is_dated_and_not_mislabelled_london_overflight():
+    payload = {
+        "id": 25544, "timestamp": NOW.timestamp(),
+        "latitude": 48.0, "longitude": 12.0, "altitude": 418.3,
+    }
+    result = third_eye_intelligence.parse_iss_position(payload, now=NOW)
+    assert result["live_claim_allowed"] is True
+    assert result["satellite"].startswith("International Space Station")
+    assert result["is_over_london"] is False
+    assert result["latitude"] == 48.0
+    stale = third_eye_intelligence.parse_iss_position(
+        {**payload, "timestamp": NOW.timestamp() - 300}, now=NOW
+    )
+    assert stale["freshness"] == "stale"
+    assert stale["live_claim_allowed"] is False
+    try:
+        third_eye_intelligence.parse_iss_position(
+            {**payload, "id": 1}, now=NOW
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("unverified ISS ID was accepted")
+
+
+def test_celestrak_orbit_elements_are_source_dated_not_live_positions():
+    stamp = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    sample = (
+        "NORAD_CAT_ID,EPOCH,INCLINATION,MEAN_MOTION,ECCENTRICITY\\n"
+        f"25544,{stamp},51.6,15.5,0.00015\\n"
+    ).encode("utf-8")
+    result = third_eye_intelligence.parse_celestrak_iss_csv(sample)
+    assert result["provider"] == "CelesTrak"
+    assert result["element_epoch"] == stamp
+    assert result["position_propagated"] is False
+    assert result["live_claim_allowed"] is False
+    assert result["elements"]["inclination"] == 51.6
+
+
+def test_nasa_london_imagery_wms_request_fixed_bbox_and_past_date(monkeypatch):
+    monkeypatch.setattr(third_eye_intelligence, "_THIRD_EYE_SOURCE_CACHE", {})
+    calls = []
+
+    def get_fixed(url, accept, limit, timeout=6):
+        calls.append((url, accept, limit))
+        return b"\\xff\\xd8\\xffNASA_JPEG_PAYLOAD", "image/jpeg"
+
+    monkeypatch.setattr(third_eye_intelligence, "_fixed_download", get_fixed)
+    result = third_eye_intelligence.nasa_london_imagery("2026-11-18")
+    assert result is not None
+    assert result.startswith(b"\\xff\\xd8\\xff")
+    assert len(calls) == 1
+    assert calls[0][0].startswith(third_eye_intelligence.NASA_GIBS_WMS + "?")
+    assert "MODIS_Terra_CorrectedReflectance_TrueColor" in calls[0][0]
+    assert "2026-11-18" in calls[0][0]
+    assert "%2C51.25%2C0.25%2C51.72" in calls[0][0]
+    assert third_eye_intelligence.nasa_london_imagery("2026-11-18") == result
+    assert len(calls) == 1
+    for day in ("2099-01-01", "../../private", "2026-02-30"):
+        try:
+            third_eye_intelligence.nasa_london_imagery(day)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid NASA imagery day accepted")
+
+
+def test_new_public_data_sources_fail_closed_without_inventing_live_data(monkeypatch):
+    monkeypatch.setattr(third_eye_intelligence, "_THIRD_EYE_SOURCE_CACHE", {})
+    def unavailable(*args, **kwargs):
+        raise TimeoutError("provider not reachable")
+    monkeypatch.setattr(third_eye_intelligence, "_fixed_download", unavailable)
+    assert third_eye_intelligence.london_aircraft()["live_claim_allowed"] is False
+    assert third_eye_intelligence.iss_position()["live_claim_allowed"] is False
+    assert third_eye_intelligence.iss_orbital_elements()["position_propagated"] is False
+    assert third_eye_intelligence.nasa_london_imagery("2026-11-18") is None
+
+
+def test_new_air_and_space_routes_are_founder_private_and_anonymous_denied(client, monkeypatch):
+    endpoints = (
+        "alignment.smi_third_eye_air_london",
+        "alignment.smi_third_eye_space_iss",
+        "alignment.smi_third_eye_space_orbit",
+        "alignment.smi_third_eye_space_imagery",
+    )
+    for endpoint in endpoints:
+        view = app_module.app.view_functions[endpoint]
+        assert view._oap_login_required is True
+        assert view._oap_founder_only is True
+        assert view._oap_api is True
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: None)
+    for path in (
+        "/mission/smi/third-eye/air/london",
+        "/mission/smi/third-eye/space/iss",
+        "/mission/smi/third-eye/space/orbit",
+        "/mission/smi/third-eye/space/imagery?day=2026-11-18",
+    ):
+        response = client.get(path)
+        assert response.status_code == 401
+        assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_third_eye_source_controls_are_wired_to_existing_views():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / "mission_control"
+    template = (root / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    script = (root / "static" / "smi_third_eye.js").read_text(encoding="utf-8")
+    for key in (
+        "thirdEyeAirLondonUrl:", "thirdEyeSpaceIssUrl:",
+        "thirdEyeSpaceOrbitUrl:", "thirdEyeSpaceImageryUrl:",
+    ):
+        assert key in template
+        assert "config." + key[:-1] in script
+    assert "function checkLondonAir()" in script
+    assert "function checkSpaceSource(kind)" in script
+    assert "function showNasaLondonImage(day)" in script
+    assert "NASA GIBS" in script
+    assert "capture" in script or "acquisition" in script
+    assert "getCurrentPosition" not in script
+    assert "setInterval" not in script
