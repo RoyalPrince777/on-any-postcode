@@ -630,3 +630,76 @@ def test_offline_transport_worker_precaches_only_public_snapshot():
     assert "cache.put" not in worker
     assert '"/transport/status"' not in worker.split("const PRIVATE_PREFIXES", 1)[0]
     assert '"/transport/ride/current"' not in worker.split("const PRIVATE_PREFIXES", 1)[0]
+
+
+def test_founder_transport_control_is_denied_to_anonymous(anonymous_client):
+    response = anonymous_client.get("/my-world/transport-control", follow_redirects=False)
+    assert response.status_code in {302, 303}
+    assert "/auth" in response.headers["Location"]
+    assert "Global Transport Control Room" not in response.get_data(as_text=True)
+
+
+def test_founder_transport_control_denies_authenticated_non_founder(client, monkeypatch):
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: False)
+    response = client.get("/my-world/transport-control")
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "human_authority_required"
+
+
+def test_founder_transport_control_uses_actual_gates_and_governed_routes(client, monkeypatch):
+    from pathlib import Path
+
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: True)
+    monkeypatch.setattr(global_transport_views, "execution_readiness", lambda: {
+        "evidence_store_reachable": True,
+        "live_execution_authorised": False,
+        "software_verified_external_authenticity": False,
+        "areas": {
+            "ride_dispatch": {
+                "live_execution_authorised": False,
+                "missing": ["provider_authority", "dispatch_receipt"],
+                "verified": [],
+                "requires": ["provider_authority", "dispatch_receipt"],
+            }
+        },
+    })
+    page = client.get("/my-world/transport-control")
+    assert page.status_code == 200
+    assert page.mimetype == "text/html"
+    assert page.headers["Cache-Control"] == "no-store, private"
+    assert page.headers["X-Content-Type-Options"] == "nosniff"
+    html = page.get_data(as_text=True)
+    assert "Global Transport" in html and "Control Room" in html
+    assert "Not authorised" in html
+    assert "Locked · 2 requirements outstanding" in html
+    for destination in (
+        "/mission/ollama", "/mission/war-room", "/movement/workspace",
+        "/distribution", "/transport/guardian", "/transport/control-center/readiness",
+        "/mission/smi/brain/receipts", "/mission/judgement",
+        "/transport/my",
+    ):
+        assert f'href="{destination}"' in html
+    assert "<form" not in html
+    founder = Path("templates/my_world.html").read_text(encoding="utf-8")
+    assert 'href="/my-world/transport-control"' in founder
+    assert 'href="/transport/my"' in founder
+    assert 'href="/my-world/transport-control"' not in client.get("/transport").get_data(as_text=True)
+
+
+def test_founder_transport_evidence_unavailable_never_shows_green(client, monkeypatch):
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: True)
+    monkeypatch.setattr(global_transport_views, "execution_readiness", lambda: {
+        "evidence_store_reachable": False,
+        "live_execution_authorised": False,
+        "software_verified_external_authenticity": False,
+        "areas": {"carrier_dispatch": {"live_execution_authorised": False, "missing": [], "requires": []}},
+    })
+    body = client.get("/my-world/transport-control").get_data(as_text=True)
+    assert "Unknown · blocked" in body
+    assert "Missing proof never becomes Green" in body
