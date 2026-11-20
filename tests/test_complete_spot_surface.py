@@ -383,3 +383,18 @@ def test_spot_guest_welcome_prioritises_studio_and_arena_without_forcing_my_card
         target = anonymous_client.get(route)
         assert target.status_code == 200
         assert heading in target.get_data(as_text=True)
+
+
+def test_mobile_spot_layout_overrides_base_grid_rules():
+    """The compact Studio/Arena grid must not be undone by a later CSS rule."""
+    page = (ROOT / "mission_control" / "templates" / "spot.html").read_text(
+        encoding="utf-8"
+    )
+    assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in page
+    assert page.rfind("@media (max-width: 640px)") > page.rfind(
+        ".spot-welcome-actions{display:grid"
+    )
+    assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in page[
+        page.rfind("@media (max-width: 640px)") :
+    ]
+    assert 'box-sizing:border-box;overflow-wrap:anywhere' in page
