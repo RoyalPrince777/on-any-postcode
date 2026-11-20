@@ -140,3 +140,20 @@ def test_public_browser_back_fallback_stays_on_koradaso_home(client):
     page = client.get("/koradaso").get_data(as_text=True)
     assert 'note.textContent="KORADASO is home.' in page
     assert 'location.assign("/world?source=oap-os");' not in page
+
+
+def test_public_oap_world_commerce_route_also_exposes_koradaso_browse_and_apps(client):
+    """The public /world route is a different template from /world?source=oap-os."""
+    world = client.get("/world")
+    assert world.status_code == 200
+    html = world.get_data(as_text=True)
+    assert 'aria-label="Browse and Apps across OAP World"' in html
+    assert html.count('href="/koradaso"') == 1
+    assert 'href="/store" data-oap-world-apps' in html
+    assert 'href="/search" data-oap-world-search' in html
+    assert 'href="/enter-my-world?next=/"' in html
+    assert 'href="/mission/smi"' not in html
+
+    shell = client.get("/world?source=oap-os")
+    assert shell.status_code == 200
+    assert 'aria-label="Browse and Apps across OAP World"' in shell.get_data(as_text=True)
