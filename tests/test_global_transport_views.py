@@ -508,7 +508,7 @@ def test_logistics_has_real_public_front_door_without_exposing_private_distribut
     assert logistics.status_code == 200
     html = logistics.get_data(as_text=True)
     assert "<h1>Logistics</h1>" in html
-    for label, path in (("Cargo", "/distribution"), ("Deliver", "/movement/workspace#book-title"), ("Fleet", "/transport/ride/driver")):
+    for label, path in (("Cargo", "/distribution"), ("Deliver", "/movement/workspace?service=delivery#book-title"), ("Fleet", "/transport/ride/driver")):
         assert f"<strong>{label}</strong>" in html
         assert f'href="{path}"' in html
     assert "Sign-in required" in html
