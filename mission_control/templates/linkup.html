@@ -43,7 +43,7 @@
     <button type="button" data-oap-install hidden>Install Link Up</button>
     <span data-oap-install-status role="status" aria-live="polite"></span>
   </section>
-  <header class="linkup-topbar">
+  <header class="linkup-topbar{% if not auth_user %} linkup-guest-topbar{% endif %}">
     <a href="{{ url_for('the_link_front_door') }}" aria-label="Back to The Link">‹</a>
     {% if auth_user %}<h1>{{ motion_icon('link-up', 'oap-motion-link') }} Link Up</h1>{% endif %}
     {% if auth_user %}<a href="{{ url_for('home') }}" aria-label="OAP World">OAP</a>{% endif %}
