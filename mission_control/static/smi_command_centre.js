@@ -520,6 +520,7 @@
  const evidence=panel.querySelector(".smi-command-evidence");
  const anatomyLinks=[
   ["🧠","Brain · SMI","Intelligence · memory · reasoning",cfg.brainUrl],
+  ["🦊","Offline Route · Full Organism","Local SMI service and sign-in required · offline proof unknown","/mission/organism#offline-route"],
   ["👁️","Eyes · Vision","Screens · maps · insight","/on-any-place"],
   ["🎙️","Ears · Language","Listening · communication",null],
   ["💬","Mouth · Communication","SMI Chat · messages",null],
