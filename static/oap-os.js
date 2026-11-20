@@ -69,7 +69,7 @@
   } else if (installed) {
     if (installButton) installButton.hidden = true;
     setStatus(["OAP PTT", "OAP Rider", "OAP Driver"].includes(productName)
-      ? `${productName} is open in a standalone window on ${platformName}; separate installation is not independently verified.`
+      ? `${productName} is open in a standalone window on ${platformName}; this alone does not prove it was installed separately.`
       : `${productName} is installed on ${platformName}.`);
   } else if (!("serviceWorker" in navigator)) {
     if (installButton) installButton.hidden = false;
