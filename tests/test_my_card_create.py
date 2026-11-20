@@ -173,8 +173,8 @@ def test_public_my_card_creation_allows_blank_password_without_auth_call(
 
     page = anonymous_client.get("/linkup").get_data(as_text=True)
     assert "Basic Card Member" in page
-    assert "Basic My Card active. No password required." in page
-    assert "Private Link Up stays locked until secure sign-in is added." in page
+    assert "Basic My Card. Private chat requires sign-in." in page
+    assert 'aria-label="Private Link Up messenger"' not in page
 
 
 def test_passwordless_basic_card_does_not_accept_email_without_secure_sign_in(

@@ -52,7 +52,14 @@ def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     assert "📡 Pulse" in page
     assert "See what’s happening around you." in page
     assert 'href="/pulse"' in page
-    assert "📣 Drop a Signal" in page
+    assert "📣 Signal" in page
+    assert 'data-spot-apps-entry aria-label="OAP Store apps"' in page
+    assert page.count('<summary>More</summary>') == 1
+    assert page.count('aria-label="The Spot core order"') == 1
+    assert '<h2 id="spot-welcome-title">Explore</h2>' in page
+    assert '<h2>Explore more</h2>' not in page
+    assert '<p class="spot-note">' not in page
+    assert 'href="/store"' in page
 
     ordered_labels = (
         "🌍 Earth",
@@ -74,7 +81,7 @@ def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     assert "▶️ OAP Player" in page
     assert "📻 OAP Radio" in page
     assert "📦 OAP Distribution" in page
-    assert "Streams build attention" in page
+    assert 'aria-label="OAP Music and Media modules"' in page
     assert "More" in page
     assert "Carnival Intelligence" not in page
     assert "LinkUp" not in page
@@ -147,15 +154,16 @@ def test_creator_business_and_support_handoffs_preserve_boundaries(client):
 
 def test_booking_maps_and_movement_are_first_class_spot_front_doors(client):
     page = client.get("/the-spot").get_data(as_text=True)
-
-    assert "On Any Postcode Maps · Booking · Movement" in page
+    assert 'aria-label="OAP platform front doors"' in page
+    assert 'aria-label="On Any Postcode Maps and Movement"' in page
+    assert "📅 Booking · 📦 Distribution" not in page
+    assert "🗺️ Maps · 🚶 Movement" not in page
     assert "🌍 On Any Postcode Maps" in page
-    assert "📅 Booking" in page
+    assert "📅 OAP Booking" in page
     assert "🚶 Movement" in page
-    assert 'href="/travel/direct"' in page
-    assert "Quote, hold and reservation request through OAP Direct." in page
-    assert "supplier confirmation is required before a booking is confirmed" in page.lower()
-    assert "Payment and automatic dispatch remain separate." in page
+    assert "supplier confirmation required" in page
+    assert page.count('href="/travel/direct"') == 1
+    assert page.count('href="/the-spot/distribution"') == 1
 
 
 def test_booking_and_maps_public_front_doors_are_reachable(client):
@@ -342,3 +350,53 @@ def test_oap_atlas_ui_is_search_first_source_bound_and_noise_stripped(client, mo
     assert "CR4 1AB" in live
     assert "Explicit search only" in live
     assert "no hidden tracking" in live
+
+
+def test_spot_guest_welcome_prioritises_studio_and_arena_without_forcing_my_card(anonymous_client):
+    response = anonymous_client.get("/the-spot")
+    page = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert page.index('href="/pulse"') < page.index('id="spot-welcome-title"')
+    assert page.index('id="spot-welcome-title"') < page.index('aria-label="The Spot core order"')
+    assert 'href="/studio"' in page
+    assert 'href="/arena"' in page
+    assert 'href="/the-link"' in page
+    assert page.count('href="/the-link"') == 1
+    assert 'href="/my-card/create"' in page
+    assert "My Card is free and optional" in page
+    assert "Private Link Up requires sign-in." in page
+    assert "provider-dependent" in page
+    assert 'href="/mission/studio' not in page
+    assert 'aria-label="OAP platform front doors"' in page
+    assert 'aria-label="On Any Postcode Maps and Movement"' in page
+    assert "📅 Booking · 📦 Distribution" not in page
+    assert "🗺️ Maps · 🚶 Movement" not in page
+    assert page.count('href="/travel/direct"') == 1
+
+    for route, heading in (
+        ("/studio", "OAP Studio Intelligence"),
+        ("/arena", "OAP"),
+        ("/the-link", "The Link"),
+        ("/my-card/create", "Create My Card"),
+    ):
+        target = anonymous_client.get(route)
+        assert target.status_code == 200
+        assert heading in target.get_data(as_text=True)
+
+
+def test_mobile_spot_layout_overrides_base_grid_rules():
+    """The compact Studio/Arena grid must not be undone by a later CSS rule."""
+    from pathlib import Path
+
+    page = Path("mission_control/templates/spot.html").read_text(
+        encoding="utf-8"
+    )
+    assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in page
+    assert page.rfind("@media (max-width: 640px)") > page.rfind(
+        ".spot-welcome-actions{display:grid"
+    )
+    assert 'grid-template-columns:repeat(2,minmax(0,1fr))' in page[
+        page.rfind("@media (max-width: 640px)") :
+    ]
+    assert 'box-sizing:border-box;overflow-wrap:anywhere' in page
