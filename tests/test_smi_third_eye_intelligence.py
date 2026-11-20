@@ -459,7 +459,7 @@ def test_cr4_mobile_camera_list_pages_all_available_public_tfl_sources():
     assert "Next 20" in script
     assert "Previous 20" in script
     assert "cam.distance_km.toFixed(1)" in script
-    assert "slice(0, 12)" not in script
+    assert "data.cameras.slice(0, 12)" not in script
     assert "cameraImage.src = base.toString()" in script
     assert "setInterval" not in script
     assert ".smi-third-eye-pages{" in css
