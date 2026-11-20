@@ -636,19 +636,29 @@
  const deviceState=document.createElement("small");
  deviceState.textContent="Proton VPN on your device: Unknown · SMI cannot see Android VPN state";
  vpnNotice.append(vpnTitle,vpnState,deviceState);evidence.append(vpnNotice);
+ let vpnRequest=null;
  async function refreshPrivacyVpn(){
+  // Latest request wins: stale or aborted evidence must never overwrite new status.
+  if(vpnRequest)vpnRequest.abort();
+  const controller=new AbortController();
+  vpnRequest=controller;
   vpnNotice.dataset.proven="false";vpnState.textContent="OAP VPN status: Checking catalogue…";
   try{
-   const response=await fetch("/oap-store/apps",{cache:"no-store",credentials:"same-origin"});
+   const response=await fetch("/oap-store/apps",{cache:"no-store",credentials:"same-origin",signal:controller.signal});
+   if(controller.signal.aborted)return;
    if(!response.ok)throw new Error("Store unavailable");
    const payload=await response.json();
+   if(controller.signal.aborted)return;
    const apps=Array.isArray(payload?.apps)?payload.apps:[];
    const vpn=apps.find(app=>app&&app.app_id==="oap.vpn");
    if(!vpn)throw new Error("OAP VPN missing");
-   const release=String(vpn.release_state||"unknown");
+   const planned=vpn.release_state==="planned"&&vpn.install_enabled===false&&vpn.open_url==null;
+   const release=planned?"planned · not installable":"changed or unverified catalogue state";
    vpnState.textContent="OAP VPN: "+release+" · tunnel, DNS and device proof not verified";
   }catch(_){
-   vpnState.textContent="OAP VPN: Unknown · catalogue unavailable · no Green";
+   if(!controller.signal.aborted)vpnState.textContent="OAP VPN: Unknown · catalogue unavailable · no Green";
+  }finally{
+   if(vpnRequest===controller)vpnRequest=null;
   }
  }
  let active=false,request=null,roomRequest=null;
