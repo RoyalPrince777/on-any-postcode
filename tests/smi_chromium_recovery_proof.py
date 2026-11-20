@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sys
 import threading
@@ -182,7 +183,7 @@ def prove_governed_actions(context, base_url):
         approve = card.get_by_role("button", name="Approve & run", exact=True)
         reject = card.get_by_role("button", name="Reject", exact=True)
         expect(approve).to_be_visible()
-        expect(card.locator("pre")).to_contain_text(plan["payload"]["content"])
+        assert json.loads(card.locator("pre").inner_text()) == plan["payload"]
         assert card.locator("pre img").count() == 0
         assert page.evaluate("() => window.__unsafePlan === true") is False
         for control in card.locator("select,input,textarea").all():
@@ -438,3 +439,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
