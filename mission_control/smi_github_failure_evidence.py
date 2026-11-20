@@ -256,7 +256,7 @@ def inspect_mission_continuity(
             raise ValueError("pr_identity_mismatch")
         head, base = pr.get("head"), pr.get("base")
         if not isinstance(head, dict) or not isinstance(base, dict):
-            raise ValueError("pr_head_missing")
+            raise TypeError("pr_head_missing")
         head_repo = head.get("repo")
         if (not isinstance(head_repo, dict) or head_repo.get("full_name") != REPO
                 or base.get("ref") != "main"):
@@ -274,7 +274,7 @@ def inspect_mission_continuity(
             token,
         )
         if not isinstance(response, dict):
-            raise ValueError("runs_not_object")
+            raise TypeError("runs_not_object")
         runs = response.get("workflow_runs")
         count = response.get("total_count")
         if (not isinstance(count, int) or isinstance(count, bool)
@@ -285,7 +285,7 @@ def inspect_mission_continuity(
         required = MISSION_PR_CHECKS[pr_number]
         for run in runs:
             if not isinstance(run, dict):
-                raise ValueError("invalid_run")
+                raise TypeError("invalid_run")
             repository = run.get("repository")
             if (not isinstance(repository, dict)
                     or repository.get("full_name") != REPO
