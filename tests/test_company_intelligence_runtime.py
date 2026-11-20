@@ -189,6 +189,7 @@ def test_company_department_map_fails_closed_when_evidence_missing_or_invalid():
 
 def test_company_map_remains_collapsed_inside_existing_founder_only_page():
     from pathlib import Path
+
     from mission_control import company_intelligence_views
 
     html = Path("mission_control/templates/company_intelligence.html").read_text()
