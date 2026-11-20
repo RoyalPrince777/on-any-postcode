@@ -428,7 +428,7 @@ def test_private_linkup_mobile_menu_reveals_ring_incoming_and_more():
     assert 'openPanel(active.dataset.linkupPanel, { focusComposer: false })' in script
     assert 'if (targetId === "#linkup-more") target.open = true' in script
     assert 'app.dataset.chatOpen = "true"' in script
-    assert '.linkup-master-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))' in style
+    assert '.linkup-master-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))' in template
     assert '.linkup-royal-bottom{padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}' in style
 
 
