@@ -37,7 +37,7 @@
       '<div class="shell-actions"><button type="button" data-shell-attach>Attach reference</button><button type="button" data-shell-prepare>Check renderer & prepare</button></div>',
       '<p class="shell-state" data-shell-state aria-live="polite">No render submitted. No charges made.</p>',
       '<pre class="shell-prompt" data-shell-prompt hidden></pre>',
-      '<label class="shell-authority"><input type="checkbox" data-shell-consent> I authorise this chargeable, Founder-private render request. Do not publish.</label>',
+      '<label class="shell-authority"><input type="checkbox" data-shell-consent> I confirm I have rights to the reference and authorise this potentially chargeable private render. Do not publish.</label>',
       '<button type="button" class="shell-render" data-shell-render disabled>Submit approved render</button>',
       '<small class="shell-footnote">Rendered MP4 remains unverified until the existing Studio status, content and media checks succeed. Guardian, HRM and Founder Final apply.</small>',
       '</div>'
