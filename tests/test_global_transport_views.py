@@ -376,12 +376,26 @@ def test_transport_front_menu_has_one_clear_seven_door_navigation():
     assert response.status_code == 200
     assert 'aria-label="Global Transport main menu"' in html
     assert 'href="/world"' in html
+    assert 'href="/transport/my"' in html
+    assert "My Transport · Customer controls" in html
     assert "One World → One Front Door → Many Transport Systems Inside." not in html
     assert "Software surface ready" not in html
     assert html.count('class="card" href=') == 7
     for name, _, href in global_transport_views.PUBLIC_DOORS:
         assert f"<strong>{name}</strong>" in html
         assert f'href="{href}"' in html
+
+
+def test_public_and_founder_worlds_reuse_customer_transport_without_leaking_controls():
+    from pathlib import Path
+
+    public = Path("templates/home.html").read_text(encoding="utf-8")
+    android_world = Path("templates/world.html").read_text(encoding="utf-8")
+    founder = Path("templates/my_world.html").read_text(encoding="utf-8")
+    assert 'href="/transport"' in public
+    assert 'href="/transport"' in android_world
+    assert 'href="/transport/my"' in founder
+    assert 'href="/my-world"' not in _app().test_client().get("/transport/my").get_data(as_text=True)
 
 
 def test_execution_readiness_human_page_preserves_json_api_and_truth_boundaries(monkeypatch):
