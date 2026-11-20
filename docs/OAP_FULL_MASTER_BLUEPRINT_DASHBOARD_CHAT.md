@@ -809,3 +809,122 @@ Green means proven.
 
 
 SMI 4 × 7 canonical families: Truth/Investigation (Truth, Evidence, Gap, Causality, Data, Behaviour, Truth-Light); Strategy (SWOT, Risk, Opportunity, Competitive, Trend, Impact, Priority); Engineering (Architecture, Dependency, Performance, Resilience, Security, Privacy, UX); Decision (Alignment, Scenario, Readiness, Decision, Judgement, Learning, Verification). Lenses provide analysis only; no automatic execution rights.
+
+
+---
+
+## 26. Verified SMI CC, Link Up and KORADASO upgrade blueprint (November 2026)
+
+Status: **DATED SOURCE EVIDENCE, NOT A LIVE RELEASE**. Snapshot: 20 November 2026.
+This section extends the existing canonical master blueprint; it is not a new
+dashboard, intelligence system, status registry, signing workflow or PR.
+
+### Canonical route ownership
+
+~~~text
+Public /world
+  -> /the-spot        public local and community body
+  -> /the-link        connection directory
+  -> /linkup          public Link Up home
+      -> /linkup?intent=message   existing protected message entry
+      -> /linkup?intent=link-call existing protected call entry
+  -> /koradaso        public first-party browser UI
+      -> /my-world    private Founder/identity boundary
+
+Founder-only /mission/smi   single SMI Command Centre
+  -> /mission/ollama       existing chat loaded only on request
+  -> /mission/smi/status   protected read-only evidence source
+  -> /mission/war-room    independent proof, recovery, Human Authority
+  -> Link Up CI receipt   static, dated source proof; NOT release truth
+~~~
+
+### Actual code owners — no replacement versions
+
+- SMI CC interface: mission_control/templates/smi_visual_home.html
+- SMI CC read-only model: mission_control/smi_command_dashboard.py
+- SMI CC contract tests: tests/test_smi_command_dashboard.py
+- The Spot / The Link: mission_control/templates/spot.html and the_link.html
+- Public + private Link Up: mission_control/templates/linkup.html
+- Link Up mobile layout: static/linkup_messenger.css
+- Public feature filter: static/linkup_public_ui.js (not a people-search API)
+- Link Up tests: tests/test_linkup_ui.py and tests/oap_world_chromium_proof.py
+- Browser: templates/koradaso_internet.html; private My World: templates/my_world.html
+- Android browser: android/oapworld/src/main/java/com/onanypostcode/oapworld/MainActivity.java
+
+### Exact-head verified evidence — do not combine unlike Green signals
+
+| Existing PR | Exact source HEAD | Verified | Honest label |
+| --- | --- | --- | --- |
+| [#1234 Link Up](https://github.com/RoyalPrince777/on-any-postcode/pull/1234) | 17eac4f289a0d5118d0dd5639a99d27e1f65bb3b | 7/7 success; governed 5,659 passed, 9 skipped, 1 warning | SOURCE CI GREEN, RELEASE LOCKED |
+| [#1407 SMI CC](https://github.com/RoyalPrince777/on-any-postcode/pull/1407) | 3eee9e759975bf8d7aa45c0ad301a92d690e44fe | 9/9 success; governed 5,661 passed, 9 skipped, 1 warning **before this documentation update** | PREVIOUS HEAD CI GREEN, NEW HEAD NEEDS CHECK |
+| [#1410 KORADASO](https://github.com/RoyalPrince777/on-any-postcode/pull/1410) | cf621671039cc7dbab1f6951b3dd2d75bf31e3a3 | 5/5 success, including Chromium and Android APK builds | SOURCE CI GREEN, DEVICE/RELEASE LOCKED |
+
+These are three different unmerged draft branches, not one tested production
+artifact. PR #1407 was one commit behind main before this update. CI outcomes
+must be rechecked after changing its HEAD. No production/live SHA parity or
+device installation is established by any CI success above.
+
+### Required user experience, actions and truth
+
+- Mobile Link Up: royal black/gold/purple identity; public-section search;
+  optional Create My Card; nine feature icons; Nearby People, Opportunities
+  and Community Signals public destination cards; five-button bottom menu.
+  Supported-width feature grid is five across; narrow phones reduce columns.
+- Desktop Link Up: existing left navigation, categories, central content,
+  right discovery panels. Never fabricate nearby people, read counts,
+  certification, conversations, trending totals or private member activity.
+- Four public Messages controls intentionally share ONE protected message
+  destination. Private Link Up, Link Call and PTT keep independent gates.
+- The Spot and The Link preserve real route names and one More menu; no
+  cosmetic simplification may remove functioning controls or auth checks.
+- KORADASO includes royal logo, one address field, Compass, saved public
+  places, session-only history, HTTPS external confirmation. It is not
+  proof of native tabbed browsing, a WWW crawler or on-device deployment.
+- Founder My World and SMI CC remain private. Automatic evidence reporting
+  may not grant an approval or authenticate an anonymous visitor.
+- SMI CC retains one Talk to SMI first paint, canonical status on request,
+  unknown for uninstrumented systems, and a collapsed dated CI receipt
+  with links back to the real PR and master blueprint.
+
+### Release contract (design only; not a newly implemented runner)
+
+~~~python
+source_ci_green = exact_head_success and routes_and_private_gates_pass
+device_green = same_revision_on_physical_redmi_a5 and signed_in_and_anon_verified
+messages_green = two_real_phones_deliver_and_reconnect_with_receipts
+media_green = separately_proven_audio_video_or_ptt_where_claimed
+runtime_green = first_party_https_and_deployed_sha_parity_and_health_proven
+authority_green = guardian_and_hrm_evidence_and_authorized_founder_final
+
+release_green = (
+    source_ci_green and device_green and messages_green
+    and runtime_green and authority_green
+    and (media_green if media_is_claimed else True)
+)
+
+# Missing, stale or unknown evidence => release stays LOCKED.
+# No CI percentage, button or static receipt may self-approve deployment.
+~~~
+
+Variables above describe required independent facts, not an existing code
+implementation. The actual owner of Founder Final and Green Gate is unchanged.
+
+### Next major evidence closure (no unnecessary stages or duplicate PRs)
+
+1. Reconcile the three existing ownership branches into a compatible revision
+   without dropping public/private controls; tests of standalone branches do
+   not prove this integration.
+2. Verify that exact revision on the physical Redmi A5: app install,
+   responsive UI, navigation, sign-in and anonymous denial, recover/reopen.
+3. Prove two-phone messages, delivery/read/reconnect receipts. Prove
+   Link Call and PTT media separately when claimed as operational.
+4. Collect production backend SHA parity, owned first-party HTTPS/health,
+   independent Guardian/HRM receipts, rollback proof and Founder Final.
+5. Only then present a full release Green or promote a production artifact.
+
+**Links back:** [SMI CC PR #1407](https://github.com/RoyalPrince777/on-any-postcode/pull/1407)
+· [Link Up PR #1234](https://github.com/RoyalPrince777/on-any-postcode/pull/1234)
+· [KORADASO PR #1410](https://github.com/RoyalPrince777/on-any-postcode/pull/1410).
+
+Born Local. Built Global. Earth Is Our Turf.
+Research has no ceiling. Deployment has boundaries. Founder Final.

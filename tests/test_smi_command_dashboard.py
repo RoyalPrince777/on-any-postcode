@@ -402,3 +402,24 @@ def test_smi_cc_linkup_ci_receipt_does_not_promote_release_green(client):
               "templates" / "smi_visual_home.html").read_text(encoding="utf-8")
     assert source.count('class="ci-receipt"') == 1
     assert "Founder Final" in source
+
+
+def test_smi_cc_receipt_links_to_canonical_blueprint_and_keeps_release_locked():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    template = (root / "mission_control/templates/smi_visual_home.html").read_text(
+        encoding="utf-8"
+    )
+    blueprint = (root / "docs/OAP_FULL_MASTER_BLUEPRINT_DASHBOARD_CHAT.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert template.count(">Full master blueprint</a>") == 1
+    assert "docs/OAP_FULL_MASTER_BLUEPRINT_DASHBOARD_CHAT.md" in template
+    assert blueprint.count("## 26. Verified SMI CC, Link Up") == 1
+    assert "SOURCE CI GREEN, RELEASE LOCKED" in blueprint
+    assert "same_revision_on_physical_redmi_a5" in blueprint
+    assert "two_real_phones_deliver_and_reconnect_with_receipts" in blueprint
+    assert "authority_green" in blueprint
+    assert "No CI percentage, button or static receipt may self-approve" in blueprint
