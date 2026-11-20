@@ -180,8 +180,9 @@ def prove_governed_actions(context, base_url):
         for name, value in plan["payload"].items():
             card.locator(f'[name="{name}"]').fill(value)
         card.get_by_role("button", name="Prepare exact plan", exact=True).click()
-        approve = card.get_by_role("button", name="Approve & run", exact=True)
+        approve = card.locator(".action-row .action-btn.primary")
         reject = card.get_by_role("button", name="Reject", exact=True)
+        expect(approve).to_have_text("Approve & run")
         expect(approve).to_be_visible()
         assert json.loads(card.locator("pre").inner_text()) == plan["payload"]
         assert card.locator("pre img").count() == 0
