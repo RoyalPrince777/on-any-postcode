@@ -520,7 +520,7 @@ def test_celestrak_orbit_elements_are_source_dated_not_live_positions():
     sample = (
         "NORAD_CAT_ID,EPOCH,INCLINATION,MEAN_MOTION,ECCENTRICITY\n"
         f"25544,{stamp},51.6,15.5,0.00015\n"
-    ).encode("utf-8")
+    ).encode()
     result = third_eye_intelligence.parse_celestrak_iss_csv(sample)
     assert result["provider"] == "CelesTrak"
     assert result["element_epoch"] == stamp
