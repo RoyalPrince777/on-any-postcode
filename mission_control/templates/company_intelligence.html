@@ -32,6 +32,9 @@
   <details class="department-map" id="company-department-map">
     <summary>🧠 Company Map · {{ runtime.department_map.department_count }} connected departments</summary>
     <p class="dept-note">One SMI brain · real existing evidence · no invented sales, activity or autonomous agents. Source proof does not mean live department execution.</p>
+    {% if runtime.department_map.priority_department %}
+    <p class="dept-note"><strong>Next evidence:</strong> {{ runtime.department_map.priority_department }} · {{ runtime.department_map.priority_next_proof }}</p>
+    {% endif %}
     <div class="grid">
       {% for department in runtime.department_map.departments %}
       <article class="card">
