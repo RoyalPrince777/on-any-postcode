@@ -48,6 +48,28 @@ def main():
                 page.locator("#world-query").press("Enter")
                 expect(page.locator("#world-search-note")).to_contain_text("Stayed in OAP World")
                 assert page.url.startswith(BASE + "/world")
+                # Link Up royal desktop + mobile responsive acceptance.
+                response = page.goto(BASE + "/linkup")
+                assert response is not None and response.status == 200
+                expect(page.locator('main[aria-label="Link Up app"]')).to_be_visible()
+                expect(page.locator('nav[aria-label="Link Up public bottom navigation"]')).to_be_visible()
+                expect(page.locator(".linkup-rich-features > *")).to_have_count(9)
+                assert page.locator('main[aria-label="Private Link Up messenger"]').count() == 0
+                rail = page.locator('nav[aria-label="Link Up desktop navigation"]')
+                expect(rail).to_be_hidden() if mobile else expect(rail).to_be_visible()
+                cols = page.locator(".linkup-rich-features").evaluate(
+                    "(el) => getComputedStyle(el).gridTemplateColumns.split(' ').length"
+                )
+                assert cols == 5, (mobile, cols)
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+                field = page.locator("[data-oap-public-filter]")
+                field.fill("safety")
+                expect(page.locator("[data-public-filter-item]:not([hidden])")).to_have_count(1)
+                expect(page.locator("[data-oap-public-search-note]")).to_contain_text("1 matching public sections")
+                field.fill("")
+                expect(page.locator("[data-public-filter-item]:not([hidden])")).to_have_count(12)
+                page.locator('nav[aria-label="Link Up public bottom navigation"] a[href="/linkup?intent=message"]').click()
+                assert ("/auth" in page.url or "/enter-my-world" in page.url), page.url
                 assert not errors, errors
                 context.close()
             browser.close()

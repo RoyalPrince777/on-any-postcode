@@ -83,3 +83,15 @@ linear-gradient(180deg,#090604 0%,#160d06 42%,#070504 100%);color:#fff7df}
 @media(max-width:760px){.linkup-rich-categories{display:none}}
 .linkup-rich-create{border:1px solid #edc86b;border-radius:18px;padding:5px;background:radial-gradient(ellipse at 50% 0%,#5e1b99,#1a0a2b 83%)}
 .linkup-rich-create .linkup-card-summary{background:transparent;border:0;margin:0;box-shadow:none}
+
+/* Screenshot-fit: five royal feature icons at Redmi A5 CSS widths;
+   narrow phones progressively reduce columns without horizontal overflow. */
+@media(min-width:381px) and (max-width:760px){
+ .linkup-rich-features{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+ .linkup-rich-features>a,.linkup-rich-information{min-height:105px;padding:7px 1px;gap:3px}
+ .linkup-rich-features .royal-symbol{width:clamp(37px,10vw,49px);height:clamp(37px,10vw,49px)}
+ .linkup-rich-features strong{font-size:clamp(.65rem,1.8vw,.78rem)}
+ .linkup-rich-features small{font-size:clamp(.57rem,1.65vw,.69rem);overflow-wrap:anywhere}
+}
+@media(min-width:351px) and (max-width:380px){.linkup-rich-features{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:350px){.linkup-rich-features{grid-template-columns:repeat(3,minmax(0,1fr))}}

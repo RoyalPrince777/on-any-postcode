@@ -62,7 +62,7 @@
           <a href="/linkup" aria-current="page">⌂ Home</a>
           <a href="#linkup-rich-features">✦ Explore</a>
           <a href="/the-spot/postcode-rooms">📍 Nearby</a>
-          <a href="#linkup-rich-messages">💬 Messages</a>
+          <a href="/linkup?intent=message">💬 Messages</a>
           <a href="/the-spot/postcode-rooms">👥 Groups</a>
           <a href="/the-spot/discovery">📅 Events</a>
           <a href="/the-spot/discovery">♛ Opportunities</a>
@@ -86,7 +86,7 @@
           <section class="linkup-rich-search" role="search" aria-label="Search public Link Up sections">
             <label for="linkup-rich-query" class="sr-only">Find public sections</label>
             <span aria-hidden="true">⌕</span>
-            <input id="linkup-rich-query" type="search" autocomplete="off" placeholder="Search people, interests, opportunities…" data-oap-public-filter>
+            <input id="linkup-rich-query" type="search" autocomplete="off" placeholder="Search public sections…" data-oap-public-filter>
             <a href="#linkup-rich-settings" aria-label="Search privacy and settings">☷</a>
           </section>
           <p class="linkup-rich-note" role="status" data-oap-public-search-note>Public sections only. Finding people requires sign-in.</p>
@@ -127,7 +127,7 @@
           </details>
         </div>
         <aside class="linkup-rich-aside" aria-label="Desktop Link Up panels">
-          <section><h3>💬 Messages</h3><p>Your private Link Ups appear only after sign-in.</p><a href="#linkup-rich-messages">Open Messages</a></section>
+          <section><h3>💬 Messages</h3><p>Your private Link Ups appear only after sign-in.</p><a href="/linkup?intent=message">Open Messages</a></section>
           <section><h3>✦ Discover</h3><a href="/the-spot/postcode-rooms">Nearby communities</a><a href="/the-spot/discovery">Opportunities</a><a href="/the-spot/market">Market</a><a href="/pulse">Community Pulse</a></section>
         </aside>
       </div>
@@ -135,7 +135,7 @@
         <a href="/linkup" aria-current="page">⌂<span>Home</span></a>
         <a href="{{ url_for('auth_page', next='/linkup') }}">👥<span>People</span></a>
         <a class="linkup-oap-home" href="{{ url_for('home') }}" aria-label="OAP World">♛<span>OAP</span></a>
-        <a href="#linkup-rich-messages">💬<span>Messages</span></a>
+        <a href="/linkup?intent=message">💬<span>Messages</span></a>
         <a href="{{ url_for('my_card_create_page') }}">▤<span>My Card</span></a>
       </nav>
     </main>
