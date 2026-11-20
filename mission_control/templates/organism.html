@@ -53,6 +53,30 @@
       {% endif %}
     </section>
 
+    <section class="mc-panel" id="offline-route" aria-labelledby="offline-organism-title">
+      <div class="mc-section-heading">
+        <div>
+          <p class="mc-eyebrow">Fox · Offline / local-first recovery route</p>
+          <h2 id="offline-organism-title">Full Organism · Offline Readiness</h2>
+        </div>
+        <span class="mc-lock-badge mc-lock-badge--amber">Live offline runtime unverified</span>
+      </div>
+      <p><strong>Local route:</strong> this canonical anatomy is rendered by the first-party SMI server from its existing registered systems. It needs a running local SMI service and valid sign-in; a public website without a reachable local service cannot supply this private page offline.</p>
+      <p><strong>Offline boundary:</strong> no service-worker cache of Mission Control, My World, private identity, HRM, approvals, messages or tokens. An offline page grants no execution, authority or automatic deployment.</p>
+      <p><strong>Organism fallback:</strong> OAP CORE → NEXUS → Thalamus → one SMI Brain → Guardian / Judgement → Founder Final → Living Kernel → Body Organs → HRM. Fox recommends local recovery and evidence checks, but actual local operation and receipts require independently verified runtime proof.</p>
+      <h3>Body organs · offline proof inventory</h3>
+      <div class="mc-region-grid" role="list">
+        {% for organ in anatomy.body_organs %}
+        <article class="mc-region-card" role="listitem">
+          <h3>{{ organ.name }}</h3>
+          <p>{{ organ.anatomy }}</p>
+          <small><strong>Offline runtime:</strong> Unknown · on-device verification required</small>
+        </article>
+        {% endfor %}
+      </div>
+      <p>Internet lost: public shell may provide a static fallback; private SMI stays unavailable unless a separately authenticated local node is running. Reconnect means re-check evidence, permissions and freshness before any action.</p>
+    </section>
+
     <section class="mc-panel" aria-labelledby="organism-map-title">
       <div class="mc-section-heading">
         <div>

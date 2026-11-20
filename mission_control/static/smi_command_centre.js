@@ -520,6 +520,7 @@
  const evidence=panel.querySelector(".smi-command-evidence");
  const anatomyLinks=[
   ["🧠","Brain · SMI","Intelligence · memory · reasoning",cfg.brainUrl],
+  ["🦊","Offline Route · Full Organism","Local SMI service and sign-in required · offline proof unknown","/mission/organism#offline-route"],
   ["👁️","Eyes · Vision","Screens · maps · insight","/on-any-place"],
   ["🎙️","Ears · Language","Listening · communication",null],
   ["💬","Mouth · Communication","SMI Chat · messages",null],
@@ -624,8 +625,59 @@
  const refresh=document.createElement("button");refresh.className="smi-command-toggle";refresh.type="button";refresh.textContent="↻ Refresh evidence";
  refresh.setAttribute("aria-label","Check signed-in SMI health evidence");
  evidence.append(refresh);
+ // SMI-only Auto Repair entry: delegate to the existing governed SMI AUTO FIX.
+ // This never invokes ChatGPT automation, creates a second runner or bypasses approvals.
+ const smiRepair=document.createElement("button");
+ smiRepair.type="button";smiRepair.className="smi-command-toggle";
+ smiRepair.textContent="🟣 AUTO REPAIR · SMI ONLY";
+ smiRepair.setAttribute("aria-label","Run existing SMI governed Auto Fix checks");
+ smiRepair.addEventListener("click",()=>{
+  const canonical=document.querySelector(".smi-auto-fix");
+  if(!canonical||canonical.disabled){
+   missionStatus("SMI AUTO FIX unavailable or already running · no action executed");
+   return;
+  }
+  setOpen(false); // Original SMI chat owns the execution and visible evidence receipt.
+  canonical.click();
+ });
+ evidence.append(smiRepair);
  addLink(evidence,"🌍","OAP World","Explore · connect","/on-any-place");
  addLink(evidence,"📚","Founder Library","Governed records",cfg.founderLibraryUrl);
+ addLink(evidence,"🛡️","OAP Data · Privacy","Founder-only data evidence · no global exposure proof","/mission/data");
+ // VPN status is read-only: OAP Store release state is not tunnel proof.
+ const vpnNotice=document.createElement("div");
+ vpnNotice.className="smi-command-proof";
+ vpnNotice.dataset.proven="false";
+ const vpnTitle=document.createElement("strong");vpnTitle.textContent="🔐 VPN · Privacy";
+ const vpnState=document.createElement("small");vpnState.textContent="OAP VPN status: Not checked";
+ const deviceState=document.createElement("small");
+ deviceState.textContent="Proton VPN on your device: Unknown · SMI cannot see Android VPN state";
+ vpnNotice.append(vpnTitle,vpnState,deviceState);evidence.append(vpnNotice);
+ let vpnRequest=null;
+ async function refreshPrivacyVpn(){
+  // Latest request wins: stale or aborted evidence must never overwrite new status.
+  if(vpnRequest)vpnRequest.abort();
+  const controller=new AbortController();
+  vpnRequest=controller;
+  vpnNotice.dataset.proven="false";vpnState.textContent="OAP VPN status: Checking catalogue…";
+  try{
+   const response=await fetch("/oap-store/apps",{cache:"no-store",credentials:"same-origin",signal:controller.signal});
+   if(controller.signal.aborted)return;
+   if(!response.ok)throw new Error("Store unavailable");
+   const payload=await response.json();
+   if(controller.signal.aborted)return;
+   const apps=Array.isArray(payload?.apps)?payload.apps:[];
+   const vpn=apps.find(app=>app&&app.app_id==="oap.vpn");
+   if(!vpn)throw new Error("OAP VPN missing");
+   const planned=vpn.release_state==="planned"&&vpn.install_enabled===false&&vpn.open_url==null;
+   const release=planned?"planned · not installable":"changed or unverified catalogue state";
+   vpnState.textContent="OAP VPN: "+release+" · tunnel, DNS and device proof not verified";
+  }catch(_){
+   if(!controller.signal.aborted)vpnState.textContent="OAP VPN: Unknown · catalogue unavailable · no Green";
+  }finally{
+   if(vpnRequest===controller)vpnRequest=null;
+  }
+ }
  let active=false,request=null,roomRequest=null;
  const setRoom=(node,proven,message)=>{
   if(!node)return;
@@ -729,6 +781,7 @@
   }
  }
  async function refreshEvidence(){
+  refreshPrivacyVpn(); // Independent from SMI health endpoint; never assume VPN connected.
   if(!cfg.healthUrl)return;
   if(request)request.abort();
   request=new AbortController();

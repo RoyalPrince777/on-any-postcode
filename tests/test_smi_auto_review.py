@@ -96,7 +96,7 @@ def test_auto_swot_requires_verified_failed_build_logs():
 
 
 def test_auto_swot_uses_only_verified_categories_without_granting_execution():
-    data = {"ready": True, "log_analysis": {"ready": True, "log_categories": (
+    data = {"ready": True, "log_analysis": {"ready": True, "classified": True, "log_categories": (
         {"job_id": 31, "categories": ("gradle_compile", "source_verification")},
     )}}
     result = smi_auto.evidence_swot_for_failed_build(data)
@@ -106,7 +106,26 @@ def test_auto_swot_uses_only_verified_categories_without_granting_execution():
     assert result["approval_granted"] is False
     assert result["human_authority_final"] is True
     assert smi_auto.evidence_swot_for_failed_build({
-        "ready": True, "log_analysis": {"ready": True, "log_categories": (
+        "ready": True, "log_analysis": {"ready": True, "classified": True, "log_categories": (
             {"job_id": 31, "categories": ("untrusted_input",)},
         )}
     })["ready"] is False
+
+
+def test_auto_swot_cannot_promote_unclassified_python_logs():
+    unclassified = {"ready": True, "log_analysis": {
+        "ready": True, "classified": False, "log_categories": (
+            {"job_id": 55, "categories": ("python_lint",)},
+        ),
+    }}
+    assert smi_auto.evidence_swot_for_failed_build(unclassified)["ready"] is False
+
+    classified = {"ready": True, "log_analysis": {
+        "ready": True, "classified": True, "log_categories": (
+            {"job_id": 55, "categories": ("python_lint", "python_tests")},
+        ),
+    }}
+    result = smi_auto.evidence_swot_for_failed_build(classified)
+    assert result["ready"] is True
+    assert result["execution_granted"] is False
+    assert result["approval_granted"] is False

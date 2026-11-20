@@ -2,7 +2,7 @@
 
 No shell, edits, retries, permissions, approvals, or deployment. The response
 contains bounded evidence only; errors fail closed. A worker may call this
-after receiving an authorised numeric run ID, but it is not yet scheduled.
+as part of the existing scheduled health probe, when deployed.
 """
 from __future__ import annotations
 
@@ -53,6 +53,12 @@ def _safe_log_summary(raw: str) -> tuple[str, ...]:
         ("gradle_compile", r"Compilation failed|Execution failed for task|error: cannot find symbol"),
         ("dependency_resolution", r"Could not resolve|Could not find.*gradle|Plugin .* was not found"),
         ("android_sdk", r"SDK location not found|Failed to find Build Tools|sdkmanager: command not found"),
+        # First-party CI is Python/Chromium as well as Android. These categories
+        # remain fixed labels: never return or persist arbitrary log text.
+        ("python_lint", r"ruff (?:check|format)|(?m:^\s*[A-Z]{1,3}\d{3,4}\b)|(?m:^Found \d+ errors?\b)"),
+        ("python_tests", r"(?m:^\s*FAILED tests/)|(?m:^=+\s*\d+ failed\b)|pytest.*(?:failed|error)"),
+        ("python_import", r"ModuleNotFoundError|ImportError:|No module named"),
+        ("browser_tests", r"playwright.*(?:fail|error)|chromium.*(?:fail|crash)|(?m:^\s*TimeoutError:.*locator)"),
     )
     return tuple(name for name, pattern in patterns if re.search(pattern, raw, flags=re.IGNORECASE))
 
@@ -61,6 +67,7 @@ def inspect_failed_job_logs(evidence: dict[str, Any], *, token: str,
                             fetch_log: Callable[[int, str], str] = _fetch_job_log) -> dict[str, Any]:
     """Classify bounded failed-job logs; never persist raw logs or infer release."""
     base = {"ready": False, "error": None, "log_categories": (),
+            "classified": False, "classification": "unknown",
             "read_only": True, "execution_granted": False,
             "approval_granted": False, "human_authority_final": True,
             "consequential_action": False}
@@ -81,7 +88,12 @@ def inspect_failed_job_logs(evidence: dict[str, Any], *, token: str,
             if not isinstance(log, str) or len(log.encode("utf-8")) > MAX_LOG_BYTES:
                 raise ValueError("invalid_log")
             summaries.append({"job_id": job_id, "categories": _safe_log_summary(log)})
-        return {**base, "ready": True, "log_categories": tuple(summaries)}
+        # Downloaded logs are evidence, not an identified root cause.
+        # Unknown categories must not be represented as verified diagnosis.
+        classified = any(row["categories"] for row in summaries)
+        return {**base, "ready": True, "log_categories": tuple(summaries),
+                "classified": bool(classified),
+                "classification": "classified" if classified else "unknown"}
     except (HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError):
         return {**base, "error": "github_job_logs_unavailable"}
 
@@ -211,3 +223,117 @@ def discover_recent_failed_runs(*, token: str, fetch: Fetch = _fetch_json) -> di
                 "current_failure": latest_conclusion == "failure"}
     except (HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError, AttributeError):
         return {**result, "error": "github_discovery_unavailable"}
+
+
+# Exact-head source/CI evidence for the currently approved SMI privacy mission.
+# New mission scopes must be added deliberately, not inferred from a random PR.
+MISSION_PR_CHECKS: dict[int, tuple[str, ...]] = {
+    1413: ("OAP governed checks", "SMI Chromium recovery proof",
+           "OAP runtime image"),
+    1411: ("OAP governed checks", "OAP Data first-party no-Meta source proof",
+           "OAP runtime image"),
+}
+
+
+def inspect_mission_continuity(
+    pr_number: int, *, token: str, fetch: Fetch = _fetch_json,
+) -> dict[str, Any]:
+    """Automatically select the next bounded step from real exact-head CI.
+
+    This is a read-only Mission Keeper signal, not a release or GitHub write.
+    The organism worker stores the resulting evidence in its existing receipts.
+    """
+    result: dict[str, Any] = {
+        "kind": "smi_mission_continuity",
+        "pr_number": pr_number,
+        "ready": False,
+        "ci_proven": False,
+        "head_sha": None,
+        "next_move": "hold_unknown",
+        "failed_run_id": None,
+        "reason": "evidence_unavailable",
+        "read_only": True,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+        "consequential_action": False,
+    }
+    if not isinstance(pr_number, int) or isinstance(pr_number, bool) or pr_number not in MISSION_PR_CHECKS:
+        return {**result, "reason": "mission_pr_not_allowlisted"}
+    if not isinstance(token, str) or not token.strip():
+        return {**result, "reason": "github_read_token_missing"}
+    try:
+        pr = fetch(f"{API}/pulls/{pr_number}", token)
+        if not isinstance(pr, dict) or pr.get("number") != pr_number:
+            raise ValueError("pr_identity_mismatch")
+        head, base = pr.get("head"), pr.get("base")
+        if not isinstance(head, dict) or not isinstance(base, dict):
+            raise TypeError("pr_head_missing")
+        head_repo = head.get("repo")
+        if (not isinstance(head_repo, dict) or head_repo.get("full_name") != REPO
+                or base.get("ref") != "main"):
+            raise ValueError("pr_repository_mismatch")
+        sha = head.get("sha")
+        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
+            raise ValueError("invalid_head_sha")
+        if pr.get("state") != "open":
+            return {**result, "ready": True, "head_sha": sha,
+                    "next_move": "hold_closed_pr", "reason": "pr_not_open"}
+        if pr.get("draft") is not True and pr.get("draft") is not False:
+            raise ValueError("draft_state_unknown")
+        response = fetch(
+            f"{API}/actions/runs?head_sha={sha}&event=pull_request&per_page=100",
+            token,
+        )
+        if not isinstance(response, dict):
+            raise TypeError("runs_not_object")
+        runs = response.get("workflow_runs")
+        count = response.get("total_count")
+        if (not isinstance(count, int) or isinstance(count, bool)
+                or not isinstance(runs, list) or count != len(runs)
+                or count > 100):
+            raise ValueError("runs_unavailable_or_truncated")
+        latest: dict[str, dict[str, Any]] = {}
+        required = MISSION_PR_CHECKS[pr_number]
+        for run in runs:
+            if not isinstance(run, dict):
+                raise TypeError("invalid_run")
+            repository = run.get("repository")
+            if (not isinstance(repository, dict)
+                    or repository.get("full_name") != REPO
+                    or run.get("head_sha") != sha
+                    or run.get("event") != "pull_request"):
+                raise ValueError("run_scope_mismatch")
+            name = run.get("name")
+            rid = run.get("id")
+            if name not in required:
+                continue
+            if not isinstance(rid, int) or isinstance(rid, bool) or rid <= 0:
+                raise ValueError("run_id_invalid")
+            if name not in latest or rid > latest[name]["id"]:
+                latest[name] = run
+        missing = tuple(name for name in required if name not in latest)
+        statuses = {name: ("missing" if name in missing else
+                           str(latest[name].get("conclusion") or "pending")
+                           if latest[name].get("status") == "completed" else
+                           "pending") for name in required}
+        failed = tuple(name for name in required if statuses[name] == "failure")
+        if failed:
+            first = failed[0]
+            return {**result, "ready": True, "head_sha": sha,
+                    "next_move": "inspect_failed_ci",
+                    "failed_run_id": latest[first]["id"],
+                    "reason": "confirmed_ci_failure",
+                    "required_checks": statuses}
+        if all(statuses[name] == "success" for name in required):
+            return {**result, "ready": True, "ci_proven": True,
+                    "head_sha": sha, "next_move": "continue_target_proof",
+                    "reason": "exact_head_ci_passed_not_production",
+                    "required_checks": statuses}
+        return {**result, "ready": True, "head_sha": sha,
+                "next_move": "await_exact_head_evidence",
+                "reason": "ci_pending_or_unproven",
+                "required_checks": statuses}
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError,
+            AttributeError, json.JSONDecodeError):
+        return result
