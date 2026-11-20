@@ -16,9 +16,9 @@ from . import (
     smi_completion_contract,
     smi_deep_dive_protocol,
     smi_function_health,
-    third_eye_intelligence,
     smi_proof_gate,
     smi_receipt_backend,
+    third_eye_intelligence,
     war_room_simulation_actions,
     web_security,
 )
