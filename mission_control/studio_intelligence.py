@@ -21,6 +21,7 @@ from . import (
     studio_build_preview,
     studio_character_swap,
     studio_media_backend,
+    studio_project_shell,
 )
 
 STUDIO_ID = "oap-studio-intelligence"
@@ -402,6 +403,8 @@ def execute_generation(
     prompt: object = "",
     source_image_data: object = "",
     character_lock: object = False,
+    video_size: object = None,
+    video_seconds: object = None,
 ) -> dict[str, Any]:
     """Execute one supported provider-backed Studio generation request.
 
@@ -410,6 +413,10 @@ def execute_generation(
     """
 
     tool = _tool(tool_id)
+    if tool["id"] not in {"scene_builder", "bring_alive"} and (
+        video_size is not None or video_seconds is not None
+    ):
+        raise ValueError("studio_video_options_only")
     user_prompt = str(prompt or "").strip()
     clean_prompt = user_prompt
     source_data = str(source_image_data or "").strip()
@@ -463,9 +470,15 @@ def execute_generation(
     elif tool["id"] in {"scene_builder", "bring_alive"}:
         if tool["id"] == "bring_alive" and not source_data:
             raise ValueError("studio_source_image_data_required")
+        video_options: dict[str, str] = {}
+        if video_size is not None:
+            video_options["size"] = str(video_size)
+        if video_seconds is not None:
+            video_options["seconds"] = str(video_seconds)
         artifact = studio_media_backend.create_video(
             clean_prompt,
             source_image_data=source_data,
+            **video_options,
         )
     else:  # pragma: no cover - guarded by _tool
         raise ValueError("unsupported_studio_tool")
@@ -641,6 +654,7 @@ def status() -> dict[str, Any]:
         "studio_21_stage_count": len(STUDIO_21_STAGES),
         "studio_21_stages": list(STUDIO_21_STAGES),
         "generation_backend": backend,
+        "project_shell": studio_project_shell.status(),
         "generation_backend_proven": bool(backend["configured"]),
         "owner_asset_store": {
             "schema_ready": bool(asset_store.get("schema_ready")),
