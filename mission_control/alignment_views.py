@@ -51,7 +51,19 @@ def smi_third_eye_earthquakes():
 def smi_third_eye_london_cameras():
     """Return TfL public road-camera catalogue metadata on Founder request."""
     search = request.args.get("q") or ""
-    return _no_store(make_response(jsonify(third_eye_intelligence.london_jamcams(search=search))))
+    try:
+        page = int(request.args.get("page") or 1)
+        radius = int(request.args.get("radius_km") or 0)
+        if page < 1 or page > 1000 or radius not in {0, 5, 15, 30}:
+            raise ValueError("invalid_camera_catalogue_selection")
+        result = third_eye_intelligence.london_jamcams(
+            search=search, page=page, radius_km=radius,
+        )
+    except ValueError:
+        return _no_store(
+            make_response(jsonify(error={"code": "invalid_camera_catalogue_selection"}), 400)
+        )
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.get("/smi/third-eye/london/frame/<camera_id>")
