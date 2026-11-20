@@ -624,6 +624,22 @@
  const refresh=document.createElement("button");refresh.className="smi-command-toggle";refresh.type="button";refresh.textContent="↻ Refresh evidence";
  refresh.setAttribute("aria-label","Check signed-in SMI health evidence");
  evidence.append(refresh);
+ // SMI-only Auto Repair entry: delegate to the existing governed SMI AUTO FIX.
+ // This never invokes ChatGPT automation, creates a second runner or bypasses approvals.
+ const smiRepair=document.createElement("button");
+ smiRepair.type="button";smiRepair.className="smi-command-toggle";
+ smiRepair.textContent="🟣 AUTO REPAIR · SMI ONLY";
+ smiRepair.setAttribute("aria-label","Run existing SMI governed Auto Fix checks");
+ smiRepair.addEventListener("click",()=>{
+  const canonical=document.querySelector(".smi-auto-fix");
+  if(!canonical||canonical.disabled){
+   missionStatus("SMI AUTO FIX unavailable or already running · no action executed");
+   return;
+  }
+  setOpen(false); // Original SMI chat owns the execution and visible evidence receipt.
+  canonical.click();
+ });
+ evidence.append(smiRepair);
  addLink(evidence,"🌍","OAP World","Explore · connect","/on-any-place");
  addLink(evidence,"📚","Founder Library","Governed records",cfg.founderLibraryUrl);
  addLink(evidence,"🛡️","OAP Data · Privacy","Founder-only data evidence · no global exposure proof","/mission/data");
