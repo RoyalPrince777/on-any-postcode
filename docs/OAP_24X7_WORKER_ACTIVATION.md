@@ -100,3 +100,57 @@ If runtime evidence becomes unhealthy, stop the worker first, preserve receipts/
 ## Cost boundary
 
 A continuously running Render Background Worker is paid infrastructure. Creating or activating it requires explicit cost approval from Human Authority. Documentation, tests and readiness checks may proceed without that approval; provisioning may not.
+
+
+## OAP-controlled Linux VPS (no new worker code)
+
+The canonical worker can run under `systemd` on an OAP-controlled Linux VPS.
+The reviewed service template is `ops/organism/oap-organism-worker.service`.
+This is **not** the Render deployment contract and does not require Termux.
+It runs only the existing `mission_control.organism_worker` process; it does
+not create a new scheduler, agent, autonomy level, database, inference endpoint
+or production deployment authority.
+
+**Host prerequisites (must be confirmed by Founder):**
+- An approved Linux VPS with a reviewed, immutable OAP checkout at
+  `/opt/on-any-postcode`, Python virtualenv and installed requirements.
+- An unprivileged `oap` service user, without interactive shell or sudo.
+- A private `/etc/oap/organism-worker.env` readable by that user (e.g.
+  root:oap, mode 0640) containing the already approved production PostgreSQL
+  connection. Use secret references where supported; never put values in Git.
+- Optional read-only GitHub token: `OAP_SMI_GITHUB_READ_TOKEN`. If absent,
+  GitHub mission monitoring remains unconfigured/UNKNOWN.
+- Founder approval of the exact deployment revision and its environment.
+
+The service has `ProtectSystem=strict`, `NoNewPrivileges`, a limited
+restart budget, graceful SIGTERM and **no** `git pull`, install, migrate,
+permission change, publication, release or production-action command.
+
+After a reviewed host setup and Founder Final approval, an authorised
+operator may install and activate the template:
+
+```bash
+sudo install -m 0644 ops/organism/oap-organism-worker.service /etc/systemd/system/oap-organism-worker.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now oap-organism-worker
+sudo systemctl is-active oap-organism-worker
+```
+
+**Proof before Green:** On the intended production database confirm that the
+worker revision matches the approved checkout; the heartbeat is fresh across
+multiple intervals; scheduled jobs complete with new durable receipts; dead
+letters and errors are not growing; and the Guardian/HRM/Human Authority
+boundaries still report no consequential execution. A stale `ACTIVE` row or
+old receipts alone never prove liveness. Do not mark the service Green after
+`systemctl is-active` alone.
+
+To contain a faulty worker on the approved VPS without changing the public
+web-service runtime:
+
+```bash
+sudo systemctl stop oap-organism-worker
+```
+
+Preserve audit receipts, diagnose failure and re-verify before restart.
+No connection to or deployment on an OAP-controlled VPS is established by
+this repository addition.
