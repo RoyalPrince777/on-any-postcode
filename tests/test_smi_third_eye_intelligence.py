@@ -379,3 +379,87 @@ def test_london_real_mp4_control_is_user_initiated_and_stops_on_exit():
     assert "clearCameraMedia()" in script
     assert "cameraVideo.play()" in script
     assert "autoplay" not in script
+
+
+def test_london_camera_catalogue_is_cr4_first_and_not_limited_to_fifteen(monkeypatch):
+    rows = [
+        {
+            "id": f"00001.{index:05d}",
+            "name": f"Camera {index}",
+            "latitude": 51.4026 + index * 0.001,
+            "longitude": -0.14516,
+            "clip_available": False,
+        }
+        for index in range(45)
+    ]
+    monkeypatch.setattr(third_eye_intelligence, "_TFL_CACHE", (float("inf"), rows))
+    first = third_eye_intelligence.london_jamcams(search="CR4", page=1)
+    second = third_eye_intelligence.london_jamcams(page=2)
+    third = third_eye_intelligence.london_jamcams(page=3)
+    assert first["source_verified"] is True
+    assert first["origin"]["label"] == "CR4 / Mitcham district"
+    assert first["origin"]["precision"] == "district_reference_not_device"
+    assert first["sort"] == "distance_from_cr4_nearest_first"
+    assert first["total_matching"] == 45
+    assert len(first["cameras"]) == 20
+    assert len(second["cameras"]) == 20
+    assert len(third["cameras"]) == 5
+    assert first["cameras"][0]["id"] == "00001.00000"
+    assert first["cameras"][0]["distance_km"] == 0.0
+    assert second["cameras"][0]["id"] == "00001.00020"
+    assert first["has_more"] is True
+    assert second["has_previous"] is True
+    assert third["has_more"] is False
+
+
+def test_cr4_nearby_radius_fails_to_fabricate_cameras(monkeypatch):
+    rows = [{
+        "id": "00001.00001",
+        "name": "Only far away road",
+        "latitude": 51.6,
+        "longitude": 0.0,
+        "clip_available": False,
+    }]
+    monkeypatch.setattr(third_eye_intelligence, "_TFL_CACHE", (float("inf"), rows))
+    nearby = third_eye_intelligence.london_jamcams(radius_km=5)
+    london = third_eye_intelligence.london_jamcams(radius_km=0)
+    assert nearby["cameras"] == []
+    assert nearby["total_matching"] == 0
+    assert nearby["source_verified"] is True
+    assert len(london["cameras"]) == 1
+    assert london["cameras"][0]["distance_km"] > 5
+    assert nearby["continuous_live_video"] is False
+
+
+def test_london_catalogue_bad_paging_and_radius_are_rejected(client, monkeypatch):
+    monkeypatch.setattr(
+        web_security, "current_authenticated_user",
+        lambda: {"id": "00000000-0000-4000-8000-000000000001"},
+    )
+    monkeypatch.setattr(web_security, "private_authority_allowed", lambda user: True)
+    for query in ("page=-3", "page=abc", "radius_km=999", "radius_km=-5"):
+        response = client.get("/mission/smi/third-eye/london/cameras?" + query)
+        assert response.status_code == 400
+        assert response.get_json()["error"]["code"] == "invalid_camera_catalogue_selection"
+
+
+def test_cr4_mobile_camera_list_pages_all_available_public_tfl_sources():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "mission_control"
+    script = (root / "static" / "smi_third_eye.js").read_text(encoding="utf-8")
+    css = (root / "static" / "smi_third_eye.css").read_text(encoding="utf-8")
+    assert '"All London · nearest CR4 first"' in script
+    assert '"Within 5 km of CR4"' in script
+    assert '"Within 15 km of CR4"' in script
+    assert '"Within 30 km of CR4"' in script
+    assert 'url.searchParams.set("page", String(page))' in script
+    assert 'url.searchParams.set("radius_km", String(radiusKm))' in script
+    assert "data.has_more === true" in script
+    assert "Next 20" in script
+    assert "Previous 20" in script
+    assert "cam.distance_km.toFixed(1)" in script
+    assert "slice(0, 12)" not in script
+    assert "cameraImage.src = base.toString()" in script
+    assert "setInterval" not in script
+    assert ".smi-third-eye-pages{" in css
