@@ -26,7 +26,6 @@ def test_oap_world_reference_ui_contract():
         "MARKETPLACE.",
         "LOCAL SHOP",
         "Quick Actions",
-        "OAP Store",
         "HRM",
         "Guardian",
     ):
@@ -39,11 +38,14 @@ def test_public_oap_world_exposes_no_founder_entry():
     assert "Founder" not in page
 
 
-def test_oap_internet_card_opens_existing_public_koradaso_browser():
+def test_oap_browse_and_apps_links_to_existing_koradaso_and_store_without_duplicate_card():
     page = WORLD.read_text(encoding="utf-8")
-    assert '<a class="card" href="/koradaso"' in page
+    assert 'aria-label="Browse and Apps across OAP World"' in page
+    assert '<a href="/koradaso" data-oap-browse-koradaso>' in page
     assert '<strong>🌐 KORADASO Internet</strong>' in page
-    assert 'aria-label="Open KORADASO Internet browser"' in page
-    assert 'External HTTPS requires confirmation.' in page
+    assert '<a href="/store" data-oap-world-apps>' in page
+    assert '<a href="/search" data-oap-world-search>' in page
+    assert page.count('href="/koradaso"') == 1
+    assert "HTTPS consent required." in page
     assert 'href="/world/languages"' not in page
     assert 'window.confirm' in page

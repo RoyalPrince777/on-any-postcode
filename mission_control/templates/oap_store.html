@@ -29,6 +29,8 @@
     <span class="category">{{ app.category }}</span><br>
     {% if app.install_enabled %}
       <span class="badge">INSTALL READY · {{ app.install_mode }}</span>
+    {% elif app.app_id == "oap.koradaso" %}
+      <span class="badge open">OPEN ROUTE · INSIDE OAP WORLD</span>
     {% elif app.open_url %}
       <span class="badge open">OPEN READY · INSTALL NOT YET PROVEN</span>
     {% else %}
@@ -62,6 +64,8 @@
     {% endif %}
     {% if app.install_enabled %}
       <p class="truth">PWA install is a browser installation. It is not a signed native Android APK and does not certify physical-device acceptance.</p>
+    {% elif app.app_id == "oap.koradaso" %}
+      <p class="truth" data-oap-koradaso-integrated>KORADASO is the existing browser home inside OAP World, not a second installable app. Live deployment and Redmi A5 acceptance remain unverified.</p>
     {% elif app.open_url %}
       <p class="truth">This app is listed in OAP Store, but standalone installation stays locked until its own manifest/runtime proof passes.</p>
     {% else %}

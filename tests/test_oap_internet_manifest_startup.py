@@ -133,6 +133,8 @@ def test_koradaso_royal_compass_restores_useful_public_extras_without_private_da
     launch = client.get("/world?source=oap-os")
     assert launch.status_code == 200
     assert 'href="/koradaso"' in launch.get_data(as_text=True)
+    assert 'href="/store" data-oap-world-apps' in launch.get_data(as_text=True)
+    assert 'href="/search" data-oap-world-search' in launch.get_data(as_text=True)
 
 def test_public_browser_back_fallback_stays_on_koradaso_home(client):
     page = client.get("/koradaso").get_data(as_text=True)

@@ -50,6 +50,26 @@ def main():
                 assert page.url.startswith(BASE + "/world")
                 assert not errors, errors
 
+                # Browse and Apps share the existing KORADASO route and OAP
+                # catalogue/search; this is not a second installable browser.
+                world = page.goto(BASE + "/world")
+                assert world is not None and world.status == 200
+                expect(page.locator('nav[aria-label="Browse and Apps across OAP World"] a')).to_have_count(3)
+                page.locator('[data-oap-browse-koradaso]').click()
+                assert page.url.startswith(BASE + "/koradaso")
+                page.goto(BASE + "/world")
+                page.locator('[data-oap-world-apps]').click()
+                assert page.url.startswith(BASE + "/store")
+                expect(page.locator('[data-oap-store-app="oap.koradaso"]')).to_have_count(1)
+                page.goto(BASE + "/world")
+                page.locator('[data-oap-world-search]').click()
+                assert page.url.startswith(BASE + "/search")
+                page.get_by_role("searchbox", name="Search OAP").fill("koradaso")
+                page.get_by_role("button", name="Search").click()
+                expect(page.get_by_role("link", name="Open KORADASO Internet")).to_be_visible()
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+                assert not errors, errors
+
                 # Reuse the same real browser session for public KORADASO;
                 # never visit the external destination when consent is denied.
                 browser_home = page.goto(BASE + "/koradaso")
