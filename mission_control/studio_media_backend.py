@@ -215,6 +215,14 @@ def create_video(prompt: str, *, source_image_data: str = "", seconds: str = "4"
     clean = str(prompt or "").strip()[:4000]
     if not clean:
         raise ValueError("studio_prompt_required")
+    # The video API accepts concrete size/seconds, not a freeform FPS field.
+    # Fail closed instead of rendering portrait for a requested 16:9 scene.
+    seconds = str(seconds)
+    size = str(size)
+    if seconds not in {"4", "8", "12"}:
+        raise ValueError("studio_video_seconds_unsupported")
+    if size not in {"720x1280", "1280x720"}:
+        raise ValueError("studio_video_size_unsupported")
     file_field = None
     if source_image_data:
         mime, raw = _decode_image_data_url(source_image_data)
