@@ -47,29 +47,29 @@ PAGE = """<!doctype html>
 {% if manifest_url %}<link rel="manifest" href="{{ manifest_url }}">{% endif %}
 <title>{{ title }} · ON ANY POSTCODE</title>
 <style>
-:root{color-scheme:dark;--gold:#efcf73;--bg:#090909;--panel:#171717;--line:#39352a;--muted:#b9b9b9}
+:root{color-scheme:dark;--gold:#efcf73;--bg:#090909;--panel:#181612;--line:#393327;--muted:#bdb7aa}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font:16px/1.45 system-ui,-apple-system,sans-serif}
 a{color:inherit;text-decoration:none}
-main{max-width:850px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom))}
-nav{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+main{max-width:850px;margin:auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(44px + env(safe-area-inset-bottom))}
+nav{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
 nav a{color:var(--gold);display:inline-flex;align-items:center;min-height:44px;font-weight:700}
-.eyebrow{margin:24px 0 5px;color:var(--gold);font-size:.78rem;font-weight:900;letter-spacing:.08em}
-h1{font-size:clamp(2rem,7vw,3rem);margin:0 0 8px;line-height:1.08}
-.intro{margin:0 0 17px;color:var(--muted);max-width:650px}
-.role-switch{display:flex;gap:9px;margin:16px 0 20px}
-.role-switch a{flex:1;text-align:center;padding:13px 10px;min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--panel);font-weight:800}
+.eyebrow{margin:25px 0 7px;color:var(--gold);font-size:.78rem;font-weight:900;letter-spacing:.08em}
+h1{font-size:clamp(2.15rem,8vw,3.3rem);margin:0 0 8px;line-height:1.08;letter-spacing:-.04em}
+.intro{margin:0 0 20px;color:var(--muted);max-width:650px}
+.role-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:18px 0 19px}
+.role-switch a{text-align:center;padding:13px 10px;min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--panel);font-weight:800}
 .role-switch a[aria-current="page"]{background:var(--gold);border-color:var(--gold);color:#16120b}
 .install-row{margin:12px 0 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
 .install-row button{font:inherit;font-weight:850;padding:12px 17px;min-height:48px;border:0;border-radius:12px;background:var(--gold);color:#17130a;cursor:pointer}
 .install-row button[hidden]{display:none}.install-row button:disabled{opacity:.65}
 .install-row [role=status]{color:var(--muted);font-size:.85rem;line-height:1.45}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
-.btn{min-height:94px;min-width:0;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:#f8f8f8;font-weight:750;display:flex;align-items:center;justify-content:flex-start;overflow-wrap:anywhere}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.btn{min-height:80px;min-width:0;padding:15px;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:#f8f8f8;font-weight:750;display:flex;align-items:center;justify-content:space-between;gap:10px;overflow-wrap:anywhere;transition:border-color .15s}.btn::after{content:"›";color:var(--gold);font-size:1.3rem;flex:none}.btn:hover{border-color:var(--gold)}
 .btn:first-child{border-color:#b99b44;background:#231e13;color:#f9dd8a}
-.note{margin:20px 0 0;padding:13px 15px;border-left:3px solid var(--gold);background:#1b1913;color:#d0cbc0;font-size:.85rem}
+.note{margin:22px 0 0;padding:14px 16px;border-left:3px solid var(--gold);background:#1b1913;color:#d0cbc0;font-size:.83rem;line-height:1.5}
 a:focus-visible,button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 @media(min-width:720px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:320px){.grid{grid-template-columns:1fr}.btn{min-height:64px}}
+@media(max-width:320px){.grid{grid-template-columns:1fr}.btn{min-height:64px}}@media(prefers-reduced-motion:reduce){.btn{transition:none}}
 </style></head><body><main>
 <nav aria-label="Transport navigation"><a href="/transport">← Global Transport</a><a href="/transport/my">My Transport</a></nav>
 <p class="eyebrow">ON ANY POSTCODE · GLOBAL TRANSPORT</p>
