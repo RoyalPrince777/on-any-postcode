@@ -261,7 +261,13 @@ def department_map(evidence: object, *, protocol_proven_count: int = 0) -> dict[
             row = states.get(key)
             source = row if isinstance(row, dict) else {}
             state = str(source.get("state") or "UNKNOWN").upper()
-            if state not in company_evidence_ingestion.ACCEPTED_STATES:
+            # Never trust unnormalised or incomplete evidence as proof.
+            if (
+                state not in company_evidence_ingestion.ACCEPTED_STATES
+                or source.get("valid") is not True
+                or not source.get("observed_at")
+                or not source.get("source_reference")
+            ):
                 state = "UNKNOWN"
             sources.append({"domain": key, "state": state})
         blocking = any(
@@ -270,6 +276,15 @@ def department_map(evidence: object, *, protocol_proven_count: int = 0) -> dict[
         )
         sources_ready = bool(sources) and all(
             entry["state"] == "PROVEN" for entry in sources
+        )
+        priority_source = next(
+            (entry for entry in sources
+             if entry["state"] in {"FAIL", "CONFLICTING", "STALE", "UNAVAILABLE"}),
+            next((entry for entry in sources if entry["state"] == "UNKNOWN"), None),
+        )
+        next_proof = (
+            f"Verify {priority_source['domain'].replace('_', ' ')} evidence first."
+            if priority_source else action
         )
         nodes.append({
             "id": department_id,
@@ -281,13 +296,19 @@ def department_map(evidence: object, *, protocol_proven_count: int = 0) -> dict[
                 "SOURCE_PROVEN" if sources_ready else "UNKNOWN"
             ),
             "operational_state": "UNKNOWN",
-            "next_safe_action": action,
+            "next_safe_action": next_proof,
             "active_agents_claimed": False,
             "revenue_claimed": False,
             "execution_granted": False,
         })
+    priority = next(
+        (node for node in nodes if node["source_state"] == "BLOCKED"),
+        next((node for node in nodes if node["source_state"] == "UNKNOWN"), None),
+    )
     return {
         "name": "OAP Company Intelligence · Department Connections",
+        "priority_department": priority["name"] if priority else None,
+        "priority_next_proof": priority["next_safe_action"] if priority else None,
         "departments": tuple(nodes),
         "department_count": len(nodes),
         "protocol_proven_count": max(0, int(protocol_proven_count)),
