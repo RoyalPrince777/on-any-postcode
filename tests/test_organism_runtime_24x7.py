@@ -113,3 +113,57 @@ def test_free_mode_does_not_provision_a_paid_background_worker():
     assert "plan: free" in content
     assert "runtime: image" in content
     assert 'value: "smi_gateway:app"' in content
+
+
+@pytest.mark.parametrize(
+    ("active", "fresh", "expected_state", "expected_ready"),
+    [
+        (1, 0, "stale_active", False),
+        (0, 0, "not_running", False),
+        (1, 1, "fresh", True),
+    ],
+)
+def test_worker_readiness_is_heartbeat_based_not_active_flag(
+    monkeypatch, active, fresh, expected_state, expected_ready,
+):
+    from contextlib import contextmanager
+
+    class Rows:
+        def __init__(self, *, one=None, many=None):
+            self.one, self.many = one, many
+
+        def fetchone(self):
+            return self.one
+
+        def fetchall(self):
+            return self.many
+
+    class Connection:
+        def execute(self, sql, params=()):
+            if "information_schema.tables" in sql:
+                return Rows(many=[(name,) for name in organism_runtime.RUNTIME_TABLES])
+            if "SELECT checksum FROM oap_schema_migrations" in sql:
+                return Rows(one=(organism_runtime.RUNTIME_MIGRATION_CHECKSUM,))
+            if "GROUP BY state" in sql:
+                return Rows(many=[("SUCCEEDED", 2)])
+            if "COUNT(*) FILTER (WHERE status='ACTIVE')" in sql:
+                assert params == (90,)
+                return Rows(one=(active, fresh))
+            raise AssertionError("Unexpected SQL in status check")
+
+    @contextmanager
+    def connect(*, readonly=False):
+        assert readonly is True
+        yield Connection()
+
+    monkeypatch.setattr(
+        organism_runtime.postgres_db, "postgres_status",
+        lambda: {"initialized": True},
+    )
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    result = organism_runtime.runtime_status()
+    assert result["schema_ready"] is True
+    assert result["worker_state"] == expected_state
+    assert result["worker_fresh"] is expected_ready
+    assert result["ready"] is expected_ready
+    assert result["consequential_execution"] is False
