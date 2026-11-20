@@ -120,6 +120,8 @@ def test_koradaso_royal_compass_restores_useful_public_extras_without_private_da
     assert page.count('href="/my-world"') == 1
     assert '"/my-world"' not in page.split("const allowedRoutes=new Set(", 1)[1].split(");", 1)[0]
     assert "addJavascriptInterface" not in page
+    assert 'readList(sessionStorage,recentKey,12)' in page
+    assert 'renderList("recent-place-list",sessionStorage,recentKey,12)' in page
 
     launch = client.get("/world?source=oap-os")
     assert launch.status_code == 200
