@@ -16,7 +16,14 @@
 .profile{margin-top:22px;padding:17px;border:1px solid var(--line);border-radius:20px;background:var(--panel)}.profile summary{cursor:pointer;font-weight:900;color:var(--gold)}.profile form{margin-top:15px}.profile label{display:block;margin-top:10px;font-weight:700}.profile input{width:100%;margin-top:6px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#090906;color:var(--text);font:inherit}.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.btn{padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:#181610;color:var(--text);font:800 .84rem system-ui}.btn.primary{background:var(--gold);color:#17130a;border-color:#ffe08a}.btn.danger{background:var(--danger);color:#fff}
 .truth{margin-top:18px;color:var(--muted);font-size:.76rem;line-height:1.45}
 .bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(980px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#0b0a08f2;backdrop-filter:blur(14px)}.bottom a{padding:7px 2px;text-align:center;color:var(--muted);font-size:.68rem}.bottom b{display:block;color:var(--gold);font-size:1.05rem;margin-bottom:2px}
-.door.final{grid-column:1/-1}
+.door.final{grid-column:span 2}
+.transport-quick{margin-top:18px;padding:16px;border:1px solid var(--line);border-radius:19px;background:var(--panel)}
+.transport-quick h2{font-size:1rem;margin:0 0 12px;color:var(--gold)}
+.transport-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.transport-actions a{display:flex;flex-direction:column;gap:5px;min-height:88px;padding:14px;border:1px solid var(--line);border-radius:13px;background:#1b1912}
+.transport-actions a strong{font-size:.91rem}.transport-actions a span{font-size:.78rem;line-height:1.35;color:var(--muted)}
+.transport-actions a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+@media(max-width:320px){.transport-actions{grid-template-columns:1fr}}
 @media(min-width:760px){.doors{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
 </head>
@@ -44,12 +51,6 @@
 <a class="door" href="/oap-map">
 <span class="icon">🌍</span><div><strong>World</strong><span>Maps, Eats, Rides, travel and movement.</span></div>
 </a>
-<a class="door" href="/transport/my">
-<span class="icon">🚗</span><div><strong>Transport</strong><span>Book as a customer, view journeys, delivery and payments.</span></div>
-</a>
-<a class="door" href="/my-world/transport-control">
-<span class="icon">⚙️</span><div><strong>Transport Control</strong><span>Founder-only SMI, operations, safety and evidence gates.</span></div>
-</a>
 <a class="door" href="/sell">
 <span class="icon">🏪</span><div><strong>Business</strong><span>Shops, products, orders and merchant activity.</span></div>
 </a>
@@ -69,6 +70,14 @@
 <span class="icon">👑</span><div><strong>Final</strong><span>Founder judgement, approvals and final authority.</span></div>
 </a>
 </nav>
+
+<section class="transport-quick" aria-label="Transport customer and Founder controls">
+<h2>🚗 Global Transport</h2>
+<div class="transport-actions">
+<a href="/transport/my"><strong>👤 Customer Transport</strong><span>Book rides, deliveries and view your journeys.</span></a>
+<a href="/my-world/transport-control"><strong>👑 Founder Control</strong><span>SMI, operations, evidence and Guardian gates.</span></a>
+</div>
+</section>
 
 <details class="profile">
 <summary>My Card & private account</summary>
