@@ -118,7 +118,7 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     # via the existing member sign-in gate, not back around a public UI loop.
     assert page.count("next=/linkup") + page.count("next=%2Flinkup") == 1
     assert 'href="/linkup?intent=message"' in page
-    assert page.count('href="/linkup?intent=message"') == 3
+    assert page.count('href="/linkup?intent=message"') == 4
     assert page.count('aria-label="Link Up public bottom navigation"') == 1
     assert "Nearby People" in page
     assert "Spotlight" in page
@@ -455,7 +455,7 @@ def test_combined_guest_menu_keeps_one_route_per_core_destination(anonymous_clie
     assert spot_html.count('href="/store"') == 1
     assert link_html.count('href="/linkup?intent=message"') == 1
     assert link_html.count('href="/the-spot"') == 1
-    assert public_html.count('href="/linkup?intent=message"') == 3
+    assert public_html.count('href="/linkup?intent=message"') == 4
     assert public_html.count('aria-label="Link Up public bottom navigation"') == 1
     assert 'class="linkup-topbar linkup-guest-topbar"' in public_html
     for path in ("/store", "/oap-map", "/movement"):
@@ -468,7 +468,7 @@ def test_public_linkup_restored_royal_reference_navigation(anonymous_client):
     assert 'data-oap-public-filter' in page
     assert 'aria-label="Link Up category shortcuts"' in page
     assert 'aria-label="Desktop Link Up panels"' in page
-    assert page.count('href="/linkup?intent=message"') == 3
+    assert page.count('href="/linkup?intent=message"') == 4
     assert page.count('class="linkup-card-summary"') == 1
     assert 'aria-label="Private Link Up messenger"' not in page
     assert 'data-oap-call-control' not in page
@@ -487,7 +487,7 @@ def test_public_royal_mobile_reference_has_search_before_create_and_compact_grid
 
 def test_public_message_buttons_share_protected_route(anonymous_client):
     html = anonymous_client.get("/linkup").get_data(as_text=True)
-    assert html.count('href="/linkup?intent=message"') == 3
+    assert html.count('href="/linkup?intent=message"') == 4
     assert 'placeholder="Search public sections…"' in html
     private = anonymous_client.get("/linkup?intent=message")
     assert private.status_code == 302
