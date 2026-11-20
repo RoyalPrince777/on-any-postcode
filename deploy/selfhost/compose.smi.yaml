@@ -1,0 +1,68 @@
+# Opt-in addition to compose.yaml. Does not provision a server or change DNS.
+services:
+  edge:
+    volumes:
+      - ./Caddyfile.smi:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      OAP_SMI_DOMAIN: ${OAP_SMI_DOMAIN:?Set a verified private SMI hostname}
+    depends_on:
+      - world
+      - smi
+  smi:
+    image: ${OAP_RUNTIME_IMAGE:?Set the verified runtime image digest}
+    init: true
+    restart: unless-stopped
+    env_file:
+      - ./.env.smi
+    expose:
+      - "5000"
+    environment:
+      OAP_RUNTIME_TARGET: smi_gateway:app
+      PORT: "5000"
+      OAP_AUTH_REQUIRED: "true"
+      OAP_SURFACE_ROLE: private-gateway
+      OAP_SMI_LOCAL_DISPATCH: "true"
+      OAP_PUBLIC_ORIGIN: https://${OAP_SMI_DOMAIN:?Set OAP_SMI_DOMAIN}
+      OAP_ENV_REVISION: ${OAP_ENV_REVISION:?Set the verified source commit}
+      OAP_INFERENCE_LOCAL_ENABLED: "1"
+      OAP_INFERENCE_LOCAL_URL: http://ollama:11434/api/chat
+      OAP_INFERENCE_LOCAL_MODEL: ${OAP_SMI_MODEL:?Set the reviewed installed model name}
+      OAP_INFERENCE_COMPATIBILITY_FALLBACK: "0"
+      OAP_HOME_NODE_BRIDGE_ENABLED: "0"
+      OAP_FOUNDER_FINAL_100_ON_HEALTH: "0"
+      OAP_A6_READINESS_ON_BOOT: "0"
+      OAP_A6_READINESS_ON_HEALTH: "0"
+      OAP_A6_ROUTE_MATRIX_ON_BOOT: "0"
+      OAP_A6_ROUTE_MATRIX_ON_HEALTH: "0"
+      OAP_RESTORE_CONFIGURED_AUTHORITY_ON_START: "false"
+    command: [gunicorn, "smi_gateway:app", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "4", "--timeout", "180"]
+    depends_on:
+      - ollama
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=5).close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  organism-worker:
+    image: ${OAP_RUNTIME_IMAGE:?Set the verified runtime image digest}
+    init: true
+    restart: unless-stopped
+    env_file:
+      - ./.env.worker
+    environment:
+      OAP_WORKER_ID: ${OAP_VPS_WORKER_ID:?Set one stable unique VPS worker ID}
+      OAP_ENV_REVISION: ${OAP_ENV_REVISION:?Set the verified source commit}
+    command: [python, -m, mission_control.organism_worker]
+    stop_grace_period: 45s
+  ollama:
+    image: ${OAP_OLLAMA_IMAGE:?Set the reviewed Ollama image digest}
+    init: true
+    restart: unless-stopped
+    expose:
+      - "11434"
+    volumes:
+      - ollama_data:/root/.ollama
+volumes:
+  ollama_data:
