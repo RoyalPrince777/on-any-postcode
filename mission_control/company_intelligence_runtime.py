@@ -221,6 +221,84 @@ def _commerce_items(identity_id: str) -> tuple[dict[str, str], ...]:
     )
 
 
+
+# Skilltree-style visibility, not Skilltree software: eight first-party business
+# perspectives over the *existing* Company Intelligence evidence snapshot.
+# Linked departments indicate useful context, never runnable dependencies.
+_DEPARTMENT_LINKS: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...], str], ...] = (
+    ("sales", "Sales", ("market_commerce", "pricing_margin"),
+     ("deals", "marketing"), "Verify owner-scoped sales and conversion receipts."),
+    ("deals", "Deals", (), ("sales", "customer"),
+     "Verify first-party deal pipeline, ownership and signed outcomes."),
+    ("marketing", "Marketing", ("music_catalogue", "artist_rights"),
+     ("sales", "intelligence"), "Verify campaigns, rights and delivery receipts."),
+    ("customer", "Customer", (), ("deals", "operations"),
+     "Verify owner-scoped customer interaction and support receipts."),
+    ("operations", "Operations", ("clothing_supplier", "print_on_demand_supplier"),
+     ("customer", "back_office"), "Verify order fulfilment and recovery outcomes."),
+    ("back_office", "Back Office", ("company_registry", "pricing_margin"),
+     ("operations", "intelligence"), "Verify legal, cost and finance boundaries."),
+    ("intelligence", "Intelligence", (), ("knowledge_base", "operations"),
+     "Verify attributable agent work and current SMI runtime receipts."),
+    ("knowledge_base", "Knowledge Base", (), ("intelligence", "marketing"),
+     "Verify owner-scoped knowledge retrieval, sources and freshness."),
+)
+
+
+def department_map(evidence: object, *, protocol_proven_count: int = 0) -> dict[str, Any]:
+    """Read-only cross-department lens; never turn source presence into live work.
+
+    No CRM, marketing campaigns, sales figures, autonomous agent outputs or
+    inference are invented. Source gaps are carried over from canonical
+    Company Intelligence and remain distinct from operational proof.
+    """
+    states = evidence.get("states") if isinstance(evidence, dict) else None
+    states = states if isinstance(states, dict) else {}
+    nodes: list[dict[str, Any]] = []
+    for department_id, label, keys, connections, action in _DEPARTMENT_LINKS:
+        sources = []
+        for key in keys:
+            row = states.get(key)
+            source = row if isinstance(row, dict) else {}
+            state = str(source.get("state") or "UNKNOWN").upper()
+            if state not in company_evidence_ingestion.ACCEPTED_STATES:
+                state = "UNKNOWN"
+            sources.append({"domain": key, "state": state})
+        blocking = any(
+            entry["state"] in {"FAIL", "CONFLICTING", "STALE", "UNAVAILABLE"}
+            for entry in sources
+        )
+        sources_ready = bool(sources) and all(
+            entry["state"] == "PROVEN" for entry in sources
+        )
+        nodes.append({
+            "id": department_id,
+            "name": label,
+            "linked_departments": connections,
+            "source_evidence": tuple(sources),
+            "source_state": (
+                "BLOCKED" if blocking else
+                "SOURCE_PROVEN" if sources_ready else "UNKNOWN"
+            ),
+            "operational_state": "UNKNOWN",
+            "next_safe_action": action,
+            "active_agents_claimed": False,
+            "revenue_claimed": False,
+            "execution_granted": False,
+        })
+    return {
+        "name": "OAP Company Intelligence · Department Connections",
+        "departments": tuple(nodes),
+        "department_count": len(nodes),
+        "protocol_proven_count": max(0, int(protocol_proven_count)),
+        "operational_green": False,
+        "founder_final_required": True,
+        "read_only": True,
+        "no_new_agent_or_brain": True,
+        "no_independent_worker_claim": True,
+        "no_external_provider_dependency": True,
+    }
+
 def projection(identity_id: str) -> dict[str, Any]:
     items: list[dict[str, str]] = [_company_registry_item()]
     items.extend(_music_items(identity_id))
@@ -247,6 +325,9 @@ def projection(identity_id: str) -> dict[str, Any]:
         "evidence": snapshot,
         "evidence_items": tuple(items),
         "protocol_registry": protocol_registry,
+        "department_map": department_map(
+            snapshot, protocol_proven_count=protocol_registry["proven_count"],
+        ),
         "protocol_check_count": protocol_registry["protocol_check_count"],
         "protocol_proven_count": protocol_registry["proven_count"],
         "protocol_green_gate_passed": protocol_registry["green_gate_passed"],
