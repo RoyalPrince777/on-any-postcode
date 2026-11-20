@@ -518,8 +518,8 @@ def test_iss_position_is_dated_and_not_mislabelled_london_overflight():
 def test_celestrak_orbit_elements_are_source_dated_not_live_positions():
     stamp = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     sample = (
-        "NORAD_CAT_ID,EPOCH,INCLINATION,MEAN_MOTION,ECCENTRICITY\\n"
-        f"25544,{stamp},51.6,15.5,0.00015\\n"
+        "NORAD_CAT_ID,EPOCH,INCLINATION,MEAN_MOTION,ECCENTRICITY\n"
+        f"25544,{stamp},51.6,15.5,0.00015\n"
     ).encode("utf-8")
     result = third_eye_intelligence.parse_celestrak_iss_csv(sample)
     assert result["provider"] == "CelesTrak"
@@ -535,12 +535,12 @@ def test_nasa_london_imagery_wms_request_fixed_bbox_and_past_date(monkeypatch):
 
     def get_fixed(url, accept, limit, timeout=6):
         calls.append((url, accept, limit))
-        return b"\\xff\\xd8\\xffNASA_JPEG_PAYLOAD", "image/jpeg"
+        return b"\xff\xd8\xffNASA_JPEG_PAYLOAD", "image/jpeg"
 
     monkeypatch.setattr(third_eye_intelligence, "_fixed_download", get_fixed)
     result = third_eye_intelligence.nasa_london_imagery("2026-11-18")
     assert result is not None
-    assert result.startswith(b"\\xff\\xd8\\xff")
+    assert result.startswith(b"\xff\xd8\xff")
     assert len(calls) == 1
     assert calls[0][0].startswith(third_eye_intelligence.NASA_GIBS_WMS + "?")
     assert "MODIS_Terra_CorrectedReflectance_TrueColor" in calls[0][0]
