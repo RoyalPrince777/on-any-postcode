@@ -134,3 +134,9 @@
 .smi-third-eye-camera-frame video{display:block;width:100%;max-height:46dvh;object-fit:contain;border-radius:8px;background:#080808}
 .smi-third-eye-camera-frame img[hidden],.smi-third-eye-camera-frame video[hidden],.smi-third-eye-camera-frame button[hidden]{display:none!important}
 #smi-third-eye-panel .smi-third-eye-play{display:flex;align-items:center;justify-content:center;margin:9px 0 2px;min-height:44px;background:#29261a;color:#f7da93;border:1px solid #a88d53;border-radius:9px}
+
+/* All-London catalogue is paginated; it never creates hundreds of DOM images. */
+.smi-third-eye-pages{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0}
+.smi-third-eye-pages span{font-size:.76rem;color:#d5c69c}
+#smi-third-eye-panel .smi-third-eye-pages button{min-height:44px;color:#f4e2a4;background:#222b20;border:1px solid #806a3d}
+#smi-third-eye-london-radius{max-width:320px}
