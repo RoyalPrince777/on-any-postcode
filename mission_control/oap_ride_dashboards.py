@@ -33,14 +33,18 @@ MY = (
     ("My Journeys", "/movement/workspace#bookings-title"),
     ("My Drive", "/movement/workspace#work-title"),
     ("Payments", "/pay"),
-    ("Guardian", "/transport/ride/runtime"),
+    ("Guardian", "/transport/ride/guardian/status"),
+    ("Book Delivery", "/movement/workspace?service=delivery#book-title"),
+    ("Track Food Order", "/eats"),
+    ("Travel & Tickets", "/travel"),
+    ("Public Transport", "/transport"),
 )
 
 PAGE = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>
 body{margin:0;background:#080808;color:#fff;font-family:system-ui}main{max-width:720px;margin:auto;padding:18px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.btn{padding:20px 12px;border:1px solid #333;border-radius:18px;background:#121212;color:#fff;font-weight:800;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;min-height:72px}
 h1{margin:0 0 16px}.back{display:block;margin-bottom:12px;color:#aaa;text-decoration:none}
-</style></head><body><main><a class="back" href="/transport">← Transport</a><h1>{{ title }}</h1><div class="grid">{% for label, href in buttons %}<a class="btn" href="{{ href }}">{{ label }}</a>{% endfor %}</div></main></body></html>"""
+</style></head><body><main><a class="back" href="/transport">← Transport</a><h1>{{ title }}</h1>{% if title == "My Transport" %}<p>Use OAP as a customer. Personal bookings and account actions require sign-in; live dispatch and payment remain evidence-gated.</p>{% endif %}<div class="grid">{% for label, href in buttons %}<a class="btn" href="{{ href }}">{{ label }}</a>{% endfor %}</div></main></body></html>"""
 
 def _page(title, buttons):
     response = make_response(render_template_string(PAGE, title=title, buttons=buttons))
