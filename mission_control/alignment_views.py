@@ -71,6 +71,23 @@ def smi_third_eye_london_frame(camera_id: str):
     return response
 
 
+@bp.get("/smi/third-eye/london/clip/<camera_id>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_london_clip(camera_id: str):
+    """Return one bounded public TfL rolling clip, not a continuous live stream."""
+    result = third_eye_intelligence.london_jamcam_clip(camera_id)
+    if result is None:
+        return _no_store(make_response(jsonify(error={"code": "clip_unavailable"}), 503))
+    clip, last_modified = result
+    response = make_response(clip)
+    response.headers["Content-Type"] = "video/mp4"
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    if last_modified:
+        response.headers["Last-Modified"] = last_modified
+    return response
+
+
 @bp.get("/war-room/deep-dive")
 @bp.get("/war-room/actions/deep-dive")
 @bp.get("/smi/deep-dive")
