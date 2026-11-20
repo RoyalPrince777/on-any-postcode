@@ -368,7 +368,7 @@ _INSIDE_DOORS = {
         "Logistics", "Cargo, deliveries and fleet.",
         (
             ("Cargo", "Sign-in required · distribution status", "/distribution"),
-            ("Deliver", "Sign-in required · Movement workspace", "/movement/workspace#book-title"),
+            ("Deliver", "Sign-in required · Delivery booking", "/movement/workspace?service=delivery#book-title"),
             ("Fleet", "Driver workspace", "/transport/ride/driver"),
         ),
     ),
