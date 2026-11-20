@@ -528,7 +528,7 @@ a:hover,a:focus-visible{border-color:var(--gold)}a:focus-visible{outline:3px sol
 <p class="lead">Private oversight. Customer and Driver access stay separate.</p>
 <section class="mission" aria-label="SMI Mission Keeper">
 <div><strong>🧠 SMI → ALL IN A.I.</strong><span data-mission-status role="status" aria-live="polite">Latest Founder mission · checking evidence</span></div>
-<a href="/all-in-ai/app">Open Mission Keeper</a>
+<a href="/mission/all-in-ai/app">Open Mission Keeper</a>
 </section>
 <section class="summary" aria-label="Live proof position">
 <div class="panel"><span>Software capabilities</span><strong>21 registered</strong></div>
@@ -556,7 +556,7 @@ a:hover,a:focus-visible{border-color:var(--gold)}a:focus-visible{outline:3px sol
   const label = document.querySelector("[data-mission-status]");
   if (!label) return;
   // One founder-authenticated, read-only request. No polling, POST, approvals or auto-execution.
-  fetch("/all-in-ai/mission/latest", {
+  fetch("/mission/all-in-ai/mission/latest", {
     method: "GET", credentials: "same-origin", cache: "no-store",
     headers: {"Accept": "application/json"}
   }).then(response => {
