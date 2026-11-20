@@ -798,64 +798,67 @@ def transport_execution_evidence_record():
 _RIDE_PAGE = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#090909">
-<title>OAP Ride · Global Transport</title>
+<meta name="theme-color" content="#090909"><title>OAP Ride · ON ANY POSTCODE</title>
 <style>
-:root{color-scheme:dark;--bg:#090909;--panel:#181612;--edge:#3b3325;--gold:#efcf73;--muted:#bdb7aa}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font:16px/1.45 system-ui,-apple-system,sans-serif}
-main{max-width:820px;margin:auto;padding:calc(17px + env(safe-area-inset-top)) 16px calc(38px + env(safe-area-inset-bottom))}
+:root{color-scheme:dark;--gold:#efcf73;--bg:#090909;--panel:#181612;--edge:#403729;--muted:#bdb5a8}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font:16px/1.4 system-ui,-apple-system,sans-serif}
+main{max-width:760px;margin:auto;padding:calc(12px + env(safe-area-inset-top)) 14px calc(35px + env(safe-area-inset-bottom))}
 a{color:inherit;text-decoration:none}
-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--edge);padding-bottom:13px}
-header a{color:var(--gold);font-weight:700;min-height:44px;display:inline-flex;align-items:center}
-h1{font-size:clamp(2rem,8vw,3.2rem);line-height:1.1;letter-spacing:-.045em;margin:22px 0 15px}
-.entry{background:var(--panel);border:1px solid var(--edge);border-radius:18px;padding:16px;display:grid;gap:11px}
-.entry label{font-weight:750;font-size:.89rem;display:block}
-.entry input{display:block;width:100%;min-width:0;margin-top:6px;padding:13px 14px;min-height:49px;background:#090909;color:#fff;border:1px solid #63543a;border-radius:11px;font:inherit}
-.entry input::placeholder{color:#9d978a}
-.entry button{min-height:49px;border:0;border-radius:12px;background:var(--gold);color:#1a1308;font:850 1rem system-ui;cursor:pointer}
-.entry input:focus-visible,.entry button:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
-.quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:14px}
-.quick a{display:grid;place-items:center;min-height:53px;border:1px solid var(--edge);border-radius:12px;background:var(--panel);font-weight:750;font-size:.9rem;text-align:center}
-.quick a:hover,.action:hover{border-color:var(--gold)}
-h2{font-size:1rem;margin:25px 0 12px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-.action{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px;border:1px solid var(--edge);border-radius:15px;background:var(--panel);font-weight:750}
-.action .arrow{color:var(--gold);font-size:1.2rem}
-.note{font-size:.8rem;color:var(--muted);margin:17px 0 0}
-@media(max-width:340px){.quick{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px}
+.top a{color:var(--gold);font-weight:750;display:inline-flex;align-items:center;min-height:44px}
+.top strong{font-size:.88rem;letter-spacing:.04em;color:var(--gold)}
+.map{height:clamp(235px,36vh,335px);position:relative;overflow:hidden;border:1px solid var(--edge);border-radius:17px;background:linear-gradient(150deg,#222824,#101514);margin:10px 0 13px}
+.map iframe{width:100%;height:100%;border:0;display:block}
+.map a{position:absolute;right:9px;bottom:10px;z-index:2;background:#171612f0;border:1px solid #a5874b;border-radius:11px;padding:9px 12px;color:var(--gold);font-weight:750;font-size:.83rem}
+.search{display:grid;gap:10px;background:var(--panel);border:1px solid var(--edge);padding:14px;border-radius:17px}
+.search h1{font-size:1.25rem;margin:0;letter-spacing:-.02em}
+.search label{display:block;font-size:.78rem;font-weight:800;color:#ded5c6}
+.search input{display:block;width:100%;min-height:49px;margin-top:5px;padding:12px 14px;border:1px solid #7e6844;border-radius:11px;background:#080807;color:#fff;font:inherit}
+.search input::placeholder{color:#a89f91}
+.search button{width:100%;min-height:49px;margin-top:3px;border:0;border-radius:11px;background:var(--gold);color:#21180a;font:850 .96rem system-ui;cursor:pointer}
+.search input:focus-visible,.search button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.price{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid var(--edge);border-radius:13px;background:#161411}
+.price span{display:block;color:var(--muted);font-size:.79rem}.price strong{font-size:.98rem;color:var(--gold)}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.tabs a{min-height:49px;display:grid;place-items:center;text-align:center;padding:9px;border:1px solid var(--edge);border-radius:12px;background:var(--panel);font-size:.88rem;font-weight:750}
+.tabs a:hover{border-color:var(--gold)}
+.more{margin-top:12px;border-top:1px solid var(--edge);padding-top:8px}
+.more summary{min-height:44px;display:flex;align-items:center;color:var(--muted);font-weight:750;font-size:.84rem;cursor:pointer}
+.more nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:5px}
+.more a{display:flex;align-items:center;min-height:46px;padding:11px;border:1px solid var(--edge);border-radius:10px;background:var(--panel);font-size:.86rem}
+@media(max-width:340px){.tabs{grid-template-columns:1fr}.map{height:235px}}
 </style></head><body><main>
-<header><a href="/transport">← Global Transport</a><span style="color:var(--gold);font-size:.8rem;font-weight:800">OAP RIDE</span></header>
+<header class="top"><a href="/transport">← Transport</a><strong>OAP RIDE</strong></header>
+<section class="map" aria-label="On Any Postcode map preview">
+<iframe title="OAP Map Intelligence · Mitcham preview" src="/oap-map?location=Mitcham&amp;embed=ride" loading="eager"></iframe>
+<a href="/oap-map" aria-label="Open full OAP map">Full map ↗</a>
+</section>
+<form class="search" id="oap-ride-draft" action="/movement/workspace#book-title" method="get">
 <h1>Where to?</h1>
-<form class="entry" id="oap-ride-draft" action="/movement/workspace#book-title" method="get">
-<label for="ride-pickup">Pickup<input id="ride-pickup" type="text" placeholder="Postcode or place" maxlength="120" autocomplete="street-address" required></label>
-<label for="ride-destination">Destination<input id="ride-destination" type="text" placeholder="Where are you going?" maxlength="120" autocomplete="street-address" required></label>
-<button type="submit">Continue to journey request</button>
+<label for="ride-pickup">Pickup<input id="ride-pickup" type="search" placeholder="Postcode or place" maxlength="120" autocomplete="street-address" required></label>
+<label for="ride-destination">Destination<input id="ride-destination" type="search" placeholder="Search destination" maxlength="120" autocomplete="street-address" required></label>
+<button type="submit">Continue to booking</button>
 </form>
-<nav class="quick" aria-label="OAP Rides navigation">
+<div class="price" aria-label="Ride fare"><div><span>Estimated fare</span><strong>Price unavailable</strong></div><span>Verified quote required</span></div>
+<nav class="tabs" aria-label="OAP Rides navigation">
 <a href="/transport/ride/rider">Rider</a><a href="/transport/ride/driver">Driver</a><a href="/transport/my">My Transport</a>
 </nav>
-<h2>Journey tools</h2>
-<section class="grid" aria-label="Ride actions">
-<a class="action" href="/transport/ride/current">Current journey<span class="arrow" aria-hidden="true">›</span></a>
-<a class="action" href="/movement/workspace#bookings-title">My journeys<span class="arrow" aria-hidden="true">›</span></a>
-<a class="action" href="/oap-map">Map<span class="arrow" aria-hidden="true">›</span></a>
-<a class="action" href="/pay/bank">SIKA<span class="arrow" aria-hidden="true">›</span></a>
-<a class="action" href="/transport/ride/guardian/status">Guardian<span class="arrow" aria-hidden="true">›</span></a>
-<a class="action" href="/eats">Eats<span class="arrow" aria-hidden="true">›</span></a>
-</section>
-<p class="note">Private journey operations require sign-in and verified providers.</p>
+<details class="more"><summary>More journey tools</summary><nav aria-label="Additional Ride actions">
+<a href="/transport/ride/current">Current journey</a>
+<a href="/movement/workspace#bookings-title">My journeys</a>
+<a href="/transport/ride/guardian/status">Guardian</a>
+<a href="/pay/bank">SIKA</a>
+<a href="/eats">Eats</a>
+</nav></details>
 </main>
 <script>
-document.getElementById("oap-ride-draft").addEventListener("submit",function(event){
+document.getElementById("oap-ride-draft").addEventListener("submit",function(){
   const pickup=document.getElementById("ride-pickup").value.trim();
   const destination=document.getElementById("ride-destination").value.trim();
-  if (!pickup || !destination) return;
-  try {
-    sessionStorage.setItem("oap_transport_ride_draft",JSON.stringify({
-      pickup:pickup.slice(0,120),destination:destination.slice(0,120),
-      created:Date.now()
-    }));
-  } catch (_) { /* Existing Movement form remains available. */ }
+  if(!pickup||!destination)return;
+  try{sessionStorage.setItem("oap_transport_ride_draft",JSON.stringify({
+    pickup:pickup.slice(0,120),destination:destination.slice(0,120),created:Date.now()
+  }));}catch(_){}
 });
 </script></body></html>"""
 
