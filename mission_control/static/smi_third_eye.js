@@ -159,6 +159,9 @@
       if (id === "earth") {
         description.textContent = "Use the existing On Any Place map. Third Eye does not yet have a verified 3D globe.";
         actionLink("Open existing OAP map", "/on-any-place");
+        const refresh = actionButton("Check global earthquakes", checkEarth);
+        refresh.id = "smi-third-eye-refresh";
+        refresh.disabled = !verifiedStatus;
       } else if (id === "ground") {
         description.textContent = "The phone camera is handled by SMI Face Up, with explicit device permission. Public camera feeds are not connected.";
         actionButton("Open existing Face Up", () => {
@@ -175,13 +178,28 @@
       } else if (id === "space") {
         description.textContent = "No orbital source or verified satellite observation is connected to Third Eye.";
       } else if (id === "environment") {
-        description.textContent = "Check recent public earthquake observations from USGS on demand. The feed includes source timestamps and stale-data checks; it is not video.";
-        const refresh = actionButton("Check Earth observations", checkEarth);
+        description.textContent = "Request real public Earth observations. Earthquakes use USGS; weather reuses OAP Ecosystem Intelligence. Neither is a camera or a live satellite image.";
+        const refresh = actionButton("Check USGS earthquakes", checkEarth);
         refresh.id = "smi-third-eye-refresh";
         refresh.disabled = !verifiedStatus;
         if (!verifiedStatus) setStatus("Authorised Third Eye status not verified. Observations unavailable.");
         else if (lastEvidence) setStatus(lastEvidence);
         else setStatus("USGS source not yet checked.");
+        if (config.thirdEyeWeatherUrl) {
+          const placeInput = document.createElement("input");
+          placeInput.type = "text";
+          placeInput.id = "smi-third-eye-place";
+          placeInput.className = "smi-third-eye-place";
+          placeInput.value = "London";
+          placeInput.maxLength = 70;
+          placeInput.autocomplete = "off";
+          placeInput.placeholder = "City or postcode";
+          placeInput.setAttribute("aria-label", "Choose a place for live weather");
+          const weather = actionButton("Check actual weather", () => checkWeather(placeInput.value));
+          weather.id = "smi-third-eye-weather";
+          weather.disabled = !verifiedStatus;
+          actions.insertBefore(placeInput, weather);
+        }
       } else if (id === "analysis") {
         description.textContent = "Truth Mode identifies sources, age of observations and what remains unverified. Automated scene analysis is not connected.";
         setStatus(lastEvidence || "No verified Earth observation checked in this session.");
@@ -224,7 +242,7 @@
     }
 
     async function checkEarth() {
-      if (!verifiedStatus || currentView !== "environment") return;
+      if (!verifiedStatus || !["earth", "environment"].includes(currentView)) return;
       stopRequest();
       events.replaceChildren();
       const refresh = drawer.querySelector("#smi-third-eye-refresh");
@@ -235,7 +253,7 @@
       requestKind = "earth";
       try {
         const data = await readJson(config.thirdEyeEarthquakesUrl, controller.signal);
-        if (drawer.hidden || activeRequest !== controller || currentView !== "environment") return;
+        if (drawer.hidden || activeRequest !== controller || !["earth", "environment"].includes(currentView)) return;
         if (data?.feed_verified !== true || !["fresh", "stale"].includes(data?.freshness)) {
           setStatus("USGS feed unavailable · no live claim.");
           lastEvidence = null;
@@ -267,6 +285,63 @@
           activeRequest = null;
           requestKind = null;
           if (refresh) refresh.disabled = false;
+        }
+      }
+    }
+
+
+    async function checkWeather(rawPlace) {
+      if (!verifiedStatus || currentView !== "environment" || !config.thirdEyeWeatherUrl) return;
+      const place = label(rawPlace, "").slice(0, 70);
+      if (place.length < 2) {
+        setStatus("Enter a valid city or postcode to check weather.");
+        return;
+      }
+      stopRequest();
+      events.replaceChildren();
+      const button = drawer.querySelector("#smi-third-eye-weather");
+      if (button) button.disabled = true;
+      setStatus("Checking OAP Ecosystem Intelligence weather for " + place + "…");
+      const controller = new AbortController();
+      activeRequest = controller;
+      requestKind = "weather";
+      try {
+        const url = new URL(config.thirdEyeWeatherUrl, window.location.origin);
+        if (url.origin !== window.location.origin) throw new Error("cross_origin_blocked");
+        url.searchParams.set("location", place);
+        const data = await readJson(url.toString(), controller.signal);
+        if (drawer.hidden || currentView !== "environment" || activeRequest !== controller) return;
+        const signal = Array.isArray(data?.analysis?.signals)
+          ? data.analysis.signals.find(item => item?.source === "oap_weather_live_source" && item?.domain === "nature")
+          : null;
+        const observation = signal?.observation;
+        if (data?.weather_environment_proven !== true || !observation?.observed_at) {
+          lastEvidence = null;
+          setStatus("Weather source not verified. No live claim.");
+          return;
+        }
+        const freshness = label(observation.freshness_state, "unknown");
+        const live = observation.live_claim_allowed === true && freshness === "fresh";
+        const source = label(observation.source, "OAP weather provider");
+        const at = label(observation.observed_at);
+        const placeName = label(data.location_query, place);
+        lastEvidence = (live ? "Observed" : "Not currently live") +
+          " · " + source.slice(0, 70) + " · " + placeName.slice(0, 70) +
+          " · " + freshness + " · observed " + at;
+        setStatus(lastEvidence);
+        const li = document.createElement("li");
+        li.textContent = label(signal.summary, "Weather details unavailable").slice(0, 220);
+        events.appendChild(li);
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          lastEvidence = null;
+          setStatus("Weather provider unavailable. No live claim.");
+        }
+      } finally {
+        if (activeRequest === controller) {
+          activeRequest = null;
+          requestKind = null;
+          if (button) button.disabled = false;
         }
       }
     }
