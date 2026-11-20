@@ -968,3 +968,26 @@ Browser tests exercise the real chat DOM with intercepted API responses. They pr
 client wiring, safe rendering and failure handling, not a live GitHub write or worker.
 Missing production access and device evidence must stay visible, never replaced by
 cosmetic Green, percentages or another approval stage.
+
+## 28. Exact Founder dashboard reference — desktop composition, quiet mobile
+
+The uploaded `27803.jpg` is preserved byte-for-byte as
+`static/oap/smi_founder_command_reference.jpg`. The existing private
+`smi_visual_home.html` renders the character with CSS clipping and the map/globe
+with SVG viewports, preserving the supplied identity instead of generating a new
+face. These are decorative artwork regions; the reference's baked-in counts and
+Green statuses are excluded from the rendered telemetry panels.
+
+Desktop restores the left OAP World rail, central SMI, flanking intelligence
+panels, right status/universe panels, five console controls and one bottom dock.
+Actual controls are native HTML, not an image map. Status stays Unknown/Not Checked
+until requested. At 760px and below, supporting navigation and status use drawers;
+the figure, Ask SMI and five console controls remain accessible. All prior deeper
+SMI routes remain under SMI controls. Chat still loads only on explicit interaction
+and unloads on close; the background is inert while the dialog is open.
+
+The existing Chromium workflow checks 1536, 1440, 1280, 1024, 760, 393 and 320px
+viewports, overflow, desktop ordering, mobile drawers and chat open/close, and saves
+review screenshots. This visual update changes no authentication, execution,
+worker, payment, deployment or release authority. Pixel-perfect visual equivalence
+and physical Redmi A5 operation cannot be inferred solely from source tests.

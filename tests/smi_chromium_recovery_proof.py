@@ -217,6 +217,66 @@ def prove_governed_actions(context, base_url):
     print("SMI_EXACT_ACTION_BROWSER_WIRING=PASS (intercepted APIs; not live execution)")
 
 
+def prove_reference_dashboard(context, base_url):
+    """Check the real private dashboard across desktop, tablet and phone widths."""
+    output = Path(os.environ.get("OAP_SMI_DASHBOARD_ARTIFACT_DIR", "/tmp/oap-smi-dashboard"))
+    output.mkdir(parents=True, exist_ok=True)
+    for width, height in ((1536, 1155), (1440, 900), (1280, 800), (1024, 768), (760, 852), (393, 852), (320, 740)):
+        page = context.new_page()
+        page.set_viewport_size({"width": width, "height": height})
+        requested = []
+        page.on("request", lambda request, sink=requested: sink.append(request.url))
+        page.goto(base_url + "/mission/smi", wait_until="networkidle")
+        expect(page.locator(".character-art img")).to_be_visible()
+        assert page.locator(".character-art img").evaluate("img => img.complete && img.naturalWidth === 1536")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), width
+        assert not any("/mission/ollama" in url or "/mission/smi/status" in url for url in requested)
+        expect(page.locator(".smi-support-nav a")).to_have_count(5)
+        assert page.locator(".status .unknown").count() == 5
+        assert "All Systems Operational" not in page.locator("body").inner_text()
+        assert "24,792" not in page.locator("body").inner_text()
+        if width >= 1200:
+            left = page.locator(".left").bounding_box()
+            centre = page.locator(".centre").bounding_box()
+            right = page.locator(".right").bounding_box()
+            assert left["x"] < centre["x"] < right["x"]
+            footer = page.locator(".footer-dock").bounding_box()
+            assert footer["y"] + footer["height"] <= height + 1, (width, footer)
+            assert page.locator(".smi-route-drawer").evaluate("node => node.open")
+            expect(page.locator(".global-panel")).to_be_visible()
+            talk = page.locator(".smi-talk-dock")
+        elif width <= 760:
+            assert not page.locator(".smi-route-drawer").evaluate("node => node.open")
+            assert not page.locator(".right-details").evaluate("node => node.open")
+            expect(page.locator(".global-panel")).not_to_be_visible()
+            talk = page.locator(".smi-talk-primary")
+            expect(talk).to_be_visible()
+            page.locator(".smi-route-drawer > summary").click()
+            expect(page.locator(".navlinks a")).to_have_count(15)
+            expect(page.locator(".navlinks a").first).to_be_visible()
+            page.locator(".smi-route-drawer > summary").click()
+            page.locator(".right-details > summary").click()
+            expect(page.get_by_role("heading", name="SYSTEM STATUS", exact=True)).to_be_visible()
+            page.locator(".right-details > summary").click()
+            page.evaluate("window.scrollTo(0, 0)")
+        else:
+            talk = page.locator(".smi-talk-dock")
+        if width == 1536:
+            page.screenshot(path=str(output / "smi-command-desktop.png"), full_page=True)
+        if width == 393:
+            page.screenshot(path=str(output / "smi-command-mobile.png"), full_page=True)
+        talk.click()
+        expect(page.locator("#smi-chat-panel")).to_be_visible()
+        expect(page.locator("#smi-chat-frame")).to_have_attribute("src", "/mission/ollama")
+        assert page.locator(".shell").evaluate("node => node.inert")
+        page.locator("#smi-chat-close").click()
+        expect(page.locator("#smi-chat-panel")).not_to_be_visible()
+        assert page.locator("#smi-chat-frame").get_attribute("src") is None
+        expect(talk).to_be_focused()
+        page.close()
+    print("SMI_REFERENCE_DASHBOARD_RESPONSIVE=PASS (7 viewports; no device certification)")
+
+
 def main():
     _prepare_app()
     session_name, session_value = _session_cookies()
@@ -431,6 +491,7 @@ def main():
             print("STOP_FREEZES_MOTION=PASS")
 
             prove_governed_actions(context, base_url)
+            prove_reference_dashboard(context, base_url)
             context.close()
             browser.close()
     finally:

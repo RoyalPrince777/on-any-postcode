@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "mission_control/templates/ollama_chat*.html"
+      - "mission_control/templates/smi_visual_home.html"
+      - "static/oap/smi_founder_command_reference.jpg"
       - "mission_control/static/smi_*.js"
       - "mission_control/static/smi_*.css"
       - "mission_control/smi_chat_runtime.py"
@@ -34,3 +36,11 @@ jobs:
         run: python tests/smi_chromium_recovery_proof.py
       - name: Prove authenticated ALL IN Mission Keeper browser controls
         run: python tests/all_in_ai_chromium_proof.py
+      - name: Preserve SMI desktop and mobile dashboard previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smi-command-centre-previews
+          path: /tmp/oap-smi-dashboard/*.png
+          if-no-files-found: warn
+          retention-days: 14

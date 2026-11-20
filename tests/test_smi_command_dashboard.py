@@ -366,10 +366,13 @@ def test_smi_mobile_home_keeps_dynamic_controls_but_collapses_route_noise():
     template = (Path(__file__).resolve().parents[1] / "mission_control" /
                 "templates" / "smi_visual_home.html").read_text(encoding="utf-8")
     assert '<details class="smi-route-drawer" open>' in template
-    assert '<summary>🌐 OAP systems</summary>' in template
-    assert "if (routes && window.matchMedia('(max-width: 620px)').matches) routes.open = false;" in template
-    assert '.smi-route-drawer>summary:focus-visible' in template
-    assert '.smi-talk-dock{display:none}' in template
+    assert 'aria-label="OAP systems"' in template
+    assert "window.matchMedia('(max-width: 760px)').matches" in template
+    assert 'routes.open = false;' in template
+    assert 'intelligence.open = false;' in template
+    assert 'summary:focus-visible' in template
+    assert '.intel-panel{display:none}' in template
+    assert '.right-details>summary{display:flex' in template
     assert 'class="smi-talk-primary"' in template
     for required in ('/my-world', '/mission/ollama', '/guardian', '/hrm',
                      '/mission/war-room', '/mission/smi/status', '/arena'):
