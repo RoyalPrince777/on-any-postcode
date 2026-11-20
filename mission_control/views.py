@@ -1008,7 +1008,7 @@ def smi_studio_project_shell_prepare():
             fps_target=payload.get("fps_target", 60),
             reference_attached=payload.get("reference_attached", False),
         )
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         return _error("project_shell_invalid", str(exc), 400)
     return _no_store(make_response(jsonify(result)))
 
