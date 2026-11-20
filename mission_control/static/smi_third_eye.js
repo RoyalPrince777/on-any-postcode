@@ -21,7 +21,7 @@
 
     const views = [
       {id: "earth", icon: "🌍", name: "Earth Vision", state: "3D not connected"},
-      {id: "ground", icon: "📷", name: "Ground Vision", state: "Existing Face Up"},
+      {id: "ground", icon: "📷", name: "Ground Vision", state: "London TfL stills · source check required"},
       {id: "air", icon: "✈️", name: "Air Vision", state: "Not connected"},
       {id: "space", icon: "🛰️", name: "Space Vision", state: "Not connected"},
       {id: "environment", icon: "🌦️", name: "Earth Intelligence", state: "USGS check available"},
@@ -252,7 +252,7 @@
         verifiedStatus = state?.founder_private_only === true &&
           state?.sources?.public_cameras?.live_feed_proven === false &&
           state?.sources?.earthquakes?.feed_proven === false;
-        if (currentView === "environment") selectView("environment");
+        if (currentView === "environment" || currentView === "ground") selectView(currentView);
       } catch (error) {
         if (error?.name !== "AbortError") verifiedStatus = false;
       } finally {
@@ -446,7 +446,7 @@
         }
       };
       cameraImage.src = base.toString();
-      cameraFrame.scrollIntoView({block: "nearest", behavior: "instant"});
+      cameraFrame.scrollIntoView({block: "nearest", behavior: "auto"});
     }
 
     function closeDrawer() {
