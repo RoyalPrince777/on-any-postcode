@@ -51,7 +51,7 @@
       '<div id="smi-third-eye-status" class="smi-third-eye-status" role="status" aria-live="polite">Source not checked.</div>',
       '<ol id="smi-third-eye-events" class="smi-third-eye-events" aria-label="Earth observations"></ol>',
       '<div id="smi-third-eye-camera-list" class="smi-third-eye-camera-list" aria-label="TfL London traffic camera selection"></div>',
-      '<figure id="smi-third-eye-camera-frame" class="smi-third-eye-camera-frame" hidden><img id="smi-third-eye-camera-image" alt="Selected TfL public traffic camera still" loading="lazy" decoding="async"><figcaption id="smi-third-eye-camera-caption"></figcaption></figure>',
+      '<figure id="smi-third-eye-camera-frame" class="smi-third-eye-camera-frame" hidden><img id="smi-third-eye-camera-image" alt="Selected TfL public traffic camera still" loading="lazy" decoding="async"><video id="smi-third-eye-camera-video" controls playsinline preload="none" hidden aria-label="TfL rolling London traffic video clip"></video><button type="button" class="tool-btn smi-third-eye-play" id="smi-third-eye-play" hidden>▶ Play TfL rolling clip</button><figcaption id="smi-third-eye-camera-caption"></figcaption></figure>',
       '</section>',
       '<footer class="smi-third-eye-foot">No hidden tracking · No automatic recording · Founder Final</footer>'
     ].join("");
@@ -70,6 +70,8 @@
     const cameraList = drawer.querySelector("#smi-third-eye-camera-list");
     const cameraFrame = drawer.querySelector("#smi-third-eye-camera-frame");
     const cameraImage = drawer.querySelector("#smi-third-eye-camera-image");
+    const cameraVideo = drawer.querySelector("#smi-third-eye-camera-video");
+    const cameraPlay = drawer.querySelector("#smi-third-eye-play");
     const cameraCaption = drawer.querySelector("#smi-third-eye-camera-caption");
     let activeRequest = null;
     let requestKind = null;
@@ -144,8 +146,22 @@
       actions.appendChild(link);
     }
 
+    function clearCameraMedia() {
+      cameraImage.onload = null;
+      cameraImage.onerror = null;
+      cameraImage.removeAttribute("src");
+      cameraImage.hidden = false;
+      cameraVideo.pause();
+      cameraVideo.removeAttribute("src");
+      cameraVideo.load();
+      cameraVideo.hidden = true;
+      cameraPlay.hidden = true;
+      cameraPlay.onclick = null;
+    }
+
     function selectView(id) {
       stopRequest(true);
+      clearCameraMedia();
       currentView = id;
       const view = views.find(item => item.id === id);
       if (!view) return;
@@ -160,7 +176,6 @@
       events.replaceChildren();
       cameraList.replaceChildren();
       cameraFrame.hidden = true;
-      cameraImage.removeAttribute("src");
       status.hidden = false;
       setStatus(view.state);
       drawer.scrollTop = 0;
@@ -172,7 +187,7 @@
         refresh.id = "smi-third-eye-refresh";
         refresh.disabled = !verifiedStatus;
       } else if (id === "ground") {
-        description.textContent = "View London public TfL traffic-camera stills inside SMI or use Face Up for your own phone camera. TfL images generally update every few minutes; this is not continuous video.";
+        description.textContent = "View public TfL London traffic-camera stills and short rolling clips inside SMI, or use Face Up for your own phone camera. TfL images generally update every few minutes; this is not continuous video.";
         if (config.thirdEyeLondonCamerasUrl && config.thirdEyeLondonFrameUrl) {
           const search = document.createElement("input");
           search.type = "search";
@@ -374,7 +389,7 @@
       stopRequest();
       cameraList.replaceChildren();
       cameraFrame.hidden = true;
-      cameraImage.removeAttribute("src");
+      clearCameraMedia();
       const query = label(rawSearch, "").slice(0, 80);
       const controller = new AbortController();
       activeRequest = controller;
@@ -432,7 +447,29 @@
       );
       if (base.origin !== window.location.origin) return;
       base.searchParams.set("requested_at", String(Date.now()));
+      clearCameraMedia();
       cameraFrame.hidden = false;
+      if (camera?.clip_available === true && config.thirdEyeLondonClipUrl) {
+        cameraPlay.hidden = false;
+        cameraPlay.onclick = () => {
+          if (drawer.hidden || currentView !== "ground") return;
+          const clipUrl = new URL(
+            config.thirdEyeLondonClipUrl.replace("__CAMERA_ID__", encodeURIComponent(id)),
+            window.location.origin
+          );
+          if (clipUrl.origin !== window.location.origin) return;
+          clipUrl.searchParams.set("requested_at", String(Date.now()));
+          cameraVideo.hidden = false;
+          cameraImage.hidden = true;
+          cameraVideo.src = clipUrl.toString();
+          cameraCaption.textContent = camera.name.slice(0, 100) +
+            " · TfL rolling clip · Actual capture time unknown · Powered by TfL Open Data";
+          setStatus("Loading real TfL rolling traffic clip through SMI…");
+          cameraVideo.play().catch(() => {
+            setStatus("TfL clip playback unavailable. The camera may be offline.");
+          });
+        };
+      }
       cameraCaption.textContent = camera.name.slice(0, 100) + " · Powered by TfL Open Data · Capture time not supplied";
       setStatus("Loading selected TfL camera still through SMI…");
       cameraImage.onload = () => {
@@ -451,6 +488,7 @@
 
     function closeDrawer() {
       stopRequest();
+      clearCameraMedia();
       drawer.hidden = true;
       menuButton.setAttribute("aria-expanded", "false");
       menuButton.focus();
@@ -458,6 +496,7 @@
 
     drawer.querySelector("#smi-third-eye-back").addEventListener("click", () => {
       stopRequest(true);
+      clearCameraMedia();
       currentView = null;
       detail.hidden = true;
       home.hidden = false;
@@ -474,7 +513,10 @@
     menuButton.setAttribute("aria-controls", "smi-third-eye-panel");
     menuButton.setAttribute("aria-expanded", "false");
     menuButton.addEventListener("click", open);
-    window.addEventListener("pagehide", stopRequest, {once: true});
+    window.addEventListener("pagehide", () => {
+      stopRequest();
+      clearCameraMedia();
+    }, {once: true});
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, {once: true});
