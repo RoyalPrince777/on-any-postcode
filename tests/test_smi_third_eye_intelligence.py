@@ -4,8 +4,7 @@ from datetime import UTC, datetime
 from unittest.mock import patch
 
 import app as app_module
-from mission_control import third_eye_intelligence as third_eye
-from mission_control import web_security
+from mission_control import third_eye_intelligence, web_security
 
 
 NOW = datetime(2026, 11, 20, 1, 0, tzinfo=UTC)
@@ -27,7 +26,7 @@ def feed(generated=T):
 
 
 def test_status_never_infers_camera_or_full_runtime():
-    status = third_eye.status()
+    status = third_eye_intelligence.status()
     assert status["founder_private_only"] is True
     assert status["public_route_allowed"] is False
     assert status["sources"]["public_cameras"]["live_feed_proven"] is False
@@ -38,7 +37,7 @@ def test_status_never_infers_camera_or_full_runtime():
 
 
 def test_fresh_attributed_earth_observation():
-    result = third_eye.parse_usgs_feed(feed(), now=NOW)
+    result = third_eye_intelligence.parse_usgs_feed(feed(), now=NOW)
     assert result["feed_verified"] is True
     assert result["freshness"] == "fresh"
     assert result["events"][0]["latitude"] == 51.5
@@ -47,7 +46,7 @@ def test_fresh_attributed_earth_observation():
 
 def test_stale_and_future_provenance_never_count_as_live():
     for generated in (T - 900_001, T + 30_000):
-        result = third_eye.parse_usgs_feed(feed(generated), now=NOW)
+        result = third_eye_intelligence.parse_usgs_feed(feed(generated), now=NOW)
         assert result["freshness"] == "stale"
         assert result["live_claim_allowed"] is False
 
@@ -55,7 +54,7 @@ def test_stale_and_future_provenance_never_count_as_live():
 def test_undated_or_incorrect_feed_fails_closed():
     for payload in ({"type": "FeatureCollection", "metadata": {}, "features": []}, [], {}, None):
         try:
-            third_eye.parse_usgs_feed(payload, now=NOW)
+            third_eye_intelligence.parse_usgs_feed(payload, now=NOW)
         except ValueError:
             pass
         else:
@@ -66,14 +65,14 @@ def test_invalid_geography_is_ignored_and_events_bounded():
     payload = feed()
     payload["features"] *= 30
     payload["features"][0]["geometry"]["coordinates"] = [900, 91]
-    result = third_eye.parse_usgs_feed(payload, now=NOW)
+    result = third_eye_intelligence.parse_usgs_feed(payload, now=NOW)
     assert result["events"] == []
     assert result["event_count_returned"] == 0
 
 
 def test_network_failure_returns_unavailable_without_live_claim():
     with patch.object(third_eye, "urlopen", side_effect=TimeoutError("No network")):
-        result = third_eye.latest_earthquakes()
+        result = third_eye_intelligence.latest_earthquakes()
     assert result["feed_verified"] is False
     assert result["events"] == []
     assert result["live_claim_allowed"] is False
