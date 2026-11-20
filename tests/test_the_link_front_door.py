@@ -59,3 +59,16 @@ def test_the_link_does_not_reflect_query_input(anonymous_client):
 
     assert attack not in page
     assert "&lt;script&gt;" not in page
+
+
+def test_the_link_mobile_cards_are_aligned_and_routes_preserved():
+    from pathlib import Path
+
+    page = Path("mission_control/templates/the_link.html").read_text(encoding="utf-8")
+    assert "@media (max-width:640px)" in page
+    assert "grid-template-columns:repeat(2,minmax(0,1fr))" in page
+    assert "min-height:56px" in page
+    assert "overflow-wrap:anywhere" in page
+    assert "clip:rect(0,0,0,0)" in page  # secondary descriptions accessible but visually quiet
+    assert "href=\"/oap-map\"" in page
+    assert "linkup_front_door" in page
