@@ -2,7 +2,7 @@
 
 No shell, edits, retries, permissions, approvals, or deployment. The response
 contains bounded evidence only; errors fail closed. A worker may call this
-after receiving an authorised numeric run ID, but it is not yet scheduled.
+as part of the existing scheduled health probe, when deployed.
 """
 from __future__ import annotations
 
@@ -53,6 +53,12 @@ def _safe_log_summary(raw: str) -> tuple[str, ...]:
         ("gradle_compile", r"Compilation failed|Execution failed for task|error: cannot find symbol"),
         ("dependency_resolution", r"Could not resolve|Could not find.*gradle|Plugin .* was not found"),
         ("android_sdk", r"SDK location not found|Failed to find Build Tools|sdkmanager: command not found"),
+        # First-party CI is Python/Chromium as well as Android. These categories
+        # remain fixed labels: never return or persist arbitrary log text.
+        ("python_lint", r"ruff (?:check|format)|(?m:^\s*[A-Z]{1,3}\d{3,4}\b)|(?m:^Found \d+ errors?\b)"),
+        ("python_tests", r"(?m:^\s*FAILED tests/)|(?m:^=+\s*\d+ failed\b)|pytest.*(?:failed|error)"),
+        ("python_import", r"ModuleNotFoundError|ImportError:|No module named"),
+        ("browser_tests", r"playwright.*(?:fail|error)|chromium.*(?:fail|crash)|(?m:^\s*TimeoutError:.*locator)"),
     )
     return tuple(name for name, pattern in patterns if re.search(pattern, raw, flags=re.IGNORECASE))
 
@@ -61,6 +67,7 @@ def inspect_failed_job_logs(evidence: dict[str, Any], *, token: str,
                             fetch_log: Callable[[int, str], str] = _fetch_job_log) -> dict[str, Any]:
     """Classify bounded failed-job logs; never persist raw logs or infer release."""
     base = {"ready": False, "error": None, "log_categories": (),
+            "classified": False, "classification": "unknown",
             "read_only": True, "execution_granted": False,
             "approval_granted": False, "human_authority_final": True,
             "consequential_action": False}
@@ -81,7 +88,12 @@ def inspect_failed_job_logs(evidence: dict[str, Any], *, token: str,
             if not isinstance(log, str) or len(log.encode("utf-8")) > MAX_LOG_BYTES:
                 raise ValueError("invalid_log")
             summaries.append({"job_id": job_id, "categories": _safe_log_summary(log)})
-        return {**base, "ready": True, "log_categories": tuple(summaries)}
+        # Downloaded logs are evidence, not an identified root cause.
+        # Unknown categories must not be represented as verified diagnosis.
+        classified = any(row["categories"] for row in summaries)
+        return {**base, "ready": True, "log_categories": tuple(summaries),
+                "classified": bool(classified),
+                "classification": "classified" if classified else "unknown"}
     except (HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError):
         return {**base, "error": "github_job_logs_unavailable"}
 
