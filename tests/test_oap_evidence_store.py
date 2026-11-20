@@ -1,6 +1,5 @@
 from mission_control import oap_evidence_store as store
 
-
 OWNER = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 
 
