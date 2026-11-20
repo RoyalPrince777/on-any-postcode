@@ -27,6 +27,7 @@ TFL_IMAGE_PREFIX = "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/"
 TFL_TERMS = "https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service"
 TFL_ID = re.compile(r"^\d{5}\.\d{5}$")
 TFL_MEDIA_LIMIT = 800_000
+TFL_VIDEO_LIMIT = 12_000_000
 TFL_CATALOGUE_LIMIT = 5_000_000
 TFL_CACHE_SECONDS = 240
 _TFL_LOCK = threading.Lock()
@@ -196,6 +197,8 @@ def parse_london_jamcams(payload: Any) -> list[dict[str, Any]]:
         url = str(attrs.get("imageUrl") or "")
         if url != f"{TFL_IMAGE_PREFIX}{raw_id}.jpg":
             continue
+        video_url = str(attrs.get("videoUrl") or "")
+        clip_available = video_url == f"{TFL_IMAGE_PREFIX}{raw_id}.mp4"
         lat, lon = item.get("lat"), item.get("lon")
         if any(
             isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
@@ -208,6 +211,7 @@ def parse_london_jamcams(payload: Any) -> list[dict[str, Any]]:
         cameras.append({
             "id": raw_id,
             "name": name,
+            "clip_available": clip_available,
             "latitude": round(float(lat), 5),
             "longitude": round(float(lon), 5),
         })
@@ -275,7 +279,10 @@ def london_jamcams(*, search: str = "") -> dict[str, Any]:
         "total_available_catalogued": len(cameras),
         "attribution": "Powered by TfL Open Data",
         "terms_url": TFL_TERMS,
-        "note": "Road camera stills; exact frame age cannot be asserted without provider timestamps.",
+        "note": (
+            "Public TfL road-camera stills and optional short rolling clips. "
+            "The source updates periodically; capture times are not independently verified."
+        ),
     }
 
 
@@ -305,5 +312,47 @@ def london_jamcam_frame(camera_id: str) -> tuple[bytes, str | None] | None:
         if len(frame) > TFL_MEDIA_LIMIT or not frame.startswith(b"\xff\xd8\xff"):
             return None
         return frame, modified
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError):
+        return None
+
+
+def london_jamcam_clip(camera_id: str) -> tuple[bytes, str | None] | None:
+    """Read one public TfL rolling MP4 clip on explicit Founder request.
+
+    This is short provider-published footage, not an uninterrupted live stream.
+    The URL is derived exclusively from a vetted, currently-available camera.
+    """
+    if TFL_ID.fullmatch(camera_id) is None:
+        return None
+    catalogue = london_jamcams()
+    if not catalogue.get("source_verified"):
+        return None
+    with _TFL_LOCK:
+        cached = _TFL_CACHE
+        matched = next(
+            (
+                camera for camera in cached[1]
+                if camera["id"] == camera_id and camera.get("clip_available")
+            ),
+            None,
+        ) if cached else None
+    if matched is None:
+        return None
+    url = f"{TFL_IMAGE_PREFIX}{camera_id}.mp4"
+    request = Request(url, headers={
+        "Accept": "video/mp4",
+        "User-Agent": "OAP-SMI-ThirdEye/1",
+    })
+    try:
+        with urlopen(request, timeout=8) as response:
+            if response.status != 200 or response.geturl() != url:
+                return None
+            if response.headers.get_content_type() != "video/mp4":
+                return None
+            last_modified = response.headers.get("Last-Modified")
+            clip = response.read(TFL_VIDEO_LIMIT + 1)
+        if len(clip) > TFL_VIDEO_LIMIT or len(clip) < 12 or clip[4:8] != b"ftyp":
+            return None
+        return clip, last_modified
     except (HTTPError, URLError, TimeoutError, OSError, ValueError):
         return None
