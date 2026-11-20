@@ -320,6 +320,86 @@ def department_map(evidence: object, *, protocol_proven_count: int = 0) -> dict[
         "no_external_provider_dependency": True,
     }
 
+
+def swot_first_review(
+    evidence: object, departments: object, protocol_registry: object,
+) -> dict[str, Any]:
+    """Founder-private, read-only SWOT of actual Company Intelligence evidence.
+
+    Strengths are source-observed states, NOT completed live operations.
+    Weaknesses and threats retain the original source state. Opportunities
+    are proposed proof work, never evidence of commercial execution.
+    """
+    raw_states = evidence.get("states") if isinstance(evidence, dict) else None
+    states = raw_states if isinstance(raw_states, dict) else {}
+    strengths: list[dict[str, str]] = []
+    weaknesses: list[dict[str, str]] = []
+    threats: list[dict[str, str]] = []
+
+    for domain in company_evidence_ingestion.DOMAINS:
+        item = states.get(domain)
+        item = item if isinstance(item, dict) else {}
+        state = str(item.get("state") or "UNKNOWN").upper()
+        source = str(item.get("source_reference") or "").strip()
+        observed = str(item.get("observed_at") or "").strip()
+        if (
+            item.get("valid") is not True
+            or not source
+            or not observed
+            or state not in company_evidence_ingestion.ACCEPTED_STATES
+        ):
+            state = "UNKNOWN"
+            source = ""
+            observed = ""
+        entry = {
+            "domain": domain,
+            "label": domain.replace("_", " ").title(),
+            "state": state,
+            "source_reference": source,
+            "observed_at": observed,
+        }
+        if state == "PROVEN":
+            strengths.append(entry)
+        else:
+            weaknesses.append(entry)
+            if state in {"CONFLICTING", "STALE", "UNAVAILABLE"}:
+                threats.append(entry)
+
+    candidates = (
+        departments.get("departments", ())
+        if isinstance(departments, dict) else ()
+    )
+    opportunities = tuple(
+        {
+            "department": str(node["name"]),
+            "next_proof": str(node["next_safe_action"]),
+            "state": "PROPOSED",
+        }
+        for node in candidates
+        if isinstance(node, dict)
+        and node.get("source_state") in {"BLOCKED", "UNKNOWN"}
+        and node.get("name") and node.get("next_safe_action")
+    )[:3]
+    protocol = protocol_registry if isinstance(protocol_registry, dict) else {}
+    return {
+        "review": "SMI Company Intelligence · SWOT First",
+        "strengths": tuple(strengths),
+        "weaknesses": tuple(weaknesses),
+        "opportunities": opportunities,
+        "threats": tuple(threats),
+        "source_proven": len(strengths),
+        "source_unresolved": len(weaknesses),
+        "protocol_receipt_chain_verified": (
+            protocol.get("receipt_chain_verified") is True
+        ),
+        "live_operations_verified": False,
+        "read_only": True,
+        "independent_agent_votes_claimed": False,
+        "execution_granted": False,
+        "founder_final_required": True,
+        "full_green": False,
+    }
+
 def projection(identity_id: str) -> dict[str, Any]:
     items: list[dict[str, str]] = [_company_registry_item()]
     items.extend(_music_items(identity_id))
@@ -339,6 +419,12 @@ def projection(identity_id: str) -> dict[str, Any]:
             "store_fail_closed": True,
             "store_unavailable": True,
         }
+    department_snapshot = department_map(
+        snapshot, protocol_proven_count=protocol_registry["proven_count"],
+    )
+    swot_snapshot = swot_first_review(
+        snapshot, department_snapshot, protocol_registry,
+    )
     software_green = True
     return {
         "name": "OAP Company Intelligence",
@@ -346,9 +432,8 @@ def projection(identity_id: str) -> dict[str, Any]:
         "evidence": snapshot,
         "evidence_items": tuple(items),
         "protocol_registry": protocol_registry,
-        "department_map": department_map(
-            snapshot, protocol_proven_count=protocol_registry["proven_count"],
-        ),
+        "swot_first": swot_snapshot,
+        "department_map": department_snapshot,
         "protocol_check_count": protocol_registry["protocol_check_count"],
         "protocol_proven_count": protocol_registry["proven_count"],
         "protocol_green_gate_passed": protocol_registry["green_gate_passed"],
