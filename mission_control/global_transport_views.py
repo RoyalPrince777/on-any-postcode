@@ -202,35 +202,35 @@ _PAGE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="/transport/manifest.webmanifest">
 <meta name="theme-color" content="#090909">
 <title>OAP Global Transport</title>
 <style>
-:root{color-scheme:dark;--bg:#090909;--panel:#161616;--edge:#323232;--gold:#f0cf63;--muted:#b9b9b9}
+:root{color-scheme:dark;--bg:#090909;--panel:#161512;--edge:#353025;--gold:#efcf73;--muted:#bdb7aa}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:#f7f7f7;font:16px/1.5 system-ui,-apple-system,sans-serif}
 main{max-width:800px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid var(--edge)}
 .brand{color:var(--gold);font-weight:800;font-size:.78rem;letter-spacing:.075em}
-.return{color:#dedede;text-decoration:none;font-weight:650;padding:10px 0;min-height:44px}
-h1{font-size:clamp(1.85rem,7vw,2.8rem);line-height:1.12;letter-spacing:-.03em;margin:0 0 20px}
+.return{color:var(--gold);text-decoration:none;font-weight:700;padding:10px 0;min-height:44px;display:inline-flex;align-items:center}
+h1{font-size:clamp(2.15rem,7.5vw,3.3rem);line-height:1.08;letter-spacing:-.045em;margin:0 0 23px;font-weight:850}
 .intro{color:var(--muted);margin:0 0 24px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .card{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:80px;min-width:0;
-padding:16px;border-radius:16px;background:var(--panel);border:1px solid var(--edge);
+padding:16px;border-radius:17px;background:var(--panel);border:1px solid var(--edge);
 text-decoration:none;color:inherit;transition:border-color .15s}
 .card:hover,.card:focus-visible{border-color:var(--gold)}.card:active{background:#22201a}
 .card:focus-visible,.return:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
-.card strong{display:block;color:#f7f7f7;font-size:1rem;line-height:1.25;overflow-wrap:break-word}
+.card strong{display:block;color:#f7f7f7;font-size:1rem;line-height:1.25;overflow-wrap:break-word;flex:1;font-weight:750}
 
-.card .arrow{font-size:1.1rem;color:var(--gold);flex:none}
+.card .arrow{font-size:1.1rem;color:var(--gold);flex:none}.card .mark{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:11px;background:#262116;font-size:1.2rem}
 .card:last-child{grid-column:1/-1;min-height:80px}
-footer{margin-top:28px;color:#aaa;font-size:.82rem}
-.install{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}.install:has(> button[hidden]):has(> [role=status]:empty){display:none}
-.install button{background:#242016;border:1px solid #7a6420;border-radius:12px;color:var(--gold);padding:12px;font:inherit;font-weight:700}
+footer{margin-top:21px;padding-top:15px;border-top:1px solid var(--edge);color:var(--muted);font-size:.82rem}
+.customer{margin:18px 0 6px}.customer a{border-bottom:1px solid #6f5b33}.install{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}.install:has(> button[hidden]):has(> [role=status]:empty){display:none}
+.install button{background:#2a2418;border:1px solid #927744;border-radius:12px;color:var(--gold);padding:12px 17px;min-height:48px;font:inherit;font-weight:750;cursor:pointer}
 .install [role=status]{color:var(--muted);font-size:.82rem}
-@media(max-width:390px){main{padding-inline:14px}.grid{gap:9px}.card{padding:12px;min-height:76px}.card strong{font-size:.94rem}.card .arrow{font-size:1rem}}
+@media(max-width:390px){main{padding-inline:14px}.grid{gap:9px}.card{padding:12px;min-height:80px;gap:7px}.card strong{font-size:.91rem}.card .mark{width:28px;height:28px;font-size:1rem}.card .arrow{font-size:1rem}}
 @media(max-width:320px){.grid{grid-template-columns:1fr}.card:last-child{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
@@ -239,12 +239,13 @@ footer{margin-top:28px;color:#aaa;font-size:.82rem}
 <header><div class="brand">ON ANY POSTCODE</div><a class="return" href="/world">OAP World</a></header>
 <h1>Global Transport</h1>
 
+{% set icons = {"Journey":"🧭", "Move":"🗺️", "Ride":"🚗", "Logistics":"📦", "Guardian":"🛡️", "Operators":"🏢", "Control Center":"⚙️"} %}
 <nav class="grid" aria-label="Global Transport main menu">
 {% for name, description, href in doors %}
-<a class="card" href="{{ href }}"><strong>{{ name }}</strong><b class="arrow" aria-hidden="true">›</b></a>
+<a class="card" href="{{ href }}"><span class="mark" aria-hidden="true">{{ icons[name] }}</span><strong>{{ name }}</strong><b class="arrow" aria-hidden="true">›</b></a>
 {% endfor %}
 </nav>
-<p><a class="return" href="/transport/my">My Transport · Customer controls</a></p>
+<p class="customer"><a class="return" href="/transport/my">My Transport · Customer controls</a></p>
 <div class="install"><button type="button" data-oap-install hidden>Install OAP Transport</button>
 <span data-oap-install-status role="status" aria-live="polite"></span>
 <span data-oap-install-platform hidden></span></div>
