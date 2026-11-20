@@ -47,7 +47,7 @@
  const panel=document.createElement("section");
  panel.className="smi-command-centre";panel.id="smi-command-centre";
  panel.setAttribute("aria-label","OAP SMI Digital Organism Command Centre");
- panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · SMI THE DIGITAL ORGANISM</strong><br><small>ONE BRAIN · A LIVING SYSTEM · A BRIGHTER TOMORROW</small></div><button type="button" class="smi-command-close">✕ Close</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Live evidence and universe links"><h3>LIVE EVIDENCE · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
+ panel.innerHTML='<header class="smi-command-top"><div><strong>♛ OAP · ON ANY POSTCODE</strong><br><small>PEOPLE · PLACES · PURPOSE · PROSPERITY</small></div><div><strong>SMI</strong><br><small>SOVEREIGN MEGAVERSE INTELLIGENCE</small></div><button type="button" class="smi-command-close">💬 Ask SMI</button></header><div class="smi-command-layout"><nav class="smi-command-side smi-command-anatomy" aria-label="SMI organism systems"><h3>OAP SYSTEMS · ANATOMY</h3></nav><div class="smi-command-scene"><div class="smi-command-stage"></div><div class="smi-command-foot"><span>🧠 <b>SMI</b> · one brain</span><span>👑 Human Authority final</span></div></div><aside class="smi-command-side smi-command-evidence" aria-label="Live evidence and universe links"><h3>LIVE EVIDENCE · NOT ASSUMED</h3></aside></div><p class="smi-command-note">System labels are navigation, not proof. Status stays unverified unless a signed-in backend check returns exact true.</p>';
  messages.before(panel);
  // The full-room overlay must expose Status itself: its old header control sits underneath it.
  const statusActions=document.createElement("div");
@@ -99,9 +99,10 @@
  homeButton.setAttribute("aria-label","Return to SMI Home");
  homeButton.addEventListener("click",()=>{
   closeTransientPanels();
-  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
   if(document.body.classList.contains("smi-status-open"))document.querySelector(".smi-chat-return")?.click();
-  document.getElementById("message")?.focus();
+  setOpen(true);
+  panel.dataset.mobileView="scene";
+  panel.querySelectorAll(".smi-command-mobile-views button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="scene")));
  });
 
  const smiButton=document.createElement("button");
@@ -347,6 +348,49 @@
   universe.append(button);
  }
  panel.querySelector(".smi-command-layout").after(universe);
+
+ // Reference's five central actions: real existing handlers, no mock status.
+ const founderActions=document.createElement("nav");
+ founderActions.className="smi-reference-actions";
+ founderActions.setAttribute("aria-label","SMI five Founder actions");
+ const founderItems=[
+  ["⚔ WAR ROOM","Strategy · Intelligence",()=>openWarRoom()],
+  ["◎ MATRIX","World State",()=>window.location.assign("/mission/war-room/routes")],
+  ["♙ HRM","People System",()=>triggerMasterTool("hrm")],
+  ["♢ GUARDIAN","Security · Safety",()=>triggerMasterTool("guardian")],
+  ["◉ GREEN GATE","Trust · Verification",()=>{const route=String(cfg.greenGateUrl||"");if(route.startsWith("/")&&!route.startsWith("//"))window.location.assign(route);else{const node=document.getElementById("status");if(node)node.textContent="Green Gate evidence route unavailable.";}}]
+ ];
+ for(const [title,subtitle,handler] of founderItems){
+  const button=document.createElement("button");button.type="button";
+  const heading=document.createElement("strong");heading.textContent=title;
+  const detail=document.createElement("small");detail.textContent=subtitle;
+  button.append(heading,detail);button.addEventListener("click",handler);
+  founderActions.append(button);
+ }
+ panel.querySelector(".smi-command-layout").after(founderActions);
+
+ // Founder reference bottom navigation: reuses canonical controls and routes.
+
+ const referenceNav=document.createElement("nav");
+ referenceNav.className="smi-reference-bottom";
+ referenceNav.setAttribute("aria-label","SMI Founder dashboard navigation");
+ const referenceItems=[
+  ["⌂ Home",()=>{setOpen(true);panel.dataset.mobileView="scene";mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="scene")));}],
+  ["⌕ Search",()=>{setOpen(false);document.getElementById("message")?.focus();}],
+  ["🎙 Voice",()=>{setOpen(false);document.getElementById("mic-button")?.click();}],
+  ["⌕ Ask SMI…",()=>{setOpen(false);document.getElementById("message")?.focus();}],
+  ["♧ Incoming",()=>{setOpen(false);const feedback=document.getElementById("status");if(feedback)feedback.textContent="Incoming destination not yet verified."; }],
+  ["◎ OAP World",()=>{setOpen(true);panel.dataset.mobileView="anatomy";mobileViews.querySelectorAll("button[data-view]").forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.view==="anatomy")));}],
+  ["♛ Captain",()=>{setOpen(false);const feedback=document.getElementById("status");if(feedback)feedback.textContent="Captain interface not yet available."; }]
+ ];
+ for(const [label,handler] of referenceItems){
+  const button=document.createElement("button");
+  button.type="button";button.textContent=label;
+  button.addEventListener("click",handler);
+  referenceNav.append(button);
+ }
+ panel.append(referenceNav);
+
  // Founder Command Centre: non-operational banking controls. Do not create a
  // second banking engine, manufacture proof, or expose a transactional action.
  const bankControls=document.createElement("section");
@@ -518,6 +562,20 @@
  }
  const anatomy=panel.querySelector(".smi-command-anatomy");
  const evidence=panel.querySelector(".smi-command-evidence");
+ evidence.querySelector("h3").textContent="🌍 LIVE WORLD VIEW · EVIDENCE";
+ const worldView=document.createElement("section");
+ worldView.className="smi-reference-world";
+ const worldTitle=document.createElement("strong");worldTitle.textContent="🌐 OAP WORLD · LIVE VIEW";
+ const worldText=document.createElement("p");worldText.textContent="Live population and location metrics unavailable until a verified first-party source is connected.";
+ worldView.append(worldTitle,worldText);
+ evidence.append(worldView);
+ const activity=document.createElement("section");
+ activity.className="smi-reference-activity";
+ const activityTitle=document.createElement("strong");activityTitle.textContent="📈 REAL-TIME ACTIVITY";
+ const activityText=document.createElement("p");activityText.textContent="No certified activity stream · chart withheld";
+ activity.append(activityTitle,activityText);
+ evidence.append(activity);
+
  const anatomyLinks=[
   ["🧠","Brain · SMI","Intelligence · memory · reasoning",cfg.brainUrl],
   ["👁️","Eyes · Vision","Screens · maps · insight","/on-any-place"],
@@ -551,7 +609,35 @@
   copy.append(nameEl,document.createElement("br"),detailEl);link.append(mark,copy);
   parent.append(link);
  }
- anatomyLinks.forEach(([icon,name,detail,url])=>addLink(anatomy,icon,name,detail,url));
+
+ // Founder reference OAP World rail; unresolved routes are descriptive, never fake links.
+ anatomy.querySelector("h3").textContent="🌍 OAP WORLD";
+ const worldLinks=[
+  ["🌍","OAP WORLD","Explore · Connect · Build",null],
+  ["📍","The Spot","Pulse · What’s happening",null],
+  ["📡","Signal","News · Announcements",null],
+  ["🔗","Link Up","Chat · Communities","/linkup"],
+  ["💬","OAP Chronicle","Stories · People · Places",null],
+  ["📺","OAP TV","Main Stage · Shows · Live",null],
+  ["👤","My World","Your Space · Your Rules",null],
+  ["🎮","OAP Arena","Games · Compete · Play",null],
+  ["🎵","OAP Records","Music · Creators · Rights",null],
+  ["🛍","OAP Market","Buy · Sell · Certified Merchants",null],
+  ["🧾","HRM","People · Work · Opportunities",cfg.hrmUrl],
+  ["🛡","Guardian","Safety · Privacy · Protection",null],
+  ["◉","SIKA","Wallet · Payments · Value",null],
+  ["⚙","Control Center","Settings · Tools · System",null],
+  ["📚","Library","One World · One Library",null],
+  ["⚗","LAB","Build · Create · Experiment",null]
+ ];
+ worldLinks.forEach(([icon,name,detail,url])=>addLink(anatomy,icon,name,detail,url));
+ const organismDetails=document.createElement("details");
+ organismDetails.className="smi-organism-details";
+ const organismSummary=document.createElement("summary");organismSummary.textContent="🧬 SMI Organism Systems";
+ organismDetails.append(organismSummary);
+ anatomyLinks.forEach(([icon,name,detail,url])=>addLink(organismDetails,icon,name,detail,url));
+ anatomy.append(organismDetails);
+
  // The approved command-room picture keeps intelligence, signals and gate evidence
  // in the scene itself; Status drawer remains a secondary detailed view.
  const dashboard=document.createElement("section");dashboard.className="smi-room-status";dashboard.setAttribute("aria-label","Live SMI intelligence and alignment");
@@ -626,6 +712,25 @@
  evidence.append(refresh);
  addLink(evidence,"🌍","OAP World","Explore · connect","/on-any-place");
  addLink(evidence,"📚","Founder Library","Governed records",cfg.founderLibraryUrl);
+
+ const universeLinks=document.createElement("section");
+ universeLinks.className="smi-reference-universe";
+ const universeTitle=document.createElement("h3");universeTitle.textContent="✦ OAP UNIVERSE";
+ universeLinks.append(universeTitle);
+ const universeItems=[
+  ["📍 Places","/on-any-place"],["🌍 Worlds","/world"],
+  ["🎬 Studio",null],["◎ Matrix","/mission/war-room/routes"],
+  ["🔗 Nexus",null],["💬 The Link","/linkup"],["🚗 Movement","/movement"]
+ ];
+ for(const [label,url] of universeItems){
+  const item=document.createElement(url?"a":"span");
+  item.textContent=label;
+  if(url)item.href=url;
+  else item.title="Destination not yet verified";
+  universeLinks.append(item);
+ }
+ evidence.append(universeLinks);
+
  let active=false,request=null,roomRequest=null;
  const setRoom=(node,proven,message)=>{
   if(!node)return;
@@ -724,7 +829,7 @@
   }else{
    if(marker.parentNode)marker.parentNode.insertBefore(character,marker);
    document.body.classList.remove("smi-command-open");
-   toggle.textContent="◈ Command Centre";toggle.setAttribute("aria-label","Open SMI Command Centre");
+   toggle.textContent="◈ SMI Home";toggle.setAttribute("aria-label","Open SMI Home");
    toggle.setAttribute("aria-pressed","false");
   }
  }
@@ -828,7 +933,7 @@
   if(active&&event.target?.id==="message"&&event.key==="Enter"&&!event.shiftKey&&!event.isComposing)setOpen(false);
  },true);
  document.addEventListener("keydown",event=>{
-  if(event.key==="Escape"&&active&&!document.body.classList.contains("smi-live-fullscreen")){
+  if(event.key==="Escape"&&active){
    setOpen(false);toggle.focus();
   }
  });
@@ -841,5 +946,5 @@
  window.addEventListener("pagehide",()=>{if(active)setOpen(false);});
  // Command Centre is the approved visual front door; Chat remains immediately reachable.
  // Never override a voice-first/fullscreen session already active.
- if(!cfg.singleLiveChatSurface&&!document.body.classList.contains("smi-live-fullscreen"))setOpen(true);
+ if(!cfg.singleLiveChatSurface)setOpen(true);
 })();
