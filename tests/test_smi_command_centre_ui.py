@@ -58,6 +58,13 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('["🕶 Matrix Routes","matrix-routes"]', source)
 
 
+    def test_full_organism_offline_route_reuses_private_canonical_anatomy(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        self.assertIn('"/mission/organism#offline-route"', source)
+        self.assertIn("Offline Route · Full Organism", source)
+        self.assertIn("Local SMI service and sign-in required · offline proof unknown", source)
+        self.assertNotIn('"/offline#offline-route"', source)
+
     def test_seven_major_links_reuse_real_existing_owners(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         for label in (
