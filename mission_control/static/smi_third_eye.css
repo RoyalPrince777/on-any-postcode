@@ -105,3 +105,18 @@
   .smi-third-eye-detail{padding:10px}
 }
 @media(prefers-reduced-motion:reduce){.smi-third-eye-menu-item{transition:none}}
+
+.smi-third-eye-place{
+  flex:1 1 155px;
+  min-width:120px;
+  max-width:280px;
+  min-height:44px;
+  padding:9px 12px;
+  border:1px solid #60502e;
+  border-radius:10px;
+  background:#121c15;
+  color:#f3f2e9;
+  font:inherit;
+  font-size:.78rem;
+}
+.smi-third-eye-place:focus-visible{outline:2px solid #d8b965;outline-offset:2px}
