@@ -10,7 +10,7 @@ regulatory permission, deployment, payment authority, or Founder Final.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from . import company_intelligence
@@ -27,8 +27,8 @@ def _timestamp(value: object) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def cell_catalogue() -> tuple[dict[str, str], ...]:
