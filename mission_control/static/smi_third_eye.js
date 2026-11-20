@@ -22,8 +22,8 @@
     const views = [
       {id: "earth", icon: "🌍", name: "Earth Vision", state: "3D not connected"},
       {id: "ground", icon: "📷", name: "Ground Vision", state: "London TfL stills · source check required"},
-      {id: "air", icon: "✈️", name: "Air Vision", state: "Not connected"},
-      {id: "space", icon: "🛰️", name: "Space Vision", state: "Not connected"},
+      {id: "air", icon: "✈️", name: "Air Vision", state: "Public ADS-B check · unverified"},
+      {id: "space", icon: "🛰️", name: "Space Vision", state: "NASA imagery · ISS sources · unverified"},
       {id: "environment", icon: "🌦️", name: "Earth Intelligence", state: "USGS check available"},
       {id: "analysis", icon: "🧠", name: "SMI Analysis", state: "Source evidence"},
       {id: "controls", icon: "🔐", name: "Controls", state: "Founder private"}
@@ -169,7 +169,7 @@
       detail.hidden = false;
       crumb.textContent = view.name;
       viewState.textContent = view.state;
-      viewState.dataset.state = (id === "environment" || id === "ground") ? "partial" : "pending";
+      viewState.dataset.state = ["environment", "ground", "air", "space"].includes(id) ? "partial" : "pending";
       title.textContent = view.icon + " " + view.name;
       description.textContent = "";
       actions.replaceChildren();
@@ -234,9 +234,37 @@
           existing.click();
         });
       } else if (id === "air") {
-        description.textContent = "No verified aircraft location source is connected to Third Eye.";
+        description.textContent = "Check public ADS-B aircraft reports for the London/CR4 area on demand. Position timestamps, coverage limits and provider credit shown. This is not a camera.";
+        if (config.thirdEyeAirLondonUrl) {
+          const check = actionButton("Check London aircraft reports", checkLondonAir);
+          check.disabled = !verifiedStatus;
+        }
+        setStatus(verifiedStatus ? "Aircraft source not checked in this session." : "Founder status not verified.");
       } else if (id === "space") {
-        description.textContent = "No orbital source or verified satellite observation is connected to Third Eye.";
+        description.textContent = "NASA daily London imagery, reported ISS position and CelesTrak orbital elements are separate on-demand sources. Imagery is not live video or guaranteed current-day capture.";
+        if (config.thirdEyeSpaceIssUrl) {
+          const iss = actionButton("Check ISS position", () => checkSpaceSource("iss"));
+          iss.disabled = !verifiedStatus;
+        }
+        if (config.thirdEyeSpaceOrbitUrl) {
+          const orbit = actionButton("Check ISS orbit elements", () => checkSpaceSource("orbit"));
+          orbit.disabled = !verifiedStatus;
+        }
+        if (config.thirdEyeSpaceImageryUrl) {
+          const dayInput = document.createElement("input");
+          dayInput.id = "smi-third-eye-nasa-date";
+          dayInput.className = "smi-third-eye-place";
+          dayInput.type = "date";
+          dayInput.setAttribute("aria-label", "Select a past day for NASA London imagery");
+          const utcDay = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
+          dayInput.value = utcDay;
+          dayInput.max = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+          dayInput.min = "2000-01-01";
+          actions.appendChild(dayInput);
+          const image = actionButton("Request NASA London imagery", () => showNasaLondonImage(dayInput.value));
+          image.disabled = !verifiedStatus;
+        }
+        setStatus(verifiedStatus ? "No orbital or imagery source checked yet." : "Founder status not verified.");
       } else if (id === "environment") {
         description.textContent = "Request real public Earth observations. Earthquakes use USGS; weather reuses OAP Ecosystem Intelligence. Neither is a camera or a live satellite image.";
         const refresh = actionButton("Check USGS earthquakes", checkEarth);
@@ -290,7 +318,7 @@
         verifiedStatus = state?.founder_private_only === true &&
           state?.sources?.public_cameras?.live_feed_proven === false &&
           state?.sources?.earthquakes?.feed_proven === false;
-        if (currentView === "environment" || currentView === "ground") selectView(currentView);
+        if (["environment", "ground", "air", "space"].includes(currentView)) selectView(currentView);
       } catch (error) {
         if (error?.name !== "AbortError") verifiedStatus = false;
       } finally {
@@ -406,6 +434,136 @@
       }
     }
 
+
+    function appendTruthRow(value) {
+      const row = document.createElement("li");
+      row.textContent = String(value).slice(0, 360);
+      events.appendChild(row);
+    }
+
+    async function checkLondonAir() {
+      if (!verifiedStatus || currentView !== "air" || !config.thirdEyeAirLondonUrl) return;
+      stopRequest();
+      events.replaceChildren();
+      setStatus("Requesting public ADS-B London source…");
+      const controller = new AbortController();
+      activeRequest = controller;
+      requestKind = "air";
+      try {
+        const data = await readJson(config.thirdEyeAirLondonUrl, controller.signal);
+        if (drawer.hidden || activeRequest !== controller || currentView !== "air") return;
+        if (data?.provider !== "adsb.lol" || !Array.isArray(data.positions) || !["fresh", "stale"].includes(data.freshness)) {
+          setStatus("London ADS-B source unavailable. Aircraft positions unverified.");
+          return;
+        }
+        const fresh = data.live_claim_allowed === true && data.freshness === "fresh";
+        lastEvidence = "adsb.lol · " + (fresh ? "fresh reports" : "stale/unverified") +
+          " · source " + label(data.provider_timestamp) +
+          " · public receiver coverage incomplete · ODbL 1.0";
+        setStatus(lastEvidence);
+        for (const plane of data.positions.slice(0, 20)) {
+          if (!Number.isFinite(plane?.latitude) || !Number.isFinite(plane?.longitude)) continue;
+          appendTruthRow(
+            label(plane.callsign, "Unlabelled aircraft") +
+            " · " + plane.latitude.toFixed(4) + ", " + plane.longitude.toFixed(4) +
+            " · observed " + label(plane.observed_at) +
+            " · altitude " + label(plane.altitude, "unknown")
+          );
+        }
+        if (!events.childElementCount) appendTruthRow("No recent public ADS-B positions in this sample. This does not prove no aircraft are present.");
+        appendTruthRow("Aircraft data © adsb.lol contributors (ODbL 1.0). Not a complete radar picture.");
+      } catch (error) {
+        if (error?.name !== "AbortError") setStatus("Aircraft source unavailable. No inferred aircraft positions.");
+      } finally {
+        if (activeRequest === controller) {
+          activeRequest = null;
+          requestKind = null;
+        }
+      }
+    }
+
+    async function checkSpaceSource(kind) {
+      if (!verifiedStatus || currentView !== "space") return;
+      const url = kind === "iss" ? config.thirdEyeSpaceIssUrl :
+        kind === "orbit" ? config.thirdEyeSpaceOrbitUrl : null;
+      if (!url) return;
+      stopRequest();
+      events.replaceChildren();
+      cameraFrame.hidden = true;
+      clearCameraMedia();
+      setStatus("Checking " + (kind === "iss" ? "ISS position" : "CelesTrak orbit elements") + "…");
+      const controller = new AbortController();
+      activeRequest = controller;
+      requestKind = kind;
+      try {
+        const data = await readJson(url, controller.signal);
+        if (drawer.hidden || activeRequest !== controller || currentView !== "space") return;
+        if (kind === "iss") {
+          if (data?.provider !== "Where the ISS at" ||
+              !Number.isFinite(data.latitude) || !Number.isFinite(data.longitude) ||
+              !["fresh", "stale"].includes(data.freshness)) {
+            setStatus("ISS position source unavailable. No coordinates claimed.");
+            return;
+          }
+          lastEvidence = "ISS · " + data.freshness + " · position observed " + label(data.observed_at);
+          setStatus(lastEvidence);
+          appendTruthRow("ISS · " + data.latitude.toFixed(4) + ", " + data.longitude.toFixed(4) +
+            " · altitude " + (Number.isFinite(data.altitude_km) ? data.altitude_km + " km" : "unknown"));
+          appendTruthRow("Calculated position from external orbit source. This does not mean the ISS is above London or visible.");
+        } else {
+          if (data?.provider !== "CelesTrak" || data?.position_propagated !== false ||
+              !data?.element_epoch || !data?.elements) {
+            setStatus("CelesTrak orbital elements unavailable. No orbital position inferred.");
+            return;
+          }
+          lastEvidence = "CelesTrak · published element epoch " + label(data.element_epoch) +
+            " · no local orbit propagation";
+          setStatus(lastEvidence);
+          const e = data.elements;
+          appendTruthRow("ISS elements · inclination " + String(e.inclination) +
+            "° · eccentricity " + String(e.eccentricity) +
+            " · mean motion " + String(e.mean_motion) + " rev/day");
+          appendTruthRow("Orbit elements are not live coordinates. Source minimum refresh interval: 2 hours.");
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") setStatus("Satellite source unavailable. No orbital data inferred.");
+      } finally {
+        if (activeRequest === controller) {
+          activeRequest = null;
+          requestKind = null;
+        }
+      }
+    }
+
+    function showNasaLondonImage(day) {
+      if (!verifiedStatus || currentView !== "space" || !config.thirdEyeSpaceImageryUrl ||
+          !/^\\d{4}-\\d{2}-\\d{2}$/.test(day)) return;
+      const url = new URL(config.thirdEyeSpaceImageryUrl, window.location.origin);
+      if (url.origin !== window.location.origin) return;
+      url.searchParams.set("day", day);
+      url.searchParams.set("requested_at", String(Date.now()));
+      clearCameraMedia();
+      events.replaceChildren();
+      cameraFrame.hidden = false;
+      cameraImage.alt = "NASA GIBS MODIS Terra true-colour layer requested for London on " + day;
+      cameraCaption.textContent = "NASA GIBS · MODIS Terra · requested imagery day " + day +
+        " · actual acquisition/scene coverage unverified · not live satellite video";
+      setStatus("Requesting NASA GIBS London imagery layer for " + day + "…");
+      cameraImage.onload = () => {
+        if (!drawer.hidden && currentView === "space") {
+          lastEvidence = "NASA GIBS raster received for requested date " + day +
+            ". Actual capture day and coverage not independently verified.";
+          setStatus(lastEvidence);
+        }
+      };
+      cameraImage.onerror = () => {
+        if (!drawer.hidden && currentView === "space") {
+          setStatus("NASA image unavailable. No imagery or acquisition claim.");
+          cameraFrame.hidden = true;
+        }
+      };
+      cameraImage.src = url.toString();
+    }
 
     async function loadLondonCameras(rawSearch = "", page = 1, radiusKm = 0) {
       if (!verifiedStatus || currentView !== "ground" || !config.thirdEyeLondonCamerasUrl) return;
