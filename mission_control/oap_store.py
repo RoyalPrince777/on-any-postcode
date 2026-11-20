@@ -465,6 +465,49 @@ def transport_manifest():
     return response
 
 
+def _transport_role_manifest(role: str) -> dict[str, object]:
+    """Distinct install identity; reuses the existing OAP Transport runtime."""
+    if role not in {"rider", "driver"}:
+        raise ValueError("invalid_transport_role")
+    label = role.title()
+    start = f"/transport/ride/{role}"
+    return {
+        "name": f"OAP {label} · ON ANY POSTCODE",
+        "short_name": f"OAP {label}",
+        "description": f"{label} access inside the existing OAP Global Transport system.",
+        "id": start,
+        "start_url": f"{start}?source=oap-transport",
+        "scope": "/",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
+        "orientation": "any",
+        "background_color": "#090909",
+        "theme_color": "#090909",
+        "prefer_related_applications": False,
+        "categories": ["travel", "navigation", "utilities"],
+        "icons": [
+            {"src": "/assets/oap-os-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+            {"src": "/assets/oap-os-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+        ],
+    }
+
+
+@bp.get("/transport/ride/rider/manifest.webmanifest")
+def transport_rider_manifest():
+    response = make_response(jsonify(_transport_role_manifest("rider")), 200)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
+@bp.get("/transport/ride/driver/manifest.webmanifest")
+def transport_driver_manifest():
+    response = make_response(jsonify(_transport_role_manifest("driver")), 200)
+    response.headers["Content-Type"] = "application/manifest+json"
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
+
 @bp.get("/oap-store/apps/oap.transport")
 def transport_store_entry():
     response = make_response(jsonify(dict(OAP_TRANSPORT)), 200)

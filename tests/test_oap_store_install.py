@@ -285,6 +285,27 @@ def test_oap_transport_is_a_separate_installable_os_entry(client):
     }
 
 
+def test_transport_rider_and_driver_have_distinct_install_identities(client):
+    for role in ("rider", "driver"):
+        base = f"/transport/ride/{role}"
+        response = client.get(f"{base}/manifest.webmanifest")
+        assert response.status_code == 200
+        assert response.content_type == "application/manifest+json"
+        manifest = response.get_json()
+        assert manifest["id"] == base
+        assert manifest["start_url"].split("?", 1)[0] == base
+        assert manifest["display"] == "standalone"
+        assert manifest["scope"] == "/"
+        assert {icon["sizes"] for icon in manifest["icons"]} == {"192x192", "512x512"}
+        page = client.get(base)
+        assert page.status_code == 200
+        assert f'rel="manifest" href="{base}/manifest.webmanifest"' in page.get_data(as_text=True)
+        assert f"Install OAP {role.title()}" in page.get_data(as_text=True)
+        assert "data-oap-install hidden" in page.get_data(as_text=True)
+        assert "Live dispatch and payment remain evidence-gated" in page.get_data(as_text=True)
+        assert page.headers["Cache-Control"] == "no-store, private"
+
+
 def test_transport_home_exposes_install_contract(client):
     response = client.get("/transport")
     body = response.get_data(as_text=True)

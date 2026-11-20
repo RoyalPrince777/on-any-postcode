@@ -300,5 +300,30 @@
     });
   })();
   </script>
+<script>
+/* Consume this tab's short-lived Ride draft once; never place locations in a URL. */
+(() => {
+  let draft;
+  try {
+    const raw = sessionStorage.getItem("oap_transport_ride_draft");
+    sessionStorage.removeItem("oap_transport_ride_draft");
+    if (raw) draft = JSON.parse(raw);
+  } catch (_) { return; }
+  if (!draft || typeof draft !== "object" ||
+      !Number.isFinite(draft.created) ||
+      Date.now() < draft.created ||
+      Date.now() - draft.created > 10 * 60 * 1000 ||
+      typeof draft.pickup !== "string" ||
+      typeof draft.destination !== "string" ||
+      !draft.pickup.trim() || !draft.destination.trim()) return;
+  const pickup = document.getElementById("pickup-query");
+  const destination = document.getElementById("destination-query");
+  const service = document.getElementById("service-type");
+  if (!pickup || !destination || !service) return;
+  pickup.value = draft.pickup.slice(0, 120);
+  destination.value = draft.destination.slice(0, 120);
+  service.value = draft.service === "ebike" ? "ebike" : "ride";
+})();
+</script>
 </body>
 </html>
