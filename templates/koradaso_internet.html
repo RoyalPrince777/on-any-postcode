@@ -96,7 +96,7 @@ body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{an
 <h4>Saved Places</h4>
 <button id="bookmark-add" type="button">+ Save Place</button>
 <ul id="bookmark-list" class="place-list" aria-label="Saved Places"></ul>
-<h4>Journey Threads · Recent OAP places</h4>
+<h4>Journey Threads · This session</h4>
 <ul id="recent-place-list" class="place-list" aria-label="Recently opened OAP destinations"></ul>
 <h4>Downloads</h4><p>Downloads are managed by your browser or Android. No private files are stored here.</p>
 <p class="note" id="places-note" role="status" aria-live="polite"></p>
@@ -107,7 +107,7 @@ body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{an
 <label for="reduce-motion"><input id="reduce-motion" type="checkbox"> Reduce motion</label>
 <h4>Search</h4><p>OAP Search is first-party. WWW Index results are not connected.</p>
 <h4>Privacy &amp; Security · Trust Lens</h4>
-<p>External HTTPS requires confirmation. Saved and recent places include approved public OAP routes only. My World remains behind Founder sign-in.</p>
+<p>External HTTPS requires confirmation. Saved Places require your action; recent public OAP routes last only for this session. My World remains behind Founder sign-in.</p>
 <button type="button" id="clear-browser-preferences">Clear local browser extras</button>
 <p id="settings-note" class="note" role="status"></p>
 <h4>About KORADASO</h4><p>Born Local. Built Global. First-party public browser home.</p>
@@ -178,8 +178,8 @@ function routeFromInput(){
 }
 function recordVisit(path){
  if(!allowedRoutes.has(path))return;
- const old=readList(localStorage,recentKey,12);
- saveList(localStorage,recentKey,[path].concat(old.filter(v=>v!==path)).slice(0,12),placeNote);
+ const old=readList(sessionStorage,recentKey,12);
+ saveList(sessionStorage,recentKey,[path].concat(old.filter(v=>v!==path)).slice(0,12),placeNote);
 }
 function renderList(id,storage,key,limit){
  const host=document.getElementById(id);
@@ -204,7 +204,7 @@ function renderList(id,storage,key,limit){
 function renderAll(){
  renderList("open-place-list",sessionStorage,openKey,8);
  renderList("bookmark-list",localStorage,bookmarksKey,12);
- renderList("recent-place-list",localStorage,recentKey,12);
+ renderList("recent-place-list",sessionStorage,recentKey,12);
 }
 document.getElementById("open-place-add").addEventListener("click",()=>{
  const route=routeFromInput();if(!route){placeNote.textContent="Open Places accepts approved public OAP routes only.";return;}
@@ -234,7 +234,7 @@ document.body.classList.toggle("reduce-motion",motion.checked);
 quiet.addEventListener("change",applyPreferences);motion.addEventListener("change",applyPreferences);
 document.getElementById("clear-browser-preferences").addEventListener("click",()=>{
  if(!window.confirm("Clear local public KORADASO Saved Places, recent places and preferences?"))return;
- try{localStorage.removeItem(bookmarksKey);localStorage.removeItem(recentKey);localStorage.removeItem(prefsKey);sessionStorage.removeItem(openKey);}catch(_){settingsNote.textContent="Storage unavailable; nothing was confirmed cleared.";return;}
+ try{localStorage.removeItem(bookmarksKey);localStorage.removeItem(prefsKey);sessionStorage.removeItem(recentKey);sessionStorage.removeItem(openKey);}catch(_){settingsNote.textContent="Storage unavailable; nothing was confirmed cleared.";return;}
  quiet.checked=false;motion.checked=false;document.body.classList.remove("quiet-appearance","reduce-motion");
  settingsNote.textContent="Local public browser extras cleared.";renderAll();
 });
