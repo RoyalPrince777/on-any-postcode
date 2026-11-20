@@ -107,6 +107,29 @@ def test_oap_android_webview_requires_explicit_world_open_web_consent():
     assert 'setOnCancelListener(dialog -> result.cancel())' in source
 
 
+def test_koradaso_public_https_confirmation_matches_android_webview():
+    """Android must recognise only the existing public KORADASO confirmation."""
+    source = SOURCE.read_text(encoding="utf-8")
+    template = Path("templates/koradaso_internet.html").read_text(encoding="utf-8")
+
+    assert '"/koradaso".equals(origin.getPath())' in source
+    assert '"/world".equals(origin.getPath())' in source
+    assert '"https".equalsIgnoreCase(origin.getScheme())' in source
+    assert 'certified.getHost().equalsIgnoreCase(origin.getHost())' in source
+    assert 'message.startsWith(prefix) && message.endsWith(suffix)' in source
+    assert 'String prefix = "OPEN WEB — "' in source
+    assert 'String suffix = " is outside OAP. Continue?"' in source
+    assert 'hostname.matches("[A-Za-z0-9.-]+")' in source
+    assert "if (!worldPrompt && !koradasoPrompt)" in source
+    assert "result.cancel();" in source
+    assert "result.confirm()" in source
+    assert 'setNegativeButton("Stay in KORADASO Internet"' in source
+    assert 'setNegativeButton("Stay in OAP World"' in source
+    assert 'window.confirm("OPEN WEB — "+url.hostname+" is outside OAP. Continue?")' in template
+    assert "url.protocol!==\"https:\"" in template
+
+
+
 def test_oap_android_root_back_never_reveals_blank_webview():
     source = SOURCE.read_text(encoding="utf-8")
     root_back = source.split("public void onBackPressed()", 1)[1].split("protected void onDestroy()", 1)[0]
