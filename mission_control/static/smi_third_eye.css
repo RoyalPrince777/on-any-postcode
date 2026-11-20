@@ -120,3 +120,13 @@
   font-size:.78rem;
 }
 .smi-third-eye-place:focus-visible{outline:2px solid #d8b965;outline-offset:2px}
+
+.smi-third-eye-camera-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+.smi-third-eye-camera-button{min-height:48px;border:1px solid #4c553f;border-radius:10px;padding:10px;background:#152218;color:#f2ebd2;font:inherit;font-size:.73rem;text-align:left;cursor:pointer}
+.smi-third-eye-camera-button:hover,.smi-third-eye-camera-button:focus-visible{border-color:#d8b965;outline-offset:2px}
+.smi-third-eye-camera-frame{margin:12px 0 0;padding:8px;border:1px solid #6b5534;border-radius:12px;background:#090d0a}
+.smi-third-eye-camera-frame[hidden]{display:none!important}
+.smi-third-eye-camera-frame img{display:block;width:100%;height:auto;max-height:46dvh;object-fit:contain;border-radius:8px;background:#080808}
+.smi-third-eye-camera-frame figcaption{font-size:.68rem;color:#d6d0bb;line-height:1.4;padding:8px 2px 1px}
+.smi-third-eye-attribution{display:flex;grid-column:1/-1;min-height:44px;align-items:center;color:#d8b965;font-size:.72rem;text-decoration:underline}
+@media(max-width:430px){.smi-third-eye-camera-list{grid-template-columns:1fr}}
