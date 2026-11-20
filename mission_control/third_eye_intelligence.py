@@ -175,7 +175,7 @@ def latest_earthquakes() -> dict[str, Any]:
 def parse_london_jamcams(payload: Any) -> list[dict[str, Any]]:
     """Extract only available public TfL road cameras with a vetted media host."""
     if not isinstance(payload, list):
-        raise ValueError("invalid_tfl_camera_catalogue")
+        raise TypeError("invalid_tfl_camera_catalogue")
     cameras: list[dict[str, Any]] = []
     for item in payload:
         if not isinstance(item, dict):
@@ -251,6 +251,8 @@ def london_jamcams(*, search: str = "") -> dict[str, Any]:
     else:
         cameras = cached[1]
     query = " ".join(search.lower().split())[:80]
+    if query == "london":
+        query = ""
     ranked = (
         [camera for camera in cameras if query in camera["name"].lower()]
         if query
