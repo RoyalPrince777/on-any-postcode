@@ -316,7 +316,7 @@ def test_tfl_rolling_clip_checks_catalogue_source_type_and_bounded_bytes(monkeyp
     monkeypatch.setattr(
         third_eye_intelligence, "london_jamcams", lambda: {"source_verified": True}
     )
-    sample = b"\\x00\\x00\\x00\\x1cftypisom0000"  # a short MP4 signature for parser verification
+    sample = bytes([0, 0, 0, 28]) + b"ftypisom0000"
 
     class Headers:
         def get_content_type(self):
