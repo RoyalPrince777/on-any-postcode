@@ -96,6 +96,7 @@ def test_koradaso_royal_compass_restores_useful_public_extras_without_private_da
         'koradaso_internet_logo.jpg',
         'id="browser-settings"',
         'id="open-place-add"',
+        'id="place-route"',
         'id="open-place-list"',
         'id="bookmark-add"',
         'id="bookmark-list"',

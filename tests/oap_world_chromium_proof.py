@@ -62,7 +62,7 @@ def main():
                 assert page.locator("img[src='/static/oap/koradaso_internet_logo.jpg']").evaluate("(img) => img.complete && img.naturalWidth > 0")
                 page.get_by_label("Compass browser menu").click()
                 expect(page.get_by_role("heading", name="Royal Compass")).to_be_visible()
-                page.locator("#address").fill("/arena")
+                page.locator("#place-route").select_option("/arena")
                 page.locator("#open-place-add").click()
                 expect(page.locator("#open-place-list a[href='/arena']")).to_have_count(1)
                 page.locator("#bookmark-add").click()

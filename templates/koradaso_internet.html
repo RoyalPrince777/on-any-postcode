@@ -29,7 +29,7 @@ a{color:inherit;text-decoration:none}button,input{font:inherit}button{cursor:poi
 .drawer-section h4{font-size:.86rem;margin:12px 0 6px;color:var(--soft)}
 .drawer-section p{color:var(--quiet);font-size:.82rem;margin:4px 0 10px}
 .drawer-section label{display:flex;gap:9px;align-items:center;min-height:44px}
-.drawer-section label input{accent-color:var(--gold);width:18px;height:18px}
+.drawer-section label input{accent-color:var(--gold);width:18px;height:18px}.drawer-section select{width:100%;min-height:46px;margin:5px 0 7px;padding:10px;border:1px solid #8f704e;border-radius:11px;background:#1b162b;color:#fff4dc}
 .drawer-links,.place-list{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0;padding:0;list-style:none}
 .drawer-links a,.place-list a{display:inline-flex;align-items:center;min-height:44px;border:1px solid #745c43;border-radius:10px;background:#1b162b;padding:8px 11px;font-size:.83rem;overflow-wrap:anywhere}
 .place-list li{display:flex;align-items:center;min-width:0;max-width:100%;border-radius:10px;background:#171328}
@@ -76,6 +76,20 @@ body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{an
 </section>
 <section class="drawer-section" aria-label="My Internet">
 <h3>My Internet</h3>
+<label for="place-route">Choose a public OAP place</label>
+<select id="place-route" aria-label="Choose public OAP place">
+<option value="">Current page or address-bar OAP route</option>
+<option value="/world">OAP World</option>
+<option value="/oap-map">Maps</option>
+<option value="/the-link">The Link</option>
+<option value="/the-spot">The Spot</option>
+<option value="/the-spot/market">Market</option>
+<option value="/arena">Arena</option>
+<option value="/studio">Studio</option>
+<option value="/library">Library</option>
+<option value="/store">OAP Store</option>
+<option value="/search">OAP Search</option>
+</select>
 <h4>Open Places · This session</h4>
 <button id="open-place-add" type="button">+ Open Place</button>
 <ul id="open-place-list" class="place-list" aria-label="Open Places"></ul>
@@ -154,6 +168,8 @@ function saveList(storage,key,value,status){
  try{storage.setItem(key,JSON.stringify(value));return true;}catch(_){if(status)status.textContent="Local browser storage unavailable.";return false;}
 }
 function routeFromInput(){
+ const selected=document.getElementById("place-route").value;
+ if(selected&&allowedRoutes.has(selected))return selected;
  const raw=field.value.trim();
  if(raw.startsWith("/")&&!raw.startsWith("//")){
   try{const u=new URL(raw,location.origin);return u.origin===location.origin&&allowedRoutes.has(u.pathname)?u.pathname:null;}catch(_){return null;}
