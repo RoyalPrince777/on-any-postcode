@@ -55,7 +55,7 @@
   const installed = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
   const fallbackInstruction = () => {
-    if (isAndroidEmbeddedView) return `Open this ${productName} page in your Android browser, then choose Install app or Add to Home screen. This embedded view cannot install it directly.`;
+    if (isAndroidEmbeddedView) return `This embedded OAP Home V2 view cannot install the PWA directly. Open this ${productName} page in your Android browser, then choose Install app or Add to Home screen.`;
     if (isIOS) return "In Safari, tap Share, then Add to Home Screen.";
     if (isMac && isSafari) return "In Safari, use File → Add to Dock. In a Chromium browser, use Install app.";
     if (isAndroid) return "Open the browser menu and choose Install app or Add to Home screen.";
@@ -69,7 +69,7 @@
   } else if (installed) {
     if (installButton) installButton.hidden = true;
     setStatus(["OAP PTT", "OAP Rider", "OAP Driver"].includes(productName)
-      ? `${productName} is open in standalone mode on ${platformName}; separate installation is not independently verified.`
+      ? `${productName} is open in a standalone window on ${platformName}; separate installation is not independently verified.`
       : `${productName} is installed on ${platformName}.`);
   } else if (!("serviceWorker" in navigator)) {
     if (installButton) installButton.hidden = false;
