@@ -311,13 +311,18 @@ def test_linkup_master_menu_is_only_linkups_ring_now_incoming_and_more():
     assert '>My Card</a>' in template
     assert '>Link Requests</a>' in template
     assert '>My Controls</a>' in template
+    # These feature sections are restored on the public page, never inside
+    # the protected chat workspace or its five-button private menu.
+    private_workspace = template.split(
+        '<main class="linkup-shell" aria-label="Private Link Up messenger">', 1
+    )[1]
     for removed in (
         "<strong>Discovery</strong>",
         "<strong>Spotlight</strong>",
         "Nearby People",
         "Community Signals",
     ):
-        assert removed not in template
+        assert removed not in private_workspace
 
 
 def test_empty_linkup_chat_has_real_next_actions():
