@@ -125,3 +125,67 @@ def test_company_intelligence_routes_exist():
 
     assert "/mission/company-intelligence" in rules
     assert "/mission/company-intelligence/status" in rules
+
+
+def test_company_department_map_reuses_canonical_evidence_without_inventing_activity():
+    evidence = {"states": {
+        "market_commerce": {"state": "PROVEN"},
+        "pricing_margin": {"state": "PROVEN"},
+        "company_registry": {"state": "CONFLICTING"},
+        "clothing_supplier": {"state": "UNAVAILABLE"},
+        "print_on_demand_supplier": {"state": "PROVEN"},
+        "music_catalogue": {"state": "PROVEN"},
+        "artist_rights": {"state": "UNKNOWN"},
+    }}
+    result = company_intelligence_runtime.department_map(
+        evidence, protocol_proven_count=28,
+    )
+    assert result["department_count"] == 8
+    assert result["protocol_proven_count"] == 28
+    assert result["operational_green"] is False
+    assert result["read_only"] is True
+    assert result["no_new_agent_or_brain"] is True
+    nodes = {node["id"]: node for node in result["departments"]}
+    assert set(nodes) == {
+        "sales", "deals", "marketing", "customer", "operations",
+        "back_office", "intelligence", "knowledge_base",
+    }
+    assert nodes["sales"]["source_state"] == "SOURCE_PROVEN"
+    assert nodes["sales"]["operational_state"] == "UNKNOWN"
+    assert nodes["back_office"]["source_state"] == "BLOCKED"
+    assert nodes["operations"]["source_state"] == "BLOCKED"
+    assert nodes["marketing"]["source_state"] == "UNKNOWN"
+    assert nodes["deals"]["source_state"] == "UNKNOWN"
+    assert all(node["execution_granted"] is False for node in nodes.values())
+    assert all(node["active_agents_claimed"] is False for node in nodes.values())
+    assert all(node["revenue_claimed"] is False for node in nodes.values())
+
+
+def test_company_department_map_fails_closed_when_evidence_missing_or_invalid():
+    for source in (None, [], {}, {"states": {"market_commerce": {
+        "state": "NOT_AN_EVIDENCE_STATE",
+    }}}):
+        result = company_intelligence_runtime.department_map(source)
+        assert len(result["departments"]) == 8
+        assert all(
+            node["source_state"] == "UNKNOWN"
+            for node in result["departments"]
+        )
+        assert all(node["operational_state"] == "UNKNOWN"
+                   for node in result["departments"])
+        assert result["operational_green"] is False
+
+
+def test_company_map_remains_collapsed_inside_existing_founder_only_page():
+    from pathlib import Path
+    from mission_control import company_intelligence_views
+
+    html = Path("mission_control/templates/company_intelligence.html").read_text()
+    assert '<details class="department-map"' in html
+    assert 'runtime.department_map.departments' in html
+    assert "Live activity: {{ department.operational_state }}" in html
+    assert "No automatic execution" in html
+    assert "/company-map" not in html
+    assert "founder_only=True" in Path(
+        company_intelligence_views.__file__
+    ).read_text()
