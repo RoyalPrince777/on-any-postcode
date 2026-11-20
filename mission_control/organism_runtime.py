@@ -128,6 +128,7 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
         "component": "24/7 Organism Runtime",
         "schema_ready": False,
         "worker_fresh": False,
+        "worker_state": "unknown",
         "queued": 0,
         "running": 0,
         "retry": 0,
@@ -170,14 +171,25 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
             result["running"] = int(counts.get("RUNNING", 0))
             result["retry"] = int(counts.get("RETRY", 0))
             result["dead_letter"] = int(counts.get("DEAD_LETTER", 0))
-            fresh = connection.execute(
-                """SELECT 1 FROM oap_runtime_workers
-                   WHERE status='ACTIVE'
-                     AND heartbeat_at >= CURRENT_TIMESTAMP - (%s * INTERVAL '1 second')
-                   LIMIT 1""",
+            # An ACTIVE database flag alone is not a living worker.
+            # Classify stale liveness explicitly without exposing host IDs.
+            worker_counts = connection.execute(
+                """SELECT
+                   COUNT(*) FILTER (WHERE status='ACTIVE'),
+                   COUNT(*) FILTER (
+                     WHERE status='ACTIVE'
+                       AND heartbeat_at >= CURRENT_TIMESTAMP - (%s * INTERVAL '1 second')
+                   )
+                   FROM oap_runtime_workers""",
                 (max(30, int(stale_after_seconds)),),
             ).fetchone()
-            result["worker_fresh"] = fresh is not None
+            active_count = int(worker_counts[0] or 0)
+            fresh_count = int(worker_counts[1] or 0)
+            result["worker_fresh"] = fresh_count > 0
+            result["worker_state"] = (
+                "fresh" if fresh_count else
+                "stale_active" if active_count else "not_running"
+            )
             result["ready"] = bool(result["schema_ready"] and result["worker_fresh"])
             return result
     except Exception:  # noqa: BLE001 - readiness degrades without exposing DB details.
