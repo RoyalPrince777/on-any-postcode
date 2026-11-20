@@ -49,6 +49,31 @@ def main():
                 expect(page.locator("#world-search-note")).to_contain_text("Stayed in OAP World")
                 assert page.url.startswith(BASE + "/world")
                 assert not errors, errors
+
+                # Reuse the same real browser session for public KORADASO;
+                # never visit the external destination when consent is denied.
+                browser_home = page.goto(BASE + "/koradaso")
+                assert browser_home is not None and browser_home.status == 200
+                expect(page.locator("#address")).to_be_visible()
+                expect(page.locator('a[href="/store"]')).to_have_count(1)
+                expect(page.locator('a[href="/my-world"]')).to_have_count(1)
+                page.locator("#address").fill("a search phrase")
+                page.get_by_role("button", name="GO").click()
+                expect(page.locator("#address-note")).to_contain_text("Search is not yet connected")
+                page.locator("#address").fill("http://example.org")
+                page.get_by_role("button", name="GO").click()
+                expect(page.locator("#address-note")).to_contain_text("valid HTTPS domains")
+
+                page.once("dialog", lambda dialog: dialog.dismiss())
+                page.locator("#address").fill("example.org")
+                page.get_by_role("button", name="GO").click()
+                expect(page.locator("#address-note")).to_contain_text("Stayed in KORADASO Internet")
+                assert page.url.startswith(BASE + "/koradaso")
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+                page.locator('a[href="/my-world"]').click()
+                assert page.url.startswith(BASE + "/enter-my-world")
+                assert "Founder Home doors" not in page.content()
+                assert not errors, errors
                 context.close()
             browser.close()
         print("OAP_WORLD_REAL_CHROMIUM_PASS")
