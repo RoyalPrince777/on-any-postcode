@@ -733,7 +733,7 @@ def test_transport_ride_draft_flows_to_existing_movement_booking_fields():
     assert 'sessionStorage.removeItem("oap_transport_ride_draft")' in workspace
     assert 'id="pickup-query"' in workspace
     assert 'id="destination-query"' in workspace
-    assert 'service.value = "ride"' in workspace
+    assert 'service.value = draft.service === "ebike" ? "ebike" : "ride"' in workspace
     assert "10 * 60 * 1000" in workspace
 
 
@@ -749,6 +749,12 @@ def test_ride_map_search_and_fare_do_not_claim_unverified_live_quotes():
     assert 'id="ride-pickup"' in html and 'id="ride-destination"' in html
     assert 'action="/movement/workspace#book-title"' in html
     assert "Price unavailable" in html
+    assert 'data-mode="ride"' in html
+    assert 'data-mode="ebike"' in html
+    assert 'data-mode="drive"' in html
+    assert 'id="map-alert"' in html
+    assert 'id="ride-action"' in html
+    assert 'map-intelligence/suggest' in html
     assert "Verified quote required" in html
     assert "£0" not in html
     assert 'aria-label="OAP Rides navigation"' in html
@@ -759,5 +765,8 @@ def test_ride_map_search_and_fare_do_not_claim_unverified_live_quotes():
     assert "oap-ride-embed" in map_template
     assert ".oap-ride-embed .search-card" in map_template
     assert ".oap-ride-embed .movement-actions" in map_template
+    assert ".oap-ride-embed .map-controls" in map_template
+    assert 'draft.service!=="drive"' in map_template
+    assert 'id="map-from"' in map_template
     assert 'href="/oap-map"' in html
     assert "oap_transport_ride_draft" in html
