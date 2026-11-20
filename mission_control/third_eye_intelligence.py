@@ -74,7 +74,7 @@ def parse_usgs_feed(payload: Any, *, now: datetime | None = None) -> dict[str, A
     metadata = payload.get("metadata")
     features = payload.get("features")
     if not isinstance(metadata, dict) or not isinstance(features, list):
-        raise ValueError("missing_feed_evidence")
+        raise TypeError("missing_feed_evidence")
     generated = metadata.get("generated")
     if not isinstance(generated, int) or isinstance(generated, bool) or generated <= 0:
         raise ValueError("missing_feed_timestamp")
