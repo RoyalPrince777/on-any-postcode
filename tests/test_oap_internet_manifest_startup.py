@@ -79,7 +79,7 @@ def test_my_world_uses_the_existing_public_browser_with_separate_permissions(
     assert 'href="/store" data-koradaso-store-entry' in page
     assert "Founder identity" not in page
     assert "Leave My World" not in page
-    assert "Search results are not connected" in page
+    assert "WWW Index results are not connected" in page
     assert 'window.confirm("OPEN WEB' in page
 
     founder = anonymous_client.get("/my-world")
@@ -88,3 +88,38 @@ def test_my_world_uses_the_existing_public_browser_with_separate_permissions(
     # The login gate returns a redirect, not the private Founder page.
     assert b"Founder identity" not in founder.data
     assert b"Leave My World" not in founder.data
+
+
+def test_koradaso_royal_compass_restores_useful_public_extras_without_private_data(client):
+    page = client.get("/koradaso").get_data(as_text=True)
+    for marker in (
+        'koradaso_internet_logo.jpg',
+        'id="browser-settings"',
+        'id="open-place-add"',
+        'id="open-place-list"',
+        'id="bookmark-add"',
+        'id="bookmark-list"',
+        'id="recent-place-list"',
+        'id="quiet-appearance"',
+        'id="reduce-motion"',
+        'id="clear-browser-preferences"',
+        'id="browser-back"',
+        'aria-label="KORADASO destinations"',
+        'href="/studio?source=koradaso"',
+        'href="/arena"',
+        'href="/library"',
+        'href="/oap-map"',
+        'href="/search"',
+        'href="/the-spot"',
+        'WWW Index — not connected',
+        'allowedRoutes=new Set(',
+        'if(window.confirm("OPEN WEB — "+url.hostname+" is outside OAP. Continue?"))',
+    ):
+        assert marker in page, marker
+    assert page.count('href="/my-world"') == 1
+    assert '"/my-world"' not in page.split("const allowedRoutes=new Set(", 1)[1].split(");", 1)[0]
+    assert "addJavascriptInterface" not in page
+
+    launch = client.get("/world?source=oap-os")
+    assert launch.status_code == 200
+    assert 'href="/koradaso"' in launch.get_data(as_text=True)

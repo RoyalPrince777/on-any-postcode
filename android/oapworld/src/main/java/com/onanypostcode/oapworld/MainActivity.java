@@ -325,6 +325,12 @@ public final class MainActivity extends ComponentActivity {
 
     private void openFirstPartyPath(String sourcePath, boolean recordHistory) {
         final String path = sourcePath == null || sourcePath.isEmpty() ? "/" : sourcePath;
+        // Interactive KORADASO features require real WebView JavaScript, not a
+        // flattened native document. No alternate origin or auth bypass.
+        if ("/koradaso".equals(Uri.parse(path).getPath())) {
+            loadWebViewUrl(OAP_ORIGIN + path);
+            return;
+        }
         int viewportWidth = engineScrollView != null && engineScrollView.getWidth() > 0
                 ? engineScrollView.getWidth()
                 : getResources().getDisplayMetrics().widthPixels;

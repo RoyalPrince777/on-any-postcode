@@ -151,3 +151,11 @@ def test_oap_android_external_navigation_invalidates_pending_native_response():
     cancel_body = client_source.split("public void cancelPending()", 1)[1].split("\n    }", 1)[0]
     assert "generation.incrementAndGet();" in cancel_body
     assert "generation.get() == requestGeneration" in client_source
+
+
+def test_android_koradaso_uses_real_webview_for_interactive_compass():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert '"/koradaso".equals(Uri.parse(path).getPath())' in source
+    assert 'loadWebViewUrl(OAP_ORIGIN + path);' in source
+    assert 'if ("/koradaso".equals(Uri.parse(path).getPath())) {' in source
+    assert 'private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com"' in source

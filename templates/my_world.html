@@ -14,7 +14,7 @@
 .identity{display:flex;gap:12px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:17px;background:var(--panel);margin-bottom:18px}.avatar{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:var(--gold);color:#17130a;font-size:1.25rem;font-weight:950}.identity strong,.identity span{display:block}.identity span{color:var(--muted);font-size:.8rem;margin-top:3px}
 .doors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.door{min-height:155px;padding:17px;border:1px solid var(--line);border-radius:21px;background:linear-gradient(145deg,#19170f,#0e0d0a);display:flex;flex-direction:column;justify-content:space-between}.door.final{background:var(--gold);color:#17130a;border-color:#ffe08a}.door .icon{font-size:1.7rem}.door strong{font-size:1.12rem}.door span{display:block;margin-top:5px;color:var(--muted);font-size:.8rem;line-height:1.35}.door.final span{color:#514119}
 .profile{margin-top:22px;padding:17px;border:1px solid var(--line);border-radius:20px;background:var(--panel)}.profile summary{cursor:pointer;font-weight:900;color:var(--gold)}.profile form{margin-top:15px}.profile label{display:block;margin-top:10px;font-weight:700}.profile input{width:100%;margin-top:6px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#090906;color:var(--text);font:inherit}.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.btn{padding:11px 13px;border:1px solid var(--line);border-radius:12px;background:#181610;color:var(--text);font:800 .84rem system-ui}.btn.primary{background:var(--gold);color:#17130a;border-color:#ffe08a}.btn.danger{background:var(--danger);color:#fff}
-.truth{margin-top:18px;color:var(--muted);font-size:.76rem;line-height:1.45}
+.founder-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 18px}.founder-tools a{display:grid;place-items:center;text-align:center;min-height:50px;border:1px solid #8f6b33;border-radius:13px;background:#1b1320;color:var(--gold);font-weight:850}.founder-tools a:focus-visible{outline:3px solid #d9b0ff;outline-offset:3px}.truth{margin-top:18px;color:var(--muted);font-size:.76rem;line-height:1.45}
 .bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(980px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:5px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:#0b0a08f2;backdrop-filter:blur(14px)}.bottom a{padding:7px 2px;text-align:center;color:var(--muted);font-size:.68rem}.bottom b{display:block;color:var(--gold);font-size:1.05rem;margin-bottom:2px}
 @media(min-width:760px){.doors{grid-template-columns:repeat(4,minmax(0,1fr))}.door.final{grid-column:span 2}}
 </style>
@@ -42,6 +42,10 @@
 </div>
 </section>
 
+<nav class="founder-tools" aria-label="Founder SMI controls">
+<a href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a>
+<a href="{{ url_for('mission_control.war_room_dashboard') }}">⚔️ WAR ROOM</a>
+</nav>
 <nav class="doors" aria-label="Founder Home doors">
 <a class="door" href="/oap-map">
 <span class="icon">🌍</span><div><strong>World</strong><span>Maps, Eats, Rides, travel and movement.</span></div>
@@ -77,8 +81,6 @@
 <input id="my-world-nickname" name="nickname" value="{{ profile.nickname }}" maxlength="80" required>
 <div class="row">
 <button class="btn primary" type="submit">Save My Card</button>
-<a class="btn" href="{{ url_for('mission_control.ollama_chat_dashboard') }}">🧠 SMI</a>
-<a class="btn" href="{{ url_for('mission_control.war_room_dashboard') }}">⚔️ War Room</a>
 </div>
 </form>
 {% endif %}
