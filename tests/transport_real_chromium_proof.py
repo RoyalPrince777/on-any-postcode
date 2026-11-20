@@ -149,6 +149,27 @@ def prove_transport(browser, viewport):
             assert href and href.startswith("/"), (route, label, href)
             assert_navigation_target(context, href)
 
+    # Check only the newly added Rider/Driver install surfaces in this existing
+    # real-browser run; standalone installation on a physical phone is separate.
+    for role in ("rider", "driver"):
+        route = f"/transport/ride/{role}"
+        page.goto(BASE + route, wait_until="domcontentloaded")
+        expect(page.locator('link[rel="manifest"]')).to_have_attribute(
+            "href", f"{route}/manifest.webmanifest"
+        )
+        assert page.locator("button[data-oap-install]").count() == 1
+        assert page.locator('script[src="/assets/oap-os.js"]').count() == 1
+        assert_layout(page)
+        tiles = page.locator("section.grid a.btn")
+        for index in range(tiles.count()):
+            bounds = tiles.nth(index).bounding_box()
+            assert bounds and bounds["width"] >= 120 and bounds["height"] >= 44
+        manifest_result = context.request.get(BASE + f"{route}/manifest.webmanifest")
+        assert manifest_result.status == 200
+        manifest = manifest_result.json()
+        assert manifest["id"] == route
+        assert manifest["start_url"].split("?", 1)[0] == route
+
     # Explicitly prove the direct Global Transport ride aliases exist and redirect
     # to their durable Movement owners instead of dead-ending.
     aliases = (
