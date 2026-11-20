@@ -590,7 +590,7 @@ def parse_celestrak_iss_csv(raw: bytes) -> dict[str, Any]:
         raise ValueError("iss_orbital_elements_not_found")
     epoch = str(row.get("EPOCH") or "").strip()
     try:
-        observation = datetime.fromisoformat(epoch.replace("Z", "+00:00"))
+        observation = datetime.fromisoformat(epoch)
     except ValueError as error:
         raise ValueError("invalid_celestrak_epoch") from error
     if observation.tzinfo is None:
