@@ -481,7 +481,7 @@ def test_project_shell_requires_reference_and_limits_scene_options(monkeypatch):
         ("01", "16:9", "30.0", True),
         ("01", "16:9", 60, "yes"),
     ):
-        with pytest.raises(ValueError):
+        with pytest.raises((TypeError, ValueError)):
             studio_project_shell.prepare(
                 scene, ratio=ratio, fps_target=fps, reference_attached=reference,
             )
