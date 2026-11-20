@@ -108,10 +108,25 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
                     log_analysis = smi_github_failure_evidence.inspect_failed_job_logs(
                         failure, token=github_token,
                     )
+                    # Reading a log is not proof that its cause was identified.
+                    classified = (
+                        log_analysis.get("ready") is True
+                        and log_analysis.get("classified") is True
+                    )
+                    swot = smi_auto.evidence_swot_for_failed_build(
+                        {**failure, "log_analysis": log_analysis},
+                    )
                     entry = {**entry, "automatic_failure_diagnosis": {
                         "failed_jobs": len(failure.get("failed_jobs", ())),
                         "log_categories": log_analysis.get("log_categories", ()),
-                        "verified": log_analysis.get("ready") is True,
+                        "log_evidence_retrieved": log_analysis.get("ready") is True,
+                        "classification": log_analysis.get("classification", "unknown"),
+                        "verified": classified,
+                        "repair_authorized": False,
+                        "next_safe_action": (
+                            swot.get("next_action") if swot.get("ready") is True
+                            else "Review unclassified failure before proposing a fix."
+                        ),
                     }}
             mission_continuity.append(entry)
         github_evidence = {
