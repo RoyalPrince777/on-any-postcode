@@ -16,6 +16,7 @@ from . import (
     smi_completion_contract,
     smi_deep_dive_protocol,
     smi_function_health,
+    third_eye_intelligence,
     smi_proof_gate,
     smi_receipt_backend,
     war_room_simulation_actions,
@@ -29,6 +30,20 @@ def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@bp.get("/smi/third-eye/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_status():
+    """Founder-private, no-network Third Eye source truth."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.status())))
+
+
+@bp.get("/smi/third-eye/earthquakes")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_earthquakes():
+    """Founder-requested bounded read of a fixed, public USGS feed."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.latest_earthquakes())))
 
 
 @bp.get("/war-room/deep-dive")
