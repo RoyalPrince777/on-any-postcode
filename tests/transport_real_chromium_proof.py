@@ -170,6 +170,27 @@ def prove_transport(browser, viewport):
         assert manifest["id"] == route
         assert manifest["start_url"].split("?", 1)[0] == route
 
+    # Real phone-width Ride controls: OAP Ride, E-Bike and own-car Drive are
+    # selections, not three duplicate applications or fake live operator quotes.
+    result = page.goto(BASE + "/transport/ride", wait_until="domcontentloaded")
+    assert result is not None and result.status == 200
+    assert_layout(page)
+    expect(page.locator("#ride-map")).to_be_visible()
+    expect(page.locator("#ride-pickup")).to_be_visible()
+    expect(page.locator("#ride-destination")).to_be_visible()
+    expect(page.get_by_text("Price unavailable", exact=True)).to_be_visible()
+    mode_buttons = page.locator('nav[aria-label="Transport mode"] button')
+    expect(mode_buttons).to_have_count(3)
+    page.locator('button[data-mode="ebike"]').click()
+    expect(page.locator('button[data-mode="ebike"]')).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#ride-action")).to_have_text("Continue to E-Bike request")
+    page.locator('button[data-mode="drive"]').click()
+    expect(page.locator("#ride-action")).to_have_text("Plan drive")
+    expect(page.locator("#ride-fare")).to_contain_text("no fare")
+    page.locator('button[data-mode="ride"]').click()
+    expect(page.locator("#ride-action")).to_have_text("Continue to booking")
+    assert_layout(page)
+
     # Explicitly prove the direct Global Transport ride aliases exist and redirect
     # to their durable Movement owners instead of dead-ending.
     aliases = (
