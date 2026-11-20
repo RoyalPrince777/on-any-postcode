@@ -120,6 +120,15 @@ def test_organism_page_is_read_only_and_does_not_create_database(
     assert "Human approval required" in page
     assert "SMI" in page
     assert "Soul–Mind–Body" in page
+    assert "Full Organism · Offline Readiness" in page
+    assert "Fox · Offline / local-first recovery route" in page
+    assert "Local route:" in page
+    assert "Live offline runtime unverified" in page
+    assert "offline proof unknown" not in page
+    assert "An offline page grants no execution" in page
+    for organ in organism.BODY_ORGANS:
+        assert organ["name"] in page
+    assert response.headers["Cache-Control"] == "no-store"
     assert "Kaa" not in page
     assert "Council" not in page
     assert not database_path.exists()
