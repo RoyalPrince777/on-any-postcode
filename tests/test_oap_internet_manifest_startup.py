@@ -58,3 +58,31 @@ def test_koradaso_links_to_existing_store_and_spot_without_duplicate_install_cla
     store = client.get("/store")
     assert store.status_code == 200
     assert "OAP Store" in store.get_data(as_text=True)
+
+
+def test_my_world_uses_the_existing_public_browser_with_separate_permissions(
+    anonymous_client,
+):
+    """One browser entry; no public rendering of the private Founder interface."""
+    private_html = (ROOT / "templates" / "my_world.html").read_text(encoding="utf-8")
+    assert 'aria-label="Public OAP destinations"' in private_html
+    assert private_html.count('href="/koradaso"') == 1
+    assert private_html.count('href="/world"') == 1
+    assert 'href="/"' not in private_html.split('</header>', 1)[0]
+
+    browser = anonymous_client.get("/koradaso")
+    assert browser.status_code == 200
+    assert browser.headers["Cache-Control"] == "no-store"
+    page = browser.get_data(as_text=True)
+    assert page.count('href="/my-world"') == 1
+    assert "Enter My World" in page
+    assert 'href="/store" data-koradaso-store-entry' in page
+    assert "Founder identity" not in page
+    assert "Leave My World" not in page
+    assert "Search results are not connected" in page
+    assert 'window.confirm("OPEN WEB' in page
+
+    founder = anonymous_client.get("/my-world")
+    assert founder.status_code == 302
+    assert "/enter-my-world?next=" in founder.headers["Location"]
+    assert founder.headers["Cache-Control"] == "no-store"
