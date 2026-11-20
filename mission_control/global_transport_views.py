@@ -474,6 +474,90 @@ def transport_status_page():
     )))
 
 
+# Founder-private oversight uses existing transport evidence; never creates
+# a competing dispatch, approval, payments or booking backend.
+_FOUNDER_TRANSPORT_CONTROLS = (
+    ("🧠 SMI", "Give SMI a transport mission", "/mission/ollama"),
+    ("⚔️ WAR ROOM", "Inspect blockers, evidence and recovery", "/mission/war-room"),
+    ("🚗 Movement", "Open existing signed-in booking and work controls", "/movement/workspace"),
+    ("📦 Logistics", "Review owned distribution workspace", "/distribution"),
+    ("🛡️ Guardian", "Inspect the existing journey safety surface", "/transport/guardian"),
+    ("🧾 Evidence", "Check exact transport execution requirements", "/transport/control-center/readiness"),
+    ("📜 HRM Receipts", "Inspect existing SMI governance receipts", "/mission/smi/brain/receipts"),
+    ("👑 Founder Final", "Open the existing Founder judgement gate", "/mission/judgement"),
+)
+
+_FOUNDER_TRANSPORT_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090909">
+<title>Transport Control · Founder My World</title>
+<style>
+:root{color-scheme:dark;--bg:#090909;--panel:#181712;--gold:#efd076;--edge:#393327;--muted:#c0b9a8}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:940px;margin:auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(55px + env(safe-area-inset-bottom))}
+a{color:inherit;text-decoration:none}
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.top a{display:inline-flex;align-items:center;min-height:44px;color:var(--gold);font-weight:750}
+.eyebrow{margin:25px 0 6px;font-size:.76rem;font-weight:900;color:var(--gold);letter-spacing:.09em}
+h1{font-size:clamp(2.1rem,9vw,3.9rem);line-height:1.02;margin:0 0 10px;letter-spacing:-.045em}
+.lead{max-width:700px;color:var(--muted);margin:0 0 22px}
+.summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:24px}
+.panel,.control{border:1px solid var(--edge);border-radius:17px;background:var(--panel);padding:16px;min-width:0}
+.panel span{color:var(--muted);font-size:.79rem}.panel strong{display:block;margin-top:6px;line-height:1.3;color:var(--gold);overflow-wrap:anywhere}
+h2{margin:28px 0 12px;font-size:1.15rem}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.control{display:flex;flex-direction:column;justify-content:center;min-height:94px;gap:5px}
+.control strong{font-size:1rem;color:#f8e0a0}.control span{color:var(--muted);font-size:.83rem}
+.control:first-child{border-color:#9c8040}
+.gate{border-bottom:1px solid var(--edge);padding:11px 0;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.gate span{overflow-wrap:anywhere}.gate small{color:var(--muted);text-align:right}
+.notice{margin:22px 0 0;padding:13px 15px;background:#231e15;border-left:3px solid var(--gold);font-size:.86rem;color:#d9d1c2}
+a:hover,a:focus-visible{border-color:var(--gold)}a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:320px){.grid,.summary{grid-template-columns:1fr}}
+</style></head><body><main>
+<nav class="top"><a href="/my-world">← My World</a><a href="/transport/my">My Transport · Customer</a></nav>
+<p class="eyebrow">FOUNDER PRIVATE · SMI GOVERNED</p>
+<h1>Global Transport<br>Control Room</h1>
+<p class="lead">One system. Public customers and drivers use Transport; only your authorised Founder identity can access the control room.</p>
+<section class="summary" aria-label="Live proof position">
+<div class="panel"><span>Software capabilities</span><strong>21 registered</strong></div>
+<div class="panel"><span>Real-world transport execution</span>
+<strong>{% if not evidence_reachable %}Unknown · blocked{% elif externally_verified %}Independent proof required{% elif recorded %}References recorded · not independently verified{% else %}Not authorised{% endif %}</strong></div>
+</section>
+<h2>Command controls</h2>
+<nav class="grid" aria-label="Founder Transport command controls">
+{% for name, detail, href in controls %}
+<a class="control" href="{{ href }}"><strong>{{ name }}</strong><span>{{ detail }}</span></a>
+{% endfor %}
+</nav>
+<h2>Execution gates · {{ areas|length }}</h2>
+<section aria-label="Transport gate evidence">
+{% for key, area in areas.items() %}
+<div class="gate"><span>{{ key.replace("_", " ").title() }}</span>
+<small>{% if not evidence_reachable %}Unknown · blocked{% elif area.live_execution_authorised %}References recorded · verify externally{% else %}Locked · {{ area.missing|length }} requirements outstanding{% endif %}</small></div>
+{% endfor %}
+</section>
+<div class="notice">No booking, dispatch, payments, tracking feed or vehicle control is unlocked by this screen. Guardian, HRM and Founder Final remain independent gates. Missing proof never becomes Green.</div>
+</main></body></html>"""
+
+
+@bp.get("/my-world/transport-control")
+@web_security.login_required(founder_only=True)
+def founder_transport_control_room():
+    """Founder-only command links and evidence status, without execution bypass."""
+    readiness = execution_readiness()
+    return _no_store(make_response(render_template_string(
+        _FOUNDER_TRANSPORT_PAGE,
+        controls=_FOUNDER_TRANSPORT_CONTROLS,
+        areas=readiness.get("areas") or {},
+        evidence_reachable=readiness.get("evidence_store_reachable") is True,
+        recorded=readiness.get("live_execution_authorised") is True,
+        externally_verified=readiness.get("software_verified_external_authenticity") is True,
+    )))
+
+
 @bp.get("/transport/logistics")
 def transport_logistics_home():
     """Public navigation only; distribution, booking and dispatch stay gated."""
