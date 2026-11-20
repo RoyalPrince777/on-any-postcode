@@ -49,7 +49,9 @@
       '<div class="smi-third-eye-detail-header"><small id="smi-third-eye-detail-state" class="smi-third-eye-detail-state"></small><h3 id="smi-third-eye-detail-title"></h3><p id="smi-third-eye-detail-copy"></p></div>',
       '<div class="smi-third-eye-detail-actions" id="smi-third-eye-detail-actions"></div>',
       '<div id="smi-third-eye-status" class="smi-third-eye-status" role="status" aria-live="polite">Source not checked.</div>',
-      '<ol id="smi-third-eye-events" class="smi-third-eye-events" aria-label="USGS earthquake observations"></ol>',
+      '<ol id="smi-third-eye-events" class="smi-third-eye-events" aria-label="Earth observations"></ol>',
+      '<div id="smi-third-eye-camera-list" class="smi-third-eye-camera-list" aria-label="TfL London traffic camera selection"></div>',
+      '<figure id="smi-third-eye-camera-frame" class="smi-third-eye-camera-frame" hidden><img id="smi-third-eye-camera-image" alt="Selected TfL public traffic camera still" loading="lazy" decoding="async"><figcaption id="smi-third-eye-camera-caption"></figcaption></figure>',
       '</section>',
       '<footer class="smi-third-eye-foot">No hidden tracking · No automatic recording · Founder Final</footer>'
     ].join("");
@@ -65,6 +67,10 @@
     const actions = drawer.querySelector("#smi-third-eye-detail-actions");
     const status = drawer.querySelector("#smi-third-eye-status");
     const events = drawer.querySelector("#smi-third-eye-events");
+    const cameraList = drawer.querySelector("#smi-third-eye-camera-list");
+    const cameraFrame = drawer.querySelector("#smi-third-eye-camera-frame");
+    const cameraImage = drawer.querySelector("#smi-third-eye-camera-image");
+    const cameraCaption = drawer.querySelector("#smi-third-eye-camera-caption");
     let activeRequest = null;
     let requestKind = null;
     let verifiedStatus = false;
@@ -152,6 +158,9 @@
       description.textContent = "";
       actions.replaceChildren();
       events.replaceChildren();
+      cameraList.replaceChildren();
+      cameraFrame.hidden = true;
+      cameraImage.removeAttribute("src");
       status.hidden = false;
       setStatus(view.state);
       drawer.scrollTop = 0;
@@ -163,7 +172,20 @@
         refresh.id = "smi-third-eye-refresh";
         refresh.disabled = !verifiedStatus;
       } else if (id === "ground") {
-        description.textContent = "The phone camera is handled by SMI Face Up, with explicit device permission. Public camera feeds are not connected.";
+        description.textContent = "View London public TfL traffic-camera stills inside SMI or use Face Up for your own phone camera. TfL images generally update every few minutes; this is not continuous video.";
+        if (config.thirdEyeLondonCamerasUrl && config.thirdEyeLondonFrameUrl) {
+          const search = document.createElement("input");
+          search.type = "search";
+          search.id = "smi-third-eye-london-place";
+          search.className = "smi-third-eye-place";
+          search.maxLength = 80;
+          search.autocomplete = "off";
+          search.placeholder = "Area e.g. Mitcham (blank = central)";
+          search.setAttribute("aria-label", "Search TfL public London camera locations");
+          actions.appendChild(search);
+          const find = actionButton("View London cameras", () => loadLondonCameras(search.value));
+          find.disabled = !verifiedStatus;
+        }
         actionButton("Open existing Face Up", () => {
           const existing = document.getElementById("faceup-button");
           if (!existing) {
@@ -344,6 +366,87 @@
           if (button) button.disabled = false;
         }
       }
+    }
+
+
+    async function loadLondonCameras(rawSearch) {
+      if (!verifiedStatus || currentView !== "ground" || !config.thirdEyeLondonCamerasUrl) return;
+      stopRequest();
+      cameraList.replaceChildren();
+      cameraFrame.hidden = true;
+      cameraImage.removeAttribute("src");
+      const query = label(rawSearch, "").slice(0, 80);
+      const controller = new AbortController();
+      activeRequest = controller;
+      requestKind = "london";
+      try {
+        const url = new URL(config.thirdEyeLondonCamerasUrl, window.location.origin);
+        if (url.origin !== window.location.origin) throw new Error("cross_origin_blocked");
+        if (query) url.searchParams.set("q", query);
+        setStatus("Checking public TfL London road cameras…");
+        const data = await readJson(url.toString(), controller.signal);
+        if (drawer.hidden || currentView !== "ground" || activeRequest !== controller) return;
+        if (data?.source_verified !== true || data?.provider !== "Transport for London (TfL)") {
+          setStatus("TfL camera catalogue unavailable. No live camera claim.");
+          return;
+        }
+        const list = Array.isArray(data.cameras) ? data.cameras.slice(0, 12) : [];
+        for (const cam of list) {
+          if (!/^\d{5}\.\d{5}$/.test(cam?.id) || typeof cam?.name !== "string") continue;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "smi-third-eye-camera-button";
+          button.textContent = "📷 " + cam.name.slice(0, 100);
+          button.addEventListener("click", () => showLondonCamera(cam));
+          cameraList.appendChild(button);
+        }
+        setStatus(cameraList.childElementCount
+          ? "TfL camera locations received. Choose a public road camera to request its latest still."
+          : "No available TfL cameras match that London area.");
+        const attribution = document.createElement("a");
+        attribution.textContent = "Powered by TfL Open Data · Terms";
+        attribution.href = "https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service";
+        attribution.target = "_blank";
+        attribution.rel = "noopener noreferrer";
+        attribution.className = "smi-third-eye-attribution";
+        cameraList.appendChild(attribution);
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          setStatus("TfL source unavailable. Live London camera images not verified.");
+        }
+      } finally {
+        if (activeRequest === controller) {
+          activeRequest = null;
+          requestKind = null;
+        }
+      }
+    }
+
+    function showLondonCamera(camera) {
+      if (currentView !== "ground" || drawer.hidden || !config.thirdEyeLondonFrameUrl) return;
+      const id = String(camera.id || "");
+      if (!/^\d{5}\.\d{5}$/.test(id)) return;
+      const base = new URL(
+        config.thirdEyeLondonFrameUrl.replace("__CAMERA_ID__", encodeURIComponent(id)),
+        window.location.origin
+      );
+      if (base.origin !== window.location.origin) return;
+      base.searchParams.set("requested_at", String(Date.now()));
+      cameraFrame.hidden = false;
+      cameraCaption.textContent = camera.name.slice(0, 100) + " · Powered by TfL Open Data · Capture time not supplied";
+      setStatus("Loading selected TfL camera still through SMI…");
+      cameraImage.onload = () => {
+        if (!drawer.hidden && currentView === "ground") {
+          setStatus("TfL road camera image received. Exact capture time unknown; not continuous live video.");
+        }
+      };
+      cameraImage.onerror = () => {
+        if (!drawer.hidden && currentView === "ground") {
+          setStatus("Camera image currently unavailable. No live claim.");
+        }
+      };
+      cameraImage.src = base.toString();
+      cameraFrame.scrollIntoView({block: "nearest", behavior: "instant"});
     }
 
     function closeDrawer() {
