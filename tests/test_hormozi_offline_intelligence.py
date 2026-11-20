@@ -1,6 +1,5 @@
 from mission_control import hormozi_offline_intelligence as offline
 
-
 NOW = "2026-10-03T06:00:00+00:00"
 
 
