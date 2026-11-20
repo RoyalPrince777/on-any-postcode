@@ -322,7 +322,7 @@
   if (!pickup || !destination || !service) return;
   pickup.value = draft.pickup.slice(0, 120);
   destination.value = draft.destination.slice(0, 120);
-  service.value = "ride";
+  service.value = draft.service === "ebike" ? "ebike" : "ride";
 })();
 </script>
 </body>
