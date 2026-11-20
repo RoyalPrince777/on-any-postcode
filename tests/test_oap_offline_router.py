@@ -1,6 +1,5 @@
 from mission_control import oap_offline_router as router
 
-
 EXPECTED_DOMAINS = (
     "infrastructure",
     "trust_identity",
