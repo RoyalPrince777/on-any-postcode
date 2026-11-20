@@ -973,9 +973,12 @@ cosmetic Green, percentages or another approval stage.
 
 The uploaded `27803.jpg` is preserved byte-for-byte as
 `static/oap/smi_founder_command_reference.jpg`. The existing private
-`smi_visual_home.html` renders the character with CSS clipping and the map/globe
-with SVG viewports, preserving the supplied identity instead of generating a new
-face. These are decorative artwork regions; the reference's baked-in counts and
+`smi_visual_home.html` uses a transparent character extraction in
+`static/oap/smi_founder_character.png`, derived from that reference with the built-in
+image editor, and SVG viewports for the original map/globe. The edit prompt was:
+“Extract only the central SMI woman; remove all surrounding UI/background; preserve
+her face, hair, outfit, leaning pose and both hands; true alpha transparency.”
+The original reference is retained; this edit is not a pixel-identical cutout proof. These are decorative artwork regions; the reference's baked-in counts and
 Green statuses are excluded from the rendered telemetry panels.
 
 Desktop restores the left OAP World rail, central SMI, flanking intelligence

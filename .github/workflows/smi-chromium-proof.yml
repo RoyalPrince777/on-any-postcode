@@ -6,6 +6,7 @@ on:
       - "mission_control/templates/ollama_chat*.html"
       - "mission_control/templates/smi_visual_home.html"
       - "static/oap/smi_founder_command_reference.jpg"
+      - "static/oap/smi_founder_character.png"
       - "mission_control/static/smi_*.js"
       - "mission_control/static/smi_*.css"
       - "mission_control/smi_chat_runtime.py"

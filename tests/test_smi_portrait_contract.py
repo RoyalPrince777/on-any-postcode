@@ -4,7 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = ROOT / "mission_control/templates/smi_visual_home.html"
-ASSET = ROOT / "static/oap/smi_founder_command_reference.jpg"
+ASSET = ROOT / "static/oap/smi_founder_character.png"
 
 class SMIPortraitContract(unittest.TestCase):
     @classmethod
@@ -17,6 +17,7 @@ class SMIPortraitContract(unittest.TestCase):
 
     def test_artwork_is_the_existing_smi_identity(self):
         self.assertIn("/static/oap/smi_founder_command_reference.jpg", self.html)
+        self.assertIn("/static/oap/smi_founder_character.png", self.html)
         self.assertIn("SMI central command", self.html)
 
     def test_unverified_telemetry_not_presented_as_live(self):

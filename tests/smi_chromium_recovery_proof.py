@@ -228,7 +228,7 @@ def prove_reference_dashboard(context, base_url):
         page.on("request", lambda request, sink=requested: sink.append(request.url))
         page.goto(base_url + "/mission/smi", wait_until="networkidle")
         expect(page.locator(".character-art img")).to_be_visible()
-        assert page.locator(".character-art img").evaluate("img => img.complete && img.naturalWidth === 1536")
+        assert page.locator(".character-art img").evaluate("img => img.complete && img.naturalWidth > 1000")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), width
         assert not any("/mission/ollama" in url or "/mission/smi/status" in url for url in requested)
         expect(page.locator(".smi-support-nav a")).to_have_count(5)
@@ -269,6 +269,7 @@ def prove_reference_dashboard(context, base_url):
         expect(page.locator("#smi-chat-panel")).to_be_visible()
         expect(page.locator("#smi-chat-frame")).to_have_attribute("src", "/mission/ollama")
         assert page.locator(".shell").evaluate("node => node.inert")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), (width, "open chat")
         page.locator("#smi-chat-close").click()
         expect(page.locator("#smi-chat-panel")).not_to_be_visible()
         assert page.locator("#smi-chat-frame").get_attribute("src") is None
