@@ -120,9 +120,13 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert 'href="/linkup?intent=message"' in page
     assert page.count('href="/linkup?intent=message"') == 1
     assert page.count('aria-label="Link Up public bottom navigation"') == 1
-    assert "Nearby People" not in page
-    assert "Spotlight" not in page
-    assert "Community Signals" not in page
+    assert "Nearby People" in page
+    assert "Spotlight" in page
+    assert "Community Signals" in page
+    assert "Live nearby people are not verified." in page
+    assert "no invented trending counts." in page
+    assert 'aria-label="Link Up desktop navigation"' in page
+    assert 'aria-label="Link Up public features"' in page
     assert 'aria-label="Private Link Up messenger"' not in page
     assert 'data-linkup-search' not in page
     assert "Enter My World" not in page
@@ -451,3 +455,18 @@ def test_combined_guest_menu_keeps_one_route_per_core_destination(anonymous_clie
     assert 'class="linkup-topbar linkup-guest-topbar"' in public_html
     for path in ("/store", "/oap-map", "/movement"):
         assert anonymous_client.get(path).status_code in (200, 302)
+
+def test_public_linkup_restored_royal_reference_navigation(anonymous_client):
+    page = anonymous_client.get("/linkup").get_data(as_text=True)
+    css = Path("static/linkup_messenger.css").read_text(encoding="utf-8")
+    script = Path("static/linkup_public_ui.js").read_text(encoding="utf-8")
+    assert 'data-oap-public-filter' in page
+    assert 'aria-label="Link Up category shortcuts"' in page
+    assert 'aria-label="Desktop Link Up panels"' in page
+    assert page.count('href="/linkup?intent=message"') == 1
+    assert page.count('class="linkup-card-summary"') == 1
+    assert 'aria-label="Private Link Up messenger"' not in page
+    assert 'data-oap-call-control' not in page
+    assert ".linkup-rich-layout{display:grid;grid-template-columns:170px minmax(0,1fr) 215px" in css
+    assert ".linkup-rich-features{grid-template-columns:repeat(3,minmax(0,1fr))" in css
+    assert "fetch(" not in script

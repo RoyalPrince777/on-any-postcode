@@ -35,6 +35,7 @@
   <script src="{{ url_for('static', filename='linkup_messenger.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_optional.js') }}" defer></script>
   <script src="{{ url_for('static', filename='linkup_network.js') }}" defer></script>
+  {% if not auth_user %}<script src="{{ url_for('static', filename='linkup_public_ui.js') }}" defer></script>{% endif %}
 </head>
 <body>
 <div class="linkup-app" data-linkup-app data-chat-open="false" data-network="unknown" data-linkup-intent="{{ linkup_intent or '' }}">
@@ -50,7 +51,28 @@
   </header>
 
   {% if not auth_user %}
-    <main class="linkup-royal-home" aria-label="Link Up app">
+    <main class="linkup-royal-home linkup-rich-public" aria-label="Link Up app">
+      <header class="linkup-rich-masthead" aria-label="Public Link Up header">
+        <a href="/linkup" class="linkup-rich-wordmark">♛ LINK <em>UP</em></a>
+        <span>PEOPLE · PLACES · CULTURE · OPPORTUNITIES</span>
+        <a href="{{ url_for('home') }}" aria-label="OAP World">🌍</a>
+      </header>
+      <div class="linkup-rich-layout">
+        <nav class="linkup-rich-rail" aria-label="Link Up desktop navigation">
+          <a href="/linkup" aria-current="page">⌂ Home</a>
+          <a href="#linkup-rich-features">✦ Explore</a>
+          <a href="/the-spot/postcode-rooms">📍 Nearby</a>
+          <a href="#linkup-rich-messages">💬 Messages</a>
+          <a href="/the-spot/postcode-rooms">👥 Groups</a>
+          <a href="/the-spot/discovery">📅 Events</a>
+          <a href="/the-spot/discovery">♛ Opportunities</a>
+          <a href="/studio">▶ Media</a>
+          <a href="/the-spot/market">🛍 Market</a>
+          <a href="/pulse">🔥 Trending</a>
+          <a href="{{ url_for('my_card_create_page') }}">▤ My Card</a>
+          <a href="#linkup-rich-settings">⚙ Settings</a>
+        </nav>
+        <div class="linkup-rich-content">
       <section class="linkup-royal-hero" aria-label="Link Up public home">
         <div class="linkup-orbit" aria-hidden="true"></div>
         <div class="linkup-royal-brand">
@@ -65,11 +87,52 @@
         {% endif %}
       </section>
 
+          <section class="linkup-rich-search" role="search" aria-label="Search public Link Up sections">
+            <label for="linkup-rich-query" class="sr-only">Find public sections</label>
+            <span aria-hidden="true">⌕</span>
+            <input id="linkup-rich-query" type="search" autocomplete="off" placeholder="Search people, interests, opportunities…" data-oap-public-filter>
+            <a href="#linkup-rich-settings" aria-label="Search privacy and settings">☷</a>
+          </section>
+          <p class="linkup-rich-note" role="status" data-oap-public-search-note>Public sections only. Finding people requires sign-in.</p>
+          <nav class="linkup-rich-categories" aria-label="Link Up category shortcuts">
+            <a href="/world">🌍<span>Global</span></a>
+            <a href="/the-spot/postcode-rooms">📍<span>Nearby</span></a>
+            <a href="#linkup-rich-features">👥<span>People</span></a>
+            <a href="/the-spot/discovery">🗓<span>Events</span></a>
+            <a href="/the-spot/market">🛒<span>Market</span></a>
+            <a href="/pulse">🔥<span>Trending</span></a>
+          </nav>
+          <section class="linkup-rich-features" id="linkup-rich-features" aria-label="Link Up public features">
+            <a href="/linkup?intent=message" id="linkup-rich-messages" data-public-filter-item="messages private chat connect"><span class="royal-symbol">💬</span><strong>Messages</strong><small>Sign-in required</small></a>
+            <a href="/the-spot/discovery" data-public-filter-item="discovery interests find"><span class="royal-symbol royal-world">🌍</span><strong>Discovery</strong><small>Explore OAP</small></a>
+            <div class="linkup-rich-information" data-public-filter-item="certified members trusted"><span class="royal-symbol royal-green">✓</span><strong>Certified</strong><small>Verified only</small></div>
+            <a href="#linkup-rich-settings" data-public-filter-item="safety trust privacy"><span class="royal-symbol royal-gold">⚠</span><strong>Safety</strong><small>Trust controls</small></a>
+            <a href="{{ url_for('auth_page', next='/linkup') }}" data-public-filter-item="private account protected"><span class="royal-symbol royal-shield">♜</span><strong>Private</strong><small>Sign-in required</small></a>
+            <a href="/world" data-public-filter-item="public open world"><span class="royal-symbol royal-shield">♛</span><strong>Public</strong><small>Open to all</small></a>
+            <a href="/the-spot/discovery" data-public-filter-item="opportunities work collaboration"><span class="royal-symbol royal-rocket">🚀</span><strong>Opportunities</strong><small>Work &amp; collab</small></a>
+            <a href="/pulse" data-public-filter-item="spotlight featured pulse"><span class="royal-symbol royal-star">✦</span><strong>Spotlight</strong><small>Public Pulse</small></a>
+            <a href="{{ url_for('my_card_create_page') }}" data-public-filter-item="identity my card"><span class="royal-symbol royal-scroll">▤</span><strong>Identity</strong><small>My Card</small></a>
+          </section>
+          <section class="linkup-rich-stream" aria-label="Public community destinations">
+            <a href="/the-spot/postcode-rooms" data-public-filter-item="nearby people local postcode"><span class="linkup-rich-art">📍</span><span><strong>Nearby People</strong><small>Explore postcode communities. Live nearby people are not verified.</small></span><b>›</b></a>
+            <a href="/the-spot/discovery" data-public-filter-item="opportunities events projects"><span class="linkup-rich-art">♛</span><span><strong>Opportunities</strong><small>Discover public OAP projects and places.</small></span><b>›</b></a>
+            <a href="/the-spot/signal" data-public-filter-item="community signals local news"><span class="linkup-rich-art">🌐</span><span><strong>Community Signals</strong><small>Browse public signals; no invented trending counts.</small></span><b>›</b></a>
+          </section>
+          <details class="linkup-rich-settings" id="linkup-rich-settings">
+            <summary>⚙ Privacy &amp; settings</summary>
+            <p>Public destinations are browseable without sign-in. Messages, member discovery and calls require authorisation. No location, certification or message totals are assumed.</p>
+          </details>
+        </div>
+        <aside class="linkup-rich-aside" aria-label="Desktop Link Up panels">
+          <section><h3>💬 Messages</h3><p>Your private Link Ups appear only after sign-in.</p><a href="#linkup-rich-messages">Open Messages</a></section>
+          <section><h3>✦ Discover</h3><a href="/the-spot/postcode-rooms">Nearby communities</a><a href="/the-spot/discovery">Opportunities</a><a href="/the-spot/market">Market</a><a href="/pulse">Community Pulse</a></section>
+        </aside>
+      </div>
       <nav class="linkup-royal-bottom" aria-label="Link Up public bottom navigation">
         <a href="/linkup" aria-current="page">⌂<span>Home</span></a>
         <a href="{{ url_for('auth_page', next='/linkup') }}">👥<span>People</span></a>
         <a class="linkup-oap-home" href="{{ url_for('home') }}" aria-label="OAP World">♛<span>OAP</span></a>
-        <a href="/linkup?intent=message">💬<span>Messages</span></a>
+        <a href="#linkup-rich-messages">💬<span>Messages</span></a>
         <a href="{{ url_for('my_card_create_page') }}">▤<span>My Card</span></a>
       </nav>
     </main>
