@@ -945,8 +945,9 @@ refreshOps();
             tool_id:toolId,
             prompt:prompt||(toolId==="bring_alive"?"Bring this image alive with natural cinematic motion.":""),
             source_image_data:sourceImage,
-            character_lock:Boolean(window.OAP_SMI_CHARACTER_LOCK||projectShell),
+            character_lock:Boolean(window.OAP_SMI_CHARACTER_LOCK),
             ...(projectShell?{
+              character_lock:true,
               video_size:projectShell.video_size,
               video_seconds:projectShell.video_seconds
             }:{}),
