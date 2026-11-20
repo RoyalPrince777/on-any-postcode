@@ -90,6 +90,43 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         github_evidence["latest_failure"]["swot_intelligence"] = (
             smi_auto.evidence_swot_for_failed_build(github_evidence["latest_failure"])
         )
+    # Captain ALL IN continuity: automatically inspect the approved mission PRs
+    # on this existing five-minute health cycle. No buttons, extra job type or
+    # autonomous GitHub writes. Completed source CI selects next target proof,
+    # not release approval.
+    if github_token:
+        mission_continuity = []
+        for pr_number in smi_github_failure_evidence.MISSION_PR_CHECKS:
+            entry = smi_github_failure_evidence.inspect_mission_continuity(
+                pr_number, token=github_token,
+            )
+            if entry.get("next_move") == "inspect_failed_ci" and entry.get("failed_run_id"):
+                failure = smi_github_failure_evidence.inspect_failed_run(
+                    entry["failed_run_id"], token=github_token,
+                )
+                if failure.get("ready"):
+                    log_analysis = smi_github_failure_evidence.inspect_failed_job_logs(
+                        failure, token=github_token,
+                    )
+                    entry = {**entry, "automatic_failure_diagnosis": {
+                        "failed_jobs": len(failure.get("failed_jobs", ())),
+                        "log_categories": log_analysis.get("log_categories", ()),
+                        "verified": log_analysis.get("ready") is True,
+                    }}
+            mission_continuity.append(entry)
+        github_evidence = {
+            **github_evidence,
+            "mission_continuity": tuple(mission_continuity),
+            "captain_next_move": next(
+                (entry["next_move"] for entry in mission_continuity
+                 if entry.get("next_move") == "inspect_failed_ci"),
+                next((entry["next_move"] for entry in mission_continuity
+                      if entry.get("ci_proven") is True),
+                     "await_exact_head_evidence"),
+            ),
+            "captain_automatic_observation": True,
+            "captain_code_execution": False,
+        }
     return {
         "kind": "runtime_health_probe",
         "database_ready": bool(database.get("initialized")),
