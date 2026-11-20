@@ -187,7 +187,7 @@
         refresh.id = "smi-third-eye-refresh";
         refresh.disabled = !verifiedStatus;
       } else if (id === "ground") {
-        description.textContent = "View public TfL London traffic-camera stills and short rolling clips inside SMI, or use Face Up for your own phone camera. TfL images generally update every few minutes; this is not continuous video.";
+        description.textContent = "Start at CR4 · Mitcham, view nearby public TfL road cameras first, then explore every available TfL London camera. Still images and short clips are periodically updated, not continuous live video.";
         if (config.thirdEyeLondonCamerasUrl && config.thirdEyeLondonFrameUrl) {
           const search = document.createElement("input");
           search.type = "search";
@@ -195,11 +195,34 @@
           search.className = "smi-third-eye-place";
           search.maxLength = 80;
           search.autocomplete = "off";
-          search.placeholder = "Area e.g. Mitcham (blank = central)";
+          search.placeholder = "CR4 first · search a road or area";
+          search.value = "CR4";
           search.setAttribute("aria-label", "Search TfL public London camera locations");
           actions.appendChild(search);
-          const find = actionButton("View London cameras", () => loadLondonCameras(search.value));
+          const radius = document.createElement("select");
+          radius.id = "smi-third-eye-london-radius";
+          radius.className = "smi-third-eye-place";
+          radius.setAttribute("aria-label", "Choose CR4 vicinity or whole London");
+          for (const [value, text] of [
+            ["0", "All London · nearest CR4 first"],
+            ["5", "Within 5 km of CR4"],
+            ["15", "Within 15 km of CR4"],
+            ["30", "Within 30 km of CR4"]
+          ]) {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = text;
+            radius.appendChild(option);
+          }
+          actions.appendChild(radius);
+          const browse = (page = 1) => loadLondonCameras(search.value, page, Number(radius.value));
+          const find = actionButton("View London cameras", () => browse());
           find.disabled = !verifiedStatus;
+          radius.addEventListener("change", () => browse());
+          search.addEventListener("keydown", event => {
+            if (event.key === "Enter") browse();
+          });
+          if (verifiedStatus) browse();
         }
         actionButton("Open existing Face Up", () => {
           const existing = document.getElementById("faceup-button");
@@ -384,7 +407,7 @@
     }
 
 
-    async function loadLondonCameras(rawSearch) {
+    async function loadLondonCameras(rawSearch = "", page = 1, radiusKm = 0) {
       if (!verifiedStatus || currentView !== "ground" || !config.thirdEyeLondonCamerasUrl) return;
       stopRequest();
       cameraList.replaceChildren();
@@ -398,26 +421,64 @@
         const url = new URL(config.thirdEyeLondonCamerasUrl, window.location.origin);
         if (url.origin !== window.location.origin) throw new Error("cross_origin_blocked");
         if (query) url.searchParams.set("q", query);
-        setStatus("Checking public TfL London road cameras…");
+        url.searchParams.set("page", String(page));
+        url.searchParams.set("radius_km", String(radiusKm));
+        setStatus("Loading public TfL cameras · nearest CR4 first…");
         const data = await readJson(url.toString(), controller.signal);
         if (drawer.hidden || currentView !== "ground" || activeRequest !== controller) return;
-        if (data?.source_verified !== true || data?.provider !== "Transport for London (TfL)") {
-          setStatus("TfL camera catalogue unavailable. No live camera claim.");
+        if (data?.source_verified !== true || data?.provider !== "Transport for London (TfL)" ||
+            data?.sort !== "distance_from_cr4_nearest_first" ||
+            data?.origin?.label !== "CR4 / Mitcham district" ||
+            !Number.isInteger(data?.total_matching) || !Number.isInteger(data?.page)) {
+          setStatus("TfL London catalogue or CR4 source evidence unavailable. No live claim.");
           return;
         }
-        const list = Array.isArray(data.cameras) ? data.cameras.slice(0, 12) : [];
+        const list = Array.isArray(data.cameras) ? data.cameras : [];
         for (const cam of list) {
           if (!/^\d{5}\.\d{5}$/.test(cam?.id) || typeof cam?.name !== "string") continue;
           const button = document.createElement("button");
           button.type = "button";
           button.className = "smi-third-eye-camera-button";
-          button.textContent = "📷 " + cam.name.slice(0, 100);
+          const distance = typeof cam.distance_km === "number" && Number.isFinite(cam.distance_km)
+            ? " · " + cam.distance_km.toFixed(1) + " km from CR4"
+            : "";
+          button.textContent = "📷 " + cam.name.slice(0, 100) + distance;
           button.addEventListener("click", () => showLondonCamera(cam));
           cameraList.appendChild(button);
         }
-        setStatus(cameraList.childElementCount
-          ? "TfL camera locations received. Choose a public road camera to request its latest still."
-          : "No available TfL cameras match that London area.");
+        const count = cameraList.querySelectorAll("button").length;
+        const start = count ? (data.page - 1) * data.page_size + 1 : 0;
+        const end = start + count - (count ? 1 : 0);
+        const area = radiusKm ? "within " + radiusKm + " km of CR4" : "across London";
+        setStatus(count
+          ? "Showing " + start + "–" + end + " of " + data.total_matching +
+            " available public TfL cameras " + area + " · nearest CR4 first."
+          : "No public TfL cameras matched " + area +
+            ". Try a larger radius or All London; private cameras are not accessible.");
+        if (data.has_previous === true || data.has_more === true) {
+          const pages = document.createElement("div");
+          pages.className = "smi-third-eye-pages";
+          if (data.has_previous === true) {
+            const previous = document.createElement("button");
+            previous.type = "button";
+            previous.className = "tool-btn";
+            previous.textContent = "← Previous 20";
+            previous.addEventListener("click", () => loadLondonCameras(query, page - 1, radiusKm));
+            pages.appendChild(previous);
+          }
+          const position = document.createElement("span");
+          position.textContent = "Page " + data.page;
+          pages.appendChild(position);
+          if (data.has_more === true) {
+            const next = document.createElement("button");
+            next.type = "button";
+            next.className = "tool-btn";
+            next.textContent = "Next 20 →";
+            next.addEventListener("click", () => loadLondonCameras(query, page + 1, radiusKm));
+            pages.appendChild(next);
+          }
+          cameraList.appendChild(pages);
+        }
         const attribution = document.createElement("a");
         attribution.textContent = "Powered by TfL Open Data · Terms";
         attribution.href = "https://tfl.gov.uk/corporate/terms-and-conditions/transport-data-service";
@@ -427,7 +488,7 @@
         cameraList.appendChild(attribution);
       } catch (error) {
         if (error?.name !== "AbortError") {
-          setStatus("TfL source unavailable. Live London camera images not verified.");
+          setStatus("TfL source unavailable. No London camera images verified.");
         }
       } finally {
         if (activeRequest === controller) {
