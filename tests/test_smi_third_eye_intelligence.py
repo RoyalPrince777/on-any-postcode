@@ -294,3 +294,88 @@ def test_london_jamcam_ui_is_same_origin_manual_and_attributed():
     assert "Capture time not supplied" in script
     assert "getUserMedia" not in script
     assert "setInterval" not in script
+
+
+def test_tfl_video_is_offered_only_for_vetted_mp4_metadata():
+    camera = _tfl_camera()
+    camera["additionalProperties"].append({
+        "key": "videoUrl",
+        "value": third_eye_intelligence.TFL_IMAGE_PREFIX + "00001.00001.mp4",
+    })
+    valid = third_eye_intelligence.parse_london_jamcams([camera])[0]
+    assert valid["clip_available"] is True
+    camera["additionalProperties"][-1]["value"] = "https://example.invalid/clip.mp4"
+    unapproved = third_eye_intelligence.parse_london_jamcams([camera])[0]
+    assert unapproved["clip_available"] is False
+
+
+def test_tfl_rolling_clip_checks_catalogue_source_type_and_bounded_bytes(monkeypatch):
+    camera_id = "00001.00001"
+    camera = {"id": camera_id, "clip_available": True}
+    monkeypatch.setattr(third_eye_intelligence, "_TFL_CACHE", (float("inf"), [camera]))
+    monkeypatch.setattr(
+        third_eye_intelligence, "london_jamcams", lambda: {"source_verified": True}
+    )
+    sample = b"\\x00\\x00\\x00\\x1cftypisom0000"  # a short MP4 signature for parser verification
+
+    class Headers:
+        def get_content_type(self):
+            return "video/mp4"
+
+        def get(self, key):
+            return None
+
+    class Response:
+        status = 200
+        headers = Headers()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def geturl(self):
+            return third_eye_intelligence.TFL_IMAGE_PREFIX + camera_id + ".mp4"
+
+        def read(self, amount):
+            return sample[:amount]
+
+    monkeypatch.setattr(third_eye_intelligence, "urlopen", lambda *args, **kwargs: Response())
+    received = third_eye_intelligence.london_jamcam_clip(camera_id)
+    assert received is not None
+    assert received[0] == sample
+    assert received[1] is None
+
+    monkeypatch.setattr(third_eye_intelligence, "_TFL_CACHE", (float("inf"), [
+        {"id": camera_id, "clip_available": False}
+    ]))
+    assert third_eye_intelligence.london_jamcam_clip(camera_id) is None
+
+
+def test_london_rolling_clip_route_remains_founder_private(client, monkeypatch):
+    view = app_module.app.view_functions["alignment.smi_third_eye_london_clip"]
+    assert view._oap_login_required is True
+    assert view._oap_founder_only is True
+    assert view._oap_api is True
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: None)
+    response = client.get("/mission/smi/third-eye/london/clip/00001.00001")
+    assert response.status_code == 401
+    assert response.get_json()["error"]["code"] == "authentication_required"
+
+
+def test_london_real_mp4_control_is_user_initiated_and_stops_on_exit():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "mission_control"
+    script = (root / "static" / "smi_third_eye.js").read_text(encoding="utf-8")
+    template = (root / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    assert "thirdEyeLondonClipUrl:{{ url_for('alignment.smi_third_eye_london_clip'" in template
+    assert 'id="smi-third-eye-camera-video"' in script
+    assert 'preload="none"' in script
+    assert "camera?.clip_available === true" in script
+    assert "cameraVideo.src = clipUrl.toString()" in script
+    assert "cameraVideo.pause()" in script
+    assert "clearCameraMedia()" in script
+    assert "cameraVideo.play()" in script
+    assert "autoplay" not in script
