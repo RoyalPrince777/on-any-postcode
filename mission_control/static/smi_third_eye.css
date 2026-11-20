@@ -1,0 +1,5 @@
+/* Reuse the canonical SMI Face Up drawer rather than creating a separate dashboard. */
+.smi-third-eye-map-link{display:inline-flex;align-items:center;text-decoration:none}
+.smi-third-eye-events{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:5px}
+.smi-third-eye-events li{padding:8px;border:1px solid var(--line);border-radius:8px;background:#111b15;color:var(--text);font-size:.68rem;line-height:1.35;overflow-wrap:anywhere}
+#smi-third-eye-refresh:disabled{opacity:.6;cursor:wait}
