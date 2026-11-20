@@ -352,6 +352,32 @@ if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds
 loadPlaces(from.value.trim());
 })();
 </script>
+<script>
+/* One-use, same-tab Drive route input. No request, dispatch or tracking added. */
+(() => {
+  let draft;
+  try {
+    const raw=sessionStorage.getItem("oap_transport_ride_draft");
+    if (!raw) return;
+    draft=JSON.parse(raw);
+    if (!draft || draft.service!=="drive") return;
+    sessionStorage.removeItem("oap_transport_ride_draft");
+  } catch (_) { return; }
+  if (!Number.isFinite(draft.created) || Date.now()<draft.created ||
+      Date.now()-draft.created>10*60*1000 ||
+      typeof draft.pickup!=="string" || typeof draft.destination!=="string" ||
+      !draft.pickup.trim() || !draft.destination.trim()) return;
+  const form=document.getElementById("map-form");
+  const start=document.getElementById("map-from");
+  const end=document.getElementById("map-to");
+  const mode=document.getElementById("map-profile");
+  if(!form || !start || !end || !mode) return;
+  start.value=draft.pickup.slice(0,120);
+  end.value=draft.destination.slice(0,120);
+  mode.value="driving";
+  form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
+})();
+</script>
 <script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.js', v='map-runtime-v4') }}"></script>
 <script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_os_map_bridge.js', v='map-runtime-v4') }}"></script>
 </body>
