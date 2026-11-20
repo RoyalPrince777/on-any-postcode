@@ -735,3 +735,29 @@ def test_transport_ride_draft_flows_to_existing_movement_booking_fields():
     assert 'id="destination-query"' in workspace
     assert 'service.value = "ride"' in workspace
     assert "10 * 60 * 1000" in workspace
+
+
+
+def test_ride_map_search_and_fare_do_not_claim_unverified_live_quotes():
+    from pathlib import Path
+
+    client = _app().test_client()
+    page = client.get("/transport/ride")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert 'src="/oap-map?location=Mitcham&amp;embed=ride"' in html
+    assert 'id="ride-pickup"' in html and 'id="ride-destination"' in html
+    assert 'action="/movement/workspace#book-title"' in html
+    assert "Price unavailable" in html
+    assert "Verified quote required" in html
+    assert "£0" not in html
+    assert 'aria-label="OAP Rides navigation"' in html
+    assert '<details class="more">' in html
+    assert '<section class="grid"' not in html
+    assert "Software surface active." not in html
+    map_template = Path("mission_control/templates/local_map.html").read_text(encoding="utf-8")
+    assert "oap-ride-embed" in map_template
+    assert ".oap-ride-embed .search-card" in map_template
+    assert ".oap-ride-embed .movement-actions" in map_template
+    assert 'href="/oap-map"' in html
+    assert "oap_transport_ride_draft" in html
