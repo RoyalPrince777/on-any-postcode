@@ -800,66 +800,139 @@ _RIDE_PAGE = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#090909"><title>OAP Ride · ON ANY POSTCODE</title>
 <style>
-:root{color-scheme:dark;--gold:#efcf73;--bg:#090909;--panel:#181612;--edge:#403729;--muted:#bdb5a8}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font:16px/1.4 system-ui,-apple-system,sans-serif}
-main{max-width:760px;margin:auto;padding:calc(12px + env(safe-area-inset-top)) 14px calc(35px + env(safe-area-inset-bottom))}
+:root{color-scheme:dark;--bg:#090909;--panel:#181612;--edge:#433a2b;--gold:#efcf73;--muted:#bdb5a8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#fff;font:16px/1.4 system-ui,-apple-system,sans-serif}
+main{max-width:720px;margin:auto;padding:calc(8px + env(safe-area-inset-top)) 13px calc(30px + env(safe-area-inset-bottom))}
 a{color:inherit;text-decoration:none}
-.top{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px}
-.top a{color:var(--gold);font-weight:750;display:inline-flex;align-items:center;min-height:44px}
-.top strong{font-size:.88rem;letter-spacing:.04em;color:var(--gold)}
-.map{height:clamp(235px,36vh,335px);position:relative;overflow:hidden;border:1px solid var(--edge);border-radius:17px;background:linear-gradient(150deg,#222824,#101514);margin:10px 0 13px}
+.top{height:48px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top a{color:var(--gold);font-size:.88rem;font-weight:750;min-height:44px;display:inline-flex;align-items:center}
+.top strong{color:var(--gold);font-size:.85rem;letter-spacing:.05em}
+.modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:3px 0 11px}
+.modes button{min-width:0;min-height:46px;border:1px solid var(--edge);border-radius:12px;background:var(--panel);color:#ddd5c5;font:750 .9rem system-ui;cursor:pointer}
+.modes button[aria-pressed="true"]{background:#302717;border-color:var(--gold);color:var(--gold)}
+.map{height:clamp(190px,27vh,255px);position:relative;overflow:hidden;border:1px solid var(--edge);border-radius:15px;background:#121719;margin-bottom:11px}
 .map iframe{width:100%;height:100%;border:0;display:block}
-.map a{position:absolute;right:9px;bottom:10px;z-index:2;background:#171612f0;border:1px solid #a5874b;border-radius:11px;padding:9px 12px;color:var(--gold);font-weight:750;font-size:.83rem}
-.search{display:grid;gap:10px;background:var(--panel);border:1px solid var(--edge);padding:14px;border-radius:17px}
-.search h1{font-size:1.25rem;margin:0;letter-spacing:-.02em}
-.search label{display:block;font-size:.78rem;font-weight:800;color:#ded5c6}
-.search input{display:block;width:100%;min-height:49px;margin-top:5px;padding:12px 14px;border:1px solid #7e6844;border-radius:11px;background:#080807;color:#fff;font:inherit}
-.search input::placeholder{color:#a89f91}
-.search button{width:100%;min-height:49px;margin-top:3px;border:0;border-radius:11px;background:var(--gold);color:#21180a;font:850 .96rem system-ui;cursor:pointer}
-.search input:focus-visible,.search button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
-.price{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border:1px solid var(--edge);border-radius:13px;background:#161411}
-.price span{display:block;color:var(--muted);font-size:.79rem}.price strong{font-size:.98rem;color:var(--gold)}
-.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
-.tabs a{min-height:49px;display:grid;place-items:center;text-align:center;padding:9px;border:1px solid var(--edge);border-radius:12px;background:var(--panel);font-size:.88rem;font-weight:750}
-.tabs a:hover{border-color:var(--gold)}
-.more{margin-top:12px;border-top:1px solid var(--edge);padding-top:8px}
-.more summary{min-height:44px;display:flex;align-items:center;color:var(--muted);font-weight:750;font-size:.84rem;cursor:pointer}
-.more nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:5px}
-.more a{display:flex;align-items:center;min-height:46px;padding:11px;border:1px solid var(--edge);border-radius:10px;background:var(--panel);font-size:.86rem}
-@media(max-width:340px){.tabs{grid-template-columns:1fr}.map{height:235px}}
+.map .full{position:absolute;right:9px;bottom:9px;z-index:3;border:1px solid #8c7548;background:#19160fee;border-radius:10px;padding:9px 12px;color:var(--gold);font-size:.8rem;font-weight:800}
+.map-alert{position:absolute;left:11px;right:11px;top:50%;transform:translateY(-50%);z-index:2;padding:15px;border-radius:13px;border:1px solid #55452f;background:#171613ed;text-align:center;color:var(--muted);font-size:.86rem}
+.map-alert[hidden]{display:none}
+.search{display:grid;gap:8px;padding:12px;border:1px solid var(--edge);border-radius:16px;background:var(--panel)}
+.search h1{font-size:1.12rem;margin:0 0 1px;font-weight:850;letter-spacing:-.025em}
+.search label{font-size:.76rem;font-weight:800;color:#e5ddce}
+.search input{display:block;width:100%;min-height:45px;margin-top:4px;padding:10px 13px;border:1px solid #7d694a;border-radius:10px;background:#080807;color:#fff;font:inherit}
+.search input::placeholder{color:#a59d90}
+.action{width:100%;min-height:48px;margin-top:4px;border:0;border-radius:11px;background:var(--gold);color:#211809;font:850 .95rem system-ui;cursor:pointer}
+.price{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0;padding:11px 13px;border:1px solid var(--edge);border-radius:12px;background:var(--panel)}
+.price strong{font-size:.95rem;color:var(--gold)}
+.price span{font-size:.75rem;color:var(--muted);text-align:right}
+.quick{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.quick a{min-height:44px;display:inline-flex;align-items:center;font-size:.85rem;font-weight:750;color:#d6caba}
+.more{margin-top:7px;border-top:1px solid var(--edge)}
+.more summary{min-height:44px;display:flex;align-items:center;font-size:.81rem;color:var(--muted);font-weight:700;cursor:pointer}
+.more nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.more nav a{min-height:44px;border:1px solid var(--edge);border-radius:10px;padding:10px;background:var(--panel);font-size:.84rem}
+a:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+@media(max-width:350px){.map{height:175px}.search{padding:10px}.modes button{font-size:.82rem}}
 </style></head><body><main>
-<header class="top"><a href="/transport">← Transport</a><strong>OAP RIDE</strong></header>
-<section class="map" aria-label="On Any Postcode map preview">
-<iframe title="OAP Map Intelligence · Mitcham preview" src="/oap-map?location=Mitcham&amp;embed=ride" loading="eager"></iframe>
-<a href="/oap-map" aria-label="Open full OAP map">Full map ↗</a>
+<header class="top"><a href="/transport">← Transport</a><strong>ON ANY RIDE</strong></header>
+<nav class="modes" aria-label="Transport mode">
+<button type="button" data-mode="ride" aria-pressed="true">🚗 Ride</button>
+<button type="button" data-mode="ebike" aria-pressed="false">🚲 E-Bike</button>
+<button type="button" data-mode="drive" aria-pressed="false">🧭 Drive</button>
+</nav>
+<section class="map" aria-label="OAP route map">
+<iframe id="ride-map" title="OAP first-party map" src="/oap-map?location=Mitcham&amp;embed=ride" loading="eager"></iframe>
+<div id="map-alert" class="map-alert" role="status" hidden>Road network unavailable · Full map remains available</div>
+<a class="full" href="/oap-map">Full map ↗</a>
 </section>
-<form class="search" id="oap-ride-draft" action="/movement/workspace#book-title" method="get">
+<form class="search" id="oap-ride-draft" action="/movement/workspace#book-title" method="get" autocomplete="off">
 <h1>Where to?</h1>
-<label for="ride-pickup">Pickup<input id="ride-pickup" type="search" placeholder="Postcode or place" maxlength="120" autocomplete="street-address" required></label>
-<label for="ride-destination">Destination<input id="ride-destination" type="search" placeholder="Search destination" maxlength="120" autocomplete="street-address" required></label>
-<button type="submit">Continue to booking</button>
+<label for="ride-pickup">Pickup<input id="ride-pickup" type="search" list="ride-pickup-options" placeholder="Postcode or place" maxlength="120" autocomplete="off" required></label>
+<datalist id="ride-pickup-options"></datalist>
+<label for="ride-destination">Destination<input id="ride-destination" type="search" list="ride-destination-options" placeholder="Search destination" maxlength="120" autocomplete="off" required></label>
+<datalist id="ride-destination-options"></datalist>
+<button class="action" id="ride-action" type="submit">Continue to booking</button>
 </form>
-<div class="price" aria-label="Ride fare"><div><span>Estimated fare</span><strong>Price unavailable</strong></div><span>Verified quote required</span></div>
-<nav class="tabs" aria-label="OAP Rides navigation">
+<div class="price" aria-label="Ride fare"><strong id="ride-fare">Price unavailable</strong><span id="ride-quote-source">Verified quote required</span></div>
+<nav class="quick" aria-label="OAP Rides navigation">
 <a href="/transport/ride/rider">Rider</a><a href="/transport/ride/driver">Driver</a><a href="/transport/my">My Transport</a>
 </nav>
 <details class="more"><summary>More journey tools</summary><nav aria-label="Additional Ride actions">
-<a href="/transport/ride/current">Current journey</a>
-<a href="/movement/workspace#bookings-title">My journeys</a>
-<a href="/transport/ride/guardian/status">Guardian</a>
-<a href="/pay/bank">SIKA</a>
-<a href="/eats">Eats</a>
+<a href="/transport/ride/current">Current journey</a><a href="/movement/workspace#bookings-title">My journeys</a>
+<a href="/transport/ride/guardian/status">Guardian</a><a href="/pay/bank">SIKA</a><a href="/eats">Eats</a>
 </nav></details>
-</main>
-<script>
-document.getElementById("oap-ride-draft").addEventListener("submit",function(){
-  const pickup=document.getElementById("ride-pickup").value.trim();
-  const destination=document.getElementById("ride-destination").value.trim();
-  if(!pickup||!destination)return;
-  try{sessionStorage.setItem("oap_transport_ride_draft",JSON.stringify({
-    pickup:pickup.slice(0,120),destination:destination.slice(0,120),created:Date.now()
-  }));}catch(_){}
-});
+</main><script>
+(() => {
+  "use strict";
+  const form=document.getElementById("oap-ride-draft");
+  const pickup=document.getElementById("ride-pickup");
+  const destination=document.getElementById("ride-destination");
+  const action=document.getElementById("ride-action");
+  const fare=document.getElementById("ride-fare");
+  const source=document.getElementById("ride-quote-source");
+  const map=document.getElementById("ride-map");
+  const alert=document.getElementById("map-alert");
+  let mode="ride";
+  const setMode=value=>{
+    if(!["ride","ebike","drive"].includes(value)) return;
+    mode=value;
+    document.querySelectorAll("[data-mode]").forEach(btn=>btn.setAttribute("aria-pressed",String(btn.dataset.mode===mode)));
+    action.textContent=mode==="drive"?"Plan drive":mode==="ebike"?"Continue to E-Bike request":"Continue to booking";
+    fare.textContent=mode==="drive"?"No fare · own vehicle":"Price unavailable";
+    source.textContent=mode==="drive"?"Route guidance requires road data":"Verified quote required";
+    if(map.contentWindow) map.src="/oap-map?location=Mitcham&embed=ride&profile="+(mode==="ebike"?"cycling":"driving");
+  };
+  document.querySelectorAll("[data-mode]").forEach(btn=>btn.addEventListener("click",()=>setMode(btn.dataset.mode)));
+  const syncMap=()=>{
+    try{
+      const body=map.contentDocument?.body;
+      if(!body)return;
+      const state=body.dataset.mapRenderState;
+      alert.hidden=state!=="degraded";
+    }catch(_){alert.hidden=false}
+  };
+  map.addEventListener("load",()=>{
+    syncMap();
+    try{new MutationObserver(syncMap).observe(map.contentDocument.body,{attributes:true,attributeFilter:["data-map-render-state"]})}
+    catch(_){alert.hidden=false}
+  });
+  map.addEventListener("error",()=>{alert.hidden=false});
+  const bindSuggestions=(input,list)=>{
+    let timer=0,seq=0;
+    input.addEventListener("input",()=>{
+      clearTimeout(timer);
+      const query=input.value.trim();
+      if(query.length<2){list.replaceChildren();return}
+      const requested=++seq;
+      timer=setTimeout(async()=>{
+        try{
+          const response=await fetch("/map-intelligence/suggest?q="+encodeURIComponent(query.slice(0,80)),{credentials:"same-origin",cache:"no-store"});
+          if(!response.ok||requested!==seq)return;
+          const data=await response.json();
+          list.replaceChildren();
+          (Array.isArray(data.suggestions)?data.suggestions:[]).slice(0,7).forEach(item=>{
+            const text=String(item.value||item.label||"").slice(0,120);
+            if(text){const option=document.createElement("option");option.value=text;list.appendChild(option)}
+          });
+        }catch(_){list.replaceChildren()}
+      },220);
+    });
+  };
+  bindSuggestions(pickup,document.getElementById("ride-pickup-options"));
+  bindSuggestions(destination,document.getElementById("ride-destination-options"));
+  form.addEventListener("submit",event=>{
+    const start=pickup.value.trim().slice(0,120),end=destination.value.trim().slice(0,120);
+    if(!start||!end)return;
+    try{
+      sessionStorage.setItem("oap_transport_ride_draft",JSON.stringify({
+        pickup:start,destination:end,service:mode,created:Date.now()
+      }));
+    }catch(_){}
+    if(mode==="drive"){
+      event.preventDefault();
+      location.assign("/oap-map");
+    }
+  });
+})();
 </script></body></html>"""
 
 
