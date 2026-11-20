@@ -130,3 +130,7 @@
 .smi-third-eye-camera-frame figcaption{font-size:.68rem;color:#d6d0bb;line-height:1.4;padding:8px 2px 1px}
 .smi-third-eye-attribution{display:flex;grid-column:1/-1;min-height:44px;align-items:center;color:#d8b965;font-size:.72rem;text-decoration:underline}
 @media(max-width:430px){.smi-third-eye-camera-list{grid-template-columns:1fr}}
+
+.smi-third-eye-camera-frame video{display:block;width:100%;max-height:46dvh;object-fit:contain;border-radius:8px;background:#080808}
+.smi-third-eye-camera-frame img[hidden],.smi-third-eye-camera-frame video[hidden],.smi-third-eye-camera-frame button[hidden]{display:none!important}
+#smi-third-eye-panel .smi-third-eye-play{display:flex;align-items:center;justify-content:center;margin:9px 0 2px;min-height:44px;background:#29261a;color:#f7da93;border:1px solid #a88d53;border-radius:9px}
