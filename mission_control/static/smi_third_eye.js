@@ -35,31 +35,38 @@
     drawer.setAttribute("aria-label", "SMI Third Eye internal menu");
     drawer.hidden = true;
     drawer.innerHTML = [
-      '<div class="smi-faceup-head">',
-      '<div><strong>👁️ SMI Third Eye</strong><small>Founder Private · Earth Intelligence</small></div>',
+      '<header class="smi-third-eye-header">',
+      '<div class="smi-third-eye-header-copy"><small class="smi-third-eye-eyebrow">SMI / EARTH INTELLIGENCE</small><strong>👁️ THIRD EYE</strong><span>One world · Seven views · Real evidence</span></div>',
       '<button type="button" class="smi-faceup-close" id="smi-third-eye-close" aria-label="Close Third Eye">×</button>',
-      '</div>',
+      '</header>',
+      '<div class="smi-third-eye-boundary" aria-label="Privacy and evidence"><span>🔐 Founder private</span><span>● Truth Mode</span><span>Public feeds only</span></div>',
+      '<div id="smi-third-eye-home" class="smi-third-eye-home">',
+      '<div class="smi-third-eye-home-title"><strong>Explore the real world</strong><small>Choose a view. Sources appear only when verified.</small></div>',
       '<nav id="smi-third-eye-internal-menu" class="smi-third-eye-menu" aria-label="Inside Third Eye"></nav>',
-      '<div id="smi-third-eye-detail" hidden>',
-      '<button type="button" class="tool-btn smi-third-eye-back" id="smi-third-eye-back">← Menu</button>',
-      '<h3 id="smi-third-eye-detail-title"></h3>',
-      '<p class="smi-faceup-truth" id="smi-third-eye-detail-copy"></p>',
-      '<div id="smi-third-eye-detail-actions" class="smi-faceup-controls"></div>',
-      '<div id="smi-third-eye-status" class="smi-faceup-status" role="status" aria-live="polite">Source not checked.</div>',
-      '<ol id="smi-third-eye-events" class="smi-third-eye-events" aria-label="USGS earthquake observations"></ol>',
       '</div>',
-      '<p class="smi-faceup-truth">Truth Mode · Missing sources remain unverified. No hidden tracking or continuous capture.</p>'
+      '<section id="smi-third-eye-detail" class="smi-third-eye-detail" hidden aria-labelledby="smi-third-eye-detail-title">',
+      '<div class="smi-third-eye-detail-nav"><button type="button" class="tool-btn smi-third-eye-back" id="smi-third-eye-back">← All views</button><small>THIRD EYE / <span id="smi-third-eye-crumb"></span></small></div>',
+      '<div class="smi-third-eye-detail-header"><small id="smi-third-eye-detail-state" class="smi-third-eye-detail-state"></small><h3 id="smi-third-eye-detail-title"></h3><p id="smi-third-eye-detail-copy"></p></div>',
+      '<div class="smi-third-eye-detail-actions" id="smi-third-eye-detail-actions"></div>',
+      '<div id="smi-third-eye-status" class="smi-third-eye-status" role="status" aria-live="polite">Source not checked.</div>',
+      '<ol id="smi-third-eye-events" class="smi-third-eye-events" aria-label="USGS earthquake observations"></ol>',
+      '</section>',
+      '<footer class="smi-third-eye-foot">No hidden tracking · No automatic recording · Founder Final</footer>'
     ].join("");
     strip.insertAdjacentElement("afterend", drawer);
 
+    const home = drawer.querySelector("#smi-third-eye-home");
     const internalMenu = drawer.querySelector("#smi-third-eye-internal-menu");
     const detail = drawer.querySelector("#smi-third-eye-detail");
     const title = drawer.querySelector("#smi-third-eye-detail-title");
+    const crumb = drawer.querySelector("#smi-third-eye-crumb");
+    const viewState = drawer.querySelector("#smi-third-eye-detail-state");
     const description = drawer.querySelector("#smi-third-eye-detail-copy");
     const actions = drawer.querySelector("#smi-third-eye-detail-actions");
     const status = drawer.querySelector("#smi-third-eye-status");
     const events = drawer.querySelector("#smi-third-eye-events");
     let activeRequest = null;
+    let requestKind = null;
     let verifiedStatus = false;
     let lastEvidence = null;
     let currentView = null;
@@ -73,6 +80,7 @@
       button.className = "smi-third-eye-menu-item";
       button.dataset.thirdEyeView = view.id;
       button.setAttribute("aria-label", view.name + ": " + view.state);
+      button.setAttribute("aria-haspopup", "false");
       const emoji = document.createElement("span");
       emoji.className = "smi-third-eye-icon";
       emoji.textContent = view.icon;
@@ -80,7 +88,11 @@
       name.textContent = view.name;
       const state = document.createElement("small");
       state.textContent = view.state;
-      button.append(emoji, name, state);
+      const arrow = document.createElement("span");
+      arrow.className = "smi-third-eye-menu-arrow";
+      arrow.setAttribute("aria-hidden", "true");
+      arrow.textContent = "›";
+      button.append(emoji, name, state, arrow);
       button.addEventListener("click", () => selectView(view.id));
       internalMenu.appendChild(button);
     }
@@ -89,9 +101,11 @@
       status.textContent = message;
     }
 
-    function stopRequest() {
+    function stopRequest(keepStatus = false) {
+      if (keepStatus && requestKind === "status") return;
       if (activeRequest) activeRequest.abort();
       activeRequest = null;
+      requestKind = null;
     }
 
     async function readJson(url, signal) {
@@ -109,7 +123,7 @@
     function actionButton(text, handler) {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "tool-btn";
+      button.className = "tool-btn smi-third-eye-action";
       button.textContent = text;
       button.addEventListener("click", handler);
       actions.appendChild(button);
@@ -118,25 +132,29 @@
 
     function actionLink(text, href) {
       const link = document.createElement("a");
-      link.className = "tool-btn smi-third-eye-map-link";
+      link.className = "tool-btn smi-third-eye-map-link smi-third-eye-action";
       link.textContent = text;
       link.href = href;
       actions.appendChild(link);
     }
 
     function selectView(id) {
-      stopRequest();
+      stopRequest(true);
       currentView = id;
       const view = views.find(item => item.id === id);
       if (!view) return;
-      internalMenu.hidden = true;
+      home.hidden = true;
       detail.hidden = false;
+      crumb.textContent = view.name;
+      viewState.textContent = view.state;
+      viewState.dataset.state = (id === "environment" || id === "ground") ? "partial" : "pending";
       title.textContent = view.icon + " " + view.name;
       description.textContent = "";
       actions.replaceChildren();
       events.replaceChildren();
       status.hidden = false;
       setStatus(view.state);
+      drawer.scrollTop = 0;
 
       if (id === "earth") {
         description.textContent = "Use the existing On Any Place map. Third Eye does not yet have a verified 3D globe.";
@@ -179,12 +197,15 @@
       lastEvidence = null;
       currentView = null;
       drawer.hidden = false;
-      internalMenu.hidden = false;
+      home.hidden = false;
       detail.hidden = true;
       menu.classList.remove("show");
       document.getElementById("plus-button")?.setAttribute("aria-expanded", "false");
       const controller = new AbortController();
       activeRequest = controller;
+      requestKind = "status";
+      menuButton.setAttribute("aria-expanded", "true");
+      drawer.querySelector("#smi-third-eye-close").focus();
       try {
         const state = await readJson(config.thirdEyeStatusUrl, controller.signal);
         if (drawer.hidden || activeRequest !== controller) return;
@@ -195,7 +216,10 @@
       } catch (error) {
         if (error?.name !== "AbortError") verifiedStatus = false;
       } finally {
-        if (activeRequest === controller) activeRequest = null;
+        if (activeRequest === controller) {
+          activeRequest = null;
+          requestKind = null;
+        }
       }
     }
 
@@ -208,6 +232,7 @@
       setStatus("Checking USGS public observations…");
       const controller = new AbortController();
       activeRequest = controller;
+      requestKind = "earth";
       try {
         const data = await readJson(config.thirdEyeEarthquakesUrl, controller.signal);
         if (drawer.hidden || activeRequest !== controller || currentView !== "environment") return;
@@ -240,6 +265,7 @@
       } finally {
         if (activeRequest === controller) {
           activeRequest = null;
+          requestKind = null;
           if (refresh) refresh.disabled = false;
         }
       }
@@ -248,15 +274,27 @@
     function closeDrawer() {
       stopRequest();
       drawer.hidden = true;
+      menuButton.setAttribute("aria-expanded", "false");
+      menuButton.focus();
     }
 
     drawer.querySelector("#smi-third-eye-back").addEventListener("click", () => {
-      stopRequest();
+      stopRequest(true);
       currentView = null;
       detail.hidden = true;
-      internalMenu.hidden = false;
+      home.hidden = false;
+      drawer.scrollTop = 0;
+      internalMenu.querySelector("button")?.focus();
+    });
+    drawer.addEventListener("keydown", event => {
+      if (event.key === "Escape" && !drawer.hidden) {
+        event.preventDefault();
+        closeDrawer();
+      }
     });
     drawer.querySelector("#smi-third-eye-close").addEventListener("click", closeDrawer);
+    menuButton.setAttribute("aria-controls", "smi-third-eye-panel");
+    menuButton.setAttribute("aria-expanded", "false");
     menuButton.addEventListener("click", open);
     window.addEventListener("pagehide", stopRequest, {once: true});
   }
