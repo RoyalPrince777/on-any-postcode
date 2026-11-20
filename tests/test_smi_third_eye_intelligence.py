@@ -187,3 +187,26 @@ def test_third_eye_internal_layout_mobile_navigation_and_truth_states():
     assert "max-height:72dvh" in css
     assert "prefers-reduced-motion" in css
     assert "focus-visible" in css
+
+
+def test_third_eye_live_weather_reuses_existing_ecosystem_source():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "mission_control"
+    template = (root / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    script = (root / "static" / "smi_third_eye.js").read_text(encoding="utf-8")
+    css = (root / "static" / "smi_third_eye.css").read_text(encoding="utf-8")
+
+    assert "thirdEyeWeatherUrl:{{ url_for('ecosystem_intelligence.source_location_weather')|tojson }}" in template
+    assert "new URL(config.thirdEyeWeatherUrl, window.location.origin)" in script
+    assert 'url.origin !== window.location.origin' in script
+    assert 'url.searchParams.set("location", place)' in script
+    assert 'item?.source === "oap_weather_live_source"' in script
+    assert "data?.weather_environment_proven !== true" in script
+    assert 'observation.live_claim_allowed === true && freshness === "fresh"' in script
+    assert 'observation?.observed_at' in script
+    assert 'requestKind = "weather"' in script
+    assert "li.textContent" in script
+    assert "getCurrentPosition" not in script
+    assert "setInterval" not in script
+    assert ".smi-third-eye-place{" in css
