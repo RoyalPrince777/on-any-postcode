@@ -44,6 +44,7 @@ from . import (
     status,
     studio_build_preview,
     studio_intelligence,
+    studio_project_shell,
     studio_workspace_orchestrator,
     war_room,
     web_security,
@@ -986,6 +987,32 @@ def smi_studio_status():
     return _no_store(make_response(jsonify(studio_intelligence.status())))
 
 
+@bp.post("/studio/project-shell/prepare")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_project_shell_prepare():
+    """Founder-only scene preflight; no paid renderer or publication call."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = studio_project_shell.prepare(
+            payload.get("scene_id"),
+            ratio=payload.get("aspect_ratio", "16:9"),
+            fps_target=payload.get("fps_target", 60),
+            reference_attached=payload.get("reference_attached", False),
+        )
+    except ValueError as exc:
+        return _error("project_shell_invalid", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.get("/studio/workspace/<workspace_id>")
 @web_security.login_required(api=True, founder_only=True)
 def smi_studio_workspace_preflight(workspace_id: str):
@@ -1211,6 +1238,11 @@ def smi_studio_generate():
             prompt=payload.get("prompt", ""),
             source_image_data=payload.get("source_image_data", ""),
             character_lock=payload.get("character_lock", False),
+            **({
+                key: payload[key]
+                for key in ("video_size", "video_seconds")
+                if key in payload
+            }),
         )
         artifact = result.get("artifact") or {}
         studio_asset = {
