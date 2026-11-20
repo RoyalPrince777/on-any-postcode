@@ -928,3 +928,43 @@ implementation. The actual owner of Founder Final and Green Gate is unchanged.
 
 Born Local. Built Global. Earth Is Our Turf.
 Research has no ceiling. Deployment has boundaries. Founder Final.
+
+
+## 27. 20 November 2026 — recalled gaps and exact-action handoff repair
+
+One existing SMI CC PR (#1407); no new dashboard, ledger, worker or approval authority.
+The current main revision is reconciled into this branch, preserving its MBS777 code.
+
+### Implemented source repair
+
+- The permanent grouped-menu Governed GitHub Action control now opens its existing
+  plan card. V2 previously skipped that button while suppressing the legacy handler.
+- The prepared payload is shown as inert text and input fields freeze at preparation.
+  **Approve & run** records the exact signed decision, then calls the existing Living
+  Kernel execution endpoint automatically. There is no second Execute approval.
+- Only the existing three allowed GitHub actions are supported. The backend still
+  checks Founder identity, CSRF, signed exact digest, expiry and single-use receipt.
+- Safe work status shows preparation, review, approval, execution and the returned
+  receipt/audit reference. Rejection and mismatched receipts do not execute. Lost
+  approval/execution responses stay unconfirmed and cannot automatically retry.
+- In SMI chat, questions such as “jog memory, what's not done, built in code” now read
+  the existing `products.SPOT_CAPABILITIES` statuses and blockers. This is explicitly
+  declared source inventory, never live health or release proof; no second backlog.
+
+### Still unresolved — source is not an operational release
+
+| Area | Remaining work / required evidence |
+| --- | --- |
+| Canonical private SMI | Deploy the exact reviewed branch to a reachable authenticated first-party runtime; inference and durable memory must be verified there |
+| Sites approval screen | Its saved signal receipts are not executable ActionPlans; authenticated connection to the canonical backend remains absent |
+| Autonomous repair | Natural-language task-to-plan generation, durable worker dispatch, live work events and STOP/Hold cancellation are not supplied by this exact-action UI repair |
+| Hosting / VPN | No VPS order or hosting deployment occurred; Founder clarified VPN, not VPS; VPN intent/account access remains unresolved |
+| Spot / Link Up / KORADASO | Separate existing source branches still require compatible integration, deployed revision parity and physical Redmi A5 proof |
+| Messaging / media | Two real devices, delivery/read/reconnect receipts and separate PTT/call audio proof remain unverified |
+| Market / booking | Actual payment capture, settlement, supplier confirmation and automatic dispatch stay independently gated |
+| Wider public modules | Creator publishing, rights/broadcast distribution, reporting/escalation and other gaps remain those declared by their canonical capability owners |
+
+Browser tests exercise the real chat DOM with intercepted API responses. They prove
+client wiring, safe rendering and failure handling, not a live GitHub write or worker.
+Missing production access and device evidence must stay visible, never replaced by
+cosmetic Green, percentages or another approval stage.

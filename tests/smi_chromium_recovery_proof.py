@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 from werkzeug.serving import make_server
 
 import app as app_module
@@ -91,6 +91,130 @@ def _session_cookies():
         return session_name, session_cookie.value
 
 
+def prove_governed_actions(context, base_url):
+    """Real chat DOM + intercepted API boundaries; no live GitHub writes.
+
+    The test certifies browser wiring and failure handling only. Signed-receipt
+    validation, authority, CSRF and replay remain canonical backend test concerns.
+    """
+    plan = {
+        "request_id": "22222222-2222-4222-8222-222222222222",
+        "action_type": "github.file.write",
+        "action_digest": "a" * 64,
+        "payload": {
+            "branch": "oap-mind/browser-proof",
+            "path": "notes/change.md",
+            "content": '<img src=x onerror="window.__unsafePlan=true">',
+            "message": "Reviewed bounded change",
+        },
+        "requires_human_approval": True,
+    }
+    for scenario in (
+        "approved", "rejected", "denied", "mismatch", "blocked",
+        "lost-execution", "invalid-completion", "lost-approval",
+    ):
+        page = context.new_page()
+        calls = []
+
+        def boundary_for(scenario, calls):
+            def boundary(route):
+                request = route.request
+                assert request.method == "POST"
+                assert request.headers["x-oap-csrf"] == CSRF_VALUE
+                payload = request.post_data_json
+                path = request.url.split("/tools/github/", 1)[1]
+                calls.append((path, payload))
+                if path == "proposals/file":
+                    route.fulfill(json={"proposal": plan, "executed": False})
+                elif path == "approvals":
+                    assert payload["request_id"] == plan["request_id"]
+                    assert payload["action_digest"] == plan["action_digest"]
+                    if scenario == "lost-approval":
+                        route.abort("connectionreset")
+                        return
+                    if scenario == "denied":
+                        route.fulfill(status=403, json={"error": {"message": "Founder gate blocked"}})
+                        return
+                    receipt = {
+                        "receipt_id": "browser-receipt",
+                        "request_id": plan["request_id"],
+                        "action_type": plan["action_type"],
+                        "action_digest": plan["action_digest"],
+                        "decision": payload["decision"],
+                        "signature_verified": True,
+                        "expires_at": "2030-01-01T00:00:00Z",
+                    }
+                    if scenario == "mismatch":
+                        receipt["action_digest"] = "b" * 64
+                    route.fulfill(json={"approval": receipt, "executed": False})
+                elif path == "execute":
+                    assert payload == {"receipt_id": "browser-receipt", "plan": plan}
+                    if scenario == "lost-execution":
+                        route.abort("connectionreset")
+                        return
+                    result = {
+                        "request_id": plan["request_id"],
+                        "executed": scenario != "blocked",
+                        "state": "EXECUTED" if scenario != "blocked" else "BLOCKED",
+                        "reason": "Boundary result",
+                        "audit_event_id": "browser-audit",
+                    }
+                    if scenario == "invalid-completion":
+                        result["request_id"] = "wrong-request"
+                    route.fulfill(json=result)
+                else:
+                    raise AssertionError(path)
+            return boundary
+
+        page.route("**/mission/tools/github/**", boundary_for(scenario, calls))
+        page.goto(base_url + "/mission/ollama", wait_until="domcontentloaded")
+        page.locator("#plus-button").click()
+        entry = page.locator('[data-oap-action="github-governed"]')
+        expect(entry).to_have_count(1)
+        entry.click()
+        card = page.locator(".action-card")
+        expect(card).to_have_count(1)
+        assert calls == []
+        card.locator("[data-kind]").select_option("file")
+        for name, value in plan["payload"].items():
+            card.locator(f'[name="{name}"]').fill(value)
+        card.get_by_role("button", name="Prepare exact plan", exact=True).click()
+        approve = card.get_by_role("button", name="Approve & run", exact=True)
+        reject = card.get_by_role("button", name="Reject", exact=True)
+        expect(approve).to_be_visible()
+        expect(card.locator("pre")).to_contain_text(plan["payload"]["content"])
+        assert card.locator("pre img").count() == 0
+        assert page.evaluate("() => window.__unsafePlan === true") is False
+        for control in card.locator("select,input,textarea").all():
+            expect(control).to_be_disabled()
+        assert [path for path, _ in calls] == ["proposals/file"]
+        target = reject if scenario == "rejected" else approve
+        target.click()
+        state = card.locator("[data-state]")
+        expected = {
+            "approved": "EXECUTED", "rejected": "REJECTED",
+            "denied": "Approval outcome unconfirmed", "mismatch": "BLOCKED",
+            "blocked": "BLOCKED", "lost-execution": "Execution outcome unconfirmed",
+            "invalid-completion": "Execution outcome unconfirmed",
+            "lost-approval": "Approval outcome unconfirmed",
+        }[scenario]
+        expect(state).to_contain_text(expected)
+        assert plan["request_id"] in state.inner_text()
+        expect(approve).to_be_disabled()
+        expect(reject).to_be_disabled()
+        expected_calls = ["proposals/file", "approvals"]
+        if scenario in {"approved", "blocked", "lost-execution", "invalid-completion"}:
+            expected_calls.append("execute")
+        assert [path for path, _ in calls] == expected_calls
+        # Even an additional DOM click cannot mint/replay an approval.
+        target.evaluate("button => button.click()")
+        assert [path for path, _ in calls] == expected_calls
+        if scenario in {"lost-execution", "invalid-completion", "lost-approval"}:
+            expect(state).to_contain_text("No automatic retry")
+        page.close()
+    print("SMI_EXACT_ACTION_BROWSER_WIRING=PASS (intercepted APIs; not live execution)")
+
+
 def main():
     _prepare_app()
     session_name, session_value = _session_cookies()
@@ -103,7 +227,10 @@ def main():
 
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(
+                headless=True,
+                executable_path=os.environ.get("OAP_TEST_CHROMIUM_EXECUTABLE"),
+            )
             context = browser.new_context(viewport={"width": 390, "height": 844})
             context.add_cookies(
                 [
@@ -301,6 +428,7 @@ def main():
             print("SOURCE_PIXEL_MOTION=PASS")
             print("STOP_FREEZES_MOTION=PASS")
 
+            prove_governed_actions(context, base_url)
             context.close()
             browser.close()
     finally:
