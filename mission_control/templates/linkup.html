@@ -80,11 +80,7 @@
           <h2>LINK <span>UP</span></h2>
           <p>PUBLIC · CONNECT · CREATE</p>
         </div>
-        {% if my_card and not auth_user %}
-        <p class="linkup-card-summary" aria-label="Basic My Card active"><strong>{{ my_card.display_name }}</strong> · <small>{{ my_card.card_id }} · Basic My Card. Private chat requires sign-in.</small></p>
-        {% else %}
-        <p class="linkup-card-summary"><a href="{{ url_for('my_card_create_page') }}">Create My Card</a> <small>Free and optional. Browse without signing in.</small></p>
-        {% endif %}
+
       </section>
 
           <section class="linkup-rich-search" role="search" aria-label="Search public Link Up sections">
@@ -94,6 +90,13 @@
             <a href="#linkup-rich-settings" aria-label="Search privacy and settings">☷</a>
           </section>
           <p class="linkup-rich-note" role="status" data-oap-public-search-note>Public sections only. Finding people requires sign-in.</p>
+          <section class="linkup-rich-create" aria-label="My Card entry">
+        {% if my_card and not auth_user %}
+        <p class="linkup-card-summary" aria-label="Basic My Card active"><strong>{{ my_card.display_name }}</strong> · <small>{{ my_card.card_id }} · Basic My Card. Private chat requires sign-in.</small></p>
+        {% else %}
+        <p class="linkup-card-summary"><a href="{{ url_for('my_card_create_page') }}">Create My Card</a> <small>Free and optional. Browse without signing in.</small></p>
+        {% endif %}
+          </section>
           <nav class="linkup-rich-categories" aria-label="Link Up category shortcuts">
             <a href="/world">🌍<span>Global</span></a>
             <a href="/the-spot/postcode-rooms">📍<span>Nearby</span></a>

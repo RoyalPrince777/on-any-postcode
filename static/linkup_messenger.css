@@ -77,3 +77,9 @@ linear-gradient(180deg,#090604 0%,#160d06 42%,#070504 100%);color:#fff7df}
 @media(max-width:760px){.linkup-rich-public{padding:0 10px calc(110px + env(safe-area-inset-bottom,0px))}.linkup-rich-masthead,.linkup-rich-rail,.linkup-rich-aside{display:none}.linkup-rich-layout{display:block}.linkup-rich-content>.linkup-royal-hero{min-height:153px;padding:12px 6px 7px}.linkup-rich-content .linkup-orbit{inset:-50px 7% auto;height:180px}.linkup-rich-content .linkup-royal-brand h2{font-size:clamp(2.7rem,9vw,3.55rem)}.linkup-rich-categories{grid-template-columns:repeat(3,minmax(0,1fr))}.linkup-rich-categories a{min-height:66px}.linkup-rich-features{grid-template-columns:repeat(3,minmax(0,1fr))}.linkup-rich-features>a,.linkup-rich-information{min-height:108px}}
 @media(max-width:350px){.linkup-rich-public{padding-inline:6px}.linkup-rich-features .royal-symbol{width:44px;height:44px}.linkup-rich-features strong{font-size:.75rem}.linkup-rich-features small{font-size:.65rem}.linkup-rich-stream>a{grid-template-columns:54px minmax(0,1fr) 14px}.linkup-rich-art{width:53px;height:53px}}
 @media(prefers-reduced-motion:reduce){.linkup-rich-public *{animation:none!important;transition:none!important}}
+
+/* Reference alignment: desktop category row first; mobile shows one feature grid. */
+@media(min-width:761px){.linkup-rich-categories{order:-1}}
+@media(max-width:760px){.linkup-rich-categories{display:none}}
+.linkup-rich-create{border:1px solid #edc86b;border-radius:18px;padding:5px;background:radial-gradient(ellipse at 50% 0%,#5e1b99,#1a0a2b 83%)}
+.linkup-rich-create .linkup-card-summary{background:transparent;border:0;margin:0;box-shadow:none}

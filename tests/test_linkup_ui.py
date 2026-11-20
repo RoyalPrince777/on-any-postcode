@@ -475,3 +475,12 @@ def test_public_linkup_restored_royal_reference_navigation(anonymous_client):
     assert ".linkup-rich-layout{display:grid;grid-template-columns:170px minmax(0,1fr) 215px" in css
     assert ".linkup-rich-features{grid-template-columns:repeat(3,minmax(0,1fr))" in css
     assert "fetch(" not in script
+
+def test_public_royal_mobile_reference_has_search_before_create_and_compact_grid(anonymous_client):
+    html = anonymous_client.get("/linkup").get_data(as_text=True)
+    css = Path("static/linkup_messenger.css").read_text(encoding="utf-8")
+    assert html.index('id="linkup-rich-query"') < html.index('class="linkup-rich-create"')
+    assert html.index('class="linkup-rich-create"') < html.index('id="linkup-rich-features"')
+    assert html.count('class="linkup-card-summary"') == 1
+    assert '@media(max-width:760px){.linkup-rich-categories{display:none}}' in css
+    assert '@media(min-width:761px){.linkup-rich-categories{order:-1}}' in css
