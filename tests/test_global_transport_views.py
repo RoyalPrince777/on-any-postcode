@@ -635,7 +635,7 @@ def test_offline_transport_worker_precaches_only_public_snapshot():
 def test_founder_transport_control_is_denied_to_anonymous(anonymous_client):
     response = anonymous_client.get("/my-world/transport-control", follow_redirects=False)
     assert response.status_code in {302, 303}
-    assert "/auth" in response.headers["Location"]
+    assert response.headers["Location"].startswith("/enter-my-world?next=/my-world/transport-control")
     assert "Global Transport Control Room" not in response.get_data(as_text=True)
 
 
