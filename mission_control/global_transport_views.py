@@ -478,14 +478,14 @@ def transport_status_page():
 # Founder-private oversight uses existing transport evidence; never creates
 # a competing dispatch, approval, payments or booking backend.
 _FOUNDER_TRANSPORT_CONTROLS = (
-    ("🧠 SMI", "Give SMI a transport mission", "/mission/ollama"),
-    ("⚔️ WAR ROOM", "Inspect blockers, evidence and recovery", "/mission/war-room"),
-    ("🚗 Movement", "Open existing signed-in booking and work controls", "/movement/workspace"),
-    ("📦 Logistics", "Review owned distribution workspace", "/distribution"),
-    ("🛡️ Guardian", "Inspect the existing journey safety surface", "/transport/guardian"),
-    ("🧾 Evidence", "Check exact transport execution requirements", "/transport/control-center/readiness"),
-    ("📜 HRM Receipts", "Inspect existing SMI governance receipts", "/mission/smi/brain/receipts"),
-    ("👑 Founder Final", "Open the existing Founder judgement gate", "/mission/judgement"),
+    ("🧠 SMI", "Mission coordination", "/mission/ollama"),
+    ("⚔️ WAR ROOM", "Blockers and recovery", "/mission/war-room"),
+    ("🚗 Movement", "Bookings and work", "/movement/workspace"),
+    ("📦 Logistics", "Deliveries and cargo", "/distribution"),
+    ("🛡️ Guardian", "Journey protection", "/transport/guardian"),
+    ("🧾 Evidence", "Proof requirements", "/transport/control-center/readiness"),
+    ("📜 HRM Receipts", "Decision receipts", "/mission/smi/brain/receipts"),
+    ("👑 Founder Final", "Final authority", "/mission/judgement"),
 )
 
 _FOUNDER_TRANSPORT_PAGE = """<!doctype html>
@@ -498,49 +498,49 @@ _FOUNDER_TRANSPORT_PAGE = """<!doctype html>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font:16px/1.5 system-ui,-apple-system,sans-serif}
 main{max-width:940px;margin:auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(55px + env(safe-area-inset-bottom))}
 a{color:inherit;text-decoration:none}
-.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;border-bottom:1px solid var(--edge);padding-bottom:14px}
 .top a{display:inline-flex;align-items:center;min-height:44px;color:var(--gold);font-weight:750}
-.eyebrow{margin:25px 0 6px;font-size:.76rem;font-weight:900;color:var(--gold);letter-spacing:.09em}
+.eyebrow{margin:23px 0 7px;font-size:.76rem;font-weight:900;color:var(--gold);letter-spacing:.09em}
 h1{font-size:clamp(2.1rem,9vw,3.9rem);line-height:1.02;margin:0 0 10px;letter-spacing:-.045em}
-.lead{max-width:700px;color:var(--muted);margin:0 0 22px}
+.lead{max-width:700px;color:var(--muted);margin:0 0 20px}
 .summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:24px}
-.panel,.control{border:1px solid var(--edge);border-radius:17px;background:var(--panel);padding:16px;min-width:0}
+.panel,.control{border:1px solid var(--edge);border-radius:16px;background:var(--panel);padding:16px;min-width:0}
 .panel span{color:var(--muted);font-size:.79rem}.panel strong{display:block;margin-top:6px;line-height:1.3;color:var(--gold);overflow-wrap:anywhere}
 h2{margin:28px 0 12px;font-size:1.15rem}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
-.control{display:flex;flex-direction:column;justify-content:center;min-height:94px;gap:5px}
+.control{display:flex;flex-direction:column;justify-content:center;min-height:92px;gap:6px;transition:border-color .15s,background .15s}.control:hover{background:#242014}
 .control strong{font-size:1rem;color:#f8e0a0}.control span{color:var(--muted);font-size:.83rem}
 .control:first-child{border-color:#9c8040}
-.gate{border-bottom:1px solid var(--edge);padding:11px 0;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.gate{border-bottom:1px solid var(--edge);padding:12px 0;display:flex;justify-content:space-between;align-items:center;gap:12px}
 .gate span{overflow-wrap:anywhere}.gate small{color:var(--muted);text-align:right}
-.notice{margin:22px 0 0;padding:13px 15px;background:#231e15;border-left:3px solid var(--gold);font-size:.86rem;color:#d9d1c2}
+.evidence{margin-top:23px;border:1px solid var(--edge);border-radius:16px;background:var(--panel);padding:0 16px}.evidence summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:60px;cursor:pointer;font-weight:750;list-style:none}.evidence summary::-webkit-details-marker{display:none}.evidence summary::after{content:"+";color:var(--gold);font-size:1.3rem}.evidence[open] summary::after{content:"−"}.evidence section{padding:0 0 12px}.notice{margin:21px 0 0;padding:13px 15px;background:#231e15;border-left:3px solid var(--gold);font-size:.84rem;color:#d9d1c2}
 a:hover,a:focus-visible{border-color:var(--gold)}a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 @media(min-width:700px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media(max-width:320px){.grid,.summary{grid-template-columns:1fr}}
+@media(max-width:320px){.grid,.summary{grid-template-columns:1fr}.gate{align-items:flex-start;flex-direction:column}.gate small{text-align:left}}@media(prefers-reduced-motion:reduce){.control{transition:none}}
 </style></head><body><main>
 <nav class="top"><a href="/my-world">← My World</a><a href="/transport/my">My Transport · Customer</a></nav>
 <p class="eyebrow">FOUNDER PRIVATE · SMI GOVERNED</p>
 <h1>Global Transport<br>Control Room</h1>
-<p class="lead">One system. Public customers and drivers use Transport; only your authorised Founder identity can access the control room.</p>
+<p class="lead">Private oversight. Customer and Driver access stay separate.</p>
 <section class="summary" aria-label="Live proof position">
 <div class="panel"><span>Software capabilities</span><strong>21 registered</strong></div>
 <div class="panel"><span>Real-world transport execution</span>
 <strong>{% if not evidence_reachable %}Unknown · blocked{% elif externally_verified %}Independent proof required{% elif recorded %}References recorded · not independently verified{% else %}Not authorised{% endif %}</strong></div>
 </section>
-<h2>Command controls</h2>
+<h2>Command</h2>
 <nav class="grid" aria-label="Founder Transport command controls">
 {% for name, detail, href in controls %}
 <a class="control" href="{{ href }}"><strong>{{ name }}</strong><span>{{ detail }}</span></a>
 {% endfor %}
 </nav>
-<h2>Execution gates · {{ areas|length }}</h2>
+<details class="evidence"><summary>Execution gates · {{ areas|length }}</summary>
 <section aria-label="Transport gate evidence">
 {% for key, area in areas.items() %}
 <div class="gate"><span>{{ key.replace("_", " ").title() }}</span>
 <small>{% if not evidence_reachable %}Unknown · blocked{% elif area.live_execution_authorised %}References recorded · verify externally{% else %}Locked · {{ area.missing|length }} requirements outstanding{% endif %}</small></div>
 {% endfor %}
-</section>
-<div class="notice">No booking, dispatch, payments, tracking feed or vehicle control is unlocked by this screen. Guardian, HRM and Founder Final remain independent gates. Missing proof never becomes Green.</div>
+</section></details>
+<div class="notice">Live dispatch, payments and vehicle control remain gated by Guardian, HRM and Founder Final. Missing proof never becomes Green.</div>
 </main></body></html>"""
 
 
