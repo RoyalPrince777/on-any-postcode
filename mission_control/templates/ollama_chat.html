@@ -33,6 +33,8 @@ window.OAP_SMI_UI={
   thirdEyeStatusUrl:{{ url_for('alignment.smi_third_eye_status')|tojson }},
   thirdEyeEarthquakesUrl:{{ url_for('alignment.smi_third_eye_earthquakes')|tojson }},
   thirdEyeWeatherUrl:{{ url_for('ecosystem_intelligence.source_location_weather')|tojson }},
+  thirdEyeLondonCamerasUrl:{{ url_for('alignment.smi_third_eye_london_cameras')|tojson }},
+  thirdEyeLondonFrameUrl:{{ url_for('alignment.smi_third_eye_london_frame', camera_id='__CAMERA_ID__')|tojson }},
   civilizationBridgeUrl:{{ url_for('ecosystem_intelligence.civilization_bridge')|tojson }},
   ecosystemDashboardUrl:{{ url_for('ecosystem_intelligence.dashboard')|tojson }},
   greenGateUrl:{{ url_for('alignment.green_gate_status')|tojson }},
