@@ -40,6 +40,7 @@ def test_my_transport_dashboard_links_to_rider_driver_and_owned_work():
     assert b"/movement/workspace?service=delivery#book-title" in data
     assert b"/eats" in data
     assert b"/travel" in data
-    assert b"/transport/ride/guardian/status" in data
+    assert b"/transport/guardian" in data
+    assert b"/pay/bank" in data
     assert b"Personal bookings and account actions require sign-in" in data
     assert b"/my-world" not in data
