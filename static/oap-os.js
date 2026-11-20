@@ -5,7 +5,11 @@
   const status = document.querySelector("[data-oap-install-status]");
   const platformLabel = document.querySelector("[data-oap-install-platform]");
   let deferredInstall = null;
-  const productName = location.pathname === "/pay/bank" || location.pathname.startsWith("/pay/bank/")
+  const productName = location.pathname === "/transport/ride/rider"
+    ? "OAP Rider"
+    : location.pathname === "/transport/ride/driver"
+      ? "OAP Driver"
+    : location.pathname === "/pay/bank" || location.pathname.startsWith("/pay/bank/")
     ? "OAP Bank"
     : location.pathname === "/pay" || location.pathname === "/oap-pay" || location.pathname.startsWith("/pay/")
       ? "OAP Pay"
@@ -51,7 +55,7 @@
   const installed = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
   const fallbackInstruction = () => {
-    if (isAndroidEmbeddedView) return "This embedded OAP Home V2 view cannot install the PWA directly. Open this OAP PTT page in your Android browser, then choose Install app or Add to Home screen.";
+    if (isAndroidEmbeddedView) return "This embedded OAP Home V2 view cannot install the PWA directly. Open this ${productName} page in your Android browser, then choose Install app or Add to Home screen.";
     if (isIOS) return "In Safari, tap Share, then Add to Home Screen.";
     if (isMac && isSafari) return "In Safari, use File → Add to Dock. In a Chromium browser, use Install app.";
     if (isAndroid) return "Open the browser menu and choose Install app or Add to Home screen.";
@@ -59,13 +63,13 @@
     return "Use your browser menu and choose Install app or Add to Home screen when supported.";
   };
 
-  if (isAndroidEmbeddedView && productName === "OAP PTT") {
+  if (isAndroidEmbeddedView && ["OAP PTT", "OAP Rider", "OAP Driver"].includes(productName)) {
     if (installButton) installButton.hidden = true;
     setStatus(fallbackInstruction());
   } else if (installed) {
     if (installButton) installButton.hidden = true;
-    setStatus(productName === "OAP PTT"
-      ? `OAP PTT is open in a standalone window on ${platformName}; this alone does not prove it was installed separately.`
+    setStatus(["OAP PTT", "OAP Rider", "OAP Driver"].includes(productName)
+      ? `${productName} is open in standalone mode on ${platformName}; separate installation is not independently verified.`
       : `${productName} is installed on ${platformName}.`);
   } else if (!("serviceWorker" in navigator)) {
     if (installButton) installButton.hidden = false;
@@ -80,7 +84,7 @@
   }
 
   window.addEventListener("beforeinstallprompt", (event) => {
-    if (isAndroidEmbeddedView && productName === "OAP PTT") return;
+    if (isAndroidEmbeddedView && ["OAP PTT", "OAP Rider", "OAP Driver"].includes(productName)) return;
     event.preventDefault();
     deferredInstall = event;
     if (installButton) installButton.hidden = false;
