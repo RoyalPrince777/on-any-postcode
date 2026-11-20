@@ -10,6 +10,9 @@ def test_oap_world_is_first_installable_store_entry():
     assert app["install_enabled"] is True
     assert app["install_mode"] == "PWA"
     assert app["manifest_url"] == "/manifest.webmanifest"
+    assert app["start_url"] == "/koradaso?source=oap-store"
+    assert app["open_url"] == "/koradaso"
+    assert app["install_url"] == "/?source=oap-store&install=1"
     assert app["service_worker_url"] == "/service-worker.js"
     assert app["native_apk"] is False
     assert app["physical_device_certified"] is False
@@ -320,3 +323,40 @@ def test_arena_existing_world_install_route_is_truthful(client):
     assert entry["install_enabled"] is False
     assert entry["install_url"] is None
     assert entry["open_url"] == "/arena"
+
+def test_koradaso_is_one_open_only_browser_entry_across_oap_store_and_search(client):
+    apps = {app["app_id"]: app for app in oap_store.catalogue()}
+    browser = apps["oap.koradaso"]
+    assert browser["name"] == "KORADASO Internet"
+    assert browser["category"] == "Browser"
+    assert browser["open_url"] == "/koradaso"
+    assert browser["start_url"] == "/koradaso"
+    assert browser["install_enabled"] is False
+    assert browser["install_url"] is None
+    assert browser["manifest_url"] is None
+    assert browser["native_apk"] is False
+    assert apps["oap.world"]["manifest_url"] == "/manifest.webmanifest"
+    assert apps["oap.world"]["open_url"] == "/koradaso"
+    assert sum(app["open_url"] == "/koradaso" for app in apps.values()) == 2
+
+    catalogue = client.get("/oap-store/apps").get_json()
+    found = [item for item in catalogue["apps"] if item["app_id"] == "oap.koradaso"]
+    assert len(found) == 1
+    assert found[0]["install_enabled"] is False
+
+    store = client.get("/store")
+    assert store.status_code == 200
+    html = store.get_data(as_text=True)
+    assert html.count('data-oap-store-app="oap.koradaso"') == 1
+    assert 'data-oap-koradaso-integrated' in html
+    assert "OPEN ROUTE · INSIDE OAP WORLD" in html
+    assert "Install KORADASO Internet" not in html
+
+    result = client.get("/search?q=koradaso")
+    assert result.status_code == 200
+    search = result.get_data(as_text=True)
+    assert "KORADASO Internet" in search
+    assert 'href="/koradaso"' in search
+    assert "/mission/smi" not in search
+    assert "/my-world" not in search
+

@@ -24,8 +24,8 @@ OAP_WORLD = {
     "install_mode": "PWA",
     "manifest_url": "/manifest.webmanifest",
     "service_worker_url": "/service-worker.js",
-    "start_url": "/",
-    "open_url": "/",
+    "start_url": "/koradaso?source=oap-store",
+    "open_url": "/koradaso",
     "category": "World",
     "install_url": "/?source=oap-store&install=1",
     "offline_url": "/offline",
@@ -209,6 +209,9 @@ PLANNED_STORE_APPS = (
 
 
 PUBLIC_STORE_APPS = (
+    # One open-only catalogue route for the existing KORADASO browser home.
+    # OAP World keeps the sole installable OS identity; no second browser APK.
+    _catalogue_placeholder(app_id="oap.koradaso", name="KORADASO Internet", open_url="/koradaso", description="Browse public OAP World destinations and consent-gated external HTTPS inside the existing OAP World app. No separate KORADASO installation.", category="Browser"),
     _catalogue_placeholder(app_id="oap.search", name="OAP Search", open_url="/search", description="First-party search across OAP public apps, places, Market, Library and media catalogue entries.", category="Discovery"),
     _catalogue_placeholder(app_id="oap.spot", name="The Spot", open_url="/the-spot", description="Public community activity, Pulse, Signal and Empire life.", category="Social"),
     _catalogue_placeholder(app_id="oap.link", name="The Link", open_url="/the-link", description="People, opportunities and the bridge into private Link Up.", category="Communication"),

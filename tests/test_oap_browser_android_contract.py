@@ -3,10 +3,12 @@ from pathlib import Path
 SOURCE = Path("android/oapworld/src/main/java/com/onanypostcode/oapworld/MainActivity.java")
 
 
-def test_oap_browser_keeps_oap_as_home_and_routes_search_first_party():
+def test_oap_browser_opens_koradaso_home_and_routes_search_first_party():
     source = SOURCE.read_text(encoding="utf-8")
     assert 'private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com"' in source
-    assert 'openFirstPartyPath("/world")' in source
+    assert 'homeButton.setOnClickListener(v -> openFirstPartyPath("/koradaso"));' in source
+    assert 'if (state == null) {\n            openFirstPartyPath("/koradaso");' in source
+    assert 'homeButton.setContentDescription("KORADASO home")' in source
     assert 'openFirstPartyPath("/search?q=" + Uri.encode(input))' in source
 
 
@@ -31,7 +33,7 @@ def test_oap_browser_has_approved_minimal_navigation_controls():
     source = SOURCE.read_text(encoding="utf-8")
     for marker in (
         'navButton("‹")',
-        'navButton("OAP")',
+        'navButton("⌂")',
         "webView.goBack()",
     ):
         assert marker in source
@@ -104,7 +106,30 @@ def test_oap_android_webview_requires_explicit_world_open_web_consent():
     assert 'result.cancel();' in source
     assert 'result.confirm()' in source
     assert 'setNegativeButton("Stay in OAP World"' in source
-    assert 'setOnCancelListener(dialog -> result.cancel())' in source
+    assert 'dialog.setOnCancelListener(prompt -> result.cancel()).show();' in source
+
+
+def test_koradaso_public_https_confirmation_matches_android_webview():
+    """Android must recognise only the existing public KORADASO confirmation."""
+    source = SOURCE.read_text(encoding="utf-8")
+    template = Path("templates/koradaso_internet.html").read_text(encoding="utf-8")
+
+    assert '"/koradaso".equals(origin.getPath())' in source
+    assert '"/world".equals(origin.getPath())' in source
+    assert '"https".equalsIgnoreCase(origin.getScheme())' in source
+    assert 'certified.getHost().equalsIgnoreCase(origin.getHost())' in source
+    assert 'message.startsWith(prefix) && message.endsWith(suffix)' in source
+    assert 'String prefix = "OPEN WEB — "' in source
+    assert 'String suffix = " is outside OAP. Continue?"' in source
+    assert 'hostname.matches("[A-Za-z0-9.-]+")' in source
+    assert "if (!worldPrompt && !koradasoPrompt)" in source
+    assert "result.cancel();" in source
+    assert "result.confirm()" in source
+    assert 'setNegativeButton("Stay in KORADASO Internet"' in source
+    assert 'setNegativeButton("Stay in OAP World"' in source
+    assert 'window.confirm("OPEN WEB — "+url.hostname+" is outside OAP. Continue?")' in template
+    assert "url.protocol!==\"https:\"" in template
+
 
 
 def test_oap_android_root_back_never_reveals_blank_webview():
@@ -128,3 +153,11 @@ def test_oap_android_external_navigation_invalidates_pending_native_response():
     cancel_body = client_source.split("public void cancelPending()", 1)[1].split("\n    }", 1)[0]
     assert "generation.incrementAndGet();" in cancel_body
     assert "generation.get() == requestGeneration" in client_source
+
+
+def test_android_koradaso_uses_real_webview_for_interactive_compass():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert '"/koradaso".equals(Uri.parse(path).getPath())' in source
+    assert 'loadWebViewUrl(OAP_ORIGIN + path);' in source
+    assert 'if ("/koradaso".equals(Uri.parse(path).getPath())) {' in source
+    assert 'private static final String OAP_ORIGIN = "https://on-any-postcode.onrender.com"' in source

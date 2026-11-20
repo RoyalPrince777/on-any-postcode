@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 {% include "_oap_install_head.html" %}
 <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<link rel="stylesheet" href="/static/oap-browse-apps.css">
 <style>
 :root{color-scheme:dark;--bg:#080806;--panel:#13120e;--panel2:#1a1811;--line:#3a3423;--gold:#efc85d;--ticket:#ffe26d;--ticketText:#17130a;--text:#fffaf0;--muted:#aaa38e;--green:#64d98b}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}a{text-decoration:none;color:inherit}button,input{font:inherit}
@@ -39,6 +40,12 @@
 <p class="install-status" data-oap-install-status aria-live="polite"></p>
 </header>
 
+<nav class="oap-browse-apps" aria-label="Browse and Apps across OAP World">
+<a href="/koradaso" data-oap-browse-koradaso><strong>🌐 KORADASO Internet</strong><small>Browser home · HTTPS consent</small></a>
+<a href="/store" data-oap-world-apps><strong>📱 Apps</strong><small>OAP Store</small></a>
+<a href="/search" data-oap-world-search><strong>🔎 Search</strong><small>Public OAP catalogue</small></a>
+</nav>
+
 <section class="counter">
 <div class="counter-box">
 <div class="counter-top">
@@ -71,6 +78,8 @@
 <a href="/orders"><b>📦</b><div><strong>Orders</strong><span>Check orders</span></div></a>
 <a href="/basket"><b>🧺</b><div><strong>Basket</strong><span>Ready to go</span></div></a>
 </section>
+
+
 
 <section class="section">
 <div class="section-head"><h2>Local shops</h2><a href="/the-spot/market">See all</a></div>

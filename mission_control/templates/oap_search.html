@@ -6,22 +6,24 @@
   {% include "_oap_install_head.html" %}
   <title>OAP Search · ON ANY POSTCODE</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+  <link rel="stylesheet" href="/static/oap-browse-apps.css">
   <style>
-    body{margin:0;background:#050807;color:#f4fff6;font-family:system-ui,sans-serif}
+    body{margin:0;background:#090713;color:#fff8e9;font-family:system-ui,sans-serif}
     main{max-width:920px;margin:auto;padding:28px 18px 80px}
-    .eyebrow{color:#7ef0a3;font-weight:900;letter-spacing:.1em}
+    .eyebrow{color:#f1c777;font-weight:900;letter-spacing:.1em}
     form{display:flex;gap:8px;margin:18px 0}
-    input{flex:1;min-width:0;border:1px solid #245f38;background:#0b1710;color:#fff;border-radius:12px;padding:13px}
-    button,.open{border:0;border-radius:12px;padding:12px 16px;background:#27c267;color:#021;font-weight:900;text-decoration:none}
-    .grid{display:grid;gap:12px}.card{border:1px solid #244832;background:#09140d;border-radius:16px;padding:16px}
-    .meta{color:#9fb5a8;font-size:.86rem}.quiet{color:#9fb5a8}
+    input{flex:1;min-width:0;border:1px solid #947140;background:#161021;color:#fff;border-radius:12px;padding:13px}
+    button,.open{border:0;border-radius:12px;padding:12px 16px;background:#efc85d;color:#17120a;font-weight:900;text-decoration:none;min-height:44px}
+    .grid{display:grid;gap:10px}.card{border:1px solid #88653f;background:#17101e;border-radius:15px;padding:15px}
+    .meta{color:#c3b29e;font-size:.86rem}.quiet{color:#c3b29e}
   </style>
 </head>
 <body>
 <main>
+  <nav class="oap-subnav" aria-label="OAP Search navigation"><a href="/koradaso">🏠 KORADASO</a><a href="/world">🌍 OAP World</a><a href="/store">📱 Apps</a></nav>
   <p class="eyebrow">🔎 OAP SEARCH · FIRST-PARTY</p>
   <h1>Search OAP</h1>
-  <p class="quiet">Searches the current public OAP app catalogue only. Private Link Up messages, private identity data and Founder surfaces are not indexed here.</p>
+  <p class="quiet">Searches the public OAP catalogue only. Private Link Up messages are not indexed.</p>
   <form method="get" action="/search">
     <input type="search" name="q" value="{{ query }}" maxlength="120" placeholder="Search apps, Market, Library, places, music…" aria-label="Search OAP">
     <button type="submit">Search</button>
