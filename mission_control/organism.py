@@ -13,14 +13,14 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from . import oap_offline_router
+from .agents import ADVISORY_AGENT_NAMES as ADVISORY_AGENTS
 from .agents import (
-    ADVISORY_AGENT_NAMES as ADVISORY_AGENTS,
     AGENT_ANATOMY,
     INTELLIGENCE_FAMILIES,
     INTELLIGENCE_PROVIDERS,
-    INTELLIGENCE_WORLD_NAMES as INTELLIGENCE_WORLDS,
     validate_agent_registry,
 )
+from .agents import INTELLIGENCE_WORLD_NAMES as INTELLIGENCE_WORLDS
 
 # Named advisors remain advisory. Region/governance-role assignment is a
 # separate governed act and is checked for overlap before activation.
