@@ -426,3 +426,27 @@ def test_smi_cc_receipt_links_to_canonical_blueprint_and_keeps_release_locked():
     assert "two_real_phones_deliver_and_reconnect_with_receipts" in blueprint
     assert "authority_green" in blueprint
     assert "No CI percentage, button or static receipt may self-approve" in blueprint
+
+
+def test_master_upgrade_section_29_canonical_routes_and_release_lock():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    blueprint = (root / "docs/OAP_FULL_MASTER_BLUEPRINT_DASHBOARD_CHAT.md").read_text(encoding="utf-8")
+    template = (root / "mission_control/templates/smi_visual_home.html").read_text(encoding="utf-8")
+
+    assert blueprint.count("## 29. Full master upgrade") == 1
+    assert "KORADASO Internet       /koradaso" in blueprint
+    assert "My World                /my-world" in blueprint
+    assert "SMI Command Centre      /mission/smi" in blueprint
+    assert "static/oap-browse-apps.css" in blueprint
+    assert "separate" in blueprint and "not been" in blueprint
+    assert "b0f7b745cd5fe38aa03f2b1ea8a925aaff8ccb0a" in blueprint
+    assert "17eac4f289a0d5118d0dd5639a99d27e1f65bb3b" in blueprint
+    assert "source_green" in blueprint and "release_green" in blueprint
+    assert "UNTESTED / UNKNOWN / STALE / FAILED => LOCKED" in blueprint
+    assert "No additional dashboard, release permission" in blueprint
+    assert template.count('class="ci-receipt"') == 1
+    assert "KORADASO · dated source proof" in template
+    assert "KORADASO PR" in template
+    assert '<span>Green Gate</span><b class="unknown">NOT CHECKED</b>' in template

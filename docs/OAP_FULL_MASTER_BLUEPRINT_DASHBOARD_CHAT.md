@@ -994,3 +994,203 @@ viewports, overflow, desktop ordering, mobile drawers and chat open/close, and s
 review screenshots. This visual update changes no authentication, execution,
 worker, payment, deployment or release authority. Pixel-perfect visual equivalence
 and physical Redmi A5 operation cannot be inferred solely from source tests.
+
+
+---
+
+## 29. Full master upgrade — KORADASO home, OAP World, SMI CC and release truth (20 November 2026)
+
+**Authority:** Founder Final. **Mode:** Truth Mode / ZERO TRACE / Mission-to-100.
+**Scope:** extend the one existing OAP organism; **do not** create another app,
+dashboard, status registry, PR, approval queue, browser engine or parallel SMI.
+This is a dated and reviewable **source blueprint**, not a deployed release.
+
+### 29.1 Verified sources and strict interpretation
+
+| Canonical ownership branch | Exact inspected head | GitHub workflow proof | Release status |
+| --- | --- | --- | --- |
+| [SMI CC #1407](https://github.com/RoyalPrince777/on-any-postcode/pull/1407) | `03acc518ebb680f9b1ee364f272aa5915a5dbaa7` | 9/9 success **before this documentation amendment** | DRAFT / NOT DEPLOYED |
+| [KORADASO / My World #1410](https://github.com/RoyalPrince777/on-any-postcode/pull/1410) | `b0f7b745cd5fe38aa03f2b1ea8a925aaff8ccb0a` | 7/7 success; governed **5,659 passed, 9 skipped, 1 warning**; desktop/mobile-emulated Chromium; Android debug builds | DRAFT / NOT DEPLOYED |
+| [The Link / Link Up #1234](https://github.com/RoyalPrince777/on-any-postcode/pull/1234) | `17eac4f289a0d5118d0dd5639a99d27e1f65bb3b` | 7/7 success; governed **5,659 passed, 9 skipped, 1 warning**; real desktop/mobile-emulated Chromium | DRAFT / NOT DEPLOYED |
+
+**Never combine separate passing branches into a fictional single Green**.
+Verify the precise reconciled SHA and runtime before calling an integrated
+system verified. A CI-compiled debug APK is **not** a phone installation, a
+production signature or a confirmed backend update.
+
+### 29.2 One governed hierarchy — direct, without duplicate doors
+
+~~~text
+FIRST-PARTY OAP / SMI — one organism
+|
++-- KORADASO Internet       /koradaso       Android + installed OAP web app HOME
+|   +-- Search address / OAP apps
+|   +-- Compass (Open Places, Saved Places, session-only recent routes)
+|   +-- Public app destinations, with external HTTPS consent
+|   +-- Browse -> /world    Public OAP ecosystem
+|   +-- Apps   -> /store    One canonical Store catalogue
+|   +-- Search -> /search   Existing public OAP catalogue search
+|
++-- OAP World               /world          Public world, shops and services
+|   +-- The Spot            /the-spot       Local/community discovery
+|   |   +-- The Link        /the-link       Connections
+|   |       +-- Link Up     /linkup         Public social front door
+|   |           +-- Messages/Calls         Authenticated and separately gated
+|   +-- Market / OAP TV / Library / Arena / Movement / Transport
+|   +-- SIKA and work/economy entry points, each with own governed permissions
+|
++-- My World                /my-world       Signed-in personal/private scope
+|   +-- My Card                              Personal identity, one canonical record
+|   +-- Founder credential                  Private authorized field, never public
+|
++-- SMI Command Centre      /mission/smi    Founder-only, one canonical CC
+    +-- Talk to SMI                         Existing governed chat on demand
+    +-- WAR ROOM / Proof / Recovery         Existing evidence owners
+    +-- Guardian + HRM                      Independent safety/evidence gates
+    +-- Green Gate                          Reads proofs, cannot self-approve
+    +-- Founder Final                       Sole authorized release authority
+~~~
+
+**Root route distinction:** the normal public `/` and `/world` remain the
+existing public site; changing the **installed app home** to `/koradaso`
+does **not** silently redirect the entire public website root. Public
+`/world` and app-source `/world?source=oap-os` use different templates
+with **one shared Browse & Apps UI**.
+
+### 29.3 Master UI/UX — alignment and noise law
+
+- **Single first-party visual system** for Browse & Apps on both World
+  views: `static/oap-browse-apps.css`; royal black/gold/purple, consistent
+  tap targets, readable headings, keyboard focus, stable responsiveness.
+  **One** KORADASO home shortcut + **one** Apps shortcut + **one** Search
+  shortcut; no repeated browser card masquerading as another app.
+- KORADASO mobile: logo and one address/search field; clear SMI public
+  Studio shortcut; destination tiles 4 columns at 381–540 CSS pixels,
+  3 at 321–380, 2 at <=320; Compass retains explicit Saved Places
+  and session-only Open/Recent Places. A normal public app cannot save
+  Founder routes into its places list.
+- OAP World: keep the legacy external-address control under the
+  *Open external website* disclosure; default Browse takes users to
+  KORADASO, reducing competing address fields without deleting code.
+- OAP Store: `oap.koradaso` is **open-only** at `/koradaso`;
+  no second APK, manifest or Install button. Per-card access/disclaimer
+  material sits under **Access details**, not stacked over every action.
+- Public Search: same navigation back to KORADASO, World and Apps;
+  searches public first-party catalogue only. A connected WWW index,
+  live people search, or universal SMI Search is **not** established.
+- Link Up: mobile gold/purple interface, five icon columns at supported
+  widths, My Card entry and single five-button bottom bar. Desktop
+  retains rail + feature panels. Four public Messages links point to
+  the **one** existing protected message route, not duplicate engines.
+- My World: **Join OAP**, **Enter My World**, **Leave My World**, **My Card**
+  and **Incoming** remain canonical terms. Preserve Founder-only
+  SMI/War Room controls; do not publish private keys, health or ledgers
+  from public views.
+- SMI CC: desktop composition and quiet mobile view stay in the same
+  private `smi_visual_home.html`. Show evidence only with exact revision,
+  timestamp, freshness, provenance and an owner; **UNKNOWN** means
+  not checked, not failure or Green. Keep source CI receipts collapsed.
+
+### 29.4 Code owners and integration contracts
+
+| Capability | Existing code owner | Required contract |
+| --- | --- | --- |
+| KORADASO UI | `templates/koradaso_internet.html` | HTML/JS, safe HTTPS consent, session privacy |
+| Android home | `android/oapworld/src/main/java/com/onanypostcode/oapworld/MainActivity.java` | cold launch + home -> `/koradaso`, HTTPS origin guarded |
+| Installed home | `static/manifest.webmanifest` | start path `/koradaso`; one PWA identity |
+| World UI | `templates/home.html`, `templates/world.html` | both Browse & Apps views; no duplicate card |
+| Browse & Apps style | `static/oap-browse-apps.css` | shared alignment, 44px targets where supported |
+| Store/Search | `mission_control/oap_store.py`, `mission_control/templates/oap_store.html`, `mission_control/templates/oap_search.html` | one catalogue, open-only browser, public-only search |
+| Link Up | `mission_control/templates/linkup.html`, `static/linkup_messenger.css`, `static/linkup_public_ui.js` | auth/consent, real messaging route, responsive layout |
+| Founder/private SMI | `mission_control/templates/smi_visual_home.html`, `mission_control/smi_command_dashboard.py` | private auth, one CC, evidence without Green inflation |
+| Test owners | `tests/test_oap_internet_manifest_startup.py`, `tests/oap_world_chromium_proof.py`, `tests/test_linkup_ui.py`, `tests/test_smi_command_dashboard.py` | exact-head real-browser, auth and route evidence |
+
+The UI code resides on *separate* owner PR branches. **It has not been
+merged into one tested artifact**. Never overwrite another branch's
+unrelated work by blindly copying entire templates or cherry-picking a
+large divergent history. Review and reconcile the bounded changed files.
+
+### 29.5 Broader OAP capabilities — existing owners, no fake completion
+
+- **Communication:** independent Link Up chat, Live Link calls and standalone
+  PTT; requiring separate two-phone chat and media receipts, mobile auth,
+  signalling and relay proof before calling live service Green.
+- **Global Transport:** rider/customer, driver and private operations
+  permissions remain distinct; delivery/ride/booking/dispatch,
+  star-rating/reviews and operational ledgers require real route and
+  workflow evidence, not a dashboard count.
+- **The Spot / Market:** local listings, OAP Store and SIKA entry points
+  keep separate inventory, real supplier, checkout, settlement, cancellation,
+  safeguarding and audit gates. No financial capture without explicit
+  authorisation and operational/regulatory proof.
+- **Arena / Games:** on-board play, multiplayer, ranks, chat, and
+  identity-based leaderboards must be verified in their existing owners;
+  an isolated frontend or game CI pass is not live two-device multiplayer.
+- **OAP TV / Studio / Library:** creation, playback, rights, gated uploads
+  and entitlements remain separate certifiable services; protect
+  Founder-private media until permission and runtime proof exist.
+- **Earth Intelligence / Off-Grid:** Founder-private research under OAP Lab;
+  OAP World is only a future discovery destination by Founder Final.
+  No automatic public exposure or inferred real-time satellite feeds.
+- **Infrastructure:** one first-party domain boundary, HTTPS, protected
+  private SMI, on-device/offline capability where verified, owned VPS/cloud
+  direction and migration off Redmi/Termux bootstrap. VPN, VPS purchase,
+  hosting and production cutover must be supported by actual receipts.
+
+No unverified module receives an invented 100% or universal GREEN from
+this blueprint. Functional scope follows its own canonical feature owner.
+
+### 29.6 Gate logic — design contract, not an automatic release runner
+
+~~~python
+# Illustrative policy; the real gates stay in existing Guardian/HRM/Founder owners.
+source_green = verified_exact_combined_sha and required_ci_all_success
+device_green = same_revision_on_physical_redmi_a5 and anonymous_private_denial_proven
+communications_green = two_phones_message_and_reconnect_receipts_proven
+runtime_green = owned_https_and_deployed_sha_parity_proven
+authority_green = guardian_receipt and hrm_receipt and founder_final_signed
+
+release_green = all((
+    source_green, device_green, communications_green,
+    runtime_green, authority_green,
+))
+# Optional claimed call/PTT/media functionality needs its own media proof.
+# UNTESTED / UNKNOWN / STALE / FAILED => LOCKED, never auto-approve.
+~~~
+
+This is a **design contract**: it does not implement the variables, create
+permissions, merge the PRs or authorize a worker to deploy.
+
+### 29.7 Highest-value closure — remove noise, not necessary evidence
+
+1. **Compatible source integration:** verify how #1407, #1410 and #1234
+   interact on one candidate SHA without losing route, auth, CSRF, Guardian,
+   HRM or founder-only view boundaries. Reuse existing tests, add only
+   proofs for changed risks, and keep the PRs owned rather than duplicating.
+2. **Real-device acceptance:** run the exact candidate on Redmi A5, including
+   KORADASO cold start, Android WebView, app home/back, small-screen alignment,
+   Saved/Open Places, OAP Store, Search, sign-in, anonymous denial and offline
+   fallback.
+3. **Two-phone Link Up/Live Link/PTT:** verify authenticated message delivery,
+   read and reconnect receipts, plus separate media/relay evidence where
+   functionality is claimed. No simulated users, counters or audio.
+4. **Production infrastructure:** independent owned HTTPS, deploy revision
+   parity, runtime health, data migration, rollback, safe offline behaviour.
+5. **Guardian/HRM/Founder Final:** independent live evidence receipts and
+   explicit signed final release approval; no auto promotion from a passing CI
+   run or a green-looking dashboard.
+
+**Mission-to-100 law:** no repeated status loops, fake demos, duplicate PRs,
+cosmetic percentage inflation, unnecessary simulations or second approvals.
+Source proofs may be GREEN while release remains LOCKED. **Research has no
+ceiling. Deployment has boundaries.**
+
+### 29.8 Direct evidence and link back
+
+- [SMI CC source / Founder controls PR #1407](https://github.com/RoyalPrince777/on-any-postcode/pull/1407)
+- [KORADASO, app home, Browse & Apps and Android PR #1410](https://github.com/RoyalPrince777/on-any-postcode/pull/1410)
+- [The Spot / The Link / Link Up PR #1234](https://github.com/RoyalPrince777/on-any-postcode/pull/1234)
+- [One master proof and gap board](OAP_MASTER_PROOF_AND_GAP_BOARD.md)
+
+**No additional dashboard, release permission, payment permission, merge or
+production deployment is granted by this update.**
