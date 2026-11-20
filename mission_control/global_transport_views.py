@@ -503,6 +503,10 @@ a{color:inherit;text-decoration:none}
 .eyebrow{margin:23px 0 7px;font-size:.76rem;font-weight:900;color:var(--gold);letter-spacing:.09em}
 h1{font-size:clamp(2.1rem,9vw,3.9rem);line-height:1.02;margin:0 0 10px;letter-spacing:-.045em}
 .lead{max-width:700px;color:var(--muted);margin:0 0 20px}
+.mission{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid #87713f;border-radius:16px;background:#211c12;padding:15px 16px;margin:0 0 16px}
+.mission strong{display:block;font-size:1rem;color:var(--gold)}
+.mission span{display:block;font-size:.81rem;color:var(--muted);margin-top:4px}
+.mission a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 14px;border-radius:12px;background:var(--gold);color:#16130b;font-size:.88rem;font-weight:850}
 .summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:24px}
 .panel,.control{border:1px solid var(--edge);border-radius:16px;background:var(--panel);padding:16px;min-width:0}
 .panel span{color:var(--muted);font-size:.79rem}.panel strong{display:block;margin-top:6px;line-height:1.3;color:var(--gold);overflow-wrap:anywhere}
@@ -522,6 +526,10 @@ a:hover,a:focus-visible{border-color:var(--gold)}a:focus-visible{outline:3px sol
 <p class="eyebrow">FOUNDER PRIVATE · SMI GOVERNED</p>
 <h1>Global Transport<br>Control Room</h1>
 <p class="lead">Private oversight. Customer and Driver access stay separate.</p>
+<section class="mission" aria-label="SMI Mission Keeper">
+<div><strong>🧠 SMI → ALL IN A.I.</strong><span data-mission-status role="status" aria-live="polite">Latest Founder mission · checking evidence</span></div>
+<a href="/all-in-ai/app">Open Mission Keeper</a>
+</section>
 <section class="summary" aria-label="Live proof position">
 <div class="panel"><span>Software capabilities</span><strong>21 registered</strong></div>
 <div class="panel"><span>Real-world transport execution</span>
@@ -541,7 +549,38 @@ a:hover,a:focus-visible{border-color:var(--gold)}a:focus-visible{outline:3px sol
 {% endfor %}
 </section></details>
 <div class="notice">Live dispatch, payments and vehicle control remain gated by Guardian, HRM and Founder Final. Missing proof never becomes Green.</div>
-</main></body></html>"""
+</main>
+<script>
+(() => {
+  "use strict";
+  const label = document.querySelector("[data-mission-status]");
+  if (!label) return;
+  // One founder-authenticated, read-only request. No polling, POST, approvals or auto-execution.
+  fetch("/all-in-ai/mission/latest", {
+    method: "GET", credentials: "same-origin", cache: "no-store",
+    headers: {"Accept": "application/json"}
+  }).then(response => {
+    if (!response.ok) throw new Error("mission_evidence_unavailable");
+    return response.json();
+  }).then(data => {
+    if (data.found === false) {
+      label.textContent = "No verified Founder mission checkpoint";
+    } else if (data.found === true &&
+               ["planned", "stopped", "recovered"].includes(data.state) &&
+               data.read_back_verified === true &&
+               data.audit_verified === true &&
+               data.hrm_verified === true &&
+               data.execution_granted === false &&
+               data.approval_granted === false) {
+      label.textContent = "Latest Founder mission: " + data.state +
+        " · HRM receipt verified · No execution authority";
+    } else {
+      label.textContent = "Mission proof incomplete · blocked";
+    }
+  }).catch(() => { label.textContent = "Mission evidence unavailable · blocked"; });
+})();
+</script>
+</body></html>"""
 
 
 @bp.get("/my-world/transport-control")
