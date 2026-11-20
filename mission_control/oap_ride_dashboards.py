@@ -64,7 +64,7 @@ h1{font-size:clamp(2.15rem,8vw,3.3rem);margin:0 0 8px;line-height:1.08;letter-sp
 .install-row button[hidden]{display:none}.install-row button:disabled{opacity:.65}
 .install-row [role=status]{color:var(--muted);font-size:.85rem;line-height:1.45}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.btn{min-height:80px;min-width:0;padding:15px;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:#f8f8f8;font-weight:750;display:flex;align-items:center;justify-content:space-between;gap:10px;overflow-wrap:anywhere;transition:border-color .15s}.btn::after{content:"›";color:var(--gold);font-size:1.3rem;flex:none}.btn:hover{border-color:var(--gold)}
+.btn{min-height:80px;min-width:0;padding:15px;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:#f8f8f8;font-weight:750;display:flex;align-items:center;justify-content:space-between;gap:10px;overflow-wrap:anywhere;transition:border-color .15s}.btn .chevron{color:var(--gold);font-size:1.3rem;flex:none}.btn:hover{border-color:var(--gold)}
 .btn:first-child{border-color:#b99b44;background:#231e13;color:#f9dd8a}
 .note{margin:22px 0 0;padding:14px 16px;border-left:3px solid var(--gold);background:#1b1913;color:#d0cbc0;font-size:.83rem;line-height:1.5}
 a:focus-visible,button:focus-visible{outline:3px solid #fff;outline-offset:3px}
@@ -89,7 +89,7 @@ a:focus-visible,button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 </div>
 {% endif %}
 <section class="grid" aria-label="{{ title }} actions">
-{% for label, href in buttons %}<a class="btn" href="{{ href }}">{{ label }}</a>{% endfor %}
+{% for label, href in buttons %}<a class="btn" href="{{ href }}"><span>{{ label }}</span><span class="chevron" aria-hidden="true">›</span></a>{% endfor %}
 </section>
 <p class="note">{% if title == "Driver" %}Driver jobs and earnings require the appropriate signed-in account and approvals. {% else %}Personal bookings and account actions require sign-in. {% endif %}Live dispatch and payment remain evidence-gated; installing does not grant operating permission.</p>
 </main>
