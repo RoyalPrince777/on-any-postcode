@@ -264,3 +264,44 @@ def test_closed_mission_pr_blocks_automatic_continuation():
     assert result["ready"] is True
     assert result["ci_proven"] is False
     assert result["next_move"] == "hold_closed_pr"
+
+
+def test_first_party_python_browser_failure_categories_do_not_leak_logs():
+    from mission_control.smi_github_failure_evidence import inspect_failed_job_logs
+
+    confidential = "CONFIDENTIAL_TOKEN_MUST_NOT_LEAK"
+    evidence = {"ready": True, "failed_jobs": ({"job_id": 71},)}
+    result = inspect_failed_job_logs(
+        evidence,
+        token="read-only",
+        fetch_log=lambda job_id, token: (
+            f"ruff check failed {confidential}\\n"
+            "FAILED tests/test_smi_security.py::test_gate\\n"
+            "ModuleNotFoundError: No module named something\\n"
+            "playwright failed\\n"
+        ),
+    )
+    assert result["ready"] is True
+    assert result["classified"] is True
+    assert result["classification"] == "classified"
+    assert set(result["log_categories"][0]["categories"]) == {
+        "python_lint", "python_tests", "python_import", "browser_tests",
+    }
+    assert confidential not in str(result)
+    assert result["execution_granted"] is False
+    assert result["approval_granted"] is False
+
+
+def test_unknown_logs_are_observed_but_never_claimed_as_classified():
+    from mission_control.smi_github_failure_evidence import inspect_failed_job_logs
+
+    result = inspect_failed_job_logs(
+        {"ready": True, "failed_jobs": ({"job_id": 72},)},
+        token="read-only",
+        fetch_log=lambda job_id, token: "unrecognised task failure",
+    )
+    assert result["ready"] is True
+    assert result["classified"] is False
+    assert result["classification"] == "unknown"
+    assert result["log_categories"][0]["categories"] == ()
+    assert result["execution_granted"] is False
