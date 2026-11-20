@@ -144,7 +144,7 @@ def test_log_classification_is_bounded_and_never_returns_secrets():
     result = inspect_failed_job_logs(
         evidence, token="read-only",
         fetch_log=lambda job_id, token: (
-            f"Missing OAP_HOME_KEYSTORE_B64: {secret}\\n"
+            f"Missing OAP_HOME_KEYSTORE_B64: {secret}\n"
             "Execution failed for task ':compileDebugJavaWithJavac'"
         ),
     )
@@ -275,10 +275,10 @@ def test_first_party_python_browser_failure_categories_do_not_leak_logs():
         evidence,
         token="read-only",
         fetch_log=lambda job_id, token: (
-            f"ruff check failed {confidential}\\n"
-            "FAILED tests/test_smi_security.py::test_gate\\n"
-            "ModuleNotFoundError: No module named something\\n"
-            "playwright failed\\n"
+            f"ruff check failed {confidential}\n"
+            "FAILED tests/test_smi_security.py::test_gate\n"
+            "ModuleNotFoundError: No module named something\n"
+            "playwright failed\n"
         ),
     )
     assert result["ready"] is True
