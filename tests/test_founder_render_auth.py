@@ -462,3 +462,18 @@ def test_missing_all_session_keys_fails_closed_not_500(monkeypatch):
         assert str(exc) == "founder_local_auth_unavailable"
     else:
         raise AssertionError("Missing session signing key must fail closed")
+
+
+def test_auth_dependency_timing_reports_only_safe_component(monkeypatch, caplog):
+    import app as app_module
+
+    clock = iter((20.0, 20.75))
+    monkeypatch.setattr(app_module.time, "monotonic", lambda: next(clock))
+    with caplog.at_level("WARNING"):
+        result = app_module._timed_auth_dependency(
+            "credential_verification", lambda: {"secret": "never-log-this"}
+        )
+    assert result == {"secret": "never-log-this"}
+    assert "component=credential_verification" in caplog.text
+    assert "duration_ms=750.0" in caplog.text
+    assert "never-log-this" not in caplog.text

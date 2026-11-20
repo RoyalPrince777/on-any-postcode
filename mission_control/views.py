@@ -299,8 +299,7 @@ def smi_command_dashboard_view():
     return _no_store(
         make_response(
             render_template(
-                "smi_command_dashboard.html",
-                command=smi_command_dashboard.status(),
+                "smi_visual_home.html",
             )
         )
     )

@@ -72,7 +72,7 @@ cp .env.example .env
 python app.py
 ```
 
-Visit `http://localhost:5050` in your browser.
+Visit `http://127.0.0.1:5000` in your browser (local loopback only).
 
 ---
 

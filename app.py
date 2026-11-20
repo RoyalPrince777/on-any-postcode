@@ -2419,6 +2419,20 @@ def activate_founder():
     return redirect(url_for("auth_page", next="/my-world"))
 
 
+def _timed_auth_dependency(name: str, callback):
+    """Log only slow auth dependency names and durations, never credentials."""
+    started = time.monotonic()
+    try:
+        return callback()
+    finally:
+        elapsed_ms = (time.monotonic() - started) * 1000.0
+        if elapsed_ms >= 500.0:
+            app.logger.warning(
+                "auth_slow_dependency component=%s duration_ms=%.1f",
+                name, elapsed_ms,
+            )
+
+
 @app.post("/auth/sign-in")
 @app.post("/library/auth/sign-in", endpoint="library_auth_sign_in")
 def auth_sign_in():
@@ -2445,7 +2459,7 @@ def auth_sign_in():
             ),
             next_path=next_path,
         )
-    local_founder_ready = founder_only and neon_auth.local_founder_ready()
+    local_founder_ready = founder_only and _timed_auth_dependency("local_founder_readiness", neon_auth.local_founder_ready)
     email = (
         neon_auth.configured_founder_email()
         if founder_only
@@ -2469,7 +2483,7 @@ def auth_sign_in():
             next_path=next_path,
         )
     try:
-        result = neon_auth.sign_in(email, password)
+        result = _timed_auth_dependency("credential_verification", lambda: neon_auth.sign_in(email, password))
     except neon_auth.AuthUnavailable:
         return _auth_page_response(
             status_code=503,
@@ -2494,7 +2508,7 @@ def auth_sign_in():
         )
     web_security.AUTH_BURST_LIMITER.reset_key(auth_rate_key)
     response = redirect(next_path)
-    if not _apply_auth_cookies(response, result.set_cookie_headers):
+    if not _timed_auth_dependency("session_cookie_issuance", lambda: _apply_auth_cookies(response, result.set_cookie_headers)):
         return _auth_page_response(
             status_code=502,
             error="A secure session could not be established. Try again.",
@@ -3306,14 +3320,17 @@ def my_world():
         "continent": "",
     }
     try:
-        if public_store.status()["configured"]:
-            public_store.ensure_authenticated_user(
-                identity_id,
-                email=str(user["email"]),
-                display_name=str(user["name"]),
-                store_email=False,
+        if _timed_auth_dependency("my_world_store_readiness", public_store.status)["configured"]:
+            _timed_auth_dependency(
+                "my_world_identity_sync",
+                lambda: public_store.ensure_authenticated_user(
+                    identity_id,
+                    email=str(user["email"]),
+                    display_name=str(user["name"]),
+                    store_email=False,
+                ),
             )
-            profile = public_store.get_profile(identity_id) or profile
+            profile = _timed_auth_dependency("my_world_profile_read", lambda: public_store.get_profile(identity_id)) or profile
         else:
             profile = profiles.get(identity_id, profile)
     except public_store.PublicStoreUnavailable:
@@ -4188,4 +4205,5 @@ def global_affairs_recovery(authority_record_id: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5050, debug=True)
+    # The local Core uses one loopback-only route; private SMI remains gated.
+    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
