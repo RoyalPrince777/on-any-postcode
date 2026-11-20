@@ -9,7 +9,7 @@ It gives SMI and Human Authority one fail-closed cross-OAP control plane.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 OAP_DOMAINS: tuple[str, ...] = (
@@ -62,8 +62,8 @@ def _timestamp(value: object) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def catalogue() -> tuple[dict[str, str], ...]:
