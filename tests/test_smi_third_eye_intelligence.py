@@ -156,3 +156,34 @@ def test_third_eye_seven_views_are_nested_inside_one_smi_tool():
     assert 'document.getElementById("faceup-button")' in script
     assert "getUserMedia" not in script
     assert "setInterval" not in script
+
+
+def test_third_eye_internal_layout_mobile_navigation_and_truth_states():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1] / "mission_control"
+    script = (root / "static" / "smi_third_eye.js").read_text(encoding="utf-8")
+    css = (root / "static" / "smi_third_eye.css").read_text(encoding="utf-8")
+
+    assert 'id="smi-third-eye-home"' in script
+    assert 'id="smi-third-eye-detail"' in script
+    assert 'id="smi-third-eye-detail-state"' in script
+    assert 'id="smi-third-eye-crumb"' in script
+    assert 'id="smi-third-eye-status"' in script
+    assert 'aria-label="Inside Third Eye"' in script
+    assert 'aria-live="polite"' in script
+    assert 'event.key === "Escape"' in script
+    assert "menuButton.focus()" in script
+    assert "home.hidden = true" in script
+    assert "home.hidden = false" in script
+    assert "stopRequest(true)" in script
+    assert "requestKind = \"status\"" in script
+    assert "requestKind = \"earth\"" in script
+    assert "id === \"ground\"" in script
+    assert "getUserMedia" not in script
+    assert "setInterval" not in script
+    assert "public_cameras?.live_feed_proven === false" in script
+    assert "min-height:44px" in css
+    assert "max-height:72dvh" in css
+    assert "prefers-reduced-motion" in css
+    assert "focus-visible" in css
