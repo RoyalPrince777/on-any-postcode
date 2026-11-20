@@ -100,7 +100,7 @@ def prepare(
     if clean_ratio not in SIZE_BY_RATIO:
         raise ValueError("project_shell_ratio_unsupported")
     if isinstance(fps_target, bool):
-        raise ValueError("project_shell_fps_unsupported")
+        raise TypeError("project_shell_fps_unsupported")
     try:
         fps = int(fps_target)
     except (ValueError, TypeError) as exc:
@@ -108,7 +108,7 @@ def prepare(
     if fps not in FPS_TARGETS or str(fps_target).strip() != str(fps):
         raise ValueError("project_shell_fps_unsupported")
     if not isinstance(reference_attached, bool):
-        raise ValueError("project_shell_reference_flag_invalid")
+        raise TypeError("project_shell_reference_flag_invalid")
 
     backend = studio_media_backend.status()
     configured = backend.get("configured") is True
