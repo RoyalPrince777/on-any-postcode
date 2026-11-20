@@ -35,6 +35,13 @@ header{grid-column:1/-1;display:grid;grid-template-columns:1fr minmax(0,2.4fr) 1
 .caption{font-size:11px;color:var(--muted);line-height:1.5;padding:11px}
 .status{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #7b5c8c3d;font-size:12px}
 .status:last-child{border:0}.unknown{color:#ffcf7a}.offline{color:#f6aeab}.good{color:#8ee7c1}
+.ci-receipt{margin:7px 9px 10px;border:1px solid #80694b;border-radius:12px;background:#0c1224}
+.ci-receipt summary{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;padding:10px;font-weight:750;font-size:12px;color:#e1c17a}
+.ci-receipt summary:focus-visible{outline:2px solid #e1c17a;outline-offset:2px}
+.ci-receipt summary .ci-ok{color:#8ee7c1;white-space:nowrap}
+.ci-receipt-content{padding:0 11px 11px;font-size:11px;line-height:1.5;color:#c6c9d9}
+.ci-receipt-content p{margin:6px 0}
+.ci-receipt-content a{text-decoration:underline;text-underline-offset:2px;color:#e1c17a;overflow-wrap:anywhere}
 .planet{padding:16px;text-align:center;background:radial-gradient(circle at 50% 44%,#1656b2aa,#060d29 70%)}.planet-icon{font-size:86px;filter:drop-shadow(0 0 14px #1d77f2)}.planet p{font-size:11px;color:var(--muted);margin:2px 0}
 .tiles{padding:9px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .tiles a{border:1px solid #4c6d9b9c;border-radius:11px;min-height:70px;padding:10px 5px;text-align:center;background:#081732be;font-size:12px}
@@ -146,6 +153,15 @@ body.smi-chat-open{overflow:hidden}
    <div class="status"><span>Guardian/HRM</span><b class="unknown">NOT CHECKED</b></div>
    <div class="status"><span>Database health</span><b class="unknown">NOT CHECKED</b></div>
    <div class="status"><span>Green Gate</span><b class="unknown">NOT CHECKED</b></div>
+   <details class="ci-receipt" aria-label="Link Up verified source receipt">
+     <summary><span>🔗 Link Up · CI evidence</span><span class="ci-ok">7/7 passed</span></summary>
+     <div class="ci-receipt-content">
+       <p><strong>Source snapshot · 20 Nov 2026</strong> · PR #1234 · commit <code>17eac4f</code>. 5,659 tests passed, 9 skipped, 1 warning.</p>
+       <p><strong>Scope:</strong> source, route, access-boundary and desktop/mobile-emulated Chromium verification only.</p>
+       <p><strong>Release:</strong> LOCKED — draft, unmerged and undeployed at verification. Redmi A5, two-device messages/calls, first-party production HTTPS and independent Guardian/HRM + Founder Final proofs still needed.</p>
+       <p><a href="https://github.com/RoyalPrince777/on-any-postcode/pull/1234" target="_blank" rel="noopener noreferrer">GitHub PR evidence</a> · <a href="https://github.com/RoyalPrince777/on-any-postcode/commit/17eac4f289a0d5118d0dd5639a99d27e1f65bb3b" target="_blank" rel="noopener noreferrer">Exact source commit</a>. This dated receipt does not auto-refresh or promote the global Green Gate.</p>
+     </div>
+   </details>
    <div class="caption">No invented global counts, health percentages, or automatic status polling.</div>
  </section>
  <section class="panel"><h2>OAP UNIVERSE</h2><div class="tiles"><a href="/world"><span>🌍</span>World</a><a href="/arena"><span>🎮</span>Arena</a><a href="/the-spot"><span>📍</span>The Spot</a><a href="/the-spot/market"><span>🛍</span>Market</a><a href="/mission/ollama"><span>🧠</span>Talk to SMI</a><a href="/movement"><span>🧭</span>Movement</a></div></section>

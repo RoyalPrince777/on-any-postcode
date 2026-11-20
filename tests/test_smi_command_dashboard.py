@@ -376,3 +376,29 @@ def test_smi_mobile_home_keeps_dynamic_controls_but_collapses_route_noise():
         assert required in template
     assert 'UNKNOWN' in template and 'NOT CHECKED' in template
     assert "frame.removeAttribute('src')" in template
+
+
+def test_smi_cc_linkup_ci_receipt_does_not_promote_release_green(client):
+    """A dated 7/7 source receipt must never turn the global Green Gate green."""
+    from pathlib import Path
+
+    page = client.get("/mission/smi")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert 'aria-label="Link Up verified source receipt"' in html
+    assert "7/7 passed" in html
+    assert "Source snapshot · 20 Nov 2026" in html
+    assert "17eac4f" in html
+    assert "5,659 tests passed, 9 skipped, 1 warning" in html
+    assert "source, route, access-boundary and desktop/mobile-emulated Chromium" in html
+    assert "LOCKED — draft, unmerged and undeployed" in html
+    assert "Redmi A5, two-device messages/calls" in html
+    assert "does not auto-refresh or promote the global Green Gate" in html
+    assert '<div class="status"><span>Green Gate</span><b class="unknown">NOT CHECKED</b></div>' in html
+    assert 'href="https://github.com/RoyalPrince777/on-any-postcode/pull/1234"' in html
+    assert "setInterval(" not in html
+
+    source = (Path(__file__).resolve().parents[1] / "mission_control" /
+              "templates" / "smi_visual_home.html").read_text(encoding="utf-8")
+    assert source.count('class="ci-receipt"') == 1
+    assert "Founder Final" in source
