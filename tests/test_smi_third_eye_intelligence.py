@@ -6,7 +6,6 @@ from unittest.mock import patch
 import app as app_module
 from mission_control import third_eye_intelligence, web_security
 
-
 NOW = datetime(2026, 11, 20, 1, 0, tzinfo=UTC)
 T = int(NOW.timestamp() * 1000)
 
@@ -71,7 +70,7 @@ def test_invalid_geography_is_ignored_and_events_bounded():
 
 
 def test_network_failure_returns_unavailable_without_live_claim():
-    with patch.object(third_eye, "urlopen", side_effect=TimeoutError("No network")):
+    with patch.object(third_eye_intelligence, "urlopen", side_effect=TimeoutError("No network")):
         result = third_eye_intelligence.latest_earthquakes()
     assert result["feed_verified"] is False
     assert result["events"] == []
