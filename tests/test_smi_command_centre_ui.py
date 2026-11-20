@@ -111,6 +111,19 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('refreshPrivacyVpn(); // Independent from SMI health endpoint', source)
         self.assertNotIn("Proton VPN: Connected", source)
 
+    def test_smi_only_auto_repair_reuses_existing_check_runner(self):
+        command = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        chat = (STATIC / "smi_chat_final.js").read_text(encoding="utf-8")
+        self.assertIn("AUTO REPAIR · SMI ONLY", command)
+        self.assertIn('document.querySelector(".smi-auto-fix")', command)
+        self.assertIn("if(!canonical||canonical.disabled)", command)
+        self.assertIn("setOpen(false); // Original SMI chat", command)
+        self.assertIn("canonical.click();", command)
+        self.assertIn("auto.addEventListener('click',async()=>", chat)
+        self.assertIn("const fullGreen=Boolean(allSafe&&health?.whole_smi_green===true&&gate?.green===true);", chat)
+        self.assertIn("'Consequential execution: NOT PERFORMED'", chat)
+        self.assertNotIn("ChatGPT", command.split("const smiRepair=")[1].split("evidence.append(smiRepair);")[0])
+
     def test_health_truth_is_fail_closed(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         self.assertIn("data.checks[key]===true", source)
