@@ -1,0 +1,142 @@
+/* Third Eye lives inside the existing SMI Tools flow. No standalone dashboard. */
+#smi-third-eye-panel.smi-faceup-drawer{
+  --eye-gold:#d8b965;
+  --eye-text:#f3f2e9;
+  --eye-muted:#a9afa9;
+  --eye-edge:#3a3424;
+  width:min(940px,calc(100% - 16px));
+  max-height:min(76dvh,800px);
+  margin:8px auto;
+  padding:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  border:1px solid var(--eye-edge);
+  border-radius:18px;
+  color:var(--eye-text);
+  background:linear-gradient(155deg,#19180e 0%,#090e0b 38%,#070b09 100%);
+  box-shadow:0 18px 48px #0009;
+}
+#smi-third-eye-panel[hidden],
+#smi-third-eye-home[hidden],
+#smi-third-eye-detail[hidden]{display:none!important}
+.smi-third-eye-header{
+  position:sticky;
+  top:0;
+  z-index:3;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  padding:16px 15px 12px;
+  border-bottom:1px solid #534422;
+  background:linear-gradient(135deg,#2b2413,#0b100c 72%);
+}
+.smi-third-eye-header-copy{display:grid;gap:4px;min-width:0}
+.smi-third-eye-eyebrow{font-size:.61rem;letter-spacing:.16em;color:var(--eye-gold);font-weight:700}
+.smi-third-eye-header-copy>strong{font-size:clamp(1.05rem,3vw,1.42rem);font-weight:800;letter-spacing:.055em}
+.smi-third-eye-header-copy>span{font-size:.72rem;color:#bbc5b7}
+#smi-third-eye-close{min-height:44px;min-width:44px;font-size:1.25rem;flex:none;border-color:#5b4c2e;background:#1f2018;color:#f2dfaa}
+.smi-third-eye-boundary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:#0d130f}
+.smi-third-eye-boundary span{display:inline-flex;align-items:center;min-height:24px;padding:3px 9px;border:1px solid #413d2a;border-radius:999px;color:#e4d9b3;font-size:.64rem}
+.smi-third-eye-home{padding:2px 13px 11px}
+.smi-third-eye-home-title{display:grid;gap:4px;padding:12px 2px 7px}
+.smi-third-eye-home-title strong{font-size:.95rem}
+.smi-third-eye-home-title small{color:var(--eye-muted);font-size:.74rem;line-height:1.35}
+.smi-third-eye-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:7px 0}
+.smi-third-eye-menu-item{
+  position:relative;
+  min-width:0;
+  display:grid;
+  grid-template-rows:32px auto auto;
+  align-content:start;
+  justify-items:start;
+  gap:4px;
+  min-height:112px;
+  padding:12px;
+  border:1px solid #333d33;
+  border-radius:14px;
+  text-align:left;
+  background:linear-gradient(145deg,#182118,#101713);
+  color:var(--eye-text);
+  font:inherit;
+  cursor:pointer;
+  transition:border-color .15s ease,transform .15s ease,background .15s ease;
+}
+.smi-third-eye-menu-item:hover{border-color:var(--eye-gold);background:#1c271d}
+.smi-third-eye-menu-item:active{transform:scale(.985)}
+.smi-third-eye-menu-item:focus-visible,
+#smi-third-eye-panel .tool-btn:focus-visible,
+#smi-third-eye-close:focus-visible{outline:2px solid var(--eye-gold);outline-offset:2px}
+.smi-third-eye-menu-item strong{font-size:.78rem;line-height:1.2;padding-right:8px}
+.smi-third-eye-menu-item small{color:var(--eye-muted);font-size:.65rem;line-height:1.25;overflow-wrap:anywhere}
+.smi-third-eye-icon{font-size:1.45rem;line-height:1.2}
+.smi-third-eye-menu-arrow{position:absolute;top:10px;right:12px;color:#d9bc75;font-size:1.25rem}
+.smi-third-eye-detail{padding:10px 14px 14px}
+.smi-third-eye-detail-nav{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 12px}
+.smi-third-eye-detail-nav small{font-size:.62rem;color:var(--eye-muted);text-align:right}
+#smi-third-eye-panel .tool-btn{min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;padding:9px 12px}
+.smi-third-eye-back{font-weight:700}
+.smi-third-eye-detail-header{padding:15px;border:1px solid #4a3b21;border-radius:14px;background:radial-gradient(ellipse at top left,#332710,#151a12 65%)}
+.smi-third-eye-detail-state{display:inline-block;padding:4px 9px;border:1px solid #6a5630;border-radius:999px;color:#e0c482;font-size:.66rem}
+#smi-third-eye-detail-title{margin:10px 0 7px;font-size:1.14rem;color:var(--eye-text);line-height:1.25}
+#smi-third-eye-detail-copy{margin:0;font-size:.78rem;color:#c6d0c2;line-height:1.55}
+.smi-third-eye-detail-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#smi-third-eye-panel .smi-third-eye-action{background:#282516;border-color:#7f6733;color:#f5de9c;text-decoration:none}
+#smi-third-eye-panel .smi-third-eye-action:hover{background:#40351d}
+.smi-third-eye-status{min-height:45px;padding:12px;margin-top:12px;border:1px solid #364638;border-radius:10px;background:#101c14;color:#d9dfd5;font-size:.75rem;line-height:1.4;overflow-wrap:anywhere}
+.smi-third-eye-events{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.smi-third-eye-events li{padding:11px;border:1px solid #2f4034;border-radius:10px;background:#101b13;color:var(--eye-text);font-size:.73rem;line-height:1.5;overflow-wrap:anywhere}
+.smi-third-eye-foot{padding:12px 15px 15px;border-top:1px solid #263428;color:var(--eye-muted);font-size:.64rem;line-height:1.5}
+#smi-third-eye-refresh:disabled{opacity:.55;cursor:not-allowed}
+@media(min-width:700px){
+  .smi-third-eye-menu{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #smi-third-eye-panel.smi-faceup-drawer{max-height:min(74dvh,800px)}
+}
+@media(max-width:430px){
+  #smi-third-eye-panel.smi-faceup-drawer{max-height:72dvh;width:calc(100% - 10px);border-radius:14px}
+  .smi-third-eye-header{padding:12px}
+  .smi-third-eye-boundary{gap:5px;padding:8px}
+  .smi-third-eye-boundary span{font-size:.58rem;padding:2px 7px}
+  .smi-third-eye-home{padding:1px 9px 10px}
+  .smi-third-eye-menu{gap:7px}
+  .smi-third-eye-menu-item{min-height:107px;padding:9px}
+  .smi-third-eye-detail{padding:10px}
+}
+@media(prefers-reduced-motion:reduce){.smi-third-eye-menu-item{transition:none}}
+
+.smi-third-eye-place{
+  flex:1 1 155px;
+  min-width:120px;
+  max-width:280px;
+  min-height:44px;
+  padding:9px 12px;
+  border:1px solid #60502e;
+  border-radius:10px;
+  background:#121c15;
+  color:#f3f2e9;
+  font:inherit;
+  font-size:.78rem;
+}
+.smi-third-eye-place:focus-visible{outline:2px solid #d8b965;outline-offset:2px}
+
+.smi-third-eye-camera-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+.smi-third-eye-camera-button{min-height:48px;border:1px solid #4c553f;border-radius:10px;padding:10px;background:#152218;color:#f2ebd2;font:inherit;font-size:.73rem;text-align:left;cursor:pointer}
+.smi-third-eye-camera-button:hover,.smi-third-eye-camera-button:focus-visible{border-color:#d8b965;outline-offset:2px}
+.smi-third-eye-camera-frame{margin:12px 0 0;padding:8px;border:1px solid #6b5534;border-radius:12px;background:#090d0a}
+.smi-third-eye-camera-frame[hidden]{display:none!important}
+.smi-third-eye-camera-frame img{display:block;width:100%;height:auto;max-height:46dvh;object-fit:contain;border-radius:8px;background:#080808}
+.smi-third-eye-camera-frame figcaption{font-size:.68rem;color:#d6d0bb;line-height:1.4;padding:8px 2px 1px}
+.smi-third-eye-attribution{display:flex;grid-column:1/-1;min-height:44px;align-items:center;color:#d8b965;font-size:.72rem;text-decoration:underline}
+@media(max-width:430px){.smi-third-eye-camera-list{grid-template-columns:1fr}}
+
+.smi-third-eye-camera-frame video{display:block;width:100%;max-height:46dvh;object-fit:contain;border-radius:8px;background:#080808}
+.smi-third-eye-camera-frame img[hidden],.smi-third-eye-camera-frame video[hidden],.smi-third-eye-camera-frame button[hidden]{display:none!important}
+#smi-third-eye-panel .smi-third-eye-play{display:flex;align-items:center;justify-content:center;margin:9px 0 2px;min-height:44px;background:#29261a;color:#f7da93;border:1px solid #a88d53;border-radius:9px}
+
+/* All-London catalogue is paginated; it never creates hundreds of DOM images. */
+.smi-third-eye-pages{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0}
+.smi-third-eye-pages span{font-size:.76rem;color:#d5c69c}
+#smi-third-eye-panel .smi-third-eye-pages button{min-height:44px;color:#f4e2a4;background:#222b20;border:1px solid #806a3d}
+#smi-third-eye-london-radius{max-width:320px}

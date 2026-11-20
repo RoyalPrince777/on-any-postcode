@@ -4,6 +4,7 @@
 <span hidden data-smi-contract>Personal SMI · OAP first-party surface · Private Founder intelligence · Sovereign Megaverse Intelligence · Thinking Process · Understand · Context · Route · Evidence · Challenge · Synthesise · Govern · private chain-of-thought is never exposed · Adaptive · Coherent · Hybrid · Omni Distribution · Civilization Intelligence · bounded Autonomy · SMI AUTO · Manual · 3 · 7 · 21 · War Room · Mic · Voice · Vision · Face Up · Screen Intelligence · Stop · Copy · Retry · Edit · Attach · Evidence · War Room · Core 7 · 7 Judges · Judgement · 21 Core Signals · Guardian · HRM · Jog Memory · Chronicle · Ratings · Votes · Polls · Reactions · Feedback · Challenges · Competitions · Awards Choice · OAP Intelligence · OAP Studio Intelligence · OAP Data · first-party only · Zero Tolerance Law · Green requires runtime evidence · Human Authority final</span>
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_chat_final.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_interaction_layer.css') }}">
+<link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_third_eye.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_sovereign_dashboard.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_live_character.css') }}">
 <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_command_centre.css') }}">
@@ -29,6 +30,16 @@ window.OAP_SMI_UI={
   routesUrl:{{ url_for('alignment.smi_route_status')|tojson }},
   civilizationStatusUrl:{{ url_for('mission_control.civilization_system_status')|tojson }},
   ecosystemStatusUrl:{{ url_for('ecosystem_intelligence.status')|tojson }},
+  thirdEyeStatusUrl:{{ url_for('alignment.smi_third_eye_status')|tojson }},
+  thirdEyeEarthquakesUrl:{{ url_for('alignment.smi_third_eye_earthquakes')|tojson }},
+  thirdEyeWeatherUrl:{{ url_for('ecosystem_intelligence.source_location_weather')|tojson }},
+  thirdEyeLondonCamerasUrl:{{ url_for('alignment.smi_third_eye_london_cameras')|tojson }},
+  thirdEyeLondonFrameUrl:{{ url_for('alignment.smi_third_eye_london_frame', camera_id='__CAMERA_ID__')|tojson }},
+  thirdEyeLondonClipUrl:{{ url_for('alignment.smi_third_eye_london_clip', camera_id='__CAMERA_ID__')|tojson }},
+  thirdEyeAirLondonUrl:{{ url_for('alignment.smi_third_eye_air_london')|tojson }},
+  thirdEyeSpaceIssUrl:{{ url_for('alignment.smi_third_eye_space_iss')|tojson }},
+  thirdEyeSpaceOrbitUrl:{{ url_for('alignment.smi_third_eye_space_orbit')|tojson }},
+  thirdEyeSpaceImageryUrl:{{ url_for('alignment.smi_third_eye_space_imagery')|tojson }},
   civilizationBridgeUrl:{{ url_for('ecosystem_intelligence.civilization_bridge')|tojson }},
   ecosystemDashboardUrl:{{ url_for('ecosystem_intelligence.dashboard')|tojson }},
   greenGateUrl:{{ url_for('alignment.green_gate_status')|tojson }},
@@ -90,6 +101,7 @@ window.OAP_SMI_UI={
 <script src="{{ url_for('mission_control.static', filename='smi_android_live_evidence.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_sovereign_dashboard.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_interaction_layer.js') }}"></script>
+<script src="{{ url_for('mission_control.static', filename='smi_third_eye.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_media_controls.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_command_centre.js') }}"></script>
 <script src="{{ url_for('mission_control.static', filename='smi_noise_strip.js') }}"></script>
