@@ -216,7 +216,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px;ma
 .return{color:var(--gold);text-decoration:none;font-weight:700;padding:10px 0;min-height:44px;display:inline-flex;align-items:center}
 h1{font-size:clamp(2.15rem,7.5vw,3.3rem);line-height:1.08;letter-spacing:-.045em;margin:0 0 23px;font-weight:850}
 .intro{color:var(--muted);margin:0 0 24px}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.journey-start{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#231e13;border:1px solid #917442;border-radius:15px;padding:13px 16px;min-height:58px;margin:0 0 18px;color:var(--gold);font-weight:850;text-decoration:none}.journey-start span{font-size:.81rem;color:#d1c8b5;font-weight:500}.journey-start b{font-size:1.25rem}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .card{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:80px;min-width:0;
 padding:16px;border-radius:17px;background:var(--panel);border:1px solid var(--edge);
 text-decoration:none;color:inherit;transition:border-color .15s}
@@ -238,6 +238,7 @@ footer{margin-top:21px;padding-top:15px;border-top:1px solid var(--edge);color:v
 <body><main>
 <header><div class="brand">ON ANY POSTCODE</div><a class="return" href="/world">OAP World</a></header>
 <h1>Global Transport</h1>
+<a class="journey-start" href="/transport/ride">Where to? <span>Enter pickup &amp; destination</span><b aria-hidden="true">›</b></a>
 
 {% set icons = {"Journey":"🧭", "Move":"🗺️", "Ride":"🚗", "Logistics":"📦", "Guardian":"🛡️", "Operators":"🏢", "Control Center":"⚙️"} %}
 <nav class="grid" aria-label="Global Transport main menu">
@@ -249,7 +250,7 @@ footer{margin-top:21px;padding-top:15px;border-top:1px solid var(--edge);color:v
 <div class="install"><button type="button" data-oap-install hidden>Install OAP Transport</button>
 <span data-oap-install-status role="status" aria-live="polite"></span>
 <span data-oap-install-platform hidden></span></div>
-<footer>Live transport requires verified providers and authorisation.</footer>
+
 <script src="/assets/oap-os.js" defer></script>
 </main></body></html>"""
 
