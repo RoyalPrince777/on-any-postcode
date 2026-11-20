@@ -100,6 +100,51 @@ def smi_third_eye_london_clip(camera_id: str):
     return response
 
 
+@bp.get("/smi/third-eye/air/london")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_air_london():
+    """On-demand, bounded public ADS-B observations around London."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.london_aircraft())))
+
+
+@bp.get("/smi/third-eye/space/iss")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_space_iss():
+    """One source-timestamped ISS position; not universal satellite tracking."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.iss_position())))
+
+
+@bp.get("/smi/third-eye/space/orbit")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_space_orbit():
+    """CelesTrak-published ISS orbit elements, without claimed propagation."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.iss_orbital_elements())))
+
+
+@bp.get("/smi/third-eye/space/imagery")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_space_imagery():
+    """NASA GIBS London image for a selected past day; acquisition unverified."""
+    day = request.args.get("day") or ""
+    try:
+        result = third_eye_intelligence.nasa_london_imagery(day)
+    except ValueError:
+        return _no_store(
+            make_response(jsonify(error={"code": "invalid_image_date"}), 400)
+        )
+    if result is None:
+        return _no_store(
+            make_response(jsonify(error={"code": "nasa_imagery_unavailable"}), 503)
+        )
+    response = make_response(result)
+    response.headers["Content-Type"] = "image/jpeg"
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-OAP-Image-Request-Day"] = day
+    response.headers["X-OAP-Observation-Claim"] = "acquisition-date-unverified"
+    return response
+
+
 @bp.get("/war-room/deep-dive")
 @bp.get("/war-room/actions/deep-dive")
 @bp.get("/smi/deep-dive")
