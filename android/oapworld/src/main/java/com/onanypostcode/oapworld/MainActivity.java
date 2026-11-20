@@ -175,30 +175,48 @@ public final class MainActivity extends ComponentActivity {
         cookieManager.setAcceptCookie(true);
         cookieManager.setAcceptThirdPartyCookies(webView, false);
 
-        // WebView does not guarantee a visible JavaScript confirm dialog without a
-        // WebChromeClient. Honour only the OAP World OPEN WEB trust boundary.
+        // WebView needs a WebChromeClient for visible, explicit confirmation.
+        // Only certified OAP World / KORADASO public-page OPEN WEB prompts pass.
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
                 Uri origin = Uri.parse(url == null ? "" : url);
                 Uri certified = Uri.parse(OAP_ORIGIN);
-                boolean fromWorld = "https".equalsIgnoreCase(origin.getScheme())
+                boolean trustedOrigin = "https".equalsIgnoreCase(origin.getScheme())
                         && certified.getHost() != null
                         && certified.getHost().equalsIgnoreCase(origin.getHost())
-                        && origin.getPort() == -1
-                        && "/world".equals(origin.getPath());
-                if (!fromWorld || message == null
-                        || !message.startsWith("OPEN WEB — Leave OAP World and visit ")) {
+                        && origin.getPort() == -1;
+                boolean fromWorld = trustedOrigin && "/world".equals(origin.getPath());
+                boolean fromKoradaso = trustedOrigin && "/koradaso".equals(origin.getPath());
+                boolean worldPrompt = fromWorld && message != null
+                        && message.startsWith("OPEN WEB — Leave OAP World and visit ");
+                String prefix = "OPEN WEB — ";
+                String suffix = " is outside OAP. Continue?";
+                boolean koradasoPrompt = false;
+                if (fromKoradaso && message != null
+                        && message.startsWith(prefix) && message.endsWith(suffix)) {
+                    String hostname = message.substring(prefix.length(),
+                            message.length() - suffix.length());
+                    koradasoPrompt = hostname.contains(".")
+                            && !hostname.startsWith(".") && !hostname.endsWith(".")
+                            && !hostname.contains("..") && hostname.matches("[A-Za-z0-9.-]+");
+                }
+                if (!worldPrompt && !koradasoPrompt) {
                     result.cancel();
                     return true;
                 }
-                new AlertDialog.Builder(MainActivity.this)
+                AlertDialog.Builder dialog = new AlertDialog.Builder(MainActivity.this)
                         .setTitle("OPEN WEB — External website")
                         .setMessage(message)
-                        .setPositiveButton("Continue", (dialog, which) -> result.confirm())
-                        .setNegativeButton("Stay in OAP World", (dialog, which) -> result.cancel())
-                        .setOnCancelListener(dialog -> result.cancel())
-                        .show();
+                        .setPositiveButton("Continue", (prompt, which) -> result.confirm());
+                if (koradasoPrompt) {
+                    dialog.setNegativeButton("Stay in KORADASO Internet",
+                            (prompt, which) -> result.cancel());
+                } else {
+                    dialog.setNegativeButton("Stay in OAP World",
+                            (prompt, which) -> result.cancel());
+                }
+                dialog.setOnCancelListener(prompt -> result.cancel()).show();
                 return true;
             }
         });
