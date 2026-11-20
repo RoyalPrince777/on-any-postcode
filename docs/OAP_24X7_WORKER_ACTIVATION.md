@@ -48,6 +48,35 @@ Optional tuning variables already supported by the worker:
 
 Default values are already bounded in code and are acceptable for first activation.
 
+## SMI-only autonomous mission continuation
+
+The existing `RUNTIME_HEALTH_PROBE` is scheduled every **300 seconds** by the
+Digital Organism database scheduler **when its worker is actually running**.
+It now also reads the exact heads and required GitHub Actions workflows for
+the already approved SMI VPN/privacy missions (PR #1413 and #1411), using
+the optional least-privilege `OAP_SMI_GITHUB_READ_TOKEN`. No ChatGPT task,
+separate cron service, second brain, new job type, schema or button press is
+required. Without this token, monitoring remains unconfigured, never Green.
+
+- Failed exact-head CI → automatically inspect the failed run and classify
+  bounded error evidence; select repair diagnosis before feature growth.
+- Pending, missing, skipped, stale or conflicting evidence → HOLD / reobserve
+  on the next existing health cycle, with no success claim.
+- All required checks passed on the exact PR head → automatically select
+  **target-runtime and device proof** as the next safe step, not merge/release.
+- The normal worker completion records the output in existing runtime receipts.
+  SMI/Captain planning stays read-only. It does not modify GitHub code, approve
+  changes, execute production recovery or attest the Redmi/VPN/World runtime.
+
+This is the first **evidence-triggered continuation slice**, not verified
+autonomous development of all OAP World modules. Founder-approved bounded work
+can advance without repeated approvals only within the already permitted
+execution pathways. GitHub Builder file writes require exact signed action
+receipts in the existing Living Kernel; Green Gate and Founder Final remain
+mandatory for consequential promotion. A running worker, configured secrets,
+fresh receipts and actual target evidence are still required before claiming
+live 24/7 autonomy.
+
 ## Activation gate
 
 Do not call the worker green merely because the service starts. Green requires all of these proofs:
