@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 FRESHNESS_STATES = ("FRESH", "ACCEPTABLE", "STALE", "EXPIRED", "UNKNOWN")
 EPISTEMIC_STATES = ("VERIFIED", "SUPPORTED", "INFERRED", "ESTIMATED", "STALE", "UNKNOWN")
@@ -43,8 +44,8 @@ def _timestamp(value: object) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def freshness_state(
@@ -56,7 +57,7 @@ def freshness_state(
     expired_hours: int = 720,
 ) -> str:
     observed = _timestamp(observed_at)
-    current = _timestamp(now) if now else datetime.now(timezone.utc)
+    current = _timestamp(now) if now else datetime.now(UTC)
     if observed is None or current is None or observed > current:
         return "UNKNOWN"
     age_hours = (current - observed).total_seconds() / 3600
@@ -81,7 +82,7 @@ def unit_economics(offer: Mapping[str, object]) -> dict[str, object]:
     total_cost = direct + fulfilment + payment + refund_allowance
     contribution = price - total_cost
     margin_pct = (
-        (contribution / price * Decimal("100")) if price > 0 else Decimal("0")
+        (contribution / price * Decimal(100)) if price > 0 else Decimal(0)
     )
     return {
         "price": float(price),
@@ -210,7 +211,7 @@ def local_receipt(
     *,
     created_at: object = None,
 ) -> dict[str, object]:
-    timestamp = _timestamp(created_at) or datetime.now(timezone.utc)
+    timestamp = _timestamp(created_at) or datetime.now(UTC)
     payload = {
         "engine": str(evaluation.get("engine") or ""),
         "offer_id": str(evaluation.get("offer_id") or ""),
