@@ -1,5 +1,15 @@
-/* Reuse the canonical SMI Face Up drawer rather than creating a separate dashboard. */
+/* Seven internal Third Eye doors; no extra global menu or dashboard. */
+.smi-third-eye-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:8px 0}
+.smi-third-eye-menu[hidden],#smi-third-eye-detail[hidden]{display:none!important}
+.smi-third-eye-menu-item{display:flex;align-items:flex-start;flex-direction:column;gap:4px;min-height:82px;padding:10px;border:1px solid var(--line);border-radius:11px;text-align:left;background:#101a14;color:var(--text);font:inherit;cursor:pointer}
+.smi-third-eye-menu-item:focus-visible,.smi-third-eye-menu-item:hover{border-color:#a98d44;outline-offset:2px}
+.smi-third-eye-menu-item strong{font-size:.76rem}
+.smi-third-eye-menu-item small{color:var(--muted);font-size:.62rem}
+.smi-third-eye-icon{font-size:1.2rem}
+.smi-third-eye-back{margin-bottom:8px}
+#smi-third-eye-detail-title{font-size:.92rem;margin:4px 0 6px;color:var(--text)}
 .smi-third-eye-map-link{display:inline-flex;align-items:center;text-decoration:none}
 .smi-third-eye-events{margin:8px 0 0;padding:0;list-style:none;display:grid;gap:5px}
 .smi-third-eye-events li{padding:8px;border:1px solid var(--line);border-radius:8px;background:#111b15;color:var(--text);font-size:.68rem;line-height:1.35;overflow-wrap:anywhere}
-#smi-third-eye-refresh:disabled{opacity:.6;cursor:wait}
+#smi-third-eye-refresh:disabled{opacity:.6;cursor:not-allowed}
+@media(max-width:430px){.smi-third-eye-menu-item{min-height:78px;padding:8px}}
