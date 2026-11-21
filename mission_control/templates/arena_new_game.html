@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OAP Arena · {{ title }}</title>
+<link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
+<style>
+.oap-newgame{max-width:900px;margin:auto;padding:16px;color:var(--mc-text,#f5f1e9)}
+.oap-newgame header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.oap-newgame a{color:#f5c451}.oap-newgame .panel{background:#141822;border:1px solid #66512b;padding:16px;border-radius:14px;margin:12px 0}
+.oap-newgame .board{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px}
+.oap-newgame .board button{aspect-ratio:1;min-width:0;position:relative;font-size:clamp(9px,2vw,15px);background:#262d39;color:#f7f4e9;border:1px solid #3b4658;border-radius:5px}
+.oap-newgame .board button.special{background:#59452a}.oap-newgame .board button.piece{box-shadow:inset 0 0 0 3px #f4c54c}
+.oap-newgame .board button[data-here="both"]{box-shadow:inset 0 0 0 3px #b682ff}
+.oap-newgame .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.oap-newgame button.action{background:#eac163;border:0;border-radius:8px;padding:10px 16px;color:#151515;font-weight:700;cursor:pointer}
+.oap-newgame button:disabled{opacity:.5;cursor:not-allowed}.oap-newgame .route{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.oap-newgame .route button{min-width:0;min-height:80px;border-radius:8px;background:#263044;color:#fff;border:1px solid #56616c;padding:5px;font-size:12px}
+.oap-newgame .route button.current{border:3px solid #eac163}.oap-newgame .route button.owned{background:#324c47}
+.oap-newgame input{max-width:100%;padding:10px;border-radius:8px;border:1px solid #777;background:#fff;color:#111}
+.oap-newgame .word{font-size:clamp(24px,6vw,40px);font-weight:900;letter-spacing:.16em}
+.oap-newgame .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+</style>
+<script src="{{ url_for('static', filename='arena_new_games.js') }}" defer></script></head>
+<body><main class="oap-newgame" data-oap-newgame="{{ game }}">
+<header><a href="/koradaso">⌂ KORADASO Home</a><a href="/arena">← Arena</a></header>
+<h1>{{ title }}</h1><p>{{ description }}</p>
+<div class="panel" id="game-status" aria-live="polite"></div>
+<div class="panel" id="game-play"></div>
+<div class="actions"><button class="action" id="restart" type="button">New game</button><a href="/world">OAP World</a></div>
+<p><small>Free local play only. No betting, cash prizes, payments, ranked XP or online-room claims. My Card starts in OAP World.</small></p>
+</main></body></html>

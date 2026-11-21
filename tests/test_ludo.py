@@ -109,3 +109,38 @@ def test_ludo_completed_public_state_names_winner_and_result():
     view = ludo.public_state(state)
     assert view["result"] == "all_pieces_home"
     assert view["winner_name"] == "Alpha"
+
+
+def test_ludo_third_consecutive_six_forfeits_roll_without_piece_move():
+    state = ludo.new_game(["Alpha", "Bravo"])
+    state = _roll(state, 6, "ludo-six-roll-001")
+    state = ludo.move(state, piece_id="p1-1", request_id="ludo-six-move-001")
+    state = _roll(state, 6, "ludo-six-roll-002")
+    state = ludo.move(state, piece_id="p1-2", request_id="ludo-six-move-002")
+    before = [p["progress"] for p in state["players"][0]["pieces"]]
+    state = _roll(state, 6, "ludo-six-roll-003")
+    assert state["pending_roll"] is None
+    assert state["turn_index"] == 1
+    assert state["consecutive_sixes"] == 0
+    assert [p["progress"] for p in state["players"][0]["pieces"]] == before
+    assert state["request_receipts"][-1]["forfeited"] is True
+    assert ludo.public_state(state)["consecutive_sixes"] == 0
+
+
+def test_ludo_non_six_resets_consecutive_six_counter():
+    state = ludo.new_game(["Alpha", "Bravo"])
+    state = _roll(state, 6, "ludo-reset-roll-001")
+    state = ludo.move(state, piece_id="p1-1", request_id="ludo-reset-move-001")
+    assert state["consecutive_sixes"] == 1
+    state = _roll(state, 1, "ludo-reset-roll-002")
+    assert state["consecutive_sixes"] == 0
+    state = ludo.move(state, piece_id="p1-1", request_id="ludo-reset-move-002")
+    assert state["turn_index"] == 1
+
+
+def test_ludo_third_six_retry_is_idempotent():
+    state = ludo.new_game(["Alpha", "Bravo"])
+    state["consecutive_sixes"] = 2
+    state = ludo._seal(state)
+    result = _roll(state, 6, "ludo-forfeit-retry")
+    assert ludo.roll(result, request_id="ludo-forfeit-retry") == result

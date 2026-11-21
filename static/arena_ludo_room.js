@@ -1,7 +1,7 @@
 (()=>{"use strict";
 const root=document.querySelector("[data-ludo-room]");if(!root)return;const q=s=>root.querySelector(s);
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
-let membership=null,snapshot=null,busy=false,entryBusy=false,needsRefresh=false;
+let membership=null,snapshot=null,busy=false,entryBusy=false,needsRefresh=false,refreshInFlight=null;
 const req=()=>crypto.randomUUID().replaceAll("-","").slice(0,20);const err=e=>q("[data-error]").textContent=e?.message||String(e);const clear=()=>q("[data-error]").textContent="";
 async function post(path,body){const r=await fetch(path,{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d?.error?.code||"arena_room_request_failed");return d;}
 function identity(d,seat){membership={room_id:d.room_id,reconnect_token:d.reconnect_token,seat};q("[data-entry]").hidden=true;q("[data-room]").hidden=false;q("[data-id]").textContent=membership.room_id;q("[data-token]").textContent=membership.reconnect_token;q("[data-code]").textContent=d.room_code||"";}
@@ -11,12 +11,17 @@ q("[data-turn]").textContent=snapshot.status==="WAITING"?"Waiting for another pl
 q("[data-roll-value]").textContent=g.pending_roll??"—";q("[data-roll]").disabled=busy||needsRefresh||!myTurn||g.pending_roll!=null;q("[data-stop]").disabled=busy||needsRefresh||snapshot.status!=="ACTIVE";
 const box=q("[data-pieces]");box.replaceChildren();for(const p of g.players||[]){const sec=document.createElement("section"),title=document.createElement("strong"),row=document.createElement("div");title.textContent=p.name+" · "+p.finished+"/4 home";row.className="arena-actions";
 for(const piece of p.pieces){const b=document.createElement("button");b.type="button";b.dataset.piece=piece.id;b.textContent=piece.id+" · "+piece.zone+(piece.track_square!==null?" "+(piece.track_square+1):"");b.disabled=busy||needsRefresh||!myTurn||p.id!==mine||!(g.movable_piece_ids||[]).includes(piece.id);b.onclick=()=>action({action:"move",piece_id:piece.id});row.append(b);}sec.append(title,row);box.append(sec);}}
-async function refresh(){const d=await post("/arena/rooms/state",{room_id:membership.room_id,reconnect_token:membership.reconnect_token});if(d.game_key!=="ludo")throw new Error("arena_room_game_invalid");snapshot=d;membership.seat=d.your_seat;needsRefresh=false;render();}
+async function refresh(){if(refreshInFlight)return refreshInFlight;const current=membership;if(!current)throw new Error("arena_room_membership_required");refreshInFlight=(async()=>{const d=await post("/arena/rooms/state",{room_id:current.room_id,reconnect_token:current.reconnect_token});if(d.game_key!=="ludo")throw new Error("arena_room_game_invalid");if(membership!==current)return; snapshot=d;membership.seat=d.your_seat;needsRefresh=false;render();})();try{return await refreshInFlight;}finally{refreshInFlight=null;}}
 async function enter(task){if(entryBusy||busy)return;entryBusy=true;clear();try{await task();}catch(e){err(e);}finally{entryBusy=false;}}
 async function action(body){if(busy||needsRefresh||!membership||!snapshot)return;busy=true;render();clear();try{await post("/arena/rooms/ludo/action",{...membership,expected_revision:snapshot.revision,request_id:req(),...body});await refresh();}catch(e){err(e);needsRefresh=true;try{await refresh();}catch(_){}}finally{busy=false;render();}}
 q("[data-matchmake]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/matchmake",{game_key:"ludo",display_name:q("[data-host]").value.trim()});identity(d,d.seat);await refresh();});
 q("[data-create]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/create",{game_key:"ludo",capacity:2,host_name:q("[data-host]").value.trim()});identity(d,1);await refresh();});
 q("[data-join]").onclick=()=>enter(async()=>{const d=await post("/arena/rooms/join",{room_code:q("[data-join-code]").value.trim().toUpperCase(),display_name:q("[data-guest]").value.trim()});identity(d,d.seat);await refresh();});
 q("[data-reconnect]").onclick=()=>enter(async()=>{membership={room_id:q("[data-reconnect-id]").value.trim(),reconnect_token:q("[data-reconnect-token]").value.trim(),seat:0};await refresh();q("[data-entry]").hidden=true;q("[data-room]").hidden=false;q("[data-id]").textContent=membership.room_id;q("[data-token]").textContent=membership.reconnect_token;});
+// Sync the same authoritative room across phones; never create competing local game state.
+// Stop background traffic for hidden pages, completed rooms, and failed/uncertain state.
+async function syncRoom(){if(!membership||!snapshot||busy||entryBusy||refreshInFlight||document.visibilityState!=="visible"||!["WAITING","ACTIVE"].includes(snapshot.status))return;try{await refresh();}catch(e){needsRefresh=true;err(e);render();}}
+setInterval(syncRoom,2500);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void syncRoom();});
 q("[data-roll]").onclick=()=>action({action:"roll"});q("[data-refresh]").onclick=async()=>{clear();try{await refresh();}catch(e){err(e);needsRefresh=true;render();}};q("[data-stop]").onclick=()=>action({action:"stop"});
 })();

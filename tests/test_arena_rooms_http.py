@@ -368,3 +368,172 @@ def test_all_authoritative_room_games_expose_quick_match(client):
         assert "/arena/rooms/matchmake" in text
         assert f'game_key:"{game_key}"' in text
         assert text.count('q("[data-matchmake]").onclick=') == 1, asset_path
+
+
+def test_ludo_link_up_entry_reuses_protected_chat_without_room_leak(client):
+    for route in ("/arena/ludo", "/arena/ludo/room"):
+        response = client.get(route)
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert 'href="/linkup"' in html
+        assert "Link Up" in html
+        assert "reconnect_token=" not in html
+    room_html = client.get("/arena/ludo/room").get_data(as_text=True)
+    assert "no in-room chat" in room_html
+
+
+def test_ludo_my_card_starts_from_oap_world_not_an_arena_duplicate(client):
+    menu = client.get("/arena/ludo")
+    assert menu.status_code == 200
+    html = menu.get_data(as_text=True)
+    assert 'href="/world"' in html
+    assert 'href="/my-card"' not in html
+    assert "get your My Card through OAP World" in html
+    assert "Guest names do not earn ranked results" in html
+    room = client.get("/arena/ludo/room")
+    assert room.status_code == 200
+    assert 'href="/my-card"' not in room.get_data(as_text=True)
+
+
+def test_arena_hub_uses_one_oap_world_my_card_for_rankings(client):
+    response = client.get("/arena")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'href="/my-card"' not in html
+    assert "One My Card" in html
+    assert "Guest games stay unranked" in html
+    assert "same authenticated My Card identity" in html
+    assert "Ranking and XP eligibility enforcement remains locked" in html
+
+
+def test_ludo_two_device_room_autosync_is_bounded_and_server_authoritative(client):
+    page = client.get("/arena/ludo/room")
+    assert page.status_code == 200
+    script = client.get("/static/arena_ludo_room.js")
+    assert script.status_code == 200
+    js = script.get_data(as_text=True)
+    assert 'setInterval(syncRoom,2500)' in js
+    assert 'document.visibilityState!=="visible"' in js
+    assert '["WAITING","ACTIVE"].includes(snapshot.status)' in js
+    assert 'refreshInFlight' in js
+    assert 'membership!==current' in js
+    assert 'needsRefresh=true;err(e);render();' in js
+    assert '"/arena/rooms/state"' in js
+    assert '"/arena/rooms/ludo/action"' in js
+    assert "localStorage" not in js
+    assert "sessionStorage" not in js
+
+
+def test_all_seven_arena_online_rooms_auto_sync_on_distinct_devices(client):
+    scripts = (
+        "arena_connect4_room.js",
+        "arena_dot_room.js",
+        "arena_chess_room.js",
+        "arena_ludo_room.js",
+        "arena_oware_room.js",
+        "arena_iq_room.js",
+        "arena_route_empire_room.js",
+    )
+    for script in scripts:
+        response = client.get(f"/static/{script}")
+        assert response.status_code == 200
+        js = response.get_data(as_text=True)
+        assert "setInterval(syncRoom,2500)" in js, script
+        assert "visibilitychange" in js, script
+        assert "refreshInFlight" in js, script
+        assert 'document.visibilityState!=="visible"' in js, script
+        assert '["WAITING","ACTIVE"].includes(' in js, script
+        assert 'needsRefresh' in js, script
+        assert '"/arena/rooms/state"' in js, script
+        # Automatic refresh must retry after a transient network failure.
+        # During the failure, move handlers still respect needsRefresh.
+        sync_body = js.split("async function syncRoom(){", 1)[1].split("setInterval(syncRoom,2500)", 1)[0]
+        assert "||needsRefresh||" not in sync_body, script
+        assert "needsRefresh=true;" in sync_body, script
+        assert "localStorage" not in js, script
+        assert "sessionStorage" not in js, script
+
+
+def test_arena_monetisation_reuses_membership_and_does_not_sell_ranked_results(client):
+    response = client.get("/arena")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'aria-label="Arena support and monetisation"' in html
+    assert 'href="/membership"' in html
+    assert "Membership is optional" in html
+    assert "does not grant ranked wins, XP" in html
+    assert "No Arena-specific checkout" in html
+    assert "Arena purchases, player entitlements, prizes and payouts are not verified" in html
+    assert "paid entry is active here" in html
+
+
+def test_oware_local_board_is_carved_wood_with_real_seed_elements(client):
+    page = client.get("/arena/oware")
+    assert page.status_code == 200
+    html = page.get_data(as_text=True)
+    assert 'data-board' in html
+    assert 'oware-game-card' in html
+    script = client.get("/static/oware.js")
+    assert script.status_code == 200
+    js = script.get_data(as_text=True)
+    assert 'className="oware-pit"' in js
+    assert 'className="oware-bowl"' in js
+    assert 'className="oware-seed"' in js
+    assert "Math.min(count,18)" in js
+    assert 'state.legal_pits.includes(index)' in js
+    assert '"/arena/oware/move"' in js
+    css = client.get("/static/arena_games.css")
+    assert css.status_code == 200
+    sheet = css.get_data(as_text=True)
+    assert ".arena-game[data-oware-root] .oware-bowl" in sheet
+    assert "grid-template-columns:repeat(6,minmax(0,1fr))" in sheet
+    assert ".arena-game[data-oware-root] .oware-seed" in sheet
+
+
+def test_arena_hub_game_first_noise_reduction_preserves_every_route(client):
+    response = client.get("/arena")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'aria-label="Play OAP Arena games"' in html
+    assert '<details class="arena-more">' in html
+    assert "More Arena options" in html
+    assert html.index('aria-label="Play OAP Arena games"') < html.index('aria-label="Arena identity and ranking eligibility"')
+    for path in (
+        "/arena/ludo", "/arena/oware", "/arena/chess", "/arena/dot",
+        "/arena/connect4", "/arena/iq", "/arena/route-empire",
+        "/arena/snakes-ladders", "/arena/scramble", "/arena/postcode-empire",
+        "/arena/connect4/room", "/arena/dot/room", "/arena/chess/room",
+        "/arena/ludo/room", "/arena/oware/room", "/arena/iq/room",
+        "/arena/route-empire/room",
+    ):
+        assert f'href="{path}"' in html, path
+    assert "OAP Challenge Engine" in html
+    assert "Global Arena" in html
+    assert "Guest games stay unranked" in html
+
+
+def test_arena_and_all_game_routes_offer_direct_koradaso_home(client):
+    routes = (
+        "/arena", "/arena/chess", "/arena/connect4", "/arena/oware",
+        "/arena/ludo", "/arena/dot", "/arena/iq", "/arena/route-empire",
+        "/arena/chess/room", "/arena/connect4/room", "/arena/oware/room",
+        "/arena/ludo/room", "/arena/dot/room", "/arena/iq/room",
+        "/arena/route-empire/room", "/arena/snakes-ladders",
+        "/arena/scramble", "/arena/postcode-empire",
+    )
+    for route in routes:
+        response = client.get(route)
+        assert response.status_code == 200, route
+        assert 'href="/koradaso"' in response.get_data(as_text=True), route
+    homepage = client.get("/koradaso")
+    assert homepage.status_code == 200
+    assert 'href="/arena"' in homepage.get_data(as_text=True)
+
+
+def test_arena_default_view_is_game_first_with_secondary_info_collapsed(client):
+    html = client.get("/arena").get_data(as_text=True)
+    assert "Choose a game. Play your way." in html
+    assert '<details class="arena-more">' in html
+    assert '<summary>More Arena options' in html
+    assert 'aria-label="Arena progression" hidden' in html
+    assert '<a class="mc-secondary-link" href="/koradaso">' in html

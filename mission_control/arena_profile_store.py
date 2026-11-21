@@ -11,6 +11,34 @@ from typing import Any
 
 from . import postgres_db
 
+# Display tiers for future verified Arena XP. Existing match points are not XP.
+# These tiers must never be derived from the legacy points column.
+ARENA_XP_TIERS: tuple[tuple[int, str], ...] = (
+    (0, "Rookie"),
+    (100, "Street Player"),
+    (300, "Postcode Pro"),
+    (600, "OAP Legend"),
+    (1000, "Royal Master"),
+    (2000, "Royal Elite"),
+    (4000, "Royal Sovereign"),
+)
+
+
+def rank_for_verified_xp(xp: int) -> dict[str, int | str]:
+    """Resolve the approved seven-tier title from *verified* XP only.
+
+    No award, storage, or leaderboard claim is made by this pure resolver.
+    """
+    if isinstance(xp, bool) or not isinstance(xp, int) or xp < 0:
+        raise ValueError("arena_verified_xp_invalid")
+    level = 1
+    title = ARENA_XP_TIERS[0][1]
+    for index, (minimum, name) in enumerate(ARENA_XP_TIERS, start=1):
+        if xp < minimum:
+            break
+        level, title = index, name
+    return {"level": level, "title": title, "xp": xp}
+
 
 class ArenaStoreUnavailable(RuntimeError):
     """Raised when durable Arena storage cannot complete safely."""
@@ -85,6 +113,24 @@ def ranking(*, limit: int = 100) -> list[dict[str, Any]]:
     ]
 
 
+
+def _verify_ranked_result(
+    *,
+    match_id: str,
+    player_a_id: str,
+    player_b_id: str,
+    player_a_score: int,
+    player_b_score: int,
+    receipt_hash: str,
+) -> None:
+    """Fail closed until a trusted server-side match and My Card proof is wired.
+
+    A well-formed receipt hash or caller-supplied IDs do not establish an
+    authorised completed match. Never treat these inputs as independent proof.
+    """
+    raise ArenaStoreUnavailable("arena_ranked_result_verification_not_configured")
+
+
 def record_completed_match(
     *,
     match_id: object,
@@ -116,6 +162,17 @@ def record_completed_match(
 
     def points(outcome: str) -> int:
         return 3 if outcome == "WIN" else 1 if outcome == "DRAW" else 0
+
+    # This must be independently verified against an authenticated server
+    # result before opening a database write. The current adapter fails closed.
+    _verify_ranked_result(
+        match_id=match,
+        player_a_id=player_a,
+        player_b_id=player_b,
+        player_a_score=player_a_score,
+        player_b_score=player_b_score,
+        receipt_hash=receipt.lower(),
+    )
 
     try:
         with postgres_db.connect() as connection:

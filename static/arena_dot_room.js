@@ -127,4 +127,9 @@ q("[data-refresh]").onclick=async()=>{
 };
 q("[data-edges]").onclick=e=>{const btn=e.target.closest("[data-a]");if(btn&&!btn.disabled)act("draw",btn.dataset.a,btn.dataset.b);};
 q("[data-stop]").onclick=()=>act("stop");
+
+// Keep separate devices on the same authoritative room, without overlapping requests.
+async function syncRoom(){if(!me||!state||busy||entryBusy||refreshInFlight||document.visibilityState!=="visible"||!["WAITING","ACTIVE"].includes(state.status))return;try{await refresh();}catch(e){needsRefresh=true;error(e);render();}}
+setInterval(syncRoom,2500);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")void syncRoom();});
 })();

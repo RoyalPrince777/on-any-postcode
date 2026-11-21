@@ -38,6 +38,10 @@ class _Connection:
 
 
 def _patch_connection(monkeypatch, connection):
+    # Only these storage-focused tests substitute a trusted verification step.
+    # Production's verifier remains fail-closed.
+    monkeypatch.setattr(arena_profile_store, "_verify_ranked_result", lambda **_kwargs: None)
+
     @contextlib.contextmanager
     def fake_connect(*, readonly=False):
         yield connection
@@ -209,3 +213,71 @@ def test_status_keeps_money_and_deployment_locked():
         "prizes": False,
         "deployed": False,
     }
+
+
+@pytest.mark.parametrize(
+    ("xp", "level", "title"),
+    [
+        (0, 1, "Rookie"),
+        (99, 1, "Rookie"),
+        (100, 2, "Street Player"),
+        (299, 2, "Street Player"),
+        (300, 3, "Postcode Pro"),
+        (599, 3, "Postcode Pro"),
+        (600, 4, "OAP Legend"),
+        (999, 4, "OAP Legend"),
+        (1000, 5, "Royal Master"),
+        (1999, 5, "Royal Master"),
+        (2000, 6, "Royal Elite"),
+        (3999, 6, "Royal Elite"),
+        (4000, 7, "Royal Sovereign"),
+        (9000, 7, "Royal Sovereign"),
+    ],
+)
+def test_verified_xp_rank_ladder(xp, level, title):
+    assert arena_profile_store.rank_for_verified_xp(xp) == {
+        "xp": xp, "level": level, "title": title,
+    }
+
+
+@pytest.mark.parametrize("bad_xp", [-1, None, True, False, 1.5, "100"])
+def test_verified_xp_rank_rejects_non_verified_numeric_input(bad_xp):
+    with pytest.raises(ValueError, match="arena_verified_xp_invalid"):
+        arena_profile_store.rank_for_verified_xp(bad_xp)
+
+
+def test_existing_points_are_not_advertised_as_verified_xp():
+    assert "xp" not in arena_profile_store.status()
+    assert "xp" not in arena_profile_store.ranking.__annotations__
+
+
+def test_unverified_ranked_match_never_reaches_database(monkeypatch):
+    a = str(uuid.uuid4())
+    b = str(uuid.uuid4())
+    match = str(uuid.uuid4())
+
+    def unexpected_connect(*, readonly=False):
+        raise AssertionError("Unverified match reached database")
+
+    monkeypatch.setattr(arena_profile_store.postgres_db, "connect", unexpected_connect)
+    with pytest.raises(
+        arena_profile_store.ArenaStoreUnavailable,
+        match="arena_ranked_result_verification_not_configured",
+    ):
+        arena_profile_store.record_completed_match(
+            match_id=match,
+            player_a_id=a,
+            player_b_id=b,
+            player_a_score=7,
+            player_b_score=2,
+            receipt_hash="e" * 64,
+        )
+
+
+def test_ranked_verifier_is_not_client_selectable():
+    import inspect
+
+    parameters = inspect.signature(arena_profile_store.record_completed_match).parameters
+    assert "verified" not in parameters
+    assert "verified_result" not in parameters
+    assert "trusted" not in parameters
