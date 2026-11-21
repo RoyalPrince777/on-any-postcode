@@ -68,6 +68,61 @@
       <p class="org-boundary"><strong>🐅 {{ archive.shere_khan.mode }}:</strong> {{ archive.shere_khan.opening_question }} · seven survivability checks · Shere Khan present at the beginning and end of major reviews.</p>
     </section>
 
+    {% if archive.film_intelligence_research is defined %}
+    <section class="mc-panel" id="film-intelligence-research" aria-labelledby="film-research-title">
+      <div class="mc-section-heading"><div><p class="mc-eyebrow">Founder-private · Original Intelligence Law</p><h2 id="film-research-title">M3GAN · AMELIA · BLACK BOX</h2></div><span class="mc-lock-badge">Fictional research · no execution</span></div>
+      <p>Three distinct film-intelligence references, not new agents. M3GAN Original → 2.0 is one identity. This research does not grant passports, system access, autonomous authority, or permission to ingest private communication.</p>
+      <div class="org-grid">
+        {% for intelligence in archive.film_intelligence_research.entries %}
+        <article class="org-card" data-film-reference="{{ intelligence.reference_key }}">
+          <div class="org-meta">{{ intelligence.fictional_entity_type.replace('_', ' ') }} · read-only reference</div>
+          <h3>{{ intelligence.name }}</h3>
+          <p>{{ intelligence.identity_rule }}</p>
+          <strong>Original portrayed specialities</strong>
+          <ul class="org-links">
+            {% for speciality in intelligence.portrayed_specialities %}
+            <li>{{ speciality }}</li>
+            {% endfor %}
+          </ul>
+          <strong>Full film-canon ability evidence</strong>
+          <ul class="org-links" aria-label="{{ intelligence.name }} verified film abilities">
+            {% for ability in archive.film_intelligence_research.film_canon_abilities if ability.reference_key == intelligence.reference_key %}
+            <li data-film-ability="{{ ability.reference_key }}:{{ ability.ability_id }}">
+              <strong>{{ ability.name }}</strong> — {{ ability.film_evidence }}
+              <span class="org-meta">Film evidence: {{ ability.evidence_scope.replace('_', ' ') }} ·
+                {% for source in archive.film_intelligence_research.source_receipts if source.source_id == ability.source_id %}
+                <a href="{{ source.url }}" target="_blank" rel="noreferrer noopener">Film source</a>
+                {% endfor %}
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+          <p class="org-meta">{{ intelligence.research_boundary }} · All film abilities are fictional; real OAP implementation requires independent proof.</p>
+        </article>
+        {% endfor %}
+      </div>
+      <h3>Verified real-world AI and robotics research</h3>
+      <p>These are separate real products, company demonstrations and public technical standards. Names such as Amelia 7 and BLACKBOX AI do not mean those products are the film characters or connected to OAP.</p>
+      <div class="org-grid">
+        {% for source in archive.film_intelligence_research.real_world_technology_evidence %}
+        <article class="org-card" data-real-technology="{{ source.reference_key }}">
+          <div class="org-meta">{{ source.publisher }} · {{ source.real_entity_type.replace('_', ' ') }}</div>
+          <h3>{{ source.real_name }}</h3>
+          <p>{{ source.evidence }}</p>
+          <p class="org-meta">{{ source.scope_limit }}</p>
+          <strong>OAP research direction</strong>
+          <p>{{ source.oap_research_use }}</p>
+          <a href="{{ source.source_url }}" target="_blank" rel="noreferrer noopener">Read actual source</a>
+        </article>
+        {% endfor %}
+      </div>
+      <p class="org-meta">Research checked {{ archive.film_intelligence_research.real_world_technology_review_date }} · {{ archive.film_intelligence_research.technology_evidence_mode.replace('_', ' ') }} · no provider connected · no physical robot proof · source snapshots only.</p>
+      <p class="org-boundary"><strong>Existing review hierarchy:</strong> Captain ALL IN coordinates as external mission keeper; Bagheera judges privacy and restraint; Shere Khan has permanent adversarial and false-Green review; Fox checks source evidence; Gorilla handles containment. Founder Final remains final. Film references cannot cast votes or overrule established agents.</p>
+      <p class="org-meta">Source status: {{ archive.film_intelligence_research.source_status.replace('_', ' ') }} · public research metadata only · no live crawler · no verified character runtime.</p>
+      <p><a class="mc-secondary-link" href="{{ url_for('smi_organiser.film_evidence') }}">Read Founder-only source receipts</a></p>
+    </section>
+    {% endif %}
+
     <section class="mc-panel" id="schedules">
       <div class="mc-section-heading"><div><p class="mc-eyebrow">Timing receipts</p><h2>Mirrored schedules</h2></div><span class="mc-lock-badge">No execution</span></div>
       {% if schedules %}
