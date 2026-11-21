@@ -267,8 +267,16 @@ def passport_audit() -> dict[str, Any]:
         },
         "jungle_book_review": {
             "status_light": "yellow",
-            "meaning": "Jungle Book Intelligence candidate layer for War Room passport review; not counted as registered agents yet.",
+            "meaning": (
+                "Read-only passport review. Existing registered agents are identified "
+                "separately; only unregistered candidates need a new-passport review. "
+                "This audit does not register or activate anyone."
+            ),
             "candidates": JUNGLE_BOOK_REVIEW_CANDIDATES,
+            "unregistered_candidates": tuple(
+                item for item in JUNGLE_BOOK_REVIEW_CANDIDATES
+                if item["name"] not in agent_names
+            ),
             "already_registered": jungle_book_candidate_already_registered,
         },
         "animal_removed": REMOVED_ANIMAL_CANDIDATES,
