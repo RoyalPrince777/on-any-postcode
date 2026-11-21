@@ -9,7 +9,7 @@ from typing import Any
 
 from . import esim_persistence, esim_provisioning, postgres_db
 
-_REQUIRED_TABLES = ("oap_esim_requests", "oap_esim_events")
+_REQUIRED_TABLES = ("oap_esim_requests", "oap_esim_events", "oap_esim_evidence_claims")
 _STATE: dict[str, Any] = {
     "persistence_attached": False,
     "database_configured": False,
@@ -27,7 +27,7 @@ def configure() -> dict[str, Any]:
     try:
         with postgres_db.connect() as connection:
             rows = connection.execute(
-                """SELECT to_regclass(%s), to_regclass(%s)""",
+                """SELECT to_regclass(%s), to_regclass(%s), to_regclass(%s)""",
                 _REQUIRED_TABLES,
             ).fetchone()
     except Exception:  # noqa: BLE001 - expose no connection details.
