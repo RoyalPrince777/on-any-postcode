@@ -218,3 +218,38 @@ def test_every_remaining_external_execution_flag_stays_false():
         "public_number_assigned": False,
         "sensitive_material_exposed": False,
     }
+
+
+def test_public_connectivity_never_claims_internet_or_cellular_from_local_route(monkeypatch):
+    from mission_control import infrastructure
+
+    monkeypatch.setattr(
+        infrastructure.connectivity_runtime,
+        "connectivity_runtime_status",
+        lambda: {"host": {"runtime_connectivity_present": True, "observed_at_unix": 123}},
+    )
+    projection = infrastructure.get_public_infrastructure()
+    item = next(item for item in projection["modules"] if item["id"] == "connectivity")
+    assert item["state"] == "degraded"
+    assert item["status"] == "Not connected"
+    evidence = projection["runtime_evidence"]
+    assert evidence["host_local_route_observed"] is True
+    assert evidence["internet_reachability_verified"] is False
+    assert evidence["cellular_attach_verified"] is False
+    assert evidence["oap_private_radio_verified"] is False
+    assert evidence["network_probe_on_get"] is False
+
+
+def test_public_connectivity_without_local_route_remains_degraded(monkeypatch):
+    from mission_control import infrastructure
+
+    monkeypatch.setattr(
+        infrastructure.connectivity_runtime,
+        "connectivity_runtime_status",
+        lambda: {"host": {"runtime_connectivity_present": False, "observed_at_unix": 123}},
+    )
+    projection = infrastructure.get_public_infrastructure()
+    item = next(item for item in projection["modules"] if item["id"] == "connectivity")
+    assert item["state"] == "degraded"
+    assert projection["runtime_evidence"]["host_local_route_observed"] is False
+    assert projection["runtime_evidence"]["internet_reachability_verified"] is False
