@@ -25,9 +25,9 @@ def _reference_url(url: object, source: str) -> str | None:
     """Allowlisted citation reference only, NOT an asset or playback location."""
     if not isinstance(url, str) or len(url) > 2048:
         return None
-    parsed = urlsplit(url)
-    host = parsed.hostname
     try:
+        parsed = urlsplit(url)
+        host = parsed.hostname
         forbidden_authority = parsed.username or parsed.password or parsed.port
     except ValueError:
         return None
