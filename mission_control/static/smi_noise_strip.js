@@ -67,6 +67,119 @@ const ready=()=>{
 
   // Enter and Shift+Enter remain owned by the canonical controller. No second key handler here.
 
+  // Founder-approved reference layout: real controls and evidence, never fake metrics.
+  if(!document.getElementById('smi-reference-top')){
+    const shell=document.querySelector('.smi-shell');
+    if(shell){
+      document.body.classList.add('smi-reference-layout');
+      const top=document.createElement('header');
+      top.id='smi-reference-top';
+      top.className='smi-reference-top';
+      const brand=document.createElement('a');
+      brand.href='/mission/ollama';brand.className='smi-reference-brand';
+      brand.textContent='♛ OAP · ON ANY POSTCODE';
+      const heading=document.createElement('div');
+      heading.className='smi-reference-title';
+      const name=document.createElement('strong');name.textContent='SMI';
+      const sub=document.createElement('small');sub.textContent='SOVEREIGN MEGAVERSE INTELLIGENCE';
+      heading.append(name,sub);
+      const menu=document.createElement('button');
+      menu.type='button';menu.className='smi-reference-menu';
+      menu.setAttribute('aria-expanded','false');
+      menu.setAttribute('aria-controls','smi-reference-left');
+      menu.setAttribute('aria-label','Toggle SMI navigation');
+      menu.textContent='☰';
+      const evidenceButton=document.createElement('button');
+      evidenceButton.type='button';evidenceButton.className='smi-reference-evidence-toggle';
+      evidenceButton.setAttribute('aria-controls','smi-reference-right');
+      evidenceButton.setAttribute('aria-expanded','false');
+      evidenceButton.setAttribute('aria-label','Open SMI system evidence');
+      evidenceButton.textContent='◈';
+      top.append(brand,heading,evidenceButton,menu);
+      const left=document.createElement('nav');
+      left.id='smi-reference-left';left.className='smi-reference-side smi-reference-left';
+      left.setAttribute('aria-label','SMI private navigation');
+      const leftHeading=document.createElement('h2');leftHeading.textContent='SMI CONTROL';
+      left.append(leftHeading);
+      const links=[
+        ['🧠','SMI Chat','/mission/ollama'],
+        ['◉','SMI Brain','/mission/brain'],
+        ['◇','Mission Control','/mission'],
+        ['⚖','War Room','/mission/war-room'],
+        ['♛','Judgement','/mission/judgement']
+      ];
+      for(const [symbol,label,href] of links){
+        const a=document.createElement('a');a.href=href;
+        a.textContent=symbol+'  '+label;
+        if(href==='/mission/ollama')a.setAttribute('aria-current','page');
+        left.append(a);
+      }
+      const right=document.createElement('aside');
+      right.id='smi-reference-right';right.className='smi-reference-side smi-reference-right';
+      right.setAttribute('aria-label','SMI system evidence access');
+      const rightHeading=document.createElement('h2');rightHeading.textContent='SYSTEM EVIDENCE';
+      const summary=document.createElement('p');summary.id='smi-reference-evidence';
+      summary.setAttribute('role','status');summary.textContent='Health evidence is available through the existing SMI Command Centre.';
+      const checks=document.createElement('div');checks.id='smi-reference-checks';
+      checks.textContent='Status: Unknown until the canonical checks run.';
+      const refresh=document.createElement('button');refresh.type='button';
+      refresh.textContent='◈ Open verified evidence';refresh.className='smi-reference-refresh';
+      right.append(rightHeading,summary,checks,refresh);
+      const foot=document.createElement('div');
+      foot.className='smi-reference-foot';
+      foot.textContent='OAP INTELLIGENCE · ONE SMI BRAIN · FOUNDER FINAL';
+      shell.append(top,left,right,foot);
+      const mobileLayout=window.matchMedia('(max-width:760px)');
+      const syncDrawerAccess=()=>{
+        const mobile=mobileLayout.matches;
+        const navOpen=!mobile||document.body.classList.contains('smi-reference-nav-open');
+        const evidenceOpen=!mobile||document.body.classList.contains('smi-reference-evidence-open');
+        left.inert=!navOpen;
+        right.inert=!evidenceOpen;
+        left.setAttribute('aria-hidden',String(!navOpen));
+        right.setAttribute('aria-hidden',String(!evidenceOpen));
+      };
+      const closeEvidence=()=>{
+        document.body.classList.remove('smi-reference-evidence-open');
+        evidenceButton.setAttribute('aria-expanded','false');
+        syncDrawerAccess();
+      };
+      const closeMenu=()=>{
+        document.body.classList.remove('smi-reference-nav-open');
+        menu.setAttribute('aria-expanded','false');
+        syncDrawerAccess();
+      };
+      mobileLayout.addEventListener('change',syncDrawerAccess);
+      evidenceButton.addEventListener('click',()=>{
+        closeMenu();
+        const open=document.body.classList.toggle('smi-reference-evidence-open');
+        evidenceButton.setAttribute('aria-expanded',String(open));
+        syncDrawerAccess();
+      });
+      menu.addEventListener('click',()=>{
+        closeEvidence();
+        const open=document.body.classList.toggle('smi-reference-nav-open');
+        menu.setAttribute('aria-expanded',String(open));
+        syncDrawerAccess();
+      });
+      left.addEventListener('click',event=>{if(event.target.closest('a'))closeMenu();});
+      syncDrawerAccess();
+      // Visual-only handoff: the existing Command Centre owns signed-in evidence
+      // requests, validation, timeouts and refresh. No second network owner.
+      refresh.addEventListener('click',()=>{
+        const canonical=document.querySelector('.chat-head-actions .smi-command-toggle')
+          ||document.querySelector('.chat-head .smi-command-toggle');
+        if(!canonical){
+          summary.textContent='Canonical evidence controls unavailable';
+          checks.textContent='Unknown · No Green inferred';
+          return;
+        }
+        closeEvidence();
+        canonical.click();
+      });
+    }
+  }
+
   window.OAP_SMI_NOISE_STRIP=Object.freeze({
     version:'1.1',
     applied:true,

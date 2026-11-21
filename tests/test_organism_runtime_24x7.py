@@ -113,3 +113,56 @@ def test_free_mode_does_not_provision_a_paid_background_worker():
     assert "plan: free" in content
     assert "runtime: image" in content
     assert 'value: "smi_gateway:app"' in content
+
+
+def test_durable_completion_refuses_drain_before_success(monkeypatch):
+    """Aegis STOP cannot be followed by a successful receipt."""
+    from contextlib import contextmanager
+
+    seen = []
+
+    class _Cursor:
+        def __init__(self, row):
+            self.row = row
+
+        def fetchone(self):
+            return self.row
+
+    class _Connection:
+        def execute(self, query, params):
+            seen.append(query)
+            if "SELECT status FROM oap_runtime_workers" in query:
+                return _Cursor(("DRAINING",))
+            raise AssertionError("No write is allowed after worker STOP")
+
+    @contextmanager
+    def connection():
+        yield _Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connection)
+    job = RuntimeJob(
+        job_id="00000000-0000-0000-0000-000000000001",
+        job_type="RUNTIME_HEARTBEAT",
+        payload={},
+        attempts=1,
+        max_attempts=3,
+        idempotency_key="stop-proof",
+    )
+    with pytest.raises(RuntimeError, match="worker_not_active_before_completion"):
+        organism_runtime.PostgresRuntimeStore().complete(
+            job, "test-worker", {"consequential_action": False}
+        )
+    assert len(seen) == 1
+    assert "FOR SHARE" in seen[0]
+
+
+def test_durable_completion_locks_worker_before_success_update():
+    from inspect import getsource
+
+    source = getsource(organism_runtime.PostgresRuntimeStore.complete)
+    lock = source.index("SELECT status FROM oap_runtime_workers")
+    active = source.index('str(worker_row[0]) != "ACTIVE"')
+    success = source.index("UPDATE oap_runtime_jobs SET")
+    receipt = source.index('"JOB_SUCCEEDED"')
+    assert lock < active < success < receipt
+    assert "FOR SHARE" in source

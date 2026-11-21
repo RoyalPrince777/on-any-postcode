@@ -407,6 +407,16 @@ class PostgresRuntimeStore:
         worker = _worker_id(worker_id)
         safe_detail = _payload(detail)
         with postgres_db.connect() as connection:
+            # Lock the worker's authority through the success transaction.
+            # Aegis isolation takes an UPDATE lock on this same worker row;
+            # either isolation wins first or completion commits first.
+            worker_row = connection.execute(
+                """SELECT status FROM oap_runtime_workers
+                   WHERE worker_id=%s FOR SHARE""",
+                (worker,),
+            ).fetchone()
+            if worker_row is None or str(worker_row[0]) != "ACTIVE":
+                raise RuntimeError("worker_not_active_before_completion")
             row = connection.execute(
                 """UPDATE oap_runtime_jobs SET
                      state='SUCCEEDED',lease_owner=NULL,lease_expires_at=NULL,

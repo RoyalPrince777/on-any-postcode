@@ -123,10 +123,32 @@ def recommend_matrix_mouse(mission: object) -> dict[str, object] | None:
     }
 
 
+
+def auto_divisions_for_mission(mission: object) -> tuple[str, ...]:
+    """Minimal deterministic advisory selection, never autonomous permission."""
+    text = str(mission or "").strip().casefold()
+    if not text or len(text) > 2000:
+        raise ValueError("invalid_mission")
+    selected = ["truth"]
+    if any(word in text for word in ("repair", "fix", "build", "code", "ui", "ux", "api", "route", "test", "upgrade", "engineering")):
+        selected.append("engineering")
+    if any(word in text for word in ("security", "auth", "permission", "incident", "crash", "rollback", "recover", "failure")):
+        selected.append("recovery")
+    if any(word in text for word in ("memory", "recall", "history", "learning", "lesson")):
+        selected.append("memory")
+    if any(word in text for word in ("decide", "decision", "approval", "release", "founder", "governance")):
+        selected.append("decision")
+    if len(selected) == 1:
+        selected.append("engineering")
+    return tuple(selected[:3])
+
+
 def route_divisions(divisions: object, *, thinking: object = "AUTO", mission: object = "") -> dict[str, object]:
     """Select several bounded specialist perspectives without creating agents."""
     from . import intelligence_lenses
     names = tuple(str(x).strip().lower() for x in divisions) if isinstance(divisions, (tuple, list)) else ()
+    if names == ("auto",):
+        names = auto_divisions_for_mission(mission)
     canonical = {row[0]: row for row in DYNAMIC_DIVISIONS}
     if not names or any(x not in canonical for x in names):
         raise ValueError("invalid_smi_divisions")
