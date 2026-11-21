@@ -61,10 +61,59 @@ async function refresh(){
   });
   if(membership!==current)return;
   if(next.game_key!=="connect4")throw new Error("arena_room_game_invalid");
-  snapshot=next;membership.seat=next.your_seat;needsRefresh=false;render();
+  snapshot=next;membership.seat=next.your_seat;needsRefresh=false;render();void readChat();
  })();
  try{await refreshInFlight;}finally{refreshInFlight=null;}
 }
+let chatReading=false,chatSending=false;
+async function readChat(){
+ if(!membership||chatReading||document.hidden)return;
+ chatReading=true;
+ const current=membership;
+ try{
+  const result=await post("/arena/rooms/connect4/chat/read",{
+   room_id:current.room_id,reconnect_token:current.reconnect_token,
+  });
+  if(membership!==current)return;
+  const log=q("[data-chat-log]");
+  const nearBottom=log.scrollHeight-log.scrollTop-log.clientHeight<45;
+  log.replaceChildren();
+  for(const item of result.messages){
+   const li=document.createElement("li");
+   const name=document.createElement("strong");
+   name.textContent="P"+item.seat+": ";
+   li.append(name,document.createTextNode(item.text));
+   log.append(li);
+  }
+  if(!result.messages.length){
+   const li=document.createElement("li");li.textContent="No messages yet.";log.append(li);
+  }
+  if(nearBottom)log.scrollTop=log.scrollHeight;
+  q("[data-chat-status]").textContent="";
+ }catch(e){
+  if(membership===current)q("[data-chat-status]").textContent="Chat unavailable. "+(e.message||"Try again.");
+ }finally{chatReading=false;}
+}
+q("[data-chat-form]").onsubmit=async event=>{
+ event.preventDefault();
+ if(chatSending||!membership)return;
+ const input=q("[data-chat-input]"),value=input.value.trim();
+ if(!value||value.length>280)return;
+ const current=membership;
+ chatSending=true;q("[data-chat-send]").disabled=true;
+ q("[data-chat-status]").textContent="Sending…";
+ try{
+  await post("/arena/rooms/connect4/chat/send",{
+   room_id:current.room_id,reconnect_token:current.reconnect_token,
+   request_id:req(),message:value,
+  });
+  if(membership===current){input.value="";await readChat();}
+ }catch(e){
+  q("[data-chat-status]").textContent="Not sent: "+(e.message||"retry");
+ }finally{chatSending=false;q("[data-chat-send]").disabled=false;}
+};
+setInterval(()=>{if(membership)void readChat();},5000);
+
 function lockEntry(locked){
  entryBusy=locked;
  for(const key of ["[data-matchmake]","[data-create]","[data-join]","[data-reconnect]"])

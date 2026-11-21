@@ -120,3 +120,75 @@ def test_connect4_resignation_http(client, csrf):
     assert body["status"]=="completed"
     assert body["result"]=="resignation"
     assert body["winner_id"]=="p2"
+
+
+def test_connect4_tap_board_and_seven_piece_choices_are_present(client):
+    html = client.get("/arena/connect4").get_data(as_text=True)
+    js = client.get("/static/connect4.js").get_data(as_text=True)
+    assert 'data-piece-style' in html and 'data-piece-choice' in html
+    assert 'data-board role="group"' in html
+    assert 'q("[data-board]").onclick' in js
+    assert 'dropColumn(Number(button.dataset.col))' in js
+    assert 'const colours=[' in js and 'const icons=[' in js
+    assert 'c4-winning' in js and 'c4-last' in js
+    assert 'Fox 🦊' in html and 'Shere Khan 🐅' in html
+
+
+def test_connect4_fox_and_shere_khan_http_make_legal_moves(client, csrf):
+    headers = {"X-OAP-CSRF": csrf["csrf_token"]}
+    for name, key, level in [
+        ("Fox", "fox", "strong"),
+        ("Shere Khan", "tiger", "easy"),
+    ]:
+        started = client.post(
+            "/arena/connect4/start",
+            json={"player_one": "Founder", "opponent_mode": "agent", "agent_key": key},
+            headers=headers,
+        )
+        assert started.status_code == 201
+        assert started.get_json()["players"][1]["name"] == name
+        moved = client.post(
+            "/arena/connect4/drop",
+            json={"column": 3, "request_id": f"move-{key}-0001"},
+            headers=headers,
+        )
+        assert moved.status_code == 200
+        answer = client.post(
+            "/arena/connect4/agent-move",
+            json={"agent_key": key, "difficulty": level, "request_id": f"reply-{key}-0001"},
+            headers=headers,
+        )
+        assert answer.status_code == 200
+        body = answer.get_json()
+        assert body["agent"]["key"] == key
+        assert sum(value == 2 for row in body["board"] for value in row) == 1
+        assert body["current_player_id"] == "p1"
+
+
+def test_connect4_level_search_blocks_immediate_win_and_stays_legal():
+    from mission_control.arena_agents import connect4_column
+
+    board = [[0] * 7 for _ in range(6)]
+    board[5][:3] = [1, 1, 1]
+    for level in ["easy", "standard", "strong", "a7"]:
+        for agent in ["fox", "tiger"]:
+            assert connect4_column(board, difficulty=level, agent_key=agent) == 3
+
+
+def test_connect4_character_banter_contract(client):
+    """Agent banter stays client-local, distinct, and driven by real moves."""
+    html = client.get("/arena/connect4").get_data(as_text=True)
+    js = client.get("/static/connect4.js").get_data(as_text=True)
+    assert 'data-agent-banter' in html
+    assert 'data-agent-talk' in html
+    assert 'data-agent-persona' in html
+    assert 'const personalities={' in js
+    for agent in ('fox', 'tiger', 'neo', 'queen-bee', 'octopus', 'panther', 'falcon', 'owl', 'gorilla'):
+        assert agent + ':{name:' in js or '"' + agent + '":{name:' in js
+    assert 'winningColumns(previous.board,1)' in js
+    assert 'next.winner_id==="p2"' in js
+    assert 'document.createTextNode(line)' in js
+    assert 'transcript.children.length>5' in js
+    assert 'sayAgent("intro")' in js
+    assert 'sayAgent("loss")' in js
+    assert 'sayAgent("draw")' in js
