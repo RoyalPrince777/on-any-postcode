@@ -1,0 +1,6 @@
+# Optional, Founder-private Studio still-image face detection only.
+# Deliberately not installed by base requirements / not enabled in production.
+# Setup: pip install -r requirements-vision.txt
+opencv-python-headless>=4.10,<5
+numpy>=1.26,<3
+Pillow>=10,<14

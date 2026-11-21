@@ -114,7 +114,131 @@
       });
     };
 
+    // Explicit, one-frame Studio analysis. No camera permission or automatic upload.
+    const faceDetectButton = document.createElement("button");
+    faceDetectButton.id = "smi-face-detect-button";
+    faceDetectButton.className = "tool-btn";
+    faceDetectButton.type = "button";
+    faceDetectButton.textContent = "👁 Detect faces";
+    faceDetectButton.title = "Sends the selected still to your first-party OAP Studio server only on this click; not on-device analysis.";
+    const faceDetectStatus = document.createElement("span");
+    faceDetectStatus.id = "smi-face-detect-status";
+    faceDetectStatus.setAttribute("role", "status");
+    faceDetectStatus.setAttribute("aria-live", "polite");
+    const faceDetectNotice = document.createElement("small");
+    faceDetectNotice.id = "smi-face-detect-notice";
+    faceDetectNotice.textContent = "Detect faces sends one selected still to the private OAP Studio server on tap. Not on-device or continuous.";
+    if (imagePreview) imagePreview.append(faceDetectButton, faceDetectNotice, faceDetectStatus);
+    let faceDetectRequest = null;
+    function cancelFaceDetection() {
+      if (faceDetectRequest) faceDetectRequest.abort();
+      faceDetectRequest = null;
+      faceDetectButton.disabled = false;
+      faceDetectButton.textContent = "👁 Detect faces";
+      faceDetectStatus.textContent = "";
+    }
+    // The selected image can be replaced outside #image-input by the canonical
+    // camera/screen controller, Studio character-reference action, camera file
+    // picker, or attachment cleanup on send. Invalidate old boxes on every
+    // real preview transition, even when a new frame has identical bytes.
+    const previewChanges = new MutationObserver((records) => {
+      if (records.some(record =>
+        (record.target === previewImg && record.attributeName === "src") ||
+        (record.target === imagePreview && record.attributeName === "class")
+      )) cancelFaceDetection();
+    });
+    if (previewImg) {
+      previewChanges.observe(previewImg, {attributes: true, attributeFilter: ["src"]});
+    }
+    if (imagePreview) {
+      previewChanges.observe(imagePreview, {attributes: true, attributeFilter: ["class"]});
+    }
+    faceDetectButton.addEventListener("click", async () => {
+      if (faceDetectRequest) {
+        cancelFaceDetection();
+        faceDetectStatus.textContent = "Detection cancelled in this browser. A submitted server request may still finish processing.";
+        return;
+      }
+      const frame = typeof selectedImage === "string" ? selectedImage : "";
+      if (!imagePreview?.classList.contains("show") || !/^data:image\/(?:png|jpeg|webp);base64,/i.test(frame)) {
+        faceDetectStatus.textContent = "Select a PNG, JPEG or WebP still image first.";
+        return;
+      }
+      if (frame.length > 4 * 3 * 1024 * 1024 / 3 + 256) {
+        faceDetectStatus.textContent = "Image exceeds the private detector's 3 MiB limit.";
+        return;
+      }
+      const url = window.OAP_SMI_UI?.studioFaceDetectUrl;
+      if (typeof url !== "string" || !url.startsWith("/mission/")) {
+        faceDetectStatus.textContent = "Face detection is locked in this workspace.";
+        return;
+      }
+      cancelFaceDetection();
+      const controller = new AbortController();
+      faceDetectRequest = controller;
+      faceDetectButton.textContent = "■ Cancel detection";
+      faceDetectStatus.textContent = "Sending one still to private OAP Studio for detection…";
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            "X-OAP-CSRF": window.csrfToken || window.OAP_SMI_UI?.csrfToken || ""
+          },
+          body: JSON.stringify({image_data: frame}),
+          signal: controller.signal
+        });
+        const result = await response.json();
+        if (controller.signal.aborted || selectedImage !== frame) return;
+        if (response.status === 423) {
+          faceDetectStatus.textContent = "🔒 Face detection is locked pending Founder/device verification.";
+        } else if (!response.ok) {
+          faceDetectStatus.textContent = response.status === 413
+            ? "Image exceeds the detector limits."
+            : "Private face detection unavailable (" + response.status + ").";
+        } else if (
+          result?.state === "analysed" &&
+          Number.isInteger(result.face_count) &&
+          result.face_count >= 0 &&
+          Array.isArray(result.faces) &&
+          result.identity_verified === false
+        ) {
+          const boxes = result.faces.slice(0, 10).map(face => {
+            const vals = [face.x, face.y, face.width, face.height];
+            return vals.every(v => Number.isInteger(v) && v >= 0)
+              ? "(" + vals.join(", ") + ")"
+              : "";
+          }).filter(Boolean);
+          faceDetectStatus.textContent =
+            result.face_count + " face(s) detected (estimate, not identity proof)." +
+            (boxes.length ? " Boxes x/y/w/h: " + boxes.join("; ") : "") +
+            (result.faces.length > 10 ? " · More boxes omitted." : "");
+        } else {
+          faceDetectStatus.textContent = "Detector response was not verified.";
+        }
+      } catch (error) {
+        if (!controller.signal.aborted && selectedImage === frame) {
+          faceDetectStatus.textContent = "Private face detection unavailable; no result certified.";
+        }
+      } finally {
+        if (faceDetectRequest === controller) {
+          faceDetectRequest = null;
+          faceDetectButton.textContent = "👁 Detect faces";
+        }
+      }
+    });
+    imageInput.addEventListener("change", cancelFaceDetection);
+    document.getElementById("camera-input")?.addEventListener("change", cancelFaceDetection);
+    document.getElementById("new-chat")?.addEventListener("click", cancelFaceDetection);
+    document.getElementById("remove-image")?.addEventListener("click", cancelFaceDetection);
+    window.addEventListener("oap-smi-human-stop", () => {
+      cancelFaceDetection();
+      if (faceUpStarting || faceUpStream || !drawer.hidden) stopFaceUp();
+    });
+
     function applyVisionImage(dataUrl, name) {
+      cancelFaceDetection();
       selectedImage = dataUrl;
       if (previewImg) previewImg.src = selectedImage;
       if (previewName) previewName.textContent = name;
@@ -180,12 +304,18 @@
     }
 
     let faceUpStream = null;
+    let faceUpRequestGeneration = 0;
+    let faceUpStarting = false;
     const faceVideo = drawer.querySelector("#faceup-video");
     const faceStatus = drawer.querySelector("#faceup-status");
     const faceCamera = drawer.querySelector("#faceup-camera-toggle");
     const faceMic = drawer.querySelector("#faceup-mic-toggle");
 
     const stopFaceUp = () => {
+      // Revoke the pending permission request's authority before closing tracks.
+      // A browser may grant camera permission *after* the Founder pressed End.
+      faceUpRequestGeneration += 1;
+      faceUpStarting = false;
       if (faceUpStream) faceUpStream.getTracks().forEach((track) => track.stop());
       faceUpStream = null;
       faceVideo.srcObject = null;
@@ -202,28 +332,48 @@
     async function startFaceUp() {
       activate("faceup-button");
       drawer.hidden = false;
-      if (faceUpStream) return;
+      if (faceUpStream || faceUpStarting) return;
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         faceStatus.textContent = "Camera/mic access is unavailable in this browser.";
         setStatus("Face Up is unavailable in this browser.");
         return;
       }
+      const generation = ++faceUpRequestGeneration;
+      faceUpStarting = true;
+      let acquiredStream = null;
       try {
         faceStatus.textContent = "Requesting camera and microphone permission…";
-        faceUpStream = await navigator.mediaDevices.getUserMedia({
+        acquiredStream = await navigator.mediaDevices.getUserMedia({
           video: {facingMode: "user"},
           audio: true,
         });
+        if (generation !== faceUpRequestGeneration || drawer.hidden) {
+          acquiredStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        faceUpStream = acquiredStream;
         faceVideo.srcObject = faceUpStream;
         await faceVideo.play();
+        if (generation !== faceUpRequestGeneration || drawer.hidden) {
+          acquiredStream.getTracks().forEach((track) => track.stop());
+          if (faceUpStream === acquiredStream) {
+            faceUpStream = null;
+            faceVideo.srcObject = null;
+          }
+          return;
+        }
         faceStatus.textContent = "Local Face Up session active. Nothing is sent until you capture and send.";
         setStatus("Face Up active · camera/mic under your control");
         recordSurfaceProof("face-up", "face-up-" + Date.now());
       } catch (error) {
+        if (acquiredStream) acquiredStream.getTracks().forEach((track) => track.stop());
+        if (generation !== faceUpRequestGeneration) return;
         faceUpStream = null;
         faceVideo.srcObject = null;
         faceStatus.textContent = "Camera/mic permission blocked or unavailable.";
         setStatus("Face Up did not start.");
+      } finally {
+        if (generation === faceUpRequestGeneration) faceUpStarting = false;
       }
     }
 
@@ -322,8 +472,15 @@
     }
 
     window.addEventListener("pagehide", () => {
-      if (faceUpStream) faceUpStream.getTracks().forEach((track) => track.stop());
-    }, {once: true});
+      cancelFaceDetection();
+      stopFaceUp();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        cancelFaceDetection();
+        stopFaceUp();
+      }
+    });
   }
 
   if (document.readyState === "loading") {

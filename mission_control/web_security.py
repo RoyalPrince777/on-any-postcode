@@ -299,6 +299,14 @@ CHAT_BURST_LIMITER = SlidingWindowLimiter(
     duplicate_seconds=5.0,
     fingerprint_request_body=True,
 )
+# Resource-heavy Founder-only Studio image processing needs its own tighter
+# scope. Never fingerprint or cache raw submitted faces just to rate-limit them.
+# This is per-process defence in depth, NOT a distributed production quota.
+VISION_FACE_BURST_LIMITER = SlidingWindowLimiter(
+    limit=7,
+    window_seconds=60,
+    fingerprint_request_body=False,
+)
 PUBLIC_WRITE_LIMITER = SlidingWindowLimiter(limit=30, window_seconds=60, duplicate_seconds=0.35)
 # Founder auth remains bounded at ten distinct failed credential attempts per five
 # minutes. Exact double-submits coalesce; non-401 sign-in responses do not count.
