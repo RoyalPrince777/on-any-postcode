@@ -37,6 +37,7 @@ from . import (
     smi_founder_assets,
     smi_receipt_backend,
     smi_auto,
+    smi_auto_repair,
     matrix_simulation,
     smi_recursive_improvement,
     smi_reply_voice_local,
@@ -312,6 +313,23 @@ def smi_command_dashboard_status():
     """Return the same read-only Founder command projection as JSON."""
 
     return _no_store(make_response(jsonify(smi_command_dashboard.status())))
+
+
+@bp.post("/smi/auto-repair/run")
+@web_security.login_required(api=True, founder_only=True)
+def smi_auto_repair_run():
+    """One CSRF-protected Founder request for bounded internal recovery.
+
+    No shell, code modification, financial action or production deployment.
+    The canonical runtime store retains its audit and recovery receipts.
+    """
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh the secure session.", 403)
+    payload = request.get_json(silent=True)
+    if payload not in ({}, None):
+        return _error("invalid_request", "No repair instructions accepted.", 400)
+    result = smi_auto_repair.repair_runtime()
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.get("/brain")
