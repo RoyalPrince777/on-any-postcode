@@ -32,6 +32,17 @@ class SMIHumanoidDashboardContract(unittest.TestCase):
         self.assertIn('href="/mission/smi/status"', self.html)
         self.assertNotIn("setInterval(", self.html)
 
+    def test_ambient_companion_presence_never_starts_private_chat(self):
+        self.assertIn('data-smi-welcome', self.html)
+        self.assertIn('Welcome back to your world.', self.html)
+        self.assertIn('smiCompanionIdle', self.html)
+        self.assertIn('prefers-reduced-motion:reduce', self.html)
+        self.assertIn('data-smi-visible', self.html)
+        self.assertIn("frame.dataset.src", self.html)
+        self.assertIn("frame.removeAttribute('src')", self.html)
+        self.assertNotIn('data-smi-play', self.html)
+        self.assertNotIn('data-smi-motion-pause', self.html)
+
     def test_accessibility_and_truth(self):
         self.assertIn('aria-label="SMI central command"', self.html)
         self.assertIn("NOT CHECKED", self.html)
