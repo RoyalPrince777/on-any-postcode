@@ -148,6 +148,11 @@ linear-gradient(180deg,#090604 0%,#160d06 42%,#070504 100%);color:#fff7df}
 .linkup-rich-public a:active,.linkup-rich-public button:active{transform:none}
 .linkup-royal-bottom{background:#14100e;border-top:1px solid #8b6839;box-shadow:0 -5px 18px #0008}
 .linkup-oap-home{background:#2d2113;border-color:#e5b85d;box-shadow:none}
+@media (min-width:761px){
+ .linkup-rich-public{padding-bottom:28px}
+ .linkup-rich-public .linkup-royal-bottom{display:none}
+ .linkup-guest-topbar{display:none}
+}
 @media (max-width:760px){
  .linkup-rich-layout{display:block}
  .linkup-rich-content>.linkup-royal-hero{min-height:0;padding:18px 12px}
