@@ -325,7 +325,9 @@ auto.addEventListener('click',async()=>{
     fullGreen&&repair?.state==='NO_SAFE_REPAIR_NEEDED'?'No safe runtime repair required.':'AUTO FIX stopped at the truth boundary. Code/deploy repair requires governed proposal + Founder approval.',
     'Consequential execution: NOT PERFORMED'
   ];
-  appendResult('SMI AUTO FIX',lines,fullGreen?'green':allSafe?'purple':'yellow');
+  // Queue readback is not an independent job/Guardian/HRM release receipt.
+  // AUTO FIX therefore never renders its own Green from status booleans alone.
+  appendResult('SMI AUTO FIX',lines,!allSafe||repair?.state==='BLOCKED'?'yellow':'purple');
   await refreshOps();
   auto.disabled=false;
   auto.textContent='🟣 AUTO FIX';
