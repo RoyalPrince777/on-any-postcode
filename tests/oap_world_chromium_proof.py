@@ -94,7 +94,12 @@ def main():
                 field.press("Escape")
                 expect(field).to_have_value("")
                 expect(page.locator("[data-public-filter-item]:not([hidden])")).to_have_count(12)
-                page.locator('nav[aria-label="Link Up public bottom navigation"] a[href="/linkup?intent=message"]').click()
+                # Click the visible navigation surface for this viewport.
+                # Desktop hides the mobile bar; the source still retains one private route.
+                if mobile:
+                    page.locator('nav[aria-label="Link Up public bottom navigation"] a[href="/linkup?intent=message"]').click()
+                else:
+                    page.locator('nav[aria-label="Link Up desktop navigation"] a[href="/linkup?intent=message"]').click()
                 assert ("/auth" in page.url or "/enter-my-world" in page.url), page.url
                 assert not errors, errors
                 context.close()
