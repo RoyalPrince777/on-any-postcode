@@ -52,7 +52,8 @@ def main():
                 response = page.goto(BASE + "/linkup")
                 assert response is not None and response.status == 200
                 expect(page.locator('main[aria-label="Link Up app"]')).to_be_visible()
-                expect(page.locator('nav[aria-label="Link Up public bottom navigation"]')).to_be_visible()
+                bottom = page.locator('nav[aria-label="Link Up public bottom navigation"]')
+                expect(bottom).to_be_visible() if mobile else expect(bottom).to_be_hidden()
                 expect(page.locator(".linkup-rich-features > *")).to_have_count(9)
                 assert page.locator('main[aria-label="Private Link Up messenger"]').count() == 0
                 rail = page.locator('nav[aria-label="Link Up desktop navigation"]')
