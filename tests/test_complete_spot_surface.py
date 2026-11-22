@@ -60,6 +60,7 @@ def test_spot_home_is_pulse_first_and_uses_locked_core_order(client):
     assert '<h2>Explore more</h2>' not in page
     assert '<p class="spot-note">' not in page
     assert 'href="/store"' in page
+    assert page.count('href="/my-card"') == 1
 
     ordered_labels = (
         "🌍 Earth",
