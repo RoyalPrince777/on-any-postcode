@@ -52,7 +52,7 @@ def test_navigation_and_authority_landmarks_are_labelled(client):
     agents = client.get("/mission/agents").get_data(as_text=True)
     brain = client.get("/mission/brain").get_data(as_text=True)
     infrastructure = client.get("/mission/infrastructure").get_data(as_text=True)
-    linkup = client.get("/linkup").get_data(as_text=True)
+    linkup = client.get("/linkup?intent=message").get_data(as_text=True)
     organism = client.get("/mission/organism").get_data(as_text=True)
     languages = client.get("/world/languages").get_data(as_text=True)
     carnival = client.get("/world/carnival").get_data(as_text=True)
