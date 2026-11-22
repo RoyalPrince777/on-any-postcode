@@ -39,6 +39,7 @@ def test_the_link_front_door_is_complete_and_public_safe(anonymous_client):
     # The People action must reach protected connections, not bounce between
     # the two anonymous landing pages without a working directory.
     assert "next=/linkup" in page or "next=%2Flinkup" in page
+    assert 'href="/my-card"' in page
     assert 'href="/the-spot/postcode-rooms"' in page
     assert 'href="/pulse"' in page
     assert 'href="/the-spot/signal"' in page
