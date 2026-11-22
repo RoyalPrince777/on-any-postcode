@@ -478,6 +478,8 @@ def test_public_linkup_restored_royal_reference_navigation(anonymous_client):
     assert 'data-oap-call-control' not in page
     assert ".linkup-rich-layout{grid-template-columns:minmax(155px,190px) minmax(0,1fr)" in css
     assert ".linkup-rail-more summary" in css
+    assert ".linkup-rich-public .linkup-royal-bottom{display:none}" in css
+    assert ".linkup-guest-topbar{display:none}" in css
     assert ".linkup-rich-features{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}" in css
     assert "fetch(" not in script
     assert "secondary.open = true" in script
