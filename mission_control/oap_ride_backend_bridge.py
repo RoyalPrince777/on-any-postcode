@@ -7,7 +7,8 @@ from __future__ import annotations
 import json
 import math
 import os
-from urllib import parse, request as urlrequest
+from urllib import parse
+from urllib import request as urlrequest
 
 from flask import Blueprint, jsonify, make_response, request
 
