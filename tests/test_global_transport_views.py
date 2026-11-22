@@ -6,6 +6,7 @@ from mission_control import global_transport_views
 
 def _app():
     app = Flask(__name__)
+    app.config["SECRET_KEY"] = "test-transport-csrf-only"
     app.register_blueprint(global_transport_views.bp)
     return app
 
@@ -754,7 +755,9 @@ def test_ride_map_search_and_fare_do_not_claim_unverified_live_quotes():
     assert 'data-mode="drive"' in html
     assert 'id="map-alert"' in html
     assert 'id="ride-action"' in html
-    assert 'map-intelligence/suggest' in html
+    assert 'transport/ride/backend/places' in html
+    assert 'transport/ride/backend/quote' in html
+    assert 'map-intelligence/suggest' not in html
     assert "Verified quote required" in html
     assert "£0" not in html
     assert 'aria-label="OAP Rides navigation"' in html
@@ -770,3 +773,82 @@ def test_ride_map_search_and_fare_do_not_claim_unverified_live_quotes():
     assert 'id="map-from"' in map_template
     assert 'href="/oap-map"' in html
     assert "oap_transport_ride_draft" in html
+
+
+def test_self_owned_backend_bridge_is_disconnected_without_local_service(monkeypatch):
+    monkeypatch.delenv("OAP_RIDE_BACKEND_URL", raising=False)
+    client = _app().test_client()
+    result = client.get("/transport/ride/backend/status")
+    assert result.status_code == 503
+    assert result.get_json()["production_ready"] is False
+    assert result.get_json()["connected"] is False
+    assert result.headers["Cache-Control"] == "no-store"
+    assert client.get("/transport/ride/backend/places?q=Mitcham").status_code == 503
+    monkeypatch.setenv("OAP_RIDE_BACKEND_URL", "https://unapproved.example/api")
+    assert client.get("/transport/ride/backend/status").status_code == 503
+
+
+def test_self_owned_backend_bridge_checks_real_osrm_quote(monkeypatch):
+    from mission_control import oap_ride_backend_bridge as bridge
+    from mission_control import web_security
+
+    calls = []
+
+    def fake_read(path, body=None):
+        calls.append((path, body))
+        if path == "/healthz":
+            return {
+                "service": "oap_ride_phase1",
+                "status": "database_and_redis_ready",
+                "route_engine_configured": True,
+                "demo_mode": True,
+            }
+        if path == "/v1/platform/readiness":
+            return {"phase": 1, "production_ready": False}
+        if path.startswith("/v1/places?"):
+            return {"geocoder": "local_seed_only", "results": [
+                {"label": "Mitcham", "lat": 51.4, "lon": -0.17},
+            ]}
+        if path == "/v1/rides/quote":
+            return {
+                "quote_status": "estimate_not_firm_fare",
+                "source": "self_hosted_osrm",
+                "currency": "GBP", "amount_minor": 1234,
+                "distance_m": 2500, "duration_s": 600,
+                "licensed_payment_connected": False,
+                "live_dispatch_confirmed": False,
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(bridge, "_read", fake_read)
+    client = _app().test_client()
+    status = client.get("/transport/ride/backend/status")
+    assert status.status_code == 200
+    assert status.get_json()["connected"] is True
+    assert status.get_json()["quote_ready"] is False
+    assert status.get_json()["production_ready"] is False
+
+    places = client.get("/transport/ride/backend/places?q=Mitcham")
+    assert places.status_code == 200
+    assert places.get_json()["source"] == "self_hosted_seed"
+    assert places.get_json()["results"][0]["lat"] == 51.4
+
+    body = {"vehicle_class": "car", "pickup_lat": 51.4,
+            "pickup_lon": -0.17, "drop_lat": 51.41, "drop_lon": -0.16}
+    assert client.post("/transport/ride/backend/quote", json=body).status_code == 403
+    with client.session_transaction() as s:
+        s[web_security.CSRF_SESSION_KEY] = "test-quote-token" * 4
+    assert client.post(
+        "/transport/ride/backend/quote",
+        json={**body, "drop_lat": float("nan")},
+        headers={"X-OAP-CSRF": "test-quote-token" * 4},
+    ).status_code == 400
+    quoted = client.post(
+        "/transport/ride/backend/quote", json=body,
+        headers={"X-OAP-CSRF": "test-quote-token" * 4},
+    )
+    assert quoted.status_code == 200
+    assert quoted.get_json()["amount_minor"] == 1234
+    assert quoted.get_json()["live_dispatch_confirmed"] is False
+    assert ("/v1/rides/quote", body) in calls
+    assert not any(path == "/v1/rides" for path, _ in calls)
