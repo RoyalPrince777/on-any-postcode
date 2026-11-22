@@ -17,12 +17,19 @@ MAX_STALE_RECOVERY = 10
 MAX_DUE_SCHEDULES = 5
 _SAFE_KEYS = ("schema_ready", "worker_fresh", "queued", "running",
               "retry", "dead_letter", "ready", "error", "migration")
+_ALLOWED_ERRORS = frozenset((
+    None, "base_postgres_not_ready", "runtime_schema_pending",
+    "runtime_migration_not_verified", "runtime_store_unavailable",
+))
 
 
 def _safe_status(raw: object) -> dict[str, Any]:
     """Never expose private worker, database, or authentication details."""
     source = raw if isinstance(raw, Mapping) else {}
-    return {name: source.get(name) for name in _SAFE_KEYS}
+    safe = {name: source.get(name) for name in _SAFE_KEYS}
+    if safe["error"] not in _ALLOWED_ERRORS:
+        safe["error"] = "runtime_status_unknown"
+    return safe
 
 
 def repair_runtime(
@@ -48,6 +55,8 @@ def repair_runtime(
         "readback_available": False,
         "execution_performed": False,
         "safe_runtime_mutation_only": True,
+        "consequential_action": False,
+        "independent_approval": False,
         "code_patch_performed": False,
         "deployment_performed": False,
         "payment_performed": False,
