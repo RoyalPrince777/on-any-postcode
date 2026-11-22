@@ -466,15 +466,22 @@ def test_public_linkup_restored_royal_reference_navigation(anonymous_client):
     css = Path("static/linkup_messenger.css").read_text(encoding="utf-8")
     script = Path("static/linkup_public_ui.js").read_text(encoding="utf-8")
     assert 'data-oap-public-filter' in page
-    assert 'aria-label="Link Up category shortcuts"' in page
-    assert 'aria-label="Desktop Link Up panels"' in page
+    # Duplicate shortcut ribbons and desktop marketing panels are removed.
+    assert 'aria-label="Link Up category shortcuts"' not in page
+    assert 'aria-label="Desktop Link Up panels"' not in page
+    assert 'aria-label="Start here"' in page
+    assert '<summary>More from OAP World</summary>' in page
+    assert 'data-linkup-secondary' in page
     assert page.count('href="/linkup?intent=message"') == 4
     assert page.count('class="linkup-card-summary"') == 1
     assert 'aria-label="Private Link Up messenger"' not in page
     assert 'data-oap-call-control' not in page
-    assert ".linkup-rich-layout{display:grid;grid-template-columns:170px minmax(0,1fr) 215px" in css
+    assert ".linkup-rich-layout{grid-template-columns:minmax(155px,190px) minmax(0,1fr)" in css
+    assert ".linkup-rail-more summary" in css
     assert ".linkup-rich-features{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}" in css
     assert "fetch(" not in script
+    assert "secondary.open = true" in script
+    assert 'event.key === "Escape"' in script
 
 def test_public_royal_mobile_reference_has_search_before_create_and_compact_grid(anonymous_client):
     html = anonymous_client.get("/linkup").get_data(as_text=True)
