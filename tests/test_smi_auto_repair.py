@@ -49,6 +49,8 @@ def test_auto_repair_uses_existing_bounded_transactional_recovery():
     assert result["production_green"] is False
     assert result["deployment_performed"] is False
     assert result["guardian_hrm_bypassed"] is False
+    assert result["consequential_action"] is False
+    assert result["independent_approval"] is False
     assert result["founder_final"] is True
 
 
@@ -120,3 +122,17 @@ def test_canonical_auto_fix_ui_uses_authenticated_repair_route():
     assert "cfg.autoRepairUrl" in script
     assert "Stale leases recovered" in script
     assert "Consequential execution: NOT PERFORMED" in script
+
+
+def test_repair_readback_redacts_untrusted_error_text():
+    store = _Store()
+    raw = _status()
+    raw["error"] = "secret=private_database_password"
+    result = smi_auto_repair.repair_runtime(
+        observe=lambda: raw,
+        store_factory=lambda: store,
+    )
+    assert result["before"]["error"] == "runtime_status_unknown"
+    assert result["after"]["error"] == "runtime_status_unknown"
+    assert "secret=private_database_password" not in str(result)
+    assert result["production_green"] is False
