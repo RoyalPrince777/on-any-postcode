@@ -69,7 +69,7 @@
           <a href="/studio">▶ Media</a>
           <a href="/the-spot/market">🛍 Market</a>
           <a href="/pulse">🔥 Trending</a>
-          <a href="{{ url_for('my_card_create_page') }}">▤ My Card</a>
+          <a href="{{ url_for('my_card_page') if my_card else url_for('my_card_create_page') }}">▤ My Card</a>
           <a href="#linkup-rich-settings">⚙ Preferences</a>
         </nav>
         <div class="linkup-rich-content">
@@ -92,7 +92,7 @@
           <p class="linkup-rich-note" role="status" data-oap-public-search-note>Public sections only. Finding people requires sign-in.</p>
           <section class="linkup-rich-create" aria-label="My Card entry">
         {% if my_card and not auth_user %}
-        <p class="linkup-card-summary" aria-label="Basic My Card active"><strong>{{ my_card.display_name }}</strong> · <small>{{ my_card.card_id }} · Basic My Card. Private chat requires sign-in.</small></p>
+        <p class="linkup-card-summary" aria-label="Basic My Card active"><a href="{{ url_for('my_card_page') }}"><strong>{{ my_card.display_name }}</strong></a> · <small>{{ my_card.card_id }} · Basic My Card. Private chat requires sign-in.</small></p>
         {% else %}
         <p class="linkup-card-summary"><a href="{{ url_for('my_card_create_page') }}">Create My Card</a> <small>Free and optional. Browse without signing in.</small></p>
         {% endif %}
@@ -114,7 +114,7 @@
             <a href="/world" data-public-filter-item="public open world"><span class="royal-symbol royal-shield">♛</span><strong>Public</strong><small>Open to all</small></a>
             <a href="/the-spot/discovery" data-public-filter-item="opportunities work collaboration"><span class="royal-symbol royal-rocket">🚀</span><strong>Opportunities</strong><small>Work &amp; collab</small></a>
             <a href="/pulse" data-public-filter-item="spotlight featured pulse"><span class="royal-symbol royal-star">✦</span><strong>Spotlight</strong><small>Public Pulse</small></a>
-            <a href="{{ url_for('my_card_create_page') }}" data-public-filter-item="identity my card"><span class="royal-symbol royal-scroll">▤</span><strong>Identity</strong><small>My Card</small></a>
+            <a href="{{ url_for('my_card_page') if my_card else url_for('my_card_create_page') }}" data-public-filter-item="identity my card"><span class="royal-symbol royal-scroll">▤</span><strong>Identity</strong><small>My Card</small></a>
           </section>
           <section class="linkup-rich-stream" aria-label="Public community destinations">
             <a href="/the-spot/postcode-rooms" data-public-filter-item="nearby people local postcode"><span class="linkup-rich-art">📍</span><span><strong>Nearby People</strong><small>Explore postcode communities. Live nearby people are not verified.</small></span><b>›</b></a>
@@ -136,7 +136,7 @@
         <a href="{{ url_for('auth_page', next='/linkup') }}">👥<span>People</span></a>
         <a class="linkup-oap-home" href="{{ url_for('home') }}" aria-label="OAP World">♛<span>OAP</span></a>
         <a href="/linkup?intent=message">💬<span>Messages</span></a>
-        <a href="{{ url_for('my_card_create_page') }}">▤<span>My Card</span></a>
+        <a href="{{ url_for('my_card_page') if my_card else url_for('my_card_create_page') }}">▤<span>My Card</span></a>
       </nav>
     </main>
   {% else %}
