@@ -79,7 +79,10 @@ def _evolution_evidence(health: dict[str, Any]) -> dict[str, object]:
 def run_cycle() -> dict[str, Any]:
     """Run one read-only SMI autonomy cycle from live production health evidence."""
 
-    health = smi_chat_runtime.health()
+    raw_health = smi_chat_runtime.health()
+    # Telemetry is not trusted proof: malformed or absent health must fail closed,
+    # not crash the worker or manufacture a healthy autonomy result.
+    health = raw_health if isinstance(raw_health, dict) else {}
     components = _components(health)
     self_model = SelfModel().observe(components)
     coherence = CoherenceEngine().evaluate(components)
@@ -90,15 +93,32 @@ def run_cycle() -> dict[str, Any]:
         evolution=_evolution_evidence(health),
     )
     checks = health.get("checks") if isinstance(health.get("checks"), dict) else {}
+    invariants = health.get("invariants")
+    if not isinstance(invariants, dict):
+        invariants = {}
+    reported_status = str(health.get("status") or "degraded")
+    # A reported Green with missing, malformed or incomplete 21-gate proof
+    # is never a verified Green. Preserve the upstream value for diagnosis.
+    complete_proof = (
+        len(checks) == 21
+        and all(value is True for value in checks.values())
+        and invariants.get("execution_locked") is True
+        and invariants.get("human_authority_final") is True
+    )
+    verified_status = (
+        "degraded" if reported_status == "green" and not complete_proof
+        else reported_status
+    )
     return {
         **cycle,
         "source": "production_3x7_21_gate_health",
-        "health_status": str(health.get("status") or "degraded"),
+        "health_status": verified_status,
+        "reported_health_status": reported_status,
         "gates_green": sum(value is True for value in checks.values()),
         "gates_total": len(checks),
         "production_invariants": {
-            "execution_locked": health.get("invariants", {}).get("execution_locked") is True,
-            "human_authority_final": health.get("invariants", {}).get("human_authority_final") is True,
+            "execution_locked": invariants.get("execution_locked") is True,
+            "human_authority_final": invariants.get("human_authority_final") is True,
         },
         "self_model": self_model.as_dict(),
         "coherence_report": coherence.as_dict(),
