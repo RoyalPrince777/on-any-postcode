@@ -36,18 +36,22 @@
   return {width:w,height:h,data:next};
  }
  function motionFor(state,ms,speechPulse=0){
-  const a=Math.sin(ms/620),b=Math.sin(ms/1110);
   if(state==="stopped"||state==="paused")return Object.freeze({head:[0,0,1],eyes:[0,0,1],mouth:[0,0,1],chest:[0,0,1],hands:[0,0,1]});
-  const focus=state==="thinking"?1.35:state==="listening"?1.18:1;
+  // Bounded, natural-feeling movement of the same approved source pixels.
+  const breathe=Math.sin(ms/1510);
+  const glance=Math.sin(ms/2440);
+  const micro=Math.sin(ms/760);
+  const engaged=state==="listening"?1.16:state==="thinking"?1.09:1;
+  const speak=state==="speaking";
   const blinkPhase=ms%4300;
   const blink=blinkPhase<135?Math.max(0,1-Math.abs(blinkPhase-67.5)/67.5):0;
   const eyeScale=Math.max(.2,1-(blink*.78));
   return Object.freeze({
-   head:[a*1.35*focus,b*.72*focus,1],
-   eyes:[a*1.9*focus,b*.58*focus,eyeScale],
-   mouth:state==="speaking"?[speechPulse*1.15,speechPulse*1.45,1+speechPulse*.32]:[0,0,1],
-   chest:[0,b*.78,1+b*.0045],
-   hands:[a*.48,-b*.42,1]
+   head:[(micro*.9+glance*.30)*engaged,(breathe*.65+(speak?micro*.28:0))*engaged,1],
+   eyes:[(glance*1.25+micro*.35)*engaged,breathe*.38,eyeScale],
+   mouth:speak?[speechPulse*1.15,speechPulse*1.45,1+speechPulse*.32]:[0,0,1],
+   chest:[0,breathe*.74,1+breathe*.0045],
+   hands:[micro*(state==="listening"?.22:.44),-breathe*.36,1]
   });
  }
  async function attach(win=typeof window!=="undefined"?window:null,doc=win?.document){
@@ -103,6 +107,8 @@
   });
   const lowPower=/Android/i.test(win.navigator?.userAgent||"")||Number(win.navigator?.hardwareConcurrency||8)<=4;
   const frameBudgetMs=lowPower?50:34;
+  // Automatic idle frames are throttled on low-power/mobile devices.
+  const ambientFrameBudgetMs=lowPower?170:120;
   let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,speechUntil=0,audioCues=0,droppedFrames=0;
   let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
   const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
@@ -123,7 +129,7 @@
   function draw(ms){
    context.drawImage(image,0,0);
    const motionAllowed=!userReducedMotion&&(!reducedPreference||explicitLiveMotion);
-   if(!live||!motionAllowed||phase==="paused"||phase==="stopped")return;
+   if((!live&&phase!=="ready")||!motionAllowed||phase==="paused"||phase==="stopped")return;
    const pulse=phase==="speaking"?(localAudio?LOCAL_POSE[localViseme]:Math.max(0,Math.min(1,(speechUntil-ms)/170))):0;
    const poses=motionFor(phase,ms,pulse);
    for(const region of REGIONS){
@@ -139,8 +145,9 @@
    if(epoch<0)return;
    frame=win.requestAnimationFrame(tick);
    const motionAllowed=!userReducedMotion&&(!reducedPreference||explicitLiveMotion);
-   if(doc.hidden||!live||!motionAllowed||phase==="paused"||phase==="stopped")return;
-   if(now-last<frameBudgetMs){droppedFrames+=1;return;}
+   if(doc.hidden||(!live&&phase!=="ready")||!motionAllowed||phase==="paused"||phase==="stopped")return;
+   const budget=live?frameBudgetMs:ambientFrameBudgetMs;
+   if(now-last<budget){droppedFrames+=1;return;}
    last=now;draw(now);
   }
   function onState(event){
@@ -188,6 +195,7 @@
    return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
+    ambientVisualMotion:phase==="ready"&&!live&&played>0,
     maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,fullBodyRigProven,
     accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
     physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
