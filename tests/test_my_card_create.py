@@ -175,6 +175,13 @@ def test_public_my_card_creation_allows_blank_password_without_auth_call(
     assert "Basic Card Member" in page
     assert "Basic My Card. Private chat requires sign-in." in page
     assert 'aria-label="Private Link Up messenger"' not in page
+    # Reuse the one existing Card in desktop, mobile and Identity shortcuts.
+    # Public access never gains private messaging permissions from this link.
+    assert page.count('href="/my-card"') >= 4
+    assert 'href="/my-card/create"' not in page
+    existing_card = anonymous_client.get("/my-card")
+    assert existing_card.status_code == 200
+    assert "Basic Card Member" in existing_card.get_data(as_text=True)
 
 
 def test_passwordless_basic_card_does_not_accept_email_without_secure_sign_in(
