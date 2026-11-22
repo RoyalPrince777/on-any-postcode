@@ -48,6 +48,26 @@ def main():
                 page.locator("#world-query").press("Enter")
                 expect(page.locator("#world-search-note")).to_contain_text("Stayed in OAP World")
                 assert page.url.startswith(BASE + "/world")
+                # One OAP journey on the same real browser: Spot → Link → My Card.
+                response = page.goto(BASE + "/the-spot")
+                assert response is not None and response.status == 200
+                expect(page.get_by_role("heading", name="The Spot")).to_be_visible()
+                expect(page.locator('a[href="/the-link"]')).to_have_count(1)
+                expect(page.locator('a[href="/my-card"]')).to_have_count(1)
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+                page.locator('a[href="/the-link"]').click()
+                assert page.url.endswith("/the-link"), page.url
+                expect(page.get_by_role("heading", name="The Link")).to_be_visible()
+                expect(page.locator('a[href="/linkup?intent=message"]')).to_have_count(1)
+                expect(page.locator('a[href="/my-card"]')).to_have_count(1)
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
+                response = page.goto(BASE + "/my-card/create")
+                assert response is not None and response.status == 200
+                expect(page.get_by_role("heading", name="Create My Card")).to_be_visible()
+                assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+
                 # Link Up royal desktop + mobile responsive acceptance.
                 response = page.goto(BASE + "/linkup")
                 assert response is not None and response.status == 200
