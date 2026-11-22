@@ -67,6 +67,29 @@ def test_smi_command_dashboard_route_is_read_only(client):
     assert client.post("/mission/smi").status_code == 405
 
 
+def test_smi_chat_iframe_is_authenticated_and_same_origin_only(client, anonymous_client):
+    # Without this specific exception, global X-Frame-Options DENY produces
+    # a blank SMI chat iframe even though its src and HTTP 200 look correct.
+    chat = client.get("/mission/ollama")
+    assert chat.status_code == 200
+    assert chat.headers["Cache-Control"] == "no-store"
+    assert chat.headers["X-Frame-Options"] == "SAMEORIGIN"
+    policy = chat.headers["Content-Security-Policy"]
+    assert "frame-ancestors 'self'" in policy
+    assert "frame-ancestors 'none'" not in policy
+    assert "default-src 'self'" in policy
+
+    for path in ("/mission/smi", "/mission/smi/status", "/mission/agents"):
+        response = client.get(path)
+        assert response.headers["X-Frame-Options"] == "DENY"
+        assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
+
+    unauthenticated = anonymous_client.get("/mission/ollama", follow_redirects=False)
+    assert unauthenticated.status_code in (302, 401, 403)
+    assert unauthenticated.headers["X-Frame-Options"] == "DENY"
+    assert "frame-ancestors 'none'" in unauthenticated.headers["Content-Security-Policy"]
+
+
 def test_smi_command_dashboard_status_is_redacted_read_only(client):
     response = client.get("/mission/smi/status")
     payload = response.get_json()
