@@ -17,7 +17,7 @@ def test_public_discovery_stays_available(anonymous_client, local_public):
 
 
 @pytest.mark.parametrize("path", [
-    "/pay/bank/me/status", "/pay/bank/me/activity", "/pay/bank/control-center",
+    "/pay/bank/me/status", "/pay/bank/me/activity", "/pay/bank/me/transactions", "/pay/bank/control-center",
     "/pay/bank/founder/provision", "/mission/brain/status", "/internal/eiot/persistence/save",
     "/api/global-affairs/recovery/record",
 ])

@@ -60,7 +60,7 @@ def test_sika_menu_has_five_clear_tabs_with_real_routes(client):
     assert 'href="#home"><strong>⌂</strong>Home' in page
     assert 'href="/pay/bank/me"><strong>▤</strong>Wallet' in page
     assert 'href="/pay/bank/cards"><strong>▣</strong>Card' in page
-    assert 'href="/pay/bank/activity"><strong>≡</strong>Activity' in page
+    assert 'href="/pay/bank/me/transactions"><strong>≡</strong>Activity' in page
     assert 'href="#more"><strong>•••</strong>More' in page
     assert "<summary>Menu</summary>" in page
     assert 'href="/store"' in page

@@ -14,6 +14,7 @@
 .top{flex-wrap:wrap;align-items:flex-start}.top>div:last-child{display:flex;flex-wrap:wrap;gap:8px}.top .pill{display:inline-flex;align-items:center;justify-content:center;min-height:44px}.brand{padding:12px 0}.hero h1{overflow-wrap:anywhere}.install-row>.pill{display:inline-flex;align-items:center;justify-content:center;min-height:44px}.card h3 a,.row strong a{display:inline-block;padding:6px 0;overflow-wrap:anywhere}.nav{min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center}.nav:focus-visible,.pill:focus-visible,.card a:focus-visible,.row a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}@media(max-width:560px){.shell{padding:14px 14px 116px}.top{display:block}.top>div:last-child{margin-top:8px}.hero{padding:24px 0 18px}.hero h1{font-size:clamp(2rem,9vw,3.25rem);line-height:1.06}.status-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.status-card{min-width:0}.status-card .big{font-size:1.1rem;overflow-wrap:anywhere}.grid{grid-template-columns:1fr 1fr}.bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr));padding-left:max(6px,env(safe-area-inset-left));padding-right:max(6px,env(safe-area-inset-right))}}@media(max-width:360px){.grid{grid-template-columns:1fr}.top .pill{flex:1}.nav{font-size:.56rem}}
 .primary{background:var(--gold);color:#171407;border-color:var(--gold);font-weight:850}.hero{padding:20px 0 12px}.hero h1{font-size:clamp(1.8rem,7vw,3.3rem);line-height:1.12}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}.card{min-height:auto;padding:14px}.card p{margin-top:6px}.card-description{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.more{margin-top:12px}.more summary{min-height:44px}.status-grid{padding:0 12px 12px}.truth{font-size:.83rem}.top .pill{font-size:.84rem}@media(max-width:430px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:12px}.hero h1{font-size:clamp(1.65rem,7vw,2.2rem)}}
 .menu-link{color:var(--text);text-decoration:none;font-weight:750;min-height:44px}.inner-more{margin:8px 12px;border-top:1px solid var(--line)}.inner-more summary{padding:12px 0;min-height:44px;cursor:pointer}.bottom-nav .nav{min-width:0}.bottom-nav .nav strong{line-height:1.1}
+.bank-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:10px}.menu-section{border:1px solid var(--line);border-radius:14px;background:var(--panel);min-width:0;align-self:start}.menu-section>summary{padding:14px;min-height:48px;font-weight:800;cursor:pointer}.menu-section ul{list-style:none;margin:0;padding:0 12px 8px}.menu-section li+li{border-top:1px solid var(--line)}.menu-section a{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 2px;min-height:48px;color:var(--text);text-decoration:none}.menu-section .menu-state{font-size:.72rem;font-weight:650;color:var(--muted);white-space:nowrap}.menu-section .locked{color:var(--gold)}a:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px}.menu-note{margin:0 14px 14px;color:var(--muted);font-size:.8rem;line-height:1.5}.account-availability{margin-top:12px}.account-availability>summary{min-height:44px;cursor:pointer}.account-availability p{color:var(--muted);line-height:1.5}@media(max-width:600px){.bank-menu{grid-template-columns:1fr}.hero{padding:22px 0 14px}}
 </style>
 </head>
 <body>
@@ -30,29 +31,27 @@
 </div>
 <p class="meta">Use your existing OAP sign-in to access account-linked rewards. Playing games does not require bank account creation. Real-value SIKA earnings and payouts are not yet enabled.</p>
 </section>
-<section class="card" aria-label="Bank account creation status">
-<h3>Bank account</h3>
+<details class="card account-availability" aria-label="Bank account creation status">
+<summary>Bank account availability</summary>
 <p class="meta">Creating a regulated banking account is separate from SIKA sign-in. Applications are unavailable until the required banking authorisation, identity checks and production controls are verified.</p>
 <a class="pill" href="/pay/bank/accounts">View account availability</a>
-</section>
+</details>
 
 <details class="more" id="more">
 <summary>Menu</summary>
-<div class="more-grid" aria-label="Core SIKA navigation">
-<a class="row menu-link" href="/pay/bank/accounts">Accounts · status</a>
-<a class="row menu-link" href="/pay/bank/transfers">Transfers · status</a>
-<a class="row menu-link" href="/pay/bank/sika">SIKA value</a>
-<a class="row menu-link" href="/pay/bank/cards">Cards</a>
-<a class="row menu-link" href="/pay">OAP Pay</a>
-<a class="row menu-link" href="/store">OAP Store</a>
-<a class="row menu-link" href="/world">OAP World</a>
-</div>
-<details class="inner-more"><summary>Other services</summary>
-<div class="more-grid">
-{% for item in bank.app_more_menu %}
-<div class="row" id="{{ item.id }}"><span><strong><a href="/pay/bank/{{ item.id }}" style="color:inherit;text-decoration:none">{{ item.name }}</a></strong><small>{{ item.description }}</small></span>{% if item.enabled %}<span class="state on">🟢 Available</span>{% else %}<span class="state off">🔒 Locked</span>{% endif %}</div>
+<nav class="bank-menu" aria-label="Core SIKA navigation" data-bank-menu>
+{% for section in menu_sections %}
+<details class="menu-section" id="menu-{{ section.id }}"{% if loop.first %} open{% endif %}>
+<summary>{{ section.name }}</summary>
+<ul>
+{% for item in section['items'] %}
+<li><a href="{{ item.href }}"{% if item.private %} data-private-account{% endif %}><span>{{ item.name }}</span><span class="menu-state{% if item.locked %} locked{% endif %}">{% if item.locked %}🔒 {% endif %}{{ item.state }}</span></a></li>
 {% endfor %}
-</div></details>
+</ul>
+</details>
+{% endfor %}
+</nav>
+<p class="menu-note">Account access requires sign-in. Locked services open their availability details.</p>
 <details class="more" id="readiness"><summary>Readiness details</summary><section class="status-grid" aria-label="Bank readiness">
 <article class="status-card"><div class="meta">SIKA software</div><div class="big {{ 'on' if bank.software_ready else 'off' }}">{{ bank.software_percent }}%</div></article>
 <article class="status-card"><div class="meta">Authorisation evidence</div><div class="big">{{ bank.evidence_proven }} / {{ bank.evidence_total }}</div></article>
@@ -74,10 +73,17 @@
 
 <nav class="bottom-nav" aria-label="OAP Bank navigation">
 <a class="nav" href="#home"><strong>⌂</strong>Home</a>
-<a class="nav" href="/pay/bank/me"><strong>▤</strong>Wallet</a>
+<a class="nav" href="{{ account_url }}"><strong>▤</strong>Wallet</a>
 <a class="nav" href="/pay/bank/cards"><strong>▣</strong>Card</a>
-<a class="nav" href="/pay/bank/activity"><strong>≡</strong>Activity</a>
+<a class="nav" href="{{ activity_url }}"><strong>≡</strong>Activity</a>
 <a class="nav" href="#more"><strong>•••</strong>More</a>
 </nav>
+<script>
+const bankMenu = document.getElementById("more");
+document.querySelectorAll('a[href="#more"]').forEach(link => {
+  link.addEventListener("click", () => { bankMenu.open = true; });
+});
+if (window.location.hash === "#more") bankMenu.open = true;
+</script>
 </body>
 </html>

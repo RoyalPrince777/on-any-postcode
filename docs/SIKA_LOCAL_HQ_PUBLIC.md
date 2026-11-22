@@ -1,5 +1,12 @@
 # Local HQ and public service
 
+The browser Bank Menu has six sections: My SIKA, Money & Payments, Cards & Banking,
+Global SIKA, OAP Ecosystem, and Security & Support. All entries use existing routes.
+The private Activity HTML page at `/pay/bank/me/transactions` reads the existing owner-scoped
+activity projection; `/pay/bank/me/activity` remains the JSON API. No payment history or
+balance is invented when the store is unavailable. Public menu links for private account
+access point to HQ 5000. Locked services link to status pages, never execution controls.
+
 | Service | Address | Purpose |
 | --- | --- | --- |
 | HQ | http://127.0.0.1:5000 | Existing signed-in account, My World, SIKA account and Founder controls |

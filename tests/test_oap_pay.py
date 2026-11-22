@@ -310,7 +310,11 @@ def test_oap_bank_page_contains_full_app_structure(client):
     assert "SIKA" in body
     assert "Transfers" in body
     assert "Activity" in body
-    assert "<summary>Other services</summary>" in body
+    assert "<summary>Money &amp; Payments</summary>" in body
+    assert "<summary>Cards &amp; Banking</summary>" in body
+    assert "<summary>Global SIKA</summary>" in body
+    assert "<summary>OAP Ecosystem</summary>" in body
+    assert "<summary>Security &amp; Support</summary>" in body
     assert "Cards" in body
     assert "Cash / Post Office" in body
     assert "FX" in body
@@ -373,7 +377,7 @@ def test_oap_bank_home_links_to_real_feature_routes(client):
     body = client.get("/pay/bank").get_data(as_text=True)
     assert 'href="/pay/bank/accounts"' in body
     assert 'href="/pay/bank/me"' in body
-    assert 'href="/pay/bank/activity"' in body
+    assert 'href="/pay/bank/me/transactions"' in body
     assert 'href="/pay/bank/cards"' in body
     assert 'href="/pay/bank/sika"' in body
     assert 'href="/pay/bank/control-center"' not in body

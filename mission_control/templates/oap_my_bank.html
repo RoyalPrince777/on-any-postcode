@@ -11,7 +11,7 @@
 </head>
 <body>
 <main class="shell">
-<header class="top"><strong>SIKA · MY BANK</strong><a href="/pay/bank">Bank</a></header>
+<header class="top"><strong>SIKA · MY BANK</strong><a href="/pay/bank#more">Bank Menu</a></header>
 <section class="hero"><div class="eyebrow">Private · owner scoped</div><h1>My Bank</h1><div class="muted">Your canonical SIKA account view.</div></section>
 {% if customer is none %}
 <section class="card"><strong>Bank state unavailable</strong><p class="muted">Your canonical SIKA state could not be read safely. No balance has been guessed.</p></section>
@@ -56,7 +56,7 @@ provisionButton?.addEventListener("click", async () => {
 <div class="balance">Unavailable</div><div class="muted">No balance is fabricated when the canonical ledger projection is unavailable.</div>
 {% endif %}
 </section>
-<div class="actions"><a class="action" href="/pay/bank/transfers">Pay</a><a class="action" href="/pay/bank/me/status">Receive</a><a class="action" href="/pay/bank/me/activity">Activity</a></div>
+<div class="actions"><a class="action" href="/pay/bank/transfers">Transfers · status</a><a class="action" href="/pay#request">Request / QR · status</a><a class="action" href="/pay/bank/me/transactions">Activity</a></div>
 {% endif %}
 <p class="truth">Balances are read from the canonical ledger and active holds. This page cannot create SIKA, change balances, move money, or grant Treasury authority.</p>
 </main>

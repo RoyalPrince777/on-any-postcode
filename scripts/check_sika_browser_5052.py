@@ -57,7 +57,7 @@ def main() -> int:
                        account_code == 302 and account_headers.get("Location") == HQ + "/pay/bank/me"))
         checks.append(("Public account handoff not cached",
                        "no-store" in account_headers.get("Cache-Control", "").lower()))
-        for path in ("/pay/bank/me/status", "/pay/bank/me/activity", "/pay/bank/control-center",
+        for path in ("/pay/bank/me/status", "/pay/bank/me/activity", "/pay/bank/me/transactions", "/pay/bank/control-center",
                      "/pay/bank/founder/provision", "/mission/brain/status"):
             code, headers, _ = fetch(path)
             checks.append((f"Public service excludes {path}", code == 404 and

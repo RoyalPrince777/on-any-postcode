@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>My SIKA Activity · ON ANY POSTCODE</title>
+<style>
+:root{color-scheme:dark;--bg:#050706;--panel:#0b100d;--line:#26352b;--text:#f7fff8;--muted:#9aac9f;--gold:#e3c86f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}main{max-width:760px;margin:auto;padding:18px 14px 70px}header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}a{color:var(--gold);min-height:44px;display:inline-flex;align-items:center}a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}h1{font-size:clamp(1.8rem,8vw,3rem);margin:28px 0 8px}.muted{color:var(--muted);font-size:.9rem}.activity-list{list-style:none;margin:22px 0;padding:0}.entry,.notice{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:10px 0}.entry-heading{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.amount{font-weight:800}.reference{overflow-wrap:anywhere}.status{color:var(--gold);font-size:.85rem}.entry p{margin:6px 0}
+</style>
+</head>
+<body><main>
+<header><strong>SIKA · My Account</strong><a href="/pay/bank#more">Bank Menu</a><a href="/pay/bank/me">My SIKA Account</a></header>
+<h1>Activity</h1>
+<p class="muted">Your latest recorded payment requests and states. A request does not prove that money moved.</p>
+{% if activity is none %}
+<section class="notice" role="status"><strong>Activity unavailable</strong><p class="muted">Your activity could not be loaded safely. Try again later.</p></section>
+{% elif not activity['items'] %}
+<section class="notice"><strong>No recorded activity</strong><p class="muted">Your account has no recorded payment requests.</p></section>
+{% else %}
+<ol class="activity-list">
+{% for item in activity['items'] %}
+<li class="entry"><div class="entry-heading"><strong class="reference">{{ item.payee_reference }}</strong><span class="amount">{{ item.currency }} {{ item.amount }}</span></div><p class="status">{{ item.status.replace('_', ' ')|title }}</p><time class="muted" datetime="{{ item.created_at }}">{{ item.created_at }}</time><p class="muted reference">Reference: {{ item.payment_id }}</p></li>
+{% endfor %}
+</ol>
+{% endif %}
+</main></body>
+</html>

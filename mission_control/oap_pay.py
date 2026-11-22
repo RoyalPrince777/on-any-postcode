@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from flask import Blueprint, jsonify, make_response, render_template
+from flask import Blueprint, current_app, jsonify, make_response, render_template
 
 from . import (
     bank_authorisation,
@@ -52,6 +52,59 @@ BANK_APP_FEATURES = (
     {"id": "settings", "name": "Settings", "description": "Security, privacy, limits and authority controls.", "capability": None, "section": "more"},
     {"id": "control-center", "name": "Control Center", "description": "Founder evidence gates, provider status and regulator scope.", "capability": None, "section": "admin"},
 )
+
+BANK_MENU_SECTIONS = (
+    ("my-sika", "My SIKA", (
+        ("My SIKA Account", "/pay/bank/me", "private", None),
+        ("Activity", "/pay/bank/me/transactions", "private", None),
+    )),
+    ("money-payments", "Money & Payments", (
+        ("Transfers", "/pay/bank/transfers", "status", "execute_payments"),
+        ("Request / QR", "/pay#request", "status", None),
+        ("Payment methods", "/pay#payMethods", "status", None),
+        ("Cash / Post Office", "/pay/bank/cash", "status", "cash_out"),
+    )),
+    ("cards-banking", "Cards & Banking", (
+        ("Cards", "/pay/bank/cards", "status", "issue_payment_cards"),
+        ("Accounts", "/pay/bank/accounts", "status", "bank_accounts"),
+        ("Deposits", "/pay/bank/deposits", "status", "accept_deposits"),
+        ("Customer Funds", "/pay/bank/wallet", "status", "hold_customer_funds"),
+    )),
+    ("global-sika", "Global SIKA", (
+        ("SIKA value", "/pay/bank/sika", "status", "issue_redeemable_sika"),
+        ("FX", "/pay/bank/fx", "status", "foreign_exchange"),
+    )),
+    ("oap-ecosystem", "OAP Ecosystem", (
+        ("OAP World", "/world", "open", None),
+        ("The Spot", "/the-spot", "open", None),
+        ("OAP Arena", "/arena", "open", None),
+        ("OAP Store", "/store", "open", None),
+        ("My World", "/my-world", "private", None),
+    )),
+    ("security-support", "Security & Support", (
+        ("Guardian", "/pay/bank/guardian", "status", None),
+        ("Rights & Remedy", "/pay/bank/rights", "status", None),
+        ("Settings", "/pay/bank/settings", "status", None),
+        ("Bank Intelligence", "/pay/bank/intelligence", "status", None),
+    )),
+)
+
+
+def bank_menu_sections(capabilities: dict[str, Any], *, hq_origin: str = "") -> list[dict[str, Any]]:
+    """Navigation only: viewing a capability never grants its execution."""
+    return [{
+        "id": section_id,
+        "name": name,
+        "items": [{
+            "name": label,
+            "href": hq_origin + href if access == "private" else href,
+            "private": access == "private",
+            "locked": bool(capability and not capabilities.get(capability, False)),
+            "state": ("Locked" if capability and not capabilities.get(capability, False)
+                      else "Sign in" if access == "private"
+                      else "View status" if access == "status" else "Open"),
+        } for label, href, access, capability in items],
+    } for section_id, name, items in BANK_MENU_SECTIONS]
 
 FEATURES = (
     {"id": "home", "name": "Home", "description": "Balance view, incoming requests, recent activity.", "capability": None, "section": "primary"},
@@ -255,7 +308,14 @@ def public_payment_request(token: str):
 
 @bp.get("/pay/bank")
 def bank_page():
-    response = make_response(render_template("oap_pay_bank.html", bank=bank_status()))
+    bank = bank_status()
+    hq_origin = "http://127.0.0.1:5000" if current_app.config.get("OAP_LOCAL_SERVICE_ROLE") == "public" else ""
+    response = make_response(render_template(
+        "oap_pay_bank.html", bank=bank,
+        menu_sections=bank_menu_sections(bank["capabilities"], hq_origin=hq_origin),
+        account_url=hq_origin + "/pay/bank/me",
+        activity_url=hq_origin + "/pay/bank/me/transactions",
+    ))
     response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -329,6 +389,20 @@ def bank_customer_activity():
             {"error": {"code": "sika_customer_activity_unavailable"}}
         )
         response.status_code = 503
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@bp.get("/pay/bank/me/transactions")
+@web_security.login_required()
+def bank_customer_activity_page():
+    try:
+        activity = sika_customer_view.activity(web_security.authenticated_identity())
+        code = 200
+    except RuntimeError:
+        activity = None
+        code = 503
+    response = make_response(render_template("oap_bank_activity.html", activity=activity), code)
     response.headers["Cache-Control"] = "no-store"
     return response
 
