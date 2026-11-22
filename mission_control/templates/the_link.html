@@ -28,6 +28,17 @@
       .link-card small {font-size:.75rem;line-height:1.3}
       .link-more {padding:10px}
     }
+
+    /* Fewer words, clearer focus, one shared My Card, no extra connection store. */
+    .mc-link-header .mc-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .link-grid{align-items:stretch}
+    .link-card{min-height:74px;border-radius:14px}
+    .link-card strong{font-weight:800}
+    .link-card:focus-visible{outline:2px solid #ddb260;outline-offset:3px}
+    .link-more summary:focus-visible{outline:2px solid #ddb260;outline-offset:3px}
+    .link-more[open]{background:var(--mc-panel-soft)}
+    @media(max-width:640px){.link-card{min-height:70px}.mc-link-header .mc-header-actions a{min-height:44px;padding-inline:10px}}
+    @media(max-width:340px){.link-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -37,6 +48,7 @@
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
+      <a class="mc-secondary-link" href="{{ url_for('my_card_page') }}">My Card</a>
     </div>
   </header>
   <main class="mc-workspace">
