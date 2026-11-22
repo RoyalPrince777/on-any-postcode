@@ -389,6 +389,17 @@ def main():
             assert live.evaluate("el => el.parentElement === document.body")
             assert live.evaluate("el => getComputedStyle(el).pointerEvents") != "none"
 
+            # Approved original pixels move silently before Live/mic is enabled.
+            page.wait_for_function(
+                "() => Boolean(window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION?.snapshot?.().ambientVisualMotion)"
+            )
+            ambient = page.evaluate(
+                "() => window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION.snapshot()"
+            )
+            assert ambient["phase"] == "ready"
+            assert ambient["live"] is False
+            assert ambient["frames"] > 0
+            assert ambient["audioCues"] == 0
             live.click()
             page.wait_for_timeout(250)
             assert live.get_attribute("aria-pressed") == "true"
