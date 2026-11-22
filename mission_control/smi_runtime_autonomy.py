@@ -61,7 +61,14 @@ def _evolution_evidence(health: dict[str, Any]) -> dict[str, object]:
     if not isinstance(invariants, dict):
         invariants = {}
     ready = (
-        all(checks.get(name) is True for name in ("audit", "human_authority", "approval_receipt"))
+        # Partial or truthy-only gate data cannot certify a 3x7/21 review.
+        health.get("status") == "green"
+        and len(checks) == 21
+        and all(value is True for value in checks.values())
+        and all(
+            checks.get(name) is True
+            for name in ("audit", "human_authority", "approval_receipt")
+        )
         and invariants.get("execution_locked") is True
         and invariants.get("human_authority_final") is True
     )
