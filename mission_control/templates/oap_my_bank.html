@@ -11,23 +11,24 @@
 </head>
 <body>
 <main class="shell">
-<header class="top"><strong>SIKA · MY BANK</strong><a href="/pay/bank">Bank</a></header>
-<section class="hero"><div class="eyebrow">Private · owner scoped</div><h1>My Bank</h1><div class="muted">Your canonical SIKA account view.</div></section>
+<header class="top"><strong>SIKA · MY BANK</strong><a href="/pay/bank#more">Bank Menu</a></header>
+<section class="hero"><h1>My Bank</h1></section>
 {% if customer is none %}
-<section class="card"><strong>Bank state unavailable</strong><p class="muted">Your canonical SIKA state could not be read safely. No balance has been guessed.</p></section>
+<section class="card"><strong>Account unavailable</strong><p class="muted">Try again later.</p></section>
 {% elif not customer.founder.provisioned %}
-<section class="card"><strong>Founder Account</strong><div class="balance">Not provisioned</div><p class="muted">No SIKA Number or balance is displayed until a canonical account is persisted.</p><button class="action" id="provision-founder" type="button">Create My SIKA Account</button><p class="muted" id="provision-status" role="status" aria-live="polite"></p></section>
+<section class="card"><strong>SIKA Account</strong><div class="balance">Not provisioned</div>{% if founder_allowed %}<button class="action" id="provision-founder" type="button">Create My SIKA Account</button><p class="muted" id="provision-status" role="status" aria-live="polite"></p>{% else %}<p class="muted">Account setup is unavailable.</p>{% endif %}</section>
+{% if founder_allowed %}
 <script>
 const provisionButton = document.getElementById("provision-founder");
 const provisionStatus = document.getElementById("provision-status");
 provisionButton?.addEventListener("click", async () => {
   provisionButton.disabled = true;
-  provisionStatus.textContent = "Creating your canonical account…";
+  provisionStatus.textContent = "Creating your account…";
   try {
     const response = await fetch("/pay/bank/founder/provision", {
       method: "POST",
       credentials: "same-origin",
-      headers: {"Accept": "application/json"},
+      headers: {"Accept": "application/json", "X-OAP-CSRF": {{ sika_csrf|tojson }}},
     });
     if (!response.ok) {
       provisionStatus.textContent = "Account creation could not be completed safely.";
@@ -41,6 +42,7 @@ provisionButton?.addEventListener("click", async () => {
   }
 });
 </script>
+{% endif %}
 {% else %}
 <section class="card"><div class="muted">My SIKA Number</div><div class="number">{{ customer.founder.sika_number }}</div></section>
 {% set ns = namespace(founder_account=none) %}
@@ -49,14 +51,14 @@ provisionButton?.addEventListener("click", async () => {
 <div class="muted">Available</div>
 {% if ns.founder_account and ns.founder_account.balance %}
 <div class="balance">S {{ ns.founder_account.balance.available }}</div>
-<div class="muted">Ledger balance S {{ ns.founder_account.balance.cleared }} · Reserved S {{ ns.founder_account.balance.reserved }}</div>
+<details><summary>Balance details</summary><div class="muted">Ledger balance S {{ ns.founder_account.balance.cleared }} · Reserved S {{ ns.founder_account.balance.reserved }}</div></details>
 {% else %}
-<div class="balance">Unavailable</div><div class="muted">No balance is fabricated when the canonical ledger projection is unavailable.</div>
+<div class="balance">Unavailable</div>
 {% endif %}
 </section>
-<div class="actions"><a class="action" href="/pay/bank/transfers">Pay</a><a class="action" href="/pay/bank/me/status">Receive</a><a class="action" href="/pay/bank/me/activity">Activity</a></div>
+<div class="actions"><a class="action" href="/pay/bank/transfers">Transfers · status</a><a class="action" href="/pay#request">Request / QR · status</a><a class="action" href="/pay/bank/me/transactions">Activity</a></div>
 {% endif %}
-<p class="truth">Balances are read from the canonical ledger and active holds. This page cannot create SIKA, change balances, move money, or grant Treasury authority.</p>
+<p class="truth">Payments unavailable.</p>
 </main>
 </body>
 </html>

@@ -6,7 +6,7 @@ import ipaddress
 import os
 from urllib import parse as urlparse
 
-from flask import Flask, Request, make_response, redirect, request
+from flask import Flask, Request, current_app, make_response, redirect, request
 
 _GATEWAY_HEADER = "X-OAP-SMI-Gateway"
 _CLIENT_IP_HEADER = "X-OAP-Client-IP"
@@ -49,6 +49,10 @@ _LINK_PERMISSIONS_POLICY = (
 )
 _SHARE_UPLOAD_PATH = "/linkup/share"
 _SHARE_REQUEST_MAX_BYTES = 26 * 1024 * 1024
+_LOCAL_HQ_ORIGIN = "http://127.0.0.1:5000"
+_LOCAL_PRIVATE_PREFIXES = (
+    "/pay/bank/me", "/pay/bank/founder", "/pay/bank/control-center", "/internal",
+)
 
 
 def _canonical_client_ip(value: object) -> str | None:
@@ -155,18 +159,34 @@ def _private_not_found():
     return response
 
 
+def _local_private_request() -> bool:
+    clean = request.path.rstrip("/") or "/"
+    view = current_app.view_functions.get(request.endpoint)
+    return (
+        _is_private_path(clean)
+        or any(clean == prefix or clean.startswith(prefix + "/")
+               for prefix in _LOCAL_PRIVATE_PREFIXES)
+        or bool(getattr(view, "_oap_login_required", False))
+        or request.blueprint == "mission_control"
+    )
+
+
 def _private_handoff(path: str):
     clean = path.rstrip("/") or "/"
     target = _PUBLIC_PRIVATE_HANDOFFS.get(clean)
+    local_public = current_app.config.get("OAP_LOCAL_SERVICE_ROLE") == "public"
+    if local_public and clean == "/pay/bank/me":
+        target = clean
     if target is None or request.method not in {"GET", "HEAD"}:
         return None
-    query = request.query_string.decode("ascii", "ignore")
-    destination = f"{_private_gateway_origin()}{target}"
+    query = "" if local_public else request.query_string.decode("ascii", "ignore")
+    origin = _LOCAL_HQ_ORIGIN if local_public else _private_gateway_origin()
+    destination = f"{origin}{target}"
     if query:
         destination = f"{destination}?{query}"
     response = redirect(destination, code=302)
     response.headers["Cache-Control"] = "no-store"
-    response.headers["X-OAP-Private-Handoff"] = "smi-gateway"
+    response.headers["X-OAP-Private-Handoff"] = "local-hq" if local_public else "smi-gateway"
     return response
 
 
@@ -192,6 +212,14 @@ def register(app: Flask) -> None:
         smi_proof_views,
     )
 
+    # This is a process role, never a role inferred from Host/Forwarded headers.
+    local_role = os.environ.get("OAP_LOCAL_SERVICE_ROLE", "").strip().casefold()
+    if local_role not in {"", "hq", "public"}:
+        raise RuntimeError("OAP_LOCAL_SERVICE_ROLE must be hq or public when set")
+    app.config["OAP_LOCAL_SERVICE_ROLE"] = local_role
+    if local_role:
+        # Browser cookies are shared across ports; keep Flask session names distinct.
+        app.config["SESSION_COOKIE_NAME"] = f"oap_{local_role}_session"
     app.request_class = OAPRequest
     pulse_routes.register(app)
     signal_health.register(app)
@@ -206,6 +234,21 @@ def register(app: Flask) -> None:
 
     @app.before_request
     def _enforce_private_origin_boundary():
+        local_role = app.config.get("OAP_LOCAL_SERVICE_ROLE")
+        if local_role == "hq":
+            if request.path == "/" and request.method in {"GET", "HEAD"}:
+                response = redirect("/mission/smi", code=302)
+                response.headers["Cache-Control"] = "no-store"
+                return response
+            # HQ still uses every existing authentication and Founder gate.
+            return None
+        if local_role == "public":
+            clean = request.path.rstrip("/") or "/"
+            if _local_private_request():
+                # Public 5052 must never render private views, including when
+                # valid gateway headers or an authenticated cookie are supplied.
+                return _private_handoff(clean) or _private_not_found()
+            return None
         if not _is_private_path(request.path):
             return None
         clean = request.path.rstrip("/") or "/"
@@ -227,6 +270,10 @@ def register(app: Flask) -> None:
 
     @app.after_request
     def _scope_link_device_permissions(response):
+        if app.config.get("OAP_LOCAL_SERVICE_ROLE") and _local_private_request():
+            # Includes unauthenticated redirects and authentication failures,
+            # which return before a private view can set its own cache policy.
+            response.headers["Cache-Control"] = "no-store"
         clean_path = request.path.rstrip("/") or "/"
         if clean_path in _LINK_DEVICE_PATHS:
             response.headers["Permissions-Policy"] = _LINK_PERMISSIONS_POLICY
