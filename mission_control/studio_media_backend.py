@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import uuid
 from typing import Any
 from urllib import request as urlrequest
@@ -19,6 +20,26 @@ IMAGE_MODEL = os.environ.get("OAP_STUDIO_IMAGE_MODEL", "gpt-image-2").strip() or
 VIDEO_MODEL = os.environ.get("OAP_STUDIO_VIDEO_MODEL", "sora-2").strip() or "sora-2"
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
 MAX_VIDEO_BYTES = 100 * 1024 * 1024
+
+_VIDEO_ID = re.compile(r"video_[A-Za-z0-9_-]{1,128}")
+
+
+def _validated_video_id(value: object) -> str:
+    """Require a bounded provider identifier, not a URL or path segment."""
+    candidate = str(value or "")
+    if not _VIDEO_ID.fullmatch(candidate):
+        raise ValueError("studio_video_id_invalid")
+    return candidate
+
+
+def _mp4_container_valid(data: bytes) -> bool:
+    """Check MP4 signature; a decoder probe is still needed for full certification."""
+    return (
+        len(data) >= 16
+        and 16 <= int.from_bytes(data[:4], "big") <= len(data)
+        and data[4:8] == b"ftyp"
+    )
+
 
 
 def _key() -> str:
@@ -194,6 +215,14 @@ def create_video(prompt: str, *, source_image_data: str = "", seconds: str = "4"
     clean = str(prompt or "").strip()[:4000]
     if not clean:
         raise ValueError("studio_prompt_required")
+    # The video API accepts concrete size/seconds, not a freeform FPS field.
+    # Fail closed instead of rendering portrait for a requested 16:9 scene.
+    seconds = str(seconds)
+    size = str(size)
+    if seconds not in {"4", "8", "12"}:
+        raise ValueError("studio_video_seconds_unsupported")
+    if size not in {"720x1280", "1280x720"}:
+        raise ValueError("studio_video_size_unsupported")
     file_field = None
     if source_image_data:
         mime, raw = _decode_image_data_url(source_image_data)
@@ -208,6 +237,7 @@ def create_video(prompt: str, *, source_image_data: str = "", seconds: str = "4"
     state = str(payload.get("status") or "")
     if not video_id:
         raise RuntimeError("studio_generation_job_missing")
+    video_id = _validated_video_id(video_id)
     return {
         "kind": "video_job",
         "id": video_id,
@@ -222,9 +252,7 @@ def create_video(prompt: str, *, source_image_data: str = "", seconds: str = "4"
 def video_content(video_id: str) -> tuple[bytes, str]:
     """Fetch one completed provider video through the governed first-party boundary."""
 
-    clean_id = str(video_id or "").strip()
-    if not clean_id.startswith("video_"):
-        raise ValueError("studio_video_id_invalid")
+    clean_id = _validated_video_id(video_id)
     key = _key()
     if not key:
         raise RuntimeError("studio_generation_provider_unconfigured")
@@ -243,7 +271,7 @@ def video_content(video_id: str) -> tuple[bytes, str]:
             body = response.read(MAX_VIDEO_BYTES + 1)
     except (HTTPError, URLError, TimeoutError, OSError) as exc:
         raise RuntimeError("studio_generation_provider_unavailable") from exc
-    if not body or len(body) > MAX_VIDEO_BYTES:
+    if not body or len(body) > MAX_VIDEO_BYTES or not _mp4_container_valid(body):
         raise RuntimeError("studio_video_content_invalid")
     mime_type = (
         content_type.split(";", 1)[0].strip()
@@ -254,9 +282,7 @@ def video_content(video_id: str) -> tuple[bytes, str]:
 
 
 def video_status(video_id: str) -> dict[str, Any]:
-    clean_id = str(video_id or "").strip()
-    if not clean_id.startswith("video_"):
-        raise ValueError("studio_video_id_invalid")
+    clean_id = _validated_video_id(video_id)
     payload = _json_call(f"/videos/{clean_id}", {}, method="GET")
     state = str(payload.get("status") or "")
     return {

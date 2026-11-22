@@ -44,6 +44,7 @@ from . import (
     status,
     studio_build_preview,
     studio_intelligence,
+    studio_project_shell,
     studio_workspace_orchestrator,
     war_room,
     web_security,
@@ -70,6 +71,7 @@ BUTTON_PROOF_TARGETS = {
     "studio-refine": "/mission/studio/generate",
     "studio-bring-alive": "/mission/studio/generate",
     "studio-scene-builder": "/mission/studio/generate",
+    "studio-character-swap": "/mission/studio/character-swap/prepare",
     "studio-orchestrate": "/mission/studio/orchestrate/plan",
     "studio-build-preview": "/mission/studio/build-preview",
     "studio-workspace-research": "/mission/studio/workspace/research",
@@ -985,6 +987,32 @@ def smi_studio_status():
     return _no_store(make_response(jsonify(studio_intelligence.status())))
 
 
+@bp.post("/studio/project-shell/prepare")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_project_shell_prepare():
+    """Founder-only scene preflight; no paid renderer or publication call."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = studio_project_shell.prepare(
+            payload.get("scene_id"),
+            ratio=payload.get("aspect_ratio", "16:9"),
+            fps_target=payload.get("fps_target", 60),
+            reference_attached=payload.get("reference_attached", False),
+        )
+    except (TypeError, ValueError) as exc:
+        return _error("project_shell_invalid", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.get("/studio/workspace/<workspace_id>")
 @web_security.login_required(api=True, founder_only=True)
 def smi_studio_workspace_preflight(workspace_id: str):
@@ -1165,6 +1193,31 @@ def smi_android_live_evidence_receipt():
     return _no_store(make_response(jsonify(result), status_code))
 
 
+@bp.post("/studio/character-swap/prepare")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_character_swap_prepare():
+    """Founder-only SMI character-swap preflight. Never spends credits."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh the page and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = studio_intelligence.prepare_character_swap(
+            source_video_id=payload.get("source_video_id"),
+            character_image_id=payload.get("character_image_id"),
+            source_duration_seconds=payload.get("source_duration_seconds"),
+            quoted_credits=payload.get("quoted_credits"),
+        )
+    except ValueError as exc:
+        return _error("invalid_studio_request", str(exc), 400)
+    except RuntimeError:
+        return _error("studio_preparation_unavailable", "Studio preparation is unavailable.", 503)
+    if not result.get("receipt_proven"):
+        return _error("studio_receipt_unconfirmed", "HRM receipt is not verified.", 503)
+    return _no_store(make_response(jsonify(result), 200))
+
+
 @bp.post("/studio/generate")
 @web_security.login_required(api=True, founder_only=True)
 def smi_studio_generate():
@@ -1185,6 +1238,11 @@ def smi_studio_generate():
             prompt=payload.get("prompt", ""),
             source_image_data=payload.get("source_image_data", ""),
             character_lock=payload.get("character_lock", False),
+            **({
+                key: payload[key]
+                for key in ("video_size", "video_seconds")
+                if key in payload
+            }),
         )
         artifact = result.get("artifact") or {}
         studio_asset = {
