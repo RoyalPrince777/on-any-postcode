@@ -42,6 +42,14 @@ class SMIHumanoidDashboardContract(unittest.TestCase):
         self.assertIn("frame.removeAttribute('src')", self.html)
         self.assertNotIn('data-smi-play', self.html)
         self.assertNotIn('data-smi-motion-pause', self.html)
+        self.assertIn("oap-smi-visual-state-v1", self.html)
+        self.assertIn("event.source !== frame.contentWindow", self.html)
+        self.assertIn("event.origin !== window.location.origin", self.html)
+        self.assertIn("Listening", self.html)
+        self.assertIn("Thinking", self.html)
+        self.assertIn("Speaking", self.html)
+        self.assertIn("Stopped", self.html)
+        self.assertIn("data-smi-visual-state", self.html)
 
     def test_accessibility_and_truth(self):
         self.assertIn('aria-label="SMI central command"', self.html)
