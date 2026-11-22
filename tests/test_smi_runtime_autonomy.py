@@ -229,3 +229,49 @@ def test_autonomy_cycle_rejects_truthy_nonboolean_gate_and_invariant_values(monk
     assert cycle["provider_completion_performed"] is False
     assert cycle["hrm_record_created"] is False
     assert cycle["consequential_action"] is False
+
+
+def test_autonomy_cycle_fails_closed_when_invariants_are_missing_or_malformed(monkeypatch):
+    """Bad health telemetry never crashes the worker or certifies a Green gate."""
+    for malformed in (None, "true", 1, [], {"execution_locked": 1}):
+        health = _health(approval_receipt=True)
+        health["invariants"] = malformed
+        monkeypatch.setattr(
+            smi_runtime_autonomy.smi_chat_runtime, "health",
+            lambda health=health: health,
+        )
+        cycle = smi_runtime_autonomy.run_cycle()
+        assert cycle["reported_health_status"] == "green"
+        assert cycle["health_status"] == "degraded"
+        assert cycle["production_invariants"] == {
+            "execution_locked": False,
+            "human_authority_final": False,
+        }
+        assert cycle["controlled_self_improvement_runtime"]["ready"] is False
+        assert cycle["independent_execution"] is False
+        assert cycle["consequential_action"] is False
+
+
+def test_autonomy_cycle_requires_complete_literal_21_gate_evidence(monkeypatch):
+    for mutation in ("missing_gate", "truthy_gate", "missing_health"):
+        health = _health(approval_receipt=True)
+        if mutation == "missing_gate":
+            del health["checks"]["guardian"]
+        elif mutation == "truthy_gate":
+            health["checks"]["guardian"] = "true"
+        else:
+            health = None
+        monkeypatch.setattr(
+            smi_runtime_autonomy.smi_chat_runtime, "health",
+            lambda health=health: health,
+        )
+        cycle = smi_runtime_autonomy.run_cycle()
+        assert cycle["health_status"] == "degraded"
+        assert cycle["controlled_self_improvement_runtime"]["ready"] is False
+        assert cycle["independent_execution"] is False
+        assert cycle["consequential_action"] is False
+        if mutation == "missing_health":
+            assert cycle["gates_total"] == 0
+            assert cycle["gates_green"] == 0
+        else:
+            assert cycle["reported_health_status"] == "green"
