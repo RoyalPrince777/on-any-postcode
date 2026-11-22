@@ -21,6 +21,20 @@
       .spot-welcome-actions small {display:none}
       .spot-more summary {min-height:48px;display:flex;align-items:center}
     }
+
+    /* Quiet navigation: preserve all owned destinations, improve tap and focus. */
+    .mc-workspace{width:min(100% - 28px,1120px);margin-inline:auto}
+    .spot-hero{gap:16px}
+    .spot-bar a,.spot-core a,.spot-welcome-actions a,.spot-more-content a{transition:border-color .12s ease,background .12s ease}
+    .spot-bar a:focus-visible,.spot-core a:focus-visible,.spot-welcome-actions a:focus-visible,.spot-more-content a:focus-visible,.spot-more summary:focus-visible{outline:2px solid #ddb260;outline-offset:3px}
+    .spot-core a{border-radius:13px;min-height:70px;align-items:center;text-align:center}
+    .spot-welcome{background:var(--mc-panel-soft);border-radius:14px}
+    .spot-pulse{border-radius:14px;min-height:64px}
+    .spot-more{border-top:1px solid var(--mc-line);padding-top:4px}
+    .spot-more summary{min-height:48px;display:flex;align-items:center;font-weight:780}
+    .spot-more-content{padding-top:8px}
+    @media(max-width:640px){.mc-workspace{width:calc(100% - 20px)}.spot-core a{min-height:64px}.spot-welcome{gap:10px}.spot-bar a{min-height:44px}}
+    @media(prefers-reduced-motion:reduce){.spot-bar a,.spot-core a,.spot-welcome-actions a,.spot-more-content a{transition:none}}
   </style>
 </head>
 <body class="mc-workspace-body">
@@ -29,6 +43,7 @@
       <h1>The Spot</h1>
       <div class="spot-bar">
         <a href="{{ url_for('home') }}">🌍 OAP World</a>
+        <a href="{{ url_for('my_card_page') }}">👑 My Card</a>
       </div>
     </div>
   </header>
