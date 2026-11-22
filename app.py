@@ -214,6 +214,19 @@ def _security_headers(response):
         "media-src 'self' blob:; connect-src 'self'; "
         "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'",
     )
+    # SMI Chat is an authenticated, same-origin iframe inside the one private
+    # Command Centre. The global DENY/none default prevents every other frame.
+    # Only the successful GET chat document may be embedded by its own origin.
+    if (
+        request.path == "/mission/ollama"
+        and request.method == "GET"
+        and response.status_code == 200
+        and response.mimetype == "text/html"
+    ):
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Content-Security-Policy"] = response.headers[
+            "Content-Security-Policy"
+        ].replace("frame-ancestors 'none'", "frame-ancestors 'self'")
     if os.environ.get("RENDER", "").lower() == "true":
         response.headers.setdefault(
             "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
