@@ -72,6 +72,10 @@ from mission_control.agents import validate_agent_registry
 from mission_control.database import db_status
 from mission_control.organism import validate_architecture
 
+if __name__ == "__main__":
+    os.environ.setdefault("OAP_LOCAL_SERVICE_ROLE", "hq")
+    os.environ.setdefault("OAP_LOCAL_MODE", "true")
+
 app = Flask(__name__)
 REQUEST_LOGGER = logging.getLogger("oap.request")
 if not REQUEST_LOGGER.handlers:
@@ -4188,4 +4192,5 @@ def global_affairs_recovery(authority_record_id: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5050, debug=True)
+    local_port = 5052 if app.config["OAP_LOCAL_SERVICE_ROLE"] == "public" else 5000
+    app.run(host="127.0.0.1", port=local_port, debug=False)

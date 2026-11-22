@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Apply SIKA browser/Store navigation to an existing modified KORADASO checkout.
+"""Apply shared SIKA browser/Store source changes to an existing checkout.
+
+Legacy filename retained. Private HQ/account runs on 5000; 5052 is public only.
 
 Non-destructive: targets only existing source files, refuses ambiguous anchors,
 and writes nothing unless every target can be safely prepared. Creates timestamped
@@ -9,9 +11,9 @@ from __future__ import annotations
 
 import argparse
 import datetime
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 FILES = {
     "mission_control/oap_store.py": "store",
@@ -112,7 +114,12 @@ def apply_bank_html(source: str) -> str:
         original = '<div class="install-row">\n<button class="pill" type="button" data-oap-install hidden>Install OAP Bank</button>\n<div class="meta" data-oap-install-status role="status">Checking install support</div>\n</div>'
         replacement = '<div class="install-row">\n<a class="pill" href="/pay/bank/me">Open My SIKA Account</a>\n<div class="meta">Browser access available · Standalone installation not certified</div>\n</div>'
         source = replace_once(source, original, replacement, name="bank browser-only installer")
-    if 'href="/pay/bank/me">My SIKA Account</a>' not in source:
+    current_header = '<header class="top"><div class="brand">SIKA <span class="meta">· OAP Bank</span></div><div><a class="pill" href="/store">OAP Store</a></div></header>'
+    current_account = '<a class="pill primary" href="/pay/bank/me">My SIKA Account · Sign in</a>'
+    if current_header in source:
+        if source.count(current_header) != 1 or source.count(current_account) != 1:
+            raise ValueError("current bank header/account navigation is ambiguous or incomplete")
+    elif 'href="/pay/bank/me">My SIKA Account</a>' not in source:
         original = '<header class="top"><div class="brand">👑 OAP BANK</div><a class="pill" href="/pay">OAP Pay</a></header>'
         replacement = '<header class="top"><div class="brand">👑 OAP BANK</div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="pill" href="/pay/bank/me">My SIKA Account</a><a class="pill" href="/store">OAP Store</a><a class="pill" href="/pay">OAP Pay</a></div></header>'
         source = replace_once(source, original, replacement, name="bank header")
@@ -183,7 +190,7 @@ def main() -> int:
         print("Rollback: " + ("FAILED for " + ", ".join(rollback_failed) if rollback_failed else "restored written files"))
         return 3
     print(f"Applied {len(changed)} file(s). Backups: {backup_folder if changed else 'none needed'}")
-    print("Not deployed. No Arena, Oware, account balances, payment or server state touched.")
+    print("Not deployed. HQ/account: 5000; public: 5052. No Arena, Oware, account balances, payment or server state touched.")
     return 0
 
 

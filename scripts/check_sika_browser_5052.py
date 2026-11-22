@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only local SIKA browser/Store smoke check for existing Flask port 5052.
+"""Read-only SIKA checks: public discovery on 5052, private HQ/account on 5000.
 
 No provisioning, payment execution, service restart, or data modification.
 Run: python scripts/check_sika_browser_5052.py
@@ -12,6 +12,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 BASE = "http://127.0.0.1:5052"
+HQ = "http://127.0.0.1:5000"
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -19,8 +20,8 @@ class NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def fetch(path: str):
-    request = Request(BASE + path, headers={"Accept": "text/html,application/json"})
+def fetch(path: str, *, base: str = BASE):
+    request = Request(base + path, headers={"Accept": "text/html,application/json"})
     try:
         with build_opener(NoRedirect).open(request, timeout=5) as response:
             return response.status, response.headers, response.read(300_000)
@@ -33,6 +34,7 @@ def main() -> int:
     try:
         bank_code, bank_headers, bank_body = fetch("/pay/bank")
         checks.append(("Bank page loads", bank_code == 200))
+        checks.append(("Bank page not cached", "no-store" in bank_headers.get("Cache-Control", "").lower()))
         checks.append(("Account navigation available", b'href="/pay/bank/me"' in bank_body))
         store_code, _, store_body = fetch("/store")
         checks.append(("OAP Store loads", store_code == 200))
@@ -50,17 +52,27 @@ def main() -> int:
         checks.append(("Install remains blocked", bool(item) and
                        item.get("install_enabled") is False and
                        item.get("install_url") is None))
-        account_code, account_headers, account_body = fetch("/pay/bank/me")
-        checks.append(("Private account has auth boundary", account_code in (302, 303, 401, 403)))
-        checks.append(("Private account response not cached",
+        account_code, account_headers, _ = fetch("/pay/bank/me")
+        checks.append(("Public account door hands off to HQ 5000",
+                       account_code == 302 and account_headers.get("Location") == HQ + "/pay/bank/me"))
+        checks.append(("Public account handoff not cached",
                        "no-store" in account_headers.get("Cache-Control", "").lower()))
+        for path in ("/pay/bank/me/status", "/pay/bank/me/activity", "/pay/bank/control-center",
+                     "/pay/bank/founder/provision", "/mission/brain/status"):
+            code, headers, _ = fetch(path)
+            checks.append((f"Public service excludes {path}", code == 404 and
+                           "no-store" in headers.get("Cache-Control", "").lower()))
+        for path in ("/pay/bank/me", "/pay/bank/control-center"):
+            code, headers, _ = fetch(path, base=HQ)
+            checks.append((f"HQ sign-in required for {path}", code in (302, 303, 401, 403) and
+                           "no-store" in headers.get("Cache-Control", "").lower()))
     except (URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
-        print(f"UNKNOWN: 5052 unreachable or unexpected response ({type(exc).__name__}).")
+        print(f"UNKNOWN: local 5000/5052 unreachable or unexpected response ({type(exc).__name__}).")
         return 2
     for label, passed in checks:
         print(f"{'PASS' if passed else 'FAIL'}  {label}")
     passed = sum(ok for _, ok in checks)
-    print(f"Local SIKA browser checks: {passed}/{len(checks)}; production readiness NOT assessed.")
+    print(f"Local SIKA checks: {passed}/{len(checks)}; authenticated Founder/device/production readiness NOT assessed.")
     return 0 if passed == len(checks) else 1
 
 

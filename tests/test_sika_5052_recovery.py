@@ -39,3 +39,13 @@ def test_legacy_bank_page_removes_unverified_install_button():
     assert "{% set oap_install_script = false %}" in upgraded
     assert 'href="/pay/bank/me"' in upgraded
     assert repair.apply_bank_html(upgraded) == upgraded
+
+
+def test_current_header_with_missing_or_duplicate_account_link_fails_closed():
+    root = Path(__file__).resolve().parents[1]
+    current = (root / "mission_control/templates/oap_pay_bank.html").read_text(encoding="utf-8")
+    account = '<a class="pill primary" href="/pay/bank/me">My SIKA Account · Sign in</a>'
+    with pytest.raises(ValueError, match="incomplete"):
+        repair.apply_bank_html(current.replace(account, ""))
+    with pytest.raises(ValueError, match="ambiguous"):
+        repair.apply_bank_html(current.replace(account, account + account))
