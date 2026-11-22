@@ -278,6 +278,26 @@ def prove_reference_dashboard(context, base_url):
             "img => getComputedStyle(img).animationPlayState"
         ) == "paused"
         expect(page.locator("#smi-chat-frame")).to_have_attribute("src", "/mission/ollama")
+        if width in (1536, 393):
+            # Browser-only bridge proof: canonical state events, never fake AI replies.
+            child = page.frame_locator("#smi-chat-frame")
+            expect(child.locator("body")).to_have_attribute("data-smi-presence", "ready")
+            child.locator("body").evaluate("""() => window.dispatchEvent(
+                new CustomEvent('oap-smi-character-state',
+                    {detail:{state:'thinking',live:false,stopped:false}})
+            )""")
+            expect(page.locator("#smi-chat-panel")).to_have_attribute(
+                "data-smi-visual-state", "thinking"
+            )
+            expect(page.locator("#smi-companion-state")).to_have_text("Visual · Thinking")
+            child.locator("body").evaluate("""() => window.dispatchEvent(
+                new CustomEvent('oap-smi-character-state',
+                    {detail:{state:'stopped',live:false,stopped:true}})
+            )""")
+            expect(page.locator("#smi-chat-panel")).to_have_attribute(
+                "data-smi-visual-state", "stopped"
+            )
+            expect(page.locator("#smi-companion-state")).to_have_text("Visual · Stopped")
         assert page.locator(".shell").evaluate("node => node.inert")
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), (width, "open chat")
         page.locator("#smi-chat-close").click()
