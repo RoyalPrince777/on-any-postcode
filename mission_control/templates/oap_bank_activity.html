@@ -12,15 +12,15 @@
 <body><main>
 <header><strong>SIKA · My Account</strong><a href="/pay/bank#more">Bank Menu</a><a href="/pay/bank/me">My SIKA Account</a></header>
 <h1>Activity</h1>
-<p class="muted">Your latest recorded payment requests and states. A request does not prove that money moved.</p>
+<p class="muted">Requests shown here do not confirm payment.</p>
 {% if activity is none %}
-<section class="notice" role="status"><strong>Activity unavailable</strong><p class="muted">Your activity could not be loaded safely. Try again later.</p></section>
+<section class="notice" role="status"><strong>Activity unavailable</strong><p class="muted">Try again later.</p></section>
 {% elif not activity['items'] %}
-<section class="notice"><strong>No recorded activity</strong><p class="muted">Your account has no recorded payment requests.</p></section>
+<section class="notice"><strong>No recorded activity</strong></section>
 {% else %}
 <ol class="activity-list">
 {% for item in activity['items'] %}
-<li class="entry"><div class="entry-heading"><strong class="reference">{{ item.payee_reference }}</strong><span class="amount">{{ item.currency }} {{ item.amount }}</span></div><p class="status">{{ item.status.replace('_', ' ')|title }}</p><time class="muted" datetime="{{ item.created_at }}">{{ item.created_at }}</time><p class="muted reference">Reference: {{ item.payment_id }}</p></li>
+<li class="entry"><div class="entry-heading"><strong class="reference">{{ item.payee_reference }}</strong><span class="amount">{{ item.currency }} {{ item.amount }}</span></div><p class="status">{{ item.status.replace('_', ' ')|title }}</p><time class="muted" datetime="{{ item.created_at }}">{{ item.created_at }}</time><details><summary style="cursor:pointer;min-height:44px">Reference</summary><p class="muted reference">{{ item.payment_id }}</p></details></li>
 {% endfor %}
 </ol>
 {% endif %}

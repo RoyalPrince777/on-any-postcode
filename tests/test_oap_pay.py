@@ -203,7 +203,7 @@ def test_oap_pay_bank_page_and_status_are_no_store(client):
     assert page.headers["Cache-Control"] == "no-store"
     body = page.get_data(as_text=True)
     assert "OAP Bank" in body
-    assert "Financial capability status" in body
+    assert 'data-bank-menu' in body
     assert "No deposits or money transfers are available." in body
 
     status = client.get("/pay/bank/status")
@@ -357,7 +357,7 @@ def test_oap_bank_feature_routes_are_real_and_fail_closed(client, monkeypatch):
 
     accounts = client.get("/pay/bank/accounts").get_data(as_text=True)
     assert "Accounts" in accounts
-    assert "Evidence-gated / unavailable" in accounts
+    assert "🔒 Locked" in accounts
     assert "does not fabricate balances" in accounts
 
     transfers = client.get("/pay/bank/transfers").get_data(as_text=True)
@@ -383,9 +383,14 @@ def test_oap_bank_home_links_to_real_feature_routes(client):
     assert 'href="/pay/bank/control-center"' not in body
 
 
-def test_oap_bank_page_shows_canonical_sika_software_readiness(client):
+def test_oap_bank_keeps_technical_readiness_in_founder_controls(client, monkeypatch):
     body = client.get("/pay/bank").get_data(as_text=True)
-    assert "SIKA software" in body
-    assert "<summary>Readiness details</summary>" in body
-    assert "Bank authorisation" in body
+    assert "SIKA software" not in body
+    assert "Readiness details" not in body
+    assert "Production gate" not in body
+    monkeypatch.setattr(oap_pay.web_security, "private_authority_allowed", lambda user: True)
+    founder = client.get("/pay/bank/control-center")
+    assert founder.status_code == 200
+    assert "Software checks" in founder.get_data(as_text=True)
+    assert "Production evidence" in founder.get_data(as_text=True)
 

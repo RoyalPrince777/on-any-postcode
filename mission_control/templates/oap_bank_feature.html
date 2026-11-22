@@ -15,14 +15,14 @@
 </head>
 <body>
 <main class="shell">
-<header class="top"><strong>👑 OAP Bank</strong><a class="back" href="/pay/bank">Bank Home</a></header>
+<header class="top"><strong>SIKA</strong><a class="back" href="/pay/bank#more">Bank Menu</a></header>
 <section class="hero">
-<div class="eyebrow">{{ 'Regulated capability' if view.evidence_gated else 'Bank service' }}</div>
 <h1>{{ view.feature.name }}</h1>
-<p>{{ view.feature.description }}</p>
-{% if view.enabled %}<span class="state on">🟢 Software gate allows this capability</span>{% else %}<span class="state off">🔒 Evidence-gated / unavailable</span>{% endif %}
+<span class="state off">{{ 'Status only' if view.enabled else '🔒 Locked' }}</span>
 </section>
 
+<details><summary style="cursor:pointer;min-height:44px">Details</summary>
+<p>{{ view.feature.description }}</p>
 <section class="panel">
 <h2>Capability truth</h2>
 <p>{% if view.capability %}Required capability: <strong>{{ view.capability }}</strong>.{% else %}This screen has no regulated execution capability attached to it.{% endif %}</p>
@@ -55,7 +55,8 @@
 {% endif %}
 
 <div class="truth"><strong>Truth:</strong> Bank software availability is not regulator authorisation. Provider calling: off · Money movement: off from this module.</div>
+</details>
 </main>
-<nav class="bottom"><a href="/pay/bank"><strong>⌂</strong>Home</a><a href="/pay"><strong>SIKA</strong>OAP Pay</a><a href="/pay/bank/status"><strong>◎</strong>Evidence</a></nav>
+<nav class="bottom"><a href="/pay/bank"><strong>⌂</strong>Home</a><a href="/pay"><strong>SIKA</strong>OAP Pay</a><a href="/pay/bank#more"><strong>•••</strong>Menu</a></nav>
 </body>
 </html>
