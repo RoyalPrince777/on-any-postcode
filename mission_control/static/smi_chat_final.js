@@ -295,6 +295,18 @@ auto.addEventListener('click',async()=>{
       results.push({id,ok:r.ok,signal:d?.signal||d?.result?.signal||'',state:d?.state||d?.result?.state||'',message:d?.message||d?.result?.message||d?.error?.message||('HTTP '+r.status)});
     }catch(e){results.push({id,ok:false,message:e?.message||'unavailable'});}
   }
+  // Run the existing first-party bounded recovery, not just dashboard probes.
+  // Backend enforces Founder session + CSRF and allows only runtime-queue repair.
+  let repair={state:'UNKNOWN',error:'repair_service_unavailable'};
+  try{
+    const r=await fetch(cfg.autoRepairUrl,{
+      method:'POST',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-OAP-CSRF':window.csrfToken||cfg.csrfToken||''},
+      body:'{}'
+    });
+    let d={};try{d=await r.json()}catch{}
+    repair=r.ok?d:{state:'BLOCKED',error:d?.error?.code||('HTTP '+r.status)};
+  }catch{repair={state:'UNKNOWN',error:'repair_service_unavailable'};}
   let health={},gate={};
   try{health=await getJson(cfg.functionHealthUrl);}catch{}
   try{gate=await getJson(cfg.greenGateUrl);}catch{}
@@ -305,8 +317,12 @@ auto.addEventListener('click',async()=>{
     'Safe checks: '+results.filter(x=>x.ok).length+'/'+results.length,
     'Runtime-ready: '+String(health?.runtime_ready_count??'?')+'/'+String(health?.expected_count??'?'),
     'Green Gate: '+(gate?.green===true?'PASS':'NOT PASSED'),
+    'Runtime repair: '+String(repair?.state||'UNKNOWN'),
+    'Stale leases recovered: '+String(repair?.recovered_stale_leases??0),
+    'Due internal checks queued: '+String(repair?.enqueued_due_schedules??0),
+    repair?.error?'Repair blocker: '+String(repair.error):'Repair: bounded to internal runtime maintenance',
     missing.length?'Missing: '+missing.join(', '):'Missing: not exposed by current safe status',
-    fullGreen?'No repair required.':'AUTO FIX stopped at the truth boundary. Code/deploy repair requires governed proposal + Founder approval.',
+    fullGreen&&repair?.state==='NO_SAFE_REPAIR_NEEDED'?'No safe runtime repair required.':'AUTO FIX stopped at the truth boundary. Code/deploy repair requires governed proposal + Founder approval.',
     'Consequential execution: NOT PERFORMED'
   ];
   appendResult('SMI AUTO FIX',lines,fullGreen?'green':allSafe?'purple':'yellow');
