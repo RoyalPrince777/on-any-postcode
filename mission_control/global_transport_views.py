@@ -11,6 +11,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, redirect, render_template_string, request
 
 from . import authority, oap_ride, operator_gateway, transport_execution_evidence, web_security
+from .oap_ride_backend_bridge import bp as oap_ride_backend_bridge_bp
 from .oap_ride_dashboards import bp as oap_ride_dashboards_bp
 from .oap_ride_runtime_routes import bp as oap_ride_runtime_bp
 from .oap_ride_journey_views import bp as oap_ride_journey_bp
@@ -24,6 +25,7 @@ from .oap_eats_routes import bp as oap_eats_bp
 from .travel_transport_views import bp as travel_transport_booking_bp
 
 bp = Blueprint("oap_global_transport", __name__)
+bp.register_blueprint(oap_ride_backend_bridge_bp)
 bp.register_blueprint(oap_ride_dashboards_bp)
 bp.register_blueprint(oap_ride_runtime_bp)
 bp.register_blueprint(oap_ride_journey_bp)
@@ -821,6 +823,7 @@ a{color:inherit;text-decoration:none}
 .search input{display:block;width:100%;min-height:45px;margin-top:4px;padding:10px 13px;border:1px solid #7d694a;border-radius:10px;background:#080807;color:#fff;font:inherit}
 .search input::placeholder{color:#a59d90}
 .action{width:100%;min-height:48px;margin-top:4px;border:0;border-radius:11px;background:var(--gold);color:#211809;font:850 .95rem system-ui;cursor:pointer}
+.backend-warning{margin:8px 2px;color:#cbbba0;font-size:.8rem}
 .price{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0;padding:11px 13px;border:1px solid var(--edge);border-radius:12px;background:var(--panel)}
 .price strong{font-size:.95rem;color:var(--gold)}
 .price span{font-size:.75rem;color:var(--muted);text-align:right}
@@ -852,6 +855,7 @@ a:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{o
 <datalist id="ride-destination-options"></datalist>
 <button class="action" id="ride-action" type="submit">Continue to booking</button>
 </form>
+<p id="ride-backend-warning" role="status" class="backend-warning" hidden>Local Ride backend unavailable · booking uses My Movement</p>
 <div class="price" aria-label="Ride fare"><strong id="ride-fare">Price unavailable</strong><span id="ride-quote-source">Verified quote required</span></div>
 <nav class="quick" aria-label="OAP Rides navigation">
 <a href="/transport/ride/rider">Rider</a><a href="/transport/ride/driver">Driver</a><a href="/transport/my">My Transport</a>
@@ -880,6 +884,7 @@ a:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{o
     fare.textContent=mode==="drive"?"No fare · own vehicle":"Price unavailable";
     source.textContent=mode==="drive"?"Route guidance requires road data":"Verified quote required";
     if(map.contentWindow) map.src="/oap-map?location=Mitcham&embed=ride&profile="+(mode==="ebike"?"cycling":"driving");
+    if(mode!=="drive")quote();
   };
   document.querySelectorAll("[data-mode]").forEach(btn=>btn.addEventListener("click",()=>setMode(btn.dataset.mode)));
   const syncMap=()=>{
@@ -896,25 +901,93 @@ a:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{o
     catch(_){alert.hidden=false}
   });
   map.addEventListener("error",()=>{alert.hidden=false});
+  const quoteCsrf={{ quote_csrf|tojson }};
+  const warning=document.getElementById("ride-backend-warning");
+  const chosen=new Map();
+  let backendConnected=false, quoteSequence=0;
+  const unavailable=()=>{
+    fare.textContent="Price unavailable";
+    source.textContent=backendConnected?"Select mapped places · local data only":"Local backend not connected";
+  };
+  const quote=async()=>{
+    const current=++quoteSequence;
+    if(mode==="drive")return;
+    if(!backendConnected || !chosen.has("ride-pickup") || !chosen.has("ride-destination")){
+      unavailable();return;
+    }
+    const a=chosen.get("ride-pickup"),b=chosen.get("ride-destination");
+    fare.textContent="Checking local route…";
+    source.textContent="Self-hosted OSRM required";
+    try{
+      const response=await fetch("/transport/ride/backend/quote",{
+        method:"POST",credentials:"same-origin",cache:"no-store",
+        headers:{"Content-Type":"application/json","X-OAP-CSRF":quoteCsrf},
+        body:JSON.stringify({
+          pickup_lat:a.lat,pickup_lon:a.lon,drop_lat:b.lat,drop_lon:b.lon,
+          vehicle_class:mode==="ebike"?"ebike":"car"
+        })
+      });
+      if(!response.ok)throw new Error("no_route_quote");
+      const result=await response.json();
+      if(current!==quoteSequence)return;
+      if(result.quote_status!=="estimate_not_firm_fare" ||
+         result.source!=="self_hosted_osrm" ||
+         result.currency!=="GBP" ||
+         !Number.isSafeInteger(result.amount_minor) ||
+         result.amount_minor<=0 ||
+         result.live_dispatch_confirmed!==false)return unavailable();
+      fare.textContent="Est. "+new Intl.NumberFormat("en-GB",{
+        style:"currency",currency:"GBP"
+      }).format(result.amount_minor/100);
+      source.textContent="OSRM estimate · not a booking price";
+    }catch(_){if(current===quoteSequence)unavailable()}
+  };
+  fetch("/transport/ride/backend/status",{
+    credentials:"same-origin",cache:"no-store",headers:{"Accept":"application/json"}
+  }).then(async response=>{
+    if(!response.ok)throw new Error("backend_unavailable");
+    const state=await response.json();
+    backendConnected=state.connected===true && state.status==="database_and_redis_ready";
+    warning.hidden=backendConnected;
+    quote();
+  }).catch(()=>{backendConnected=false;warning.hidden=false;quote()});
   const bindSuggestions=(input,list)=>{
     let timer=0,seq=0;
+    const offered=new Map();
     input.addEventListener("input",()=>{
       clearTimeout(timer);
-      const query=input.value.trim();
-      if(query.length<2){list.replaceChildren();return}
-      const requested=++seq;
+      const term=input.value.trim();
+      const selected=offered.get(term);
+      if(selected)chosen.set(input.id,selected);
+      else chosen.delete(input.id);
+      quote();
+      if(term.length<2 || selected){if(term.length<2)list.replaceChildren();return}
+      const mine=++seq;
       timer=setTimeout(async()=>{
         try{
-          const response=await fetch("/map-intelligence/suggest?q="+encodeURIComponent(query.slice(0,80)),{credentials:"same-origin",cache:"no-store"});
-          if(!response.ok||requested!==seq)return;
+          const response=await fetch(
+            "/transport/ride/backend/places?q="+encodeURIComponent(term.slice(0,80)),
+            {credentials:"same-origin",cache:"no-store"}
+          );
+          if(!response.ok||mine!==seq)return;
           const data=await response.json();
-          list.replaceChildren();
-          (Array.isArray(data.suggestions)?data.suggestions:[]).slice(0,7).forEach(item=>{
-            const text=String(item.value||item.label||"").slice(0,120);
-            if(text){const option=document.createElement("option");option.value=text;list.appendChild(option)}
+          list.replaceChildren();offered.clear();
+          (Array.isArray(data.results)?data.results:[]).slice(0,8).forEach(item=>{
+            const label=String(item.label||"").slice(0,120);
+            if(!label)return;
+            const option=document.createElement("option");
+            option.value=label;list.appendChild(option);
+            if(Number.isFinite(item.lat)&&Number.isFinite(item.lon))
+              offered.set(label,{lat:item.lat,lon:item.lon});
           });
-        }catch(_){list.replaceChildren()}
+        }catch(_){list.replaceChildren();offered.clear()}
       },220);
+    });
+    input.addEventListener("change",()=>{
+      const selected=offered.get(input.value.trim());
+      if(selected)chosen.set(input.id,selected);
+      else chosen.delete(input.id);
+      quote();
     });
   };
   bindSuggestions(pickup,document.getElementById("ride-pickup-options"));
@@ -938,7 +1011,9 @@ a:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{o
 
 @bp.get("/transport/ride")
 def transport_ride():
-    return _no_store(make_response(render_template_string(_RIDE_PAGE), 200))
+    return _no_store(make_response(render_template_string(
+        _RIDE_PAGE, quote_csrf=web_security.csrf_token()
+    ), 200))
 
 
 @bp.get("/transport/ride/status")
