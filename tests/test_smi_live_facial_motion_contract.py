@@ -9,7 +9,9 @@ def test_source_pixel_motion_uses_lightweight_live_rendering_path():
     assert "context.ellipse(" in text
     assert "context.scale(" in text
     assert "frameBudgetMs=lowPower?50:34" in text
-    assert "doc.hidden||!live" in text
+    assert 'doc.hidden||(!live&&phase!=="ready")' in text
+    assert 'ambientFrameBudgetMs=lowPower?170:120' in text
+    assert 'ambientVisualMotion:phase==="ready"&&!live&&played>0' in text
     assert "droppedFrames" in text
 
 
