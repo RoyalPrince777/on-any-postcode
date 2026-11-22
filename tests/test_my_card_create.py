@@ -246,7 +246,10 @@ def test_basic_my_card_hub_shows_profile_contacts_settings_and_emojis(anonymous_
     assert "Settings · Theme · My Emojis" in page
     assert "DP avatar" in page
     assert "DP photo upload is not enabled yet." in page
-    assert "Discover People" in page
+    assert "The Link" in page
+    assert page.count('href="/the-link"') == 1
+    assert '<details class="card card-settings">' in page
+    assert '<fieldset class="prefs-field"><legend>DP avatar</legend>' in page
     assert "Link Up" in page
 
 
