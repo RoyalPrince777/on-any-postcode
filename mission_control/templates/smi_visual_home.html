@@ -40,6 +40,14 @@
 body.smi-chat-open .character-art img,
 body[data-smi-visible="false"] .character-art img{animation-play-state:paused}
 body.smi-chat-open .smi-welcome{opacity:0;animation:none}
+.smi-chat-motion-state{font-size:11px;line-height:1.3;color:#d7c29a;min-width:72px;text-align:center}
+.smi-chat-panel[data-smi-visual-state="listening"] .smi-chat-motion-state{color:#d4b9ff}
+.smi-chat-panel[data-smi-visual-state="thinking"] .smi-chat-motion-state{color:#91cfff}
+.smi-chat-panel[data-smi-visual-state="speaking"] .smi-chat-motion-state{color:#f8d38d}
+.smi-chat-panel[data-smi-visual-state="stopped"] .smi-chat-motion-state{color:#d8adb4}
+@media(max-width:540px){.smi-chat-motion-state{order:3;flex-basis:100%;text-align:left;padding-left:2px}}
+/* No scripted fake facial gestures on the static dashboard asset.
+   Chat renders the existing real canonical seven-layer source-pixel rig. */
 @media(max-width:760px){
  .smi-welcome{top:10px;max-width:calc(100% - 18px);padding:8px 12px}
  .smi-welcome small{font-size:10px}
@@ -81,7 +89,7 @@ body.smi-chat-open .smi-welcome{opacity:0;animation:none}
 </section><section class="panel"><h2>OAP UNIVERSE</h2><nav class="universe-tiles" aria-label="OAP universe"><a href="/on-any-place"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-world"/></svg>Places<small>Explore the world</small></a><a href="/world"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-world"/></svg>Worlds<small>OAP World</small></a><a href="/studio"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-tv"/></svg>Studio<small>Create</small></a><a href="/mission/agents"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-brain"/></svg>Matrix<small>Intelligence</small></a><a href="/the-link"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-link"/></svg>The Link<small>Connect</small></a><a href="/movement"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-signal"/></svg>Movement<small>Your journey</small></a><a href="/mission/organism"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-brain"/></svg>Nexus<small>Memory</small></a></nav></section><details class="deeper-tools"><summary>SMI controls</summary><nav aria-label="Deeper SMI controls"><a href="/mission/brain">Brain</a><a href="/mission/improvement">Learning</a><a href="/mission/organism">Memory</a><a href="/mission/organism">Recovery</a><a href="/guardian">Protection</a><a href="/mission/smi/status">Founder Final evidence</a></nav></details><p class="caption">No invented global counts. Live evidence is loaded only when requested.</p></div></details></aside>
 <footer class="footer-dock" aria-label="OAP dock"><a class="dock-item primary" href="/mission/smi" aria-current="page"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-home"/></svg>Home</a><a class="dock-item" href="/mission/agents"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-search"/></svg>Search</a><button class="dock-item dock-voice" type="button" data-smi-talk aria-haspopup="dialog"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-mic"/></svg>Voice</button><button class="ask smi-talk-dock" type="button" data-smi-talk aria-haspopup="dialog" aria-label="Talk to SMI in automatic 3 7 21 mode"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-chat"/></svg><span>Ask SMI…</span><svg class="infinity" aria-hidden="true"><use href="#i-infinity"/></svg></button><a class="dock-item" href="/linkup/incoming"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-chat"/></svg>Incoming</a><a class="dock-item dock-world" href="/world"><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-world"/></svg>OAP World</a><a class="dock-item founder" href="/my-world"><span class="founder-avatar"><svg viewBox="700 145 160 160" aria-hidden="true"><image href="/static/oap/smi_founder_command_reference.jpg" width="1536" height="1155"/></svg></span>Founder</a></footer>
 </div>
-<section id="smi-chat-panel" class="smi-chat-panel" role="dialog" aria-modal="true" aria-label="Talk to SMI" hidden><div class="smi-chat-panel-bar"><b>Talk to SMI · AUTO 3 / 7 / 21</b><a href="/mission/ollama">Open full chat ↗</a><button id="smi-chat-close" type="button" aria-label="Close SMI conversation and return to command centre">✕ Close</button></div><iframe id="smi-chat-frame" class="smi-chat-frame" title="Existing governed SMI conversation" data-src="/mission/ollama" referrerpolicy="same-origin"></iframe></section>
+<section id="smi-chat-panel" class="smi-chat-panel" role="dialog" aria-modal="true" aria-label="Talk to SMI" data-smi-visual-state="ready" hidden><div class="smi-chat-panel-bar"><b>Talk to SMI · AUTO 3 / 7 / 21</b><span id="smi-companion-state" class="smi-chat-motion-state" role="status" aria-live="polite">Visual · Ready</span><a href="/mission/ollama">Open full chat ↗</a><button id="smi-chat-close" type="button" aria-label="Close SMI conversation and return to command centre">✕ Close</button></div><iframe id="smi-chat-frame" class="smi-chat-frame" title="Existing governed SMI conversation" data-src="/mission/ollama" referrerpolicy="same-origin"></iframe></section>
 <script>
 (() => {
   const routes = document.querySelector('.smi-route-drawer');
@@ -99,6 +107,23 @@ body.smi-chat-open .smi-welcome{opacity:0;animation:none}
   const panel = document.getElementById('smi-chat-panel');
   const frame = document.getElementById('smi-chat-frame');
   const close = document.getElementById('smi-chat-close');
+  const motionLabel = document.getElementById('smi-companion-state');
+  // State comes from this exact same-origin chat iframe, never a loose window.
+  // It is a visual label only: no chat messages or execution authority cross.
+  const phases = Object.freeze({
+    ready:'Ready', listening:'Listening', thinking:'Thinking',
+    speaking:'Speaking', paused:'Paused', stopped:'Stopped'
+  });
+  window.addEventListener('message', event => {
+    if (panel.hidden || document.hidden || event.origin !== window.location.origin ||
+        event.source !== frame.contentWindow ||
+        event.data?.type !== 'oap-smi-visual-state-v1' ||
+        !Object.prototype.hasOwnProperty.call(phases, event.data.state)) return;
+    const state = event.data.state;
+    panel.dataset.smiVisualState = state;
+    document.body.dataset.smiPresence = state;
+    motionLabel.textContent = 'Visual · ' + phases[state];
+  });
   let trigger = null;
   for (const button of document.querySelectorAll('[data-smi-talk]')) {
     button.addEventListener('click', () => {
@@ -107,6 +132,8 @@ body.smi-chat-open .smi-welcome{opacity:0;animation:none}
       shell.inert = true;
       document.body.classList.add('smi-chat-open');
       document.body.dataset.smiPresence = 'chat';
+      panel.dataset.smiVisualState = 'ready';
+      motionLabel.textContent = 'Visual · Ready';
       if (!frame.hasAttribute('src')) frame.setAttribute('src', frame.dataset.src);
       close.focus();
     });
@@ -117,6 +144,8 @@ body.smi-chat-open .smi-welcome{opacity:0;animation:none}
     shell.inert = false;
     document.body.classList.remove('smi-chat-open');
     document.body.dataset.smiPresence = 'idle';
+    panel.dataset.smiVisualState = 'ready';
+    motionLabel.textContent = 'Visual · Ready';
     if (trigger) trigger.focus();
   };
   close.addEventListener('click', dismiss);
