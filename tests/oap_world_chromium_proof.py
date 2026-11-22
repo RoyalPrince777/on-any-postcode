@@ -66,7 +66,12 @@ def main():
                 field.fill("safety")
                 expect(page.locator("[data-public-filter-item]:not([hidden])")).to_have_count(1)
                 expect(page.locator("[data-oap-public-search-note]")).to_contain_text("1 matching public sections")
-                field.fill("")
+                field.fill("nearby")
+                expect(page.locator("[data-public-filter-item]:not([hidden])")).to_have_count(1)
+                assert page.locator("[data-linkup-secondary]").evaluate("(el) => el.open") is True
+                expect(page.get_by_role("link", name="Nearby People")).to_be_visible()
+                field.press("Escape")
+                expect(field).to_have_value("")
                 expect(page.locator("[data-public-filter-item]:not([hidden])")).to_have_count(12)
                 page.locator('nav[aria-label="Link Up public bottom navigation"] a[href="/linkup?intent=message"]').click()
                 assert ("/auth" in page.url or "/enter-my-world" in page.url), page.url
