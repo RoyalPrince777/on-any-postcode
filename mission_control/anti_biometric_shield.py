@@ -76,6 +76,65 @@ def permission_decision(
     return {"allowed": True, "reason": "CONSENTED_FIRST_PARTY_FLOW"}
 
 
+
+# Scope of already-existing camera, mic, picture, Bluetooth and motion systems.
+# Permission is for a specific action, not a standing right to scan in background.
+_DEVICE_MEDIA_KINDS = frozenset({
+    "camera", "camera_frame", "photo", "picture", "gallery_photo",
+    "image_capture", "photo_attachment", "picture_attachment",
+    "microphone", "mic", "mic_capture", "audio_capture", "voice_note",
+    "voice_message", "screen_capture", "bluetooth", "bluetooth_scan",
+    "bluetooth_transfer", "nearby_device", "nearby_devices",
+    "device_discovery", "motion", "accelerometer", "gyroscope",
+})
+_BLUETOOTH_KINDS = frozenset({
+    "bluetooth", "bluetooth_scan", "bluetooth_transfer",
+    "nearby_device", "nearby_devices", "device_discovery",
+})
+_DEVICE_OPERATIONS = frozenset({
+    "capture", "record", "read", "store", "scan", "discover",
+    "transfer", "share", "stream",
+})
+
+
+def sensor_flow_decision(
+    *,
+    kind: str,
+    operation: str,
+    consent: bool,
+    foreground: bool,
+    destination: str = "local",
+    peer_authorised: bool = False,
+) -> dict[str, object]:
+    """Policy for existing OAP sensor/media pathways, not OS enforcement.
+
+    Capture and discovery must be visible, explicit and first-party. Sharing
+    to a different first-party recipient requires separately authorised peer.
+    Device permissions, live flows and paired hardware still require proof.
+    """
+    category, action, target = map(_normalise, (kind, operation, destination))
+    if is_raw_biometric_category(category):
+        return {"allowed": False, "reason": "RAW_BIOMETRICS_BLOCKED"}
+    if (
+        category not in _DEVICE_MEDIA_KINDS
+        or action not in _DEVICE_OPERATIONS
+        or target not in {"local", "first_party", "external"}
+    ):
+        return {"allowed": False, "reason": "UNKNOWN_FLOW"}
+    if target == "external":
+        return {"allowed": False, "reason": "EXTERNAL_DESTINATION_BLOCKED"}
+    if not consent:
+        return {"allowed": False, "reason": "NO_CONSENT"}
+    if action in {"scan", "discover"} and category not in _BLUETOOTH_KINDS:
+        return {"allowed": False, "reason": "INCOMPATIBLE_SENSOR_OPERATION"}
+    if not foreground and action in {
+        "capture", "record", "scan", "discover", "stream", "read",
+    }:
+        return {"allowed": False, "reason": "BACKGROUND_SENSOR_ACCESS_BLOCKED"}
+    if action in {"transfer", "share"} and target == "first_party" and not peer_authorised:
+        return {"allowed": False, "reason": "PEER_AUTHORISATION_REQUIRED"}
+    return {"allowed": True, "reason": "CONSENTED_FIRST_PARTY_FLOW"}
+
 def evidence_gate(checks: Mapping[str, object] | None = None) -> dict[str, object]:
     """Report missing proof; caller-supplied flags never self-certify production."""
     supplied = checks if isinstance(checks, Mapping) else {}
