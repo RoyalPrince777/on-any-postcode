@@ -646,7 +646,11 @@ def test_koradaso_destinations_and_arena_games_have_a_home_return(client):
     )
     for route in routes:
         page = client.get(route, follow_redirects=False)
-        assert page.status_code == 200, (route, page.status_code)
+        if route == "/koradaso/web-search" and page.status_code == 503:
+            # Unconfigured first-party WWW index must report unavailable, not fabricate results.
+            assert "Web index unavailable." in page.get_data(as_text=True)
+        else:
+            assert page.status_code == 200, (route, page.status_code)
         assert 'href="/koradaso"' in page.get_data(as_text=True), route
     logo = client.get("/static/oap/koradaso_internet_logo.jpg")
     assert logo.status_code == 200
