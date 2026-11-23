@@ -5,6 +5,7 @@ from mission_control.anti_biometric_shield import (
     evidence_gate,
     is_raw_biometric_category,
     permission_decision,
+    sensor_flow_decision,
 )
 from mission_control.private_smi_recognition import (
     EvidenceState,
@@ -66,6 +67,61 @@ class AntiBiometricShieldTests(unittest.TestCase):
             project_observation(UnsafeLegacyObservation(), founder_authenticated=True),
             {"status": "DENIED", "value": None},
         )
+
+    def test_existing_device_media_flows_require_consent(self):
+        for kind, operation in (
+            ("camera", "capture"), ("picture", "store"),
+            ("photo_attachment", "share"), ("microphone", "record"),
+            ("mic", "record"), ("voice_note", "store"),
+            ("bluetooth", "scan"), ("nearby_devices", "discover"),
+            ("motion", "read"), ("screen_capture", "capture"),
+        ):
+            with self.subTest(kind=kind):
+                self.assertEqual(
+                    sensor_flow_decision(
+                        kind=kind, operation=operation, consent=False,
+                        foreground=True,
+                    )["reason"], "NO_CONSENT",
+                )
+                self.assertTrue(sensor_flow_decision(
+                    kind=kind, operation=operation, consent=True,
+                    foreground=True,
+                )["allowed"])
+
+    def test_external_sensor_egress_and_hidden_scanning_denied(self):
+        for kind in ("picture", "mic", "bluetooth", "motion", "camera"):
+            self.assertEqual(sensor_flow_decision(
+                kind=kind, operation="read", consent=True,
+                foreground=True, destination="external",
+            )["reason"], "EXTERNAL_DESTINATION_BLOCKED")
+        for kind, operation in (
+            ("bluetooth", "scan"), ("nearby_devices", "discover"),
+            ("microphone", "record"), ("camera", "capture"),
+            ("motion", "read"),
+        ):
+            self.assertEqual(sensor_flow_decision(
+                kind=kind, operation=operation, consent=True,
+                foreground=False,
+            )["reason"], "BACKGROUND_SENSOR_ACCESS_BLOCKED")
+
+    def test_first_party_media_sharing_requires_peer_authorisation(self):
+        self.assertEqual(sensor_flow_decision(
+            kind="photo_attachment", operation="share",
+            consent=True, foreground=True, destination="first_party",
+        )["reason"], "PEER_AUTHORISATION_REQUIRED")
+        self.assertTrue(sensor_flow_decision(
+            kind="photo_attachment", operation="share", consent=True,
+            foreground=True, destination="first_party",
+            peer_authorised=True,
+        )["allowed"])
+        self.assertFalse(sensor_flow_decision(
+            kind="face_embedding", operation="store", consent=True,
+            foreground=True,
+        )["allowed"])
+        self.assertFalse(sensor_flow_decision(
+            kind="picture", operation="profile", consent=True,
+            foreground=True,
+        )["allowed"])
 
     def test_no_false_green_even_if_all_self_reported_flags_true(self):
         default = evidence_gate()
