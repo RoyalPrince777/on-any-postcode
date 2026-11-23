@@ -79,6 +79,38 @@
     for(let i=3;i<data.length;i+=4)if(data[i]>0)return true;
     return false;
   }
+  // Evidence for Founder inspection, not automatic anatomical approval.
+  // A flat JPEG has no trustworthy foreground/hidden-surface segmentation.
+  // Count full-canvas mask coordinates locally; never upload or persist them.
+  function auditDraftRegions(){
+    const width=image.naturalWidth,height=image.naturalHeight;
+    const occupancy=new Uint8Array(width*height);
+    const selectedCounts={};
+    let overlapping=0,unique=0;
+    for(const name of NAMES){
+      const rec=state.get(name);
+      if(!rec?.filled)throw Error("Finish all seven nonempty masks; missing "+name);
+      const pixels=rec.ctx.getImageData(0,0,width,height).data;
+      let count=0;
+      for(let i=3,p=0;i<pixels.length;i+=4,p++){
+        if(pixels[i]===0)continue;
+        count++;
+        if(occupancy[p]===1){overlapping++;occupancy[p]=2;}
+        if(occupancy[p]===0){unique++;occupancy[p]=1;}
+      }
+      if(!count)throw Error("Finish all seven nonempty masks; missing "+name);
+      selectedCounts[name]=count;
+    }
+    return {
+      selected_pixel_counts:selectedCounts,
+      unique_selected_coordinates:unique,
+      overlapping_coordinates:overlapping,
+      source_silhouette_verified:false,
+      hidden_anatomy_verified:false,
+      occlusion_approved:false,
+      anatomical_mask_approval:false
+    };
+  }
   function position(canvas,event){
     const rect=canvas.getBoundingClientRect();
     return {x:Math.max(0,Math.min(canvas.width,(event.clientX-rect.left)
@@ -168,16 +200,19 @@
         const blob=await maskBlob(rec.canvas);
         entries.push({name:name+".png",data:new Uint8Array(await blob.arrayBuffer())});
       }
+      const audit=auditDraftRegions();
       const manifest={version:"0.1",source_sha256:expected,
         canvas:[image.naturalWidth,image.naturalHeight],
         names:NAMES,approval:"DRAFT_REQUIRES_FOUNDER_REVIEW",
-        animation_active:false,includes_hidden_regions:false};
+        animation_active:false,includes_hidden_regions:false,
+        draft_region_audit:audit};
       entries.push({name:"mask-bundle.json",
         data:new TextEncoder().encode(JSON.stringify(manifest,null,2)+"\n")});
       const bytes=window.OAP_SMI_MASK_ZIP.createZip(entries);
       download(new Blob([bytes],{type:"application/zip"}),
         "smi-exact-character-draft-masks.zip");
-      say("Seven original-canvas draft masks saved locally. Human review required.");
+      say("Seven draft masks saved locally. Human review required: "+
+        audit.overlapping_coordinates+" shared coordinates; silhouette and depth unverified.");
     }catch(error){say("ZIP export blocked: "+error.message);}
     finally{busy=false;enable(true);}
   });
