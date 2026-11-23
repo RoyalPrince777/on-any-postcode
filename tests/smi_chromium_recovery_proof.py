@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -408,10 +409,70 @@ def prove_original_pixel_workbench(context, base_url):
             assert int.from_bytes(png[16:20], "big") == 1536, name
             assert int.from_bytes(png[20:24], "big") == 1024, name
     expect(page.locator("#feedback")).to_contain_text("Human review required")
+
+    # Recover the Founder's already-built original-pixel RGB layer extractor.
+    # Real browser source JPG and seven white-alpha masks; never an invented
+    # character or a server-side mask upload.
+    with page.expect_download(timeout=60000) as exported_layers:
+        page.locator("#save-layers").click()
+    layer_download=exported_layers.value
+    assert layer_download.suggested_filename == "smi-private-original-pixel-layers-DRAFT.zip"
+    with ZipFile(layer_download.path()) as archive:
+        assert archive.namelist() == [f"{name}.png" for name in LAYERS] + ["source-package.json"]
+        assert archive.testzip() is None
+        receipt=json.loads(archive.read("source-package.json"))
+        assert receipt["approved_source_sha256"] == APPROVED_SOURCE_SHA256
+        assert receipt["provenance"] == "original_source_pixels_only"
+        assert receipt["canvas_width"] == 1536 and receipt["canvas_height"] == 1024
+        assert receipt["motion_proven"] is False
+        assert receipt["speech_sync_proven"] is False
+        assert receipt["hidden_region_reconstruction"] is False
+        assert receipt["geometry_proven"] is False
+        assert receipt["human_authority_approved"] is False
+        assert set(receipt["layers"]) == set(LAYERS)
+        for name in LAYERS:
+            layer=receipt["layers"][name]
+            data=archive.read(f"{name}.png")
+            assert data[:8] == b"\\x89PNG\\r\\n\\x1a\\n"
+            assert hashlib.sha256(data).hexdigest() == layer["sha256"]
+            left,top,right,bottom=layer["bbox_xyxy"]
+            assert 0 <= left < right <= 1536
+            assert 0 <= top < bottom <= 1024
+            assert int.from_bytes(data[16:20], "big") == right-left
+            assert int.from_bytes(data[20:24], "big") == bottom-top
+            assert layer["selected_pixels"] > 0
+            assert layer["approval"] == "DRAFT_REQUIRES_FOUNDER_REVIEW"
+    expect(page.locator("#feedback")).to_contain_text("No hidden anatomy")
+
+    # Real two-frame original-pixel inspector; offsets bounded, STOP handles
+    # stale frames and the result is never wired to live SMI animation.
+    with page.expect_download(timeout=60000) as exported_frames:
+        page.locator("#save-frames").click()
+    frame_download=exported_frames.value
+    assert frame_download.suggested_filename == "smi-private-original-pixel-frames-DRAFT.zip"
+    with ZipFile(frame_download.path()) as archive:
+        assert archive.namelist() == ["frame-neutral.png","frame-offset.png","frame-evidence.json"]
+        assert archive.testzip() is None
+        proof=json.loads(archive.read("frame-evidence.json"))
+        assert proof["approved_source_sha256"] == APPROVED_SOURCE_SHA256
+        assert proof["canvas"] == [1536,1024]
+        assert proof["original_pixels_only"] is True
+        assert proof["motion_proven"] is False
+        assert proof["speech_sync_proven"] is False
+        assert proof["occlusion_approved"] is False
+        assert proof["attached_to_live_page"] is False
+        assert proof["human_authority_approved"] is False
+        for name in ("frame-neutral.png","frame-offset.png"):
+            data=archive.read(name)
+            assert data[:8] == b"\\x89PNG\\r\\n\\x1a\\n"
+            assert hashlib.sha256(data).hexdigest() == proof["file_sha256"][name]
+            assert int.from_bytes(data[16:20],"big") == 1536
+            assert int.from_bytes(data[20:24],"big") == 1024
+    expect(page.locator("#feedback")).to_contain_text("remain unproven")
     assert not any(method != "GET" for method, _ in requested), requested
     assert not any("third-party" in url for _, url in requested)
     page.close()
-    print("SMI_CC_ORIGINAL_PIXELS=PASS (signed-in Chromium, seven genuine draft PNGs, private ZIP, no server writes)")
+    print("SMI_CC_ORIGINAL_PIXELS=PASS (signed-in Chromium, mask ZIP + real source-derived seven RGBA layers + two draft frames; no server writes)")
 
 
 def main():
