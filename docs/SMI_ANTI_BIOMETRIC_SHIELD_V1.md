@@ -51,3 +51,29 @@ independent attestation is outside this policy function.
 add routes, adjust auth, publish data or alter network binding.
 
 **Law:** Research has no ceiling. Deployment has boundaries.
+
+
+## Existing first-party camera / Bluetooth / microphone / pictures
+
+Reviewed sources on main:
+- `mission_control/static/smi_interaction_layer.js`: SMI Vision still capture,
+  Face Up camera/mic and explicit picture-to-Vision staging; retain existing
+  STOP and browser permission controls.
+- `mission_control/silicon_architecture.py`: Bluetooth, local network and
+  sensor fabrics are declared as **architecture**, not verified Bluetooth
+  Android runtime or transfer.
+- `oap/smi/providers.py`: existing external-provider privacy egress block
+  now includes explicit media / nearby-device / motion tags. This is an
+  actual provider-router boundary, **not** a global network firewall.
+
+`sensor_flow_decision()` adds a reusable denial policy for consentless
+camera/pictures/mic/Bluetooth/motion, external destinations, concealed
+foreground capture or scan, and unauthorised first-party sharing.
+It is *not yet connected* to the Android Bluetooth stack or all SMI
+camera/upload/voice routes. Consensual media must remain usable;
+a picture with a face is not automatically a biometric *template*.
+
+Remaining tests: the exact head, Android 15 Redmi A5 permissions, real Bluetooth
+pairing/transfer, sensitive EXIF removal on authorised share, OS mic/camera
+indicators, foreground/background transitions, real first-party egress, and
+Guardian/HRM readback. Preserve Founder Final and deployment lock.
