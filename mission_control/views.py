@@ -44,6 +44,7 @@ from . import (
     status,
     studio_build_preview,
     studio_intelligence,
+    studio_provider_capabilities,
     studio_project_shell,
     studio_workspace_orchestrator,
     war_room,
@@ -985,6 +986,30 @@ def smi_studio_status():
     """Return the canonical Founder-only OAP Studio Intelligence contract."""
 
     return _no_store(make_response(jsonify(studio_intelligence.status())))
+
+
+@bp.get("/studio/providers")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_provider_catalogue():
+    """Founder-only research catalogue; no external API request."""
+    snapshot = studio_provider_capabilities.status(studio_intelligence.studio_media_backend.status())
+    return _no_store(make_response(jsonify(snapshot)))
+
+
+@bp.post("/studio/providers/preflight")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_provider_preflight():
+    """CSRF-protected capability check; never spends or executes."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and retry.", 403)
+    payload = request.get_json(silent=True)
+    try:
+        result = studio_provider_capabilities.preflight(
+            payload, studio_intelligence.studio_media_backend.status()
+        )
+    except (TypeError, ValueError) as exc:
+        return _error("studio_provider_preflight_invalid", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.post("/studio/project-shell/prepare")
