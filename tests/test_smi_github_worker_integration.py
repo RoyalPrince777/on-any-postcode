@@ -63,6 +63,12 @@ def test_worker_continues_smi_mission_without_button_or_new_job(monkeypatch):
     )
     result = organism_worker._health_probe(None)
     assert observed == [1413, 1411, 1234, 1318, 1384]
+    reviews = result["github_failure_evidence"]["mission_continuity"]
+    assert all(row["behaviour_review"]["checks_executed"] is False for row in reviews)
+    assert all(row["behaviour_review"]["repair_authorized"] is False for row in reviews)
+    assert reviews[0]["behaviour_review"]["truth"] == "VERIFIED"
+    assert reviews[0]["behaviour_review"]["thinking_depth"] == 3
+    assert reviews[1]["behaviour_review"]["truth"] == "UNKNOWN"
     assert result["github_failure_evidence"]["captain_next_move"] == "continue_target_proof"
     assert result["github_failure_evidence"]["captain_automatic_observation"] is True
     assert result["github_failure_evidence"]["captain_code_execution"] is False
@@ -126,6 +132,12 @@ def test_failure_diagnosis_requires_classification_and_never_authorizes_repair(m
     assert diagnosis["category_detected"] is False
     assert diagnosis["verified"] is False
     assert diagnosis["repair_authorized"] is False
+    assert unknown["github_failure_evidence"]["mission_continuity"][0][
+        "behaviour_review"
+    ]["thinking_depth"] == 7
+    assert unknown["github_failure_evidence"]["mission_continuity"][0][
+        "behaviour_review"
+    ]["truth"] == "BLOCKED"
     assert unknown["consequential_action"] is False
     assert "test-only-private-token" not in str(unknown)
 
