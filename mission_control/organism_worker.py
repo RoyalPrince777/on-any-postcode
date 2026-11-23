@@ -13,6 +13,7 @@ from typing import Any
 
 from . import (
     autonomy_levels,
+    ai_behaviour,
     oap_core_autonomy,
     organism_autonomy,
     postgres_db,
@@ -131,6 +132,24 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
                             else "Review unclassified failure before proposing a fix."
                         ),
                     }}
+            # Existing SMI AI Behaviour selects review depth; it does not
+            # certify checks, learn autonomously or authorise a repair.
+            behaviour = ai_behaviour.review_checks_for(
+                "7" if entry.get("next_move") == "inspect_failed_ci" else "3"
+            )
+            entry = {**entry, "behaviour_review": {
+                "truth": (
+                    "VERIFIED" if entry.get("ci_proven") is True
+                    else "BLOCKED" if entry.get("next_move") == "inspect_failed_ci"
+                    else "UNKNOWN"
+                ),
+                "thinking_depth": behaviour["thinking_depth"],
+                "selected_checks": behaviour["selected_checks"],
+                "checks_executed": False,
+                "independent_agent_executed": False,
+                "repair_authorized": False,
+                "human_authority_final": True,
+            }}
             mission_continuity.append(entry)
         github_evidence = {
             **github_evidence,
