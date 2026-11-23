@@ -326,3 +326,12 @@ body.smi-command-open .smi-command-alliance-panel:not([hidden]){
  .smi-alliance-grid{grid-template-columns:1fr}
  .smi-alliance-card{padding:10px}
 }
+
+.smi-alliance-consult{
+ align-self:start;margin-top:2px;padding:7px 10px;
+ border:1px solid #c69b58;border-radius:8px;background:#21182b;
+ color:#efd7a6;font:inherit;font-size:.72rem;cursor:pointer
+}
+.smi-alliance-consult:hover,.smi-alliance-consult:focus-visible{
+ border-color:#f4cf88;outline:2px solid #f4cf88;outline-offset:2px
+}
