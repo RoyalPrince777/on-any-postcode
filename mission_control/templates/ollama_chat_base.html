@@ -253,7 +253,7 @@ function endWork(){const seconds=workedSeconds();if(workTimer)clearInterval(work
 // Reviews run through the canonical SMI brain; presentation remains quiet by default.
 // Explicit requests expose only safe stage labels, never model-private reasoning.
 function wantsWorkDetails(text){
- return /(?:^|\b)(?:show|display|open|expand|expose)\s+(?:me\s+)?(?:the\s+)?(?:thinking\s+process|work\s+stages|process\s+details|review\s+steps|evidence|proof|diagnostics)\b|^\s*expose\s*$/i.test(String(text||''));
+ return /^\s*(?:please\s+)?(?:(?:show|display|open|expand|expose)\s+(?:me\s+)?(?:the\s+)?(?:thinking\s+process|work\s+stages|process\s+details|review\s+steps|evidence|proof|diagnostics)|expose\s*[.!]?)\s*$/i.test(String(text||''));
 }
 function setWorkDetails(text){
  const requested=wantsWorkDetails(text);
