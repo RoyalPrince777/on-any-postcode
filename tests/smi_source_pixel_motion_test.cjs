@@ -33,6 +33,18 @@ assert.ok(source.includes("fullBodyRigProven=false"),"flattened pixels are not a
 assert.ok(source.includes("sourcePixelRegionsObserved"),"preserve source-pixel activity evidence");
 assert.ok(source.includes("accurateSoftwareLipSyncProven"));
 assert.ok(source.includes("rigLayerFrames"));
+assert.ok(source.includes('context=canvas.getContext("2d",{alpha:false})'),
+  "sharp visible canvas must not enable readback-heavy software mode");
+assert.ok(source.includes("evidenceCanvas.width=0;evidenceCanvas.height=0"),
+  "temporary one-shot pixel provenance surface must release memory");
+assert.ok(source.includes('context.imageSmoothingQuality="high"'),
+  "the native image transform should retain high-quality resampling");
+assert.ok(source.includes("frameRateTargetFps:live?(lowPower?30:60):(lowPower?20:30)"),
+  "FPS targets are bounded by power class, never device certification");
+assert.ok(source.includes("renderCostMs*1.8"),
+  "frame pacing must adapt when native-resolution drawing runs slowly");
+assert.ok(source.includes("observedFps:"),
+  "publish actual measurement separately from FPS target");
 assert.ok(source.includes("maxAudioClockDeltaMs"));
 assert.ok(html.includes("OAP_SMI_SOURCE_PIXEL_MOTION_SESSION=session"));
 console.log("SMI_SOURCE_PIXEL_MOTION_PASS");
