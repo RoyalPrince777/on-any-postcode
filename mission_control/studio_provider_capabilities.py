@@ -7,7 +7,8 @@ audited adapters and independent Guardian/HRM + Founder Final approval.
 """
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 # Model families rather than unstable provider-specific API IDs.
 # The source links identify the legitimate provider documentation.
@@ -142,7 +143,7 @@ def status(existing_backend: Mapping[str, Any] | None = None) -> dict[str, Any]:
 def preflight(payload: object, existing_backend: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Validate a selection without executing, storing, charging or uploading."""
     if not isinstance(payload, dict):
-        raise ValueError("studio_provider_selection_object_required")
+        raise TypeError("studio_provider_selection_object_required")
     if set(payload).difference(_ALLOWED_FIELDS):
         raise ValueError("studio_provider_unexpected_fields")
     model_id = payload.get("model_id")
