@@ -199,6 +199,31 @@ def test_mission_continues_to_runtime_proof_only_after_all_exact_head_ci():
     assert result["consequential_action"] is False
 
 
+
+def test_original_three_first_party_worker_observes_both_approved_prs_without_execution():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
+    )
+    expected = {
+        1318: ("OAP governed checks", "SMI Chromium recovery proof",
+               "OAP runtime image"),
+        1384: ("OAP governed checks", "SMI agent achievement proof",
+               "OAP runtime image"),
+    }
+    for pr_number, required in expected.items():
+        assert MISSION_PR_CHECKS[pr_number] == required
+        result = inspect_mission_continuity(
+            pr_number, token="read-only",
+            fetch=_mission_fetch(_mission_runs(required), number=pr_number),
+        )
+        assert result["ci_proven"] is True
+        assert result["next_move"] == "continue_target_proof"
+        assert result["execution_granted"] is False
+        assert result["approval_granted"] is False
+        assert result["human_authority_final"] is True
+
+
 def test_mission_does_not_auto_green_when_ci_missing_or_pending():
     from mission_control.smi_github_failure_evidence import (
         MISSION_PR_CHECKS,
