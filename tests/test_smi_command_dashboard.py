@@ -67,7 +67,7 @@ def test_smi_command_dashboard_route_is_read_only(client):
     assert client.post("/mission/smi").status_code == 405
 
 
-def test_smi_chat_iframe_is_authenticated_and_same_origin_only(client, anonymous_client):
+def test_smi_chat_iframe_is_authenticated_and_same_origin_only(client, anonymous_client, monkeypatch):
     # Without this specific exception, global X-Frame-Options DENY produces
     # a blank SMI chat iframe even though its src and HTTP 200 look correct.
     chat = client.get("/mission/ollama")
@@ -84,6 +84,11 @@ def test_smi_chat_iframe_is_authenticated_and_same_origin_only(client, anonymous
         assert response.headers["X-Frame-Options"] == "DENY"
         assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
 
+    # CI's shared anonymous_client fixture may retain a mocked managed identity.
+    # Force this specific request's security gate to see no authenticated user.
+    from mission_control import web_security
+
+    monkeypatch.setattr(web_security, "current_authenticated_user", lambda: None)
     unauthenticated = anonymous_client.get("/mission/ollama", follow_redirects=False)
     assert unauthenticated.status_code in (302, 401, 403)
     assert unauthenticated.headers["X-Frame-Options"] == "DENY"
