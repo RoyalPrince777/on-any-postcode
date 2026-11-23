@@ -232,6 +232,11 @@ MISSION_PR_CHECKS: dict[int, tuple[str, ...]] = {
            "OAP runtime image"),
     1411: ("OAP governed checks", "OAP Data first-party no-Meta source proof",
            "OAP runtime image"),
+    # Founder-approved OAP World priorities: Link Up and Original Three.
+    1234: ("OAP governed checks", "OAP runtime image",
+           "OAP Data first-party no-Meta source proof"),
+    1318: ("OAP governed checks", "SMI Chromium recovery proof",
+           "OAP runtime image"),
 }
 
 
