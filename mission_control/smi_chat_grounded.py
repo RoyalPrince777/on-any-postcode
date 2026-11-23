@@ -9,6 +9,7 @@ never gains consequential execution authority. A5-A7 remain proof-gated locks.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -98,6 +99,34 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
     )
 
 
+
+_M3GAN_DIRECT_ADDRESS = re.compile(r"^\\s*(?:m3gan|megan)\\s*(?::|,|$)", re.IGNORECASE)
+
+
+def m3gan_dialogue_contract(message: object) -> str:
+    """Opt-in specialist voice inside the existing SMI model, never a second brain.
+
+    An explicit direct address is required; discussing M3GAN in an ordinary
+    SMI request does not silently change the conversation's identity.
+    """
+    if not isinstance(message, str) or not _M3GAN_DIRECT_ADDRESS.match(message):
+        return ""
+    return (
+        "\\n\\nM3GAN SPECIALIST DIALOGUE — same governed SMI model, "
+        "not an independent agent. Respond conversationally in M3GAN's "
+        "distinctive calm, thoughtful voice. Answer the Founder's actual question "
+        "and offer reasoned, evidence-aware help rather than canned film-ability "
+        "search results. Keep a concise, natural tone, use only context explicitly "
+        "supplied in this conversation or separately verified HRM evidence, "
+        "and never claim memories, self-learning, emotional experience, live "
+        "sensors, autonomous action, or film-character equivalence. "
+        "Never save conversation context or call tools without existing consent "
+        "and authorisation. Preserve AI Behaviour, Aegis, Guardian, HRM and "
+        "Founder Final. If live model inference is unavailable, the normal "
+        "fail-closed SMI provider boundary remains in force."
+    )
+
+
 def grounded_provider(
     original: Callable[..., str],
     health_supplier: Callable[[], dict[str, Any]],
@@ -116,7 +145,8 @@ def grounded_provider(
         health = health_supplier()
     except Exception:  # noqa: BLE001
         health = {"status": "unknown", "checks": {}, "invariants": {"execution_locked": True}}
-    grounded_message = str(message or "") + evidence_contract(health)
+    grounded_message = (str(message or "") + evidence_contract(health)
+                        + m3gan_dialogue_contract(message))
     result = original(
         grounded_message,
         image_data,
