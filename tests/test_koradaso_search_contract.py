@@ -300,7 +300,7 @@ def test_termux_auto_opens_only_after_real_branded_http_response():
     assert 'KORADASO Internet · ON ANY POSTCODE' in source
     assert 'id="address-form"' in source
     assert 'termux-open-url "$url"' in source
-    assert 'live branded $OPEN_PATH page not verified.' in source
+    assert 'the live $OPEN_PATH response lacks the restored KORADASO navigation' in source
     assert 'PORT=5052\n    OPEN_PATH=/arena' in source
     assert '<title>OAP Arena</title>' in source
     assert 'id="arena-games"' in source
@@ -411,7 +411,8 @@ def test_koradaso_mobile_layout_keeps_omnibox_and_controls_accessible():
     assert "@media(max-width:520px)" in source
     assert ".search input{min-width:0;width:0;flex:1 1 0;" in source
     assert ".search button{flex:0 0 auto;min-height:46px;" in source
-    assert ".royal-tab{min-height:42px;" in source
+    assert ".royal-menu summary{list-style:none;" in source
+    assert "width:44px;min-height:44px" in source
     assert 'id="address-form"' in source
     assert 'name="search-mode"' not in source
     assert 'name="search-mode"' not in source
