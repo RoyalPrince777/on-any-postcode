@@ -163,3 +163,55 @@ def test_hybrid_progress_is_read_only_and_requires_21_distinct_receipts():
     assert earth_intelligence.review_community_hybrid_progress(
         "street", evidence
     )["reason"] == "invalid_geography"
+
+
+def test_hybrid_roles_are_optional_and_separate_the_independent_lanes():
+    rows = earth_intelligence.status(weather_ready=False)["place_model"]["community_power"]["leadership_roles"]
+    assert len(rows) == 21
+    assert len({row["id"] for row in rows}) == 21
+    assert {row["lane"] for row in rows} == {"community", "operations", "independent"}
+    assert next(r for r in rows if r["id"] == "president")["lane"] == "community"
+    assert next(r for r in rows if r["id"] == "ceo")["lane"] == "operations"
+    assert {r["id"] for r in rows if r["lane"] == "independent"} == {
+        "safeguarding_lead", "audit_lead"
+    }
+
+
+def test_hybrid_role_review_never_appoints_or_casts_vote():
+    member = {
+        "my_card_verified": True, "membership_verified": True,
+        "role_opt_in": True, "age_band": "adult",
+        "safeguarding_clear": True, "conflict_review_clear": True,
+    }
+    review = earth_intelligence.review_community_role_assignment(
+        "ceo", member, governance_level="postcode"
+    )
+    assert review["eligible_for_review"] is True
+    assert review["reason"] == "human_appointment_required"
+    assert review["assigned"] is False
+    assert review["authority_granted"] is False
+    assert review["vote_cast"] is False
+    assert review["founder_final"] is True
+    for override in (
+        {"role_opt_in": False}, {"age_band": "minor"},
+        {"my_card_verified": False}, {"membership_verified": False},
+        {"safeguarding_clear": False}, {"conflict_review_clear": False},
+    ):
+        denied = earth_intelligence.review_community_role_assignment(
+            "president", {**member, **override}, governance_level="postcode"
+        )
+        assert denied["eligible_for_review"] is False
+        assert denied["assigned"] is False
+    assert earth_intelligence.review_community_role_assignment(
+        "audit_lead", member, governance_level="postcode"
+    )["reason"] == "independence_unverified"
+    assert earth_intelligence.review_community_role_assignment(
+        "audit_lead", {**member, "independent_review_clear": True},
+        governance_level="postcode"
+    )["eligible_for_review"] is True
+    assert earth_intelligence.review_community_role_assignment(
+        "unknown", member, governance_level="postcode"
+    )["eligible_for_review"] is False
+    assert earth_intelligence.review_community_role_assignment(
+        "ceo", member, governance_level="street"
+    )["eligible_for_review"] is False
