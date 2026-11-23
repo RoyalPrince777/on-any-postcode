@@ -694,12 +694,18 @@ def main():
             )
             assert stopped_snapshot["phase"] == "stopped"
             assert stopped_snapshot["live"] is False
+            assert stopped_snapshot["renderActive"] is False
+            assert stopped_snapshot["frameRateTargetFps"] == 0
+            assert stopped_snapshot["observedFps"] == 0
+            assert stopped_snapshot["ambientVisualMotion"] is False
             frozen_frames = stopped_snapshot["frames"]
             page.wait_for_timeout(220)
             stopped_after = page.evaluate(
                 "() => window.OAP_SMI_SOURCE_PIXEL_MOTION_SESSION.snapshot()"
             )
             assert stopped_after["frames"] == frozen_frames
+            assert stopped_after["observedFps"] == 0
+            assert stopped_after["frameRateTargetFps"] == 0
 
             assistant_after = page.locator(".msg.assistant").count()
             assert assistant_after == assistant_before
