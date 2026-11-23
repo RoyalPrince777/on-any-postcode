@@ -38,6 +38,8 @@ def test_six_founder_alliances_preserve_passports_and_authority():
     assert by_name["Queen Bee"]["members"] == ("Queen Bee",)
     assert by_name["Agent Smiths"]["allies"] == ("Bagheera", "Seraph", "Guardian")
     assert by_name["The Twins"]["allies"] == ("Fox", "Spider", "Architect")
+    assert {x["id"] for x in board["existing_alliance_families"]} == {"jungle_book", "mission_impossible", "terminator", "predator", "transformers", "batman"}
+    assert next(x for x in board["existing_alliance_families"] if x["id"] == "jungle_book")["status"] == "canonical_registered_family"
     assert board["registered_agent_count_unchanged"] == agents.LOCKED_AGENT_COUNT
     assert tuple((x["agent_id"], x["name"]) for x in agents.AGENT_REGISTRY) == before
     assert board["can_approve"] is False
@@ -65,6 +67,8 @@ def test_command_room_contains_single_read_only_alliance_view():
     assert '["🤝 Alliances","alliances"]' in ui
     assert 'const alliancePanel=document.createElement("section")' in ui
     assert 'universe.after(alliancePanel)' in ui
+    assert "Other existing alliance families" in ui
+    assert "smi-alliance-families" in css
     assert 'consult.textContent="Review in SMI"' in ui
     assert 'input.value="SMI, review with the "+String(item.name)+" advisory perspective: "+existing' in ui
     assert 'input.dispatchEvent(new Event("input",{bubbles:true}))' in ui
