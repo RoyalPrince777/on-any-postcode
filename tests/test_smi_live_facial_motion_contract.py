@@ -24,6 +24,12 @@ def test_source_pixel_motion_uses_lightweight_live_rendering_path():
     assert 'pc.globalCompositeOperation="destination-in"' in text
     assert 'edge.addColorStop(1,"rgba(255,255,255,0)")' in text
     assert 'regionEdgeBlending:"source_pixel_feather_no_anatomy_approval"' in text
+    assert "function createPoseSmoother()" in text
+    assert "poseSmoother.next(motionFor(phase,ms,pulse),ms)" in text
+    assert "Math.min(70,ms-previousTime)" in text
+    assert "if(doc.hidden)poseSmoother.reset()" in text
+    assert 'poseEasing:"bounded_time_based_source_pixel_only"' in text
+    assert "fullArticulatedMotionProven:false" in text
     assert 'ambientVisualMotion:renderActive()&&phase==="ready"&&!live&&played>0' in text
     assert 'frameRateTargetFps:renderActive()?' in text
     assert 'observedFps:renderActive()?' in text
