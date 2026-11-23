@@ -93,3 +93,14 @@ def test_continuation_query_excludes_founder_final_decisions():
 
     assert "JOIN smi_judgement_reviews j ON j.request_id=m.request_id" in core
     assert "AND j.human_decision IS NULL" in core
+
+
+def test_founder_final_history_reflects_signed_decision_not_always_green():
+    root = Path(__file__).parents[1]
+    core = (root / "mission_control" / "smi_chat_runtime_core.py").read_text()
+
+    assert 'recorded_decision = str(receipt["decision"]).upper()' in core
+    assert 'decision_marker = "🟢" if recorded_decision == "APPROVED" else "🔴"' in core
+    assert '(conversation, receipt["request_id"], decision_marker)' in core
+    assert 'f"Founder Final {recorded_decision}.' in core
+    assert '"No execution was granted."' in core
