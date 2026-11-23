@@ -4,6 +4,13 @@ const root=document.querySelector("[data-c4-root]");if(!root)return;
 const q=s=>root.querySelector(s);
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
 let state=null,agentMode=false,busy=false;
+const discColours={gold:"#f5c451",red:"#da5260",blue:"#448cfa",green:"#39b879",purple:"#a36dff",orange:"#e78b36",white:"#f3f0e7"};
+function applyDiscColours(){
+ const a=q("[data-color-p1]").value,b=q("[data-color-p2]").value;
+ root.style.setProperty("--c4-one",discColours[a]);root.style.setProperty("--c4-two",discColours[b]);
+ return a!==b;
+}
+
 const req=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
 const error=e=>q("[data-error]").textContent=e?.message||String(e);
 async function post(url,payload){
@@ -19,6 +26,8 @@ function render(){
  q("[data-mode]").disabled=busy||state?.status==="active";
  q("[data-agent]").disabled=busy||state?.status==="active";
  q("[data-difficulty]").disabled=busy;
+ q("[data-color-p1]").disabled=busy||state?.status==="active";
+ q("[data-color-p2]").disabled=busy||state?.status==="active";
  if(!state)return;
  q("[data-game]").hidden=false;
  q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
@@ -32,7 +41,7 @@ function render(){
  const locked=busy||!active||(agentMode&&state.current_player_id==="p2");
  for(let column=0;column<7;column++){
   const button=document.createElement("button");button.type="button";
-  button.dataset.col=String(column);button.textContent="↓";
+  button.dataset.col=String(column);button.textContent=String(column+1);
   button.setAttribute("aria-label","Drop into column "+(column+1));
   button.disabled=locked||state.board[0][column]!==0;
   controls.append(button);
@@ -68,6 +77,9 @@ async function action(path,payload,followAgent=false){
   }
  }finally{busy=false;render();}
 }
+q("[data-color-p1]").onchange=()=>{if(state?.status!=="active")applyDiscColours();};
+q("[data-color-p2]").onchange=()=>{if(state?.status!=="active")applyDiscColours();};
+applyDiscColours();
 q("[data-mode]").onchange=()=>{
  if(state?.status==="active")return;
  agentMode=q("[data-mode]").value==="agent";
@@ -75,6 +87,7 @@ q("[data-mode]").onchange=()=>{
 };
 q("[data-start]").onclick=()=>{
  if(busy||state?.status==="active")return;
+ if(!applyDiscColours()){q("[data-error]").textContent="Choose two different disc colours.";return;}
  agentMode=q("[data-mode]").value==="agent";
  const agentName=agentMode?q("[data-agent]").selectedOptions[0].text:q("[data-p2]").value;
  action("/arena/connect4/start",{player_one:q("[data-p1]").value,player_two:agentName,
