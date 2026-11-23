@@ -190,13 +190,16 @@
   function proofSnapshot(){
    const layerKeys=["eyes","head","breathing","mouth_visemes","face","hands","upper_body"];
    const allHashes=layerKeys.every(name=>/^[a-f0-9]{64}$/.test(String(evidenceLayerSha256[name]||"")));
-   const fullBodyRigProven=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
+   // Cropped source-image regions demonstrate renderer activity, NOT an
+   // independently reviewed anatomical seven-layer rig.
+   const sourcePixelRegionsObserved=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
+   const fullBodyRigProven=false;
    const accurateSoftwareLipSyncProven=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
    return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
     ambientVisualMotion:phase==="ready"&&!live&&played>0,
-    maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,fullBodyRigProven,
+    maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,sourcePixelRegionsObserved,fullBodyRigProven,
     accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
     physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
   }
