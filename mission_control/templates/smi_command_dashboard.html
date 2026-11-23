@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="oap-csrf-token" content="{{ oap_csrf_token }}">
-  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_studio_provider_panel.css') }}">
   <title>SMI Home · Sovereign Megaverse Intelligence</title>
   <style>
     :root{
@@ -117,6 +116,7 @@
       .shell{grid-template-columns:1fr}.rail{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;height:70px;flex-direction:row;padding:6px 8px;border-right:0;border-top:1px solid var(--line);overflow-x:auto}.crest{display:none}.rail nav{display:flex;gap:6px;margin:0}.rail a{min-width:68px;min-height:56px}.rail .final{margin:0}.main{padding:12px 10px 88px}.topbar{align-items:flex-start}.scope{max-width:48%}.hero{gap:10px}.presence{grid-template-columns:1fr;min-height:0;padding:14px}.portrait-wrap{min-height:280px}.portrait{width:min(100%,240px);height:310px}.rings{width:220px;height:220px}.mission-copy{padding:8px}.mission-copy h2{font-size:2.4rem}.overview{padding:14px}.control-grid{grid-template-columns:repeat(2,1fr)}.stars{grid-template-columns:repeat(4,1fr)}.grid{gap:10px}.card{padding:14px}
     }
   </style>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_studio_provider_panel.css') }}">
 </head>
 <body>
 <div class="shell">
