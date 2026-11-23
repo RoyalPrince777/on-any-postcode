@@ -62,6 +62,14 @@ def test_original_pixel_editor_is_local_and_draft_only():
     assert 'approval:"DRAFT_REQUIRES_FOUNDER_REVIEW"' in source
     assert "animation_active:false" in source
     assert "includes_hidden_regions:false" in source
+    assert "auditDraftRegions()" in source
+    assert "new Uint8Array(width*height)" in source
+    assert "overlapping_coordinates:overlapping" in source
+    assert "draft_region_audit:audit" in source
+    assert "source_silhouette_verified:false" in source
+    assert "hidden_anatomy_verified:false" in source
+    assert "occlusion_approved:false" in source
+    assert "anatomical_mask_approval:false" in source
     assert "No automatic rig activation" in page
     assert "Download seven-mask ZIP" in page
     assert 'href="{{ url_for(\'mission_control.smi_command_dashboard_view\') }}"' in page
