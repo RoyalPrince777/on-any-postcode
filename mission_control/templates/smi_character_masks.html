@@ -74,13 +74,17 @@ progress{width:100%}
 <label for="import-mask">Restore an earlier draft PNG for the selected layer</label><input id="import-mask" type="file" accept="image/png,.png"><div class="inline"><button type="button" id="save-one">Download this PNG</button><button type="button" class="primary" id="save-all">Download seven-mask ZIP</button></div>
 <progress id="coverage" max="7" value="0" aria-label="Painted layers"></progress><small id="coverage-label">0 / 7 painted</small>
 </fieldset>
-<fieldset><legend>Continue with existing source extractor</legend>
-<p class="muted">Review the seven draft masks against the original character. The offline source-package extractor remains in unmerged research PR #483, not enabled from SMI CC. Depth, occlusion, movement and lip-sync require separate proof and Founder Final.</p>
+<fieldset><legend>Original pixel review · private</legend>
+<p class="muted">Extract seven actual RGBA layers from the SHA-verified original and review two source-backed inspection frames. Draft ZIP files stay on your device. The preview is not a live rig.</p>
+<div class="inline"><button type="button" id="save-layers" class="primary" disabled>Export original source layers</button><button type="button" id="save-frames" disabled>Inspect two pixel frames</button></div>
+<p class="muted">No hidden pixels, silhouette approval, mouth geometry, fluid motion, occlusion or audio sync is claimed. Founder Final and Guardian/HRM gates remain separate.</p>
 <a href="{{ url_for('mission_control.smi_command_dashboard_view') }}">Return to SMI CC</a>
 </fieldset>
 </aside>
 </main>
 <script src="{{ url_for('mission_control.static',filename='smi_mask_zip.js') }}" defer></script>
+<script src="{{ url_for('mission_control.static',filename='smi_character_source_pixels.js') }}" defer></script>
+<script src="{{ url_for('mission_control.static',filename='smi_private_source_frame.js') }}" defer></script>
 <script src="{{ url_for('mission_control.static',filename='smi_character_mask_workbench.js') }}" defer></script>
 </body>
 </html>
