@@ -12,7 +12,7 @@ def test_source_pixel_motion_uses_lightweight_live_rendering_path():
     assert 'function renderActive()' in text
     assert 'return epoch>=0&&!doc.hidden&&!userReducedMotion&&' in text
     assert 'function resetFrameTelemetry()' in text
-    assert 'doc.addEventListener?.("visibilitychange",resetFrameTelemetry)' in text
+    assert 'doc.addEventListener?.("visibilitychange",()=>{' in text
     assert 'ambientFrameBudgetMs=lowPower?50:33' in text
     assert 'context=canvas.getContext("2d",{alpha:false})' in text
     assert 'evidenceContext=evidenceCanvas.getContext("2d",{willReadFrequently:true})' in text
