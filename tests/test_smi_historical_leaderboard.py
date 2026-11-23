@@ -48,6 +48,10 @@ def test_founder_war_room_has_smi_top21_and_all_six_alliances(client):
         "Historic Top 21 + Six Specialist Alliances",
         "2026-10-15",
         "Captain ALL IN",
+        "Commander ALL IN",
+        "Living Kernel",
+        "System evidence: Unknown",
+        "Historical advisory 7/7; live performance unrated",
         "Shere Khan",
         "Bagheera",
         "Mission: Impossible Intelligence",
@@ -81,6 +85,12 @@ def test_existing_dashboard_exposes_snapshot_without_minting_stars():
         if entry["registry_linked"]
     )
     assert len(board["alliances"]) == 6
+    assert board["mission_coordinator"]["name"] == "Commander ALL IN"
+    assert board["mission_coordinator"]["legacy_name"] == "Captain ALL IN"
+    assert board["mission_coordinator"]["permissions_expanded"] is False
+    assert board["living_kernel"]["name"] == "Living Kernel"
+    assert board["living_kernel"]["rating"] is None
+    assert board["living_kernel"]["authority_granted"] is False
     assert dashboard["agent_achievement_rankings"]["awarded_movements"] == 0
     assert all(
         row["achievement_stars"] == 0
