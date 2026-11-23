@@ -390,7 +390,7 @@ def prove_original_pixel_workbench(context, base_url):
         assert manifest["includes_hidden_regions"] is False
         for name in LAYERS:
             png = archive.read(f"{name}.png")
-            assert png[:8] == b"\\x89PNG\\r\\n\\x1a\\n", name
+            assert png[:8] == b"\x89PNG\r\n\x1a\n", name
             assert int.from_bytes(png[16:20], "big") == 1536, name
             assert int.from_bytes(png[20:24], "big") == 1024, name
     expect(page.locator("#feedback")).to_contain_text("Human review required")
