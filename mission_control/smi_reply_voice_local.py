@@ -92,7 +92,10 @@ def _viseme(phoneme: str) -> str:
     return "wide"
 
 
-def render_reply(text: str) -> dict:
+def render_reply(text: str, *, voice_profile_id: str = "generic_en") -> dict:
+    # Voice profiles describe requested performance, not a proven accent.
+    from .smi_voice_culture_profiles import voice_claims
+    claims = voice_claims(voice_profile_id)
     if (
         not isinstance(text, str)
         or not text.strip()
@@ -211,6 +214,7 @@ def render_reply(text: str) -> dict:
         "engine": "self_hosted_espeak",
         "engineBuild": engine_build,
         "voiceLocale": "en",
+        "cultureVoice": claims,
         "phonemeIssuedBySynth": True,
         "accurateHumanLipSyncProven": False,
         "fullRigProven": False,
