@@ -31,6 +31,15 @@
 .koradaso-intelligence .status-inline strong{color:#f4ce82}
 @media(max-width:800px){.koradaso-intelligence .chat{padding:18px 12px}.koradaso-intelligence .tools{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.koradaso-intelligence .tool{padding:11px}.koradaso-intelligence .welcome h1{font-size:2rem}}
 @media(max-width:360px){.koradaso-intelligence .tools{grid-template-columns:1fr}}
+/* Royal Compass is the KORADASO view of the existing public SMI brain. */
+.koradaso-intelligence .compass-line{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin:2px 0 16px;color:#e9c989;font-size:.75rem;letter-spacing:.075em;text-transform:uppercase}
+.koradaso-intelligence .compass-line .compass-separator{color:#9a7da8}
+.koradaso-intelligence .welcome{max-width:760px}
+.koradaso-intelligence .welcome h1{letter-spacing:-.025em}
+.koradaso-intelligence .composer:focus-within{outline:2px solid #e9bd6c;outline-offset:2px}
+.koradaso-intelligence .composer textarea{min-height:92px}
+.koradaso-intelligence .tool{transition:background .14s ease,border-color .14s ease}
+@media(max-width:800px){.koradaso-intelligence .compass-line{justify-content:flex-start;gap:6px;font-size:.68rem}}
 </style>
 </head>
 <body class="{% if koradaso_mode %}koradaso-intelligence{% endif %}">
@@ -51,8 +60,9 @@
     <header class="top"><strong>{% if koradaso_mode %}SMI · KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</strong><div class="actions">{% if koradaso_mode %}<a class="pill" href="/koradaso">KORADASO Home</a>{% else %}<a class="pill" href="/">OAP World</a><a class="pill" href="/the-spot">Enter My World</a>{% endif %}</div></header>
     <section class="chat">
       <div class="welcome">
-        <h1>{% if koradaso_mode %}SMI · KORADASO Intelligence{% else %}What can OAP help you create?{% endif %}</h1>
-        <p>{% if koradaso_mode %}Ask, research and create with KORADASO. First-party inference only; unavailable means unavailable.{% else %}Ask, create, research and work with media from one public OAP AI surface.{% endif %}</p>
+        {% if koradaso_mode %}<div class="compass-line" aria-label="KORADASO Compass: from postcode to global"><strong>♛ KORADASO COMPASS</strong><span class="compass-separator">·</span><span>Postcode → Global</span></div>{% endif %}
+        <h1>{% if koradaso_mode %}Ask SMI. Explore your world.{% else %}What can OAP help you create?{% endif %}</h1>
+        <p>{% if koradaso_mode %}One SMI intelligence. Discover, understand, compare and create. Your search stays a draft until you choose Send. No live web access is implied.{% else %}Ask, create, research and work with media from one public OAP AI surface.{% endif %}</p>
         {% if koradaso_mode %}<p class="status-inline" id="koradaso-ai-status" role="status"><strong>First-party only</strong> · Connection not checked. Founder session, memory and authority are never used.</p>{% endif %}
         <div class="tools" id="tools" aria-label="Seven intelligence suggestions">
           <button class="tool" type="button" data-smi-prompt="Explain this topic clearly, distinguishing facts from uncertainty: "><strong>Explain</strong><small>Understand a topic clearly</small></button>
@@ -86,6 +96,17 @@ const csrf=document.getElementById('oap-csrf').value;
 const history=[];
 const koradasoMode={{ 'true' if koradaso_mode else 'false' }};
 const koradasoStatus=document.getElementById('koradaso-ai-status');
+// One-shot same-origin handoff from the KORADASO browser. Never submit on load.
+if(koradasoMode){
+  try{
+    const draft=sessionStorage.getItem('koradaso.smi_draft.v1');
+    sessionStorage.removeItem('koradaso.smi_draft.v1');
+    if(typeof draft==='string'&&draft.trim()&&draft.length<=600){
+      input.value=draft.trim();
+      input.focus();
+    }
+  }catch(_){/* Browser storage denied: public chat still works without a draft. */}
+}
 document.querySelectorAll('[data-smi-prompt]').forEach(button=>{
   button.addEventListener('click',()=>{
     if(input.value.trim()&&!window.confirm('Replace the current unsent message with this suggestion?'))return;
