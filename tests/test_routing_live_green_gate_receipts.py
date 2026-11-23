@@ -12,6 +12,8 @@ from scripts import routing_live_green_gate as gate
 @pytest.fixture(autouse=True)
 def configured_test_origin(monkeypatch):
     monkeypatch.setattr(gate, "BASE", "https://routing.example.test")
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "routing.example.test")
+    monkeypatch.setenv("OAP_ROUTING_OWNED_HOSTS", "routing.example.test")
 
 
 def test_missing_https_routing_origin_fails_closed(monkeypatch, capsys):
@@ -127,3 +129,27 @@ def test_live_green_gate_warms_before_capacity_probe():
     assert "TOTAL_REQUESTS = 20" in source
     assert "WORKERS = 4" in source
     assert "P95_LIMIT_SECONDS = 6.0" in source
+
+
+def test_external_https_router_is_not_a_valid_owned_proof_origin(monkeypatch):
+    monkeypatch.setattr(gate, "BASE", "https://router.project-osrm.org")
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "router.project-osrm.org")
+    monkeypatch.setenv("OAP_ROUTING_OWNED_HOSTS", "routing.example.test")
+    with pytest.raises(ValueError, match="OAP-owned HTTPS origin"):
+        gate._verified_base()
+
+
+def test_allowed_host_without_ownership_is_blocked(monkeypatch):
+    monkeypatch.setenv("OAP_ROUTING_OWNED_HOSTS", "")
+    with pytest.raises(ValueError, match="OAP-owned HTTPS origin"):
+        gate._verified_base()
+
+
+def test_owned_but_not_allowlisted_is_blocked(monkeypatch):
+    monkeypatch.setenv("OAP_OSRM_ALLOWED_HOSTS", "")
+    with pytest.raises(ValueError, match="OAP-owned HTTPS origin"):
+        gate._verified_base()
+
+
+def test_explicit_owned_allowlist_accepts_canonical_https_origin():
+    assert gate._verified_base() == "https://routing.example.test"
