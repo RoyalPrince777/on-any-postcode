@@ -74,3 +74,12 @@ def test_dashboard_war_room_noise_strip_does_not_hide_live_evidence_cards():
     for selector in forbidden_hidden:
         assert f"{selector} {{\n  display:none" not in css
         assert f"{selector}{{display:none" not in css
+
+
+def test_unverified_smi_status_is_not_green_by_default():
+    css = (ROOT / "mission_control" / "static" / "smi_noise_strip.css").read_text()
+    state_rule = css.split("body.smi-noise-strip #provider-state{", 1)[1].split("}", 1)[0]
+    assert "background:#8793a3!important" in state_rule
+    assert "background:#35d778!important" not in state_rule
+    assert "box-shadow:none!important" in state_rule
+
