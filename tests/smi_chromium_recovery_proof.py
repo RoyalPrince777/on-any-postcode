@@ -387,6 +387,21 @@ def prove_original_pixel_workbench(context, base_url):
         assert manifest["approval"] == "DRAFT_REQUIRES_FOUNDER_REVIEW"
         assert manifest["animation_active"] is False
         assert manifest["includes_hidden_regions"] is False
+        audit = manifest["draft_region_audit"]
+        assert set(audit["selected_pixel_counts"]) == set(LAYERS)
+        assert all(count > 0 for count in audit["selected_pixel_counts"].values())
+        assert audit["unique_selected_coordinates"] > 0
+        # These test-painted regions deliberately overlap. Overlap is a warning,
+        # not a proof of anatomical corruption or an automatic Founder decision.
+        assert audit["overlapping_coordinates"] > 0
+        assert (
+            sum(audit["selected_pixel_counts"].values())
+            >= audit["unique_selected_coordinates"] + audit["overlapping_coordinates"]
+        )
+        assert audit["source_silhouette_verified"] is False
+        assert audit["hidden_anatomy_verified"] is False
+        assert audit["occlusion_approved"] is False
+        assert audit["anatomical_mask_approval"] is False
         for name in LAYERS:
             png = archive.read(f"{name}.png")
             assert png[:8] == b"\x89PNG\r\n\x1a\n", name
