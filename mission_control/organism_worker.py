@@ -12,8 +12,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 from . import (
-    autonomy_levels,
     ai_behaviour,
+    autonomy_levels,
     oap_core_autonomy,
     organism_autonomy,
     postgres_db,
