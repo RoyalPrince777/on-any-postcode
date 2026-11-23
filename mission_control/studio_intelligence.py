@@ -19,41 +19,11 @@ from . import (
     smi_founder_assets,
     smi_receipt_backend,
     studio_build_preview,
-    studio_character_swap,
     studio_media_backend,
-    studio_project_shell,
 )
 
 STUDIO_ID = "oap-studio-intelligence"
 STUDIO_NAME = "OAP Studio Intelligence"
-
-# A reproducible description of the user-directed ChatGPT animation, not
-# OpenAI's private model, weights or an executable generation receipt.
-SOUTH_LONDON_ANIMATION_RECIPE = {
-    "id": "south_london_rainy_tracking_walk",
-    "format": "gif",
-    "width": 676,
-    "height": 376,
-    "frame_count": 6,
-    "frame_duration_ms": 140,
-    "loop": True,
-    "total_duration_ms": 840,
-    "brief": (
-        "Create an original ON ANY POSTCODE scene in cinematic realism style, "
-        "set on a South London urban street, with rainy neon night lighting and "
-        "a smooth tracking shot. Use the single approved character reference, "
-        "preserving facial identity, proportions, wardrobe and branding across "
-        "frames. Preserve spatial continuity and natural movement. "
-        "Use no extra slogans or unrelated branding."
-    ),
-    "identity_lock": "approved_reference_required",
-    "rendering_origin": "chatgpt_image_generation_not_smi",
-    "replay_requires_owned_gif": True,
-    "new_generation_requires_configured_provider": True,
-    "render_verified_in_smi": False,
-    "founder_review_required": True,
-}
-
 PIPELINE = (
     "Create",
     "Edit",
@@ -304,45 +274,6 @@ def _tool(tool_id: str) -> dict[str, str]:
     raise ValueError("unsupported_studio_tool")
 
 
-def prepare_character_swap(*, source_video_id: object, character_image_id: object,
-                           source_duration_seconds: object, quoted_credits: object = None) -> dict[str, Any]:
-    """Record an SMI-governed preparation receipt; no paid provider call occurs."""
-    prepared = studio_character_swap.prepare(
-        source_video_id=source_video_id,
-        character_image_id=character_image_id,
-        source_duration_seconds=source_duration_seconds,
-        quoted_credits=quoted_credits,
-    )
-    receipt = smi_receipt_backend.write_receipt(
-        "studio_generation_receipt",
-        {
-            "brain_part": "studio_intelligence",
-            "gate": 21,
-            "command": "character_swap_prepare",
-            "signal": "🟣",
-            "guardian": "required",
-            "green_gate": "blocked_until_verified_render",
-            "founder_final": "required_before_credit_spend",
-            "safe_payload": {
-                "source_ref_present": True,
-                "character_ref_present": True,
-                "duration_accepted": True,
-                "quote_claimed": quoted_credits is not None,
-                "quote_verified": False,
-                "render_submitted": False,
-                "execution_authority_expanded": False,
-            },
-        },
-    )
-    return {
-        **prepared,
-        "studio": STUDIO_NAME,
-        "smi_depth": 21,
-        "chronicle_receipt": receipt,
-        "receipt_proven": bool(receipt and receipt.get("read_back_ok")),
-    }
-
-
 def prepare_generation(tool_id: str, *, prompt: object = "", source_ref: object = "") -> dict[str, Any]:
     """Prepare one governed Studio generation job and record its bounded proof receipt.
 
@@ -403,8 +334,6 @@ def execute_generation(
     prompt: object = "",
     source_image_data: object = "",
     character_lock: object = False,
-    video_size: object = None,
-    video_seconds: object = None,
 ) -> dict[str, Any]:
     """Execute one supported provider-backed Studio generation request.
 
@@ -413,10 +342,6 @@ def execute_generation(
     """
 
     tool = _tool(tool_id)
-    if tool["id"] not in {"scene_builder", "bring_alive"} and (
-        video_size is not None or video_seconds is not None
-    ):
-        raise ValueError("studio_video_options_only")
     user_prompt = str(prompt or "").strip()
     clean_prompt = user_prompt
     source_data = str(source_image_data or "").strip()
@@ -470,15 +395,9 @@ def execute_generation(
     elif tool["id"] in {"scene_builder", "bring_alive"}:
         if tool["id"] == "bring_alive" and not source_data:
             raise ValueError("studio_source_image_data_required")
-        video_options: dict[str, str] = {}
-        if video_size is not None:
-            video_options["size"] = str(video_size)
-        if video_seconds is not None:
-            video_options["seconds"] = str(video_seconds)
         artifact = studio_media_backend.create_video(
             clean_prompt,
             source_image_data=source_data,
-            **video_options,
         )
     else:  # pragma: no cover - guarded by _tool
         raise ValueError("unsupported_studio_tool")
@@ -572,58 +491,6 @@ def generation_status(video_id: object) -> dict[str, Any]:
     }
 
 
-def factory_structure() -> dict[str, Any]:
-    """Founder → SMI → OAP Factory → approved member/public access; contract only.
-
-    Reuses the canonical Studio and its existing rights, asset and governance
-    systems. Does not register another engine, create a dashboard, or grant
-    automatic execution.
-    """
-    return {
-        "name": "OAP Factory",
-        "authority_origin": "founder",
-        "controller": "SMI",
-        "access_hierarchy": (
-            "founder_master_control",
-            "smi_command_centre",
-            "oap_factory",
-            "my_oap_world_members_creators",
-            "public_oap_world",
-        ),
-        "one_canonical_studio": True,
-        "public_access_is_permission_scoped": True,
-        "public_inherits_founder_authority": False,
-        "founder_private_assets_public": False,
-        "public_media_generation_proven": False,
-        "public_studio_surface": "read_only_or_bounded_public_assistant",
-        "creative_division": STUDIO_ID,
-        "creative_division_name": STUDIO_NAME,
-        "factory_is_second_studio_engine": False,
-        "factory_is_separate_auth_system": False,
-        "canonical_media_backend": "mission_control.studio_media_backend",
-        "canonical_studio_orchestrator": "mission_control.studio_workspace_orchestrator",
-        "creative_tools": [tool["id"] for tool in GENERATION_TOOLS],
-        "divisions": (
-            "studio", "engineering", "creative_intelligence", "automation",
-            "quality", "delivery", "protection", "assets",
-        ),
-        "capability_truth": {
-            "creative_media_generation": "provider_and_artifact_proof_required",
-            "character_swap": "preparation_only",
-            "video_render": "runtime_proof_required",
-            "device_acceptance": "not_certified",
-        },
-        "guardian_required": True,
-        "hrm_required": True,
-        "stop_available": True,
-        "execution_granted": False,
-        "payment_authorised": False,
-        "publishing_granted": False,
-        "deployment_authorised": False,
-        "founder_final": True,
-    }
-
-
 def status() -> dict[str, Any]:
     """Return the secret-free Studio contract for the Founder workbench."""
 
@@ -642,10 +509,8 @@ def status() -> dict[str, Any]:
         "name": STUDIO_NAME,
         "ready": True,
         "powered_by": "SMI",
-        "factory": factory_structure(),
         "pipeline": list(PIPELINE),
         "generation_tools": [dict(tool) for tool in GENERATION_TOOLS],
-        "animation_recipe": dict(SOUTH_LONDON_ANIMATION_RECIPE),
         "workspaces": [dict(item) for item in STUDIO_WORKSPACES],
         "workspace_default": "auto",
         "first_party_workspace_identity": True,
@@ -654,7 +519,6 @@ def status() -> dict[str, Any]:
         "studio_21_stage_count": len(STUDIO_21_STAGES),
         "studio_21_stages": list(STUDIO_21_STAGES),
         "generation_backend": backend,
-        "project_shell": studio_project_shell.status(),
         "generation_backend_proven": bool(backend["configured"]),
         "owner_asset_store": {
             "schema_ready": bool(asset_store.get("schema_ready")),

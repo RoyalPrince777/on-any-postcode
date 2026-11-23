@@ -30,7 +30,9 @@ def test_personal_smi_runtime_routes_through_gateway_before_core_provider():
 def test_gateway_does_not_claim_full_provider_removal():
     text = (ROOT / "mission_control" / "oap_inference_gateway.py").read_text()
     assert "compatibility engine only while first-party inference is not certified" in text
-    assert "if not FALLBACK_ENABLED" in text
+    assert "if OFFLINE_ONLY or not FALLBACK_ENABLED" in text
+    assert "if first_party_only or not FALLBACK_ENABLED" in text
+    assert "_local_endpoint_allowed()" in text
     assert 'raise RuntimeError("first_party_inference_required")' in text
     assert '"sovereign_inference_ready": bool(first_party_ready and not FALLBACK_ENABLED)' in text
 

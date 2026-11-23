@@ -289,3 +289,65 @@ body.smi-command-open:not(.smi-live-fullscreen) .smi-command-foot {
   transform:scale(.85);
  }
 }
+
+/* Existing SMI Command Center · one optional alliance review surface.
+   No extra dashboard, new passport, independent workers or false Green. */
+body.smi-command-open .smi-command-centre[data-alliances-open="true"] .smi-command-layout{
+  display:none!important;
+}
+body.smi-command-open .smi-command-alliance-panel:not([hidden]){
+  display:flex!important;
+  flex-direction:column;
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:10px clamp(10px,2vw,24px);
+  gap:10px;
+  scrollbar-width:thin;
+  background:linear-gradient(160deg,#040e20,#0b1530);
+}
+.smi-command-alliance-panel[hidden]{display:none!important}
+.smi-command-alliance-panel header{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.smi-command-alliance-panel header strong{color:#efcf8d;letter-spacing:.06em;font-size:.95rem}
+.smi-command-alliance-panel header small{color:#b5c8e5;font-size:.72rem}
+.smi-alliance-state,.smi-alliance-note{margin:0;color:#c1cce1;font-size:.76rem}
+.smi-alliance-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(235px,100%),1fr));gap:9px;align-content:start}
+.smi-alliance-card{display:flex;flex-direction:column;gap:6px;min-width:0;padding:12px;border:1px solid #35568a;border-radius:12px;background:#0b1b34}
+.smi-alliance-card strong{color:#efcf8d;font-size:.88rem}
+.smi-alliance-card p{margin:0;font-size:.78rem;color:#f0f4ff}
+.smi-alliance-card small{font-size:.69rem;color:#b3c9df;overflow-wrap:anywhere}
+.smi-alliance-card a{align-self:start;font-size:.71rem;color:#eec889;text-decoration:underline;text-underline-offset:3px}
+.smi-alliance-card a:focus-visible{outline:2px solid #efcf8d;outline-offset:2px}
+@media(max-width:700px){
+ body.smi-command-open .smi-command-alliance-panel:not([hidden]){padding:9px}
+ .smi-alliance-grid{grid-template-columns:1fr}
+ .smi-alliance-card{padding:10px}
+}
+
+.smi-alliance-consult{
+ align-self:start;margin-top:2px;padding:7px 10px;
+ border:1px solid #c69b58;border-radius:8px;background:#21182b;
+ color:#efd7a6;font:inherit;font-size:.72rem;cursor:pointer
+}
+.smi-alliance-consult:hover,.smi-alliance-consult:focus-visible{
+ border-color:#f4cf88;outline:2px solid #f4cf88;outline-offset:2px
+}
+
+.smi-alliance-families{border:1px solid #35568a;border-radius:10px;padding:9px 11px;background:#0a1730}
+.smi-alliance-families summary{color:#e9cb92;font-size:.78rem;cursor:pointer}
+.smi-alliance-families .smi-alliance-family-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(185px,100%),1fr));gap:7px;margin-top:10px}
+.smi-alliance-family-list p{margin:0;color:#c0d7ec;font-size:.72rem}
+
+.smi-alliance-leadership{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(195px,100%),1fr));
+ gap:8px;align-content:start
+}
+.smi-alliance-leadership article{
+ display:flex;flex-direction:column;gap:5px;padding:10px;
+ border:1px solid #80653a;border-radius:10px;background:#181b30
+}
+.smi-alliance-leadership strong{font-size:.82rem;color:#efd49d}
+.smi-alliance-leadership small,.smi-alliance-rating{font-size:.71rem;color:#bdd3e7}

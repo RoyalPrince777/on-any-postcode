@@ -486,6 +486,7 @@ def generate_public(
     brain: dict | None = None,
     *,
     code_mode: bool = False,
+    first_party_only: bool = False,
 ) -> str:
     """Public SMI surface: same inference gateway, public authority envelope."""
 
@@ -514,7 +515,7 @@ def generate_public(
         )
     except RuntimeError as exc:
         first_party_error = exc
-    if not FALLBACK_ENABLED:
+    if first_party_only or not FALLBACK_ENABLED:
         raise RuntimeError("first_party_inference_required") from first_party_error
     return compatibility_engine(
         message,

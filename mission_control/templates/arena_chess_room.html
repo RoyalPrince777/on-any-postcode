@@ -11,9 +11,8 @@
 </head>
 <body><main class="mc-shell arena-game" data-room-root>
 <section class="card room-panel">
-<nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a> · <a href="/arena/chess">Local Chess</a></nav>
-<p class="arena-hint">OAP Arena · First-party online room</p>
-<h1>♟️ Chess · Room</h1>
+{% from "_arena_game_header.html" import game_header %}
+{{ game_header("Chess online room", "/arena/chess", "Local play") }}
 <p>Two-player room. Seat 1 is White; seat 2 is Black. Share only the six-character room code. Keep the reconnect token private.</p>
 <div data-entry>
 <h2>Create</h2>

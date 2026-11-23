@@ -1,0 +1,398 @@
+/* Founder-only local exact-art mask editor. No telemetry, backend writes or motion.
+ * An export is DRAFT, never rig/identity approval. No substitute art is created.
+ */
+(() => {
+  "use strict";
+  const NAMES=["eyes","head","breathing","mouth_visemes","face","hands","upper_body"];
+  const LABELS=["Eyes","Head","Breathing","Mouth visemes","Face","Hands","Upper body"];
+  const $=id=>document.getElementById(id);
+  const stage=$("art-stage"),image=$("source-art"),feedback=$("feedback"),
+    buttons=$("layers"),brush=$("brush"),coverage=$("coverage");
+  const sourceUrl=document.body.dataset.approvedImage;
+  const expected=document.body.dataset.approvedSha256;
+  const state=new Map();
+  let active=NAMES[0],ready=false,painting=false,erase=false,
+    cursor={x:0,y:0},undo=null,objectUrl=null,busy=false;
+  const actionIds=["paint","erase","brush","undo","clear","save-one","save-all","save-layers","save-frames","import-mask","mask-only"];
+  function say(value){feedback.textContent=value;}
+  function enable(value){for(const id of actionIds)$(id).disabled=!value;
+    for(const btn of buttons.querySelectorAll("button"))btn.disabled=!value;}
+  function paintState(){for(const b of buttons.querySelectorAll("button")){
+    const name=b.dataset.name;b.setAttribute("aria-pressed",String(name===active));
+    b.dataset.filled=String(Boolean(state.get(name)?.filled));
+  }
+    const count=[...state.values()].filter(v=>v.filled).length;
+    coverage.value=count;$("coverage-label").textContent=count+" / 7 painted";
+  }
+  function getLayer(name){
+    if(state.has(name))return state.get(name);
+    const canvas=document.createElement("canvas");
+    canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+    canvas.dataset.name=name;canvas.hidden=name!==active;
+    canvas.tabIndex=0;
+    canvas.setAttribute("role","application");
+    canvas.setAttribute("aria-label",LABELS[NAMES.indexOf(name)]
+      +" mask canvas. Arrow keys move brush. Space stamps. Select Erase to remove pixels.");
+    stage.append(canvas);
+    const record={canvas,ctx:canvas.getContext("2d",{willReadFrequently:true}),filled:false};
+    canvas.addEventListener("pointerdown",event=>{
+      if(!ready||busy||event.button!==0)return;
+      painting=true;undo={name,frame:record.ctx.getImageData(0,0,canvas.width,canvas.height)};
+      canvas.setPointerCapture(event.pointerId);
+      cursor=position(canvas,event);stroke(record,cursor,cursor);
+      event.preventDefault();
+    });
+    canvas.addEventListener("pointermove",event=>{
+      if(!painting||!canvas.hasPointerCapture(event.pointerId))return;
+      const next=position(canvas,event);stroke(record,cursor,next);cursor=next;
+      event.preventDefault();
+    });
+    const finish=event=>{
+      if(!painting)return;
+      painting=false;
+      if(canvas.hasPointerCapture(event.pointerId))canvas.releasePointerCapture(event.pointerId);
+      record.filled=hasAlpha(record.ctx,canvas);paintState();
+    };
+    canvas.addEventListener("pointerup",finish);
+    canvas.addEventListener("pointercancel",finish);
+    canvas.addEventListener("keydown",event=>{
+      if(!ready||busy)return;
+      const step=Math.max(1,Number(brush.value));
+      if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(event.key)){
+        cursor={
+          x:Math.max(0,Math.min(canvas.width,cursor.x
+            +(event.key==="ArrowRight"?step:event.key==="ArrowLeft"?-step:0))),
+          y:Math.max(0,Math.min(canvas.height,cursor.y
+            +(event.key==="ArrowDown"?step:event.key==="ArrowUp"?-step:0)))};
+        say("Brush at original pixel "+Math.round(cursor.x)+", "+Math.round(cursor.y));
+        event.preventDefault();
+      }else if(event.key===" "||event.key==="Enter"){
+        undo={name,frame:record.ctx.getImageData(0,0,canvas.width,canvas.height)};
+        stroke(record,cursor,cursor);record.filled=hasAlpha(record.ctx,canvas);
+        paintState();event.preventDefault();
+      }
+    });
+    state.set(name,record);return record;
+  }
+  function hasAlpha(ctx,canvas){
+    const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    for(let i=3;i<data.length;i+=4)if(data[i]>0)return true;
+    return false;
+  }
+  // Evidence for Founder inspection, not automatic anatomical approval.
+  // A flat JPEG has no trustworthy foreground/hidden-surface segmentation.
+  // Count full-canvas mask coordinates locally; never upload or persist them.
+  function auditDraftRegions(){
+    const width=image.naturalWidth,height=image.naturalHeight;
+    const occupancy=new Uint8Array(width*height);
+    const selectedCounts={};
+    let overlapping=0,unique=0;
+    for(const name of NAMES){
+      const rec=state.get(name);
+      if(!rec?.filled)throw Error("Finish all seven nonempty masks; missing "+name);
+      const pixels=rec.ctx.getImageData(0,0,width,height).data;
+      let count=0;
+      for(let i=3,p=0;i<pixels.length;i+=4,p++){
+        if(pixels[i]===0)continue;
+        count++;
+        if(occupancy[p]===1){overlapping++;occupancy[p]=2;}
+        if(occupancy[p]===0){unique++;occupancy[p]=1;}
+      }
+      if(!count)throw Error("Finish all seven nonempty masks; missing "+name);
+      selectedCounts[name]=count;
+    }
+    return {
+      selected_pixel_counts:selectedCounts,
+      unique_selected_coordinates:unique,
+      overlapping_coordinates:overlapping,
+      source_silhouette_verified:false,
+      hidden_anatomy_verified:false,
+      occlusion_approved:false,
+      anatomical_mask_approval:false
+    };
+  }
+  function position(canvas,event){
+    const rect=canvas.getBoundingClientRect();
+    return {x:Math.max(0,Math.min(canvas.width,(event.clientX-rect.left)
+      *canvas.width/rect.width)),
+      y:Math.max(0,Math.min(canvas.height,(event.clientY-rect.top)
+      *canvas.height/rect.height))};
+  }
+  function stroke(rec,from,to){
+    const ctx=rec.ctx;
+    ctx.save();ctx.globalCompositeOperation=erase?"destination-out":"source-over";
+    ctx.strokeStyle=erase?"rgba(0,0,0,1)":"rgba(255,255,255,1)";
+    ctx.fillStyle=ctx.strokeStyle;
+    ctx.lineCap="round";ctx.lineJoin="round";ctx.lineWidth=Number(brush.value);
+    ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);ctx.stroke();
+    ctx.beginPath();ctx.arc(to.x,to.y,Number(brush.value)/2,0,Math.PI*2);
+    ctx.fill();ctx.restore();
+  }
+  function choose(name){
+    if(!ready||busy||!NAMES.includes(name))return;
+    active=name;undo=null;
+    for(const [key,record] of state)record.canvas.hidden=key!==name;
+    const chosen=getLayer(name);chosen.canvas.hidden=false;
+    // On a narrow display the controls occupy a separate row. A newly
+    // selected layer must remain paintable without an off-screen tap.
+    if(window.matchMedia("(max-width: 820px)").matches){
+      chosen.canvas.scrollIntoView({block:"center",behavior:"instant"});
+    }
+    cursor={x:image.naturalWidth/2,y:image.naturalHeight/2};
+    paintState();say("Editing "+LABELS[NAMES.indexOf(name)]+"; draft only.");
+  }
+  for(let i=0;i<NAMES.length;i++){
+    const btn=document.createElement("button");
+    btn.type="button";btn.dataset.name=NAMES[i];btn.textContent=LABELS[i];
+    btn.setAttribute("aria-pressed",String(i===0));btn.disabled=true;
+    btn.addEventListener("click",()=>choose(NAMES[i]));buttons.append(btn);
+  }
+  enable(false);
+  $("mask-only").addEventListener("click",()=>{if(!ready||busy)return;const only=stage.classList.toggle("mask-only");$("mask-only").setAttribute("aria-pressed",String(only));$("mask-only").textContent=only?"Show original behind mask":"Show mask only";say(only?"Mask-only inspection. Original verified and retained. Draft only.":"Exact original shown behind draft mask.");});
+  $("brush-label").textContent=brush.value;
+  brush.addEventListener("input",()=>{$("brush-label").textContent=brush.value;});
+  function setMode(value){
+    erase=value;$("paint").setAttribute("aria-pressed",String(!value));
+    $("erase").setAttribute("aria-pressed",String(value));
+  }
+  $("paint").addEventListener("click",()=>setMode(false));
+  $("erase").addEventListener("click",()=>setMode(true));
+  $("undo").addEventListener("click",()=>{
+    if(!undo||undo.name!==active){say("No stroke to undo on this layer.");return;}
+    const rec=getLayer(active);rec.ctx.putImageData(undo.frame,0,0);undo=null;
+    rec.filled=hasAlpha(rec.ctx,rec.canvas);paintState();say("Last stroke restored.");
+  });
+  $("clear").addEventListener("click",()=>{
+    const rec=getLayer(active);undo={name:active,
+      frame:rec.ctx.getImageData(0,0,rec.canvas.width,rec.canvas.height)};
+    rec.ctx.clearRect(0,0,rec.canvas.width,rec.canvas.height);
+    rec.filled=false;paintState();say("Cleared "+active+"; undo available.");
+  });
+  function maskBlob(canvas){return new Promise((resolve,reject)=>{
+    canvas.toBlob(blob=>blob?resolve(blob):reject(Error("mask_export_failed")),"image/png");
+  });}
+  function download(blob,name){
+    const url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download=name;document.body.append(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+  }
+  async function exportOne(){
+    if(!ready||busy)return;
+    busy=true;enable(false);
+    try{
+      const rec=getLayer(active);
+      if(!rec.filled||!hasAlpha(rec.ctx,rec.canvas))throw Error("paint_layer_first");
+      download(await maskBlob(rec.canvas),active+".png");
+      say("Draft "+active+".png downloaded locally; not yet approved.");
+    }catch(error){say("Export blocked: "+error.message);}
+    finally{busy=false;enable(true);}
+  }
+  $("save-one").addEventListener("click",exportOne);
+  $("save-all").addEventListener("click",async()=>{
+    if(!ready||busy)return;
+    busy=true;enable(false);
+    try{
+      const entries=[];
+      for(const name of NAMES){
+        const rec=state.get(name);
+        if(!rec?.filled||!hasAlpha(rec.ctx,rec.canvas))
+          throw Error("Finish all seven nonempty masks; missing "+name);
+        const blob=await maskBlob(rec.canvas);
+        entries.push({name:name+".png",data:new Uint8Array(await blob.arrayBuffer())});
+      }
+      const audit=auditDraftRegions();
+      const manifest={version:"0.1",source_sha256:expected,
+        canvas:[image.naturalWidth,image.naturalHeight],
+        names:NAMES,approval:"DRAFT_REQUIRES_FOUNDER_REVIEW",
+        animation_active:false,includes_hidden_regions:false,
+        draft_region_audit:audit};
+      entries.push({name:"mask-bundle.json",
+        data:new TextEncoder().encode(JSON.stringify(manifest,null,2)+"\n")});
+      const bytes=window.OAP_SMI_MASK_ZIP.createZip(entries);
+      download(new Blob([bytes],{type:"application/zip"}),
+        "smi-exact-character-draft-masks.zip");
+      say("Seven draft masks saved locally. Human review required: "+
+        audit.overlapping_coordinates+" shared coordinates; silhouette and depth unverified.");
+    }catch(error){say("ZIP export blocked: "+error.message);}
+    finally{busy=false;enable(true);}
+  });
+  $("save-layers").addEventListener("click",async()=>{
+    if(!ready||busy)return;
+    busy=true;enable(false);
+    try{
+      // The existing start() SHA-256 verification is the only entry to ready.
+      if(!window.OAP_SMI_SOURCE_PIXELS)throw Error("source_extractor_unavailable");
+      const width=image.naturalWidth,height=image.naturalHeight;
+      const original=document.createElement("canvas");
+      original.width=width;original.height=height;
+      const ctx=original.getContext("2d",{willReadFrequently:true});
+      ctx.drawImage(image,0,0,width,height);
+      const source=ctx.getImageData(0,0,width,height).data;
+      const entries=[],records={};
+      for(const name of NAMES){
+        const rec=state.get(name);
+        if(!rec?.filled)throw Error("Finish all seven reviewed draft masks; missing "+name);
+        const mask=rec.ctx.getImageData(0,0,width,height).data;
+        const layer=window.OAP_SMI_SOURCE_PIXELS.extract(source,mask,width,height);
+        const crop=document.createElement("canvas");
+        crop.width=layer.width;crop.height=layer.height;
+        crop.getContext("2d").putImageData(
+          new ImageData(layer.rgba,layer.width,layer.height),0,0);
+        const blob=await maskBlob(crop),bytes=new Uint8Array(await blob.arrayBuffer());
+        const sha=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)))
+          .map(x=>x.toString(16).padStart(2,"0")).join("");
+        entries.push({name:name+".png",data:bytes});
+        records[name]={file:name+".png",sha256:sha,
+          bbox_xyxy:layer.bbox_xyxy,selected_pixels:layer.selected_pixels,
+          alpha_rule:layer.alpha_rule,approval:"DRAFT_REQUIRES_FOUNDER_REVIEW"};
+      }
+      const manifest={version:"0.1-browser-private-draft",
+        approved_source_sha256:expected,canvas_width:width,canvas_height:height,
+        provenance:"original_source_pixels_only",layers:records,
+        hidden_region_reconstruction:false,geometry_proven:false,
+        motion_proven:false,speech_sync_proven:false,active:false,
+        human_authority_approved:false};
+      entries.push({name:"source-package.json",
+        data:new TextEncoder().encode(JSON.stringify(manifest,null,2)+"\n")});
+      const zip=window.OAP_SMI_MASK_ZIP.createSourceZip(entries);
+      download(new Blob([zip],{type:"application/zip"}),
+        "smi-private-original-pixel-layers-DRAFT.zip");
+      say("Seven private source-derived DRAFT layers saved locally. No hidden anatomy, motion or lip-sync is approved.");
+    }catch(error){say("Source-layer export blocked: "+error.message);}
+    finally{busy=false;enable(true);}
+  });
+  $("save-frames").addEventListener("click",async()=>{
+    if(!ready||busy)return;
+    busy=true;enable(false);
+    let compositor=null;
+    try{
+      if(!window.OAP_SMI_PRIVATE_SOURCE_FRAME)
+        throw Error("private_frame_renderer_unavailable");
+      const width=image.naturalWidth,height=image.naturalHeight;
+      const original=document.createElement("canvas");
+      original.width=width;original.height=height;
+      const ctx=original.getContext("2d",{willReadFrequently:true});
+      ctx.drawImage(image,0,0,width,height);
+      const source=ctx.getImageData(0,0,width,height).data;
+      const masks={};
+      for(const name of NAMES){
+        const rec=state.get(name);
+        if(!rec?.filled)throw Error("Finish all seven private draft masks; missing "+name);
+        masks[name]=rec.ctx.getImageData(0,0,width,height).data;
+      }
+      // Explicit order is provisional; these are private Founder inspection
+      // frames, never approved occlusion, animation or viseme geometry.
+      const order=["upper_body","breathing","hands","head","face",
+        "mouth_visemes","eyes"];
+      compositor=window.OAP_SMI_PRIVATE_SOURCE_FRAME.create({
+        source,masks,width,height,sourceVerified:ready,layerOrder:order});
+      const epoch=compositor.snapshot().epoch;
+      const specs=[
+        {name:"frame-neutral.png",translations:{}},
+        {name:"frame-offset.png",translations:{
+          breathing:[0,1],hands:[0,2],eyes:[2,0]}},
+      ];
+      const entries=[],hashes={};
+      for(const spec of specs){
+        const frame=compositor.frame({
+          expectedEpoch:epoch,translations:spec.translations});
+        if(!frame||frame.motion_proven||frame.speech_sync_proven)
+          throw Error("private_frame_proof_boundary");
+        const canvas=document.createElement("canvas");
+        canvas.width=width;canvas.height=height;
+        canvas.getContext("2d").putImageData(
+          new ImageData(frame.rgba,width,height),0,0);
+        const blob=await maskBlob(canvas);
+        const bytes=new Uint8Array(await blob.arrayBuffer());
+        const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",bytes));
+        hashes[spec.name]=Array.from(digest)
+          .map(n=>n.toString(16).padStart(2,"0")).join("");
+        entries.push({name:spec.name,data:bytes});
+      }
+      const evidence={version:"0.1-private-pixel-frames",
+        approved_source_sha256:expected,canvas:[width,height],
+        original_pixels_only:true,layer_order:order,
+        offsets:{breathing:[0,1],hands:[0,2],eyes:[2,0]},
+        file_sha256:hashes,mask_review_approved:false,
+        occlusion_approved:false,hidden_regions_reconstructed:false,
+        motion_proven:false,speech_sync_proven:false,
+        attached_to_live_page:false,human_authority_approved:false};
+      entries.push({name:"frame-evidence.json",
+        data:new TextEncoder().encode(JSON.stringify(evidence,null,2)+"\n")});
+      const zip=window.OAP_SMI_MASK_ZIP.createFrameZip(entries);
+      download(new Blob([zip],{type:"application/zip"}),
+        "smi-private-original-pixel-frames-DRAFT.zip");
+      say("Two actual original-pixel inspection frames downloaded locally. Real animation, occlusion and lip-sync remain unproven.");
+    }catch(error){say("Private frame capture blocked: "+error.message);}
+    finally{
+      if(compositor)compositor.stop();
+      busy=false;enable(true);
+    }
+  });
+  $("import-mask").addEventListener("change",async event=>{
+    const file=event.target.files?.[0];event.target.value="";
+    if(!file||!ready||busy)return;
+    busy=true;enable(false);
+    try{
+      if(file.type!=="image/png"||file.size>20*1024*1024)
+        throw Error("Choose a PNG mask under 20 MB");
+      const bmp=await createImageBitmap(file);
+      try{
+        if(bmp.width!==image.naturalWidth||bmp.height!==image.naturalHeight)
+          throw Error("Mask must match original full image canvas");
+        const scratch=document.createElement("canvas");
+        scratch.width=bmp.width;scratch.height=bmp.height;
+        const c=scratch.getContext("2d",{willReadFrequently:true});
+        c.drawImage(bmp,0,0);
+        const pixels=c.getImageData(0,0,bmp.width,bmp.height).data;
+        let filled=false;
+        for(let i=0;i<pixels.length;i+=4){
+          if(pixels[i+3]>0){
+            filled=true;
+            if(pixels[i]!==255||pixels[i+1]!==255||pixels[i+2]!==255)
+              throw Error("Mask must be white with alpha, not a colour photo");
+          }
+        }
+        if(!filled)throw Error("Empty mask cannot be imported");
+        const rec=getLayer(active);
+        undo={name:active,
+          frame:rec.ctx.getImageData(0,0,rec.canvas.width,rec.canvas.height)};
+        rec.ctx.clearRect(0,0,rec.canvas.width,rec.canvas.height);
+        rec.ctx.drawImage(scratch,0,0);rec.filled=true;
+        paintState();say("Restored local "+active+" mask as draft.");
+      }finally{bmp.close();}
+    }catch(error){say("Restore blocked: "+error.message);}
+    finally{busy=false;enable(true);}
+  });
+  async function start(){
+    try{
+      if(!sourceUrl.startsWith("/static/oap/")||!/^[a-f0-9]{64}$/.test(expected)
+        ||!window.crypto?.subtle)throw Error("Approved source verification unavailable");
+      const result=await fetch(sourceUrl,{credentials:"same-origin",cache:"no-store",
+        referrerPolicy:"no-referrer"});
+      if(!result.ok)throw Error("Approved source unavailable");
+      const bytes=await result.arrayBuffer();
+      if(bytes.byteLength===0||bytes.byteLength>20*1024*1024)
+        throw Error("Unexpected source image size");
+      const digest=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)))
+        .map(x=>x.toString(16).padStart(2,"0")).join("");
+      if(digest!==expected)throw Error("Original character identity mismatch");
+      objectUrl=URL.createObjectURL(new Blob([bytes],{type:"image/jpeg"}));
+      image.src=objectUrl;
+      await image.decode();
+      if(!image.naturalWidth||!image.naturalHeight
+        ||image.naturalWidth*image.naturalHeight>16000000)
+        throw Error("Original canvas size unsupported");
+      image.hidden=false;ready=true;
+      enable(true);choose(active);
+      say("Exact original verified. Draw your first draft region.");
+    }catch(error){
+      ready=false;enable(false);
+      say("Workbench locked: "+error.message+". Original character remains unchanged.");
+    }
+  }
+  window.addEventListener("pagehide",()=>{
+    if(objectUrl)URL.revokeObjectURL(objectUrl);
+  });
+  start();
+})();

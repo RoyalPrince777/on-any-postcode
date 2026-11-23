@@ -69,6 +69,9 @@ def probe_host_connectivity() -> dict[str, Any]:
         "default_route_present": default_route_present,
         "live_runtime_probe": True,
         "runtime_connectivity_present": bool(non_loopback) and default_route_present,
+        "internet_reachability_verified": False,
+        "oap_service_reachability_verified": False,
+        "reachability_state": "unverified",
         "external_probe_used": False,
     }
 

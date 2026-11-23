@@ -7,8 +7,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import mapbox_vector_tile
-
 from . import routing
 
 MAX_LINES = 600
@@ -28,8 +26,12 @@ def _line_parts(geometry: dict[str, Any]) -> list[list[list[float]]]:
 def tile_lines(*, x: object, y: object, zoom: object, profile: object = "driving") -> dict[str, object]:
     body, _ = routing.road_tile(x=x, y=y, zoom=zoom, profile=profile)
     try:
+        # The optional vector decoder is needed only for road-tile requests.
+        # Do not prevent unrelated local KORADASO/OAP routes from starting.
+        import mapbox_vector_tile
+
         decoded = mapbox_vector_tile.decode(body, default_options={"y_coord_down": True})
-    except Exception as exc:  # decoder boundary: fail closed to a generic code
+    except Exception as exc:  # decoder boundary: fail closed
         raise routing.RoutingUnavailable("road_tile_decode_failed") from exc
 
     lines: list[dict[str, object]] = []

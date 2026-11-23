@@ -23,7 +23,10 @@ def test_captain_status_keeps_authority_boundary(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     state = captain.status()
     assert state["name"] == "ALL IN A.I."
-    assert state["role"] == "Captain Agent"
+    assert state["role"] == "Commander"
+    assert state["legacy_role"] == "Captain Agent"
+    assert state["display_name"] == "Commander ALL IN"
+    assert state["permissions_expanded"] is False
     assert state["reports_to"] == "SMI"
     assert state["founder_final"] is True
     assert state["responses_api"] is True
@@ -102,6 +105,7 @@ def test_captain_uses_responses_api_and_extracts_sources(monkeypatch):
 def test_captain_identity_is_single_gpt_mission_role():
     prompt = captain._system_prompt()
     assert "one GPT-backed mission role" in prompt
+    assert "Commander ALL IN (formerly Captain ALL IN)" in prompt
     assert "do not count GPT as a second commander" in prompt
     assert "separate sessions" in prompt
     assert "DONE / NEXT / RECOVERY" in prompt

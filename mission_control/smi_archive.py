@@ -52,7 +52,7 @@ COUNCIL_ROLES: tuple[dict[str, str], ...] = (
     {"name": "Shere Khan", "role": "Adversarial Stress-Test / Threat Intelligence / Failure-Hunter / Survivability Authority / False-Green Blocker", "boundary": "Permanent beginning-to-end review authority; Claw Test is one pressure mode. May HOLD GREEN when evidence is insufficient; Founder Final remains final."},
     {"name": "Agent Smith", "role": "Duplicate / inconsistency / replication hunter", "boundary": "Distinct from Shere Khan survivability testing."},
     {"name": "Twinz", "role": "Dual-path contradiction / alternate-route review", "boundary": "Advisory consistency check."},
-    {"name": "ALL IN A.I.", "role": "Always Involved · Captain Agent · Mission Keeper", "boundary": "External assistant/operator; not first-party authority."},
+    {"name": "ALL IN A.I.", "role": "Always Involved · Commander (formerly Captain Agent) · Mission Keeper", "boundary": "External assistant/operator; not first-party authority."},
     {"name": "Founder Final", "role": "Human Authority", "boundary": "Final consequential authority remains human."},
 )
 

@@ -17,8 +17,8 @@
 </head>
 <body><main class="mc-shell arena-game" data-dot-room>
 <section class="card dot-room">
-<nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a></nav><p class="arena-hint">OAP Arena · First-party game</p><p> · <a href="/arena/dot">Local Dot</a></p>
-<h1>⚫ Dot · Shared Room</h1>
+{% from "_arena_game_header.html" import game_header %}
+{{ game_header("Dot online room", "/arena/dot", "Local play") }}
 <p>Two players, one server-authoritative board. Share the room code only; keep the reconnect token private.</p>
 <div data-entry>
 <h2>Create</h2>

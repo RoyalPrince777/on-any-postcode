@@ -59,7 +59,9 @@ def test_production_software_does_not_fake_6g_radio(monkeypatch):
     features = {item["id"]: item for item in status["feature_matrix"]}
 
     assert features["runtime_observation"]["ready"] is True
-    assert features["network_selection"]["ready"] is True
+    assert features["network_selection"]["ready"] is False
+    assert "reachability" in features["network_selection"]["blocker"]
+    assert "Do not automate failover" in status["network_selection_recommendation"]
     assert features["resilience"]["ready"] is True
     assert features["edge_ai"]["ready"] is True
     assert features["signed_radio_evidence"]["ready"] is False

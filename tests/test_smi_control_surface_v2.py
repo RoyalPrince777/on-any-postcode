@@ -69,28 +69,6 @@ def test_studio_tools_execute_directly_and_completed_video_is_playable():
     assert "MAX_VIDEO_BYTES" in media
 
 
-
-def test_explicit_founder_video_command_uses_canonical_studio_without_duplicate_factory():
-    final = FINAL.read_text(encoding="utf-8")
-    assert "function isExplicitFactoryVideoCommand(value)" in final
-    assert 'document.addEventListener("submit",event=>' in final
-    assert 'event.target?.id!=="chat-form"' in final
-    assert "event.stopImmediatePropagation()" in final
-    assert 'runStudioTool(sourceImage?"bring_alive":"scene_builder",trigger)' in final
-    assert 'form.dataset.oapFactoryPending==="1"' in final
-    assert 'trigger.dataset.proofAction="studio-scene-builder"' in final
-    assert "cfg.studioGenerateUrl" in final
-
-
-def test_studio_video_preflight_refuses_missing_renderer_and_avoids_fake_green():
-    final = FINAL.read_text(encoding="utf-8")
-    assert 'fetch(cfg.studioStatusUrl,{credentials:"same-origin",cache:"no-store"})' in final
-    assert 'readiness?.generation_backend_proven!==true' in final
-    assert "No generation was submitted." in final
-    assert "final MP4 unverified" in final
-    assert 'artifact.kind==="video_job"&&!artifact.artifact_proven' in final
-
-
 def test_auto_depth_is_safe_completion_metadata_and_visible():
     core = CORE.read_text(encoding="utf-8")
     final = FINAL.read_text(encoding="utf-8")

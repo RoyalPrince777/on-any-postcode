@@ -153,7 +153,111 @@ if(history&&head){const toggle=document.createElement('button');toggle.type='but
 let workbenchCache=null;const addTool=(title,text,state='purple')=>{if(!messages)return;const c=document.createElement('div');c.className='msg tool-result';const h=document.createElement('strong');h.textContent=`${state==='green'?'🟢':state==='red'?'🔴':state==='yellow'?'🟡':'🟣'} ${title}`;const b=document.createElement('span');b.className='tool-meta';b.textContent=text;c.append(h,b);messages.append(c);messages.scrollTop=messages.scrollHeight};const loadWorkbench=async(force=false)=>{if(workbenchCache&&!force)return workbenchCache;const r=await fetch(cfg.workbenchUrl,{cache:'no-store',credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d?.error?.message||'Tools unavailable');workbenchCache=d;return d};
 async function inspect(id,button){button.disabled=true;const state=button.querySelector('.connector-state');if(state)state.textContent='Checking';try{const data=await loadWorkbench(true),item=data.connectors.find(x=>x.id===id);if(!item)throw new Error('Connector not registered');if(item.inspect_available===false)throw new Error(item.readiness_reason||'Inspection unavailable');const r=await fetch(item.inspect_url,{cache:'no-store',credentials:'same-origin'}),p=await r.json();if(!r.ok)throw new Error(p?.error?.message||'Inspection unavailable');const payload=p.data||p.database||p;const proven=p.proven===true;addTool(item.name,JSON.stringify(payload,null,2).slice(0,2200),proven?'green':'yellow');if(state){state.textContent=proven?'Proven':'Limited';state.classList.toggle('ready',proven);state.classList.toggle('attention',!proven)}}catch(e){addTool(id,e.message||'Inspection unavailable','yellow');if(state){state.textContent='Blocked';state.classList.remove('ready');state.classList.add('attention')}}finally{button.disabled=false;menu?.classList.remove('show')}}
 function addFields(card,kind){const a=card.querySelector('[data-fields]');a.textContent='';const add=(label,name,ta=false,ph='')=>{const l=document.createElement('label');l.textContent=label;const x=document.createElement(ta?'textarea':'input');x.name=name;x.placeholder=ph;l.append(x);a.append(l)};if(kind==='branch'){add('Branch','branch',false,'oap-mind/feature');add('Base SHA','base_sha',false,'40-character SHA')}else if(kind==='file'){add('Branch','branch',false,'oap-mind/feature');add('Path','path');add('Commit message','message');add('Existing SHA (optional)','sha');add('Complete file content','content',true)}else{add('Head branch','head',false,'oap-mind/feature');add('Title','title');add('Body','body',true);add('Base','base',false,'main');a.querySelector('[name=base]').value='main'}}
-function githubAction(){menu?.classList.remove('show');const c=document.createElement('div');c.className='msg action-card';c.innerHTML='<strong>⚫ Governed GitHub Action</strong><span class="tool-meta">Prepare → exact review → Human Authority receipt → Living Kernel. Nothing runs before approval.</span><label>Action<select data-kind><option value="branch">Create branch</option><option value="file">Write file</option><option value="pr">Create pull request</option></select></label><div data-fields></div><div class="action-row"><button class="action-btn primary" data-prepare type="button">Prepare exact plan</button></div><span class="tool-meta" data-state>Not prepared.</span>';messages.append(c);const kind=c.querySelector('[data-kind]');addFields(c,kind.value);kind.onchange=()=>addFields(c,kind.value);c.querySelector('[data-prepare]').onclick=async e=>{const state=c.querySelector('[data-state]'),button=e.currentTarget;button.disabled=true;try{const payload=Object.fromEntries([...c.querySelectorAll('[data-fields] input,[data-fields] textarea')].map(x=>[x.name,x.value]));const endpoint=(kind.value==='branch'?cfg.proposalBranchUrl:kind.value==='file'?cfg.proposalFileUrl:cfg.proposalPrUrl);const r=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-OAP-CSRF':window.csrfToken||''},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d?.error?.message||'Proposal failed');const p=d.proposal;state.textContent=`${p.action_type}\nDigest ${p.action_digest}\nRequest ${p.request_id}`;button.remove();const row=document.createElement('div');row.className='action-row';const yes=document.createElement('button');yes.className='action-btn primary';yes.textContent='Approve';const no=document.createElement('button');no.className='action-btn danger';no.textContent='Reject';row.append(yes,no);c.append(row);const decide=async decision=>{yes.disabled=no.disabled=true;const ar=await fetch(cfg.approvalUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-OAP-CSRF':window.csrfToken||''},body:JSON.stringify({request_id:p.request_id,decision,action_type:p.action_type,action_digest:p.action_digest})}),ad=await ar.json();if(!ar.ok){state.textContent=ad?.error?.message||'Decision failed';yes.disabled=no.disabled=false;return}const receipt=ad.approval;state.textContent=`${receipt.decision} · signed ${receipt.receipt_id}\nExpires ${receipt.expires_at}`;if(receipt.decision==='APPROVED'){const run=document.createElement('button');run.className='action-btn primary';run.textContent='Execute through Living Kernel';row.append(run);run.onclick=async()=>{run.disabled=true;const er=await fetch(cfg.executeUrl,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-OAP-CSRF':window.csrfToken||''},body:JSON.stringify({receipt_id:receipt.receipt_id,plan:p})}),ed=await er.json();if(!er.ok){state.textContent=ed?.error?.message||'Execution blocked';run.disabled=false;return}state.textContent=`${ed.executed?'EXECUTED':'BLOCKED'} · ${ed.state}\n${ed.reason}\nAudit ${ed.audit_event_id||'recorded'}`;run.textContent=ed.executed?'Executed ✓':'Blocked'}}};yes.onclick=()=>decide('APPROVED');no.onclick=()=>decide('REJECTED')}catch(err){state.textContent=err.message||'Proposal failed';button.disabled=false}};messages.scrollTop=messages.scrollHeight}
+function githubAction(){
+  menu?.classList.remove('show');
+  plus?.setAttribute('aria-expanded','false');
+  const card=document.createElement('div');
+  card.className='msg action-card';
+  card.innerHTML='<strong>⚫ Governed GitHub Action</strong><span class="tool-meta">Prepare → exact review → Approve &amp; run → Living Kernel. Nothing runs before approval. Only the reviewed action is authorised.</span><label>Action<select data-kind><option value="branch">Create branch</option><option value="file">Write file</option><option value="pr">Create pull request</option></select></label><div data-fields></div><div class="action-row"><button class="action-btn primary" data-prepare type="button">Prepare exact plan</button></div><span class="tool-meta" data-state role="status" aria-live="polite">Not prepared.</span>';
+  messages.append(card);
+  const kind=card.querySelector('[data-kind]');
+  addFields(card,kind.value);
+  kind.onchange=()=>addFields(card,kind.value);
+  const controls=()=>[kind,...card.querySelectorAll('[data-fields] input,[data-fields] textarea')];
+  const post=async(url,payload)=>{
+    const response=await fetch(url,{
+      method:'POST',credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-OAP-CSRF':window.csrfToken||''},
+      body:JSON.stringify(payload)
+    });
+    const data=await response.json();
+    if(!response.ok)throw new Error(data?.error?.message||'Request blocked');
+    return data;
+  };
+  card.querySelector('[data-prepare]').onclick=async event=>{
+    const state=card.querySelector('[data-state]');
+    const prepare=event.currentTarget;
+    if(prepare.disabled)return;
+    prepare.disabled=true;
+    controls().forEach(control=>control.disabled=true);
+    state.textContent='Preparing exact change · no execution requested.';
+    try{
+      const payload=Object.fromEntries([...card.querySelectorAll('[data-fields] input,[data-fields] textarea')].map(field=>[field.name,field.value]));
+      const endpoint=kind.value==='branch'?cfg.proposalBranchUrl:kind.value==='file'?cfg.proposalFileUrl:cfg.proposalPrUrl;
+      const data=await post(endpoint,payload);
+      const plan=data.proposal;
+      if(!plan?.request_id||!plan.action_digest||!plan.action_type||!plan.payload||typeof plan.payload!=='object')throw new Error('Exact proposal unavailable');
+      const review=document.createElement('details');
+      review.open=true;
+      const summary=document.createElement('summary');
+      summary.textContent='Review exact change';
+      const exact=document.createElement('pre');
+      exact.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:22rem;overflow:auto';
+      // Returned source and file contents are data, never executable HTML.
+      exact.textContent=JSON.stringify(plan.payload,null,2);
+      review.append(summary,exact);
+      card.append(review);
+      state.textContent=`Ready for review · ${plan.action_type}\nDigest ${plan.action_digest}\nRequest ${plan.request_id}`;
+      prepare.remove();
+      const row=document.createElement('div');
+      row.className='action-row';
+      const approve=document.createElement('button');
+      approve.type='button';approve.className='action-btn primary';
+      approve.textContent='Approve & run';
+      const reject=document.createElement('button');
+      reject.type='button';reject.className='action-btn danger';reject.textContent='Reject';
+      row.append(approve,reject);card.append(row);
+      let submitted=false;
+      const decide=async decision=>{
+        if(submitted)return;
+        submitted=true;
+        approve.disabled=reject.disabled=true;
+        let receipt=null;
+        let stage='Approval';
+        state.textContent=`Recording ${decision==='APPROVED'?'approval':'rejection'} · request ${plan.request_id}`;
+        try{
+          const result=await post(cfg.approvalUrl,{
+            request_id:plan.request_id,decision,
+            action_type:plan.action_type,action_digest:plan.action_digest
+          });
+          receipt=result.approval;
+          if(!receipt?.receipt_id||receipt.request_id!==plan.request_id||receipt.action_digest!==plan.action_digest||receipt.action_type!==plan.action_type||receipt.decision!==decision||receipt.signature_verified!==true){
+            state.textContent=`BLOCKED · approval receipt does not match this exact change.\nRequest ${plan.request_id}\nNo execution requested.`;
+            return;
+          }
+          const receiptText=`Request ${plan.request_id}\nReceipt ${receipt.receipt_id}\nExpires ${receipt.expires_at}`;
+          if(decision==='REJECTED'){
+            state.textContent=`REJECTED · no execution requested.\n${receiptText}`;
+            return;
+          }
+          // Execute through Living Kernel with its existing signed, single-use
+          // receipt. This click is the exact-action approval, not blanket AUTO.
+          stage='Execution';
+          state.textContent=`APPROVED · executing reviewed change through Living Kernel.\n${receiptText}`;
+          const execution=await post(cfg.executeUrl,{receipt_id:receipt.receipt_id,plan});
+          if(typeof execution.executed!=='boolean'||execution.request_id!==plan.request_id)throw new Error('Execution result is incomplete');
+          state.textContent=`${execution.executed?'EXECUTED':'BLOCKED'} · ${execution.state||'state not returned'}\n${execution.reason||'No reason returned'}\n${receiptText}\nAudit ${execution.audit_event_id||'not returned'}`;
+          approve.textContent=execution.executed?'Executed ✓':'Blocked';
+        }catch(error){
+          // A lost response may follow a successful write. Never repeat a
+          // signed approval or consumed action automatically after an error.
+          state.textContent=`${stage} outcome unconfirmed · ${error.message||'Connection unavailable'}\nRequest ${plan.request_id}${receipt?.receipt_id?'\nReceipt '+receipt.receipt_id:''}\nCheck the audit receipt before retrying. No automatic retry.`;
+        }
+      };
+      approve.onclick=()=>decide('APPROVED');
+      reject.onclick=()=>decide('REJECTED');
+    }catch(error){
+      state.textContent=error.message||'Proposal failed';
+      prepare.disabled=false;
+      controls().forEach(control=>control.disabled=false);
+    }
+  };
+  messages.scrollTop=messages.scrollHeight;
+}
+// V2 delegates other tools but deliberately leaves this exact-action handler
+// alone. Bind the permanent grouped-menu button instead of a duplicate fallback.
+qa('[data-oap-action="github-governed"]').forEach(button=>button.onclick=githubAction);
+
 qa('[data-connector-id]').forEach(button=>{button.onclick=()=>inspect(button.dataset.connectorId,button)});
 const safeInspect=async(title,url,button)=>{if(!url)return;button.disabled=true;try{const r=await fetch(url,{cache:'no-store',credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d?.error?.message||title+' unavailable');const explicitFalse=d?.ready===false||d?.green===false||d?.schema_ready===false||d?.whole_smi_green===false;const explicitTrue=d?.ready===true||d?.green===true||d?.schema_ready===true||d?.whole_smi_green===true;addTool(title,JSON.stringify(d,null,2).slice(0,2200),explicitFalse&&!explicitTrue?'yellow':'green')}catch(e){addTool(title,e.message||'Unavailable','yellow')}finally{button.disabled=false;menu?.classList.remove('show')}};
 const studioButton=q('#studio-button');if(studioButton)studioButton.onclick=async()=>{studioButton.disabled=true;try{const r=await fetch(cfg.studioStatusUrl,{cache:'no-store',credentials:'same-origin'}),d=await r.json();if(!r.ok)throw new Error(d?.error?.message||'Studio unavailable');studioMode=!studioMode;studioButton.classList.toggle('active',studioMode);const state=q('#studio-state'),backendProven=Boolean(d?.generation_backend_proven),fullLive=Boolean(d?.full_live_certificate);if(state)state.textContent=studioMode?(fullLive?'Live':backendProven?'Generate':'Plan'):'Off';if(studioMode){const tools=(d.generation_tools||[]).map(item=>item.name).join(' · ');addTool('OAP Studio Intelligence',[tools||'Studio tools available',backendProven?'Generation backend configured':'Generation backend unproven',fullLive?'Full live certificate proven':'Full live certificate pending artifact proof'].join('\n'),fullLive?'green':'yellow');q('#status').textContent=fullLive?'OAP Studio Intelligence live':'OAP Studio Intelligence active · SMI 21 governed generation';if(!input.value.trim()){input.placeholder='Create or analyse with OAP Studio Intelligence…';input.focus()}}else{q('#status').textContent='OAP Studio Intelligence off';input.placeholder='Ask SMI…'}}catch(e){q('#status').textContent=e.message||'Studio unavailable'}finally{studioButton.disabled=false;menu?.classList.remove('show')}};
@@ -181,7 +285,7 @@ qa('[data-map-view]').forEach(button=>button.onclick=()=>openMapWorkspace(button
 if(mapClose)mapClose.onclick=closeMapWorkspace;
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&mapWorkspace&&!mapWorkspace.hidden)closeMapWorkspace()});
 if(!window.OAP_SMI_CONTROL_SURFACE_V2_PENDING)qa('[data-oap-action]').forEach(button=>{button.onclick=()=>{const id=button.dataset.oapAction;if(id==='map-intelligence'){openMapWorkspace('/on-any-place');return}if(id==='war-room'){location.href=cfg.warRoomUrl;return}if(id==='improvement'){location.href=cfg.improvementUrl;return}if(id==='swot'){input.value=input.value.trim()?('Run SWOT Intelligence on this:\n'+input.value.trim()):'Run SWOT Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='SWOT Intelligence ready · Strengths · Weaknesses · Opportunities · Threats · Practical Move';menu?.classList.remove('show');return}if(id==='behaviour'){input.value=input.value.trim()?('Run Behaviour Intelligence on this:\n'+input.value.trim()):'Run Behaviour Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Behaviour Intelligence ready · 21 dimensions · evidence-backed percentages only';menu?.classList.remove('show');return}if(id==='ux'){input.value=input.value.trim()?('Run UX Intelligence on this:\n'+input.value.trim()):'Run UX Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='UX / UI Intelligence ready · layout · interaction · accessibility';menu?.classList.remove('show');return}if(id==='alignment'){input.value=input.value.trim()?('Run Alignment Intelligence on this:\n'+input.value.trim()):'Run Alignment Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Alignment Intelligence ready · naming · ownership · routes · boundaries';menu?.classList.remove('show');return}if(id==='infrastructure-intelligence'){input.value=input.value.trim()?('Run Architecture Dependency Performance Resilience Intelligence on this:\n'+input.value.trim()):'Run Architecture Dependency Performance Resilience Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Infrastructure Intelligence ready · architecture · dependency · performance · resilience';menu?.classList.remove('show');return}if(id==='security'){input.value=input.value.trim()?('Run Security Intelligence on this:\n'+input.value.trim()):'Run Security Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Security Intelligence ready · auth · permissions · secrets · fail-closed';menu?.classList.remove('show');return}if(id==='evidence'){input.value=input.value.trim()?('Run Evidence Intelligence on this:\n'+input.value.trim()):'Run Evidence Intelligence on: ';input.dispatchEvent(new Event('input',{bubbles:true}));input.focus();q('#status').textContent='Evidence Intelligence ready · proof · freshness · confidence';menu?.classList.remove('show');return}if(id==='github-governed'){githubAction();return}if(id==='function-health'){safeInspect('Function Health',cfg.functionHealthUrl,button);return}if(id==='green-gate'){safeInspect('Green Gate',cfg.greenGateUrl,button);return}if(id==='hrm'){safeInspect('HRM / Jog Memory',cfg.hrmUrl,button);return}if(id==='founder-library'){safeInspect('Founder Library',cfg.founderLibraryUrl,button);return}}});
-if(plus&&menu&&!menu.querySelector('[data-oap-connectors]')){const d=document.createElement('div');d.className='attach-divider';d.dataset.oapConnectors='1';menu.append(d);const l=document.createElement('div');l.className='attach-section-label';l.textContent='Connected tools';menu.append(l);[['render','◇','Render'],['github','◇','GitHub'],['neon','◇','Neon']].forEach(([id,icon,name])=>{const b=document.createElement('button');b.type='button';b.className='attach-option connector';b.innerHTML=`<span class="connector-copy"><span>${icon}</span><span>${name}</span></span><span class="connector-state">Inspect</span>`;b.onclick=()=>inspect(id,b);menu.append(b)});const improve=document.createElement('button');improve.type='button';improve.className='attach-option connector';improve.innerHTML='<span class="connector-copy"><span>🟠</span><span>Improvement Loop</span></span><span class="connector-state attention">Review</span>';improve.onclick=()=>{location.href=cfg.improvementUrl};menu.append(improve);const a=document.createElement('button');a.type='button';a.className='attach-option connector';a.innerHTML='<span class="connector-copy"><span>⚙️</span><span>Governed GitHub action</span></span><span class="connector-state attention">Approval</span>';a.onclick=githubAction;menu.append(a);const note=document.createElement('div');note.className='attach-note';note.textContent='Credentials never appear here. Consequential actions require Human Authority and a signed receipt.';menu.append(note)}
+if(plus&&menu&&!menu.querySelector('[data-oap-connectors]')&&!menu.querySelector('[data-smi-tool-group]')){const d=document.createElement('div');d.className='attach-divider';d.dataset.oapConnectors='1';menu.append(d);const l=document.createElement('div');l.className='attach-section-label';l.textContent='Connected tools';menu.append(l);[['render','◇','Render'],['github','◇','GitHub'],['neon','◇','Neon']].forEach(([id,icon,name])=>{const b=document.createElement('button');b.type='button';b.className='attach-option connector';b.innerHTML=`<span class="connector-copy"><span>${icon}</span><span>${name}</span></span><span class="connector-state">Inspect</span>`;b.onclick=()=>inspect(id,b);menu.append(b)});const improve=document.createElement('button');improve.type='button';improve.className='attach-option connector';improve.innerHTML='<span class="connector-copy"><span>🟠</span><span>Improvement Loop</span></span><span class="connector-state attention">Review</span>';improve.onclick=()=>{location.href=cfg.improvementUrl};menu.append(improve);const a=document.createElement('button');a.type='button';a.className='attach-option connector';a.innerHTML='<span class="connector-copy"><span>⚙️</span><span>Governed GitHub action</span></span><span class="connector-state attention">Approval</span>';a.onclick=githubAction;menu.append(a);const note=document.createElement('div');note.className='attach-note';note.textContent='Credentials never appear here. Consequential actions require Human Authority and a signed receipt.';menu.append(note)}
 const nativeFetch=window.fetch.bind(window);window.fetch=async function(req,init){const response=await nativeFetch(req,init);try{const url=typeof req==='string'?req:req?.url||'';if(url===cfg.streamUrl){response.clone().text().then(text=>{for(const block of text.split(/\n\n+/)){if(!block.includes('event: complete'))continue;const line=block.split('\n').find(x=>x.startsWith('data: '));if(line){try{window.dispatchEvent(new CustomEvent('oap-smi-complete',{detail:JSON.parse(line.slice(6)).result}))}catch{}}}})}}catch{}return response};
 window.OAP_SMI_MASTER={version:'1.3',masterTools:true,savedWork:true,founderLibrary:true,search:true,studio21:true,mapIntelligenceWorkspace:true,governedActions:true};
 window.OAP_SMI_STUDIO_WORKSPACES=['build','data','code','fast','motion','music','omni','research'];
@@ -901,14 +1005,8 @@ refreshOps();
     }
 
     async function runStudioTool(toolId,button){
-      const projectShell=toolId==="scene_builder"?window.OAP_SMI_PENDING_PROJECT_SHELL:null;
-      window.OAP_SMI_PENDING_PROJECT_SHELL=null;
       const prompt=input.value.trim();
       const sourceImage=(typeof selectedImage!=="undefined"&&selectedImage)?selectedImage:"";
-      if(projectShell&&!sourceImage){
-        setStatus("PROJECT SHELL needs the approved OAP character reference attached in SMI. No render submitted.");
-        return;
-      }
       if((toolId==="imagine"||toolId==="scene_builder")&&!prompt){
         setStatus("Add a written brief first.");
         input.focus();
@@ -927,13 +1025,6 @@ refreshOps();
       const chip=q(".connector-state",button);
       if(chip)chip.textContent="Running";
       try{
-        if(toolId==="scene_builder"||toolId==="bring_alive"){
-          const readinessResponse=await fetch(cfg.studioStatusUrl,{credentials:"same-origin",cache:"no-store"});
-          const readiness=await readinessResponse.json().catch(()=>({}));
-          if(!readinessResponse.ok||readiness?.generation_backend_proven!==true){
-            throw new Error("OAP Studio video renderer unavailable or unconfigured. No generation was submitted.");
-          }
-        }
         const response=await fetch(cfg.studioGenerateUrl,{
           method:"POST",
           credentials:"same-origin",
@@ -946,11 +1037,6 @@ refreshOps();
             prompt:prompt||(toolId==="bring_alive"?"Bring this image alive with natural cinematic motion.":""),
             source_image_data:sourceImage,
             character_lock:Boolean(window.OAP_SMI_CHARACTER_LOCK),
-            ...(projectShell?{
-              character_lock:true,
-              video_size:projectShell.video_size,
-              video_seconds:projectShell.video_seconds
-            }:{}),
             conversation_id:conversationId||"",
             studio_request_id:(globalThis.crypto?.randomUUID?.()||"")
           })
@@ -989,9 +1075,7 @@ refreshOps();
         }
         menu.classList.remove("show");
         plus.setAttribute("aria-expanded","false");
-        setStatus(artifact.kind==="video_job"&&!artifact.artifact_proven
-          ?toolName+" job submitted · final MP4 unverified"
-          :toolName+" result recorded · Human Authority final");
+        setStatus(toolName+" complete/current state recorded · Human Authority final");
       }catch(error){
         addCard("OAP Studio",error?.message||"Studio generation unavailable","red");
         if(chip){chip.textContent="Blocked";chip.classList.add("attention");}
@@ -1000,32 +1084,6 @@ refreshOps();
         button.disabled=false;
       }
     }
-
-    // Explicit Founder commands reuse the canonical Studio runner.
-    // Normal conversation does not start generation or create another Factory.
-    function isExplicitFactoryVideoCommand(value){
-      const command=String(value||"").trim();
-      return /^(?:🎬\s*)?SMI\s*[—–:-]\s*EXECUTE\s+OAP\s+FACTORY\s+VIDEO\s+GENERATION\b/i.test(command)
-        || /^\/(?:oap-factory|studio)\s+(?:video|scene)\s+\S/i.test(command);
-    }
-    document.addEventListener("submit",event=>{
-      if(event.target?.id!=="chat-form")return;
-      if(!isExplicitFactoryVideoCommand(input.value))return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      const form=event.target;
-      if(form.dataset.oapFactoryPending==="1"){
-        setStatus("OAP Factory job request already in progress");
-        return;
-      }
-      form.dataset.oapFactoryPending="1";
-      const trigger=document.createElement("button");
-      trigger.type="button";
-      trigger.dataset.proofAction="studio-scene-builder";
-      const sourceImage=(typeof selectedImage!=="undefined"&&selectedImage)?selectedImage:"";
-      runStudioTool(sourceImage?"bring_alive":"scene_builder",trigger)
-        .finally(()=>{delete form.dataset.oapFactoryPending;});
-    },true);
 
     const inspectTargets={
       "function-health":["Function Health",cfg.functionHealthUrl],

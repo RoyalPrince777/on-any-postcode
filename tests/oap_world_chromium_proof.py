@@ -30,8 +30,10 @@ def main():
                 response = page.goto(BASE + "/world?source=oap-os")
                 assert response is not None and response.status == 200
                 expect(page.locator("#world-query")).to_be_visible()
-                expect(page.locator('nav[aria-label="Quick destinations"] a')).to_have_count(4)
-                assert page.locator('a[href="/the-spot"]').count() > 0
+                quick = page.locator('nav[aria-label="Quick destinations"] a')
+                expect(quick).to_have_count(5)
+                for href in ("/koradaso", "/the-spot", "/linkup", "/my-world", "/travel"):
+                    assert page.locator(f'nav[aria-label="Quick destinations"] a[href="{href}"]').count() == 1
 
                 page.locator("#world-query").fill("javascript:alert(1)")
                 page.get_by_role("button", name="Open").click()

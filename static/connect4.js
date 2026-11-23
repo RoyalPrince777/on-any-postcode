@@ -3,6 +3,11 @@
 const root=document.querySelector("[data-c4-root]");if(!root)return;
 const q=s=>root.querySelector(s);
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
+const controls=q("[data-controls]");
+const renderBoard=window.OAPConnect4Board.mount(root);
+const colour=q("[data-colour]");
+const playerLabels=root.querySelectorAll("[data-player]");
+let counterColours=["empty","red","yellow"];
 let state=null,agentMode=false,busy=false;
 const req=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
 const error=e=>q("[data-error]").textContent=e?.message||String(e);
@@ -19,38 +24,37 @@ function render(){
  q("[data-mode]").disabled=busy||state?.status==="active";
  q("[data-agent]").disabled=busy||state?.status==="active";
  q("[data-difficulty]").disabled=busy;
- if(!state)return;
- q("[data-game]").hidden=false;
- q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
- q("[data-status]").textContent=state.status;
- const activity=window.OAPGameplayProgress?.measure("connect4",state);
- q("[data-gameplay-percent]").textContent=activity?"Gameplay "+activity.value+"% · "+activity.label:"Gameplay percentage unavailable";
- q("[data-gameplay-bar]").value=activity?activity.value:0;
- const active=state.status==="active";
- q("[data-stop]").disabled=busy||!active;q("[data-resign]").disabled=busy||!active;
- const controls=q("[data-controls]");controls.replaceChildren();
- const locked=busy||!active||(agentMode&&state.current_player_id==="p2");
- for(let column=0;column<7;column++){
-  const button=document.createElement("button");button.type="button";
-  button.dataset.col=String(column);button.textContent="↓";
-  button.setAttribute("aria-label","Drop into column "+(column+1));
-  button.disabled=locked||state.board[0][column]!==0;
-  controls.append(button);
+ const active=state?.status==="active";
+ colour.disabled=busy||active;
+ start.hidden=active;
+ start.textContent=state?"New game":"Play";
+ controls.hidden=!active;
+ q("[data-stop]").hidden=!active;
+ q("[data-resign]").hidden=!active;
+ q("[data-stop]").disabled=busy;
+ q("[data-resign]").disabled=busy;
+ if(state){
+  q("[data-players]").hidden=false;
+  playerLabels.forEach((label,index)=>{
+   const [swatch,name]=label.children;
+   const counterColour=counterColours[index+1];
+   swatch.dataset.counterColour=counterColour;
+   swatch.setAttribute("aria-label",counterColour+" counters");
+   name.textContent=state.players[index].name;
+  });
+  const winner=state.players.find(player=>player.id===state.winner_id);
+  const turn=state.current_player_name+"’s turn";
+  q("[data-turn]").textContent=active?turn:winner?winner.name+" wins":state.status==="stopped"?"Match stopped":"Draw";
  }
- const board=q("[data-board]");board.replaceChildren();
- state.board.flat().forEach(value=>{
-  const cell=document.createElement("div");
-  cell.className="c4-cell"+(value===1?" c4-p1":value===2?" c4-p2":"");
-  board.append(cell);
- });
+ const locked=busy||!active||(agentMode&&state.current_player_id==="p2");
+ renderBoard(state?.board,counterColours,locked);
 }
 async function runAgent(){
  if(!agentMode||state?.status!=="active"||state.current_player_id!=="p2")return;
  const key=q("[data-agent]").value,difficulty=q("[data-difficulty]").value;
- q("[data-agent-status]").textContent="Agent turn · calculating legal move…";
  const response=await post("/arena/connect4/agent-move",{agent_key:key,difficulty,request_id:req()});
  state=response;
- q("[data-agent-status]").textContent=response.agent.name+" · "+response.agent.fit_stars+"/7 stars · "+difficulty;
+ q("[data-agent-status]").textContent="";
  q("[data-retry-agent]").hidden=true;
  render();
 }
@@ -58,6 +62,17 @@ async function action(path,payload,followAgent=false){
  if(busy)return;busy=true;q("[data-error]").textContent="";render();
  try{
   state=await post(path,payload);
+  if(path.endsWith("/start")){
+   const opponentColour={yellow:"red",orange:"blue",white:"red"}[colour.value]||"yellow";
+   counterColours=["empty",colour.value,opponentColour];
+   q("[data-settings]").open=false;
+   q("[data-agent-status]").textContent="";
+   q("[data-retry-agent]").hidden=true;
+  }
+  if(state.status!=="active"){
+   q("[data-agent-status]").textContent="";
+   q("[data-retry-agent]").hidden=true;
+  }
   render();
   if(followAgent)await runAgent();
  }catch(e){
@@ -80,10 +95,10 @@ q("[data-start]").onclick=()=>{
  action("/arena/connect4/start",{player_one:q("[data-p1]").value,player_two:agentName,
   opponent_mode:agentMode?"agent":"human",agent_key:agentMode?q("[data-agent]").value:null});
 };
-q("[data-controls]").onclick=e=>{
- const button=e.target.closest("[data-col]");
- if(!button||button.disabled||busy||state?.status!=="active")return;
- action("/arena/connect4/drop",{column:Number(button.dataset.col),request_id:req()},true);
+controls.onclick=e=>{
+ const button=e.target.closest("[data-column]");
+ if(!button||button.getAttribute("aria-disabled")==="true")return;
+ action("/arena/connect4/drop",{column:Number(button.dataset.column),request_id:req()},true);
 };
 q("[data-retry-agent]").onclick=()=>{
  if(busy||!agentMode||state?.status!=="active"||state.current_player_id!=="p2")return;
@@ -95,4 +110,5 @@ q("[data-stop]").onclick=()=>{
  if(busy||state?.status!=="active")return;
  action("/arena/connect4/stop",{request_id:req()});
 };
+render();
 })();

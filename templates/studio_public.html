@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-koradaso-release="{{ koradaso_release }}">
 <head>
 <meta charset="utf-8">
-<title>OAP Studio Intelligence</title>
+<title>{% if koradaso_mode %}SMI · KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 {% include "_oap_install_head.html" %}
 <style>
@@ -11,47 +11,78 @@
 .shell{min-height:100vh;display:grid;grid-template-columns:260px minmax(0,1fr)}
 .side{border-right:1px solid var(--line);background:#07100b;padding:18px;display:flex;flex-direction:column;gap:16px}.brand{font-weight:900;font-size:1.2rem}.sub{color:var(--muted);font-size:.78rem}.new{border:1px solid var(--line);border-radius:12px;padding:12px;background:#0b1710;font-weight:800}.nav{display:grid;gap:8px}.nav a,.nav button{border:0;background:transparent;color:var(--text);text-align:left;padding:10px;border-radius:10px;font:inherit}.nav a:hover,.nav button:hover{background:#102019}.private-note{margin-top:auto;border:1px solid #4b3d1c;border-radius:12px;padding:12px;color:#d8c79d;font-size:.78rem}
 .main{min-width:0;display:flex;flex-direction:column}.top{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:#07100b}.top strong{font-size:.95rem}.actions{display:flex;gap:8px}.pill{border:1px solid var(--line);border-radius:999px;padding:8px 12px;color:var(--muted)}
-.chat{flex:1;display:grid;place-items:center;padding:30px}.welcome{width:min(820px,100%);text-align:center}.welcome h1{font-size:clamp(2rem,6vw,4.5rem);margin:0}.welcome p{color:var(--muted);font-size:1.02rem}.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:28px 0}.tool{border:1px solid var(--line);border-radius:14px;padding:16px;background:#0a120d;text-align:left}.tool strong{display:block}.tool small{display:block;color:var(--muted);margin-top:6px;line-height:1.4}
+.chat{flex:1;display:grid;place-items:center;padding:30px}.welcome{width:min(820px,100%);text-align:center}.welcome h1{font-size:clamp(2rem,6vw,4.5rem);margin:0}.welcome p{color:var(--muted);font-size:1.02rem}.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:28px 0}.tool{border:1px solid var(--line);border-radius:14px;padding:16px;background:#0a120d;text-align:left;color:var(--text);font:inherit;cursor:pointer}.tool:hover,.tool:focus-visible{border-color:var(--accent);background:#142015}.tool:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.tool strong{display:block}.tool small{display:block;color:var(--muted);margin-top:6px;line-height:1.4}
 .composer{border:1px solid var(--line);border-radius:20px;background:#09110d;padding:10px;text-align:left}.composer textarea{width:100%;min-height:84px;resize:none;border:0;outline:0;background:transparent;color:var(--text);font:inherit;padding:8px}.bar{display:flex;justify-content:space-between;align-items:center;gap:8px}.left,.right{display:flex;gap:8px}.btn{border:1px solid var(--line);border-radius:999px;background:#102019;color:var(--text);padding:8px 11px;font-weight:700}.send{border:0;background:var(--green);color:#031007}.truth{margin-top:10px;color:var(--muted);font-size:.72rem}
 @media(max-width:800px){.shell{display:block}.side{display:none}.tools{grid-template-columns:1fr}.chat{padding:18px}.welcome{text-align:left}.welcome h1{font-size:2.5rem}}
+/* KORADASO presentation, not a new assistant stack or a Founder lane. */
+.koradaso-intelligence{--bg:#07040e;--panel:#140e20;--line:#614679;--text:#fff4da;--muted:#c2b4d2;--accent:#e9bd6c;--green:#e9bd6c;background:radial-gradient(circle at 50% -15%,#301747 0%,#090611 55%,#05040b 100%);color:var(--text)}
+.koradaso-intelligence .side,.koradaso-intelligence .top{background:#100a1b;border-color:#58416f}
+.koradaso-intelligence .brand{font-family:Georgia,serif;color:#f3cf83;letter-spacing:.04em}
+.koradaso-intelligence .new,.koradaso-intelligence .tool,.koradaso-intelligence .composer{background:#161022;border-color:#735989}
+.koradaso-intelligence .nav a:hover,.koradaso-intelligence .tool:hover{background:#291737}
+.koradaso-intelligence .welcome h1{font-family:Georgia,serif;font-size:clamp(1.8rem,5vw,3.2rem);color:#f4ce82}
+.koradaso-intelligence .chat{align-items:start;padding-top:clamp(20px,5vh,66px)}
+.koradaso-intelligence .tool{padding:12px 14px}
+.koradaso-intelligence .tool:hover,.koradaso-intelligence .tool:focus-visible{border-color:#f3cc84}
+.koradaso-intelligence .composer{border-radius:20px;background:#100c1b}
+.koradaso-intelligence .send{background:#e9bd6c;color:#211222}
+.koradaso-intelligence .pill{border-color:#735989}
+.koradaso-intelligence .status-inline{margin:12px auto 0;max-width:640px;font-size:.82rem;color:#e2c8ee}
+.koradaso-intelligence .status-inline strong{color:#f4ce82}
+@media(max-width:800px){.koradaso-intelligence .chat{padding:18px 12px}.koradaso-intelligence .tools{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.koradaso-intelligence .tool{padding:11px}.koradaso-intelligence .welcome h1{font-size:2rem}}
+@media(max-width:360px){.koradaso-intelligence .tools{grid-template-columns:1fr}}
+/* Royal Compass is the KORADASO view of the existing public SMI brain. */
+.koradaso-intelligence .compass-line{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;margin:2px 0 16px;color:#e9c989;font-size:.75rem;letter-spacing:.075em;text-transform:uppercase}
+.koradaso-intelligence .compass-line .compass-separator{color:#9a7da8}
+.koradaso-intelligence .welcome{max-width:760px}
+.koradaso-intelligence .welcome h1{letter-spacing:-.025em}
+.koradaso-intelligence .composer:focus-within{outline:2px solid #e9bd6c;outline-offset:2px}
+.koradaso-intelligence .composer textarea{min-height:92px}
+.koradaso-intelligence .tool{transition:background .14s ease,border-color .14s ease}
+@media(max-width:800px){.koradaso-intelligence .compass-line{justify-content:flex-start;gap:6px;font-size:.68rem}}
 </style>
 </head>
-<body>
+<body class="{% if koradaso_mode %}koradaso-intelligence{% endif %}">
 <div class="shell">
   <aside class="side">
-    <div><div class="brand">OAP Studio Intelligence</div><div class="sub">Public AI experience</div></div>
-    <a class="new" href="/studio">＋ New chat</a>
+    <div><div class="brand">{% if koradaso_mode %}♛ SMI · KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</div><div class="sub">{% if koradaso_mode %}One SMI · KORADASO interface · First-party inference only{% else %}Public AI experience · SMI{% endif %}</div></div>
+    <a class="new" href="{% if koradaso_mode %}/studio?source=koradaso{% else %}/studio{% endif %}">＋ New chat</a>
     <nav class="nav" aria-label="Studio navigation">
-      <a href="/studio">💬 Chats</a>
-      <a href="/studio#tools">✨ Create</a>
-      <a href="/studio#research">🔎 Research</a>
-      <a href="/">🌍 OAP World</a>
+      <a href="{% if koradaso_mode %}/studio?source=koradaso{% else %}/studio{% endif %}">💬 Chats</a>
+      <a href="{% if koradaso_mode %}/studio?source=koradaso#tools{% else %}/studio#tools{% endif %}">✨ Explore</a>
+      <a href="{% if koradaso_mode %}/studio?source=koradaso#research{% else %}/studio#research{% endif %}">🔎 Research</a>
+      <a href="/koradaso">⌂ KORADASO Home</a>
+      <a href="/world">🌍 OAP World</a>
     </nav>
     <div class="private-note">Public Studio contains public creation tools only. Private operational controls remain separate and inaccessible.</div>
   </aside>
   <main class="main">
-    <header class="top"><strong>OAP Studio Intelligence</strong><div class="actions"><a class="pill" href="/">OAP World</a><a class="pill" href="/the-spot">Enter My World</a></div></header>
+    <header class="top"><strong>{% if koradaso_mode %}SMI · KORADASO Intelligence{% else %}OAP Studio Intelligence{% endif %}</strong><div class="actions">{% if koradaso_mode %}<a class="pill" href="/koradaso">KORADASO Home</a>{% else %}<a class="pill" href="/">OAP World</a><a class="pill" href="/the-spot">Enter My World</a>{% endif %}</div></header>
     <section class="chat">
       <div class="welcome">
-        <h1>What can OAP help you create?</h1>
-        <p>Ask, create, research and work with media from one public OAP AI surface.</p>
-        <div class="tools" id="tools">
-          <div class="tool"><strong>Imagine</strong><small>Text → Image</small></div>
-          <div class="tool"><strong>Bring Alive</strong><small>Image → Video</small></div>
-          <div class="tool"><strong>Scene Builder</strong><small>Text → Video</small></div>
-          <div class="tool"><strong>Edit</strong><small>Transform an existing image or media asset</small></div>
-          <div class="tool" id="research"><strong>Research</strong><small>Search, compare and explain with evidence</small></div>
-          <div class="tool"><strong>Files & Voice</strong><small>Upload, speak and work across supported media</small></div>
+        {% if koradaso_mode %}<div class="compass-line" aria-label="KORADASO Compass: from postcode to global"><strong>♛ KORADASO COMPASS</strong><span class="compass-separator">·</span><span>Postcode → Global</span></div>{% endif %}
+        <h1>{% if koradaso_mode %}Ask SMI. Explore your world.{% else %}What can OAP help you create?{% endif %}</h1>
+        <p>{% if koradaso_mode %}One SMI intelligence. Discover, understand, compare and create. Your search stays a draft until you choose Send. No live web access is implied.{% else %}Ask, create, research and work with media from one public OAP AI surface.{% endif %}</p>
+        {% if koradaso_mode %}<p class="status-inline" id="koradaso-ai-status" role="status"><strong>First-party only</strong> · Connection not checked. Founder session, memory and authority are never used.</p>{% endif %}
+        <div class="tools" id="tools" aria-label="Seven intelligence suggestions">
+          <button class="tool" type="button" data-smi-prompt="Explain this topic clearly, distinguishing facts from uncertainty: "><strong>Explain</strong><small>Understand a topic clearly</small></button>
+          <button class="tool" type="button" id="research" data-smi-prompt="Research this question using available evidence. Distinguish verified facts, limitations and missing sources: "><strong>Research</strong><small>Evidence and limitations</small></button>
+          <button class="tool" type="button" data-smi-prompt="Truth-check this claim. Separate confirmed facts, interpretation and unknowns: "><strong>Truth Check</strong><small>Check claims without invented proof</small></button>
+          <button class="tool" type="button" data-smi-prompt="Compare these options fairly, including trade-offs and uncertainties: "><strong>Compare</strong><small>Evaluate choices</small></button>
+          <button class="tool" type="button" data-smi-prompt="Create a practical step-by-step plan for this goal, noting assumptions: "><strong>Plan</strong><small>Clear next steps</small></button>
+          <button class="tool" type="button" data-smi-prompt="Help me write or improve this text while preserving its meaning: "><strong>Write</strong><small>Draft and improve text</small></button>
+          <button class="tool" type="button" data-smi-prompt="Explain or review this code, including safety risks and tests, without claiming to execute it: "><strong>Code Help</strong><small>Explain and review code</small></button>
         </div>
         <div class="composer" aria-label="Studio composer">
           <div id="messages" aria-live="polite"></div>
-          <textarea id="studio-input" placeholder="Ask OAP Studio Intelligence..."></textarea>
+          <textarea id="studio-input" placeholder="{% if koradaso_mode %}Ask SMI · KORADASO Intelligence...{% else %}Ask OAP Studio Intelligence...{% endif %}"></textarea>
           <div class="bar">
-            <div class="left"><button class="btn" type="button" disabled title="Files are available only in the signed-in private workspace">＋ Files</button><button class="btn" type="button" disabled title="Voice is available only in the signed-in private workspace">🎙 Voice</button></div>
+            <div class="left">{% if koradaso_mode %}<a class="btn" href="/koradaso" aria-label="Back to KORADASO home">⌂ Home</a>{% else %}<button class="btn" type="button" disabled title="Files are available only in the signed-in private workspace">＋ Files</button><button class="btn" type="button" disabled title="Voice is available only in the signed-in private workspace">🎙 Voice</button>{% endif %}</div>
             <div class="right"><button class="btn send" id="studio-send" type="button">Send</button></div>
           </div>
         </div>
-        <div class="truth">🟢 Public Studio chat is live. Files, Voice and governed media generation remain private and owner-scoped.</div>
+        <div class="truth">{% if koradaso_mode %}SMI's KORADASO interface never forwards this chat to an external AI fallback. If the OAP inference node is unavailable, your request fails safely.{% else %}Public interface updates are checked automatically when online. Open chats are never refreshed without your action.{% endif %}</div>
+        <div class="truth">Chat availability is confirmed only when a request succeeds. Private tools, Files, Voice and private SMI remain separate.</div>
       </div>
     </section>
   </main>
@@ -63,6 +94,27 @@ const send=document.getElementById('studio-send');
 const messages=document.getElementById('messages');
 const csrf=document.getElementById('oap-csrf').value;
 const history=[];
+const koradasoMode={{ 'true' if koradaso_mode else 'false' }};
+const koradasoStatus=document.getElementById('koradaso-ai-status');
+// One-shot same-origin handoff from the KORADASO browser. Never submit on load.
+if(koradasoMode){
+  try{
+    const draft=sessionStorage.getItem('koradaso.smi_draft.v1');
+    sessionStorage.removeItem('koradaso.smi_draft.v1');
+    if(typeof draft==='string'&&draft.trim()&&draft.length<=600){
+      input.value=draft.trim();
+      input.focus();
+    }
+  }catch(_){/* Browser storage denied: public chat still works without a draft. */}
+}
+document.querySelectorAll('[data-smi-prompt]').forEach(button=>{
+  button.addEventListener('click',()=>{
+    if(input.value.trim()&&!window.confirm('Replace the current unsent message with this suggestion?'))return;
+    input.value=button.getAttribute('data-smi-prompt');
+    input.focus();
+    input.setSelectionRange(input.value.length,input.value.length);
+  });
+});
 function add(role,text){
   const el=document.createElement('div');
   el.style.margin='12px 0';
@@ -78,15 +130,18 @@ async function submitStudio(){
   const message=input.value.trim(); if(!message||send.disabled)return;
   add('You',message); history.push({role:'user',text:message}); input.value=''; send.disabled=true; send.textContent='…';
   try{
-    const r=await fetch('/studio/chat',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-OAP-CSRF':csrf},body:JSON.stringify({message,history:history.slice(-8)})});
+    const options={method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-OAP-CSRF':csrf},body:JSON.stringify({message,history:history.slice(-8),source:koradasoMode?'koradaso':'studio'})};
+    const r=koradasoMode?await fetch('/koradaso/chat',options):await fetch('/studio/chat',options);
     const data=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error((data.error&&data.error.message)||'OAP Studio Intelligence is unavailable.');
-    add('OAP Studio Intelligence',data.answer||'No response returned.'); history.push({role:'assistant',text:data.answer||''}); if(data.chat_intelligence){const m=data.chat_intelligence.mode||'chat'; const r=data.chat_intelligence.routing||{}; const s=data.chat_intelligence.specialist||{}; const note=document.createElement('div'); note.className='truth'; const spec=s.name?(' · '+s.name+(s.ready===false?' 🔒':'')):''; note.textContent='🧠 Chat Intelligence · '+m+spec+(r.active?' · '+r.mode:''); messages.appendChild(note);}
-  }catch(err){ add('OAP Studio Intelligence',err.message||'Request failed safely.'); }
+    if(koradasoMode&&koradasoStatus){koradasoStatus.textContent='First-party response received · Exact node identity not attested';}
+    add(koradasoMode?'SMI · KORADASO Intelligence':'OAP Studio Intelligence',data.answer||'No response returned.'); history.push({role:'assistant',text:data.answer||''}); if(data.chat_intelligence){const m=data.chat_intelligence.mode||'chat'; const r=data.chat_intelligence.routing||{}; const s=data.chat_intelligence.specialist||{}; const note=document.createElement('div'); note.className='truth'; const spec=s.name?(' · '+s.name+(s.ready===false?' 🔒':'')):''; note.textContent='🧠 Chat Intelligence · '+m+spec+(r.active?' · '+r.mode:''); messages.appendChild(note);}
+  }catch(err){if(koradasoMode&&koradasoStatus){koradasoStatus.textContent='First-party node unavailable or request failed · No external AI fallback';} add(koradasoMode?'SMI · KORADASO Intelligence':'OAP Studio Intelligence',err.message||'Request failed safely.'); }
   finally{send.disabled=false;send.textContent='Send';input.focus();}
 }
 send.addEventListener('click',submitStudio);
 input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitStudio();}});
 </script>
+{% if koradaso_mode %}<script src="/static/koradaso_auto_update.js" defer></script>{% endif %}
 </body>
 </html>

@@ -1,8 +1,10 @@
 "use strict";
 
-const CACHE_VERSION = "oap-os-public-v1.1";
+const CACHE_VERSION = "oap-os-public-__KORADASO_RELEASE__";
 const PUBLIC_SHELL = Object.freeze([
   "/offline",
+  "/koradaso",
+  "/static/oap/koradaso_internet_logo.jpg",
   "/manifest.webmanifest",
   "/assets/oap.css",
   "/assets/oap-os.js",
@@ -21,24 +23,86 @@ const isPrivatePath = (pathname) => PRIVATE_PREFIXES.some(
   (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
 );
 
+// Stage updates: do not force a waiting worker onto open Link Up or SMI clients.
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
-      .then((cache) => cache.addAll(PUBLIC_SHELL))
-      .then(() => self.skipWaiting())
+      .then(async (cache) => {
+        await cache.addAll(PUBLIC_SHELL);
+        // A successful HTTP response is not sufficient to accept a release.
+        // Reject a broken HTML shell before a new worker becomes installable.
+        const page = await cache.match("/koradaso");
+        const html = page ? await page.text() : "";
+        if (!html.includes('data-koradaso-release="') ||
+            !html.includes('id="address"') ||
+            !html.includes("KORADASO Internet")) {
+          throw new Error("koradaso_public_shell_invalid");
+        }
+      })
+      .catch(async (error) => {
+        // The cache key is tied to this immutable public release fingerprint.
+        // Remove rejected candidate data so the prior active worker can never
+        // accidentally treat corrupt candidate HTML as a last-good fallback.
+        await caches.delete(CACHE_VERSION);
+        throw error;
+      })
   );
 });
 
+// Retain the latest previous public shell for bounded offline recovery.
+// Cache keys are returned in creation order: keep the newest prior cache,
+// rather than deleting the only possible recovery point on activation.
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((key) => key.startsWith("oap-os-") && key !== CACHE_VERSION)
-          .map((key) => caches.delete(key))
-      ))
-      .then(() => self.clients.claim())
+    caches.keys().then((keys) => {
+      const previous = keys.filter(
+        (key) => key.startsWith("oap-os-public-") && key !== CACHE_VERSION
+      );
+      return Promise.all(previous.slice(0, -1).map((key) => caches.delete(key)));
+    })
   );
 });
+
+// Prefer the current release. Older public cache is only a fallback if the
+// current shell asset is missing, never a way to override a working update.
+async function publicShellFallback(pathname) {
+  const current = await caches.open(CACHE_VERSION);
+  const fresh = await current.match(pathname);
+  if (fresh) return fresh;
+  const keys = await caches.keys();
+  const previous = keys.filter(
+    (key) => key.startsWith("oap-os-public-") && key !== CACHE_VERSION
+  );
+  if (previous.length) {
+    const lastGood = await caches.open(previous[previous.length - 1]);
+    const cached = await lastGood.match(pathname);
+    if (cached) return cached;
+  }
+  return caches.match("/offline");
+}
+
+// A missing public asset must not turn an offline page into a broken shell.
+// Prefer the newest release; use a previous public cache only if offline.
+// Never return an HTML offline page for an image, script or stylesheet.
+async function publicAssetResponse(request, pathname) {
+  const active = await caches.open(CACHE_VERSION);
+  const cached = await active.match(pathname);
+  if (cached) return cached;
+  try {
+    return await fetch(request);
+  } catch (error) {
+    const keys = await caches.keys();
+    const previous = keys.filter(
+      (key) => key.startsWith("oap-os-public-") && key !== CACHE_VERSION
+    );
+    if (previous.length) {
+      const lastGood = await caches.open(previous[previous.length - 1]);
+      const fallback = await lastGood.match(pathname);
+      if (fallback) return fallback;
+    }
+    throw error;
+  }
+}
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
@@ -49,13 +113,15 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match("/offline"))
+      fetch(request).catch(() => url.pathname === "/koradaso"
+        ? publicShellFallback("/koradaso")
+        : publicShellFallback("/offline"))
     );
     return;
   }
 
   if (!PUBLIC_SHELL.includes(url.pathname)) return;
   event.respondWith(
-    caches.match(url.pathname).then((cached) => cached || fetch(request))
+    publicAssetResponse(request, url.pathname)
   );
 });

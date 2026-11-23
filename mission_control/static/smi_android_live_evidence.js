@@ -67,6 +67,7 @@ function automatedStatus(){
   stopAcknowledgementMs:state.stopAcknowledgementMs,
   backgroundStopPassed:state.backgroundStopPassed,
   source:motion,
+  motionPerformance:motion?.performanceWindow||null,
  };
 }
 function missingChecks(status){
@@ -158,6 +159,7 @@ async function buildReceipt({humanVisualApproved=false,humanNote="",deviceModelO
   audioStopped:status.audioStopped,
   stopAcknowledgementMs:status.stopAcknowledgementMs,
   backgroundStopPassed:status.backgroundStopPassed,
+  motionPerformance:status.motionPerformance,
   storesAudio:false,
   storesTranscript:false,
   humanVisualApproved:humanVisualApproved===true,

@@ -93,3 +93,21 @@ def test_no_legal_move_collects_remaining_seeds_and_finishes():
     assert sum(public["pits"]) == 0
     assert sum(player["captured"] for player in public["players"]) == 48
     assert public["winner_id"] == "p2"
+
+
+def test_repeated_positions_settle_each_sides_remaining_seeds():
+    state = oware.new_game()
+    state["pits"] = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+    state["players"][0]["captured"] = 23
+    state["players"][1]["captured"] = 23
+    next_position = oware._position([0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1], 1)
+    state["positions"] = [next_position]
+
+    second = oware.move(reseal(state), pit=4, request_id="oware-cycle-001")
+    assert second["status"] == "active"
+    state["positions"].append(next_position)
+    third = oware.move(reseal(state), pit=4, request_id="oware-cycle-002")
+    assert third["result"] == "repetition"
+    assert third["draw"] is True
+    assert third["pits"] == [0] * 12
+    assert [player["captured"] for player in third["players"]] == [24, 24]

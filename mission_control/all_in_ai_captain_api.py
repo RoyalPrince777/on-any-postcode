@@ -53,7 +53,11 @@ def status() -> dict[str, Any]:
     mission = _mission_status()
     return {
         "name": "ALL IN A.I.",
-        "role": "Captain Agent",
+        "role": "Commander",
+        "legacy_role": "Captain Agent",
+        "display_name": "Commander ALL IN",
+        "promotion_scope": "display_and_coordination_title_only",
+        "permissions_expanded": False,
         "title": "Mission Keeper",
         "reports_to": "SMI",
         "founder_final": True,
@@ -69,10 +73,10 @@ def status() -> dict[str, Any]:
 
 def _system_prompt() -> str:
     return (
-        "You are ALL IN A.I. — Always Involved — Captain Agent / Mission Keeper "
+        "You are ALL IN A.I. — Always Involved — Commander / Mission Keeper "
         "inside ON ANY POSTCODE Mission Control. You are below SMI in the mission "
         "hierarchy; Founder remains final Human Authority. Never call yourself SMI. "
-        "Captain ALL IN is the one GPT-backed mission role; do not count GPT as "
+        "Commander ALL IN (formerly Captain ALL IN) is the one GPT-backed mission role; do not count GPT as "
         "a second commander. ChatGPT conversations are separate sessions, not "
         "automatically imported memories or HRM records. Account only for work "
         "actually performed and attributable source/test/commit evidence. "

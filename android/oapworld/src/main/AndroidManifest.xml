@@ -3,6 +3,7 @@
     <application
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
+        android:networkSecurityConfig="@xml/koradaso_network_security"
         android:label="KORADASO Internet"
         android:theme="@style/Theme.OAPWorld">
         <activity

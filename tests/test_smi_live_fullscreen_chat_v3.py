@@ -9,8 +9,9 @@ DASHBOARD = ROOT / "mission_control" / "static" / "smi_sovereign_dashboard.css"
 INTERACTION = ROOT / "mission_control" / "static" / "smi_interaction_layer.js"
 
 
-def test_thinking_process_is_top_pinned_and_persistent():
+def test_thinking_process_keeps_its_place_without_exposing_internal_steps_by_default():
     base = BASE.read_text(encoding="utf-8")
+    canon = CANON.read_text(encoding="utf-8")
     thought = base.index('id="thinking"')
     character = base.index('id="smi-character"')
     messages = base.index('id="messages"')
@@ -18,9 +19,11 @@ def test_thinking_process_is_top_pinned_and_persistent():
     assert "thinking.dataset.runActive='false'" in base
     assert "thinking.dataset.complete='true'" in base
     assert "thinking.classList.add('show')" in base
-    assert "thinking.classList.remove('show')" not in base
-    assert "thinkingLog.textContent='';thinking.dataset.runActive='true'" in base
-    assert "Thinking Process · last completed run" in base
+    assert "thinking.classList.remove('show')" in base
+    assert "if(thinking.dataset.detailsRequested!=='true')" in base
+    assert "Work details · completed" in base
+    assert "setWorkDetails(text);oapInput.value=''" in canon
+    assert "if(thinking.dataset.detailsRequested==='true')add(" in canon
 
 
 def test_live_smi_fullscreen_replaces_text_chat_but_keeps_controls():

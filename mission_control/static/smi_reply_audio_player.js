@@ -37,9 +37,9 @@
  }
  function create(win=typeof window!=="undefined"?window:null){
   let token=0,abort=null,context=null,source=null,frame=null,active=false,prepared=false,playbackError=null;
-  let cueSamples=0,maxAudioClockDeltaMs=0,softwareLipSyncProven=false;
+  let cueSamples=0,maxAudioClockDeltaMs=0,audioClockSchedulingObserved=false;
   function cancelCurrent(){
-   token+=1;active=false;playbackError=null;cueSamples=0;maxAudioClockDeltaMs=0;softwareLipSyncProven=false;
+   token+=1;active=false;playbackError=null;cueSamples=0;maxAudioClockDeltaMs=0;audioClockSchedulingObserved=false;
    try{abort?.abort()}catch{}
    abort=null;
    try{source?.stop()}catch{}
@@ -115,6 +115,7 @@
     function tick(){
      if(!allowed()||!active||playbackContext!==context)return;
      if(playbackContext.state!=="running"){frame=win.requestAnimationFrame(tick);return;}
+     if(playbackContext.currentTime<startAt){frame=win.requestAnimationFrame(tick);return;}
      const ms=Math.max(0,(playbackContext.currentTime-startAt)*1000);
      const cues=payload.alignment.cues;
      let index=cueIndex;
@@ -123,20 +124,26 @@
       cueIndex=index;
       const delta=Math.abs(ms-cues[index].atMs);
       cueSamples+=1;maxAudioClockDeltaMs=Math.max(maxAudioClockDeltaMs,delta);
-      softwareLipSyncProven=cueSamples>=3&&maxAudioClockDeltaMs<=80;
-      onCue?.({viseme:cues[index].viseme,atMs:cues[index].atMs,
+      audioClockSchedulingObserved=cueSamples>=3&&maxAudioClockDeltaMs<=80;
+      // A delayed frame must not replay a stale mouth pose over current audio.
+      onCue?.({viseme:delta<=80?cues[index].viseme:"silence",atMs:cues[index].atMs,
         audioClockMs:ms,decodedAudio:true,source:"oap-first-party-pcm",
-        synthesisPhonemeTiming:true,accurateSoftwareLipSyncProven:softwareLipSyncProven,
+        synthesisPhonemeTiming:true,audioClockSchedulingObserved,
+        lateCueSuppressed:delta>80,accurateSoftwareLipSyncProven:false,
         accurateHumanLipSyncProven:false,maxAudioClockDeltaMs});
      }
      frame=win.requestAnimationFrame(tick);
     }
     source.onended=()=>{
      if(!allowed())return;
+     const endedAtMs=Math.max(0,(playbackContext.currentTime-startAt)*1000);
+     maxAudioClockDeltaMs=Math.max(maxAudioClockDeltaMs,
+       Math.abs(endedAtMs-payload.alignment.audioDurationMs));
      onCue?.({viseme:"silence",atMs:payload.alignment.audioDurationMs,
-       audioClockMs:payload.alignment.audioDurationMs,decodedAudio:true,
+       audioClockMs:endedAtMs,decodedAudio:true,
        source:"oap-first-party-pcm",synthesisPhonemeTiming:true,
-       accurateSoftwareLipSyncProven:softwareLipSyncProven,
+       audioClockSchedulingObserved:cueSamples>=3&&maxAudioClockDeltaMs<=80,
+       accurateSoftwareLipSyncProven:false,
        accurateHumanLipSyncProven:false,maxAudioClockDeltaMs});
      cancelCurrent();onEnd?.();
     };
@@ -179,7 +186,8 @@
   }
   return Object.freeze({prepare,play,stop,pause,resume,destroy,snapshot:()=>Object.freeze({
    active,hasDecodedAudio:Boolean(active&&context),retainsAudio:false,
-   externalTelemetry:false,accurateSoftwareLipSyncProven:softwareLipSyncProven,
+   externalTelemetry:false,audioClockSchedulingObserved,
+   accurateSoftwareLipSyncProven:false,
    accurateHumanLipSyncProven:false,maxAudioClockDeltaMs,cueSamples,prepared
   })});
  }
