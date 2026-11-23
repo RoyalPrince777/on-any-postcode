@@ -8,6 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from .anti_biometric_shield import is_raw_biometric_category
+
 
 class EvidenceState(str, Enum):
     VERIFIED = "verified"
@@ -29,6 +31,8 @@ class Observation:
     def __post_init__(self) -> None:
         if not 0 <= self.confidence <= 1:
             raise ValueError("confidence must be within [0, 1]")
+        if is_raw_biometric_category(self.category):
+            raise ValueError("raw biometric observations are forbidden")
 
 
 SENSITIVE_CATEGORIES = frozenset({
@@ -38,6 +42,8 @@ SENSITIVE_CATEGORIES = frozenset({
 
 def project_observation(observation: Observation, *, founder_authenticated: bool) -> dict:
     """Never return personal data unless Founder authentication and consent hold."""
+    if is_raw_biometric_category(observation.category):
+        return {"status": "DENIED", "value": None}
     if not founder_authenticated or not observation.permission_granted:
         return {"status": "DENIED", "value": None}
     return {
