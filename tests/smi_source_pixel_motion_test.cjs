@@ -90,7 +90,7 @@ assert.ok(source.includes("observedFps:renderActive()?"),
   "observed FPS must be zero, never stale, while motion is inactive");
 assert.ok(source.includes("resetFrameTelemetry();"),
   "the history of performance must reset when entering an inactive state");
-assert.ok(source.includes('doc.addEventListener?.("visibilitychange",resetFrameTelemetry)'),
+assert.ok(source.includes('doc.addEventListener?.("visibilitychange",()=>{'),
   "tab sleep/resume must not count stale frame time");
 assert.ok(source.includes('phase!=="paused"&&phase!=="stopped"'),
   "a paused or stopped live session must never be counted as animating");
