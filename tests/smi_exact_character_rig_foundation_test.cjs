@@ -29,7 +29,8 @@ const session={snapshot:()=>({
 })};
 snap=rig.bindMotionSession(session);
 assert.equal(snap.enabled,true);
-assert.equal(snap.active,true);
+assert.equal(snap.active,false,"no approved seven-layer anatomical rig");
+assert.equal(snap.sourcePixelMotionActive,true,"source-pixel renderer remains active");
 assert.equal(snap.proofState,"source_pixel_motion_observed");
 assert.equal(snap.sourcePixelMotionObserved,true);
 assert.equal(snap.sourcePixelRegionsObserved,true);
