@@ -12,11 +12,45 @@ import os
 import sys
 import time
 from urllib import request as urlrequest
+from urllib.request import HTTPRedirectHandler
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 
 from mission_control.organism_runtime import PostgresRuntimeStore
 
-BASE_URL = os.environ.get("OAP_HOME_NODE_BRIDGE_URL", "https://oap-smi.onrender.com/mission").strip().rstrip("/")
+BASE_URL = os.environ.get("OAP_HOME_NODE_BRIDGE_URL", "").strip().rstrip("/")
+
+
+def _approved_bridge_url(raw: str) -> str:
+    """Fail closed without an explicitly configured independent HTTPS bridge."""
+    candidate = str(raw or "").strip().rstrip("/")
+    try:
+        parsed = urlsplit(candidate)
+        _ = parsed.port
+    except ValueError as exc:
+        raise RuntimeError("home_node_bridge_url_invalid") from exc
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path != "/mission"
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise RuntimeError("home_node_bridge_url_invalid")
+    if parsed.hostname == "onrender.com" or parsed.hostname.endswith(".onrender.com"):
+        raise RuntimeError("home_node_legacy_render_route_blocked")
+    return candidate
+class _NoRedirect(HTTPRedirectHandler):
+    """Never forward a Home Node bridge token to a redirected destination."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_OPENER = urlrequest.build_opener(_NoRedirect())
+
 TOKEN = os.environ.get("OAP_HOME_NODE_BRIDGE_SECRET", "").strip()
 OLLAMA_URL = os.environ.get("OAP_HOME_NODE_OLLAMA_URL", "http://127.0.0.1:11434/api/chat").strip()
 POLL_SECONDS = max(0.5, min(float(os.environ.get("OAP_HOME_NODE_POLL_SECONDS", "1.5")), 30.0))
@@ -40,12 +74,14 @@ def _request(url: str, *, method: str = "GET", payload: dict | None = None, time
     data = None if payload is None else json.dumps(payload).encode()
     req = urlrequest.Request(url, data=data, headers=_headers(), method=method)
     try:
-        with urlrequest.urlopen(req, timeout=timeout) as response:
+        with _OPENER.open(req, timeout=timeout) as response:
             raw = response.read().decode("utf-8", errors="replace")
             if not raw:
                 return {}, int(response.status)
             return json.loads(raw), int(response.status)
     except HTTPError as exc:
+        if exc.code in {301, 302, 303, 307, 308}:
+            raise RuntimeError("home_node_bridge_redirect_blocked") from exc
         raw = exc.read().decode("utf-8", errors="replace")
         body = json.loads(raw) if raw else {}
         return body, int(exc.code)
@@ -67,13 +103,14 @@ def _run_local(payload: dict) -> str:
 
 
 def run() -> int:
+    base_url = _approved_bridge_url(BASE_URL)
     _headers()
     runtime_store = PostgresRuntimeStore()
     last_heartbeat = 0.0
     print("OAP Home Node inference worker active", flush=True)
     while True:
         try:
-            job, status = _request(f"{BASE_URL}/home-node/jobs/next", timeout=20.0)
+            job, status = _request(f"{base_url}/home-node/jobs/next", timeout=20.0)
             if status in {200, 204}:
                 now = time.monotonic()
                 if now - last_heartbeat >= HEARTBEAT_SECONDS:
@@ -105,7 +142,7 @@ def run() -> int:
             except Exception as exc:  # worker reports bounded failure; server decides fallback policy
                 completion = {"claim_token": claim_token, "error": type(exc).__name__[:80]}
             _request(
-                f"{BASE_URL}/home-node/jobs/{job_id}/complete",
+                f"{base_url}/home-node/jobs/{job_id}/complete",
                 method="POST",
                 payload=completion,
                 timeout=30.0,
