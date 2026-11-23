@@ -4,7 +4,6 @@ import pytest
 
 from mission_control import matrix_privacy_intelligence
 
-
 EXPECTED = (
     "on_device_privacy_intelligence", "identity_shield",
     "network_intelligence", "offline_recovery",
