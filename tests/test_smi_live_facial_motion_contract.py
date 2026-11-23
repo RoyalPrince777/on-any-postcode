@@ -8,9 +8,15 @@ def test_source_pixel_motion_uses_lightweight_live_rendering_path():
     assert "function drawRegion(region,params)" in text
     assert "context.ellipse(" in text
     assert "context.scale(" in text
-    assert "frameBudgetMs=lowPower?50:34" in text
+    assert "frameBudgetMs=lowPower?33:16" in text
     assert 'doc.hidden||(!live&&phase!=="ready")' in text
-    assert 'ambientFrameBudgetMs=lowPower?170:120' in text
+    assert 'ambientFrameBudgetMs=lowPower?50:33' in text
+    assert 'context=canvas.getContext("2d",{alpha:false})' in text
+    assert 'evidenceContext=evidenceCanvas.getContext("2d",{willReadFrequently:true})' in text
+    assert 'context.imageSmoothingQuality="high"' in text
+    assert "renderCostMs*1.8" in text
+    assert "observedFps:" in text
+    assert "adaptiveFrameBudgetMs:" in text
     assert 'ambientVisualMotion:phase==="ready"&&!live&&played>0' in text
     assert "droppedFrames" in text
 
