@@ -505,6 +505,8 @@ def main():
             assert ambient["live"] is False
             assert ambient["frames"] > 0
             assert ambient["audioCues"] == 0
+            assert ambient["frameRateTargetFps"] in (20, 30)
+            assert ambient["physicalDeviceProofExcluded"] is True
             live.click()
             page.wait_for_timeout(250)
             assert live.get_attribute("aria-pressed") == "true"
@@ -523,6 +525,16 @@ def main():
             )
             assert motion_after["live"] is True
             assert motion_after["frames"] > motion_before["frames"]
+            assert motion_after["frameRateTargetFps"] in (30, 60)
+            assert motion_after["observedFps"] > 0
+            assert motion_after["renderCostMs"] >= 0
+            assert motion_after["adaptiveFrameBudgetMs"] >= 16
+            assert canvas.evaluate(
+                "el => el.width === 1536 && el.height === 1024"
+            )
+            assert canvas.evaluate(
+                "el => el.getContext('2d').imageSmoothingQuality === 'high'"
+            )
             assert motion_after["fullSceneSourcePixelMotion"] is True
             assert motion_after["rigLayerFrames"]["head"] > 0
             assert motion_after["rigLayerFrames"]["eyes"] > 0
