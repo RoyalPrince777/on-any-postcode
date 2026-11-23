@@ -309,6 +309,56 @@ def prove_reference_dashboard(context, base_url):
     print("SMI_REFERENCE_DASHBOARD_RESPONSIVE=PASS (7 viewports; no device certification)")
 
 
+
+def prove_original_pixel_workbench(context, base_url):
+    """Real-browser SMI CC proof: authentic pixels, local draft, no uploads."""
+    page = context.new_page()
+    page.set_viewport_size({"width": 393, "height": 852})
+    requested = []
+    page.on("request", lambda request: requested.append((request.method, request.url)))
+    response = page.goto(
+        base_url + "/mission/character-mask-workbench",
+        wait_until="networkidle",
+    )
+    assert response is not None and response.status == 200
+    expect(page.get_by_role("heading", name="Original Pixels · Seven-Layer Workbench")).to_be_visible()
+    expect(page.locator("#feedback")).to_contain_text("Exact original verified")
+    expect(page.locator("#source-art")).to_be_visible()
+    assert page.locator("#source-art").evaluate(
+        "img => img.naturalWidth === 1536 && img.naturalHeight === 1024"
+    )
+    expect(page.locator("#layers button")).to_have_count(7)
+    expect(page.locator("#coverage-label")).to_have_text("0 / 7 painted")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    expect(page.locator('a[href="/mission/smi"]').first).to_be_visible()
+
+    # Real original-pixel painting; never implies anatomical approval.
+    page.locator('#layers button[data-name="eyes"]').click()
+    canvas = page.locator("#art-stage canvas:not([hidden])")
+    expect(canvas).to_be_visible()
+    bounds = canvas.bounding_box()
+    assert bounds and bounds["width"] > 40 and bounds["height"] > 40
+    page.mouse.move(bounds["x"] + bounds["width"] * .50,
+                    bounds["y"] + bounds["height"] * .25)
+    page.mouse.down()
+    page.mouse.up()
+    expect(page.locator("#coverage-label")).to_have_text("1 / 7 painted")
+    with page.expect_download() as saved:
+        page.locator("#save-one").click()
+    assert saved.value.suggested_filename == "eyes.png"
+    expect(page.locator("#feedback")).to_contain_text("not yet approved")
+
+    # An incomplete set must not be misrepresented as seven ready masks.
+    page.locator("#save-all").click()
+    expect(page.locator("#feedback")).to_contain_text(
+        "Finish all seven nonempty masks"
+    )
+    assert not any(method != "GET" for method, _ in requested), requested
+    assert not any("third-party" in url for _, url in requested)
+    page.close()
+    print("SMI_CC_ORIGINAL_PIXELS=PASS (signed-in Chromium, draft-only, no server writes)")
+
+
 def main():
     _prepare_app()
     session_name, session_value = _session_cookies()
@@ -535,6 +585,7 @@ def main():
 
             prove_governed_actions(context, base_url)
             prove_reference_dashboard(context, base_url)
+            prove_original_pixel_workbench(context, base_url)
             context.close()
             browser.close()
     finally:
