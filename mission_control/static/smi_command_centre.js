@@ -355,9 +355,10 @@
  alliancePanel.className="smi-command-alliance-panel";
  alliancePanel.setAttribute("aria-label","SMI Agent Alliances · Founder private");
  alliancePanel.hidden=true;
- alliancePanel.innerHTML='<header><strong>🤝 SMI · AGENT ALLIANCES</strong><small>One SMI brain · existing passports and advisory roles only</small></header><p class="smi-alliance-state" role="status">Not checked</p><div class="smi-alliance-grid"></div><details class="smi-alliance-families"><summary>Other existing alliance families</summary><div class="smi-alliance-family-list"></div></details><p class="smi-alliance-note">No independent agents, votes, worker execution or automatic Green. Guardian/HRM and Founder Final remain mandatory.</p>';
+ alliancePanel.innerHTML='<header><strong>🤝 SMI · AGENT ALLIANCES</strong><small>One SMI brain · existing passports and advisory roles only</small></header><p class="smi-alliance-state" role="status">Not checked</p><div class="smi-alliance-leadership" aria-label="SMI Kernel and Commander ratings review"></div><div class="smi-alliance-grid"></div><details class="smi-alliance-families"><summary>Other existing alliance families</summary><div class="smi-alliance-family-list"></div></details><p class="smi-alliance-note">No independent agents, votes, worker execution or automatic Green. Guardian/HRM and Founder Final remain mandatory.</p>';
  universe.after(alliancePanel);
  const allianceState=alliancePanel.querySelector(".smi-alliance-state");
+ const allianceLeadership=alliancePanel.querySelector(".smi-alliance-leadership");
  const allianceGrid=alliancePanel.querySelector(".smi-alliance-grid");
  const allianceFamilyList=alliancePanel.querySelector(".smi-alliance-family-list");
  let allianceRequest=null;
@@ -427,7 +428,40 @@
    const data=await response.json();
    if(data?.brain!=="SMI"||data?.scope!=="founder_private_read_only"||!Array.isArray(data.members)||data.members.length!==6||data.can_execute!==false)throw new Error("Alliance proof incomplete");
    if(signal.aborted||alliancePanel.hidden)return;
+   allianceLeadership.replaceChildren();
+   const leadership=data.leadership;
+   const reviews=data.ratings_review;
+   if(leadership?.smi?.name!=="SMI"||leadership?.kernel?.name!=="Living Kernel"||
+      leadership?.kernel?.agent_rating!==null||leadership?.commander?.name!=="Commander ALL IN"||
+      leadership?.commander?.permissions_expanded!==false||
+      reviews?.mode!=="historic_role_fit_only"||reviews?.live_performance_verified!==false||
+      !Array.isArray(reviews?.rows))throw new Error("Leadership rating evidence incomplete");
+   const headings=[
+    ["🧠 SMI","One brain · no agent star rating"],
+    ["❤️ Living Kernel","Governed organism system · not an agent · runtime unknown"],
+    ["🎖️ Commander ALL IN","Mission Keeper · formerly Captain · historic 7/7 advisory · live unrated"]
+   ];
+   headings.forEach(([name,detail])=>{
+    const tile=document.createElement("article");
+    const title=document.createElement("strong");
+    title.textContent=name;
+    const rating=document.createElement("small");
+    rating.textContent=detail;
+    tile.append(title,rating);
+    allianceLeadership.append(tile);
+   });
    renderAllianceRoster(data.members);
+   const ratingsByName=new Map(reviews.rows.map(row=>[row.name,row]));
+   Array.from(allianceGrid.children).forEach((card,index)=>{
+    const name=String(data.members[index]?.name||"");
+    const rating=ratingsByName.get(name);
+    const detail=document.createElement("small");
+    detail.className="smi-alliance-rating";
+    detail.textContent=rating?.historical_role_fit!=null
+      ?"Historic advisory role-fit: "+rating.historical_role_fit+"/7 · 2026-10-15 · live unrated"
+      :"Historic advisory role-fit: not recorded · live unrated";
+    card.append(detail);
+   });
    allianceFamilyList.replaceChildren();
    if(Array.isArray(data.existing_alliance_families)){
     data.existing_alliance_families.forEach(family=>{
