@@ -125,6 +125,15 @@
   const ambientFrameBudgetMs=lowPower?50:33;
   let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,speechUntil=0,audioCues=0,droppedFrames=0;
   let renderCostMs=0,observedFps=0,lastPaintTime=0,adaptiveFrameBudgetMs=ambientFrameBudgetMs;
+  function resetFrameTelemetry(){
+   last=0;lastPaintTime=0;observedFps=0;renderCostMs=0;
+   adaptiveFrameBudgetMs=live?frameBudgetMs:ambientFrameBudgetMs;
+  }
+  function renderActive(){
+   return epoch>=0&&!doc.hidden&&!userReducedMotion&&
+    (!reducedPreference||explicitLiveMotion)&&
+    phase!=="paused"&&phase!=="stopped"&&(live||phase==="ready");
+  }
   let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
   const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
@@ -187,8 +196,7 @@
   function tick(now){
    if(epoch<0)return;
    frame=win.requestAnimationFrame(tick);
-   const motionAllowed=!userReducedMotion&&(!reducedPreference||explicitLiveMotion);
-   if(doc.hidden||(!live&&phase!=="ready")||!motionAllowed||phase==="paused"||phase==="stopped")return;
+   if(!renderActive())return;
    const baseline=live?frameBudgetMs:ambientFrameBudgetMs;
    adaptiveFrameBudgetMs=Math.max(baseline,Math.min(100,renderCostMs*1.8));
    if(now-last<adaptiveFrameBudgetMs){droppedFrames+=1;return;}
@@ -208,12 +216,15 @@
    phase=STATES.has(state)?state:"stopped";
    playbackEpoch=event?.detail?.epoch;
    explicitLiveMotion=event?.detail?.live===true&&!event?.detail?.stopped;
-   live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
+   live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&
+    !event?.detail?.stopped&&phase!=="paused"&&phase!=="stopped";
+   resetFrameTelemetry();
    if(!live||phase==="paused"||phase==="stopped"){speechUntil=0;localViseme="silence";draw(0);}
   }
   win.addEventListener("oap-smi-character-state",onState);
   win.addEventListener("oap-smi-reduced-motion-change",event=>{
    userReducedMotion=event?.detail?.enabled===true;
+   resetFrameTelemetry();
    if(userReducedMotion){speechUntil=0;localViseme="silence";draw(0);}
   });
   win.addEventListener("oap-smi-playback-state",event=>{
@@ -237,7 +248,8 @@
    if(!Number.isFinite(event.detail.elapsedMs)||event.detail.elapsedMs<0)return;
    speechUntil=win.performance.now()+170;
   });
-  win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);for(const patch of featheredPatches.values())if(patch){patch.width=0;patch.height=0;}image.close?.();});
+  doc.addEventListener?.("visibilitychange",resetFrameTelemetry);
+  win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);resetFrameTelemetry();context.drawImage(image,0,0);for(const patch of featheredPatches.values())if(patch){patch.width=0;patch.height=0;}image.close?.();});
   frame=win.requestAnimationFrame(tick);
   shell.dataset.smiSourcePixelMotion="original_sha_verified";
   function proofSnapshot(){
@@ -251,9 +263,10 @@
    return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
-    ambientVisualMotion:phase==="ready"&&!live&&played>0,
-    frameRateTargetFps:live?(lowPower?30:60):(lowPower?20:30),
-    observedFps:Math.round(observedFps*10)/10,
+    ambientVisualMotion:renderActive()&&phase==="ready"&&!live&&played>0,
+    renderActive:renderActive(),
+    frameRateTargetFps:renderActive()?(live?(lowPower?30:60):(lowPower?20:30)):0,
+    observedFps:renderActive()?Math.round(observedFps*10)/10:0,
     renderCostMs:Math.round(renderCostMs*10)/10,
     adaptiveFrameBudgetMs:Math.round(adaptiveFrameBudgetMs*10)/10,
     regionEdgeBlending:"source_pixel_feather_no_anatomy_approval",
@@ -263,7 +276,7 @@
   }
   return Object.freeze({sourceSha256:actual,sourceOnly:true,decodedAudio:false,
    privacyNoTelemetry:true,snapshot:proofSnapshot,
-   stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);}});
+   stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);resetFrameTelemetry();context.drawImage(image,0,0);}});
  }
  return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,attach});
 });
