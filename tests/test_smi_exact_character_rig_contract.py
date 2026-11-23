@@ -13,7 +13,10 @@ def test_exact_art_rig_binds_one_canonical_renderer_without_duplicate_pixels():
     assert "f9503174f6f18b815f1c73e24faff3b4966c2e1fbae8d20a8d2bcc22e4a84a4b" in rig
     assert 'rendererOwner:"smi_source_pixel_motion"' in rig
     assert "bindMotionSession" in rig
-    assert "fullRigProven" in rig
+    assert "fullRigProven=false" in rig
+    assert "sourcePixelMotionObserved" in rig
+    assert 'proofState:sourcePixelMotionObserved?' in rig
+    assert "requiresHumanApproval:true" in rig
     assert "accurateSoftwareLipSyncProven" in rig
     assert "accurateHumanLipSyncProven:false" in rig
     assert "smi_exact_character_rig.js" in chat
