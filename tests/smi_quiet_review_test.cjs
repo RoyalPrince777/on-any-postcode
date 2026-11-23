@@ -61,6 +61,9 @@ for (const prompt of [
   "Check release risks silently",
   "Truth Mode and red team should be internal",
   "Does this have evidence?",
+  "Don't show thinking process",
+  "Please don't show work stages",
+  "Do not expose evidence",
 ]) assert.equal(wantsWorkDetails(prompt), false, prompt);
 
 for (const prompt of [
