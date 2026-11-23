@@ -128,6 +128,32 @@
   let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
   const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
+  // One-time edge feathering from the approved source JPG only. Hard cropped
+  // ellipses left visible borders against the unmoving original at subpixel
+  // offsets. Cached source-derived overlays remove that seam without a
+  // substitute character, hidden anatomy, a second renderer, or per-frame
+  // getImageData readbacks. Everything stays in this private browser session.
+  const featheredPatches=new Map(REGIONS.map(region=>{
+   const patch=doc.createElement("canvas");
+   patch.width=region.w;patch.height=region.h;
+   const pc=patch.getContext("2d",{alpha:true});
+   if(!pc)return [region.id,null];
+   pc.drawImage(image,region.x,region.y,region.w,region.h,0,0,region.w,region.h);
+   pc.globalCompositeOperation="destination-in";
+   pc.save();
+   pc.translate(region.cx-region.x,region.cy-region.y);
+   pc.scale(region.rx,region.ry);
+   const edge=pc.createRadialGradient(0,0,.77,0,0,1);
+   edge.addColorStop(0,"rgba(255,255,255,1)");
+   edge.addColorStop(1,"rgba(255,255,255,0)");
+   pc.fillStyle=edge;
+   // Normalised extent covers the entire original region, including outside
+   // its ellipse; transparent outer pixels cannot retain a hard rectangle.
+   pc.fillRect(-2,-2,4,4);
+   pc.restore();
+   pc.globalCompositeOperation="source-over";
+   return [region.id,patch];
+  }));
   function drawRegion(region,params){
    const [dx,dy,scaleY]=params;
    context.save();
@@ -138,7 +164,9 @@
    context.translate(region.cx,region.cy);
    context.scale(1,Math.max(.18,Math.min(1.4,scaleY)));
    context.translate(-region.cx,-region.cy);
-   context.drawImage(image,region.x,region.y,region.w,region.h,region.x,region.y,region.w,region.h);
+   const patch=featheredPatches.get(region.id);
+   if(patch)context.drawImage(patch,region.x,region.y);
+   else context.drawImage(image,region.x,region.y,region.w,region.h,region.x,region.y,region.w,region.h);
    context.restore();
   }
   function draw(ms){
@@ -209,7 +237,7 @@
    if(!Number.isFinite(event.detail.elapsedMs)||event.detail.elapsedMs<0)return;
    speechUntil=win.performance.now()+170;
   });
-  win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);image.close?.();});
+  win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);for(const patch of featheredPatches.values())if(patch){patch.width=0;patch.height=0;}image.close?.();});
   frame=win.requestAnimationFrame(tick);
   shell.dataset.smiSourcePixelMotion="original_sha_verified";
   function proofSnapshot(){
@@ -228,6 +256,7 @@
     observedFps:Math.round(observedFps*10)/10,
     renderCostMs:Math.round(renderCostMs*10)/10,
     adaptiveFrameBudgetMs:Math.round(adaptiveFrameBudgetMs*10)/10,
+    regionEdgeBlending:"source_pixel_feather_no_anatomy_approval",
     maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,sourcePixelRegionsObserved,fullBodyRigProven,
     accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
     physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
