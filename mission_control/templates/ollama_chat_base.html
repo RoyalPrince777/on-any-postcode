@@ -250,8 +250,46 @@ function workedSeconds(){return workStartedAt?Math.max(0,Math.round((performance
 function updateWorkedFor(){const el=document.getElementById('thinking-elapsed');if(el)el.textContent='Worked for '+workedSeconds()+'s'}
 function beginWork(){workStartedAt=performance.now();if(workTimer)clearInterval(workTimer);updateWorkedFor();workTimer=setInterval(updateWorkedFor,250)}
 function endWork(){const seconds=workedSeconds();if(workTimer)clearInterval(workTimer);workTimer=null;updateWorkedFor();return seconds}
-function showStage(label){if(thinking.dataset.runActive!=='true'){thinkingLog.textContent='';thinking.dataset.runActive='true';thinking.dataset.complete='false';thinkingTitle.textContent='Thinking Process · safe work stages'}thinking.classList.add('show');providerState.textContent='Working';const span=document.createElement('span');span.textContent=label;thinkingLog.append(span);while(thinkingLog.children.length>7)thinkingLog.firstChild.remove();statusEl.textContent=label;updateWorkedFor()}
-function hideThinking(){thinking.classList.add('show');thinking.dataset.runActive='false';thinking.dataset.complete='true';thinkingTitle.textContent='Thinking Process · last completed run';providerState.textContent='Ready';workStartedAt=0}
+// Reviews run through the canonical SMI brain; presentation remains quiet by default.
+// Explicit requests expose only safe stage labels, never model-private reasoning.
+function wantsWorkDetails(text){
+ return /(?:^|\\b)(?:show|display|open|expand|expose)\\s+(?:me\\s+)?(?:the\\s+)?(?:thinking\\s+process|work\\s+stages|process\\s+details|review\\s+steps|evidence|proof|diagnostics)\\b|^\\s*expose\\s*$/i.test(String(text||''));
+}
+function setWorkDetails(text){
+ const requested=wantsWorkDetails(text);
+ thinking.dataset.detailsRequested=String(requested);
+ thinking.classList.remove('show');
+ thinkingLog.textContent='';
+ return requested;
+}
+function showStage(label){
+ providerState.textContent='Working';
+ if(thinking.dataset.detailsRequested!=='true'){
+  thinking.classList.remove('show');
+  thinkingLog.textContent='';
+  return;
+ }
+ if(thinking.dataset.runActive!=='true'){
+  thinkingLog.textContent='';
+  thinking.dataset.runActive='true';
+  thinking.dataset.complete='false';
+  thinkingTitle.textContent='Work details · safe stages';
+ }
+ thinking.classList.add('show');
+ const span=document.createElement('span');
+ span.textContent=label;
+ thinkingLog.append(span);
+ while(thinkingLog.children.length>7)thinkingLog.firstChild.remove();
+ updateWorkedFor();
+}
+function hideThinking(){
+ thinking.classList.toggle('show',thinking.dataset.detailsRequested==='true');
+ thinking.dataset.runActive='false';
+ thinking.dataset.complete='true';
+ thinkingTitle.textContent='Work details · completed';
+ providerState.textContent='Ready';
+ workStartedAt=0;
+}
 function setRunning(running){send.disabled=running;stopButton.classList.toggle('show',running);pauseButton.classList.toggle('show',running);plusButton.disabled=false;cameraButton.disabled=running;micButton.disabled=running;thinkingLevel.disabled=running;imageButton.disabled=running;fileButton.disabled=running;if(!running){activeController=null;streamPaused=false;pauseButton.classList.remove('active');pauseButton.setAttribute('aria-pressed','false');pauseButton.textContent='Ⅱ'}}
 
 async function loadConversations(){historyStatus.textContent='Refreshing saved Founder work…';historyList.textContent='';try{const response=await fetch(conversationsUrl,{cache:'no-store',credentials:'same-origin'}),data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Saved work unavailable');const items=Array.isArray(data.conversations)?data.conversations:[];if(historyCount)historyCount.textContent=String(items.length);historyStatus.textContent=items.length?'Saved automatically · select work to continue':'No saved work yet · your first governed chat will appear here.';items.forEach(item=>{const row=document.createElement('div');row.className='history-item';row.dataset.conversationId=item.conversation_id;if(item.conversation_id===conversationId)row.classList.add('active');const open=document.createElement('button');open.type='button';open.className='history-open';const title=document.createElement('span');title.className='history-title';title.textContent=item.title;const preview=document.createElement('span');preview.className='history-preview';preview.textContent=item.preview||item.message_count+' message(s)';open.append(title,preview);open.onclick=()=>openConversation(item.conversation_id);const remove=document.createElement('button');remove.type='button';remove.className='history-delete';remove.textContent='×';remove.setAttribute('aria-label','Delete '+item.title);remove.onclick=()=>deleteConversation(item.conversation_id,item.title);row.append(open,remove);historyList.append(row)})}catch(error){if(historyCount)historyCount.textContent='!';historyStatus.textContent=error.message}}
