@@ -27,7 +27,8 @@ def probe_local(model: str, *, timeout: float = 45, opener=None) -> dict[str, ob
     try:
         req = request.Request(_TAGS, headers={"Accept": "application/json"})
         with client.open(req, timeout=5) as response:
-            models = json.load(response).get("models", [])
+            tags = json.load(response)
+        models = tags.get("models", []) if isinstance(tags, dict) else []
         installed = isinstance(models, list) and any(
             isinstance(item, dict) and model in (item.get("name"), item.get("model"))
             for item in models
@@ -46,6 +47,8 @@ def probe_local(model: str, *, timeout: float = 45, opener=None) -> dict[str, ob
         started = time.monotonic()
         with client.open(req, timeout=timeout) as response:
             result = json.load(response)
+        if not isinstance(result, dict):
+            return {"status": "not_ready", "reason": "invalid_local_response", "local_only": True}
         latency = round(time.monotonic() - started, 2)
         answer = (result.get("message") or {}).get("content") or ""
         if not isinstance(answer, str) or not answer.strip():
