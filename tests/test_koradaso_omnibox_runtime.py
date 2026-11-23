@@ -29,6 +29,12 @@ function submit(raw, externalSearch = false, approve = true) {
   const searchModes = [{value:"oap",checked:true,addEventListener:()=>{}},{value:"web",checked:false,addEventListener:()=>{}}];
   const visits = [];
   const prompts = [];
+  const drafts = new Map();
+  const sessionStorage = {
+    getItem: (key) => drafts.get(key) ?? null,
+    setItem: (key, value) => drafts.set(key, String(value)),
+    removeItem: (key) => drafts.delete(key),
+  };
   const location = {
     origin: "https://onanypostcode.global", pathname: "/koradaso",
     assign: (url) => visits.push(url)
@@ -45,14 +51,21 @@ function submit(raw, externalSearch = false, approve = true) {
     createElement: () => ({append: () => {}, setAttribute: () => {}})
   };
   const localStorage = {getItem: () => null, setItem: () => {}, removeItem: () => {}};
-  vm.runInNewContext(match[1], {window, document, localStorage, URL,
+  vm.runInNewContext(match[1], {window, document, localStorage, sessionStorage, URL,
     console}, {timeout: 1500});
   element("address").value = raw;
   element("open-web-search").checked = externalSearch;
   searchModes.forEach(x => {x.checked = x.value === (externalSearch ? "web" : "oap");});
   assert.equal(typeof handlers["address-form:submit"], "function");
   handlers["address-form:submit"]({preventDefault: () => {}});
-  return {visits, prompts, note: element("address-note").textContent};
+  return {
+    visits, prompts, note: element("address-note").textContent,
+    ask: () => {
+      assert.equal(typeof handlers["ask-smi-link:click"], "function");
+      handlers["ask-smi-link:click"]();
+      return sessionStorage.getItem("koradaso.smi_draft.v1");
+    },
+  };
 }
 assert.deepEqual(submit("KORADASO history").visits,
   ["/search?q=KORADASO%20history"]);
@@ -77,7 +90,10 @@ assert.deepEqual(submit("music", true, false).visits,
 assert.equal(submit("music", true, true).prompts.length, 0);
 assert.equal(submit("javascript://attack").visits.length, 0);
 assert.equal(submit("//evil.example").visits.length, 0);
-console.log("KORADASO omnibox: approved routes and unsafe schemes verified");
+assert.equal(submit("What makes Mitcham special?").ask(), "What makes Mitcham special?");
+assert.equal(submit("x".repeat(601)).ask(), null, "oversize drafts cannot be handed off");
+assert.equal(submit("").ask(), null, "empty drafts do not carry stale text");
+console.log("KORADASO omnibox: approved routes, unsafe schemes, and one-shot SMI handoff verified");
 """
     result = subprocess.run(
         ["node", "-e", script, str(ROOT / "templates/koradaso_internet.html")],
