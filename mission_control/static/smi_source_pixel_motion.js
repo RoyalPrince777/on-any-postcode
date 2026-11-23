@@ -54,6 +54,47 @@
    hands:[micro*(state==="listening"?.22:.44),-breathe*.36,1]
   });
  }
+ // First-party, bounded time-based pose easing over the ORIGINAL verified JPG.
+ // This smooths state transitions at variable rAF rates; it is not a
+ // certified anatomical rig, a new sprite or a generated facial expression.
+ const POSE_HALF_LIFE_MS=Object.freeze({
+  head:Object.freeze([110,125,150]),
+  eyes:Object.freeze([65,70,22]),
+  mouth:Object.freeze([42,48,55]),
+  chest:Object.freeze([150,155,155]),
+  hands:Object.freeze([120,145,150])
+ });
+ function createPoseSmoother(){
+  const values=Object.fromEntries(Object.keys(POSE_HALF_LIFE_MS).map(name=>[
+   name,[0,0,1]
+  ]));
+  let previousTime=null;
+  function reset(){
+   for(const key of Object.keys(values))values[key]=[0,0,1];
+   previousTime=null;
+  }
+  function next(target,ms){
+   if(!Number.isFinite(ms))throw Error("invalid_smi_pose_clock");
+   // Cap long background delays: no jump forward when a tab wakes up.
+   const dt=previousTime===null?16:Math.max(0,Math.min(70,ms-previousTime));
+   previousTime=ms;
+   const output={};
+   for(const [key,halfLives] of Object.entries(POSE_HALF_LIFE_MS)){
+    const pose=target?.[key];
+    if(!Array.isArray(pose)||pose.length!==3||pose.some(v=>!Number.isFinite(v)))
+     throw Error("invalid_smi_source_pose");
+    const current=values[key];
+    const eased=pose.map((value,index)=>{
+     const alpha=1-Math.pow(.5,dt/halfLives[index]);
+     return current[index]+(value-current[index])*alpha;
+    });
+    values[key]=eased;
+    output[key]=Object.freeze(eased);
+   }
+   return Object.freeze(output);
+  }
+  return Object.freeze({next,reset});
+ }
  async function attach(win=typeof window!=="undefined"?window:null,doc=win?.document){
   const shell=doc?.querySelector?.(".smi-shell");
   if(!shell||!win?.fetch||!win?.crypto?.subtle||!win?.requestAnimationFrame||!doc.createElement)return null;
@@ -137,6 +178,7 @@
   let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
   const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
+  const poseSmoother=createPoseSmoother();
   // One-time edge feathering from the approved source JPG only. Hard cropped
   // ellipses left visible borders against the unmoving original at subpixel
   // offsets. Cached source-derived overlays remove that seam without a
@@ -183,7 +225,7 @@
    const motionAllowed=!userReducedMotion&&(!reducedPreference||explicitLiveMotion);
    if((!live&&phase!=="ready")||!motionAllowed||phase==="paused"||phase==="stopped")return;
    const pulse=phase==="speaking"?(localAudio?LOCAL_POSE[localViseme]:Math.max(0,Math.min(1,(speechUntil-ms)/170))):0;
-   const poses=motionFor(phase,ms,pulse);
+   const poses=poseSmoother.next(motionFor(phase,ms,pulse),ms);
    for(const region of REGIONS){
     const params=region.id==="left-hand"||region.id==="right-hand"?poses.hands:region.id==="chest"?poses.chest:region.id==="eyes"?poses.eyes:region.id==="mouth"?poses.mouth:poses.head;
     drawRegion(region,params);
@@ -219,13 +261,15 @@
    live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&
     !event?.detail?.stopped&&phase!=="paused"&&phase!=="stopped";
    resetFrameTelemetry();
-   if(!live||phase==="paused"||phase==="stopped"){speechUntil=0;localViseme="silence";draw(0);}
+   if(!live||phase==="paused"||phase==="stopped"){
+    speechUntil=0;localViseme="silence";poseSmoother.reset();draw(0);
+   }
   }
   win.addEventListener("oap-smi-character-state",onState);
   win.addEventListener("oap-smi-reduced-motion-change",event=>{
    userReducedMotion=event?.detail?.enabled===true;
    resetFrameTelemetry();
-   if(userReducedMotion){speechUntil=0;localViseme="silence";draw(0);}
+   if(userReducedMotion){speechUntil=0;localViseme="silence";poseSmoother.reset();draw(0);}
   });
   win.addEventListener("oap-smi-playback-state",event=>{
    localAudio=event?.detail?.phase==="playing"&&event?.detail?.source==="oap-first-party-pcm"&&event?.detail?.decodedAudio===true;
@@ -248,7 +292,9 @@
    if(!Number.isFinite(event.detail.elapsedMs)||event.detail.elapsedMs<0)return;
    speechUntil=win.performance.now()+170;
   });
-  doc.addEventListener?.("visibilitychange",resetFrameTelemetry);
+  doc.addEventListener?.("visibilitychange",()=>{
+   resetFrameTelemetry();if(doc.hidden)poseSmoother.reset();
+  });
   win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);resetFrameTelemetry();context.drawImage(image,0,0);for(const patch of featheredPatches.values())if(patch){patch.width=0;patch.height=0;}image.close?.();});
   frame=win.requestAnimationFrame(tick);
   shell.dataset.smiSourcePixelMotion="original_sha_verified";
@@ -270,13 +316,15 @@
     renderCostMs:Math.round(renderCostMs*10)/10,
     adaptiveFrameBudgetMs:Math.round(adaptiveFrameBudgetMs*10)/10,
     regionEdgeBlending:"source_pixel_feather_no_anatomy_approval",
+    poseEasing:"bounded_time_based_source_pixel_only",
+    fullArticulatedMotionProven:false,
     maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,sourcePixelRegionsObserved,fullBodyRigProven,
     accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
     physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
   }
   return Object.freeze({sourceSha256:actual,sourceOnly:true,decodedAudio:false,
    privacyNoTelemetry:true,snapshot:proofSnapshot,
-   stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);resetFrameTelemetry();context.drawImage(image,0,0);}});
+   stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);poseSmoother.reset();resetFrameTelemetry();context.drawImage(image,0,0);}});
  }
- return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,attach});
+ return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,createPoseSmoother,attach});
 });
