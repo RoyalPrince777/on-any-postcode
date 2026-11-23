@@ -1,5 +1,6 @@
 """Isolated cross-surface integration proof. No deployment certification."""
 import pytest
+
 from mission_control import oap_inference_gateway as gateway
 
 
