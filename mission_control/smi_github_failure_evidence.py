@@ -237,6 +237,9 @@ MISSION_PR_CHECKS: dict[int, tuple[str, ...]] = {
            "OAP Data first-party no-Meta source proof"),
     1318: ("OAP governed checks", "SMI Chromium recovery proof",
            "OAP runtime image"),
+    # Specialist passports remain advisory; one SMI worker owns observation.
+    1384: ("OAP governed checks", "SMI agent achievement proof",
+           "OAP runtime image"),
 }
 
 
