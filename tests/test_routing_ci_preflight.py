@@ -7,6 +7,7 @@ import pytest
 
 from scripts import routing_ci_preflight, routing_live_green_gate
 
+
 @pytest.fixture(autouse=True)
 def configure_origin(monkeypatch):
     monkeypatch.setattr(routing_live_green_gate, "BASE", "https://routing.example.test")
