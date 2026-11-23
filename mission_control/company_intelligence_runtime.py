@@ -16,6 +16,7 @@ from . import (
     company_intelligence_evidence_store,
     market_supplier_network,
     music_evidence,
+    organism_runtime,
     product_core_services,
 )
 
@@ -400,6 +401,62 @@ def swot_first_review(
         "full_green": False,
     }
 
+
+def readiness_signals() -> dict[str, dict[str, str]]:
+    """Report only readback-backed readiness, never an assumed software Green.
+
+    A loaded source module proves code presence, not CI, approval or production.
+    The shared organism worker's durable heartbeat does not prove that a
+    Company Intelligence agent executed a business task.
+    """
+    worker_state = "UNKNOWN"
+    worker_reference = ""
+    worker_note = "No fresh durable organism-worker heartbeat verified."
+    try:
+        worker = organism_runtime.runtime_status()
+    except Exception:  # noqa: BLE001 - unavailable readiness must fail closed.
+        worker = {}
+    if (
+        isinstance(worker, dict)
+        and worker.get("schema_ready") is True
+        and worker.get("worker_fresh") is True
+        and worker.get("ready") is True
+        and not worker.get("error")
+    ):
+        worker_state = "PROVEN"
+        worker_reference = "oap:organism-runtime:postgres:worker-heartbeat"
+        worker_note = (
+            "Fresh organism worker heartbeat; Company Intelligence task "
+            "execution remains unverified."
+        )
+    return {
+        "code_present": {
+            "state": "PRESENT",
+            "evidence_reference": "oap:company-intelligence:loaded-runtime-projection",
+            "note": "This projection executed; code presence is not deployment readiness.",
+        },
+        "ci_verified": {
+            "state": "UNKNOWN",
+            "evidence_reference": "",
+            "note": "No exact-head CI receipt is bound to this runtime request.",
+        },
+        "worker_connected": {
+            "state": worker_state,
+            "evidence_reference": worker_reference,
+            "note": worker_note,
+        },
+        "guardian_hrm_verified": {
+            "state": "UNKNOWN",
+            "evidence_reference": "",
+            "note": "No request-bound Guardian, HRM and Human Authority receipt verified.",
+        },
+        "production_verified": {
+            "state": "UNKNOWN",
+            "evidence_reference": "",
+            "note": "No verified production deployment and session proof supplied.",
+        },
+    }
+
 def projection(identity_id: str) -> dict[str, Any]:
     items: list[dict[str, str]] = [_company_registry_item()]
     items.extend(_music_items(identity_id))
@@ -425,10 +482,10 @@ def projection(identity_id: str) -> dict[str, Any]:
     swot_snapshot = swot_first_review(
         snapshot, department_snapshot, protocol_registry,
     )
-    software_green = True
+    readiness = readiness_signals()
     return {
         "name": "OAP Company Intelligence",
-        "software_green": software_green,
+        "readiness": readiness,
         "evidence": snapshot,
         "evidence_items": tuple(items),
         "protocol_registry": protocol_registry,
@@ -446,11 +503,13 @@ def projection(identity_id: str) -> dict[str, Any]:
         "evidence_percentage": round(
             (len(snapshot["proven_domains"]) / snapshot["domain_count"]) * 100, 1
         ),
-        "operational_green": snapshot["all_domains_proven"],
+        "source_evidence_complete": snapshot["all_domains_proven"],
+        "operational_green": False,
         "founder_final_required": True,
         "full_green": False,
         "truth_boundary": (
-            "Software readiness and evidence readiness are separate. "
+            "Code presence, CI, worker health, governance and production proof "
+            "are separate. "
             "No missing or conflicting external proof is promoted to Green."
         ),
     }

@@ -70,7 +70,10 @@ def test_runtime_projection_reuses_real_music_market_evidence(monkeypatch):
         "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
     )
 
-    assert result["software_green"] is True
+    assert result["readiness"]["code_present"]["state"] == "PRESENT"
+    assert result["readiness"]["ci_verified"]["state"] == "UNKNOWN"
+    assert result["readiness"]["production_verified"]["state"] == "UNKNOWN"
+    assert "software_green" not in result
     assert result["evidence"]["states"]["company_registry"]["state"] == "CONFLICTING"
     assert result["evidence"]["states"]["artist_rights"]["state"] == "PROVEN"
     assert result["evidence"]["states"]["music_catalogue"]["state"] == "PROVEN"
@@ -274,7 +277,56 @@ def test_truth_mode_swot_precedes_company_map_without_fake_green():
     assert "runtime.swot_first.weaknesses" in html
     assert "runtime.swot_first.opportunities" in html
     assert "runtime.swot_first.threats" in html
-    assert "Source implementation:" in html
+    assert "runtime.readiness.code_present.state" in html
+    assert "runtime.readiness.ci_verified.state" in html
+    assert "runtime.readiness.production_verified.state" in html
+    assert 'id="company-readiness-evidence"' in html
+    assert "runtime.software_green" not in html
     assert "Software core: {{ '100%'" not in html
     assert "No independent agent votes" in html
     assert "Founder Final required" in html
+
+def test_readiness_requires_a_fresh_durable_worker_heartbeat(monkeypatch):
+    monkeypatch.setattr(
+        company_intelligence_runtime.organism_runtime,
+        "runtime_status",
+        lambda: {"schema_ready": True, "worker_fresh": False, "ready": False},
+    )
+    missing = company_intelligence_runtime.readiness_signals()
+    assert missing["worker_connected"]["state"] == "UNKNOWN"
+    assert missing["worker_connected"]["evidence_reference"] == ""
+    assert missing["guardian_hrm_verified"]["state"] == "UNKNOWN"
+
+    monkeypatch.setattr(
+        company_intelligence_runtime.organism_runtime,
+        "runtime_status",
+        lambda: {"schema_ready": True, "worker_fresh": "true", "ready": True},
+    )
+    invalid = company_intelligence_runtime.readiness_signals()
+    assert invalid["worker_connected"]["state"] == "UNKNOWN"
+
+    monkeypatch.setattr(
+        company_intelligence_runtime.organism_runtime,
+        "runtime_status",
+        lambda: {"schema_ready": True, "worker_fresh": True, "ready": True},
+    )
+    fresh = company_intelligence_runtime.readiness_signals()
+    assert fresh["worker_connected"]["state"] == "PROVEN"
+    assert fresh["worker_connected"]["evidence_reference"]
+    assert fresh["ci_verified"]["state"] == "UNKNOWN"
+    assert fresh["production_verified"]["state"] == "UNKNOWN"
+
+
+def test_readiness_fails_closed_when_worker_readback_breaks(monkeypatch):
+    def unavailable():
+        raise RuntimeError("worker store unavailable")
+
+    monkeypatch.setattr(
+        company_intelligence_runtime.organism_runtime,
+        "runtime_status",
+        unavailable,
+    )
+    result = company_intelligence_runtime.readiness_signals()
+    assert result["worker_connected"]["state"] == "UNKNOWN"
+    assert result["worker_connected"]["evidence_reference"] == ""
+    assert result["guardian_hrm_verified"]["state"] == "UNKNOWN"

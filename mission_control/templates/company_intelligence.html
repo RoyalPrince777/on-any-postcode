@@ -21,13 +21,33 @@
   </header>
 
   <div class="topline">
-    <span class="pill">Source implementation: {{ 'coded' if runtime.software_green else 'unverified' }} · Live operations: unknown</span>
+    <span class="pill">Code: {{ runtime.readiness.code_present.state }}</span>
+    <span class="pill">CI: {{ runtime.readiness.ci_verified.state }}</span>
+    <span class="pill">Worker: {{ runtime.readiness.worker_connected.state }}</span>
+    <span class="pill">Guardian/HRM: {{ runtime.readiness.guardian_hrm_verified.state }}</span>
+    <span class="pill">Production: {{ runtime.readiness.production_verified.state }}</span>
     <span class="pill">Evidence: {{ runtime.proven_count }}/{{ runtime.domain_count }} · {{ runtime.evidence_percentage }}%</span>
     <span class="pill">700-check protocol: {{ core.protocol_check_count }}</span>
     <span class="pill">Founder Final: required</span>
   </div>
 
   <p class="truth"><strong>Truth Mode:</strong> {{ runtime.truth_boundary }}</p>
+  <details class="department-map" id="company-readiness-evidence">
+    <summary>Readiness evidence · no live Green inferred</summary>
+    <div class="grid">
+      {% for label, key in [('Code', 'code_present'), ('CI', 'ci_verified'), ('Runtime worker', 'worker_connected'), ('Guardian / HRM', 'guardian_hrm_verified'), ('Production', 'production_verified')] %}
+      <article class="card">
+        <h3>{{ label }} · {{ runtime.readiness[key].state }}</h3>
+        <p class="dept-note">{{ runtime.readiness[key].note }}</p>
+        {% if runtime.readiness[key].evidence_reference %}
+        <small>Evidence: {{ runtime.readiness[key].evidence_reference }}</small>
+        {% else %}
+        <small>Evidence: not verified in this session</small>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </details>
 
   <section class="swot-first" aria-labelledby="swot-first-title">
     <p class="ey">Truth Mode · SMI evidence review</p>
