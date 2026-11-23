@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 from mission_control import oap_evidence_fabric as fabric
 
 
@@ -89,3 +91,21 @@ def test_full_green_requires_every_cell_and_founder_final():
     assert gated["green_gate_passed"] is True
     assert gated["full_green"] is False
     assert final["full_green"] is True
+
+
+def test_future_dated_oap_evidence_does_not_pass_a_domain():
+    future = (datetime.now(UTC) + timedelta(days=1)).isoformat()
+    result = fabric.snapshot((
+        {
+            "check_id": "OAP-001",
+            "state": "PASS",
+            "source_system": "infrastructure",
+            "evidence_reference": "oap:test:unobserved-future",
+            "observed_at": future,
+        },
+    ), founder_final_recorded=True)
+    assert result["invalid_receipt_count"] == 1
+    assert result["counts"]["UNKNOWN"] == 700
+    assert result["domain_status"]["infrastructure"]["green"] is False
+    assert result["green_gate_passed"] is False
+    assert result["full_green"] is False

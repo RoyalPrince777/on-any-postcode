@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 from mission_control import company_intelligence_evidence_registry as registry
 
 
@@ -109,3 +111,19 @@ def test_na_requires_real_evidence_and_is_not_counted_as_proven():
     assert result["resolved_count"] == 1
     assert result["proven_count"] == 0
     assert result["green_gate_passed"] is False
+
+
+def test_future_dated_700_check_cannot_advance_green_gate():
+    future = (datetime.now(UTC) + timedelta(days=1)).isoformat()
+    result = registry.snapshot((
+        {
+            "check_id": "CI-001",
+            "state": "PASS",
+            "evidence_reference": "oap:test:unobserved-future",
+            "observed_at": future,
+        },
+    ), founder_final_recorded=True)
+    assert result["invalid_receipt_count"] == 1
+    assert result["counts"]["UNKNOWN"] == 700
+    assert result["green_gate_passed"] is False
+    assert result["full_green"] is False

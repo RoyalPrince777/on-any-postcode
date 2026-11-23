@@ -28,7 +28,11 @@ def _timestamp(value: object) -> datetime | None:
         return None
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC)
+    observed = parsed.astimezone(UTC)
+    # Future-dated checks are not proof and must not advance the Green Gate.
+    if observed > datetime.now(UTC):
+        return None
+    return observed
 
 
 def cell_catalogue() -> tuple[dict[str, str], ...]:

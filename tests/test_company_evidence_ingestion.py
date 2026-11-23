@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from mission_control import company_evidence_ingestion
 
 
@@ -123,3 +125,39 @@ def test_evidence_never_grants_legal_or_execution_authority():
     assert snapshot["external_action_taken"] is False
     assert snapshot["founder_final_required"] is True
     assert snapshot["full_green"] is False
+
+
+def test_future_dated_source_cannot_override_real_observation():
+    now = datetime.now(timezone.utc)
+    older = (now - timedelta(days=1)).isoformat()
+    future = (now + timedelta(days=1)).isoformat()
+    evidence = company_evidence_ingestion.ingest_snapshot((
+        {
+            "domain": "company_registry",
+            "state": "PROVEN",
+            "source_reference": "oap:test:observed",
+            "observed_at": older,
+        },
+        {
+            "domain": "company_registry",
+            "state": "CONFLICTING",
+            "source_reference": "oap:test:future",
+            "observed_at": future,
+        },
+    ))
+    assert evidence["states"]["company_registry"]["state"] == "PROVEN"
+    assert evidence["states"]["company_registry"]["source_reference"] == "oap:test:observed"
+    assert evidence["valid_evidence_count"] == 1
+    assert evidence["invalid_evidence_count"] == 1
+
+    future_only = company_evidence_ingestion.ingest_snapshot((
+        {
+            "domain": "pricing_margin",
+            "state": "PROVEN",
+            "source_reference": "oap:test:future-margin",
+            "observed_at": future,
+        },
+    ))
+    assert future_only["states"]["pricing_margin"]["state"] == "UNKNOWN"
+    assert future_only["commercial_evidence_ready"] is False
+    assert future_only["full_green"] is False

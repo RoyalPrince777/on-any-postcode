@@ -39,7 +39,12 @@ def _timestamp(value: object) -> datetime | None:
         return None
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+    observed = parsed.astimezone(timezone.utc)
+    # Evidence cannot be observed after the time of readback. Reject future
+    # timestamps rather than allowing them to outrank real observations.
+    if observed > datetime.now(timezone.utc):
+        return None
+    return observed
 
 
 def normalize_evidence(item: Mapping[str, object]) -> dict[str, Any]:
