@@ -87,6 +87,7 @@ def _place_model() -> dict[str, Any]:
             "hybrid_governance": HYBRID_COMMUNITY_GOVERNANCE,
             "progression_levels": COMMUNITY_GOVERNANCE_LEVELS,
             "progression_checks": COMMUNITY_PROGRESS_CHECKS,
+            "leadership_roles": COMMUNITY_HYBRID_ROLES,
         },
         "world_rooms_role": "community_interaction_feature_inside_places",
     }
@@ -252,3 +253,71 @@ def review_community_hybrid_progress(
         "review_eligible": complete and level != "global",
         "reason": "requires_independent_approval" if complete else "checks_incomplete",
     }
+
+
+# Optional positions under existing Hybrid Community Power, not automatic offices.
+# Small communities may leave positions vacant or combine compatible duties.
+# Independent assurance lanes must not report through the role they review.
+COMMUNITY_HYBRID_ROLES: tuple[dict[str, str], ...] = (
+    {"id": "president", "title": "President", "lane": "community", "purpose": "Representation and community voice"},
+    {"id": "vice_president", "title": "Vice President", "lane": "community", "purpose": "Deputy community representation"},
+    {"id": "council_chair", "title": "Council Chair", "lane": "community", "purpose": "Chair community meetings and procedures"},
+    {"id": "council_secretary", "title": "Council Secretary", "lane": "community", "purpose": "Minutes, records and agendas"},
+    {"id": "community_treasurer", "title": "Community Treasurer", "lane": "community", "purpose": "Independent community fund oversight"},
+    {"id": "ceo", "title": "CEO", "lane": "operations", "purpose": "Authorised operational delivery"},
+    {"id": "deputy_ceo", "title": "Deputy CEO", "lane": "operations", "purpose": "Operational continuity"},
+    {"id": "operations_director", "title": "Operations Director", "lane": "operations", "purpose": "Project delivery and logistics"},
+    {"id": "finance_director", "title": "Finance Director", "lane": "operations", "purpose": "Budgeting subject to approved controls"},
+    {"id": "technology_director", "title": "Technology Director", "lane": "operations", "purpose": "Technology and system operations"},
+    {"id": "education_director", "title": "Education Director", "lane": "operations", "purpose": "Learning and skills coordination"},
+    {"id": "youth_director", "title": "Youth Director", "lane": "operations", "purpose": "Safeguarded youth programme coordination"},
+    {"id": "community_support_lead", "title": "Community Support Lead", "lane": "operations", "purpose": "Voluntary aid and support coordination"},
+    {"id": "projects_director", "title": "Projects Director", "lane": "operations", "purpose": "Project planning and coordination"},
+    {"id": "culture_sports_director", "title": "Culture & Sports Director", "lane": "operations", "purpose": "Community activities and Arena coordination"},
+    {"id": "environment_director", "title": "Environment Director", "lane": "operations", "purpose": "Nature and sustainability"},
+    {"id": "business_enterprise_lead", "title": "Business & Enterprise Lead", "lane": "operations", "purpose": "Business opportunity support"},
+    {"id": "communications_director", "title": "Communications Director", "lane": "operations", "purpose": "Signal and community communications"},
+    {"id": "partnerships_director", "title": "Partnerships Director", "lane": "operations", "purpose": "External and internal partnerships"},
+    {"id": "safeguarding_lead", "title": "Independent Safeguarding Lead", "lane": "independent", "purpose": "Independent safeguarding escalation and review"},
+    {"id": "audit_lead", "title": "Independent Audit Lead", "lane": "independent", "purpose": "Independent evidence and integrity review"},
+)
+
+
+def review_community_role_assignment(
+    role_id: object, member: object, *, governance_level: object
+) -> dict[str, object]:
+    """Read-only gate for a proposed role, never an appointment or election.
+
+    Caller-supplied evidence is not independently authenticated here.
+    Actual appointment requires the existing My Card identity, independent
+    safeguarding checks, authenticated governance records and human approval.
+    """
+    result: dict[str, object] = {
+        "eligible_for_review": False,
+        "assigned": False,
+        "vote_cast": False,
+        "authority_granted": False,
+        "public_profile_created": False,
+        "reason": "unverified",
+        "founder_final": True,
+    }
+    roles = {row["id"]: row for row in COMMUNITY_HYBRID_ROLES}
+    if role_id not in roles:
+        return {**result, "reason": "role_unknown"}
+    if governance_level not in COMMUNITY_GOVERNANCE_LEVELS:
+        return {**result, "reason": "geography_unknown"}
+    if not isinstance(member, Mapping):
+        return result
+    if member.get("my_card_verified") is not True or member.get("membership_verified") is not True:
+        return {**result, "reason": "membership_unverified"}
+    if member.get("role_opt_in") is not True:
+        return {**result, "reason": "consent_missing"}
+    if member.get("age_band") != "adult":
+        return {**result, "reason": "adult_eligibility_unverified"}
+    if member.get("safeguarding_clear") is not True:
+        return {**result, "reason": "safeguarding_unverified"}
+    if member.get("conflict_review_clear") is not True:
+        return {**result, "reason": "conflicts_unverified"}
+    if roles[role_id]["lane"] == "independent" and member.get("independent_review_clear") is not True:
+        return {**result, "reason": "independence_unverified"}
+    return {**result, "eligible_for_review": True, "reason": "human_appointment_required"}
