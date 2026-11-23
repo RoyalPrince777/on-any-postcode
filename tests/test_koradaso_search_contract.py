@@ -735,8 +735,8 @@ def test_koradaso_intelligence_royal_ui_requires_first_party_route(client):
 
 def test_koradaso_intelligence_first_party_never_uses_compatibility_fallback(monkeypatch):
     """Actual gateway dispatch must fail closed on unavailable first-party routes."""
-    from mission_control import oap_inference_gateway as gateway
     import pytest
+    from mission_control import oap_inference_gateway as gateway
 
     def unavailable(*args, **kwargs):
         raise RuntimeError("offline")
