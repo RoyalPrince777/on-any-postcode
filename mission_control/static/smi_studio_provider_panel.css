@@ -1,0 +1,44 @@
+/* SMI / one canonical Studio: additive command controls, never a second renderer. */
+.oap-studio-command{margin-top:16px;padding:22px;border:1px solid rgba(206,163,99,.35);border-radius:24px;background:radial-gradient(ellipse at 78% 10%,rgba(93,38,153,.26),transparent 50%),linear-gradient(140deg,#100e24,#071324 60%,#080c18);color:#f5f0ff;box-shadow:inset 0 0 0 1px rgba(145,92,255,.08),0 18px 42px rgba(0,0,0,.22)}
+.oap-studio-command *{box-sizing:border-box}
+.oap-studio-header{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.oap-studio-header small{letter-spacing:.16em;text-transform:uppercase;color:#d5b981;font-weight:850}
+.oap-studio-header h2{font-size:clamp(1.35rem,2.4vw,2rem);letter-spacing:-.03em;margin:5px 0 4px}
+.oap-studio-header p{color:#aebad3;font-size:.79rem;margin:0;line-height:1.55;max-width:670px}
+.oap-studio-truth{display:inline-flex;align-items:center;border:1px solid #8b6b46;padding:9px 12px;border-radius:999px;background:#281c20;color:#ffd9ab;font-size:.72rem;font-weight:800;white-space:nowrap}
+.oap-studio-workspace{display:grid;grid-template-columns:minmax(250px,.9fr) minmax(285px,1.1fr);gap:14px}
+.oap-studio-modes,.oap-studio-director{border:1px solid #4b3970;border-radius:20px;background:rgba(6,10,30,.62);padding:14px;min-width:0}
+.oap-studio-modes>h3,.oap-studio-director>h3{font-size:.82rem;margin:0 0 11px;letter-spacing:.08em;text-transform:uppercase;color:#e5d0ff}
+.oap-studio-models{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.oap-studio-model{display:flex;flex-direction:column;text-align:left;align-items:flex-start;gap:5px;min-height:99px;padding:12px;border:1px solid #403661;border-radius:14px;background:linear-gradient(150deg,rgba(30,23,57,.85),rgba(12,20,41,.82));color:inherit;cursor:pointer;transition:border-color .14s,background .14s}
+.oap-studio-model:hover,.oap-studio-model:focus-visible{border-color:#bc90ff;outline:2px solid transparent;background:#282044}
+.oap-studio-model[aria-pressed="true"]{border-color:#e4bc70;box-shadow:inset 0 0 0 1px rgba(228,188,112,.27);background:#271e3d}
+.oap-studio-model b{font-size:.84rem}
+.oap-studio-model small{font-size:.67rem;color:#b0aac9}
+.oap-studio-model .oap-studio-chip{font-size:.62rem;font-weight:800;color:#d8b9ff}
+.oap-studio-model[aria-pressed="true"] .oap-studio-chip{color:#f5ce83}
+.oap-studio-mini-note{font-size:.69rem;color:#9eb0ca;line-height:1.4;margin:11px 0 0}
+.oap-studio-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.oap-studio-field{display:grid;gap:5px}
+.oap-studio-field.full{grid-column:span 2}
+.oap-studio-field label{font-size:.7rem;font-weight:750;color:#cabee6}
+.oap-studio-field select,.oap-studio-field input,.oap-studio-field textarea{width:100%;min-width:0;border:1px solid #52436e;border-radius:11px;padding:10px;background:#11132b;color:#f9f7ff;font:inherit;font-size:.78rem}
+.oap-studio-field textarea{resize:vertical;min-height:72px;line-height:1.4}
+.oap-studio-field :focus-visible{outline:2px solid #eac080;outline-offset:2px}
+.oap-studio-consent{display:grid;gap:8px;margin:12px 0}
+.oap-studio-consent label{display:flex;align-items:flex-start;gap:8px;font-size:.71rem;line-height:1.5;color:#bec5d6}
+.oap-studio-consent input{margin:2px 0 0;accent-color:#d6ad63}
+.oap-studio-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.oap-studio-action{padding:10px 12px;border-radius:12px;border:1px solid #6a5980;background:#201a37;color:#f5eaff;font:inherit;font-size:.75rem;font-weight:800;cursor:pointer;text-decoration:none}
+.oap-studio-action.primary{border-color:#d9ae6b;background:linear-gradient(135deg,#70502e,#633a76);color:#fff1d2}
+.oap-studio-action:disabled{opacity:.5;cursor:wait}
+.oap-studio-action:focus-visible{outline:2px solid #f8d899;outline-offset:2px}
+.oap-studio-evidence{border-left:3px solid #ab7ddd;border-radius:0 12px 12px 0;background:#15152e;padding:12px;font-size:.74rem;line-height:1.5;color:#e3dcf4;min-height:80px;white-space:pre-line}
+.oap-studio-evidence[data-state="blocked"]{border-left-color:#e9aa68}
+.oap-studio-evidence[data-state="unknown"]{border-left-color:#d16b83}
+.oap-studio-links{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:11px}
+.oap-studio-links a{font-size:.73rem;color:#f6cb86;text-decoration:underline;text-underline-offset:3px}
+.oap-studio-footer{border-top:1px solid #49365d;margin-top:14px;padding-top:11px;color:#a9b0c5;font-size:.72rem;line-height:1.5}
+@media(max-width:950px){.oap-studio-workspace{grid-template-columns:1fr}}
+@media(max-width:550px){.oap-studio-command{padding:12px;border-radius:17px}.oap-studio-modes,.oap-studio-director{padding:11px}.oap-studio-models{gap:6px}.oap-studio-model{min-height:91px;padding:10px}.oap-studio-header{gap:8px}.oap-studio-truth{white-space:normal}.oap-studio-fields{gap:7px}}
+@media(prefers-reduced-motion:reduce){.oap-studio-model{transition:none}}
