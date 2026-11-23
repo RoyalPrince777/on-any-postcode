@@ -245,6 +245,8 @@ def evidence_from_smi_health(snapshot: Mapping[str, object]) -> dict[str, object
     )
     first_party_inference = bool(inference.get("first_party_inference_ready"))
 
+    # Do not promote UI visibility or a Truth Mode policy flag into live proof.
+    # Unknown signals remain omitted until a specific runtime receipt exists.
     evidence: dict[str, object] = {
         "security.access": bool(checks.get("permission")),
         "security.adversarial": guardian_stack,
@@ -255,13 +257,11 @@ def evidence_from_smi_health(snapshot: Mapping[str, object]) -> dict[str, object
             if isinstance(snapshot.get("environment"), Mapping)
             else False,
         "alignment.founder_final_alignment": authority_stack,
-        "observability.runtime_visibility": True,
         "observability.dependency_visibility": bool(checks),
         "observability.reason_visibility": "database_reason" in snapshot,
         "data_integrity.consistency": bool(checks.get("schema")),
         "data_integrity.freshness": bool(checks.get("database")),
         "crown.founder_final": authority_stack,
-        "crown.truth_mode": True,
         "crown.red_team": guardian_stack,
         "crown.runtime_proof": bool(snapshot.get("status") == "green"),
         "crown.cross_intelligence_coherence": bool(
