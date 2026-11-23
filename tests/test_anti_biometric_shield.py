@@ -7,7 +7,9 @@ from mission_control.anti_biometric_shield import (
     permission_decision,
 )
 from mission_control.private_smi_recognition import (
-    EvidenceState, Observation, project_observation,
+    EvidenceState,
+    Observation,
+    project_observation,
 )
 
 
