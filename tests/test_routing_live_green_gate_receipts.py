@@ -28,7 +28,7 @@ def test_missing_https_routing_origin_fails_closed(monkeypatch, capsys):
 @pytest.mark.parametrize("origin", ["http://routing.example.test", "https://user:pass@routing.example.test", "https://routing.example.test/unsafe", "https://routing.example.test?x=1"])
 def test_invalid_routing_origin_rejected(monkeypatch, origin):
     monkeypatch.setattr(gate, "BASE", origin)
-    with pytest.raises(ValueError, match="configured HTTPS origin"):
+    with pytest.raises(ValueError, match="approved OAP-owned HTTPS origin"):
         gate._verified_base()
 
 
