@@ -65,6 +65,10 @@ def test_command_room_contains_single_read_only_alliance_view():
     assert '["🤝 Alliances","alliances"]' in ui
     assert 'const alliancePanel=document.createElement("section")' in ui
     assert 'universe.after(alliancePanel)' in ui
+    assert 'consult.textContent="Review in SMI"' in ui
+    assert 'input.value="SMI, review with the "+String(item.name)+" advisory perspective: "+existing' in ui
+    assert 'input.dispatchEvent(new Event("input",{bubbles:true}))' in ui
+    assert "consult.addEventListener" in ui
     assert 'refreshAllianceRoster()' in ui
     assert 'credentials:"same-origin"' in ui
     assert 'cache:"no-store"' in ui
