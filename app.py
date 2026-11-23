@@ -682,6 +682,7 @@ def public_studio():
     return response
 
 @app.post("/studio/chat")
+@app.post("/koradaso/chat")
 def public_studio_chat():
     """Bounded public AI chat; never opens private SMI authority or memory."""
 
@@ -696,7 +697,7 @@ def public_studio_chat():
             payload.get("message"),
             rate_key=client_key,
             history=payload.get("history"),
-            first_party_only=payload.get("source") == "koradaso",
+            first_party_only=(request.path == "/koradaso/chat" or payload.get("source") == "koradaso"),
         )
         response = make_response(jsonify(result))
         response.headers["Cache-Control"] = "no-store"
