@@ -33,6 +33,10 @@ def test_oap_data_dashboard_uses_product_language_only(client, monkeypatch):
     assert "OAP Intelligence" in page
     assert "OAP Data domains" in page
     assert "First-party boundary" in page
+    assert "Raw records displayed by this view" in page
+    assert "Wider privacy exposure" in page
+    assert "Unknown · runtime audit required" in page
+    assert "Raw private records exposed" not in page
     assert "metadata" not in page.casefold()
     assert 'method="post"' not in page.casefold()
 
