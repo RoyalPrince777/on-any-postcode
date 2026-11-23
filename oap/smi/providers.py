@@ -146,7 +146,11 @@ class ProviderRouter:
         # Fail closed for structured private context and sensor-sensitive signals.
         sensitive_tags = {"private", "personal", "sensor", "camera", "microphone",
                           "location", "bluetooth", "memory", "identity", "health",
-                          "oap_data_private"}
+                          "oap_data_private", "photo_attachment", "picture_attachment",
+                          "camera_frame", "screen_capture", "mic_capture",
+                          "voice_note", "nearby_devices", "bluetooth_scan",
+                          "bluetooth_transfer", "device_discovery", "motion",
+                          "faceprint", "voiceprint", "biometric"}
         signal_tags = {str(tag).strip().casefold() for tag in signal.tags}
         if not local and (signal.high_impact or bool(signal.oapcore)
                           or bool(signal_tags & sensitive_tags)):
