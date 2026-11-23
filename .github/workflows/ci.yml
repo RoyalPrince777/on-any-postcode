@@ -68,6 +68,7 @@ jobs:
           node tests/smi_android_motion_evidence_gate_test.cjs
           node --check mission_control/smi_real_reply_motion_bridge.js
           node tests/smi_real_reply_motion_bridge_test.cjs
+          node tests/smi_quiet_review_test.cjs
       - name: Validate first-party Arena browser controllers
         run: |
           for script in \
