@@ -53,3 +53,44 @@ def test_non_loopback_local_inference_denied(monkeypatch):
     assert gateway._local_endpoint_allowed() is False
     with pytest.raises(RuntimeError, match="local_inference_disabled"):
         gateway._call_local_public("Test", None, None, code_mode=False)
+
+
+def test_server_enforces_first_party_regardless_of_client_source(client, csrf, monkeypatch):
+    import app as app_module
+
+    seen = []
+    def fake_ask(message, *, rate_key, history=None, first_party_only=False):
+        seen.append(first_party_only)
+        return {
+            "answer": "bounded",
+            "brain": "SMI",
+            "smi_surface": "public",
+            "execution_authority": False,
+            "first_party_only": first_party_only,
+        }
+
+    monkeypatch.setattr(app_module.public_studio_runtime, "ask", fake_ask)
+    headers = {"X-OAP-CSRF": csrf["csrf_token"]}
+    for route, source, should_be_first_party in (
+        ("/koradaso/chat", "studio", True),
+        ("/koradaso/chat", None, True),
+        ("/studio/chat", "koradaso", True),
+        ("/studio/chat", "studio", False),
+    ):
+        response = client.post(
+            route,
+            json={"message": "Hello", "source": source},
+            headers=headers,
+        )
+        assert response.status_code == 200
+        assert response.get_json()["first_party_only"] is should_be_first_party
+        assert response.get_json()["execution_authority"] is False
+        assert response.headers["Cache-Control"] == "no-store"
+    assert seen == [True, True, True, False]
+
+
+def test_koradaso_compass_posts_to_server_enforced_chat(client):
+    page = client.get("/studio?source=koradaso").get_data(as_text=True)
+    assert "fetch('/koradaso/chat',options)" in page
+    assert "fetch('/studio/chat',options)" in page
+    assert "source:koradasoMode?'koradaso':'studio'" in page
