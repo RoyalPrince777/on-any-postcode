@@ -84,6 +84,9 @@ def _place_model() -> dict[str, Any]:
             "owns_leadership_and_education": True,
             "owns_nature_growth_model": True,
             "nature_growth_model": NATURE_GROWTH_MODEL,
+            "hybrid_governance": HYBRID_COMMUNITY_GOVERNANCE,
+            "progression_levels": COMMUNITY_GOVERNANCE_LEVELS,
+            "progression_checks": COMMUNITY_PROGRESS_CHECKS,
         },
         "world_rooms_role": "community_interaction_feature_inside_places",
     }
@@ -165,4 +168,87 @@ def status(*, weather_ready: bool) -> dict[str, Any]:
             "The Earth Intelligence world, EARTH OUR TURF place model and OAP Nature organ are present. "
             "Weather is the first live sensing connection; broader Earth and place observations remain gated."
         ),
+    }
+
+
+# Community Power uses the existing Earth locality hierarchy; it is not an
+# elected government, a second identity service or an autonomous SMI authority.
+COMMUNITY_GOVERNANCE_LEVELS = (
+    "postcode", "borough_district_or_equivalent",
+    "region_county_or_equivalent", "country", "continent", "global",
+)
+HYBRID_COMMUNITY_GOVERNANCE = {
+    "model": "hybrid",
+    "community_owner": "Community Power",
+    "executive_role": "CEO / authorised operational lead",
+    "community_role": "Elected or legitimately appointed community council",
+    "executive_scope": "Approved operations only; no control of community votes",
+    "council_scope": "Community proposals, oversight and member representation",
+    "one_my_card": True,
+    "public_browsing_requires_id": False,
+    "government_id_mandatory_for_public_browsing": False,
+    "youth_safeguarding_required": True,
+    "forced_membership": False,
+    "biometric_eligibility_requirement": False,
+    "automated_elections": False,
+    "automatic_promotion": False,
+    "agent_authority": False,
+    "guardian_hrm_required": True,
+    "human_authority_final": True,
+}
+# One evidenced milestone for each 3-check segment, not 21 invented stages.
+COMMUNITY_PROGRESS_CHECKS = (
+    ("formation", ("participation", "member_consent", "community_scope")),
+    ("learning", ("learning_access", "skill_evidence", "youth_separation")),
+    ("projects", ("project_proposals", "team_permissions", "outcome_evidence")),
+    ("support", ("needs_review", "voluntary_assistance", "privacy_review")),
+    ("culture", ("community_activities", "fair_participation", "safety_review")),
+    ("leadership", ("nomination_rules", "oversight_rules", "appeal_process")),
+    ("verification", ("evidence_integrity", "independent_review", "founder_release_gate")),
+)
+
+
+def review_community_hybrid_progress(
+    level: object, evidence: object
+) -> dict[str, Any]:
+    """Read-only, fail-closed 7x3 evidence review; never promotes or appoints.
+
+    Evidence must be externally verified before it is supplied. This pure
+    function cannot attest the authenticity of receipts or hold an election.
+    """
+    result: dict[str, Any] = {
+        "model": "hybrid",
+        "level": str(level or ""),
+        "verified_checks": 0,
+        "total_checks": 21,
+        "review_eligible": False,
+        "promoted": False,
+        "leader_appointed": False,
+        "votes_cast": 0,
+        "can_execute": False,
+        "human_authority_final": True,
+        "reason": "evidence_unverified",
+    }
+    if level not in COMMUNITY_GOVERNANCE_LEVELS:
+        return {**result, "reason": "invalid_geography"}
+    if not isinstance(evidence, Mapping):
+        return result
+    required = tuple(check for _, checks in COMMUNITY_PROGRESS_CHECKS for check in checks)
+    # Fail closed if any check is missing or not an explicit verified receipt.
+    passed = tuple(
+        check for check in required
+        if isinstance(evidence.get(check), Mapping)
+        and evidence[check].get("verified") is True
+        and isinstance(evidence[check].get("receipt_id"), str)
+        and bool(evidence[check]["receipt_id"].strip())
+    )
+    receipt_ids = tuple(evidence[c]["receipt_id"].strip() for c in passed)
+    if len(set(receipt_ids)) != len(receipt_ids):
+        return {**result, "reason": "duplicate_evidence"}
+    complete = len(passed) == len(required)
+    return {
+        **result,
+        "verified_checks": len(passed),
+        "review_eligible": complete and level != "global",
+        "reason": "requires_independent_approval" if complete else "checks_incomplete",
     }
