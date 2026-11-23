@@ -33,7 +33,7 @@ def main():
                 quick = page.locator('nav[aria-label="Quick destinations"] a')
                 expect(quick).to_have_count(5)
                 for href in ("/koradaso", "/the-spot", "/linkup", "/my-world", "/travel"):
-                    assert quick.locator(f'[href="{href}"]').count() == 1
+                    assert page.locator(f'nav[aria-label="Quick destinations"] a[href="{href}"]').count() == 1
 
                 page.locator("#world-query").fill("javascript:alert(1)")
                 page.get_by_role("button", name="Open").click()
