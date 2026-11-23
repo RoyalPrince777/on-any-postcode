@@ -19,9 +19,39 @@ Set `OAP_KORADASO_WEB_INDEX` to the same local database when deliberately
 serving results with `/koradaso/web-search`. This is an illustrative command;
 it is **not evidence that example.org was fetched or indexed**.
 
+## Opt-in approved-site queue (source-only, not deployed)
+
+The existing crawler now has a persistent bounded queue in
+`mission_control/koradaso_crawl_fleet.py` and
+`scripts/koradaso_fleet.py`. Nothing runs automatically on app startup,
+Android startup or the VPS. An operator must explicitly approve each HTTPS
+seed and invoke `run-once`; an external scheduler or service is **not**
+installed. Queue state is separate from the public search index.
+
+```bash
+python scripts/koradaso_fleet.py --state "$HOME/koradaso-fleet.sqlite3" \
+  --index "$HOME/koradaso-public.sqlite3" approve \
+  --seed https://example.org/ --interval-hours 24
+python scripts/koradaso_fleet.py --state "$HOME/koradaso-fleet.sqlite3" \
+  --index "$HOME/koradaso-public.sqlite3" run-once
+python scripts/koradaso_fleet.py --state "$HOME/koradaso-fleet.sqlite3" \
+  --index "$HOME/koradaso-public.sqlite3" status
+```
+
+Commands are examples, not proof of a real crawl. At most one due seed is
+claimed per invocation, with a 120-second transactional lease, daily minimum
+interval, one-hour retry cooldown, and a maximum of 21 approved URLs.
+Revoke with the `revoke --seed` subcommand; revocation prevents future
+claims but does not cancel a crawl already in progress. The existing
+robots.txt, public-DNS/TLS, per-crawl size and depth limits still apply.
+
+Automated triggering, safe concurrency under process failure, per-host/global
+rate limiting, deletion requests, real-world crawl volumes, and production
+acceptance remain **Unknown**. Do not label this an autonomous fleet Green.
+
 ## Safety contract
 
-- No crawler on Flask startup, Android launch, scheduled task or production.
+- No crawler on Flask startup, Android launch, scheduled task or production; the new queue only acts on explicit CLI invocation.
 - One approved public HTTPS host; no cross-host crawling.
 - Only public DNS addresses; the connection is pinned to the validated IP,
   with TLS hostname verification. Do not trust DNS resolution alone.
