@@ -8,15 +8,19 @@ import statistics
 import time
 from urllib import error, parse, request
 
+from mission_control import routing
+
 BASE = os.environ.get("OAP_ROUTING_PROOF_ORIGIN", "").strip().rstrip("/")
 
 
 def _verified_base() -> str:
+    """Require the canonical OAP-owned allowlisted origin; never a public demo router."""
     parsed = parse.urlparse(BASE)
     if (not BASE or parsed.scheme != "https" or not parsed.hostname
             or parsed.username or parsed.password or parsed.query or parsed.fragment
-            or parsed.path not in ("", "/")):
-        raise ValueError("OAP routing proof requires a configured HTTPS origin")
+            or parsed.path not in ("", "/")
+            or routing._validated_base_url(BASE, require_owned=True) != BASE):
+        raise ValueError("OAP routing proof requires an approved OAP-owned HTTPS origin")
     return BASE
 ROUTES = (
     (-0.1687, 51.4036, -0.0877, 51.5079, "mitcham_london_bridge"),
@@ -139,7 +143,7 @@ def main() -> None:
         _verified_base()
     except ValueError:
         print(json.dumps({"event": "oap_routing_origin_gate", "ready": False, "failure_type": "missing_or_invalid_https_origin", "dispatch_performed": False, "payment_performed": False, "tracking_performed": False}, sort_keys=True))
-        raise SystemExit("OAP routing HTTPS origin not configured") from None
+        raise SystemExit("OAP routing HTTPS origin not configured or OAP-owned/approved") from None
     warmup = wait_until_ready()
     print(
         json.dumps(
