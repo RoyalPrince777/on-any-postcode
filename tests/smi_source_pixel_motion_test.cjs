@@ -39,12 +39,18 @@ assert.ok(source.includes("evidenceCanvas.width=0;evidenceCanvas.height=0"),
   "temporary one-shot pixel provenance surface must release memory");
 assert.ok(source.includes('context.imageSmoothingQuality="high"'),
   "the native image transform should retain high-quality resampling");
-assert.ok(source.includes("frameRateTargetFps:live?(lowPower?30:60):(lowPower?20:30)"),
-  "FPS targets are bounded by power class, never device certification");
+assert.ok(source.includes("frameRateTargetFps:renderActive()?(live?(lowPower?30:60):(lowPower?20:30)):0"),
+  "FPS target must be zero when motion is stopped, paused or hidden");
 assert.ok(source.includes("renderCostMs*1.8"),
   "frame pacing must adapt when native-resolution drawing runs slowly");
-assert.ok(source.includes("observedFps:"),
-  "publish actual measurement separately from FPS target");
+assert.ok(source.includes("observedFps:renderActive()?"),
+  "observed FPS must be zero, never stale, while motion is inactive");
+assert.ok(source.includes("resetFrameTelemetry();"),
+  "the history of performance must reset when entering an inactive state");
+assert.ok(source.includes('doc.addEventListener?.("visibilitychange",resetFrameTelemetry)'),
+  "tab sleep/resume must not count stale frame time");
+assert.ok(source.includes('phase!=="paused"&&phase!=="stopped"'),
+  "a paused or stopped live session must never be counted as animating");
 assert.ok(source.includes('const featheredPatches=new Map(REGIONS.map(region=>{'),
   "reuse one source-derived feathered patch per region, not another renderer");
 assert.ok(source.includes('pc.globalCompositeOperation="destination-in"'),
