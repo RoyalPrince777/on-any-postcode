@@ -42,3 +42,17 @@
 @media(max-width:950px){.oap-studio-workspace{grid-template-columns:1fr}}
 @media(max-width:550px){.oap-studio-command{padding:12px;border-radius:17px}.oap-studio-modes,.oap-studio-director{padding:11px}.oap-studio-models{gap:6px}.oap-studio-model{min-height:91px;padding:10px}.oap-studio-header{gap:8px}.oap-studio-truth{white-space:normal}.oap-studio-fields{gap:7px}}
 @media(prefers-reduced-motion:reduce){.oap-studio-model{transition:none}}
+
+/* Cohesive polish on the *existing* SMI shell; no route or component removed. */
+body{background:radial-gradient(circle at 45% 0,rgba(92,40,145,.18),transparent 35%),#060714}
+.rail{border-right-color:rgba(204,160,87,.3);background:linear-gradient(180deg,#10091e,#07101a)}
+.rail .crest{border-color:#b68c56;color:#f2d39f;box-shadow:0 0 25px #763c9950}
+.rail a:hover,.rail a:focus-visible,.rail a.active{border-color:rgba(218,172,101,.58);background:rgba(80,35,118,.22);color:#f7e7ff}
+.brand .eyebrow{color:#ddbd82}
+.brand h1{background:linear-gradient(120deg,#fff3d4,#dcb6ef 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.topbar .chip.gold{color:#ffe0a8;border-color:#806245}
+.main>.panel,.main>.hero>.panel,.main>.grid>.panel{border-color:rgba(129,93,179,.34)}
+.main .portrait{border-color:rgba(218,170,98,.52);box-shadow:0 0 34px rgba(110,48,174,.14)}
+.main .btn.primary{background:linear-gradient(125deg,#71532e,#62377f);border-color:#ddba7c}
+.main .btn.war{border-color:#bb8f5b}
+.main .control:hover,.main .intel:hover{border-color:rgba(222,178,104,.63)}
