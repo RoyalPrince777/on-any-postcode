@@ -12,6 +12,39 @@ assert.equal(api.motionFor("paused",220,1).mouth[2],1);
 assert.equal(api.motionFor("speaking",220,0).mouth[2],1);
 assert.ok(api.motionFor("speaking",220,1).mouth[2]>1);
 assert.ok(api.motionFor("thinking",220,1).mouth[2]===1);
+// Real time-based easing, not a fake FPS number or an alternate avatar.
+// Check the first frame never jumps to an abrupt state-transition target.
+const smoother=api.createPoseSmoother();
+const neutral={
+ head:[0,0,1],eyes:[0,0,1],mouth:[0,0,1],
+ chest:[0,0,1],hands:[0,0,1]
+};
+const target={
+ head:[2,1,1.1],eyes:[1,0.6,0.25],mouth:[1,1,1.3],
+ chest:[0,1,1.01],hands:[0.8,-0.6,1]
+};
+const first=smoother.next(target,0);
+assert.ok(first.head[0]>0&&first.head[0]<target.head[0]);
+assert.ok(first.eyes[2]<1&&first.eyes[2]>target.eyes[2]);
+assert.ok(first.mouth[2]>1&&first.mouth[2]<target.mouth[2]);
+const second=smoother.next(target,16);
+assert.ok(second.head[0]>first.head[0]&&second.head[0]<target.head[0]);
+assert.ok(second.chest[1]>first.chest[1]);
+const unchanged=smoother.next(target,16);
+assert.deepEqual(unchanged,second,"same frame time must not add extra motion");
+const longGap=smoother.next(target,10000);
+assert.ok(longGap.head[0]<target.head[0],"background catch-up must be bounded");
+assert.ok(longGap.head[0]>second.head[0]);
+const reverseTarget={...target,head:[-2,-1,1]};
+const reversing=smoother.next(reverseTarget,10016);
+assert.ok(reversing.head[0]>-2&&reversing.head[0]<longGap.head[0],
+ "state changes must ease without instantly snapping across the screen");
+smoother.reset();
+const reset=smoother.next(neutral,0);
+assert.deepEqual(reset,neutral,"STOP/Reduced Motion must reset the pose to neutral");
+assert.throws(()=>smoother.next({...target,head:[Infinity,1,1]},16),
+ /invalid_smi_source_pose/);
+assert.throws(()=>smoother.next(target,Infinity),/invalid_smi_pose_clock/);
 const region={x:0,y:0,w:11,h:11,cx:5,cy:5,rx:5,ry:5};
 const data=new Uint8ClampedArray(11*11*4);
 for(let y=0;y<11;y++)for(let x=0;x<11;x++){
@@ -30,6 +63,16 @@ const html=fs.readFileSync("mission_control/templates/ollama_chat.html","utf8");
 assert.ok(source.includes("fullSceneSourcePixelMotion:played>0"));
 assert.ok(source.includes("audioCues+=1"));
 assert.ok(source.includes("fullBodyRigProven=false"),"flattened pixels are not an independently reviewed rig");
+assert.ok(source.includes("poseSmoother.next(motionFor(phase,ms,pulse),ms)"),
+  "existing original source renderer must use bounded pose easing");
+assert.ok(source.includes("fullArticulatedMotionProven:false"),
+  "easing must not be misrepresented as a human-approved articulated rig");
+assert.ok(source.includes('poseEasing:"bounded_time_based_source_pixel_only"'),
+  "proof must explicitly limit the motion to original source pixels");
+assert.ok(source.includes("if(doc.hidden)poseSmoother.reset()"),
+  "background tab must clear stale pose history");
+assert.ok(source.includes("poseSmoother.reset();draw(0)"),
+  "STOP and Reduced Motion must clear residual pose state");
 assert.ok(source.includes("sourcePixelRegionsObserved"),"preserve source-pixel activity evidence");
 assert.ok(source.includes("accurateSoftwareLipSyncProven"));
 assert.ok(source.includes("rigLayerFrames"));
