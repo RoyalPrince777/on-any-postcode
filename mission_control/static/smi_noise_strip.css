@@ -60,8 +60,9 @@ body.smi-noise-strip #provider-state{
   border-radius:50%!important;
   color:transparent!important;
   overflow:hidden!important;
-  background:#35d778!important;
-  box-shadow:0 0 8px #35d77888!important;
+  /* Neutral until backend evidence explicitly verifies readiness; presence is not Green. */
+  background:#8793a3!important;
+  box-shadow:none!important;
 }
 body.smi-noise-strip #provider-state[data-state="working"],
 body.smi-noise-strip #provider-state[data-state="thinking"]{

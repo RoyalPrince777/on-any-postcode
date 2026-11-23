@@ -153,3 +153,16 @@ def test_ptt_migration_is_explicit_and_bounded():
     assert "ALTER TABLE link_voice_notes" in migration
     assert "ADD COLUMN IF NOT EXISTS kind" in migration
     assert "CHECK (kind IN ('voice','ptt'))" in migration
+
+
+def test_my_line_does_not_present_internal_id_as_real_mobile_number():
+    from pathlib import Path
+
+    template = (Path(__file__).resolve().parents[1] / "mission_control" / "templates" / "personal_telecom.html").read_text(encoding="utf-8")
+    assert "This is an internal OAP identifier, not a dialable UK mobile number." in template
+    assert "telecom.execution.public_number_assigned" in template
+    assert "telecom.execution.real_carrier_profile_installed" in template
+    assert "telecom.execution.real_carrier_activation_enabled" in template
+    assert "MY CARD · PRIVATE LINE" in template
+    assert "surface.button_groups" in template
+    assert "button_id" in template

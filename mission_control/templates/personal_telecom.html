@@ -13,6 +13,12 @@ a{color:inherit;text-decoration:none}
 .hero,.menu{border:1px solid #3d3520;border-radius:18px;background:#10110f;padding:16px;margin-bottom:14px}
 .hero h1{margin:4px 0 6px;font-size:1.9rem}
 .muted{color:#b9b39f}
+.truth{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.truth span{display:inline-flex;align-items:center;border:1px solid #4b432d;border-radius:10px;padding:9px 11px;background:#171711;font-size:.86rem}
+.truth strong{margin-right:5px}
+.notice{margin:10px 0 0;font-size:.9rem;line-height:1.5}
+.button:focus-visible,header a:focus-visible{outline:2px solid #f0ce70;outline-offset:3px}
+@media(max-width:520px){header{padding:12px}header a{font-size:.84rem}.hero h1{font-size:1.6rem}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.button{padding:12px}.truth{display:grid;grid-template-columns:1fr}}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
 .button{display:block;border:1px solid #5c4d24;border-radius:14px;padding:14px;background:#171711}
 .button strong{display:block;margin-bottom:3px}
@@ -29,11 +35,16 @@ small{color:#aaa58f}
 </header>
 <main>
 <section class="hero">
-<small>OAP NUMBER · NETWORK PASSPORT · MY PHONE</small>
+<small>MY CARD · PRIVATE LINE</small>
 <h1>📱 {{ telecom.line.line_name }}</h1>
-<p><strong>{{ telecom.line.oap_number }}</strong></p>
-<span class="pill">Passport {{ telecom.line.network_passport.status }}</span>
-<span class="pill">Phone {{ telecom.line.device_binding.binding_status }}</span>
+<p class="muted">OAP ID · <strong>{{ telecom.line.oap_number }}</strong></p>
+<p class="notice">This is an internal OAP identifier, not a dialable UK mobile number.</p>
+<div class="truth" aria-label="Mobile connectivity status">
+  <span><strong>UK number</strong> {{ 'Assigned' if telecom.execution.public_number_assigned else 'Not assigned' }}</span>
+  <span><strong>eSIM</strong> {{ 'Profile verified' if telecom.execution.real_carrier_profile_installed else 'Not installed' }}</span>
+  <span><strong>Network</strong> {{ 'Activated' if telecom.execution.real_carrier_activation_enabled else 'Not activated' }}</span>
+</div>
+<p class="notice muted">Network Passport: {{ telecom.line.network_passport.status }} · Device: {{ telecom.line.device_binding.binding_status }}. These are OAP account states, not proof of mobile service.</p>
 </section>
 
 {% for group in surface.button_groups %}
