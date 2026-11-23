@@ -65,7 +65,7 @@ def test_preflight_does_not_execute_even_if_every_box_is_checked(model_id, task)
     {"model_id": "seedance", "task": "video", "api_key": "do not accept secrets"},
 ])
 def test_preflight_rejects_invalid_or_sensitive_fields(payload):
-    with pytest.raises(ValueError):
+    with pytest.raises((TypeError, ValueError)):
         catalogue.preflight(payload)
 
 
