@@ -40,11 +40,22 @@ class OllamaAdapter:
         model: str = "qwen2.5:1.5b",
         timeout: float = 3.0,
     ) -> None:
-        parsed = urlparse(url)
+        try:
+            parsed = urlparse(url)
+            host = parsed.hostname
+            port = parsed.port
+        except ValueError as exc:
+            raise ValueError("Invalid Ollama endpoint URL") from exc
         if parsed.scheme not in {"http", "https"}:
             raise ValueError("Ollama URL must use HTTP or HTTPS")
-        if parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
+        if host not in {"localhost", "127.0.0.1", "::1"}:
             raise ValueError("Ollama advisor is restricted to loopback")
+        if parsed.username is not None or parsed.password is not None:
+            raise ValueError("Ollama URL must not contain credentials")
+        if port is not None and not 1 <= port <= 65535:
+            raise ValueError("Invalid Ollama port")
+        if parsed.query or parsed.fragment:
+            raise ValueError("Ollama URL must not contain query or fragment")
         self.url = url
         self.model = model
         self.timeout = timeout
@@ -75,6 +86,8 @@ class OllamaAdapter:
                 if final_url.hostname not in {"localhost", "127.0.0.1", "::1"}:
                     raise ValueError("Provider redirected outside loopback")
                 body = json.loads(response.read(1_000_000).decode("utf-8"))
+                if not isinstance(body, dict):
+                    raise ValueError("Invalid Ollama response structure")  # noqa: TRY004 - preserve caller error contract
         except (OSError, ValueError, error.URLError, json.JSONDecodeError):
             return ProviderResult(
                 provider_id=self.provider_id,
@@ -129,6 +142,20 @@ class ProviderRouter:
 
         adapter = self._adapters[provider_id]
         local = self._provider_scopes[provider_id] == "local"
+        # External approval is not permission to export private OAP Data.
+        # Fail closed for structured private context and sensor-sensitive signals.
+        sensitive_tags = {"private", "personal", "sensor", "camera", "microphone",
+                          "location", "bluetooth", "memory", "identity", "health",
+                          "oap_data_private"}
+        signal_tags = {str(tag).strip().casefold() for tag in signal.tags}
+        if not local and (signal.high_impact or bool(signal.oapcore)
+                          or bool(signal_tags & sensitive_tags)):
+            return (
+                ProviderResult(
+                    provider_id=provider_id, available=False, text="",
+                    error_code="private_oap_data_egress_blocked",
+                ),
+            )
         if not self._sovereign_controls.provider_allowed(provider_id, local=local):
             return (
                 ProviderResult(

@@ -341,6 +341,52 @@ def test_ollama_adapter_rejects_remote_hosts():
         OllamaAdapter("https://example.com/api/generate")
 
 
+def test_ollama_adapter_rejects_credentials_and_malformed_urls():
+    for url in (
+        "http://user:password@127.0.0.1:11434/api/generate",
+        "http://127.0.0.1:invalid/api/generate",
+        "http://[broken/api/generate",
+        "http://127.0.0.1:11434/api/generate?model=unsafe",
+        "http://127.0.0.1:11434/api/generate#fragment",
+    ):
+        with pytest.raises(ValueError):
+            OllamaAdapter(url)
+
+
+def test_ollama_adapter_accepts_normal_loopback_endpoint():
+    assert OllamaAdapter().provider_id == "ollama"
+
+
+
+@pytest.mark.parametrize("body", [b'[]', b'null', b'"unexpected"', b'42'])
+def test_ollama_non_object_json_fails_closed(monkeypatch, body):
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def geturl(self):
+            return "http://127.0.0.1:11434/api/generate"
+
+        def read(self, limit):
+            return body
+
+    monkeypatch.setattr(
+        provider_module._LOCAL_ONLY_OPENER,
+        "open",
+        lambda req, timeout: FakeResponse(),
+    )
+    signal = InputManager().receive(NexusRouter().receive(BrainRequest(
+        request_id="ollama-invalid-json-structure",
+        identity_id="founder-1",
+        content="Review locally.",
+    )))
+    result = OllamaAdapter().analyse(signal)
+    assert result.available is False
+    assert result.error_code == "provider_unavailable"
+
 def test_ollama_adapter_rejects_redirect_outside_loopback(monkeypatch):
     class FakeResponse:
         def __enter__(self):

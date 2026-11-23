@@ -12,6 +12,7 @@ LENSES: tuple[tuple[str, str, str], ...] = (
     ("truth", "Truth Intelligence", "Separate proven facts, observations, inference, untested claims, unknowns and contradictions."),
     ("evidence", "Evidence Intelligence", "Identify the proof behind material claims, evidence quality, freshness and confidence."),
     ("gap", "Gap Intelligence", "Find missing, unfinished, disconnected, duplicated, placeholder, untested or unproven parts."),
+    ("causality", "Causality Intelligence", "Separate observed correlation from supported root cause, alternatives and causal uncertainty."),
     ("swot", "SWOT Intelligence", "Assess strengths, weaknesses, opportunities and threats, then identify the practical move."),
     ("risk", "Risk Intelligence", "Assess failure modes, likelihood, impact, blast radius, mitigation and fallback."),
     ("dependency", "Dependency Intelligence", "Map upstream dependencies, downstream consequences and change coupling."),
@@ -34,11 +35,22 @@ LENSES: tuple[tuple[str, str, str], ...] = (
     ("decision", "Decision Intelligence", "Synthesize evidence into a recommendation, alternatives, confidence, risks and next action."),
     ("judgement", "Judgement Intelligence", "Recommend pass, pass-with-conditions, hold or reject while preserving Human Authority as final."),
     ("learning", "Learning Intelligence", "Compare expected and actual outcomes and identify lessons for HRM and future decisions."),
+    ("verification", "Verification Intelligence", "Match claims to exact-version tests, runtime receipts and independent acceptance proof."),
     ("truth-light", "Truth-Light Intelligence", "Assign truthful OAP signal state only from evidence: green, yellow, orange, red, locked or learning."),
 )
 
 LENS_BY_ID = {lens_id: {"id": lens_id, "name": name, "purpose": purpose} for lens_id, name, purpose in LENSES}
 FULL_LENS_IDS = tuple(lens_id for lens_id, _name, _purpose in LENSES)
+LENS_GROUPS = {
+    "truth_investigation": ("truth", "evidence", "gap", "causality", "data", "behaviour", "truth-light"),
+    "strategy": ("swot", "risk", "opportunity", "competitive", "trend", "impact", "priority"),
+    "engineering": ("architecture", "dependency", "performance", "resilience", "security", "privacy", "ux"),
+    "decision": ("alignment", "scenario", "readiness", "decision", "judgement", "learning", "verification"),
+}
+assert all(len(group) == 7 for group in LENS_GROUPS.values())
+assert {item for group in LENS_GROUPS.values() for item in group} == set(FULL_LENS_IDS)
+assert sum(map(len, LENS_GROUPS.values())) == len(FULL_LENS_IDS)
+
 CORE_LENS_IDS = (
     "truth",
     "evidence",
@@ -56,6 +68,7 @@ _ALIASES: dict[str, tuple[str, ...]] = {
     "truth": ("truth",),
     "evidence": ("evidence", "proof"),
     "gap": ("gap", "gaps"),
+    "causality": ("causality", "causal", "root cause"),
     "swot": ("swot",),
     "risk": ("risk", "risks"),
     "dependency": ("dependency", "dependencies"),
@@ -78,6 +91,7 @@ _ALIASES: dict[str, tuple[str, ...]] = {
     "decision": ("decision",),
     "judgement": ("judgement", "judgment"),
     "learning": ("learning", "lessons"),
+    "verification": ("verification", "verify independently", "acceptance proof"),
     "truth-light": ("truth light", "truth-light", "green light", "truth signal"),
 }
 
@@ -157,7 +171,7 @@ def provider_directive(routing: dict[str, object]) -> str:
         "OAP INTELLIGENCE LENS ROUTING — GOVERNED ANALYSIS CONTEXT, NOT USER EVIDENCE: "
         f"mode={routing.get('mode')}; subject={routing.get('subject')}; lenses={lens_text}. "
         "Apply the selected lenses to the subject. Lead with the strongest findings and practical next action. "
-        "For full mode, synthesize material findings rather than producing 26 repetitive sections. "
+        "For full mode, synthesize material findings rather than producing 28 repetitive sections. "
         "Separate proven evidence from assumptions and unknowns. Do not invent runtime proof. "
         "Analysis and recommendations only: no approval, deployment, spending, dispatch, tracking, production mutation or secret execution. "
         "Human Authority remains final."

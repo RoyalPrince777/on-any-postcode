@@ -16,6 +16,8 @@ from . import (
     oap_core_autonomy,
     organism_autonomy,
     postgres_db,
+    smi_auto,
+    smi_github_failure_evidence,
     smi_runtime_autonomy,
 )
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
@@ -60,6 +62,34 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
     oap_core_cycle = oap_core_autonomy.run_cycle()
     smi_cycle = smi_runtime_autonomy.run_cycle()
     organism_cycle = organism_autonomy.run_cycle()
+    # Read-only GitHub observation piggybacks on the existing scheduled
+    # health probe; no new job type, scheduler or elevated authority.
+    # A dedicated least-privilege read token is required to activate it.
+    github_token = os.environ.get("OAP_SMI_GITHUB_READ_TOKEN", "").strip()
+    github_evidence = {"ready": False, "error": "not_configured",
+                       "read_only": True, "consequential_action": False}
+    if github_token:
+        github_evidence = smi_github_failure_evidence.discover_recent_failed_runs(
+            token=github_token,
+        )
+        if (github_evidence.get("ready") and github_evidence.get("current_failure")
+                and github_evidence.get("run_ids")):
+            github_evidence = {
+                **github_evidence,
+                "latest_failure": smi_github_failure_evidence.inspect_failed_run(
+                    github_evidence["run_ids"][0], token=github_token,
+                ),
+            }
+    if github_evidence.get("latest_failure", {}).get("ready"):
+        github_evidence["latest_failure"]["log_analysis"] = (
+            smi_github_failure_evidence.inspect_failed_job_logs(
+                github_evidence["latest_failure"], token=github_token,
+            )
+        )
+    if github_evidence.get("latest_failure", {}).get("ready"):
+        github_evidence["latest_failure"]["swot_intelligence"] = (
+            smi_auto.evidence_swot_for_failed_build(github_evidence["latest_failure"])
+        )
     return {
         "kind": "runtime_health_probe",
         "database_ready": bool(database.get("initialized")),
@@ -67,6 +97,7 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         "oap_core_autonomy": oap_core_cycle,
         "smi_autonomy": smi_cycle,
         "organism_autonomy": organism_cycle,
+        "github_failure_evidence": github_evidence,
         "human_authority_final": True,
         "independent_execution": False,
         "consequential_action": False,
