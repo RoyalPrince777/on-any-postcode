@@ -335,3 +335,8 @@ body.smi-command-open .smi-command-alliance-panel:not([hidden]){
 .smi-alliance-consult:hover,.smi-alliance-consult:focus-visible{
  border-color:#f4cf88;outline:2px solid #f4cf88;outline-offset:2px
 }
+
+.smi-alliance-families{border:1px solid #35568a;border-radius:10px;padding:9px 11px;background:#0a1730}
+.smi-alliance-families summary{color:#e9cb92;font-size:.78rem;cursor:pointer}
+.smi-alliance-families .smi-alliance-family-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(185px,100%),1fr));gap:7px;margin-top:10px}
+.smi-alliance-family-list p{margin:0;color:#c0d7ec;font-size:.72rem}
