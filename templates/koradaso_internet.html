@@ -232,7 +232,7 @@ body{background:radial-gradient(ellipse at 50% -6%,#241138 0%,#080918 49%,#04051
 <div class="search-row"><form class="search" id="address-form" role="search" action="/search" method="get">
 <input id="address" name="q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search or website address" placeholder="Search or type a website address…" required>
 <button type="submit">Go</button>
-</form><a class="public-smi" href="/studio?source=koradaso" aria-label="Open KORADASO public intelligence assistant">SMI</a></div>
+</form><a class="public-smi" href="/studio?source=koradaso" aria-label="Ask SMI using the existing public KORADASO intelligence">Ask SMI</a></div>
 <p class="trust-state screen-reader-only" id="trust-state" role="status">OAP FIRST PARTY · Catalogue search</p>
 <p class="note address-feedback" id="address-note" role="status" aria-live="polite"></p>
 <nav class="grid" aria-label="KORADASO destinations">
@@ -254,6 +254,15 @@ body{background:radial-gradient(ellipse at 50% -6%,#241138 0%,#080918 49%,#04051
 const form=document.getElementById("address-form"),field=document.getElementById("address"),note=document.getElementById("address-note");
 const back=document.getElementById("browser-back"),reduceMotion=document.getElementById("reduce-motion"),openWebSearch=document.getElementById("open-web-search");
 const trustState=document.getElementById("trust-state"),settingsNote=document.getElementById("settings-note");
+const smiLink=document.querySelector('a.public-smi[href="/studio?source=koradaso"]');
+if(smiLink)smiLink.addEventListener("click",function(){
+  // One-click local handoff, never a model request or query-string disclosure.
+  const draft=field.value.trim();
+  try{
+    sessionStorage.removeItem("koradaso.smi_draft.v1");
+    if(draft&&draft.length<=600)sessionStorage.setItem("koradaso.smi_draft.v1",draft);
+  }catch(_){/* Storage unavailable: navigate to the existing empty public chat. */}
+});
 
 const preferencesKey="koradaso.browser_prefs.v1";
 function currentSearchMode(){return openWebSearch.checked?"web":"oap";}
