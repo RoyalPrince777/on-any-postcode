@@ -121,8 +121,8 @@
   const lowPower=/Android/i.test(win.navigator?.userAgent||"")||Number(win.navigator?.hardwareConcurrency||8)<=4;
   // 30/60 live and 20/30 idle are upper *targets*, not measured results.
   // Dynamically lower the rate if drawing is expensive; no 60-FPS device claim.
-  const frameBudgetMs=lowPower?34:17;
-  const ambientFrameBudgetMs=lowPower?50:34;
+  const frameBudgetMs=lowPower?33:16;
+  const ambientFrameBudgetMs=lowPower?50:33;
   let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,speechUntil=0,audioCues=0,droppedFrames=0;
   let renderCostMs=0,observedFps=0,lastPaintTime=0,adaptiveFrameBudgetMs=ambientFrameBudgetMs;
   let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
@@ -224,7 +224,7 @@
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
     ambientVisualMotion:phase==="ready"&&!live&&played>0,
-    frameRateTargetFps:Math.round(1000/(live?frameBudgetMs:ambientFrameBudgetMs)),
+    frameRateTargetFps:live?(lowPower?30:60):(lowPower?20:30),
     observedFps:Math.round(observedFps*10)/10,
     renderCostMs:Math.round(renderCostMs*10)/10,
     adaptiveFrameBudgetMs:Math.round(adaptiveFrameBudgetMs*10)/10,
