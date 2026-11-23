@@ -78,10 +78,23 @@
   canvas.width=WIDTH;canvas.height=HEIGHT;canvas.setAttribute("aria-hidden","true");
   canvas.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;pointer-events:none;z-index:0";
   shell.prepend(canvas);
-  const context=canvas.getContext("2d",{willReadFrequently:true});
+  // Render at native source resolution on the display canvas. Readback belongs
+  // to a one-time evidence canvas; willReadFrequently on the display surface
+  // would force software rendering on common Android Chromium builds.
+  const context=canvas.getContext("2d",{alpha:false});
   if(!context){canvas.remove();image.close?.();return null;}
+  context.imageSmoothingEnabled=true;
+  context.imageSmoothingQuality="high";
+  const evidenceCanvas=doc.createElement("canvas");
+  evidenceCanvas.width=WIDTH;evidenceCanvas.height=HEIGHT;
+  const evidenceContext=evidenceCanvas.getContext("2d",{willReadFrequently:true});
+  if(!evidenceContext){canvas.remove();image.close?.();return null;}
+  evidenceContext.drawImage(image,0,0);
+  const samples=Object.fromEntries(REGIONS.map(region=>[
+    region.id,evidenceContext.getImageData(region.x,region.y,region.w,region.h)
+  ]));
+  evidenceCanvas.width=0;evidenceCanvas.height=0;
   context.drawImage(image,0,0);
-  const samples=Object.fromEntries(REGIONS.map(region=>[region.id,context.getImageData(region.x,region.y,region.w,region.h)]));
   async function digestParts(parts){
    const encoder=new win.TextEncoder();
    let total=0;
@@ -106,10 +119,12 @@
    upper_body:await digestParts([["head",samples["head"].data],["chest",samples["chest"].data],["left-hand",samples["left-hand"].data],["right-hand",samples["right-hand"].data]])
   });
   const lowPower=/Android/i.test(win.navigator?.userAgent||"")||Number(win.navigator?.hardwareConcurrency||8)<=4;
-  const frameBudgetMs=lowPower?50:34;
-  // Automatic idle frames are throttled on low-power/mobile devices.
-  const ambientFrameBudgetMs=lowPower?170:120;
+  // 30/60 live and 20/30 idle are upper *targets*, not measured results.
+  // Dynamically lower the rate if drawing is expensive; no 60-FPS device claim.
+  const frameBudgetMs=lowPower?34:17;
+  const ambientFrameBudgetMs=lowPower?50:34;
   let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,speechUntil=0,audioCues=0,droppedFrames=0;
+  let renderCostMs=0,observedFps=0,lastPaintTime=0,adaptiveFrameBudgetMs=ambientFrameBudgetMs;
   let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
   const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
@@ -146,9 +161,19 @@
    frame=win.requestAnimationFrame(tick);
    const motionAllowed=!userReducedMotion&&(!reducedPreference||explicitLiveMotion);
    if(doc.hidden||(!live&&phase!=="ready")||!motionAllowed||phase==="paused"||phase==="stopped")return;
-   const budget=live?frameBudgetMs:ambientFrameBudgetMs;
-   if(now-last<budget){droppedFrames+=1;return;}
-   last=now;draw(now);
+   const baseline=live?frameBudgetMs:ambientFrameBudgetMs;
+   adaptiveFrameBudgetMs=Math.max(baseline,Math.min(100,renderCostMs*1.8));
+   if(now-last<adaptiveFrameBudgetMs){droppedFrames+=1;return;}
+   last=now;
+   const paintStart=win.performance.now();
+   draw(now);
+   const cost=Math.max(0,win.performance.now()-paintStart);
+   renderCostMs=renderCostMs===0?cost:renderCostMs*.85+cost*.15;
+   if(lastPaintTime>0){
+     const instantaneous=1000/Math.max(1,now-lastPaintTime);
+     observedFps=observedFps===0?instantaneous:observedFps*.8+instantaneous*.2;
+   }
+   lastPaintTime=now;
   }
   function onState(event){
    const state=String(event?.detail?.state||"ready");
@@ -199,6 +224,10 @@
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
     ambientVisualMotion:phase==="ready"&&!live&&played>0,
+    frameRateTargetFps:Math.round(1000/(live?frameBudgetMs:ambientFrameBudgetMs)),
+    observedFps:Math.round(observedFps*10)/10,
+    renderCostMs:Math.round(renderCostMs*10)/10,
+    adaptiveFrameBudgetMs:Math.round(adaptiveFrameBudgetMs*10)/10,
     maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,sourcePixelRegionsObserved,fullBodyRigProven,
     accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
     physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
