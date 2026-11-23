@@ -113,3 +113,53 @@ def test_specialist_capabilities_do_not_mutate_locked_seven_worlds():
     assert status["agi_core"]["agi_achieved"] is False
     assert status["independent_execution"] is False
     assert status["human_authority_final"] is True
+
+
+
+def test_community_hybrid_uses_existing_local_to_global_governance_owner():
+    place = earth_intelligence.status(weather_ready=False)["place_model"]
+    community = place["community_power"]
+    assert community["owns_leadership_and_education"] is True
+    assert community["hybrid_governance"]["model"] == "hybrid"
+    assert community["hybrid_governance"]["one_my_card"] is True
+    assert community["hybrid_governance"]["automatic_promotion"] is False
+    assert community["hybrid_governance"]["youth_safeguarding_required"] is True
+    assert community["progression_levels"] == (
+        "postcode", "borough_district_or_equivalent",
+        "region_county_or_equivalent", "country", "continent", "global",
+    )
+    assert len(community["progression_checks"]) == 7
+    assert all(len(items) == 3 for _, items in community["progression_checks"])
+
+
+def test_hybrid_progress_is_read_only_and_requires_21_distinct_receipts():
+    checks = tuple(
+        check for _, items in earth_intelligence.COMMUNITY_PROGRESS_CHECKS
+        for check in items
+    )
+    evidence = {name: {"verified": True, "receipt_id": f"proof-{i}"}
+                for i, name in enumerate(checks)}
+    incomplete = earth_intelligence.review_community_hybrid_progress(
+        "postcode", {**evidence, checks[0]: {"verified": False, "receipt_id": "proof-0"}}
+    )
+    assert incomplete["verified_checks"] == 20
+    assert incomplete["review_eligible"] is False
+    assert incomplete["promoted"] is False
+    ready = earth_intelligence.review_community_hybrid_progress("postcode", evidence)
+    assert ready["verified_checks"] == 21
+    assert ready["review_eligible"] is True
+    assert ready["reason"] == "requires_independent_approval"
+    assert ready["promoted"] is False
+    assert ready["leader_appointed"] is False
+    assert ready["votes_cast"] == 0
+    assert ready["can_execute"] is False
+    assert ready["human_authority_final"] is True
+    assert earth_intelligence.review_community_hybrid_progress(
+        "global", evidence
+    )["review_eligible"] is False
+    assert earth_intelligence.review_community_hybrid_progress(
+        "postcode", {**evidence, checks[1]: evidence[checks[0]]}
+    )["reason"] == "duplicate_evidence"
+    assert earth_intelligence.review_community_hybrid_progress(
+        "street", evidence
+    )["reason"] == "invalid_geography"
