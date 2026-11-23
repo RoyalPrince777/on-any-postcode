@@ -4,7 +4,10 @@ import sqlite3
 import pytest
 
 from mission_control.koradaso_crawl_fleet import (
-    approve_seed, fleet_status, revoke_seed, run_due_once,
+    approve_seed,
+    fleet_status,
+    revoke_seed,
+    run_due_once,
 )
 
 
