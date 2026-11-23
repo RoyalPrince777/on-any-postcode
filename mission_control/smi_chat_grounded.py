@@ -100,7 +100,7 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
 
 
 
-_M3GAN_DIRECT_ADDRESS = re.compile(r"^\\s*(?:m3gan|megan)\\s*(?::|,|$)", re.IGNORECASE)
+_M3GAN_DIRECT_ADDRESS = re.compile(r"^\s*(?:m3gan|megan)\s*(?::|,|$)", re.IGNORECASE)
 
 
 def m3gan_dialogue_contract(message: object) -> str:
@@ -112,7 +112,7 @@ def m3gan_dialogue_contract(message: object) -> str:
     if not isinstance(message, str) or not _M3GAN_DIRECT_ADDRESS.match(message):
         return ""
     return (
-        "\\n\\nM3GAN SPECIALIST DIALOGUE — same governed SMI model, "
+        "\n\nM3GAN SPECIALIST DIALOGUE — same governed SMI model, "
         "not an independent agent. Respond conversationally in M3GAN's "
         "distinctive calm, thoughtful voice. Answer the Founder's actual question "
         "and offer reasoned, evidence-aware help rather than canned film-ability "
