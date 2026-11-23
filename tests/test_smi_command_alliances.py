@@ -50,10 +50,21 @@ def test_six_founder_alliances_preserve_passports_and_authority():
     assert board["founder_final_required"] is True
 
 
-def test_alliance_route_is_founder_only_and_no_store(client):
-    response = client.get("/mission/smi/alliances/status")
-    assert response.status_code in (302, 401, 403)
+def test_alliance_route_rejects_anonymous_session(anonymous_client):
+    response = anonymous_client.get("/mission/smi/alliances/status")
+    assert response.status_code == 401
     assert "Shere Khan" not in response.get_data(as_text=True)
+
+
+def test_founder_alliance_route_is_read_only_and_no_store(client):
+    response = client.get("/mission/smi/alliances/status")
+    assert response.status_code == 200
+    assert "no-store" in response.headers.get("Cache-Control", "")
+    board = response.get_json()
+    assert board["brain"] == "SMI"
+    assert board["can_execute"] is False
+    assert board["can_approve"] is False
+    assert len(board["members"]) == 6
     source = (ROOT / "mission_control" / "views.py").read_text(encoding="utf-8")
     assert '@bp.get("/smi/alliances/status")\n@web_security.login_required(api=True, founder_only=True)' in source
     assert 'jsonify(intelligence_alliances.get_smi_command_alliances())' in source
