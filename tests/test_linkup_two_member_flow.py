@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import app as app_module
 from mission_control import link_message_routes, neon_auth, web_security
@@ -85,7 +85,7 @@ def test_two_member_http_flow_landed_lit_and_cursor_no_duplicate(monkeypatch):
                 "recipient_id": recipient_id,
                 "body": str(body),
                 "read": False,
-                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_at": datetime.now(UTC).isoformat(),
                 "client_message_id": client_message_id,
             }
         )
