@@ -107,3 +107,12 @@ Applies to OAP World and every first-party surface, including The Spot, The Link
 3. Verify anonymous/member/Founder visibility boundaries and existing security gates.
 4. Test mobile and browser views at the exact release commit. A policy document or passing unit test alone is not a site-wide implementation proof.
 5. Keep merge, deployment and customer exposure blocked until governed evidence and Founder Final authorisation.
+
+## Mission-to-100 delivery discipline — no ceremony
+
+- Make approved fixes directly on the existing relevant branch/PR; no version bump, duplicate PR or signing workflow for a small UI/content repair.
+- Reuse attributable still-valid tests and receipts. Run only tests affected by the change and the mandatory exact-head release gates; never replay proven functionality merely to generate activity.
+- Do not create demos, synthetic agent votes, simulations, decorative completion percentages, duplicated reports, or new stages as a substitute for real implementation or runtime evidence.
+- Mission percentage requires an identified scope, measured denominator and attributable proof. Unknown is not zero completed work, and no unmeasured whole-OAP progress percentage is permitted.
+- Distinguish seven-gate evidence stars from agent capability-fit stars and verified agent performance. Unexecuted agent reviews are UNRATED; deterministic software review summaries must never masquerade as independent votes.
+- Record one concise DONE / NEXT / RECOVERY update only when evidence changes. Continue bounded approved independent repairs without repetitive Founder prompts. No production promotion without the existing safety gates and Founder Final.
