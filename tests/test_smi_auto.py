@@ -263,3 +263,43 @@ def test_matrix_home_groups_preserve_character_home_and_external_smi_boundary():
     assert agents.matrix_home_for('Niobe')['group_id'] == 'logos'
     assert agents.matrix_home_for('Nirmata') is None
     assert agents.matrix_home_for('Mouse')['execution_granted'] is False
+
+
+def test_opportunity_match_requires_verified_adults_and_both_opt_ins():
+    owner = {"age_band": "adult", "project_opt_in": True, "active": True,
+             "visibility": "discoverable", "skills_needed": ["Web Design"]}
+    member = {"age_band": "adult", "match_opt_in": True, "active": True,
+              "visibility": "discoverable", "skills_offered": ["web design", "music"]}
+    result = smi_auto.opportunity_introduction_policy(owner, member)
+    assert result["eligible"] is True
+    assert result["matched_skills"] == ("web design",)
+    assert result["auto_contact"] is False
+    assert result["auto_publish"] is False
+    assert result["agent_execution"] is False
+    assert result["founder_final"] is True
+    for age in (None, "minor", "unknown"):
+        assert smi_auto.opportunity_introduction_policy(
+            {**owner, "age_band": age}, member)["eligible"] is False
+        assert smi_auto.opportunity_introduction_policy(
+            owner, {**member, "age_band": age})["eligible"] is False
+    assert smi_auto.opportunity_introduction_policy(
+        owner, {**member, "match_opt_in": False})["eligible"] is False
+    assert smi_auto.opportunity_introduction_policy(
+        {**owner, "project_opt_in": False}, member)["eligible"] is False
+
+
+def test_opportunity_match_never_bypasses_privacy_block_or_skill_evidence():
+    owner = {"age_band": "adult", "project_opt_in": True, "active": True,
+             "visibility": "discoverable", "skills_needed": ["coding"]}
+    member = {"age_band": "adult", "match_opt_in": True, "active": True,
+              "visibility": "discoverable", "skills_offered": ["plumbing"]}
+    for changed in (
+        member, {**member, "blocked": True},
+        {**member, "visibility": "private"},
+        {**member, "active": False},
+        {**member, "skills_offered": None},
+    ):
+        result = smi_auto.opportunity_introduction_policy(owner, changed)
+        assert result["eligible"] is False
+        assert result["public_action"] is False
+    assert smi_auto.opportunity_introduction_policy(None, member)["eligible"] is False
