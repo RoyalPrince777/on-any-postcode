@@ -360,6 +360,8 @@ def test_private_linkup_intents_take_guests_to_existing_member_sign_in(anonymous
     for intent in ("message", "link-call"):
         response = anonymous_client.get("/linkup", query_string={"intent": intent})
         assert response.status_code == 302
+        assert response.headers["Cache-Control"] == "no-store"
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
         destination = urlsplit(response.headers["Location"])
         assert destination.path in {"/auth", "/enter-my-world"}
         assert parse_qs(destination.query)["next"] == [f"/linkup?intent={intent}"]
