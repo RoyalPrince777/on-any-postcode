@@ -7,8 +7,6 @@ import threading
 from pathlib import Path
 from zipfile import ZipFile
 
-from oap.smi.character_rig_assets import APPROVED_SOURCE_SHA256, LAYERS
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -18,6 +16,7 @@ from werkzeug.serving import make_server
 
 import app as app_module
 from mission_control import neon_auth, smi_chat_runtime, web_security
+from oap.smi.character_rig_assets import APPROVED_SOURCE_SHA256, LAYERS
 
 AUTH_ID = "11111111-1111-4111-8111-111111111111"
 AUTH_COOKIE = "better-auth.session_token"
