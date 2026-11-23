@@ -42,7 +42,10 @@
       return Object.freeze({
         version:"1.0-live-source-pixel-proof",
         asset:APPROVED_ART.path,assetSha256:APPROVED_ART.sha256,
-        enabled:Boolean(motionSession),active:Boolean(source?.live),
+        // This aggregator has no approved anatomical rig or independent renderer.
+        // Source-pixel motion status remains separately visible for SMI CC.
+        enabled:Boolean(motionSession),active:false,
+        sourcePixelMotionActive:Boolean(source?.live),
         proofState:sourcePixelMotionObserved?"source_pixel_motion_observed":"awaiting_runtime_frames",
         sourcePixelMotionObserved,sourcePixelRegionsObserved,
         sourcePixelRegionSignals:Object.freeze(sourcePixelRegionSignals),
