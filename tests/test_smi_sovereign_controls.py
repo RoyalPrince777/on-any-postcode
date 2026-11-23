@@ -248,6 +248,16 @@ def test_external_provider_cannot_receive_private_oap_data_even_allowlisted(monk
         ({"identity_id": "private-123"}, (), False),
         ({}, ("location",), False),
         ({}, ("microphone",), False),
+        ({}, ("photo_attachment",), False),
+        ({}, ("picture_attachment",), False),
+        ({}, ("camera_frame",), False),
+        ({}, ("screen_capture",), False),
+        ({}, ("mic_capture",), False),
+        ({}, ("voice_note",), False),
+        ({}, ("bluetooth_scan",), False),
+        ({}, ("nearby_devices",), False),
+        ({}, ("motion",), False),
+        ({}, ("biometric",), False),
         ({}, (), True),
     )
     for context, tags, impact in cases:
