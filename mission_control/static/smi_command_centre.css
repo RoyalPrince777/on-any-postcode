@@ -340,3 +340,14 @@ body.smi-command-open .smi-command-alliance-panel:not([hidden]){
 .smi-alliance-families summary{color:#e9cb92;font-size:.78rem;cursor:pointer}
 .smi-alliance-families .smi-alliance-family-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(185px,100%),1fr));gap:7px;margin-top:10px}
 .smi-alliance-family-list p{margin:0;color:#c0d7ec;font-size:.72rem}
+
+.smi-alliance-leadership{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(195px,100%),1fr));
+ gap:8px;align-content:start
+}
+.smi-alliance-leadership article{
+ display:flex;flex-direction:column;gap:5px;padding:10px;
+ border:1px solid #80653a;border-radius:10px;background:#181b30
+}
+.smi-alliance-leadership strong{font-size:.82rem;color:#efd49d}
+.smi-alliance-leadership small,.smi-alliance-rating{font-size:.71rem;color:#bdd3e7}
