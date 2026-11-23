@@ -433,7 +433,7 @@ def prove_original_pixel_workbench(context, base_url):
         for name in LAYERS:
             layer=receipt["layers"][name]
             data=archive.read(f"{name}.png")
-            assert data[:8] == b"\\x89PNG\\r\\n\\x1a\\n"
+            assert data[:8] == b"\x89PNG\r\n\x1a\n"
             assert hashlib.sha256(data).hexdigest() == layer["sha256"]
             left,top,right,bottom=layer["bbox_xyxy"]
             assert 0 <= left < right <= 1536
@@ -464,7 +464,7 @@ def prove_original_pixel_workbench(context, base_url):
         assert proof["human_authority_approved"] is False
         for name in ("frame-neutral.png","frame-offset.png"):
             data=archive.read(name)
-            assert data[:8] == b"\\x89PNG\\r\\n\\x1a\\n"
+            assert data[:8] == b"\x89PNG\r\n\x1a\n"
             assert hashlib.sha256(data).hexdigest() == proof["file_sha256"][name]
             assert int.from_bytes(data[16:20],"big") == 1536
             assert int.from_bytes(data[20:24],"big") == 1024
