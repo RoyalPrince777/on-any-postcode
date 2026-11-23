@@ -313,6 +313,25 @@ def smi_command_dashboard_status():
     return _no_store(make_response(jsonify(smi_command_dashboard.status())))
 
 
+@bp.get("/character-mask-workbench")
+@web_security.login_required(founder_only=True)
+def smi_character_mask_workbench():
+    """SMI CC's original-pixel editor: Founder-only, draft and browser-local.
+
+    No private mask bytes are received here and no live rig is activated.
+    """
+    from oap.smi.character_rig_assets import APPROVED_SOURCE_SHA256
+
+    response = make_response(
+        render_template(
+            "smi_character_masks.html",
+            approved_image_url=url_for("static", filename="oap/smi_live_chat_dashboard.jpg"),
+            approved_image_sha256=APPROVED_SOURCE_SHA256,
+        )
+    )
+    return _no_store(response)
+
+
 @bp.get("/brain")
 @web_security.login_required()
 def brain_dashboard():
