@@ -79,9 +79,10 @@ def test_runtime_projection_reuses_real_music_market_evidence(monkeypatch):
     assert result["evidence"]["states"]["music_catalogue"]["state"] == "PROVEN"
     assert result["evidence"]["states"]["clothing_supplier"]["state"] == "PROVEN"
     assert result["evidence"]["states"]["print_on_demand_supplier"]["state"] == "PROVEN"
-    assert result["evidence"]["states"]["pricing_margin"]["state"] == "PROVEN"
+    assert result["evidence"]["states"]["pricing_margin"]["state"] == "UNKNOWN"
+    assert "not reconciled" in result["evidence"]["states"]["pricing_margin"]["note"]
     assert result["evidence"]["states"]["market_commerce"]["state"] == "PROVEN"
-    assert result["proven_count"] == 6
+    assert result["proven_count"] == 5
     assert result["protocol_check_count"] == 700
     assert result["protocol_proven_count"] == 0
     assert result["protocol_green_gate_passed"] is False
@@ -330,3 +331,23 @@ def test_readiness_fails_closed_when_worker_readback_breaks(monkeypatch):
     assert result["worker_connected"]["state"] == "UNKNOWN"
     assert result["worker_connected"]["evidence_reference"] == ""
     assert result["guardian_hrm_verified"]["state"] == "UNKNOWN"
+
+
+def test_margin_configuration_cannot_claim_profit_without_unit_economics():
+    from pathlib import Path
+
+    code = Path(company_intelligence_runtime.__file__).read_text()
+    assert 'margin_state = "UNKNOWN"' in code
+    assert 'if margin_ref and margin_at' in code
+    assert "supplier/fulfilment fees" in code
+    assert "payment fees" in code
+
+
+def test_company_interface_preserves_mobile_overflow_and_keyboard_focus():
+    from pathlib import Path
+
+    html = Path("mission_control/templates/company_intelligence.html").read_text()
+    assert "min-width:0;overflow-wrap:anywhere" in html
+    assert ".btn:focus-visible,.department-map summary:focus-visible" in html
+    assert 'id="company-department-map"' in html
+    assert 'id="swot-first-title"' in html

@@ -216,3 +216,46 @@ def test_durable_receipt_is_required_but_never_grants_execution(
     assert result["permissions_changed"] is False
     assert result["execution_granted"] is False
     assert result["full_green"] is False
+
+
+def test_improvement_requires_observed_evidence_before_signalling(monkeypatch):
+    def unexpected_signal(*args, **kwargs):
+        raise AssertionError("No source evidence must not dispatch a signal")
+
+    monkeypatch.setattr(rsi.matrix_signal_bus, "route_signal", unexpected_signal)
+    observation = {**_observation(), "evidence": ()}
+    with pytest.raises(ValueError, match="Observation evidence is required"):
+        rsi.propose_improvement(
+            observation,
+            recommendation="Review only a measured weakness.",
+            rollback="Revert a measured change.",
+            tests=("exact-head governed tests",),
+        )
+
+
+@pytest.mark.parametrize("field", ["outcome", "before_state", "after_state"])
+def test_hrm_lesson_requires_full_reviewed_context_before_writes(monkeypatch, field):
+    def unexpected_review(*args, **kwargs):
+        raise AssertionError("Incomplete context must not trigger review or write")
+
+    monkeypatch.setattr(
+        rsi.smi_receipt_backend, "verify_matrix_review_outcome", unexpected_review
+    )
+    monkeypatch.setattr(
+        rsi.smi_receipt_backend, "write_receipt", unexpected_review
+    )
+    data = {
+        "outcome": "reviewed recovery",
+        "before_state": "unavailable",
+        "after_state": "recovered",
+    }
+    data[field] = "   "
+    with pytest.raises(ValueError, match="Learning outcome, before and after states"):
+        rsi.record_learning(
+            _proposal(),
+            lesson="Retain recovery evidence.",
+            tests_passed=True,
+            rollback_available=True,
+            reviewed_outcome_ref="war-room-reviewed-001",
+            **data,
+        )

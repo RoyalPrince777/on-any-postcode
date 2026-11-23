@@ -178,7 +178,17 @@ def _commerce_items(identity_id: str) -> tuple[dict[str, str], ...]:
 
     margin_ref = os.environ.get("OAP_PRICING_MARGIN_EVIDENCE_REF", "").strip()
     margin_at = os.environ.get("OAP_PRICING_MARGIN_EVIDENCE_AT", "").strip()
-    margin_state = "PROVEN" if margin_ref and margin_at else "UNKNOWN"
+    # Configuration proves a reference was supplied, not that unit economics
+    # were reconciled. Until a first-party cost/fee/price readback exists, do
+    # not publish an inferred positive margin or claim financial execution.
+    margin_state = "UNKNOWN"
+    margin_note = (
+        "Margin reference supplied but unit cost, supplier/fulfilment fees, "
+        "payment fees and sale price are not reconciled."
+        if margin_ref and margin_at
+        else "Need owner-scoped unit cost, supplier/fulfilment and payment "
+             "fees, sale price and a reviewed margin calculation."
+    )
 
     return (
         _evidence(
@@ -199,12 +209,8 @@ def _commerce_items(identity_id: str) -> tuple[dict[str, str], ...]:
             "pricing_margin",
             margin_state,
             margin_ref or "oap:market:pricing-margin",
-            authority_reference="Founder-approved cost/price/margin evidence",
-            note=(
-                "Price alone is not margin proof."
-                if margin_state != "PROVEN"
-                else "Explicit pricing/margin evidence reference configured."
-            ),
+            authority_reference="Founder-reviewed cost/price/fee evidence required",
+            note=margin_note,
             observed_at=margin_at or None,
         ),
         _evidence(

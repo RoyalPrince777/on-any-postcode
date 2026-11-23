@@ -122,6 +122,8 @@ def _normalise_observation(observation: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("Observation problem is required")
 
     evidence = _clean_items(observation.get("evidence") or ())
+    if not evidence:
+        raise ValueError("Observation evidence is required")
     metric = str(observation.get("metric") or "").strip()
     current_value = observation.get("current_value")
     target_value = observation.get("target_value")
@@ -261,6 +263,11 @@ def record_learning(
     lesson = lesson.strip()
     if not lesson:
         raise ValueError("Learning lesson is required")
+    outcome = outcome.strip()
+    before_state = before_state.strip()
+    after_state = after_state.strip()
+    if not outcome or not before_state or not after_state:
+        raise ValueError("Learning outcome, before and after states are required")
     reviewed_outcome_ref = reviewed_outcome_ref.strip()
     if not reviewed_outcome_ref:
         raise ValueError("Reviewed outcome reference is required")
