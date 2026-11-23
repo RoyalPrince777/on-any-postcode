@@ -1,6 +1,6 @@
 """No-network coverage of first-party HTTPS and private access gates."""
-from pathlib import Path
 import runpy
+from pathlib import Path
 
 verify = runpy.run_path(
     str(Path(__file__).resolve().parents[1] / "deploy/selfhost/verify_koradaso_https.py")
@@ -35,7 +35,7 @@ def test_real_public_and_private_behaviour_requires_both():
 
 def test_founder_dashboard_200_fails_closed():
     def get(host, route):
-        return (200, "") if route == "/mission/smi" else (200, "")
+        return 200, ""
     result = check("onanypostcode.global", "smi.onanypostcode.global",
                    resolver=public_dns, get=get)
     assert result["status"] == "blocked"
@@ -44,8 +44,8 @@ def test_founder_dashboard_200_fails_closed():
 
 def test_redirect_to_external_or_non_login_denied():
     for redirect in ("https://evil.example/auth/sign-in", "/world", "http://smi.onanypostcode.global/login"):
-        def get(host, route):
-            return (302, redirect) if route == "/mission/smi" else (200, "")
+        def get(host, route, *, selected_redirect=redirect):
+            return (302, selected_redirect) if route == "/mission/smi" else (200, "")
         result = check("onanypostcode.global", "smi.onanypostcode.global",
                        resolver=public_dns, get=get)
         assert result["status"] == "blocked"
