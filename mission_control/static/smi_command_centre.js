@@ -355,10 +355,11 @@
  alliancePanel.className="smi-command-alliance-panel";
  alliancePanel.setAttribute("aria-label","SMI Agent Alliances · Founder private");
  alliancePanel.hidden=true;
- alliancePanel.innerHTML='<header><strong>🤝 SMI · AGENT ALLIANCES</strong><small>One SMI brain · existing passports and advisory roles only</small></header><p class="smi-alliance-state" role="status">Not checked</p><div class="smi-alliance-grid"></div><p class="smi-alliance-note">No independent agents, votes, worker execution or automatic Green. Guardian/HRM and Founder Final remain mandatory.</p>';
+ alliancePanel.innerHTML='<header><strong>🤝 SMI · AGENT ALLIANCES</strong><small>One SMI brain · existing passports and advisory roles only</small></header><p class="smi-alliance-state" role="status">Not checked</p><div class="smi-alliance-grid"></div><details class="smi-alliance-families"><summary>Other existing alliance families</summary><div class="smi-alliance-family-list"></div></details><p class="smi-alliance-note">No independent agents, votes, worker execution or automatic Green. Guardian/HRM and Founder Final remain mandatory.</p>';
  universe.after(alliancePanel);
  const allianceState=alliancePanel.querySelector(".smi-alliance-state");
  const allianceGrid=alliancePanel.querySelector(".smi-alliance-grid");
+ const allianceFamilyList=alliancePanel.querySelector(".smi-alliance-family-list");
  let allianceRequest=null;
  function closeAllianceRoster(){
   if(allianceRequest){allianceRequest.abort();allianceRequest=null;}
@@ -427,6 +428,16 @@
    if(data?.brain!=="SMI"||data?.scope!=="founder_private_read_only"||!Array.isArray(data.members)||data.members.length!==6||data.can_execute!==false)throw new Error("Alliance proof incomplete");
    if(signal.aborted||alliancePanel.hidden)return;
    renderAllianceRoster(data.members);
+   allianceFamilyList.replaceChildren();
+   if(Array.isArray(data.existing_alliance_families)){
+    data.existing_alliance_families.forEach(family=>{
+     const item=document.createElement("p");
+     const label=String(family.name||"Unknown alliance");
+     const registered=family.status==="canonical_registered_family";
+     item.textContent=label+" · "+(registered?"Registered family":"Advisory design only");
+     allianceFamilyList.append(item);
+    });
+   }
    allianceState.textContent="Registry and advisory profiles checked · live workers not verified";
   }catch(error){
    if(signal.aborted)return;
