@@ -45,6 +45,16 @@ assert.ok(source.includes("renderCostMs*1.8"),
   "frame pacing must adapt when native-resolution drawing runs slowly");
 assert.ok(source.includes("observedFps:"),
   "publish actual measurement separately from FPS target");
+assert.ok(source.includes('const featheredPatches=new Map(REGIONS.map(region=>{'),
+  "reuse one source-derived feathered patch per region, not another renderer");
+assert.ok(source.includes('pc.globalCompositeOperation="destination-in"'),
+  "source-pixel overlays must fade out without a hard rectangle seam");
+assert.ok(source.includes("pc.createRadialGradient(0,0,.77,0,0,1)"),
+  "edge alpha fades to zero at region boundary");
+assert.ok(source.includes('regionEdgeBlending:"source_pixel_feather_no_anatomy_approval"'),
+  "proof reports an edge rendering technique, not approved anatomy");
+assert.ok(source.includes("patch.width=0;patch.height=0"),
+  "ephemeral textures must be discarded on exit");
 assert.ok(source.includes("maxAudioClockDeltaMs"));
 assert.ok(html.includes("OAP_SMI_SOURCE_PIXEL_MOTION_SESSION=session"));
 console.log("SMI_SOURCE_PIXEL_MOTION_PASS");
