@@ -8,7 +8,16 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from . import authority, matrix_war_room, smi_receipt_backend
+from . import authority, matrix_war_room, postgres_db, smi_receipt_backend
+
+
+def _canonical_founder_active(identity_id: str) -> bool:
+    """Require active level-zero authority from the canonical read-only store."""
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            return bool(authority.require_human_authority(connection, identity_id))
+    except Exception:  # noqa: BLE001 - any inaccessible/revoked authority fails closed
+        return False
 
 
 def record_hold(
@@ -16,7 +25,7 @@ def record_hold(
 ) -> dict[str, Any]:
     """Require canonical Human Authority and a valid consequential review envelope."""
     actor = str(identity_id or "").strip()
-    if not actor or not authority.identity_is_authority(actor):
+    if not actor or not authority.identity_is_authority(actor) or not _canonical_founder_active(actor):
         raise PermissionError("human_authority_required")
     if decision not in {"HOLD", "BLOCK"}:
         raise ValueError("Only HOLD or BLOCK can be recorded through this path")
