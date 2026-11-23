@@ -12,8 +12,11 @@ from typing import Any
 
 from . import (
     company_evidence_ingestion,
+    company_intelligence_evidence_registry,
+    company_intelligence_evidence_store,
     market_supplier_network,
     music_evidence,
+    organism_runtime,
     product_core_services,
 )
 
@@ -219,27 +222,294 @@ def _commerce_items(identity_id: str) -> tuple[dict[str, str], ...]:
     )
 
 
+
+# Skilltree-style visibility, not Skilltree software: eight first-party business
+# perspectives over the *existing* Company Intelligence evidence snapshot.
+# Linked departments indicate useful context, never runnable dependencies.
+_DEPARTMENT_LINKS: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...], str], ...] = (
+    ("sales", "Sales", ("market_commerce", "pricing_margin"),
+     ("deals", "marketing"), "Verify owner-scoped sales and conversion receipts."),
+    ("deals", "Deals", (), ("sales", "customer"),
+     "Verify first-party deal pipeline, ownership and signed outcomes."),
+    ("marketing", "Marketing", ("music_catalogue", "artist_rights"),
+     ("sales", "intelligence"), "Verify campaigns, rights and delivery receipts."),
+    ("customer", "Customer", (), ("deals", "operations"),
+     "Verify owner-scoped customer interaction and support receipts."),
+    ("operations", "Operations", ("clothing_supplier", "print_on_demand_supplier"),
+     ("customer", "back_office"), "Verify order fulfilment and recovery outcomes."),
+    ("back_office", "Back Office", ("company_registry", "pricing_margin"),
+     ("operations", "intelligence"), "Verify legal, cost and finance boundaries."),
+    ("intelligence", "Intelligence", (), ("knowledge_base", "operations"),
+     "Verify attributable agent work and current SMI runtime receipts."),
+    ("knowledge_base", "Knowledge Base", (), ("intelligence", "marketing"),
+     "Verify owner-scoped knowledge retrieval, sources and freshness."),
+)
+
+
+def department_map(evidence: object, *, protocol_proven_count: int = 0) -> dict[str, Any]:
+    """Read-only cross-department lens; never turn source presence into live work.
+
+    No CRM, marketing campaigns, sales figures, autonomous agent outputs or
+    inference are invented. Source gaps are carried over from canonical
+    Company Intelligence and remain distinct from operational proof.
+    """
+    states = evidence.get("states") if isinstance(evidence, dict) else None
+    states = states if isinstance(states, dict) else {}
+    nodes: list[dict[str, Any]] = []
+    for department_id, label, keys, connections, action in _DEPARTMENT_LINKS:
+        sources = []
+        for key in keys:
+            row = states.get(key)
+            source = row if isinstance(row, dict) else {}
+            state = str(source.get("state") or "UNKNOWN").upper()
+            # Never trust unnormalised or incomplete evidence as proof.
+            if (
+                state not in company_evidence_ingestion.ACCEPTED_STATES
+                or source.get("valid") is not True
+                or not source.get("observed_at")
+                or not source.get("source_reference")
+            ):
+                state = "UNKNOWN"
+            sources.append({"domain": key, "state": state})
+        blocking = any(
+            entry["state"] in {"FAIL", "CONFLICTING", "STALE", "UNAVAILABLE"}
+            for entry in sources
+        )
+        sources_ready = bool(sources) and all(
+            entry["state"] == "PROVEN" for entry in sources
+        )
+        priority_source = next(
+            (entry for entry in sources
+             if entry["state"] in {"FAIL", "CONFLICTING", "STALE", "UNAVAILABLE"}),
+            next((entry for entry in sources if entry["state"] == "UNKNOWN"), None),
+        )
+        next_proof = (
+            f"Verify {priority_source['domain'].replace('_', ' ')} evidence first."
+            if priority_source else action
+        )
+        nodes.append({
+            "id": department_id,
+            "name": label,
+            "linked_departments": connections,
+            "source_evidence": tuple(sources),
+            "source_state": (
+                "BLOCKED" if blocking else
+                "SOURCE_PROVEN" if sources_ready else "UNKNOWN"
+            ),
+            "operational_state": "UNKNOWN",
+            "next_safe_action": next_proof,
+            "active_agents_claimed": False,
+            "revenue_claimed": False,
+            "execution_granted": False,
+        })
+    priority = next(
+        (node for node in nodes if node["source_state"] == "BLOCKED"),
+        next((node for node in nodes if node["source_state"] == "UNKNOWN"), None),
+    )
+    return {
+        "name": "OAP Company Intelligence · Department Connections",
+        "priority_department": priority["name"] if priority else None,
+        "priority_next_proof": priority["next_safe_action"] if priority else None,
+        "departments": tuple(nodes),
+        "department_count": len(nodes),
+        "protocol_proven_count": max(0, int(protocol_proven_count)),
+        "operational_green": False,
+        "founder_final_required": True,
+        "read_only": True,
+        "no_new_agent_or_brain": True,
+        "no_independent_worker_claim": True,
+        "no_external_provider_dependency": True,
+    }
+
+
+def swot_first_review(
+    evidence: object, departments: object, protocol_registry: object,
+) -> dict[str, Any]:
+    """Founder-private, read-only SWOT of actual Company Intelligence evidence.
+
+    Strengths are source-observed states, NOT completed live operations.
+    Weaknesses and threats retain the original source state. Opportunities
+    are proposed proof work, never evidence of commercial execution.
+    """
+    raw_states = evidence.get("states") if isinstance(evidence, dict) else None
+    states = raw_states if isinstance(raw_states, dict) else {}
+    strengths: list[dict[str, str]] = []
+    weaknesses: list[dict[str, str]] = []
+    threats: list[dict[str, str]] = []
+
+    for domain in company_evidence_ingestion.DOMAINS:
+        item = states.get(domain)
+        item = item if isinstance(item, dict) else {}
+        state = str(item.get("state") or "UNKNOWN").upper()
+        source = str(item.get("source_reference") or "").strip()
+        observed = str(item.get("observed_at") or "").strip()
+        if (
+            item.get("valid") is not True
+            or not source
+            or not observed
+            or state not in company_evidence_ingestion.ACCEPTED_STATES
+        ):
+            state = "UNKNOWN"
+            source = ""
+            observed = ""
+        entry = {
+            "domain": domain,
+            "label": domain.replace("_", " ").title(),
+            "state": state,
+            "source_reference": source,
+            "observed_at": observed,
+        }
+        if state == "PROVEN":
+            strengths.append(entry)
+        else:
+            weaknesses.append(entry)
+            if state in {"CONFLICTING", "STALE", "UNAVAILABLE"}:
+                threats.append(entry)
+
+    candidates = (
+        departments.get("departments", ())
+        if isinstance(departments, dict) else ()
+    )
+    opportunities = tuple(
+        {
+            "department": str(node["name"]),
+            "next_proof": str(node["next_safe_action"]),
+            "state": "PROPOSED",
+        }
+        for node in candidates
+        if isinstance(node, dict)
+        and node.get("source_state") in {"BLOCKED", "UNKNOWN"}
+        and node.get("name") and node.get("next_safe_action")
+    )[:3]
+    protocol = protocol_registry if isinstance(protocol_registry, dict) else {}
+    return {
+        "review": "SMI Company Intelligence · SWOT First",
+        "strengths": tuple(strengths),
+        "weaknesses": tuple(weaknesses),
+        "opportunities": opportunities,
+        "threats": tuple(threats),
+        "source_proven": len(strengths),
+        "source_unresolved": len(weaknesses),
+        "protocol_receipt_chain_verified": (
+            protocol.get("receipt_chain_verified") is True
+        ),
+        "live_operations_verified": False,
+        "read_only": True,
+        "independent_agent_votes_claimed": False,
+        "execution_granted": False,
+        "founder_final_required": True,
+        "full_green": False,
+    }
+
+
+def readiness_signals() -> dict[str, dict[str, str]]:
+    """Report only readback-backed readiness, never an assumed software Green.
+
+    A loaded source module proves code presence, not CI, approval or production.
+    The shared organism worker's durable heartbeat does not prove that a
+    Company Intelligence agent executed a business task.
+    """
+    worker_state = "UNKNOWN"
+    worker_reference = ""
+    worker_note = "No fresh durable organism-worker heartbeat verified."
+    try:
+        worker = organism_runtime.runtime_status()
+    except Exception:  # noqa: BLE001 - unavailable readiness must fail closed.
+        worker = {}
+    if (
+        isinstance(worker, dict)
+        and worker.get("schema_ready") is True
+        and worker.get("worker_fresh") is True
+        and worker.get("ready") is True
+        and not worker.get("error")
+    ):
+        worker_state = "PROVEN"
+        worker_reference = "oap:organism-runtime:postgres:worker-heartbeat"
+        worker_note = (
+            "Fresh organism worker heartbeat; Company Intelligence task "
+            "execution remains unverified."
+        )
+    return {
+        "code_present": {
+            "state": "PRESENT",
+            "evidence_reference": "oap:company-intelligence:loaded-runtime-projection",
+            "note": "This projection executed; code presence is not deployment readiness.",
+        },
+        "ci_verified": {
+            "state": "UNKNOWN",
+            "evidence_reference": "",
+            "note": "No exact-head CI receipt is bound to this runtime request.",
+        },
+        "worker_connected": {
+            "state": worker_state,
+            "evidence_reference": worker_reference,
+            "note": worker_note,
+        },
+        "guardian_hrm_verified": {
+            "state": "UNKNOWN",
+            "evidence_reference": "",
+            "note": "No request-bound Guardian, HRM and Human Authority receipt verified.",
+        },
+        "production_verified": {
+            "state": "UNKNOWN",
+            "evidence_reference": "",
+            "note": "No verified production deployment and session proof supplied.",
+        },
+    }
+
 def projection(identity_id: str) -> dict[str, Any]:
     items: list[dict[str, str]] = [_company_registry_item()]
     items.extend(_music_items(identity_id))
     items.extend(_commerce_items(identity_id))
     snapshot = company_evidence_ingestion.ingest_snapshot(items)
-    software_green = True
+    try:
+        protocol_registry = (
+            company_intelligence_evidence_store.CompanyIntelligenceEvidenceStore()
+            .projection(owner_identity_id=identity_id)
+        )
+    except company_intelligence_evidence_store.CompanyIntelligenceEvidenceUnavailable:
+        protocol_registry = {
+            **company_intelligence_evidence_registry.snapshot(),
+            "receipt_chain_verified": False,
+            "receipt_count": 0,
+            "head_hash": company_intelligence_evidence_store.GENESIS_HASH,
+            "store_fail_closed": True,
+            "store_unavailable": True,
+        }
+    department_snapshot = department_map(
+        snapshot, protocol_proven_count=protocol_registry["proven_count"],
+    )
+    swot_snapshot = swot_first_review(
+        snapshot, department_snapshot, protocol_registry,
+    )
+    readiness = readiness_signals()
     return {
         "name": "OAP Company Intelligence",
-        "software_green": software_green,
+        "readiness": readiness,
         "evidence": snapshot,
         "evidence_items": tuple(items),
+        "protocol_registry": protocol_registry,
+        "swot_first": swot_snapshot,
+        "department_map": department_snapshot,
+        "protocol_check_count": protocol_registry["protocol_check_count"],
+        "protocol_proven_count": protocol_registry["proven_count"],
+        "protocol_green_gate_passed": protocol_registry["green_gate_passed"],
+        "protocol_receipt_chain_verified": protocol_registry.get(
+            "receipt_chain_verified", False
+        ),
+        "protocol_receipt_count": protocol_registry.get("receipt_count", 0),
         "proven_count": len(snapshot["proven_domains"]),
         "domain_count": snapshot["domain_count"],
         "evidence_percentage": round(
             (len(snapshot["proven_domains"]) / snapshot["domain_count"]) * 100, 1
         ),
-        "operational_green": snapshot["all_domains_proven"],
+        "source_evidence_complete": snapshot["all_domains_proven"],
+        "operational_green": False,
         "founder_final_required": True,
         "full_green": False,
         "truth_boundary": (
-            "Software readiness and evidence readiness are separate. "
+            "Code presence, CI, worker health, governance and production proof "
+            "are separate. "
             "No missing or conflicting external proof is promoted to Green."
         ),
     }

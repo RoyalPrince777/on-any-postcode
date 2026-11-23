@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
-from . import matrix_simulation, smi_judge_rotation
+from . import hormozi_offline_intelligence, matrix_simulation, smi_judge_rotation
 
 NAME = "OAP Company Intelligence"
 SCOPE = "whole_oap_world"
@@ -148,6 +148,7 @@ def review_plan(lane: str) -> dict[str, Any]:
         "lane": safe_lane,
         "policy": dict(COMMERCIAL_LANES[safe_lane]),
         "hormozi_intelligence": HORMOZI_INTELLIGENCE,
+        "hormozi_offline": hormozi_offline_intelligence.status(),
         "protocol_check_count": TOTAL_PROTOCOL_CHECKS,
         "review_agents": REVIEW_AGENTS,
         "canonical_judges": CANONICAL_JUDGES,
@@ -208,6 +209,7 @@ def status() -> dict[str, Any]:
         "scope": SCOPE,
         "commercial_lanes": tuple(COMMERCIAL_LANES),
         "hormozi_lens_count": len(HORMOZI_INTELLIGENCE),
+        "hormozi_offline": hormozi_offline_intelligence.status(),
         "review_area_count": len(REVIEW_AREAS),
         "intelligence_lens_count": len(INTELLIGENCE_LENSES),
         "evidence_test_count": len(EVIDENCE_TESTS),
