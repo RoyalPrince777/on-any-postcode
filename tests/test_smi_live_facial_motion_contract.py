@@ -17,6 +17,10 @@ def test_source_pixel_motion_uses_lightweight_live_rendering_path():
     assert "renderCostMs*1.8" in text
     assert "observedFps:" in text
     assert "adaptiveFrameBudgetMs:" in text
+    assert "const featheredPatches=new Map(REGIONS.map(region=>{" in text
+    assert 'pc.globalCompositeOperation="destination-in"' in text
+    assert 'edge.addColorStop(1,"rgba(255,255,255,0)")' in text
+    assert 'regionEdgeBlending:"source_pixel_feather_no_anatomy_approval"' in text
     assert 'ambientVisualMotion:phase==="ready"&&!live&&played>0' in text
     assert "droppedFrames" in text
 
