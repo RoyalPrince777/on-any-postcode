@@ -1,0 +1,275 @@
+"""Evidence and claim runtime for the Koradaso truth foundation."""
+from __future__ import annotations
+
+import hashlib
+import json
+from uuid import UUID, uuid4
+
+from . import postgres_db
+
+WRITE_PERMISSION = "KORADASO_RECORD_EVIDENCE"
+READ_PERMISSIONS = {
+    "ROYAL_HOUSE": "KORADASO_READ_ROYAL_EVIDENCE",
+    "FAMILY": "KORADASO_READ_FAMILY_EVIDENCE",
+    "COMMUNITY": "KORADASO_READ_COMMUNITY_EVIDENCE",
+}
+VALID_PRIVACY = frozenset({"ME", "ROYAL_HOUSE", "FAMILY", "COMMUNITY", "PUBLIC"})
+VALID_STATUS = frozenset({
+    "DOCUMENTED", "SCHOLARLY", "FAMILY_CONFIRMED",
+    "ORAL_TRADITION", "CONTESTED", "RESEARCHING",
+})
+VALID_RELATIONS = frozenset({"SUPPORTS", "CONTRADICTS", "CONTEXT"})
+
+
+class KoradasoEvidenceDenied(PermissionError):
+    pass
+
+
+def _identity(value: object) -> UUID:
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_identity") from exc
+
+
+def _has_permission(connection, identity: UUID) -> bool:
+    return bool(connection.execute(
+        """SELECT 1 FROM oap_identity_roles ir
+           JOIN oap_role_permissions rp ON rp.role_id=ir.role_id
+           JOIN oap_identities i ON i.identity_id=ir.identity_id
+           WHERE ir.identity_id=%s AND rp.permission_id=%s
+             AND i.status='ACTIVE' LIMIT 1""",
+        (identity, WRITE_PERMISSION),
+    ).fetchone())
+
+
+def _audit(connection, *, actor: UUID, action: str, target: str,
+           metadata: dict[str, object]) -> None:
+    connection.execute("SELECT pg_advisory_xact_lock(%s)", (24680259,))
+    previous = connection.execute(
+        "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
+    ).fetchone()
+    prev_hash = str(previous[0]) if previous else "GENESIS"
+    canonical = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+    curr_hash = hashlib.sha256((prev_hash + canonical).encode()).hexdigest()
+    connection.execute(
+        """INSERT INTO audit_events(
+               prev_hash,curr_hash,actor_id,actor_type,authority_level,
+               action,target,reason,correlation_id,metadata
+           ) VALUES (%s,%s,%s,'HUMAN_AUTHORITY',0,%s,%s,%s,%s,%s::jsonb)""",
+        (prev_hash, curr_hash, str(actor), action, target,
+         "koradaso_truth_mutation", str(uuid4()), canonical),
+    )
+
+
+def record_evidence(*, actor_id: object, evidence_type: str, title: str,
+                    original_bytes: bytes, original_language: str,
+                    privacy_scope: str, source_uri: str | None = None) -> dict[str, object]:
+    actor = _identity(actor_id)
+    privacy = str(privacy_scope).upper()
+    if privacy not in VALID_PRIVACY:
+        raise ValueError("invalid_privacy_scope")
+    if not original_bytes:
+        raise ValueError("original_evidence_required")
+    digest = hashlib.sha256(original_bytes).hexdigest()
+    evidence_id = uuid4()
+    with postgres_db.connect() as connection:
+        if not _has_permission(connection, actor):
+            raise KoradasoEvidenceDenied("koradaso_evidence_permission_required")
+        connection.execute(
+            """INSERT INTO koradaso_evidence
+               (evidence_id,evidence_type,title,source_uri,original_language,
+                original_hash,privacy_scope,created_by)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (evidence_id, evidence_type.strip(), title.strip(), source_uri,
+             original_language.strip(), digest, privacy, actor),
+        )
+        connection.execute(
+            """INSERT INTO koradaso_evidence_versions
+               (version_id,evidence_id,version_number,content_hash,change_kind,
+                language,created_by)
+               VALUES (%s,%s,1,%s,'ORIGINAL',%s,%s)""",
+            (uuid4(), evidence_id, digest, original_language.strip(), actor),
+        )
+        _audit(connection, actor=actor, action="KORADASO_EVIDENCE_RECORDED",
+               target=str(evidence_id),
+               metadata={"evidence_id": str(evidence_id), "privacy_scope": privacy,
+                         "original_hash": digest})
+        connection.commit()
+    return {"evidence_id": str(evidence_id), "original_hash": digest,
+            "privacy_scope": privacy}
+
+
+def record_claim(*, actor_id: object, subject_kind: str, subject_ref: str,
+                 predicate: str, object_value: str, status: str,
+                 confidence: float, privacy_scope: str) -> dict[str, object]:
+    actor = _identity(actor_id)
+    state, privacy = str(status).upper(), str(privacy_scope).upper()
+    if state not in VALID_STATUS:
+        raise ValueError("invalid_claim_status")
+    if privacy not in VALID_PRIVACY:
+        raise ValueError("invalid_privacy_scope")
+    if not 0 <= float(confidence) <= 1:
+        raise ValueError("invalid_confidence")
+    claim_id = uuid4()
+    with postgres_db.connect() as connection:
+        if not _has_permission(connection, actor):
+            raise KoradasoEvidenceDenied("koradaso_evidence_permission_required")
+        connection.execute(
+            """INSERT INTO koradaso_claims
+               (claim_id,subject_kind,subject_ref,predicate,object_value,status,
+                confidence,privacy_scope,created_by)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (claim_id, subject_kind.strip(), subject_ref.strip(), predicate.strip(),
+             object_value.strip(), state, float(confidence), privacy, actor),
+        )
+        _audit(connection, actor=actor, action="KORADASO_CLAIM_RECORDED",
+               target=str(claim_id),
+               metadata={"claim_id": str(claim_id), "status": state,
+                         "privacy_scope": privacy})
+        connection.commit()
+    return {"claim_id": str(claim_id), "status": state,
+            "privacy_scope": privacy, "human_confirmed": False}
+
+
+def link_evidence(*, actor_id: object, claim_id: object, evidence_id: object,
+                  relation: str) -> None:
+    actor = _identity(actor_id)
+    try:
+        claim, evidence = UUID(str(claim_id)), UUID(str(evidence_id))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_claim_or_evidence") from exc
+    relation_value = str(relation).upper()
+    if relation_value not in VALID_RELATIONS:
+        raise ValueError("invalid_evidence_relation")
+    with postgres_db.connect() as connection:
+        if not _has_permission(connection, actor):
+            raise KoradasoEvidenceDenied("koradaso_evidence_permission_required")
+        scopes = connection.execute(
+            """SELECT c.privacy_scope,e.privacy_scope
+               FROM koradaso_claims c CROSS JOIN koradaso_evidence e
+               WHERE c.claim_id=%s AND e.evidence_id=%s FOR UPDATE""",
+            (claim, evidence),
+        ).fetchone()
+        if not scopes:
+            raise ValueError("claim_or_evidence_not_found")
+        # A public/community claim must never expose a more-private source by implication.
+        rank = {"ME": 0, "ROYAL_HOUSE": 1, "FAMILY": 2, "COMMUNITY": 3, "PUBLIC": 4}
+        if rank[str(scopes[0])] > rank[str(scopes[1])]:
+            raise KoradasoEvidenceDenied("claim_scope_exceeds_evidence_scope")
+        connection.execute(
+            """INSERT INTO koradaso_claim_evidence(claim_id,evidence_id,relation)
+               VALUES (%s,%s,%s)
+               ON CONFLICT (claim_id,evidence_id) DO UPDATE SET relation=EXCLUDED.relation""",
+            (claim, evidence, relation_value),
+        )
+        _audit(connection, actor=actor, action="KORADASO_EVIDENCE_LINKED",
+               target=str(claim),
+               metadata={"claim_id": str(claim), "evidence_id": str(evidence),
+                         "relation": relation_value})
+        connection.commit()
+
+
+def append_evidence_version(*, actor_id: object, evidence_id: object,
+                            content_bytes: bytes, change_kind: str,
+                            language: str | None = None) -> dict[str, object]:
+    actor = _identity(actor_id)
+    try:
+        evidence = UUID(str(evidence_id))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_evidence_id") from exc
+    kind = str(change_kind).upper()
+    if kind not in {"TRANSCRIPTION", "TRANSLATION", "INTERPRETATION", "CORRECTION"}:
+        raise ValueError("invalid_evidence_change_kind")
+    if not content_bytes:
+        raise ValueError("evidence_version_content_required")
+    digest = hashlib.sha256(content_bytes).hexdigest()
+    with postgres_db.connect() as connection:
+        if not _has_permission(connection, actor):
+            raise KoradasoEvidenceDenied("koradaso_evidence_permission_required")
+        parent = connection.execute(
+            "SELECT evidence_id FROM koradaso_evidence WHERE evidence_id=%s FOR UPDATE",
+            (evidence,),
+        ).fetchone()
+        if not parent:
+            raise ValueError("evidence_not_found")
+        row = connection.execute(
+            "SELECT COALESCE(MAX(version_number),0) FROM koradaso_evidence_versions WHERE evidence_id=%s",
+            (evidence,),
+        ).fetchone()
+        version_number = int(row[0]) + 1
+        connection.execute(
+            """INSERT INTO koradaso_evidence_versions
+               (version_id,evidence_id,version_number,content_hash,change_kind,
+                language,created_by)
+               VALUES (%s,%s,%s,%s,%s,%s,%s)""",
+            (uuid4(), evidence, version_number, digest, kind, language, actor),
+        )
+        _audit(connection, actor=actor, action="KORADASO_EVIDENCE_VERSION_APPENDED",
+               target=str(evidence),
+               metadata={"evidence_id": str(evidence),
+                         "version_number": version_number,
+                         "content_hash": digest, "change_kind": kind})
+        connection.commit()
+    return {"evidence_id": str(evidence), "version_number": version_number,
+            "content_hash": digest, "change_kind": kind}
+
+
+def _can_read(connection, identity: UUID, scope: str, created_by: object) -> bool:
+    if scope == "PUBLIC":
+        return True
+    if scope == "ME":
+        return str(identity) == str(created_by)
+    permission = READ_PERMISSIONS.get(scope)
+    if permission is None:
+        return False
+    return bool(connection.execute(
+        """SELECT 1 FROM oap_identity_roles ir
+           JOIN oap_role_permissions rp ON rp.role_id=ir.role_id
+           JOIN oap_identities i ON i.identity_id=ir.identity_id
+           WHERE ir.identity_id=%s AND rp.permission_id=%s
+             AND i.status='ACTIVE' LIMIT 1""",
+        (identity, permission),
+    ).fetchone())
+
+
+def read_evidence(*, identity_id: object, evidence_id: object) -> dict[str, object]:
+    identity = _identity(identity_id)
+    try:
+        evidence = UUID(str(evidence_id))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("invalid_evidence_id") from exc
+    with postgres_db.connect(readonly=True) as connection:
+        row = connection.execute(
+            """SELECT evidence_id,evidence_type,title,original_language,
+                      original_hash,privacy_scope,created_by
+               FROM koradaso_evidence WHERE evidence_id=%s""",
+            (evidence,),
+        ).fetchone()
+        if not row:
+            raise ValueError("evidence_not_found")
+        if not _can_read(connection, identity, str(row[5]), row[6]):
+            raise KoradasoEvidenceDenied("evidence_read_denied")
+        versions = connection.execute(
+            """SELECT version_number,content_hash,change_kind,language
+               FROM koradaso_evidence_versions
+               WHERE evidence_id=%s ORDER BY version_number""",
+            (evidence,),
+        ).fetchall()
+    return {
+        "evidence_id": str(row[0]),
+        "evidence_type": str(row[1]),
+        "title": str(row[2]),
+        "original_language": row[3],
+        "original_hash": str(row[4]),
+        "privacy_scope": str(row[5]),
+        "versions": [
+            {
+                "version_number": int(item[0]),
+                "content_hash": str(item[1]),
+                "change_kind": str(item[2]),
+                "language": item[3],
+            }
+            for item in versions
+        ],
+    }
