@@ -73,7 +73,7 @@ def _envelope(component: str) -> dict[str, Any]:
 _M3GAN_NOISE = frozenset({
     "a", "about", "abilities", "ability", "and", "are", "can", "could",
     "does", "do", "explain", "for", "how", "i", "in", "is", "me",
-    "m3gan", "my", "of", "please", "show", "tell", "the", "to",
+    "m3gan", "more", "my", "of", "please", "show", "tell", "the", "to",
     "what", "which", "with", "you", "your",
 })
 _M3GAN_GENERAL = frozenset({
@@ -105,9 +105,13 @@ def m3gan_consented_research(payload: Mapping[str, Any]) -> dict[str, Any]:
     history_text = " ".join(
         _bounded_text(item, name="context", limit=120) for item in history
     )
-    words = set(re.findall(r"[a-z0-9]+", (query + " " + history_text).casefold()))
-    meaningful = words - _M3GAN_NOISE
-    general = bool(words & _M3GAN_GENERAL) and not meaningful
+    question_words = set(re.findall(r"[a-z0-9]+", query.casefold()))
+    context_words = set(re.findall(r"[a-z0-9]+", history_text.casefold()))
+    words = question_words | context_words
+    meaningful_question = question_words - _M3GAN_NOISE
+    meaningful_context = context_words - _M3GAN_NOISE
+    meaningful = meaningful_question | meaningful_context
+    general = bool(question_words & _M3GAN_GENERAL) and not meaningful
     entries = smi_archive.FILM_CANON_ABILITIES
     sources = {item["source_id"]: item for item in smi_archive.FILM_RESEARCH_SOURCE_RECEIPTS}
     ranked: list[tuple[int, dict[str, Any]]] = []
@@ -119,7 +123,9 @@ def m3gan_consented_research(payload: Mapping[str, Any]) -> dict[str, Any]:
             str(entry["name"]) + " " + str(entry["ability_id"]).replace("_", " ")
             + " " + str(entry["film_evidence"]),
         ))
-        score = len(meaningful & tags)
+        # The current question leads; the caller-supplied, unsaved context
+        # only helps resolve follow-ups, never overrides a specific question.
+        score = 2 * len(meaningful_question & tags) + len(meaningful_context & tags)
         if general or not meaningful:
             score = 1
         if score < 1:
