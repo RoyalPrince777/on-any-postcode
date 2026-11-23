@@ -21,8 +21,8 @@ def test_koradaso_intelligence_reuses_public_studio_without_private_authority(cl
     response = client.get("/studio?source=koradaso")
     assert response.status_code == 200
     page = response.get_data(as_text=True)
-    assert "<title>KORADASO Intelligence</title>" in page
-    assert "One public SMI" in page
+    assert "<title>SMI · KORADASO Intelligence</title>" in page
+    assert "One SMI · KORADASO interface · First-party inference only" in page
     assert 'id="smi-update"' not in page
     assert page.count('data-smi-prompt="') == 7
     assert "fetch('/studio/chat'" in page
