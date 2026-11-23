@@ -178,3 +178,89 @@ def get_founder_alliance_board(
         "can_approve": False,
         "can_execute": False,
     }
+
+
+
+def get_smi_command_alliances() -> dict[str, Any]:
+    """Read-only projection of the Founder's requested existing SMI alliances.
+
+    Registered passports are linked by exact canonical name; Matrix advisory
+    members remain unregistered. Nothing in this projection activates agents,
+    creates votes, grants permissions, or implies live swarm workers.
+    """
+    registered = {str(item["name"]): item for item in agents.AGENT_REGISTRY}
+    matrix = {str(item["id"]): item for item in agents.MATRIX_ADVISORY_ALLIANCES}
+    smith = matrix["smith_adversarial"]
+    twins = matrix["matrix_twins"]
+
+    def canonical(name: str, role: str) -> dict[str, Any]:
+        agent = registered.get(name)
+        return {
+            "id": name.lower().replace(" ", "_"),
+            "name": name,
+            "role": str(agent["role"]) if agent else role,
+            "family": str(agent["family_id"]) if agent else None,
+            "passport_id": str(agent["agent_id"]) if agent else None,
+            "passport_status": "registered" if agent else "advisory_only",
+            "members": (name,),
+            "allies": (),
+            "directory_url": (
+                "/mission/agents?family=" + str(agent["family_id"])
+                if agent else None
+            ),
+            "runtime_verified": False,
+            "execution_granted": False,
+        }
+
+    def matrix_alliance(row: dict[str, Any], name: str, role: str) -> dict[str, Any]:
+        return {
+            "id": str(row["id"]),
+            "name": name,
+            "role": role,
+            "family": "matrix",
+            "passport_id": None,
+            "passport_status": "advisory_only",
+            "members": tuple(str(member) for member in row["members"]),
+            "allies": tuple(str(member) for member in row.get("allies", ())),
+            "directory_url": None,
+            "runtime_verified": False,
+            "execution_granted": False,
+        }
+
+    return {
+        "name": "SMI Command Center · Agent Alliances",
+        "scope": "founder_private_read_only",
+        "status": "advisory_projection_not_runtime_proof",
+        "brain": "SMI",
+        "members": (
+            canonical("Shere Khan", "Adversarial threat review"),
+            matrix_alliance(
+                smith, "Agent Smiths", "Adversarial review and duplicate detection"
+            ),
+            canonical("Bagheera", "Protective strategy"),
+            canonical("Octopus", "Cross-system coordination"),
+            {
+                "id": "queen_bee",
+                "name": "Queen Bee",
+                "role": "Conditional swarm and distributed worker coordination",
+                "family": "insect_advisory",
+                "passport_id": None,
+                "passport_status": "advisory_only",
+                "members": ("Queen Bee",),
+                "allies": (),
+                "directory_url": None,
+                "runtime_verified": False,
+                "execution_granted": False,
+            },
+            matrix_alliance(
+                twins, "The Twins", "Alternative paths and contradiction review"
+            ),
+        ),
+        "registered_agent_count_unchanged": len(agents.AGENT_REGISTRY),
+        "independent_votes_proven": False,
+        "workers_started": False,
+        "guardian_hrm_required": True,
+        "founder_final_required": True,
+        "can_execute": False,
+        "can_approve": False,
+    }
