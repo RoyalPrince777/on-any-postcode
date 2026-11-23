@@ -590,6 +590,10 @@ def main():
             assert motion_after["observedFps"] > 0
             assert motion_after["renderCostMs"] >= 0
             assert motion_after["adaptiveFrameBudgetMs"] >= 16
+            assert motion_after["regionEdgeBlending"] == (
+                "source_pixel_feather_no_anatomy_approval"
+            )
+            assert motion_after["fullBodyRigProven"] is False
             assert canvas.evaluate(
                 "el => el.width === 1536 && el.height === 1024"
             )
