@@ -9,7 +9,10 @@ def test_source_pixel_motion_uses_lightweight_live_rendering_path():
     assert "context.ellipse(" in text
     assert "context.scale(" in text
     assert "frameBudgetMs=lowPower?33:16" in text
-    assert 'doc.hidden||(!live&&phase!=="ready")' in text
+    assert 'function renderActive()' in text
+    assert 'return epoch>=0&&!doc.hidden&&!userReducedMotion&&' in text
+    assert 'function resetFrameTelemetry()' in text
+    assert 'doc.addEventListener?.("visibilitychange",resetFrameTelemetry)' in text
     assert 'ambientFrameBudgetMs=lowPower?50:33' in text
     assert 'context=canvas.getContext("2d",{alpha:false})' in text
     assert 'evidenceContext=evidenceCanvas.getContext("2d",{willReadFrequently:true})' in text
@@ -21,7 +24,9 @@ def test_source_pixel_motion_uses_lightweight_live_rendering_path():
     assert 'pc.globalCompositeOperation="destination-in"' in text
     assert 'edge.addColorStop(1,"rgba(255,255,255,0)")' in text
     assert 'regionEdgeBlending:"source_pixel_feather_no_anatomy_approval"' in text
-    assert 'ambientVisualMotion:phase==="ready"&&!live&&played>0' in text
+    assert 'ambientVisualMotion:renderActive()&&phase==="ready"&&!live&&played>0' in text
+    assert 'frameRateTargetFps:renderActive()?' in text
+    assert 'observedFps:renderActive()?' in text
     assert "droppedFrames" in text
 
 
