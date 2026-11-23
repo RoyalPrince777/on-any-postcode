@@ -387,7 +387,7 @@
    if(members.textContent)card.append(members);
    if(allies.textContent)card.append(allies);
    const directory=String(item.directory_url||"");
-   if(registered&&/^\\/mission\\/agents\\?family=(?:jungle_book|animal|matrix)$/.test(directory)){
+   if(registered&&new RegExp("^/mission/agents[?]family=(?:jungle_book|animal|matrix)$").test(directory)){
     const link=document.createElement("a");
     link.textContent="View existing passport";
     link.href=directory;
