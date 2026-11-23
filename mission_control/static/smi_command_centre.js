@@ -393,6 +393,22 @@
     link.href=directory;
     card.append(link);
    }
+   const consult=document.createElement("button");
+   consult.type="button";
+   consult.className="smi-alliance-consult";
+   consult.textContent="Review in SMI";
+   consult.setAttribute("aria-label","Use "+String(item.name||"this role")+" as an advisory SMI perspective");
+   consult.addEventListener("click",()=>{
+    const input=document.getElementById("message");
+    if(!input){allianceState.textContent="SMI chat unavailable";return;}
+    const existing=input.value.trim();
+    input.value="SMI, review with the "+String(item.name)+" advisory perspective: "+existing;
+    input.dispatchEvent(new Event("input",{bubbles:true}));
+    closeAllianceRoster();
+    setOpen(false);
+    input.focus();
+   });
+   card.append(consult);
    allianceGrid.append(card);
   });
  }
