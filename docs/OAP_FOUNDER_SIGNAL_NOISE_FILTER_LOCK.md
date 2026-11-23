@@ -86,3 +86,24 @@ Docs should record the rule, not the whole conversation.
 ## Locked line
 
 Founder speaks in signals. OAP stores clean requirements.
+
+
+## OAP World / SMI agent no-echo interface protocol
+
+Applies to OAP World and every first-party surface, including The Spot, The Link, Mail, Arena, Market, OAP TV, My World and the private SMI Command Center. This is a cross-surface product rule, not evidence of deployed runtime enforcement.
+
+- Founder speech, chat prompts, internal agent plans and approval signals are **private control inputs**, not headings, hero slogans, notifications, fake chat transcripts, page copy or bot dialogue.
+- Never spawn visible bots, avatars, agent cards or assistant chatter solely to restate what the Founder said. One canonical SMI intelligence; specialist agents work as governed advisory roles, not duplicated minds.
+- Agent names may appear as concise functional labels for actual controls, responsible advisory roles, or explicit navigation help. Agents may respond when directly invoked or when a real task needs explanation, with the minimum useful evidence and next action.
+- Do not present speculative agent activity, automatic fixes, delivery, permissions, CI, deployment or production readiness as accomplished. Unknown remains Unknown.
+- Preserve existing features, routes, labels and intentional user-generated content. Do not delete legitimate messages, user-authored posts, accessibility labels, agent configuration, audit receipts or security alerts under the guise of noise reduction.
+- Keep private SMI/Founder controls out of public pages. Respect canonical My Card identity, authorisation, Guardian/HRM boundaries and Founder Final.
+- Prefer a plain functional UI: navigation label, real state, short error, necessary action. No duplicated dashboards or extra status prose.
+
+### Acceptance checks required before release
+
+1. Audit rendered copy and agent entry points in each OAP World surface; explicitly distinguish user-authored content from injected Founder-command echoes.
+2. Add regression tests for no command-to-copy reflection, no unsolicited fake agents, and preserved working navigation/accessibility/user content.
+3. Verify anonymous/member/Founder visibility boundaries and existing security gates.
+4. Test mobile and browser views at the exact release commit. A policy document or passing unit test alone is not a site-wide implementation proof.
+5. Keep merge, deployment and customer exposure blocked until governed evidence and Founder Final authorisation.
