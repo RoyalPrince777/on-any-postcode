@@ -45,6 +45,39 @@ assert.deepEqual(reset,neutral,"STOP/Reduced Motion must reset the pose to neutr
 assert.throws(()=>smoother.next({...target,head:[Infinity,1,1]},16),
  /invalid_smi_source_pose/);
 assert.throws(()=>smoother.next(target,Infinity),/invalid_smi_pose_clock/);
+// Child patches follow head translation while blink and mouth scale stay local.
+assert.deepEqual(api.regionPose("eyes",target),[3,1.6,.25]);
+assert.deepEqual(api.regionPose("mouth",target),[3,2,1.3]);
+assert.deepEqual(api.regionPose("left-hand",target),target.hands);
+assert.deepEqual(api.regionPose("mouth",neutral),[0,0,1]);
+// Real submission intervals, bounded storage, no fabricated FPS for empty data.
+const timing=api.createFrameWindow();
+assert.equal(timing.snapshot().measuredFps,null);
+timing.record(0,2,20);timing.record(20,3,20);timing.record(40,4,20);
+timing.record(100,5,20);
+assert.equal(timing.snapshot().sampleCount,3);
+assert.equal(timing.snapshot().measuredFps,30);
+assert.equal(timing.snapshot().frameP50Ms,20);
+assert.equal(timing.snapshot().frameP95Ms,60);
+assert.equal(timing.snapshot().overBudgetCount,1);
+assert.equal(timing.snapshot().renderP95Ms,5);
+timing.record(90,1,20);timing.record(NaN,1,20);timing.record(120,-1,20);
+assert.equal(timing.snapshot().sampleCount,3,"invalid/backward clocks do not contaminate timing");
+timing.boundary();
+assert.equal(timing.snapshot().status,"completed");
+timing.record(10000,1,20);timing.record(10020,1,20);
+assert.equal(timing.snapshot().durationMs,20,"hidden/pause gaps never become frame measurements");
+assert.equal(timing.snapshot().measuredFps,50);
+for(let i=1;i<=650;i++)timing.record(10020+i*20,1,20);
+assert.equal(timing.snapshot().sampleCount,600,"local measurement storage remains bounded");
+assert.equal(timing.snapshot().physicalDeviceProven,false);
+assert.equal(timing.snapshot().smoothnessApproved,false);
+assert.equal(timing.snapshot().thermalStatus,"unknown");
+timing.record(30000,1,33,"live");timing.record(30033,1,33,"live");
+assert.equal(timing.snapshot().captureMode,"live");
+timing.record(30050,1,50,"ambient");timing.record(30100,1,50,"ambient");
+assert.equal(timing.snapshot().captureMode,"ambient");
+assert.equal(timing.snapshot().durationMs,50,"idle and live samples must not be mixed");
 const region={x:0,y:0,w:11,h:11,cx:5,cy:5,rx:5,ry:5};
 const data=new Uint8ClampedArray(11*11*4);
 for(let y=0;y<11;y++)for(let x=0;x<11;x++){

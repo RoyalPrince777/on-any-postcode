@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 from datetime import UTC, datetime
@@ -51,7 +52,56 @@ def _fresh_iso(value: object) -> bool:
 
 
 def _is_number(value: object) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    return (
+        type(value) in (int, float)
+        and -1e308 <= value <= 1e308
+        and math.isfinite(value)
+    )
+
+
+def _valid_motion_performance(value: object) -> bool:
+    """Check bounded browser aggregates, never infer physical smoothness."""
+    if not isinstance(value, dict) or set(value) != {
+        "version", "measurement", "status", "captureMode", "sampleCount", "durationMs",
+        "measuredFps", "frameP50Ms", "frameP95Ms", "frameMaxMs", "renderP95Ms",
+        "overBudgetCount", "physicalDeviceProven", "thermalStatus", "smoothnessApproved",
+    }:
+        return False
+    if (
+        type(value["version"]) is not int or value["version"] != 1
+        or value["measurement"] != "browser_canvas_submission"
+        or value["status"] not in ("unknown", "capturing", "completed")
+        or value["captureMode"] not in ("unknown", "ambient", "live")
+        or value["physicalDeviceProven"] is not False
+        or value["smoothnessApproved"] is not False
+        or value["thermalStatus"] != "unknown"
+    ):
+        return False
+    count, over = value["sampleCount"], value["overBudgetCount"]
+    if type(count) is not int or not 0 <= count <= 600:
+        return False
+    if type(over) is not int or not 0 <= over <= count:
+        return False
+    duration = value["durationMs"]
+    if not _is_number(duration) or not 0 <= duration <= 3_600_000:
+        return False
+    metrics = ("measuredFps", "frameP50Ms", "frameP95Ms", "frameMaxMs", "renderP95Ms")
+    if count == 0:
+        return (
+            value["status"] == "unknown" and duration == 0
+            and all(value[key] is None for key in metrics)
+        )
+    if value["status"] == "unknown" or duration <= 0:
+        return False
+    if any(not _is_number(value[key]) or value[key] < 0 for key in metrics):
+        return False
+    # Percentiles describe submitted frames, not display scan-out or a target.
+    return (
+        0 < value["measuredFps"] <= 1000
+        and abs(value["measuredFps"] - count * 1000 / duration) <= 0.1
+        and 0 < value["frameP50Ms"] <= value["frameP95Ms"] <= value["frameMaxMs"] <= duration + 0.01
+        and value["renderP95Ms"] <= 60_000
+    )
 
 
 def validate_physical_android_receipt(payload: object) -> dict[str, Any]:
@@ -126,6 +176,11 @@ def validate_physical_android_receipt(payload: object) -> dict[str, Any]:
     if payload.get("productionApproved") is not False or payload.get("humanFinalApproved") is not False:
         reasons.append("forbidden_approval_claim")
 
+    # Legacy receipts stay readable but cannot acquire performance proof.
+    performance = payload.get("motionPerformance")
+    if performance is not None and not _valid_motion_performance(performance):
+        reasons.append("motion_performance_invalid")
+
     if not _fresh_iso(payload.get("testedAt")):
         reasons.append("test_time_invalid_or_stale")
 
@@ -195,6 +250,14 @@ def record_physical_android_receipt(
         "audio_stopped": True,
         "stop_acknowledgement_ms": float(payload["stopAcknowledgementMs"]),
         "background_stop_passed": True,
+        "motion_performance": payload.get("motionPerformance"),
+        "motion_performance_measured": bool(
+            payload.get("motionPerformance")
+            and payload["motionPerformance"]["sampleCount"] > 0
+        ),
+        "physical_smoothness_approved": False,
+        "anatomical_masks_approved": False,
+        "accurate_lip_sync_approved": False,
         "tested_at": str(payload["testedAt"]),
         "human_visual_approved": True,
         "human_note_sha256": note_sha256,

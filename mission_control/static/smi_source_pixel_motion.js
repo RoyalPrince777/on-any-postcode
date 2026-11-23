@@ -95,6 +95,55 @@
   }
   return Object.freeze({next,reset});
  }
+ // A bounded, local sample of actual canvas submissions. These are browser
+ // timings, not display scan-out, thermal readings or physical-device proof.
+ function createFrameWindow(){
+  const samples=[];
+  let previous=null,completed=false,captureMode="unknown";
+  const round=value=>Math.round(value*100)/100;
+  function record(now,cost,budget,mode="unknown"){
+   if(!Number.isFinite(now)||!Number.isFinite(cost)||cost<0||
+      !Number.isFinite(budget)||budget<=0||
+      !["unknown","ambient","live"].includes(mode))return;
+   if(mode!==captureMode)boundary();
+   if(!completed&&previous!==null&&now<=previous)return;
+   if(completed){samples.length=0;previous=null;completed=false;}
+   captureMode=mode;
+   if(previous!==null&&now>previous){
+    samples.push({interval:now-previous,cost,budget});
+    if(samples.length>600)samples.shift();
+   }
+   previous=now;
+  }
+  function boundary(){previous=null;completed=true;}
+  function snapshot(){
+   const intervals=samples.map(x=>x.interval).sort((a,b)=>a-b);
+   const costs=samples.map(x=>x.cost).sort((a,b)=>a-b);
+   const percentile=(values,p)=>values.length?round(values[Math.ceil(values.length*p)-1]):null;
+   const duration=samples.reduce((sum,x)=>sum+x.interval,0);
+   return Object.freeze({version:1,measurement:"browser_canvas_submission",
+    status:samples.length?(completed?"completed":"capturing"):"unknown",
+    captureMode,
+    sampleCount:samples.length,durationMs:round(duration),
+    measuredFps:duration>0?round(samples.length*1000/duration):null,
+    frameP50Ms:percentile(intervals,.5),frameP95Ms:percentile(intervals,.95),
+    frameMaxMs:intervals.length?round(intervals[intervals.length-1]):null,
+    renderP95Ms:percentile(costs,.95),
+    overBudgetCount:samples.filter(x=>x.interval>x.budget*1.5).length,
+    physicalDeviceProven:false,thermalStatus:"unknown",smoothnessApproved:false});
+  }
+  return Object.freeze({record,boundary,snapshot});
+ }
+ // Facial patches inherit the head translation; their blink/mouth deformation
+ // remains local. No neck joint, depth or hidden anatomy is inferred.
+ function regionPose(id,poses){
+  if(id==="eyes"||id==="mouth"){
+   const local=poses[id];
+   return [local[0]+poses.head[0],local[1]+poses.head[1],local[2]];
+  }
+  return id==="left-hand"||id==="right-hand"?poses.hands:
+   id==="chest"?poses.chest:poses.head;
+ }
  async function attach(win=typeof window!=="undefined"?window:null,doc=win?.document){
   const shell=doc?.querySelector?.(".smi-shell");
   if(!shell||!win?.fetch||!win?.crypto?.subtle||!win?.requestAnimationFrame||!doc.createElement)return null;
@@ -166,7 +215,9 @@
   const ambientFrameBudgetMs=lowPower?50:33;
   let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,speechUntil=0,audioCues=0,droppedFrames=0;
   let renderCostMs=0,observedFps=0,lastPaintTime=0,adaptiveFrameBudgetMs=ambientFrameBudgetMs;
+  const frameWindow=createFrameWindow();
   function resetFrameTelemetry(){
+   frameWindow.boundary();
    last=0;lastPaintTime=0;observedFps=0;renderCostMs=0;
    adaptiveFrameBudgetMs=live?frameBudgetMs:ambientFrameBudgetMs;
   }
@@ -227,7 +278,7 @@
    const pulse=phase==="speaking"?(localAudio?LOCAL_POSE[localViseme]:Math.max(0,Math.min(1,(speechUntil-ms)/170))):0;
    const poses=poseSmoother.next(motionFor(phase,ms,pulse),ms);
    for(const region of REGIONS){
-    const params=region.id==="left-hand"||region.id==="right-hand"?poses.hands:region.id==="chest"?poses.chest:region.id==="eyes"?poses.eyes:region.id==="mouth"?poses.mouth:poses.head;
+    const params=regionPose(region.id,poses);
     drawRegion(region,params);
    }
    played++;
@@ -246,6 +297,7 @@
    const paintStart=win.performance.now();
    draw(now);
    const cost=Math.max(0,win.performance.now()-paintStart);
+   frameWindow.record(now,cost,baseline,live?"live":"ambient");
    renderCostMs=renderCostMs===0?cost:renderCostMs*.85+cost*.15;
    if(lastPaintTime>0){
      const instantaneous=1000/Math.max(1,now-lastPaintTime);
@@ -305,7 +357,9 @@
    // independently reviewed anatomical seven-layer rig.
    const sourcePixelRegionsObserved=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
    const fullBodyRigProven=false;
-   const accurateSoftwareLipSyncProven=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
+   const audioClockSchedulingObserved=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
+   // Timely cue delivery cannot certify source-derived mouth geometry.
+   const accurateSoftwareLipSyncProven=false;
    return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
@@ -317,14 +371,16 @@
     adaptiveFrameBudgetMs:Math.round(adaptiveFrameBudgetMs*10)/10,
     regionEdgeBlending:"source_pixel_feather_no_anatomy_approval",
     poseEasing:"bounded_time_based_source_pixel_only",
+    facialMotion:"inherited_head_translation_2d_only",
+    performanceWindow:frameWindow.snapshot(),
     fullArticulatedMotionProven:false,
     maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,sourcePixelRegionsObserved,fullBodyRigProven,
-    accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
+    audioClockSchedulingObserved,accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
     physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
   }
   return Object.freeze({sourceSha256:actual,sourceOnly:true,decodedAudio:false,
    privacyNoTelemetry:true,snapshot:proofSnapshot,
    stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);poseSmoother.reset();resetFrameTelemetry();context.drawImage(image,0,0);}});
  }
- return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,createPoseSmoother,attach});
+ return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,createPoseSmoother,createFrameWindow,regionPose,attach});
 });

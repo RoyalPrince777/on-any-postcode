@@ -36,7 +36,8 @@ assert.equal(snap.sourcePixelMotionObserved,true);
 assert.equal(snap.sourcePixelRegionsObserved,true);
 assert.equal(snap.fullRigProven,false);
 assert.equal(snap.requiresHumanApproval,true);
-assert.equal(snap.accurateSoftwareLipSyncProven,true);
+assert.equal(snap.accurateSoftwareLipSyncProven,false,
+ "a source session cannot self-certify reviewed mouth geometry");
 assert.equal(snap.accurateHumanLipSyncProven,false);
 for(const name of expected){
  assert.equal(snap.sourcePixelRegionSignals[name],true,"source pixels observed");

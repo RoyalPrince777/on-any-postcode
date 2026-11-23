@@ -589,6 +589,18 @@ def main():
             assert motion_after["frameRateTargetFps"] in (30, 60)
             assert motion_after["observedFps"] > 0
             assert motion_after["renderCostMs"] >= 0
+            performance = motion_after["performanceWindow"]
+            assert performance["measurement"] == "browser_canvas_submission"
+            assert performance["captureMode"] == "live"
+            assert performance["sampleCount"] > 0
+            assert performance["durationMs"] > 0
+            assert performance["measuredFps"] > 0
+            assert performance["frameP95Ms"] >= performance["frameP50Ms"]
+            assert performance["physicalDeviceProven"] is False
+            assert performance["smoothnessApproved"] is False
+            assert performance["thermalStatus"] == "unknown"
+            assert motion_after["accurateSoftwareLipSyncProven"] is False
+            assert motion_after["facialMotion"] == "inherited_head_translation_2d_only"
             assert motion_after["adaptiveFrameBudgetMs"] >= 16
             assert motion_after["regionEdgeBlending"] == (
                 "source_pixel_feather_no_anatomy_approval"
