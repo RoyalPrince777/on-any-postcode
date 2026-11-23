@@ -1,0 +1,19 @@
+{
+    email {$OAP_TLS_EMAIL}
+}
+
+{$OAP_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy world:10000 {
+        header_up -X-OAP-SMI-Gateway
+        header_up -X-OAP-Client-IP
+    }
+}
+
+{$OAP_SMI_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy smi:5000 {
+        header_up -X-OAP-SMI-Gateway
+        header_up -X-OAP-Client-IP
+    }
+}
