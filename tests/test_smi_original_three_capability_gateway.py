@@ -87,6 +87,31 @@ def test_m3gan_relevance_uses_bounded_user_supplied_context():
     assert result["context_stored"] is False
 
 
+
+def test_m3gan_current_question_outweighs_ephemeral_context():
+    result = gateway.evaluate(
+        "m3gan",
+        {"question": "multi sensor perception",
+         "context": ["digital survival"], "consent": True},
+    )
+    assert result["state"] == "source_backed_matches"
+    assert result["matches"][0]["ability_id"] == "multi_sensor_perception"
+    assert result["context_stored"] is False
+    assert result["external_fetch_performed"] is False
+
+
+def test_m3gan_followup_uses_only_supplied_ephemeral_context():
+    result = gateway.evaluate(
+        "m3gan",
+        {"question": "Tell me more", "context": ["digital survival"],
+         "consent": True},
+    )
+    assert result["state"] == "source_backed_matches"
+    assert result["matches"][0]["ability_id"] == "digital_survival"
+    assert result["question_stored"] is False
+    assert result["context_stored"] is False
+
+
 def test_m3gan_out_of_scope_terms_have_no_invented_film_facts():
     result = gateway.evaluate(
         "m3gan", {"question": "quantum graviton hyperdrive", "consent": True},
