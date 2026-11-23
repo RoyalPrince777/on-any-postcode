@@ -24,6 +24,7 @@ from . import (
     brain,
     civilization,
     infrastructure,
+    intelligence_alliances,
     judgement,
     matrix_simulation,
     ollama_chat,
@@ -303,6 +304,13 @@ def smi_command_dashboard_view():
             )
         )
     )
+
+
+@bp.get("/smi/alliances/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_command_alliances_status():
+    """Founder-only read-only SMI alliance passports and advisory roles."""
+    return _no_store(make_response(jsonify(intelligence_alliances.get_smi_command_alliances())))
 
 
 @bp.get("/smi/status")
