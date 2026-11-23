@@ -256,6 +256,15 @@ def get_smi_command_alliances() -> dict[str, Any]:
                 twins, "The Twins", "Alternative paths and contradiction review"
             ),
         ),
+        "existing_alliance_families": tuple(
+            {
+                "id": str(group["id"]),
+                "name": str(group["name"]),
+                "status": str(group["status"]),
+                "member_count": len(group["members"]),
+            }
+            for group in get_founder_alliance_board()["alliances"]
+        ),
         "registered_agent_count_unchanged": len(agents.AGENT_REGISTRY),
         "independent_votes_proven": False,
         "workers_started": False,
