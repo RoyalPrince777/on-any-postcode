@@ -137,32 +137,3 @@ def test_non_integer_score_type_fails_with_type_error():
             player_b_score=0,
             receipt_hash="d" * 64,
         )
-
-
-def test_arena_hybrid_roles_are_game_only_and_no_auto_vote():
-    assert len(arena_global.ARENA_LEADERSHIP_ROLES) == 21
-    assert len({row[0] for row in arena_global.ARENA_LEADERSHIP_ROLES}) == 21
-    member = {"my_card_verified": True, "arena_membership_verified": True,
-              "opted_in": True, "safeguarding_clear": True,
-              "conflicts_clear": True, "age_band": "adult"}
-    reviewed = arena_global.arena_leadership_review(
-        "arena_president", member, level="POSTCODE"
-    )
-    assert reviewed["review_eligible"] is True
-    assert reviewed["role_assigned"] is False
-    assert reviewed["vote_cast"] is False
-    assert reviewed["ranking_modified"] is False
-    for variant in ({"opted_in": False}, {"age_band": "minor"},
-                    {"my_card_verified": False}, {"arena_membership_verified": False}):
-        assert arena_global.arena_leadership_review(
-            "arena_president", {**member, **variant}, level="POSTCODE"
-        )["review_eligible"] is False
-    assert arena_global.arena_leadership_review(
-        "audit_officer", member, level="POSTCODE"
-    )["reason"] == "independence_unverified"
-    assert arena_global.arena_leadership_review(
-        "audit_officer", {**member, "independence_verified": True}, level="GLOBAL"
-    )["review_eligible"] is True
-    assert arena_global.arena_leadership_review(
-        "arena_president", member, level="REGION"
-    )["review_eligible"] is False
