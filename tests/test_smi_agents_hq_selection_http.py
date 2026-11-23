@@ -53,3 +53,16 @@ def test_dynamic_selection_rejects_bad_mission(monkeypatch):
         headers={"X-OAP-CSRF": "a" * 48},
     )
     assert response.status_code == 400
+
+
+def test_agents_hq_selector_is_wired_to_existing_private_endpoint():
+    from pathlib import Path
+    root = Path(__file__).parents[1]
+    template = (root / "mission_control" / "templates" / "organiser.html").read_text()
+    script = (root / "mission_control" / "static" / "smi_agents_hq.js").read_text()
+    assert "smi_organiser.founder_agents_hq_select" in template
+    assert 'id="oap-alliance-select"' in template
+    assert "select.dataset.endpoint" in script
+    assert '"X-OAP-CSRF": form.dataset.csrf' in script
+    assert "result.execution_authorised !== false" in script
+    assert "No agents activated" in script
