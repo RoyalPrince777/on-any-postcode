@@ -71,3 +71,32 @@ labels do not create six new agent IDs or new system organs.
 
 **Truth Mode:** only deterministic, founder-supplied, offline review logic
 is proposed. No system should label the privacy checks "active live workers".
+
+## Live routing proof noise and self-owned origin configuration
+
+This pull request also repairs the separate **CI observation** gap that was
+misleadingly described as a live routing failure. The earlier job had no
+`OAP_ROUTING_PROOF_ORIGIN`, so it could not test an external routing service.
+
+The bounded check now uses the existing, canonical `routing._validated_base_url`
+with `require_owned=True`. It requires **all three** explicit values in GitHub
+Actions secrets or variables:
+
+- `OAP_ROUTING_PROOF_ORIGIN`: exact HTTPS origin of an actual OAP-owned,
+  OSRM-compatible endpoint, with no path, query, credentials or fragment.
+- `OAP_OSRM_ALLOWED_HOSTS`: allowed hostnames, comma-separated.
+- `OAP_ROUTING_OWNED_HOSTS`: subset of approved OAP-owned hostnames.
+
+CI **never invents** a host. If any configuration is missing or unapproved, the
+read-only readiness receipt is `UNKNOWN_LOCKED`, the live probe is not run and
+production routing remains locked. If configuration passes, the probe can run,
+but the configuration receipt is still `NOT_RUN`, not live Green. Actual live
+routing proof requires bounded warmup, route geometry, all requests successful,
+and p95 <= 6 seconds. The independent release gate still requires source,
+ownership, capacity, monitoring and Founder authorisation. No deployment,
+domain change, credential mutation, location tracking or traffic interception
+is implemented here.
+
+Do not configure `router.project-osrm.org` or another public demonstration
+router as an OAP-owned production origin. Use a real, authorised private
+service when the Founder separately approves it.
