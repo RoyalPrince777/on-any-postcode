@@ -98,6 +98,11 @@
         <label>Your message<textarea id="oap-agents-hq-message" required maxlength="2000" placeholder="Speak to SMI…"></textarea></label>
         <button type="submit" id="oap-agents-hq-send">Send to SMI</button>
       </form>
+      <div class="org-boundary">
+        <button type="button" id="oap-alliance-select" data-endpoint="{{ url_for('smi_organiser.founder_agents_hq_select') }}">Select advisory alliance</button>
+        <p class="org-meta" id="oap-alliance-status" role="status" aria-live="polite">Passport-verified selection available for a mission above. Advisory only.</p>
+        <div class="org-meta" id="oap-alliance-results" aria-live="polite"></div>
+      </div>
       <p class="org-meta" id="oap-agents-hq-status" role="status" aria-live="polite">No conversation submitted.</p>
       <div class="org-grid" id="oap-agents-hq-transcript" aria-live="polite"></div>
     </section>
