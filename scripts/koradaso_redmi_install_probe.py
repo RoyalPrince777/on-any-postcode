@@ -11,6 +11,12 @@ import subprocess
 from urllib import error, request
 
 
+class _NoRedirect(request.HTTPRedirectHandler):
+    """Prevent any loopback probe from following a redirect off the device."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 def _command(*args: str) -> str:
     try:
         result = subprocess.run(
@@ -22,7 +28,7 @@ def _command(*args: str) -> str:
 
 
 def _local_page() -> int:
-    opener = request.build_opener(request.ProxyHandler({}))
+    opener = request.build_opener(request.ProxyHandler({}), _NoRedirect())
     req = request.Request(
         "http://127.0.0.1:5052/koradaso",
         headers={"User-Agent": "KORADASO-Redmi-install-proof/1"},
