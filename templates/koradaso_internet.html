@@ -2,73 +2,279 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
 <title>KORADASO Internet · ON ANY POSTCODE</title>
+<link rel="icon" type="image/jpeg" href="/static/oap/koradaso_internet_logo.jpg">
 <style>
-:root{--night:#050713;--panel:#111121;--gold:#f4cb74;--muted:#c5b5a0;--violet:#9b62e8;--line:#765b37;color-scheme:dark}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 52% -13%,#302050 0%,#0d1024 41%,var(--night) 75%);color:#fff8ea;font:16px/1.45 system-ui,sans-serif}
-a{color:inherit;text-decoration:none}button,input{font:inherit}
-.skip{position:absolute;left:-9999px}.skip:focus{left:12px;top:12px;background:#fff;color:#000;padding:10px;z-index:10}
-.shell{max-width:900px;margin:auto;padding:16px 15px calc(26px + env(safe-area-inset-bottom))}
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 20px}.brand{font:700 1rem Georgia,serif;letter-spacing:.09em;color:var(--gold)}.tag{border:1px solid #795b4d;border-radius:20px;padding:5px 10px;font-size:.75rem;color:#e8cbaf}
-.hero{text-align:center;position:relative;isolation:isolate;padding:32px 12px 26px;border:1px solid #917043;border-radius:24px;overflow:hidden;background:radial-gradient(circle at 50% 46%,#2a2052 0,#14192d 34%,#070916 75%);box-shadow:0 0 30px #b2763426,inset 0 0 30px #9b62e80b}
-.hero:before{content:"";position:absolute;inset:-110px 12% auto;border:1px solid #a576c262;border-radius:50%;height:285px;transform:rotate(-16deg);z-index:-1}
-.crest{display:grid;place-items:center;width:142px;height:142px;margin:auto;border:2px solid var(--gold);border-radius:50%;background:radial-gradient(circle,#744eac 0,#29274d 30%,#090d20 70%);box-shadow:0 0 42px #ae79e55e,inset 0 0 22px #edc76b55;position:relative}
-.crest span{font:700 6.4rem/.9 Georgia,serif;color:var(--gold);text-shadow:0 0 12px #d49a65}
-.crown{font-size:2rem;color:var(--gold);line-height:1}.hero h1{font:700 clamp(2.3rem,8vw,4rem)/1.02 Georgia,serif;letter-spacing:.04em;margin:18px 0 4px;color:var(--gold);text-shadow:0 0 18px #bf7e6c66}
-.subtitle{font-weight:600;letter-spacing:.4em;font-size:.8rem}.powered{color:var(--muted);font-size:.75rem;letter-spacing:.16em;margin-top:9px}
-.search{display:flex;gap:8px;border:1px solid var(--gold);border-radius:24px;padding:7px;margin:20px 0 6px;background:#10111e;box-shadow:0 0 15px #b8894933}
-.search input{flex:1;min-width:0;background:transparent;border:0;padding:10px;color:white;outline-offset:4px}.search button,.action{background:linear-gradient(135deg,#ffe1a1,#b88736);border:0;border-radius:16px;color:#211407;font-weight:750;padding:10px 14px;cursor:pointer}
-.search button:focus-visible,.tile:focus-visible,a:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}
-.note{font-size:.8rem;color:#d1c5b1;margin:8px 3px 22px;min-height:19px}
-h2{font-size:.9rem;letter-spacing:.12em;color:#edcb83;margin:22px 0 12px}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
-.tile{min-height:130px;border:1px solid #9a7644;border-radius:18px;background:linear-gradient(145deg,#1a2035,#0c0d19 78%);padding:19px 10px 12px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;box-shadow:inset 0 1px #fff2}
-.tile .ico{font-size:2rem;filter:drop-shadow(0 0 7px #9162f8)}.tile strong{color:var(--gold);font:700 1.05rem Georgia,serif}.tile span:last-child{font-size:.73rem;color:#c7bbaf}
-.nav{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}.nav a{flex:1;text-align:center;min-width:135px;border:1px solid #776044;border-radius:12px;padding:11px;font-weight:600;color:#f1cf91}
-footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 0;margin-top:16px}
-@media(max-width:490px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:118px}.hero{padding-top:24px}.hero h1{font-size:2.35rem}.crest{width:119px;height:119px}.crest span{font-size:5.5rem}}
-@media(prefers-reduced-motion:reduce){*,*:before{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+:root{color-scheme:dark;--gold:#f4cc77;--soft:#fce5b9;--line:#826243;--quiet:#b9adc4;--violet:#9d69d5;--surface:#131023}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -12%,#301847 0%,#0c0d20 54%,#050713 100%);color:#fff8e9;font:16px/1.4 system-ui,-apple-system,sans-serif}
+a{color:inherit;text-decoration:none}button,input{font:inherit}button{cursor:pointer}
+:focus-visible{outline:3px solid #d7a6ff;outline-offset:3px}
+.skip{position:absolute;left:-100vw;top:0}.skip:focus{left:10px;z-index:60;background:#fff;color:#000;padding:10px}
+.shell{max-width:750px;margin:auto;padding:10px 14px calc(30px + env(safe-area-inset-bottom,0px))}
+.top{display:flex;align-items:center;justify-content:space-between;min-height:56px;border-bottom:1px solid #99703b77}
+.brand{font:bold .94rem Georgia,serif;letter-spacing:.045em;color:var(--gold);padding:10px 0}
+.royal-menu summary{display:grid;place-items:center;min-width:48px;min-height:48px;border:1px solid var(--line);border-radius:13px;background:#23152f;color:var(--gold);font-size:1.4rem;list-style:none;cursor:pointer}
+.royal-menu summary::-webkit-details-marker{display:none}
+.settings-panel{position:fixed;top:0;right:0;bottom:0;z-index:40;width:min(380px,100vw);height:100vh;height:100dvh;overflow-y:auto;padding:15px 16px calc(28px + env(safe-area-inset-bottom,0px));border-left:1px solid var(--line);background:#110e20;box-shadow:-16px 0 50px #000d}
+.drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.drawer-heading h2{font-size:1.12rem;color:var(--gold);margin:0}
+.drawer-heading button,.drawer-section button,.browser-bar button{min-height:44px;border:1px solid #8f704e;background:#1c1730;color:#ffdc99;border-radius:11px;padding:8px 11px}
+.drawer-heading button{min-width:44px;font-size:1.3rem}
+.drawer-section{border-top:1px solid #59426a;margin-top:16px;padding-top:12px}
+.drawer-section h3{margin:0 0 10px;color:var(--gold);font-size:.98rem}
+.drawer-section h4{font-size:.86rem;margin:12px 0 6px;color:var(--soft)}
+.drawer-section p{color:var(--quiet);font-size:.82rem;margin:4px 0 10px}
+.drawer-section label{display:flex;gap:9px;align-items:center;min-height:44px}
+.drawer-section label input{accent-color:var(--gold);width:18px;height:18px}.drawer-section select{width:100%;min-height:46px;margin:5px 0 7px;padding:10px;border:1px solid #8f704e;border-radius:11px;background:#1b162b;color:#fff4dc}
+.drawer-links,.place-list{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0;padding:0;list-style:none}
+.drawer-links a,.place-list a{display:inline-flex;align-items:center;min-height:44px;border:1px solid #745c43;border-radius:10px;background:#1b162b;padding:8px 11px;font-size:.83rem;overflow-wrap:anywhere}
+.place-list li{display:flex;align-items:center;min-width:0;max-width:100%;border-radius:10px;background:#171328}
+.place-list button{min-width:44px;min-height:44px;border:0;background:transparent;color:#f9d398;font-size:1.1rem}
+.drawer-section .muted{color:#9f98aa;font-size:.8rem}
+.note{font-size:.78rem;color:var(--soft);margin:5px 0;min-height:0}
+.note:empty{display:none}
+.hero{display:grid;place-items:center;padding:0}.hero h1{margin:6px 0 0}
+.hero img{display:block;width:min(100%,225px);height:auto;filter:drop-shadow(0 6px 14px #7837ae55)}
+.search-row{display:flex;gap:8px;align-items:stretch;margin:9px 0 8px}
+.search{display:flex;align-items:center;flex:1;gap:6px;min-width:0;min-height:54px;padding:5px;border:1px solid #e2bc75;border-radius:18px;background:linear-gradient(130deg,#111022,#0c0d19)}
+.search:focus-within{outline:2px solid #e2bc75;outline-offset:2px}
+.search input{min-width:0;flex:1;border:0;outline:0;padding:9px;color:#fff8e9;background:transparent}
+.search button{flex:none;min-height:44px;padding:8px 12px;border:0;border-radius:12px;background:linear-gradient(145deg,#ffe2ab,#b78a40);color:#241609;font-weight:850}
+.public-smi{display:grid;place-items:center;min-width:56px;min-height:54px;padding:8px 11px;border:1px solid #c69660;border-radius:16px;background:#2b173d;color:var(--gold);font-weight:850}
+.trust-state{margin:0 1px 12px;color:#c5b3a0;font-size:.73rem}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.tile{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:104px;padding:10px 5px;gap:8px;text-align:center;border:1px solid #ae814c;border-radius:15px;background:linear-gradient(155deg,#25143a,#100e20 83%)}
+.tile .ico{display:grid;place-items:center;width:43px;height:43px;border-radius:13px;border:1px solid #bd9055;background:#291a40;font-size:1.35rem}
+.tile strong{font-size:.83rem;line-height:1.25;color:#f7d89b;overflow-wrap:anywhere}
+.browser-bar{display:flex;gap:9px;align-items:center;justify-content:space-between;margin:13px 0}
+.browser-bar a{min-height:44px;display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:11px;padding:9px 12px;color:var(--gold);font-size:.84rem}
+footer{border-top:1px solid #5d405c;margin-top:12px;padding-top:13px;color:#b3a4a1;font-size:.77rem}
+body.quiet-appearance{background:#090a16}body.quiet-appearance .tile{box-shadow:none;background:#171425}body.quiet-appearance .hero img{filter:none}
+body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@media(max-width:540px){.shell{padding:8px 11px calc(25px + env(safe-area-inset-bottom,0px))}.tile{min-height:87px;padding:7px 3px;gap:5px}.hero img{width:min(100%,190px)}.search{min-width:0}.search input{font-size:.86rem;padding:7px 3px}.search button{padding:8px 9px;font-size:.83rem}.public-smi{min-width:50px;padding:6px}.tile strong{font-size:.76rem}}
+@media(min-width:381px) and (max-width:540px){.grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}.tile .ico{width:37px;height:37px}}
+@media(min-width:321px) and (max-width:380px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.hero img{width:176px}}
+@media(max-width:320px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.hero img{width:165px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="shell">
-<header class="top"><span class="brand">♛ KORADASO</span><span class="tag">OAP LOCAL · FIRST PARTY</span></header>
+<header class="top">
+<a class="brand" href="/koradaso" aria-label="KORADASO Internet home">♛ KORADASO</a>
+<details class="royal-menu" id="browser-settings">
+<summary aria-label="Compass browser menu" title="Compass">☰</summary>
+<div class="settings-panel">
+<div class="drawer-heading"><h2>Royal Compass</h2><button id="drawer-close" type="button" aria-label="Close Compass">×</button></div>
+<section class="drawer-section" aria-label="Explore">
+<h3>Explore</h3>
+<nav class="drawer-links" aria-label="KORADASO navigation"><a href="/search" data-koradaso-destination>OAP Search</a><a href="/the-spot" data-koradaso-destination>The Spot</a></nav>
+<p>Use OAP Search for public apps and places.</p>
+</section>
+<section class="drawer-section" aria-label="My Internet">
+<h3>My Internet</h3>
+<label for="place-route">Choose a public OAP place</label>
+<select id="place-route" aria-label="Choose public OAP place">
+<option value="">Current page or address-bar OAP route</option>
+<option value="/world">OAP World</option>
+<option value="/oap-map">Maps</option>
+<option value="/the-link">The Link</option>
+<option value="/the-spot">The Spot</option>
+<option value="/the-spot/market">Market</option>
+<option value="/arena">Arena</option>
+<option value="/studio">Studio</option>
+<option value="/library">Library</option>
+<option value="/store">OAP Store</option>
+<option value="/search">OAP Search</option>
+</select>
+<h4>Open Places · This session</h4>
+<button id="open-place-add" type="button">+ Open Place</button>
+<ul id="open-place-list" class="place-list" aria-label="Open Places"></ul>
+<h4>Saved Places</h4>
+<button id="bookmark-add" type="button">+ Save Place</button>
+<ul id="bookmark-list" class="place-list" aria-label="Saved Places"></ul>
+<h4>Journey Threads · This session</h4>
+<ul id="recent-place-list" class="place-list" aria-label="Recently opened OAP destinations"></ul>
+<p>Downloads are handled by your browser or Android.</p>
+<p class="note" id="places-note" role="status" aria-live="polite"></p>
+</section>
+<section class="drawer-section" aria-label="Browser controls">
+<h3>Control</h3>
+<label for="quiet-appearance"><input id="quiet-appearance" type="checkbox"> Quiet appearance</label>
+<label for="reduce-motion"><input id="reduce-motion" type="checkbox"> Reduce motion</label>
+<h4>Search</h4><p>WWW Index results are not connected. OAP Search finds public apps.</p>
+<h4>Privacy &amp; Security · Trust Lens</h4>
+<p>External HTTPS asks first. Recent places are session-only. My World requires sign-in.</p>
+<button type="button" id="clear-browser-preferences">Clear local browser extras</button>
+<p id="settings-note" class="note" role="status"></p>
+<h4>About</h4><p>One first-party browser home.</p>
+</section>
+</div>
+</details>
+</header>
 <main id="main">
 <section class="hero" aria-label="KORADASO Internet home">
-<div class="crown" aria-hidden="true">♛</div><div class="crest" aria-hidden="true"><span>K</span></div>
-<h1>KORADASO</h1><div class="subtitle">INTERNET</div><div class="powered">POWERED BY ON ANY POSTCODE</div>
+<h1><img src="/static/oap/koradaso_internet_logo.jpg" alt="KORADASO Internet · Powered by ON ANY POSTCODE" width="1536" height="1536"></h1>
 </section>
-<form class="search" id="address-form" role="search">
-<input id="address" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Website address" placeholder="Search or type a website address…" required>
+<div class="search-row">
+<form class="search" id="address-form" role="search" action="/search" method="get">
+<input id="address" name="q" type="text" inputmode="search" enterkeyhint="go" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search or website address" placeholder="Search OAP or enter HTTPS address…" required>
 <button type="submit">GO</button>
 </form>
-<p class="note" id="address-note" role="status">Website addresses open outside OAP only with your confirmation. Search results are not connected.</p>
-<h2>EXPLORE YOUR WORLD</h2>
-<div class="grid">
-<a class="tile" href="/world"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>Discover OAP World</span></a>
-<a class="tile" href="/maps"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Places & routes</span></a>
-<a class="tile" href="/the-link"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>The Link</span></a>
-<a class="tile" href="/the-spot/market"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>First-party market</span></a>
-<a class="tile" href="/studio"><span class="ico" aria-hidden="true">✦</span><strong>Studio</strong><span>Create & explore</span></a>
-<a class="tile" href="/library"><span class="ico" aria-hidden="true">📚</span><strong>Library</strong><span>Knowledge & legacy</span></a>
+<a class="public-smi" href="/studio?source=koradaso" aria-label="Open public SMI Studio" data-koradaso-destination>SMI</a>
 </div>
-<nav class="nav" aria-label="KORADASO navigation"><a href="/world">OAP World</a><a href="/">OAP Home</a></nav>
-</main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
+<p id="trust-state" class="trust-state">Public OAP search · External HTTPS asks first</p>
+<p class="note" id="address-note" role="status" aria-live="polite"></p>
+<nav class="grid" aria-label="KORADASO destinations">
+<a class="tile" href="/world?source=oap-os" data-koradaso-destination><span class="ico" aria-hidden="true">🌍</span><strong>World</strong></a>
+<a class="tile" href="/oap-map" data-koradaso-destination><span class="ico" aria-hidden="true">🗺️</span><strong>Maps</strong></a>
+<a class="tile" href="/the-link" data-koradaso-destination><span class="ico" aria-hidden="true">🔗</span><strong>The Link</strong></a>
+<a class="tile" href="/the-spot/market" data-koradaso-destination><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong></a>
+<a class="tile" href="/arena" data-koradaso-destination><span class="ico" aria-hidden="true">🎮</span><strong>Arena</strong></a>
+<a class="tile" href="/studio" data-koradaso-destination><span class="ico" aria-hidden="true">🎬</span><strong>Studio</strong></a>
+<a class="tile" href="/library" data-koradaso-destination><span class="ico" aria-hidden="true">📚</span><strong>Library</strong></a>
+<a class="tile" href="/store" data-koradaso-store-entry data-koradaso-destination><span class="ico" aria-hidden="true">📱</span><strong>OAP Store</strong></a>
+</nav>
+<nav class="browser-bar" aria-label="Browser navigation">
+<button type="button" id="browser-back">← Back</button>
+<a href="/my-world" aria-label="Enter My World through Founder sign-in">Enter My World</a>
+</nav>
+</main>
+<footer>Born Local. Built Global. · Earth is our turf.</footer>
 </div>
 <script>
 (function(){
 "use strict";
-const form=document.getElementById("address-form"),field=document.getElementById("address"),note=document.getElementById("address-note");
-form.addEventListener("submit",function(e){
-e.preventDefault();const raw=field.value.trim();if(!raw){note.textContent="Enter a website address.";return;}
-if(/\s/.test(raw)){note.textContent="Search is not yet connected. Enter a website address.";return;}
-let url;try{url=new URL(/^https?:\/\//i.test(raw)?raw:"https://"+raw);}catch(_){note.textContent="Invalid address.";return;}
-if(url.protocol!=="https:"||!url.hostname.includes(".")||url.username||url.password||url.hostname==="localhost"||/^(?:\d{1,3}\.){3}\d{1,3}$/.test(url.hostname)||url.hostname.startsWith("[")){note.textContent="External addresses must be valid HTTPS domains.";return;}
-if(window.confirm("OPEN WEB — "+url.hostname+" is outside OAP. Continue?")){window.location.assign(url.href)}else{note.textContent="Stayed in KORADASO Internet."}
+const form=document.getElementById("address-form");
+const field=document.getElementById("address");
+const note=document.getElementById("address-note");
+const settings=document.getElementById("browser-settings");
+const placeNote=document.getElementById("places-note");
+const settingsNote=document.getElementById("settings-note");
+const quiet=document.getElementById("quiet-appearance");
+const motion=document.getElementById("reduce-motion");
+const allowedRoutes=new Set(["/koradaso","/world","/search","/the-spot","/oap-map","/the-link","/the-spot/market","/arena","/studio","/library","/store"]);
+const bookmarksKey="koradaso.public.saved_places.v1";
+const recentKey="koradaso.public.journey.v1";
+const openKey="koradaso.public.open_places.v1";
+const prefsKey="koradaso.public.appearance.v1";
+function readList(storage,key,limit){
+ try{const value=JSON.parse(storage.getItem(key)||"[]");return Array.isArray(value)?value.filter(v=>typeof v==="string"&&allowedRoutes.has(v)).slice(0,limit):[];}catch(_){return [];}
+}
+function saveList(storage,key,value,status){
+ try{storage.setItem(key,JSON.stringify(value));return true;}catch(_){if(status)status.textContent="Local browser storage unavailable.";return false;}
+}
+function routeFromInput(){
+ const selected=document.getElementById("place-route").value;
+ if(selected&&allowedRoutes.has(selected))return selected;
+ const raw=field.value.trim();
+ if(raw.startsWith("/")&&!raw.startsWith("//")){
+  try{const u=new URL(raw,location.origin);return u.origin===location.origin&&allowedRoutes.has(u.pathname)?u.pathname:null;}catch(_){return null;}
+ }
+ return allowedRoutes.has(location.pathname)?location.pathname:null;
+}
+function recordVisit(path){
+ if(!allowedRoutes.has(path))return;
+ const old=readList(sessionStorage,recentKey,12);
+ saveList(sessionStorage,recentKey,[path].concat(old.filter(v=>v!==path)).slice(0,12),placeNote);
+}
+function renderList(id,storage,key,limit){
+ const host=document.getElementById(id);
+ host.replaceChildren();
+ const items=readList(storage,key,limit);
+ if(!items.length){const li=document.createElement("li");li.className="muted";li.textContent="No places yet";host.append(li);return;}
+ for(const route of items){
+  const li=document.createElement("li");
+  const link=document.createElement("a");link.href=route;link.textContent=route;
+  link.addEventListener("click",()=>recordVisit(route));
+  li.append(link);
+  if(id!=="recent-place-list"){
+   const remove=document.createElement("button");remove.type="button";remove.textContent="×";
+   remove.setAttribute("aria-label","Remove "+route);
+   remove.addEventListener("click",()=>{
+    if(saveList(storage,key,readList(storage,key,limit).filter(v=>v!==route),placeNote))renderAll();
+   });li.append(remove);
+  }
+  host.append(li);
+ }
+}
+function renderAll(){
+ renderList("open-place-list",sessionStorage,openKey,8);
+ renderList("bookmark-list",localStorage,bookmarksKey,12);
+ renderList("recent-place-list",sessionStorage,recentKey,12);
+}
+document.getElementById("open-place-add").addEventListener("click",()=>{
+ const route=routeFromInput();if(!route){placeNote.textContent="Open Places accepts approved public OAP routes only.";return;}
+ const saved=readList(sessionStorage,openKey,8);
+ if(saved.includes(route)){placeNote.textContent="Place already open in this session.";return;}
+ if(saved.length>=8){placeNote.textContent="Close an Open Place first (8 maximum).";return;}
+ if(saveList(sessionStorage,openKey,saved.concat(route),placeNote)){placeNote.textContent="Open Place added.";renderAll();}
 });
+document.getElementById("bookmark-add").addEventListener("click",()=>{
+ const route=routeFromInput();if(!route){placeNote.textContent="Only public first-party OAP places can be saved.";return;}
+ const saved=readList(localStorage,bookmarksKey,12);
+ if(saved.includes(route)){placeNote.textContent="Place already saved.";return;}
+ if(saved.length>=12){placeNote.textContent="Saved Places full (12 maximum).";return;}
+ if(saveList(localStorage,bookmarksKey,saved.concat(route),placeNote)){placeNote.textContent="Saved to this browser.";renderAll();}
+});
+document.querySelectorAll("[data-koradaso-destination]").forEach(link=>{
+ link.addEventListener("click",()=>{try{const path=new URL(link.href,location.href).pathname;recordVisit(path);}catch(_){}});
+});
+function applyPreferences(){
+ document.body.classList.toggle("quiet-appearance",quiet.checked);
+ document.body.classList.toggle("reduce-motion",motion.checked);
+ try{localStorage.setItem(prefsKey,JSON.stringify({quiet:quiet.checked,motion:motion.checked}));}catch(_){settingsNote.textContent="Appearance saved for this page only.";}
+}
+try{const saved=JSON.parse(localStorage.getItem(prefsKey)||"{}");quiet.checked=saved.quiet===true;motion.checked=saved.motion===true;}catch(_){}
+document.body.classList.toggle("quiet-appearance",quiet.checked);
+document.body.classList.toggle("reduce-motion",motion.checked);
+quiet.addEventListener("change",applyPreferences);motion.addEventListener("change",applyPreferences);
+document.getElementById("clear-browser-preferences").addEventListener("click",()=>{
+ if(!window.confirm("Clear local public KORADASO Saved Places, recent places and preferences?"))return;
+ try{localStorage.removeItem(bookmarksKey);localStorage.removeItem(prefsKey);sessionStorage.removeItem(recentKey);sessionStorage.removeItem(openKey);}catch(_){settingsNote.textContent="Storage unavailable; nothing was confirmed cleared.";return;}
+ quiet.checked=false;motion.checked=false;document.body.classList.remove("quiet-appearance","reduce-motion");
+ settingsNote.textContent="Local public browser extras cleared.";renderAll();
+});
+document.getElementById("drawer-close").addEventListener("click",()=>{settings.open=false;settings.querySelector("summary").focus();});
+settings.addEventListener("keydown",event=>{if(event.key==="Escape"&&settings.open){settings.open=false;settings.querySelector("summary").focus();}});
+document.getElementById("browser-back").addEventListener("click",()=>{
+ try{const ref=document.referrer?new URL(document.referrer):null;
+  if(ref&&ref.origin===location.origin&&history.length>1){history.back();return;}
+ }catch(_){}
+ note.textContent="KORADASO is home. Use OAP World from the destinations above.";
+});
+form.addEventListener("submit",event=>{
+ event.preventDefault();
+ const raw=field.value.trim();
+ if(!raw){note.textContent="Enter an address or OAP search.";return;}
+ if(raw.startsWith("//")){note.textContent="Protocol-relative addresses are not allowed.";return;}
+ if(raw.startsWith("/")){
+  try{const url=new URL(raw,location.origin);
+   if(url.origin===location.origin&&allowedRoutes.has(url.pathname)){recordVisit(url.pathname);location.assign(url.pathname+url.search+url.hash);}
+   else note.textContent="Unknown OAP route. Use Explore or OAP Search.";
+  }catch(_){note.textContent="Invalid OAP route.";}
+  return;
+ }
+ const explicit=/^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
+ const hostLike=/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::[0-9]+)?(?:[/?#][^\s]*)?$/i.test(raw);
+ if(!explicit&&!hostLike){
+  if(raw.length>120){note.textContent="OAP Search accepts up to 120 characters.";return;}
+  recordVisit("/search");location.assign("/search?q="+encodeURIComponent(raw));return;
+ }
+ let url;try{url=new URL(explicit?raw:"https://"+raw);}catch(_){note.textContent="Invalid website address.";return;}
+ if(url.protocol!=="https:"||!url.hostname.includes(".")||url.hostname.includes("..")||url.username||url.password||url.hostname==="localhost"||/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(url.hostname)||url.hostname.startsWith("[")||!/^[a-z0-9.-]+$/i.test(url.hostname)){
+  note.textContent="External addresses must be valid HTTPS domains.";return;
+ }
+ if(window.confirm("OPEN WEB — "+url.hostname+" is outside OAP. Continue?")){window.location.assign(url.href);}
+ else note.textContent="Stayed in KORADASO Internet.";
+});
+renderAll();
 })();
 </script>
-</body></html>
+</body>
+</html>
