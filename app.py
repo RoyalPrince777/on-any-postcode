@@ -2783,12 +2783,16 @@ def linkup_front_door():
     # The plain /linkup public front door stays accessible without sign-in.
     requested_private_intent = str(request.args.get("intent") or "").strip().casefold()
     if not user and requested_private_intent in {"message", "link-call"}:
-        return redirect(
+        response = redirect(
             url_for(
                 "auth_page",
                 next=url_for("linkup_front_door", intent=requested_private_intent),
             )
         )
+        # Never cache a private member sign-in handoff.
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
 
     if not user:
         public_card = session.get(PUBLIC_MY_CARD_SESSION_KEY)
