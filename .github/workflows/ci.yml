@@ -6,6 +6,8 @@ on:
     branches:
       - main
       - organism-canonical-78
+      # Temporary draft-only head proof; PR merge conflicts still block release.
+      - feature/koradaso-reference-ui-20261102
 
 permissions:
   contents: read
