@@ -29,6 +29,10 @@
           headers: {"Content-Type": "application/json", "X-OAP-CSRF": csrf},
           body: JSON.stringify({profile, payload: {mode: "self_assess", checks}}),
         });
+        if (!response.ok) {
+          output.textContent = "Protected review blocked (" + response.status + "). No verification or change confirmed.";
+          return;
+        }
         const result = await response.json();
         output.textContent = JSON.stringify(result, null, 2);
       } catch {
@@ -77,6 +81,10 @@
           headers: {"Content-Type": "application/json", "X-OAP-CSRF": csrf},
           body: JSON.stringify({profile, payload}),
         });
+        if (!response.ok) {
+          output.textContent = "Protected review blocked (" + response.status + "). No verification or change confirmed.";
+          return;
+        }
         const result = await response.json();
         output.textContent = JSON.stringify(result, null, 2);
       } catch {
