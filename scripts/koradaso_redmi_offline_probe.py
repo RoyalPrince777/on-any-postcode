@@ -11,6 +11,12 @@ import json
 import time
 from urllib import error, request
 
+class _NoRedirect(request.HTTPRedirectHandler):
+    """Prevent any loopback probe from following a redirect off the device."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 _TAGS = "http://127.0.0.1:11434/api/tags"
 _CHAT = "http://127.0.0.1:11434/api/chat"
 
@@ -23,7 +29,7 @@ def probe_local(model: str, *, timeout: float = 45, opener=None) -> dict[str, ob
         raise ValueError("invalid_local_model_name")
     if not 3 <= timeout <= 120:
         raise ValueError("timeout_out_of_bounds")
-    client = opener or request.build_opener(request.ProxyHandler({}))
+    client = opener or request.build_opener(request.ProxyHandler({}), _NoRedirect())
     try:
         req = request.Request(_TAGS, headers={"Accept": "application/json"})
         with client.open(req, timeout=5) as response:
