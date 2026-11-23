@@ -125,3 +125,20 @@ def test_route_empire_ui_calls_real_route_action(client):
     assert 'action:"route"' in script
     assert 'target_node_id:q("[data-route-to]").value' in script
     assert 'node_id:q("[data-route-from]").value' in script
+
+
+def test_connect4_existing_local_board_uses_oap_gold_style_and_seven_disc_colours(client):
+    html = client.get("/arena/connect4").get_data(as_text=True)
+    script = client.get("/static/connect4.js").get_data(as_text=True)
+    assert 'data-mode' in html and '<option value="human">Person</option>' in html
+    assert 'data-controls' in html and 'data-board' in html
+    assert 'data-color-p1' in html and 'data-color-p2' in html
+    assert 'c4-board{padding:' in html and 'border:3px solid #cda44a' in html
+    for colour in ("gold", "red", "blue", "green", "purple", "orange", "white"):
+        assert f'<option value="{colour}"' in html
+    assert 'button.textContent=String(column+1)' in script
+    assert 'button.textContent="↓"' not in script
+    assert 'Choose two different disc colours.' in script
+    assert 'root.style.setProperty("--c4-one"' in script
+    assert 'root.style.setProperty("--c4-two"' in script
+    assert 'action("/arena/connect4/drop"' in script
