@@ -12,6 +12,28 @@ def test_six_founder_alliances_preserve_passports_and_authority():
     rows = board["members"]
     assert board["brain"] == "SMI"
     assert board["scope"] == "founder_private_read_only"
+    leadership = board["leadership"]
+    assert leadership["smi"]["kind"] == "single_brain"
+    assert leadership["kernel"]["name"] == "Living Kernel"
+    assert leadership["kernel"]["kind"] == "governed_organism_system"
+    assert leadership["kernel"]["agent_rating"] is None
+    assert leadership["kernel"]["runtime_verified"] is False
+    assert leadership["commander"]["name"] == "Commander ALL IN"
+    assert leadership["commander"]["previous_title"] == "Captain"
+    assert leadership["commander"]["reports_to"] == "SMI"
+    assert leadership["commander"]["historical_role_fit"] == 7
+    assert leadership["commander"]["live_performance_rating"] is None
+    assert leadership["commander"]["permissions_expanded"] is False
+    assert leadership["commander"]["execution_granted"] is False
+    ratings = board["ratings_review"]
+    assert ratings["mode"] == "historic_role_fit_only"
+    assert ratings["live_performance_verified"] is False
+    assert ratings["earned_career_stars_granted"] is False
+    role_fit = {r["name"]: r["historical_role_fit"] for r in ratings["rows"]}
+    assert role_fit == {
+        "Shere Khan": 7, "Agent Smiths": None, "Bagheera": 7,
+        "Octopus": 7, "Queen Bee": 7, "The Twins": None,
+    }
     assert tuple(x["name"] for x in rows) == (
         "Shere Khan", "Agent Smiths", "Bagheera", "Octopus",
         "Queen Bee", "The Twins",
@@ -79,6 +101,11 @@ def test_command_room_contains_single_read_only_alliance_view():
     assert 'const alliancePanel=document.createElement("section")' in ui
     assert 'universe.after(alliancePanel)' in ui
     assert "Other existing alliance families" in ui
+    assert "SMI Kernel and Commander ratings review" in ui
+    assert "Living Kernel" in ui
+    assert "Commander ALL IN" in ui
+    assert "smi-alliance-leadership" in css
+    assert "Historic advisory role-fit:" in ui
     assert "smi-alliance-families" in css
     assert 'consult.textContent="Review in SMI"' in ui
     assert 'input.value="SMI, review with the "+String(item.name)+" advisory perspective: "+existing' in ui
