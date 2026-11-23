@@ -594,6 +594,10 @@ def main():
                 "source_pixel_feather_no_anatomy_approval"
             )
             assert motion_after["fullBodyRigProven"] is False
+            assert motion_after["fullArticulatedMotionProven"] is False
+            assert motion_after["poseEasing"] == (
+                "bounded_time_based_source_pixel_only"
+            )
             assert canvas.evaluate(
                 "el => el.width === 1536 && el.height === 1024"
             )
