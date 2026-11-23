@@ -240,7 +240,7 @@ def _extract_text(payload: dict) -> str:
     return "\n".join(parts).strip()
 
 
-def ask(message: object, *, rate_key: str, history: object = None) -> dict:
+def ask(message: object, *, rate_key: str, history: object = None, first_party_only: bool = False) -> dict:
     clean = _clean(message)
     if not clean:
         raise ValueError("message_required")
@@ -269,15 +269,17 @@ def ask(message: object, *, rate_key: str, history: object = None) -> dict:
             smi_history,
             brain,
             code_mode=(mode == "code"),
+            **({"first_party_only": True} if first_party_only else {}),
         )
     except (RuntimeError, PublicStudioUnavailable) as exc:
         raise PublicStudioUnavailable("public_smi_unavailable") from exc
 
     return {
         "answer": answer,
-        "assistant": "OAP Studio Intelligence",
+        "assistant": "SMI · KORADASO Intelligence" if first_party_only else "OAP Studio Intelligence",
         "brain": "SMI",
         "smi_surface": "public",
+        "first_party_only": first_party_only,
         "memory_saved": False,
         "private_smi_used": False,
         "execution_authority": False,

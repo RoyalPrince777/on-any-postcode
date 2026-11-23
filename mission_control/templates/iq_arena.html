@@ -17,13 +17,11 @@
 <body>
 <main class="mc-shell arena-game" data-iq-root>
   <section class="card">
-    <nav class="arena-nav" aria-label="Arena navigation"><a href="/arena">← All games</a> · <a href="/arena/iq/room">Duel Room</a></nav><p class="arena-hint">OAP Arena · First-party game</p>
-    <h1>🧠 IQ Arena</h1>
-    <p><strong>Think. Solve. Adapt.</strong></p>
-    <p>Seven-domain first-party skills challenge: Logic, Patterns, Memory, Spatial, Numbers, Language and Strategy.</p>
+    {% from "_arena_game_header.html" import game_header %}
+{{ game_header("IQ Arena", "/arena/iq/room", "Online room", "Think. Solve. Adapt.") }}
     <p><strong>Truth boundary:</strong> this is not a clinical or standardized IQ test. It reports only an in-game skill profile.</p>
-    <div class="arena-actions"><button class="arena-primary" type="button" data-start>Start IQ Arena</button>
-    <button class="arena-stop" type="button" data-stop disabled>STOP</button></div>
+    <div class="arena-actions"><button class="arena-primary" type="button" data-start>Play</button>
+    <button class="arena-stop" type="button" data-stop disabled>Stop</button></div>
     <p class="arena-error" data-error role="alert"></p>
   </section>
   <section class="card" data-play hidden>

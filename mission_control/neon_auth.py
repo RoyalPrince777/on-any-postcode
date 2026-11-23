@@ -116,6 +116,16 @@ def configured_public_origin() -> str:
     return value.removesuffix("/")
 
 
+def founder_sign_in_ready() -> bool:
+    """Check the configuration required by the selected Founder verifier."""
+
+    if local_founder_ready():
+        return founder_local_auth.session_signing_ready()
+    return bool(
+        status()["valid"] and configured_founder_email() and configured_public_origin()
+    )
+
+
 def _required_public_origin() -> str:
     """Require the exact application origin for every state-changing Auth call."""
 
@@ -302,8 +312,7 @@ def get_session(cookie_header: str) -> AuthResult:
             status_code=200,
             payload={"session": {"id": "render-local-founder"}, "user": local_user},
         )
-    # A present but invalid local Founder cookie must not fall through to
-    # remote managed Auth. Keep other managed-user cookies on their own path.
+    # Invalid local Founder session must never fall through to managed auth.
     if founder_local_auth._token_from_cookie_header(cookie_header):
         return AuthResult(
             status_code=401, payload={"code": "LOCAL_FOUNDER_SESSION_INVALID"}

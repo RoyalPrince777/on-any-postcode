@@ -14,6 +14,7 @@ import re
 import time
 from collections.abc import Callable
 from contextvars import ContextVar
+from ipaddress import ip_address
 from typing import Any
 from urllib import request as urlrequest
 from urllib.error import HTTPError, URLError
@@ -48,6 +49,23 @@ BRIDGE_ENABLED = os.environ.get("OAP_HOME_NODE_BRIDGE_ENABLED", "1").strip().low
     "no",
     "off",
 }
+
+# Explicit privacy policy, not a claim that the whole Android device is offline.
+OFFLINE_ONLY = os.environ.get("OAP_INFERENCE_OFFLINE_ONLY", "0").strip().lower() in {
+    "1", "true", "yes", "on",
+}
+
+
+def _local_endpoint_allowed() -> bool:
+    """Never send Founder prompts to a non-loopback 'local' endpoint."""
+    parts = urlsplit(LOCAL_URL)
+    if parts.scheme != "http" or parts.username or parts.password:
+        return False
+    try:
+        return bool(parts.hostname and ip_address(parts.hostname).is_loopback)
+    except ValueError:
+        return parts.hostname == "localhost"
+
 
 
 PUBLIC_SMI_SYSTEM = (
@@ -209,7 +227,7 @@ def _call_local_public(
     *,
     code_mode: bool,
 ) -> str:
-    if not LOCAL_ENABLED or not LOCAL_URL or not LOCAL_MODEL:
+    if not LOCAL_ENABLED or not LOCAL_URL or not LOCAL_MODEL or not _local_endpoint_allowed():
         raise RuntimeError("local_inference_disabled")
     req = urlrequest.Request(
         LOCAL_URL,
@@ -239,7 +257,7 @@ def _call_bridge_public(
     *,
     code_mode: bool,
 ) -> str:
-    if not BRIDGE_ENABLED:
+    if OFFLINE_ONLY or not BRIDGE_ENABLED:
         raise RuntimeError("home_node_bridge_disabled")
     return home_node_bridge.submit_inference(
         _public_payload(message, history, brain, code_mode=code_mode)
@@ -287,7 +305,7 @@ def _call_local(
     *,
     code_mode: bool,
 ) -> str:
-    if not LOCAL_ENABLED or not LOCAL_URL or not LOCAL_MODEL:
+    if not LOCAL_ENABLED or not LOCAL_URL or not LOCAL_MODEL or not _local_endpoint_allowed():
         raise RuntimeError("local_inference_disabled")
     req = urlrequest.Request(
         LOCAL_URL,
@@ -345,7 +363,7 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
         "model": LOCAL_MODEL,
         "reason": "local_inference_disabled" if not LOCAL_ENABLED else "unverified",
     }
-    if LOCAL_ENABLED and LOCAL_URL and LOCAL_MODEL:
+    if LOCAL_ENABLED and LOCAL_URL and LOCAL_MODEL and _local_endpoint_allowed():
         req = urlrequest.Request(
             _tags_url(),
             headers={"Accept": "application/json"},
@@ -418,6 +436,8 @@ def generate(
             if cancel_check is not None:
                 cancel_check()
             first_party_error = exc
+        if OFFLINE_ONLY:
+            raise RuntimeError("first_party_inference_required") from first_party_error
         try:
             text = _call_bridge(
                 message,
@@ -439,7 +459,7 @@ def generate(
             first_party_error = exc
     if cancel_check is not None:
         cancel_check()
-    if not FALLBACK_ENABLED:
+    if OFFLINE_ONLY or not FALLBACK_ENABLED:
         raise RuntimeError("first_party_inference_required") from first_party_error
     if not os.environ.get("OPENAI_API_KEY", "").strip() and first_party_error is not None:
         raise first_party_error
@@ -466,6 +486,7 @@ def generate_public(
     brain: dict | None = None,
     *,
     code_mode: bool = False,
+    first_party_only: bool = False,
 ) -> str:
     """Public SMI surface: same inference gateway, public authority envelope."""
 
@@ -483,6 +504,8 @@ def generate_public(
         )
     except RuntimeError as exc:
         first_party_error = exc
+    if OFFLINE_ONLY:
+        raise RuntimeError("first_party_inference_required") from first_party_error
     try:
         return _call_bridge_public(
             message,
@@ -492,7 +515,7 @@ def generate_public(
         )
     except RuntimeError as exc:
         first_party_error = exc
-    if not FALLBACK_ENABLED:
+    if first_party_only or not FALLBACK_ENABLED:
         raise RuntimeError("first_party_inference_required") from first_party_error
     return compatibility_engine(
         message,
@@ -518,7 +541,8 @@ def status(*, probe: bool = False) -> dict[str, Any]:
     first_party_ready = bool(
         (proof.get("reachable") and proof.get("model_available"))
         or (
-            bridge.get("configured")
+            not OFFLINE_ONLY
+            and bridge.get("configured")
             and (
                 bridge.get("worker_recently_seen")
                 or bridge.get("durable_worker_fresh")
@@ -528,6 +552,10 @@ def status(*, probe: bool = False) -> dict[str, Any]:
     return {
         "gateway": "OAP Inference Gateway",
         "local_first": True,
+        "offline_only_policy_enabled": OFFLINE_ONLY,
+        "offline_only_model_available": bool(OFFLINE_ONLY and proof.get("reachable") and proof.get("model_available")),
+        "device_wide_no_egress_proven": False,
+        "local_endpoint_loopback": _local_endpoint_allowed(),
         "local_enabled": LOCAL_ENABLED,
         "local_url_configured": bool(LOCAL_URL),
         "local_model_configured": bool(LOCAL_MODEL),

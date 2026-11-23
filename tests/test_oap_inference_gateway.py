@@ -30,7 +30,9 @@ def test_personal_smi_runtime_routes_through_gateway_before_core_provider():
 def test_gateway_does_not_claim_full_provider_removal():
     text = (ROOT / "mission_control" / "oap_inference_gateway.py").read_text()
     assert "compatibility engine only while first-party inference is not certified" in text
-    assert "if not FALLBACK_ENABLED" in text
+    assert "if OFFLINE_ONLY or not FALLBACK_ENABLED" in text
+    assert "if first_party_only or not FALLBACK_ENABLED" in text
+    assert "_local_endpoint_allowed()" in text
     assert 'raise RuntimeError("first_party_inference_required")' in text
     assert '"sovereign_inference_ready": bool(first_party_ready and not FALLBACK_ENABLED)' in text
 
@@ -136,3 +138,51 @@ def test_gateway_records_observed_success_path_and_clears_stale_evidence(monkeyp
     with pytest.raises(RuntimeError, match="not_available"):
         gateway.generate(unavailable, "hello")
     assert gateway.observed_inference_route() is None
+
+
+def test_offline_only_never_uses_bridge_or_compatibility(monkeypatch):
+    import pytest
+
+    gateway = oap_inference_gateway
+    monkeypatch.setattr(gateway, "OFFLINE_ONLY", True)
+    monkeypatch.setattr(gateway, "_call_local", lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("offline_down")))
+    monkeypatch.setattr(gateway, "_call_bridge", lambda *_args, **_kwargs: pytest.fail("bridge must not run"))
+    monkeypatch.setattr(gateway, "FALLBACK_ENABLED", True)
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        gateway.generate(lambda *_args, **_kwargs: pytest.fail("cloud fallback must not run"), "hello")
+    assert gateway.observed_inference_route() is None
+
+    monkeypatch.setattr(gateway, "_call_local_public", lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("offline_down")))
+    monkeypatch.setattr(gateway, "_call_bridge_public", lambda *_args, **_kwargs: pytest.fail("public bridge must not run"))
+    with pytest.raises(RuntimeError, match="first_party_inference_required"):
+        gateway.generate_public(lambda *_args, **_kwargs: pytest.fail("public cloud must not run"), "hello")
+
+
+def test_local_endpoint_is_strict_loopback(monkeypatch):
+    gateway = oap_inference_gateway
+    for address in (
+        "http://127.0.0.1:11434/api/chat",
+        "http://localhost:4891/v1/chat/completions",
+        "http://[::1]:4891/api/chat",
+    ):
+        monkeypatch.setattr(gateway, "LOCAL_URL", address)
+        assert gateway._local_endpoint_allowed() is True
+    for address in (
+        "https://example.org/api/chat",
+        "http://192.168.1.5:11434/api/chat",
+        "http://127.0.0.1.evil.org/api/chat",
+        "http://founder:secret@127.0.0.1:4891/api/chat",
+    ):
+        monkeypatch.setattr(gateway, "LOCAL_URL", address)
+        assert gateway._local_endpoint_allowed() is False
+
+
+def test_offline_status_does_not_claim_network_proof(monkeypatch):
+    gateway = oap_inference_gateway
+    monkeypatch.setattr(gateway, "OFFLINE_ONLY", True)
+    monkeypatch.setattr(gateway, "LOCAL_URL", "http://127.0.0.1:11434/api/chat")
+    monkeypatch.setattr(gateway, "probe_local", lambda **_kw: {"reachable": True, "model_available": True})
+    status = gateway.status(probe=True)
+    assert status["offline_only_policy_enabled"] is True
+    assert status["offline_only_model_available"] is True
+    assert status["device_wide_no_egress_proven"] is False

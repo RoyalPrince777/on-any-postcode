@@ -1,16 +1,28 @@
 (()=>{"use strict";
 const root=document.querySelector("[data-ludo-room]");if(!root)return;const q=s=>root.querySelector(s);
 const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
+const renderBoard=window.OAPLudoBoard.mount(root);
+const pickers=[...root.querySelectorAll("[data-room-colour]")];
+for(const picker of pickers){
+ picker.onchange=render;
+}
 let membership=null,snapshot=null,busy=false,entryBusy=false,needsRefresh=false;
 const req=()=>crypto.randomUUID().replaceAll("-","").slice(0,20);const err=e=>q("[data-error]").textContent=e?.message||String(e);const clear=()=>q("[data-error]").textContent="";
 async function post(path,body){const r=await fetch(path,{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d?.error?.code||"arena_room_request_failed");return d;}
 function identity(d,seat){membership={room_id:d.room_id,reconnect_token:d.reconnect_token,seat};q("[data-entry]").hidden=true;q("[data-room]").hidden=false;q("[data-id]").textContent=membership.room_id;q("[data-token]").textContent=membership.reconnect_token;q("[data-code]").textContent=d.room_code||"";}
 function render(){if(!membership||!snapshot)return;const g=snapshot.game_state||{};q("[data-code]").textContent=snapshot.room_code;q("[data-status]").textContent=snapshot.status;q("[data-revision]").textContent=String(snapshot.revision);
-q("[data-players]").textContent=snapshot.players.map(p=>p.display_name+" (Seat "+p.seat+")").join(" vs ");const mine=membership.seat===1?"p1":"p2";const myTurn=snapshot.status==="ACTIVE"&&(!g.started||g.current_player_id===mine);
-q("[data-turn]").textContent=snapshot.status==="WAITING"?"Waiting for another player":g.status==="completed"?"Game completed":g.status==="stopped"?"Match stopped":myTurn?"Your turn":"Other player's turn";
-q("[data-roll-value]").textContent=g.pending_roll??"—";q("[data-roll]").disabled=busy||needsRefresh||!myTurn||g.pending_roll!=null;q("[data-stop]").disabled=busy||needsRefresh||snapshot.status!=="ACTIVE";
-const box=q("[data-pieces]");box.replaceChildren();for(const p of g.players||[]){const sec=document.createElement("section"),title=document.createElement("strong"),row=document.createElement("div");title.textContent=p.name+" · "+p.finished+"/4 home";row.className="arena-actions";
-for(const piece of p.pieces){const b=document.createElement("button");b.type="button";b.dataset.piece=piece.id;b.textContent=piece.id+" · "+piece.zone+(piece.track_square!==null?" "+(piece.track_square+1):"");b.disabled=busy||needsRefresh||!myTurn||p.id!==mine||!(g.movable_piece_ids||[]).includes(piece.id);b.onclick=()=>action({action:"move",piece_id:piece.id});row.append(b);}sec.append(title,row);box.append(sec);}}
+const mine=membership.seat===1?"p1":"p2";const myTurn=snapshot.status==="ACTIVE"&&(!g.started||g.current_player_id===mine);
+q("[data-turn]").textContent=snapshot.status==="WAITING"?"Waiting for another player":g.status==="completed"?g.winner_name+" wins":g.status==="stopped"?"Match stopped":myTurn?"Your turn":"Other player’s turn";
+q("[data-stop]").disabled=busy||needsRefresh||snapshot.status!=="ACTIVE";
+for(const [index,picker] of pickers.entries()){
+ for(const option of picker.options)option.disabled=option.value===pickers[1-index].value;
+}
+renderBoard(g,pickers.map(picker=>picker.value),!busy&&!needsRefresh&&myTurn);
+}
+root.addEventListener("click",event=>{
+ const piece=event.target.closest("[data-piece]");
+ if(piece&&!piece.disabled)action({action:"move",piece_id:piece.dataset.piece});
+});
 async function refresh(){const d=await post("/arena/rooms/state",{room_id:membership.room_id,reconnect_token:membership.reconnect_token});if(d.game_key!=="ludo")throw new Error("arena_room_game_invalid");snapshot=d;membership.seat=d.your_seat;needsRefresh=false;render();}
 async function enter(task){if(entryBusy||busy)return;entryBusy=true;clear();try{await task();}catch(e){err(e);}finally{entryBusy=false;}}
 async function action(body){if(busy||needsRefresh||!membership||!snapshot)return;busy=true;render();clear();try{await post("/arena/rooms/ludo/action",{...membership,expected_revision:snapshot.revision,request_id:req(),...body});await refresh();}catch(e){err(e);needsRefresh=true;try{await refresh();}catch(_){}}finally{busy=false;render();}}

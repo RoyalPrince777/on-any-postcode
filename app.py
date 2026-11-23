@@ -1,3 +1,4 @@
+import hashlib
 import hmac
 import json
 import logging
@@ -508,14 +509,14 @@ def oap_os_manifest():
 def oap_os_service_worker():
     """Serve the public-only worker at the root scope with prompt updates."""
 
-    response = send_from_directory(
-        os.path.join(app.root_path, "static"),
-        "oap-os-sw.js",
-        mimetype="application/javascript",
-        max_age=0,
-    )
+    with open(os.path.join(app.root_path, "static", "oap-os-sw.js"), encoding="utf-8") as source:
+        worker = source.read()
+    worker = worker.replace("__KORADASO_RELEASE__", _koradaso_public_release_id())
+    response = make_response(worker)
+    response.mimetype = "application/javascript"
     response.headers["Cache-Control"] = "no-cache"
     response.headers["Service-Worker-Allowed"] = "/"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -631,11 +632,51 @@ def _load_public_snapshot():
         app.logger.warning("durable_public_read_failed")
         return _local_public_snapshot()
 
+_KORADASO_PUBLIC_RELEASE_FILES = (
+    "templates/koradaso_internet.html",
+    "templates/studio_public.html",
+    "static/koradaso_auto_update.js",
+    "static/oap-os-sw.js",
+    "static/oap-os-offline.html",
+    "static/oap-os.js",
+    "static/manifest.webmanifest",
+    "static/oap_public.css",
+    "static/oap-os-icon-192.png",
+    "static/oap-os-icon-512.png",
+    "static/oap/koradaso_internet_logo.jpg",
+)
+
+
+def _koradaso_public_release_id() -> str:
+    """Digest public shell files only; no private data, version bump or deploy claim."""
+    digest = hashlib.sha256()
+    for relative_path in _KORADASO_PUBLIC_RELEASE_FILES:
+        path = os.path.join(app.root_path, relative_path)
+        with open(path, "rb") as source:
+            digest.update(relative_path.encode("utf-8"))
+            digest.update(source.read())
+    return digest.hexdigest()[:20]
+
+
+@app.get("/koradaso/release")
+def koradaso_public_release():
+    """Read-only first-party public shell fingerprint, never an update trigger."""
+    response = make_response(jsonify(release=_koradaso_public_release_id()))
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 @app.get("/studio")
 def public_studio():
     """Public OAP Studio Intelligence shell; no private SMI authority is exposed."""
 
-    response = make_response(render_template("studio_public.html"))
+    # KORADASO presentation only: reuse the bounded public Studio gateway.
+    response = make_response(render_template(
+        "studio_public.html",
+        koradaso_mode=request.args.get("source") == "koradaso",
+        koradaso_release=_koradaso_public_release_id(),
+    ))
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
@@ -651,7 +692,12 @@ def public_studio_chat():
         return jsonify(error={"code": "invalid_request", "message": "A JSON object is required."}), 400
     client_key = str(request.remote_addr or "anonymous")
     try:
-        result = public_studio_runtime.ask(payload.get("message"), rate_key=client_key, history=payload.get("history"))
+        result = public_studio_runtime.ask(
+            payload.get("message"),
+            rate_key=client_key,
+            history=payload.get("history"),
+            first_party_only=payload.get("source") == "koradaso",
+        )
         response = make_response(jsonify(result))
         response.headers["Cache-Control"] = "no-store"
         return response
@@ -669,14 +715,24 @@ def public_studio_chat():
 
 @app.get("/")
 def root_front_door():
-    return redirect("/world", code=302)
+    """KORADASO is the public browser front door; OAP World stays at /world."""
+    return redirect("/koradaso", code=302)
 
 
 @app.get("/koradaso")
 def koradaso_internet_home():
     """First-party KORADASO browser start page; no access or release grants."""
-    response = make_response(render_template("koradaso_internet.html"))
+    response = make_response(render_template(
+        "koradaso_internet.html", koradaso_release=_koradaso_public_release_id()
+    ))
     response.headers["Cache-Control"] = "no-store"
+    # Keep KORADASO page context out of external website requests.
+    # Browser traffic remains on the user device, not an OAP proxy.
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), payment=()"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
@@ -1436,10 +1492,13 @@ def ludo_start():
         return denied
     try:
         payload = _arena_payload()
-        state = ludo.new_game(payload.get("players"))
+        mode = payload.get("opponent_mode", "human")
+        if mode not in ("human", "agent"):
+            raise ValueError("ludo_opponent_mode_invalid")
+        state = ludo.new_game(payload.get("players"), versus_agent=mode == "agent")
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
-    session[ludo.SESSION_KEY] = state
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
     session.modified = True
     return _arena_json(ludo.public_state(state), 201)
 
@@ -1457,7 +1516,7 @@ def ludo_roll():
         )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
-    session[ludo.SESSION_KEY] = state
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
     session.modified = True
     return _arena_json(ludo.public_state(state))
 
@@ -1476,7 +1535,25 @@ def ludo_move():
         )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
-    session[ludo.SESSION_KEY] = state
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
+    session.modified = True
+    return _arena_json(ludo.public_state(state))
+
+
+@app.post("/arena/ludo/agent-turn")
+def ludo_agent_turn():
+    denied = _arena_write_allowed()
+    if denied is not None:
+        return denied
+    try:
+        payload = _arena_payload()
+        state = ludo.agent_step(
+            session.get(ludo.SESSION_KEY),
+            request_id=payload.get("request_id"),
+        )
+    except (TypeError, ValueError) as exc:
+        return _arena_error(exc)
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
     session.modified = True
     return _arena_json(ludo.public_state(state))
 
@@ -1491,7 +1568,7 @@ def ludo_stop():
         state = ludo.stop(session.get(ludo.SESSION_KEY), request_id=payload.get("request_id"))
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
-    session[ludo.SESSION_KEY] = state
+    session[ludo.SESSION_KEY] = ludo.local_session_state(state)
     session.modified = True
     return _arena_json(ludo.public_state(state))
 
@@ -1499,7 +1576,10 @@ def ludo_stop():
 @app.get("/arena/oware")
 def oware_page():
     response = make_response(
-        render_template("oware.html", csrf_token=web_security.csrf_token())
+        render_template(
+            "oware.html", csrf_token=web_security.csrf_token(),
+            opening_pits=[oware.INITIAL_SEEDS_PER_PIT] * oware.PIT_COUNT,
+        )
     )
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -1512,12 +1592,23 @@ def oware_start():
         return denied
     try:
         payload = _arena_payload()
-        state = oware.new_game(payload.get("players"))
+        state = oware.new_game(
+            payload.get("players"), agent_level=payload.get("agent_level"),
+            variant=payload.get("variant", "abapa"),
+        )
     except (TypeError, ValueError) as exc:
         return _arena_error(exc)
     session[oware.SESSION_KEY] = state
     session.modified = True
     return _arena_json(oware.public_state(state), 201)
+
+
+@app.get("/arena/oware/state")
+def oware_state():
+    try:
+        return _arena_json(oware.public_state(session.get(oware.SESSION_KEY)))
+    except ValueError as exc:
+        return _arena_error(exc)
 
 
 @app.post("/arena/oware/move")
@@ -1527,8 +1618,11 @@ def oware_move():
         return denied
     try:
         payload = _arena_payload()
-        state = oware.move(
-            session.get(oware.SESSION_KEY),
+        state = session.get(oware.SESSION_KEY)
+        if payload.get("game_id") is not None and payload["game_id"] != (state or {}).get("game_id"):
+            raise ValueError("oware_game_changed")
+        state = oware.play_local_turn(
+            state,
             pit=payload.get("pit"),
             request_id=payload.get("request_id"),
         )
@@ -1546,8 +1640,11 @@ def oware_stop():
         return denied
     try:
         payload = _arena_payload()
+        state = session.get(oware.SESSION_KEY)
+        if payload.get("game_id") is not None and payload["game_id"] != (state or {}).get("game_id"):
+            raise ValueError("oware_game_changed")
         state = oware.stop(
-            session.get(oware.SESSION_KEY),
+            state,
             request_id=payload.get("request_id"),
         )
     except (TypeError, ValueError) as exc:
@@ -1973,16 +2070,10 @@ def _auth_page_response(
     next_path: str = "/my-world",
 ):
     founder_only = _founder_only_path(next_path)
-    local_founder_ready = founder_only and neon_auth.local_founder_ready()
     auth_ready = (
-        local_founder_ready
-        or (
-            neon_auth.status()["valid"]
-            and (
-                not founder_only
-                or bool(neon_auth.configured_founder_email())
-            )
-        )
+        neon_auth.founder_sign_in_ready()
+        if founder_only
+        else neon_auth.status()["valid"]
     )
     response = make_response(
         render_template(
@@ -4218,5 +4309,11 @@ def global_affairs_recovery(authority_record_id: str):
 
 
 if __name__ == "__main__":
-    # The local Core uses one loopback-only route; private SMI remains gated.
-    app.run(host="127.0.0.1", port=5000, debug=False, use_reloader=False)
+    # Private SMI defaults to 5000. Explicit 5052 permits local KORADASO review.
+    # A single local process is not proof of a separate public deployment.
+    app.run(
+        host="127.0.0.1",
+        port=int(os.environ.get("OAP_KORADASO_PORT", "5000")),
+        debug=False,
+        use_reloader=False,
+    )
