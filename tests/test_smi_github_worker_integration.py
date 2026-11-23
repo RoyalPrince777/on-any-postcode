@@ -62,7 +62,7 @@ def test_worker_continues_smi_mission_without_button_or_new_job(monkeypatch):
         "inspect_mission_continuity", inspect,
     )
     result = organism_worker._health_probe(None)
-    assert observed == [1413, 1411]
+    assert observed == [1413, 1411, 1234, 1318]
     assert result["github_failure_evidence"]["captain_next_move"] == "continue_target_proof"
     assert result["github_failure_evidence"]["captain_automatic_observation"] is True
     assert result["github_failure_evidence"]["captain_code_execution"] is False
