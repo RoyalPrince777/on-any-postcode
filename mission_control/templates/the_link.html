@@ -7,112 +7,91 @@
   <title>OAP The Link</title>
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <style>
-    .link-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-    .link-card{display:flex;flex-direction:column;gap:8px;border:1px solid var(--mc-line);border-radius:16px;background:var(--mc-panel-soft);padding:18px;color:var(--mc-text);text-decoration:none}
-    .link-card:hover,.link-card:focus-visible{border-color:var(--mc-green);outline:none}.link-card strong{font-size:1.1rem}.link-card small{color:var(--mc-muted)}
-    .link-boundaries{display:grid;gap:10px;padding:0;list-style:none}.link-boundaries li{border-left:3px solid var(--mc-green);padding:8px 12px}.link-status{color:var(--mc-muted)}
+    .link-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+    .link-card {display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0;min-height:56px;box-sizing:border-box;border:1px solid var(--mc-line);border-radius:14px;background:var(--mc-panel-soft);padding:14px;color:var(--mc-text);text-decoration:none;overflow-wrap:anywhere}
+    .link-card:hover,.link-card:focus-visible {border-color:var(--mc-green);outline:2px solid var(--mc-green);outline-offset:2px}
+    .link-card strong {font-size:1rem;line-height:1.3}
+    .link-card span {position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .link-card small {color:var(--mc-muted)}
+    .mc-link-header .mc-header-actions a {min-height:44px;display:inline-flex;align-items:center}
+    .link-more {border:1px solid var(--mc-line);border-radius:14px;padding:12px 14px}
+    .link-more summary {cursor:pointer;font-weight:800;min-height:44px;display:flex;align-items:center}
+    .link-more[open] summary {margin-bottom:8px}
+    .link-more h2 {position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden;white-space:nowrap}
+    .link-more .link-grid {margin:8px 0 12px}
+    .link-more .link-card small {display:none}
+    .link-status {margin:10px 0 0;color:var(--mc-muted);font-size:.9rem}
+    @media (max-width:640px) {
+      .link-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+      .link-card {align-items:center;text-align:center;padding:12px 8px;min-height:56px}
+      .link-card strong {font-size:.9rem}
+      .link-card small {font-size:.75rem;line-height:1.3}
+      .link-more {padding:10px}
+    }
+
+    /* Fewer words, clearer focus, one shared My Card, no extra connection store. */
+    .mc-link-header .mc-header-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .link-grid{align-items:stretch}
+    .link-card{min-height:74px;border-radius:14px}
+    .link-card strong{font-weight:800}
+    .link-card:focus-visible{outline:2px solid #ddb260;outline-offset:3px}
+    .link-more summary:focus-visible{outline:2px solid #ddb260;outline-offset:3px}
+    .link-more[open]{background:var(--mc-panel-soft)}
+    @media(max-width:640px){.link-card{min-height:70px}.mc-link-header .mc-header-actions a{min-height:44px;padding-inline:10px}}
+    @media(max-width:340px){.link-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body class="mc-workspace-body">
   <header class="mc-workspace-header mc-link-header">
     <div>
-      <p class="mc-eyebrow">The Spot → The Link</p>
       <h1>The Link</h1>
-      <p>Find people and opportunities, follow public Empire activity, book through OAP, open My Shop, or enter protected conversation through Link Up.</p>
     </div>
     <div class="mc-header-actions">
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
-      <a class="mc-secondary-link" href="{{ url_for('linkup_front_door') }}">Link Up</a>
+      <a class="mc-secondary-link" href="{{ url_for('my_card_page') }}">My Card</a>
     </div>
   </header>
   <main class="mc-workspace">
-    <section class="mc-panel" aria-labelledby="link-views-title">
-      <h2 id="link-views-title">Choose where to go</h2>
+    <section class="mc-panel" aria-label="Connect">
       <div class="link-grid">
-        <a class="link-card" href="{{ url_for('linkup_front_door') }}">
+        <a class="link-card" href="{{ url_for('auth_page', next='/linkup') }}">
           <strong>👥 People</strong>
-          <span>Find Certified people and local connections.</span>
-          <small>Protected identity required to view members.</small>
+          <span>Your accepted Links and Certified connections.</span>
+          <small>Sign-in required.</small>
         </a>
-        <a class="link-card" href="{{ url_for('linkup_front_door') }}">
+        <a class="link-card" href="{{ url_for('linkup_front_door', intent='message') }}">
           <strong>🔗 Link Up</strong>
-          <span>Open your private Link Messages, Voice, Link Call and Rooms.</span>
-          <small>Only approved sender and recipient records are shown.</small>
+          <span>Messages and Link Calls.</span>
+          <small>Sign-in required.</small>
         </a>
         <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='postcode-rooms') }}">
           <strong>🌍 Earth</strong>
-          <span>Open public geography from Global Earth through continent and country to postcode.</span>
-          <small>Country culture can include a source-backed National Anthem slot; private conversation remains in Link Up.</small>
+          <span>Explore from continent to postcode.</span>
+          <small>National Anthem and local culture.</small>
         </a>
       </div>
     </section>
 
-    <section class="mc-panel" aria-labelledby="link-platform-title">
-      <p class="mc-eyebrow">🌍 ON ANY PLATFORM · connected from The Spot</p>
-      <h2 id="link-platform-title">Book. Shop. Distribute.</h2>
-      <div class="link-grid">
-        <a class="link-card" href="{{ url_for('travel_supply.public_marketplace') }}">
-          <strong>📅 OAP Booking</strong>
-          <span>Discover Certified OAP supply, check price and availability, place a protected hold and request a reservation.</span>
-          <small>Supplier confirmation remains final. No fake confirmed booking.</small>
-        </a>
-        <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='market') }}">
-          <strong>🛍️ My Shop</strong>
-          <span>Open the OAP storefront path for products, offers and direct commerce.</span>
-          <small>Seller actions require identity. Checkout remains separately governed.</small>
-        </a>
-        <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='distribution') }}">
-          <strong>📦 OAP Distribution</strong>
-          <span>Prepare OAP-first releases, campaigns, rights proof and merch bundles.</span>
-          <small>External delivery stays locked until approved APIs, rights and legal routes exist.</small>
-        </a>
-      </div>
-    </section>
-
-    <section class="mc-panel" aria-labelledby="link-public-title">
-      <h2 id="link-public-title">Public Empire links</h2>
-      <div class="link-grid">
-        <a class="link-card" href="{{ url_for('pulse_feed') }}"><strong>📡 Pulse</strong><span>See Empire activity.</span></a>
-        <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}"><strong>📣 Signal</strong><span>Follow updates, alerts and announcements.</span></a>
-        <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}"><strong>🧭 Opportunities</strong><span>Explore useful places, services and local possibilities.</span></a>
-      </div>
-    </section>
-
-    <section class="mc-panel" aria-labelledby="link-journey-title">
-      <p class="mc-eyebrow">🗺️ Find · Plan · Move · Book</p>
-      <h2 id="link-journey-title">OAP journeys and opportunities</h2>
-      <div class="link-grid">
-        <a class="link-card" href="/oap-map">
-          <strong>🌍 On Any Postcode Maps</strong>
-          <span>Places, source-bound weather and movement.</span>
-          <small>On Any Postcode Maps</small>
-        </a>
-        <a class="link-card" href="{{ url_for('travel_supply.public_marketplace') }}">
-          <strong>📅 OAP Direct</strong>
-          <span>OAP Booking · discover travel and booking opportunities with truthful availability.</span>
-          <small>Requests require identity; supplier confirmation remains final.</small>
-        </a>
-        <a class="link-card" href="{{ url_for('movement.movement_home') }}">
-          <strong>🚶 Movement</strong>
-          <span>Plan rides, e-bike journeys, deliveries and route requests.</span>
-          <small>On Any Route</small>
-        </a>
-        <a class="link-card" href="{{ url_for('travel_supply.public_travel') }}">
-          <strong>✈️ Travel</strong>
-          <span>Explore destination, stay, activity and transport options.</span>
-          <small>Public discovery stays separate from confirmed booking.</small>
-        </a>
-      </div>
-    </section>
-
-    <section class="mc-panel" aria-labelledby="link-safety-title">
-      <h2 id="link-safety-title">Private by design</h2>
-      <ul class="link-boundaries">
-        <li><strong>Identity</strong> validates access before private records are loaded.</li>
-        <li><strong>Safety</strong> protects privacy and blocked relationships.</li>
-        <li><strong>Link Up</strong> keeps messages scoped to approved participants.</li>
-      </ul>
-      <p class="link-status">The public page contains no messages, member details or private controls. Important decisions always remain with people.</p>
+    <section class="mc-panel" aria-label="More destinations">
+      <details class="link-more">
+        <summary>More</summary>
+        <h2>Public Empire links</h2>
+        <div class="link-grid">
+          <a class="link-card" href="{{ url_for('pulse_feed') }}"><strong>📡 Pulse</strong><span>Community activity.</span></a>
+          <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='signal') }}"><strong>📣 Signal</strong><span>Local updates.</span></a>
+          <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='discovery') }}"><strong>🧭 Opportunities</strong><span>Places and services.</span></a>
+        </div>
+        <h2>Book · Shop · Move</h2>
+        <div class="link-grid">
+          <a class="link-card" href="{{ url_for('travel_supply.public_marketplace') }}"><strong>📅 OAP Direct · Booking</strong><small>Requests need supplier confirmation.</small></a>
+          <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='market') }}"><strong>🛍️ My Shop</strong><small>Seller actions require sign-in.</small></a>
+          <a class="link-card" href="{{ url_for('spot_capability_front_door', capability_slug='distribution') }}"><strong>📦 OAP Distribution</strong><small>External delivery requires approval.</small></a>
+          <a class="link-card" href="/oap-map"><strong>🌍 On Any Postcode Maps</strong><span>Places and routes.</span></a>
+          <a class="link-card" href="{{ url_for('movement.movement_home') }}"><strong>🚶 Movement</strong><span>Travel locally.</span></a>
+          <a class="link-card" href="{{ url_for('travel_supply.public_travel') }}"><strong>✈️ Travel</strong><span>Discover destinations.</span></a>
+        </div>
+        <p class="link-status"><strong>Private by design.</strong> Messages and member records stay protected.</p>
+      </details>
     </section>
   </main>
 </body>

@@ -521,3 +521,51 @@ def evidence_swot_for_failed_build(evidence: object) -> dict[str, object]:
             "opportunities": ("Prepare one targeted reversible correction after exact-commit review.",),
             "threats": ("Unverified fixes, signing bypass and stale CI evidence must not grant Green.",),
             "next_action": "NIRMATA review classified failure; require exact-head CI and Founder Final for release."}
+
+
+def opportunity_introduction_policy(owner: object, member: object) -> dict[str, object]:
+    """Private, deterministic gate for SMI project suggestions.
+
+    This does not query My Card, send Link requests, publish Signal posts,
+    grant agent permissions or bypass the existing Link Up runtime checks.
+    Callers must supply current consent and age evidence from their owners.
+    Unknown information fails closed rather than being inferred.
+    """
+    result: dict[str, object] = {
+        "eligible": False,
+        "matched_skills": (),
+        "reason": "unverified",
+        "public_action": False,
+        "auto_contact": False,
+        "auto_publish": False,
+        "agent_execution": False,
+        "founder_final": True,
+    }
+    if not isinstance(owner, dict) or not isinstance(member, dict):
+        return result
+    # An automated recommendation must not turn an unresolved youth
+    # classification into permission for a cross-age introduction.
+    if owner.get("age_band") != "adult" or member.get("age_band") != "adult":
+        return {**result, "reason": "adult_eligibility_unverified"}
+    if owner.get("project_opt_in") is not True or member.get("match_opt_in") is not True:
+        return {**result, "reason": "consent_missing"}
+    if owner.get("active") is not True or member.get("active") is not True:
+        return {**result, "reason": "inactive"}
+    if owner.get("blocked") is True or member.get("blocked") is True:
+        return {**result, "reason": "blocked"}
+    if owner.get("visibility") != "discoverable" or member.get("visibility") != "discoverable":
+        return {**result, "reason": "not_discoverable"}
+    if not isinstance(owner.get("skills_needed"), (list, tuple)) or not isinstance(member.get("skills_offered"), (list, tuple)):
+        return {**result, "reason": "skills_unavailable"}
+    def clean(values: object) -> set[str]:
+        return {v.strip().casefold() for v in values
+                if isinstance(v, str) and 1 <= len(v.strip()) <= 64}
+    needed = clean(owner["skills_needed"])
+    offered = clean(member["skills_offered"])
+    matched = tuple(sorted(needed & offered))
+    if not matched:
+        return {**result, "reason": "no_skill_match"}
+    # Eligibility is recommendation-only. Existing Link Up blocks, CSRF,
+    # relationship acceptance and publication gates must run independently.
+    return {**result, "eligible": True, "matched_skills": matched,
+            "reason": "consented_skill_match"}

@@ -14,21 +14,59 @@ a{color:inherit}.card{border:1px solid var(--line);background:color-mix(in srgb,
 .muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.action{display:block;padding:13px;border:1px solid var(--line);border-radius:14px;text-decoration:none;background:#0003}
 label{display:block;margin:12px 0 5px;font-weight:800}select{width:100%;padding:10px;border-radius:10px}.emoji-grid{display:flex;flex-wrap:wrap;gap:8px}.emoji-grid label{margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:12px}
 button{margin-top:14px;padding:12px 16px;border:0;border-radius:12px;background:var(--accent);font-weight:900}
+
+/* Quiet My Card: one identity, accessible preferences, no duplicate directory tile. */
+:root{--bg:#0d0b09;--panel:#18130e;--line:#5b462b;--accent:#e8ba65;--text:#f8f2e6;--muted:#cbbda8}
+body{line-height:1.5;background:linear-gradient(180deg,#100d0b,#0b0a09);min-height:100vh}
+h1{font-size:clamp(1.45rem,4vw,2.1rem);margin:.12rem 0 .3rem}
+h2{font-size:1.1rem;margin:0 0 .75rem}
+header{min-height:66px;padding:12px 0;flex-wrap:wrap}
+header a{display:inline-flex;align-items:center;min-height:44px;font-weight:700;text-decoration:none}
+.card{border-color:var(--line);background:var(--panel);border-radius:16px}
+.hero{padding:20px}.hero>div:last-child{min-width:0;overflow-wrap:anywhere}
+.hero p{margin:.3rem 0}
+.dp{background:#231a10}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:14px;gap:10px}
+.action{display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:72px;gap:5px;background:#211910;padding:14px;border-color:var(--line);overflow-wrap:anywhere}
+.action br{display:none}.action strong{font-size:1rem}.action .muted{font-size:.82rem}
+.action:hover{background:#2a2015;border-color:var(--accent)}
+.card-avatar-help{margin-top:.5rem}
+.card-avatar-help summary{font-size:.85rem;color:var(--muted)}
+.card-avatar-help p{margin:.4rem 0 0}
+.card-settings summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:1.05rem;font-weight:750}
+.card-settings[open] summary{margin-bottom:12px}
+.card-settings form{border-top:1px solid var(--line);padding-top:12px}
+.prefs-field{margin:14px 0;padding:10px;border:1px solid var(--line);border-radius:12px}
+.prefs-field legend{padding:0 6px;font-weight:750}
+.emoji-grid label{min-height:44px;display:inline-flex;align-items:center;gap:4px}
+.emoji-grid input{accent-color:var(--accent)}
+select{min-height:44px;background:#211910;color:var(--text);border:1px solid var(--line)}
+button{min-height:48px;cursor:pointer;color:#20150a}
+:is(a,button,select,input,summary):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:540px){
+ header,main{width:min(100% - 24px,860px)}
+ header{gap:8px}
+ .hero{gap:12px;padding:15px}
+ .dp{width:64px;height:64px;font-size:2rem}
+ .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .action{min-height:76px;padding:11px;font-size:.9rem}
+ .action .muted{font-size:.77rem}
+}
+@media(max-width:340px){.grid{grid-template-columns:1fr}}
 </style></head><body>
 <header><a href="{{ url_for('home') }}">← OAP World</a><strong>My Card</strong><a href="{{ url_for('linkup_front_door') }}">Link Up →</a></header>
 <main>
-<section class="card hero"><div class="dp">{{ avatar }}</div><div><h1>{{ my_card.display_name }}</h1><p>{{ my_card.card_id }}{% if my_card.username %} · @{{ my_card.username }}{% endif %}</p><p class="muted">{{ "Secure My Card" if auth_user else "Basic My Card · private actions locked until secure sign-in" }}</p><p class="muted">DP photo upload is not enabled yet. This avatar is your current first-party My Card DP.</p></div></section>
+<section class="card hero"><div class="dp">{{ avatar }}</div><div><h1>{{ my_card.display_name }}</h1><p>{{ my_card.card_id }}{% if my_card.username %} · @{{ my_card.username }}{% endif %}</p><p class="muted">{{ "Secure My Card" if auth_user else "Basic My Card · private actions locked until secure sign-in" }}</p><details class="card-avatar-help"><summary>About your avatar</summary><p class="muted">DP photo upload is not enabled yet. This avatar is your current first-party My Card DP.</p></details></div></section>
 <section class="grid">
-<a class="action" href="{{ url_for('home') }}"><strong>🌍 Discover People</strong><br><span class="muted">Find people in OAP World.</span></a>
 <a class="action" href="{{ url_for('the_link_front_door') }}"><strong>🔗 The Link</strong><br><span class="muted">People and opportunities before private chat.</span></a>
 <a class="action" href="/my-line"><strong>📱 My Line</strong><br><span class="muted">Open your OAP Number, Network Passport, Link Message, Link Call and PTT controls.</span></a>
 <a class="action" href="{{ url_for('linkup_front_door') }}"><strong>💬 Link Up</strong><br><span class="muted">Open private messages and calls.</span></a>
 <a class="action" href="/arena"><strong>🏟️ OAP Arena</strong><br><span class="muted">Play, compete and carry your Arena record on this My Card.</span></a>
 </section>
 <section class="card"><h2>Contacts</h2>{% if auth_user and contacts %}<ul>{% for contact in contacts %}<li><strong>{{ contact.display_name }}</strong> · {{ contact.card_id }}</li>{% endfor %}</ul>{% elif auth_user %}<p class="muted">No accepted Links yet. Discover someone, send a Link Request, then accepted Links appear here.</p>{% else %}<p class="muted">Contacts are private. Add secure sign-in before accepted Links can appear here.</p>{% endif %}</section>
-<section class="card"><h2>Settings · Theme · My Emojis</h2><form method="post" action="{{ url_for('my_card_preferences') }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
+<details class="card card-settings"><summary>Settings · Theme · My Emojis</summary><form method="post" action="{{ url_for('my_card_preferences') }}"><input type="hidden" name="csrf_token" value="{{ oap_csrf_token }}">
 <label for="theme">Theme</label><select id="theme" name="theme"><option value="royal" {% if theme=="royal" %}selected{% endif %}>Royal</option><option value="earth" {% if theme=="earth" %}selected{% endif %}>Earth</option><option value="midnight" {% if theme=="midnight" %}selected{% endif %}>Midnight</option></select>
-<label>DP avatar</label><div class="emoji-grid">{% for option in ['👑','🌍','💜','🔥','🐆','🐺','🦁'] %}<label><input type="radio" name="avatar" value="{{ option }}" {% if avatar==option %}checked{% endif %}> {{ option }}</label>{% endfor %}</div>
-<label>My Emojis · choose up to 7</label><div class="emoji-grid">{% for option in ['👑','💜','🌍','🔥','🤝','💯','🎉','🙏','🐆','🐺','🦁','✨'] %}<label><input type="checkbox" name="emoji" value="{{ option }}" {% if option in my_emojis %}checked{% endif %}> {{ option }}</label>{% endfor %}</div>
-<button type="submit">Save My Card Settings</button></form></section>
+<fieldset class="prefs-field"><legend>DP avatar</legend><div class="emoji-grid">{% for option in ['👑','🌍','💜','🔥','🐆','🐺','🦁'] %}<label><input type="radio" name="avatar" value="{{ option }}" {% if avatar==option %}checked{% endif %}> {{ option }}</label>{% endfor %}</div></fieldset>
+<fieldset class="prefs-field"><legend>My Emojis · choose up to 7</legend><div class="emoji-grid">{% for option in ['👑','💜','🌍','🔥','🤝','💯','🎉','🙏','🐆','🐺','🦁','✨'] %}<label><input type="checkbox" name="emoji" value="{{ option }}" {% if option in my_emojis %}checked{% endif %}> {{ option }}</label>{% endfor %}</div></fieldset>
+<button type="submit">Save My Card Settings</button></form></details>
 </main></body></html>

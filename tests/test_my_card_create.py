@@ -173,8 +173,15 @@ def test_public_my_card_creation_allows_blank_password_without_auth_call(
 
     page = anonymous_client.get("/linkup").get_data(as_text=True)
     assert "Basic Card Member" in page
-    assert "Basic My Card active. No password required." in page
-    assert "Private Link Up stays locked until secure sign-in is added." in page
+    assert "Basic My Card. Private chat requires sign-in." in page
+    assert 'aria-label="Private Link Up messenger"' not in page
+    # Reuse the one existing Card in desktop, mobile and Identity shortcuts.
+    # Public access never gains private messaging permissions from this link.
+    assert page.count('href="/my-card"') >= 4
+    assert 'href="/my-card/create"' not in page
+    existing_card = anonymous_client.get("/my-card")
+    assert existing_card.status_code == 200
+    assert "Basic Card Member" in existing_card.get_data(as_text=True)
 
 
 def test_passwordless_basic_card_does_not_accept_email_without_secure_sign_in(
@@ -239,7 +246,10 @@ def test_basic_my_card_hub_shows_profile_contacts_settings_and_emojis(anonymous_
     assert "Settings · Theme · My Emojis" in page
     assert "DP avatar" in page
     assert "DP photo upload is not enabled yet." in page
-    assert "Discover People" in page
+    assert "The Link" in page
+    assert page.count('href="/the-link"') == 1
+    assert '<details class="card card-settings">' in page
+    assert '<fieldset class="prefs-field"><legend>DP avatar</legend>' in page
     assert "Link Up" in page
 
 

@@ -6,7 +6,7 @@
   const panels = Array.from(document.querySelectorAll("[data-linkup-panel]"));
   const search = document.querySelector("[data-linkup-search]");
 
-  const openPanel = (id) => {
+  const openPanel = (id, { focusComposer = true } = {}) => {
     buttons.forEach((button) => {
       const active = button.dataset.linkupThread === id;
       button.dataset.active = active ? "true" : "false";
@@ -18,7 +18,7 @@
     app.dataset.chatOpen = "true";
     window.dispatchEvent(new CustomEvent("oap:linkup-engaged", { detail: { panel: id } }));
     const activePanel = panels.find((panel) => panel.dataset.linkupPanel === id);
-    activePanel?.querySelector("textarea")?.focus({ preventScroll: true });
+    if (focusComposer) activePanel?.querySelector("textarea")?.focus({ preventScroll: true });
   };
 
   buttons.forEach((button) => {
@@ -44,6 +44,33 @@
       });
     });
   }
+
+
+  // Mobile chat is a separate panel; a hash alone cannot reveal it.
+  // Keep Link Ups and Now in the list, and reveal the correct panel for
+  // Ring, Incoming and More without enabling any locked call or chat control.
+  document.querySelector('[aria-label="Link Up private menu"]')?.addEventListener("click", (event) => {
+    const link = event.target.closest('a[href^="#linkup-"]');
+    if (!link) return;
+    const targetId = link.getAttribute("href");
+    if (!["#linkup-ring", "#linkup-incoming", "#linkup-more"].includes(targetId)) return;
+    const target = document.querySelector(targetId);
+    if (!target) return;
+    event.preventDefault();
+    const active = panels.find((panel) => panel.dataset.active === "true")
+      || panels.find((panel) => panel.dataset.linkupPanel === "new")
+      || panels[0];
+    if (active) openPanel(active.dataset.linkupPanel, { focusComposer: false });
+    if (targetId === "#linkup-more") target.open = true;
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ block: "start", behavior: "auto" });
+      const focusTarget = targetId === "#linkup-more" ? target.querySelector("summary") : target;
+      if (focusTarget) {
+        if (focusTarget === target) focusTarget.setAttribute("tabindex", "-1");
+        focusTarget.focus({ preventScroll: true });
+      }
+    });
+  });
 
   const first = buttons.find((button) => button.dataset.active === "true") || buttons[0];
   const hasActivePanel = panels.some((panel) => panel.dataset.active === "true");

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 from mission_control import config, linkup, product_store
 
@@ -103,16 +104,34 @@ def test_public_link_ui_shows_app_shell_without_private_data(anonymous_client, t
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert 'aria-label="Link Up app"' in page
-    assert "PRIVATE CHAT · SIMPLE · LINKED" in page
+    assert "PUBLIC · CONNECT · CREATE" in page
     assert "Create My Card" in page
-    assert "Optional for private features. Public Link Up needs no email, password or sign-in." in page
-    assert "Simple private chat." in page
-    for removed in ("Discovery", "Spotlight", "Opportunities", "Nearby People", "Community Signals"):
-        assert removed not in page
+    assert "Free and optional. Browse without signing in." in page
+    assert 'data-network="unknown"' in page
+    assert 'class="linkup-create-card"' not in page
+    assert page.count('class="linkup-card-summary"') == 1
+    assert 'aria-label="Link Up master tools"' not in page
+    assert 'aria-label="Link Up public bottom navigation"' in page
+    assert 'href="/the-link"' in page
+    assert page.count('<nav class="linkup-royal-bottom"') == 1
+    # Both public People actions lead to the protected accepted-Links view
+    # via the existing member sign-in gate, not back around a public UI loop.
+    assert page.count("next=/linkup") + page.count("next=%2Flinkup") == 1
+    assert 'href="/linkup?intent=message"' in page
+    assert page.count('href="/linkup?intent=message"') == 4
+    assert page.count('aria-label="Link Up public bottom navigation"') == 1
+    assert "Nearby People" in page
+    assert "Spotlight" in page
+    assert "Community Signals" in page
+    assert "Live nearby people are not verified." in page
+    assert "no invented trending counts." in page
+    assert 'aria-label="Link Up desktop navigation"' in page
+    assert 'aria-label="Link Up public features"' in page
+    assert 'aria-label="Private Link Up messenger"' not in page
+    assert 'data-linkup-search' not in page
     assert "Enter My World" not in page
     assert 'href="/my-card/create"' in page
     assert 'href="/auth"' not in page
-    assert "Message your Links." not in page
     assert "World Rooms" not in page
     assert 'method="post"' not in page.lower()
     assert anonymous_client.post("/linkup").status_code == 405
@@ -265,10 +284,10 @@ def test_linkup_public_shell_uses_free_my_card_actions():
     assert "Enter My World" not in template
     assert "url_for('my_card_create_page')" in template
     assert "Create My Card" in template
-    assert "PRIVATE CHAT · SIMPLE · LINKED" in template
+    assert "PUBLIC · CONNECT · CREATE" in template
     assert "linkup-royal-home" in template
     assert "linkup-royal-tools" not in template
-    assert "linkup-royal-bottom" not in template
+    assert "linkup-royal-bottom" in template
 
 
 
@@ -292,16 +311,18 @@ def test_linkup_master_menu_is_only_linkups_ring_now_incoming_and_more():
     assert '>My Card</a>' in template
     assert '>Link Requests</a>' in template
     assert '>My Controls</a>' in template
+    # These feature sections are restored on the public page, never inside
+    # the protected chat workspace or its five-button private menu.
+    private_workspace = template.split(
+        '<main class="linkup-shell" aria-label="Private Link Up messenger">', 1
+    )[1]
     for removed in (
-        "linkup-royal-tools",
-        "linkup-royal-bottom",
         "<strong>Discovery</strong>",
         "<strong>Spotlight</strong>",
-        "<strong>Opportunities</strong>",
         "Nearby People",
         "Community Signals",
     ):
-        assert removed not in template
+        assert removed not in private_workspace
 
 
 def test_empty_linkup_chat_has_real_next_actions():
@@ -329,4 +350,158 @@ def test_my_emojis_are_private_chat_composer_language():
 
     assert 'aria-label="My Emojis"' in template
     assert 'title="My Emojis"' in template
-    assert "My Emojis stay inside the private chat" in template
+    assert 'data-oap-emoji-picker' in template
+    # A working private composer control is evidence; explanatory copy is not.
+
+
+def test_private_linkup_intents_take_guests_to_existing_member_sign_in(anonymous_client):
+    # Public browsing must not require sign-in or expose private member records.
+    assert anonymous_client.get("/linkup").status_code == 200
+    for intent in ("message", "link-call"):
+        response = anonymous_client.get("/linkup", query_string={"intent": intent})
+        assert response.status_code == 302
+        assert response.headers["Cache-Control"] == "no-store"
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        destination = urlsplit(response.headers["Location"])
+        assert destination.path in {"/auth", "/enter-my-world"}
+        assert parse_qs(destination.query)["next"] == [f"/linkup?intent={intent}"]
+        assert response.headers["Location"].startswith("/")
+
+
+def test_public_spot_link_linkup_chain_is_navigable(anonymous_client):
+    spot = anonymous_client.get("/the-spot")
+    link = anonymous_client.get("/the-link")
+    public_linkup = anonymous_client.get("/linkup")
+    assert spot.status_code == link.status_code == public_linkup.status_code == 200
+    assert 'href="/the-link"' in spot.get_data(as_text=True)
+    assert 'href="/linkup?intent=message"' in link.get_data(as_text=True)
+    assert 'href="/linkup?intent=message"' in public_linkup.get_data(as_text=True)
+
+
+
+def test_combined_world_spot_linkup_secure_handoff(anonymous_client):
+    """Exercise the combined public journey and the actual private sign-in gate.
+
+    Source/HTTP acceptance only: this does not claim a device, call, or
+    provider-backed two-member message was completed.
+    """
+    world = anonymous_client.get("/world", query_string={"source": "oap-os"})
+    assert world.status_code == 200
+    assert 'href="/the-spot"' in world.get_data(as_text=True)
+
+    spot = anonymous_client.get("/the-spot")
+    assert spot.status_code == 200
+    assert spot.headers["Cache-Control"] == "no-store"
+    spot_html = spot.get_data(as_text=True)
+    assert 'href="/pulse"' in spot_html
+    assert 'href="/the-link"' in spot_html
+    assert spot_html.count('href="/the-link"') == 1
+    assert spot_html.count("<summary>More</summary>") == 1
+    assert 'href="/studio"' in spot_html
+    assert 'href="/arena"' in spot_html
+    assert 'href="/my-card/create"' in spot_html
+
+    link = anonymous_client.get("/the-link")
+    assert link.status_code == 200
+    assert link.headers["Cache-Control"] == "no-store"
+    link_html = link.get_data(as_text=True)
+    assert 'href="/linkup?intent=message"' in link_html
+    assert 'href="/the-spot/postcode-rooms"' in link_html
+    assert link_html.count("<summary>More</summary>") == 1
+
+    public_linkup = anonymous_client.get("/linkup")
+    assert public_linkup.status_code == 200
+    assert 'aria-label="Link Up public bottom navigation"' in public_linkup.get_data(as_text=True)
+    assert 'aria-label="Private Link Up messenger"' not in public_linkup.get_data(as_text=True)
+
+    for private_intent in ("message", "link-call"):
+        response = anonymous_client.get(
+            "/linkup", query_string={"intent": private_intent}
+        )
+        assert response.status_code == 302
+        auth_target = urlsplit(response.headers["Location"])
+        assert auth_target.path in {"/auth", "/enter-my-world"}
+        assert parse_qs(auth_target.query)["next"] == [
+            f"/linkup?intent={private_intent}"
+        ]
+
+
+def test_private_linkup_mobile_menu_reveals_ring_incoming_and_more():
+    """A mobile sidebar hash must reveal the chat before scrolling to it."""
+    template = Path("mission_control/templates/linkup.html").read_text(encoding="utf-8")
+    script = Path("static/linkup_messenger.js").read_text(encoding="utf-8")
+    style = Path("static/linkup_messenger.css").read_text(encoding="utf-8")
+
+    for target in ("linkup-chats", "linkup-now", "linkup-ring", "linkup-incoming", "linkup-more"):
+        assert f'href="#{target}"' in template
+        assert f'id="{target}"' in template
+    assert script.count('["#linkup-ring", "#linkup-incoming", "#linkup-more"]') == 1
+    assert 'openPanel(active.dataset.linkupPanel, { focusComposer: false })' in script
+    assert 'if (targetId === "#linkup-more") target.open = true' in script
+    assert 'app.dataset.chatOpen = "true"' in script
+    assert '.linkup-master-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))' in template
+    assert '.linkup-royal-bottom{padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}' in style
+
+
+def test_combined_guest_menu_keeps_one_route_per_core_destination(anonymous_client):
+    spot = anonymous_client.get("/the-spot")
+    link = anonymous_client.get("/the-link")
+    public_linkup = anonymous_client.get("/linkup")
+    assert spot.status_code == link.status_code == public_linkup.status_code == 200
+
+    spot_html = spot.get_data(as_text=True)
+    link_html = link.get_data(as_text=True)
+    public_html = public_linkup.get_data(as_text=True)
+
+    assert spot_html.count('href="/the-link"') == 1
+    assert spot_html.count('href="/store"') == 1
+    assert link_html.count('href="/linkup?intent=message"') == 1
+    assert link_html.count('href="/the-spot"') == 1
+    assert public_html.count('href="/linkup?intent=message"') == 4
+    assert public_html.count('aria-label="Link Up public bottom navigation"') == 1
+    assert 'class="linkup-topbar linkup-guest-topbar"' in public_html
+    for path in ("/store", "/oap-map", "/movement"):
+        assert anonymous_client.get(path).status_code in (200, 302)
+
+def test_public_linkup_restored_royal_reference_navigation(anonymous_client):
+    page = anonymous_client.get("/linkup").get_data(as_text=True)
+    css = Path("static/linkup_messenger.css").read_text(encoding="utf-8")
+    script = Path("static/linkup_public_ui.js").read_text(encoding="utf-8")
+    assert 'data-oap-public-filter' in page
+    # Duplicate shortcut ribbons and desktop marketing panels are removed.
+    assert 'aria-label="Link Up category shortcuts"' not in page
+    assert 'aria-label="Desktop Link Up panels"' not in page
+    assert 'aria-label="Start here"' in page
+    assert '<summary>More from OAP World</summary>' in page
+    assert 'data-linkup-secondary' in page
+    assert page.count('href="/linkup?intent=message"') == 4
+    assert page.count('class="linkup-card-summary"') == 1
+    assert 'aria-label="Private Link Up messenger"' not in page
+    assert 'data-oap-call-control' not in page
+    assert ".linkup-rich-layout{grid-template-columns:minmax(155px,190px) minmax(0,1fr)" in css
+    assert ".linkup-rail-more summary" in css
+    assert ".linkup-rich-public .linkup-royal-bottom{display:none}" in css
+    assert ".linkup-guest-topbar{display:none}" in css
+    assert ".linkup-rich-features{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}" in css
+    assert "fetch(" not in script
+    assert "secondary.open = true" in script
+    assert 'event.key === "Escape"' in script
+
+def test_public_royal_mobile_reference_has_search_before_create_and_compact_grid(anonymous_client):
+    html = anonymous_client.get("/linkup").get_data(as_text=True)
+    css = Path("static/linkup_messenger.css").read_text(encoding="utf-8")
+    assert html.index('id="linkup-rich-query"') < html.index('class="linkup-rich-create"')
+    assert html.index('class="linkup-rich-create"') < html.index('id="linkup-rich-features"')
+    assert html.count('class="linkup-card-summary"') == 1
+    assert '@media(max-width:760px){.linkup-rich-categories{display:none}}' in css
+    assert '@media(min-width:761px){.linkup-rich-categories{order:-1}}' in css
+
+def test_public_message_buttons_share_protected_route(anonymous_client):
+    html = anonymous_client.get("/linkup").get_data(as_text=True)
+    assert html.count('href="/linkup?intent=message"') == 4
+    assert 'placeholder="Search public sections…"' in html
+    private = anonymous_client.get("/linkup?intent=message")
+    assert private.status_code == 302
+    target = urlsplit(private.headers["Location"])
+    assert target.path in {"/auth", "/enter-my-world"}
+    assert parse_qs(target.query)["next"] == ["/linkup?intent=message"]
