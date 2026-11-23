@@ -5,6 +5,9 @@ import os
 import sys
 import threading
 from pathlib import Path
+from zipfile import ZipFile
+
+from oap.smi.character_rig_assets import APPROVED_SOURCE_SHA256, LAYERS
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -353,10 +356,48 @@ def prove_original_pixel_workbench(context, base_url):
     expect(page.locator("#feedback")).to_contain_text(
         "Finish all seven nonempty masks"
     )
+
+    # Paint each of the remaining original-source regions through the actual UI.
+    # The regions here are test fixtures, NOT Founder-reviewed anatomical masks.
+    for name in LAYERS[1:]:
+        page.locator(f'#layers button[data-name="{name}"]').click()
+        active = page.locator("#art-stage canvas:not([hidden])")
+        expect(active).to_be_visible()
+        rect = active.bounding_box()
+        assert rect and rect["width"] > 40 and rect["height"] > 40, name
+        page.mouse.move(rect["x"] + rect["width"] * .50,
+                        rect["y"] + rect["height"] * .25)
+        page.mouse.down()
+        page.mouse.up()
+    expect(page.locator("#coverage-label")).to_have_text("7 / 7 painted")
+
+    # Require the real browser-exported ZIP, seven real PNGs, manifest and CRC.
+    # No fake archives, simulated download events or server-side mask writes.
+    with page.expect_download() as exported:
+        page.locator("#save-all").click()
+    download = exported.value
+    assert download.suggested_filename == "smi-exact-character-draft-masks.zip"
+    with ZipFile(download.path()) as archive:
+        expected_names = [f"{name}.png" for name in LAYERS] + ["mask-bundle.json"]
+        assert archive.namelist() == expected_names
+        assert archive.testzip() is None
+        manifest = json.loads(archive.read("mask-bundle.json"))
+        assert manifest["source_sha256"] == APPROVED_SOURCE_SHA256
+        assert manifest["canvas"] == [1536, 1024]
+        assert manifest["names"] == list(LAYERS)
+        assert manifest["approval"] == "DRAFT_REQUIRES_FOUNDER_REVIEW"
+        assert manifest["animation_active"] is False
+        assert manifest["includes_hidden_regions"] is False
+        for name in LAYERS:
+            png = archive.read(f"{name}.png")
+            assert png[:8] == b"\\x89PNG\\r\\n\\x1a\\n", name
+            assert int.from_bytes(png[16:20], "big") == 1536, name
+            assert int.from_bytes(png[20:24], "big") == 1024, name
+    expect(page.locator("#feedback")).to_contain_text("Human review required")
     assert not any(method != "GET" for method, _ in requested), requested
     assert not any("third-party" in url for _, url in requested)
     page.close()
-    print("SMI_CC_ORIGINAL_PIXELS=PASS (signed-in Chromium, draft-only, no server writes)")
+    print("SMI_CC_ORIGINAL_PIXELS=PASS (signed-in Chromium, seven genuine draft PNGs, private ZIP, no server writes)")
 
 
 def main():
