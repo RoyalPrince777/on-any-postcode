@@ -179,9 +179,11 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
                    COUNT(*) FILTER (
                      WHERE status='ACTIVE'
                        AND heartbeat_at >= CURRENT_TIMESTAMP - (%s * INTERVAL '1 second')
+                       AND heartbeat_at <= CURRENT_TIMESTAMP
                    )
-                   FROM oap_runtime_workers""",
-                (max(30, int(stale_after_seconds)),),
+                   FROM oap_runtime_workers
+                   WHERE worker_id NOT LIKE %s""",
+                (max(30, int(stale_after_seconds)), "%-inference"),
             ).fetchone()
             active_count = int(worker_counts[0] or 0)
             fresh_count = int(worker_counts[1] or 0)
