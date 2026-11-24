@@ -62,7 +62,7 @@ def test_worker_continues_smi_mission_without_button_or_new_job(monkeypatch):
         "inspect_mission_continuity", inspect,
     )
     result = organism_worker._health_probe(None)
-    assert observed == [1413, 1411, 1234, 1318, 1384]
+    assert observed == [1413, 1411, 1234, 1318, 1083, 1417, 1245, 1256, 1257, 1400, 1384]
     reviews = result["github_failure_evidence"]["mission_continuity"]
     assert all(row["behaviour_review"]["checks_executed"] is False for row in reviews)
     assert all(row["behaviour_review"]["repair_authorized"] is False for row in reviews)
