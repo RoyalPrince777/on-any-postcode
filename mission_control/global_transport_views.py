@@ -1002,7 +1002,7 @@ a:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{o
     }catch(_){}
     if(mode==="drive"){
       event.preventDefault();
-      location.assign("/oap-map");
+      location.assign("/oap-map?view=car");
     }
   });
 })();
