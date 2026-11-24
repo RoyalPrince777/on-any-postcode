@@ -147,7 +147,9 @@ def test_worker_readiness_is_heartbeat_based_not_active_flag(
             if "GROUP BY state" in sql:
                 return Rows(many=[("SUCCEEDED", 2)])
             if "COUNT(*) FILTER (WHERE status='ACTIVE')" in sql:
-                assert params == (90,)
+                assert params == (90, "%-inference")
+                assert "WHERE worker_id NOT LIKE %s" in sql
+                assert "heartbeat_at <= CURRENT_TIMESTAMP" in sql
                 return Rows(one=(active, fresh))
             raise AssertionError("Unexpected SQL in status check")
 
