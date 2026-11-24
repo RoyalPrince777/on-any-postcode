@@ -80,3 +80,88 @@ def test_use_entrance_records_receipt_without_claiming_real_access():
     view=earth_is_our_turf.public_state(state)
     assert view["vehicle_life"]["last_entrance_id"]=="entrance-town-local"
     assert view["vehicle_life"]["truth"]["exact_private_entrance_claimed"] is False
+
+
+def test_parking_capacity_departure_and_position_regression():
+    import copy
+
+    import pytest
+
+    from mission_control import mtown_living_streets as streets_module
+
+    streets=streets_module.new_state()
+    bay=next(p for p in streets["parking"] if p["id"]=="park-town-01")
+    bay["capacity"]=1
+    streets_module.refresh_parking(streets)
+    assert bay["occupied"]==1
+    before=copy.deepcopy(streets)
+    with pytest.raises(ValueError,match="mtown_parking_full"):
+        streets_module.park_vehicle(streets,vehicle_id="vehicle-oap-002",parking_id=bay["id"])
+    assert streets==before
+    same=streets_module.park_vehicle(streets,vehicle_id="vehicle-oap-001",parking_id=bay["id"])
+    assert same["parking"][0]["persistent_occupied"]==1
+
+    life=mtown_vehicle_life.new_state()
+    char={"character_id":"test","owned":{"vehicles":["vehicle-oap-001","vehicle-oap-002"]},
+          "movement":{"node":"town-centre","mode":"foot","speed":0,"segment":None,"offset":0}}
+    life,char,streets=mtown_vehicle_life.enter_vehicle(life,character=char,living_streets=streets,vehicle_id="vehicle-oap-001")
+    assert streets["parking"][0]["persistent_occupied"]==0
+    assert streets["parking"][0]["available"]==1
+    char["movement"].update(segment=["town-centre","western-road"],offset=12)
+    streets=mtown_vehicle_life.sync_active_vehicle(life,character=char,living_streets=streets)
+    life,char,streets=mtown_vehicle_life.park_active_vehicle(life,character=char,living_streets=streets,parking_id=bay["id"])
+    vehicle=streets["vehicles"][0]
+    assert vehicle["segment"] is None and vehicle["offset"]==0
+    assert streets["parking"][0]["persistent_occupied"]==1
+    assert not life["inside_vehicle"]
+
+    # Simulated ambient demand cannot displace an already parked persistent car.
+    _,view=streets_module.snapshot(streets,node_id="town-centre",minute=480,day=1,
+        environment={"traffic":30,"footfall":30},loaded_chunks=["town"],
+        node_to_chunk={"town-centre":"town"})
+    assert view["parking"][0]["occupied"]==1
+    assert view["parking"][0]["persistent_occupied"]==1
+    assert view["parking"][0]["ambient_occupied"]==0
+
+    streets["vehicles"][1]["node"]="town-centre"
+    life,char,streets=mtown_vehicle_life.enter_vehicle(life,character=char,living_streets=streets,vehicle_id="vehicle-oap-002")
+    before=copy.deepcopy((life,char,streets))
+    with pytest.raises(ValueError,match="mtown_parking_full"):
+        mtown_vehicle_life.park_active_vehicle(life,character=char,living_streets=streets,parking_id=bay["id"])
+    assert (life,char,streets)==before
+    char["movement"].update(segment=["town-centre","western-road"],offset=23)
+    life,char,streets=mtown_vehicle_life.exit_vehicle(life,character=char,living_streets=streets)
+    assert streets["vehicles"][1]["offset"]==23
+    assert streets["vehicles"][1]["segment"]==["town-centre","western-road"]
+
+
+def test_transit_arrival_preserves_world_and_streams_destination():
+    state=earth_is_our_turf.new_world()
+    arrived=earth_is_our_turf.action(state,command="transit-arrive",target="eastfields",mode="bus")
+    assert arrived["world_id"]==state["world_id"]
+    assert arrived["character"]["character_id"]==state["character"]["character_id"]
+    assert arrived["player"]["cash"]==state["player"]["cash"]-2
+    assert arrived["character"]["movement"]["node"]=="eastfields"
+    assert arrived["active_chunk"]=="eastfields"
+    assert arrived["loaded_chunks"][0]=="eastfields"
+    assert len(arrived["loaded_chunks"])<=4
+    assert arrived["world_position"] is None
+    assert arrived["events"][-1]["source"]=="fictional_game_service"
+    train=earth_is_our_turf.action(arrived,command="transit-arrive",target="junction",mode="train")
+    tram=earth_is_our_turf.action(train,command="transit-arrive",target="phipps-bridge",mode="tram")
+    taxi=earth_is_our_turf.action(tram,command="transit-arrive",target="town-centre",mode="taxi")
+    assert taxi["player"]["node"]=="town-centre"
+    assert taxi["player"]["cash"]==state["player"]["cash"]-16
+    assert earth_is_our_turf.validate(taxi)["passed"]
+
+
+def test_transit_rejects_invalid_stop_and_active_vehicle():
+    import pytest
+
+    state=earth_is_our_turf.new_world()
+    with pytest.raises(ValueError,match="eiot_transit_stop_invalid"):
+        earth_is_our_turf.action(state,command="transit-arrive",target="junction",mode="train")
+    state=earth_is_our_turf.action(state,command="claim-vehicle",target="vehicle-oap-001")
+    state=earth_is_our_turf.action(state,command="enter-vehicle",target="vehicle-oap-001")
+    with pytest.raises(ValueError,match="mtown_exit_vehicle_before_noncar_travel"):
+        earth_is_our_turf.action(state,command="transit-arrive",target="eastfields",mode="bus")

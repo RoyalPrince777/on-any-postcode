@@ -56,7 +56,7 @@ def _stable_int(*parts: object, modulo: int=100) -> int:
     return int(digest[:12],16)%modulo
 
 def new_state() -> dict[str,Any]:
-    return {
+    state={
         "schema":SCHEMA,
         "tick":0,
         "vehicles":[copy.deepcopy(v) for v in VEHICLE_SEEDS],
@@ -70,6 +70,24 @@ def new_state() -> dict[str,Any]:
             "real_person_tracking":False,
         },
     }
+    refresh_parking(state)
+    return state
+
+def refresh_parking(state: dict[str,Any], *, minute: int | None=None, day: int | None=None) -> None:
+    """Persistent vehicles reserve bays; simulated background occupancy yields to them."""
+    for row in state["parking"]:
+        capacity=int(row["capacity"])
+        parked=sum(v.get("parking_id")==row["id"] and v.get("status")=="parked"
+                   for v in state["vehicles"])
+        if minute is not None and day is not None:
+            ambient=_stable_int(row["id"],day,minute//30,modulo=capacity+1)
+        else:
+            ambient=int(row.get("ambient_demand",0))
+        row["ambient_demand"]=ambient
+        row["persistent_occupied"]=parked
+        row["ambient_occupied"]=min(max(0,capacity-parked),ambient)
+        row["occupied"]=parked+row["ambient_occupied"]
+        row["available"]=max(0,capacity-row["occupied"])
 
 def validate(state: object) -> dict[str,Any]:
     errors=[]
@@ -145,15 +163,8 @@ def snapshot(
                 "game_actor":True,
             })
 
-    parking=[]
-    for row in out["parking"]:
-        occupancy=min(
-            int(row["capacity"]),
-            _stable_int(row["id"],day_i,minute_i//30,modulo=int(row["capacity"])+1),
-        )
-        row["occupied"]=occupancy
-        row["available"]=max(0,int(row["capacity"])-occupancy)
-        parking.append(copy.deepcopy(row))
+    refresh_parking(out,minute=minute_i,day=day_i)
+    parking=copy.deepcopy(out["parking"])
 
     snapshot_view={
         "traffic":traffic,
@@ -191,9 +202,16 @@ def park_vehicle(state: object, *, vehicle_id: object, parking_id: object) -> di
         raise ValueError("mtown_vehicle_invalid")
     if parking is None:
         raise ValueError("mtown_parking_invalid")
+    others=sum(v.get("parking_id")==pid and v.get("status")=="parked"
+               and v.get("id")!=vid for v in out["vehicles"])
+    if others>=int(parking["capacity"]):
+        raise ValueError("mtown_parking_full")
     vehicle["node"]=parking["node"]
     vehicle["parking_id"]=pid
     vehicle["status"]="parked"
+    vehicle["segment"]=None
+    vehicle["offset"]=0.0
+    refresh_parking(out)
     return out
 
 def entrance_for(*, node_id: object, mode: object) -> list[dict[str,Any]]:

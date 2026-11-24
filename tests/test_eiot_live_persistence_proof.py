@@ -57,7 +57,7 @@ def test_world_server_boot_proof_requires_roundtrip_match(monkeypatch):
     monkeypatch.setattr(
         eiot_world_server.mtown_persistence_broker,
         "initialize",
-        lambda:{"durable_ready":True},
+        dict,
     )
     monkeypatch.setattr(
         eiot_world_server.mtown_persistence_broker,
@@ -122,3 +122,28 @@ def test_world_server_boot_proof_stays_red_on_mismatch(monkeypatch):
     assert eiot_world_server._PERSISTENCE_BOOT["attempted"] is True
     assert eiot_world_server._PERSISTENCE_BOOT["ready"] is False
     assert eiot_world_server._PERSISTENCE_BOOT["error"]=="RuntimeError"
+
+
+def test_world_server_boot_proof_clears_stale_ready_when_backends_unavailable(monkeypatch):
+    monkeypatch.setattr(
+        eiot_world_server.mtown_persistence,
+        "status",
+        lambda:{"durable_ready":False},
+    )
+    monkeypatch.setattr(
+        eiot_world_server.mtown_persistence_broker,
+        "configured",
+        lambda:False,
+    )
+    monkeypatch.setattr(
+        eiot_world_server,
+        "_PERSISTENCE_BOOT",
+        {"attempted":True,"ready":True,"backend":"oap-core-postgresql-broker","error":None},
+    )
+    eiot_world_server._boot_persistence()
+    assert eiot_world_server._PERSISTENCE_BOOT == {
+        "attempted":False,
+        "ready":False,
+        "backend":"none",
+        "error":None,
+    }
