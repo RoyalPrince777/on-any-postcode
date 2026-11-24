@@ -18,6 +18,7 @@ from . import (
     smi_function_health,
     smi_proof_gate,
     smi_receipt_backend,
+    third_eye_intelligence,
     war_room_simulation_actions,
     web_security,
 )
@@ -28,6 +29,119 @@ bp = Blueprint("alignment", __name__)
 def _no_store(response):
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@bp.get("/smi/third-eye/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_status():
+    """Founder-private, no-network Third Eye source truth."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.status())))
+
+
+@bp.get("/smi/third-eye/earthquakes")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_earthquakes():
+    """Founder-requested bounded read of a fixed, public USGS feed."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.latest_earthquakes())))
+
+
+@bp.get("/smi/third-eye/london/cameras")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_london_cameras():
+    """Return TfL public road-camera catalogue metadata on Founder request."""
+    search = request.args.get("q") or ""
+    try:
+        page = int(request.args.get("page") or 1)
+        radius = int(request.args.get("radius_km") or 0)
+        if page < 1 or page > 1000 or radius not in {0, 5, 15, 30}:
+            raise ValueError("invalid_camera_catalogue_selection")
+        result = third_eye_intelligence.london_jamcams(
+            search=search, page=page, radius_km=radius,
+        )
+    except ValueError:
+        return _no_store(
+            make_response(jsonify(error={"code": "invalid_camera_catalogue_selection"}), 400)
+        )
+    return _no_store(make_response(jsonify(result)))
+
+
+@bp.get("/smi/third-eye/london/frame/<camera_id>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_london_frame(camera_id: str):
+    """Serve one vetted public TfL still through the existing private SMI origin."""
+    result = third_eye_intelligence.london_jamcam_frame(camera_id)
+    if result is None:
+        return _no_store(make_response(jsonify(error={"code": "camera_unavailable"}), 503))
+    frame, last_modified = result
+    response = make_response(frame)
+    response.headers["Content-Type"] = "image/jpeg"
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    if last_modified:
+        response.headers["Last-Modified"] = last_modified
+    return response
+
+
+@bp.get("/smi/third-eye/london/clip/<camera_id>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_london_clip(camera_id: str):
+    """Return one bounded public TfL rolling clip, not a continuous live stream."""
+    result = third_eye_intelligence.london_jamcam_clip(camera_id)
+    if result is None:
+        return _no_store(make_response(jsonify(error={"code": "clip_unavailable"}), 503))
+    clip, last_modified = result
+    response = make_response(clip)
+    response.headers["Content-Type"] = "video/mp4"
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    if last_modified:
+        response.headers["Last-Modified"] = last_modified
+    return response
+
+
+@bp.get("/smi/third-eye/air/london")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_air_london():
+    """On-demand, bounded public ADS-B observations around London."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.london_aircraft())))
+
+
+@bp.get("/smi/third-eye/space/iss")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_space_iss():
+    """One source-timestamped ISS position; not universal satellite tracking."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.iss_position())))
+
+
+@bp.get("/smi/third-eye/space/orbit")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_space_orbit():
+    """CelesTrak-published ISS orbit elements, without claimed propagation."""
+    return _no_store(make_response(jsonify(third_eye_intelligence.iss_orbital_elements())))
+
+
+@bp.get("/smi/third-eye/space/imagery")
+@web_security.login_required(api=True, founder_only=True)
+def smi_third_eye_space_imagery():
+    """NASA GIBS London image for a selected past day; acquisition unverified."""
+    day = request.args.get("day") or ""
+    try:
+        result = third_eye_intelligence.nasa_london_imagery(day)
+    except ValueError:
+        return _no_store(
+            make_response(jsonify(error={"code": "invalid_image_date"}), 400)
+        )
+    if result is None:
+        return _no_store(
+            make_response(jsonify(error={"code": "nasa_imagery_unavailable"}), 503)
+        )
+    response = make_response(result)
+    response.headers["Content-Type"] = "image/jpeg"
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-OAP-Image-Request-Day"] = day
+    response.headers["X-OAP-Observation-Claim"] = "acquisition-date-unverified"
     return response
 
 
