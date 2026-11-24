@@ -753,6 +753,7 @@ def test_ride_map_search_and_fare_do_not_claim_unverified_live_quotes():
     assert 'data-mode="ride"' in html
     assert 'data-mode="ebike"' in html
     assert 'data-mode="drive"' in html
+    assert 'location.assign("/oap-map?view=car")' in html
     assert 'id="map-alert"' in html
     assert 'id="ride-action"' in html
     assert 'transport/ride/backend/places' in html
