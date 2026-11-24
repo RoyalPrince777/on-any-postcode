@@ -753,3 +753,14 @@ def test_koradaso_intelligence_first_party_never_uses_compatibility_fallback(mon
             "hello",
             first_party_only=True,
         )
+
+
+
+def test_koradaso_bookmark_rejects_typed_external_address_instead_of_saving_current_page():
+    """No misleading success when an unsupported address remains in the omnibox."""
+    source = Path("templates/koradaso_internet.html").read_text(encoding="utf-8")
+    bookmark_handler = source.split('document.getElementById("bookmark-add").addEventListener', 1)[1].split('showBookmarks();', 1)[0]
+    assert 'if(raw){' in bookmark_handler
+    assert 'if(!raw.startsWith("/")||raw.startsWith("//")){' in bookmark_handler
+    assert 'Only approved first-party OAP routes can be bookmarked here.' in bookmark_handler
+    assert 'route=raw.split(/[?#]/,1)[0];' in bookmark_handler
