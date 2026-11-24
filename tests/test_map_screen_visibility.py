@@ -245,5 +245,5 @@ def test_route_draw_preserves_proven_road_context_on_refresh_failure():
 
     assert "const retainedRoadCount=roadLayer.querySelectorAll('polyline').length;" in draw_section
     assert "const usableRoadCount=roadCount>0?roadCount:retainedRoadCount;" in draw_section
-    assert "if(usableRoadCount>0){showRoadStatus('');setRenderState('stable');return true}" in draw_section
+    assert "if(usableRoadCount>0){if(document.body.dataset.mapRoadSource!=='local_osm')showRoadStatus('');setRenderState('stable');return true}" in draw_section
     assert "setRenderState('degraded');return false" in draw_section
