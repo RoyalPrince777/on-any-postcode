@@ -237,6 +237,15 @@ MISSION_PR_CHECKS: dict[int, tuple[str, ...]] = {
            "OAP Data first-party no-Meta source proof"),
     1318: ("OAP governed checks", "SMI Chromium recovery proof",
            "OAP runtime image"),
+    # Founder-approved SMI execution foundations and TDA priority.
+    1083: ("OAP governed checks", "OAP runtime image"),
+    1417: ("OAP governed checks", "SMI Chromium recovery proof",
+           "OAP War Room real Chromium acceptance", "OAP runtime image"),
+    1245: ("OAP governed checks",),
+    1256: ("OAP governed checks",),
+    1257: ("OAP governed checks", "OAP runtime image",
+           "OAP real routing container proof"),
+    1400: ("OAP governed checks", "OAP runtime image"),
     # Specialist passports remain advisory; one SMI worker owns observation.
     1384: ("OAP governed checks", "SMI agent achievement proof",
            "OAP runtime image"),
