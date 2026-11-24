@@ -301,8 +301,16 @@ function showBookmarks(){
 }
 document.getElementById("bookmark-add").addEventListener("click",()=>{
   const raw=field.value.trim();
+  // Blank address means the current page. Never silently bookmark this page
+  // when a typed external or unapproved address was rejected.
   let route=window.location.pathname;
-  if(raw.startsWith("/")&&!raw.startsWith("//")){route=raw.split(/[?#]/,1)[0];}
+  if(raw){
+    if(!raw.startsWith("/")||raw.startsWith("//")){
+      bookmarkNote.textContent="Only approved first-party OAP routes can be bookmarked here.";
+      return;
+    }
+    route=raw.split(/[?#]/,1)[0];
+  }
   if(!allowedRoutes.has(route)){bookmarkNote.textContent="Only approved first-party OAP routes can be bookmarked here.";return;}
   const saved=readBookmarks();if(saved.includes(route)){bookmarkNote.textContent="Route already bookmarked.";return;}
   if(saved.length>=12){bookmarkNote.textContent="Bookmark limit reached (12). Remove one first.";return;}
