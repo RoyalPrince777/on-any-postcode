@@ -176,12 +176,50 @@ async function draw(coords){
  const roadCount=await loadRoadNetwork(bounds,profile.value);
  svg.hidden=false;
  const usableRoadCount=roadCount>0?roadCount:retainedRoadCount;
- if(usableRoadCount>0){showRoadStatus('');setRenderState('stable');return true}
+ if(usableRoadCount>0){if(document.body.dataset.mapRoadSource!=='local_osm')showRoadStatus('');setRenderState('stable');return true}
  setRenderState('degraded');return false
 }
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
 function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
 function tilePointLonLat(tx,ty,z,u,v){const n=Math.pow(2,z),wx=(tx+u)/n,wy=(ty+v)/n;return[wx*360-180,Math.atan(Math.sinh(Math.PI*(1-2*wy)))*180/Math.PI]}
+async function loadLocalOsmRoads(b,request){
+ // No CDN, data fabrication or implicit source trust: existing TDA import only.
+ const params=new URLSearchParams({west:b.minX,south:b.minY,east:b.maxX,north:b.maxY});
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),3200);
+ try{
+  const response=await fetch('/map-intelligence/local-roads?'+params.toString(),{
+    credentials:'same-origin',cache:'no-store',signal:controller.signal
+  });
+  if(request!==roadRequest||!response.ok)return 0;
+  const data=await response.json();
+  if(data.source!=='existing_tda_osm_import'||data.routing_verified!==false||
+     !Array.isArray(data.lines)||data.lines.length>450)return 0;
+  const staged=document.createDocumentFragment();
+  let count=0;
+  for(const feature of data.lines){
+   if(!feature||!Array.isArray(feature.points)||feature.points.length<2)continue;
+   const points=feature.points;
+   if(!points.every(p=>Array.isArray(p)&&p.length>=2&&
+      Number.isFinite(p[0])&&Number.isFinite(p[1])&&
+      p[0]>=-180&&p[0]<=180&&p[1]>=-90&&p[1]<=90))continue;
+   const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+   const klass=String(feature.class||'').toLowerCase();
+   poly.setAttribute('points',points.map(p=>project(p[0],p[1],b).join(',')).join(' '));
+   poly.setAttribute('class',/(motorway|trunk|primary)/.test(klass)?'major':
+     /(secondary|tertiary)/.test(klass)?'secondary':'local');
+   staged.appendChild(poly);count++;
+  }
+  if(count&&request===roadRequest){
+   roadLayer.replaceChildren(staged);
+   document.body.dataset.mapRoadSource='local_osm';
+   showRoadStatus('Mitcham OSM roads · navigation graph unavailable');
+   clearBoot();setRenderState('stable');
+  }
+  return count;
+ }catch{return 0}
+ finally{clearTimeout(timeout)}
+}
 const ROAD_TILE_TIMEOUT_MS=6000;
 async function fetchRoadTile(z,x,y,mode){
  const url='/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode);
@@ -246,10 +284,13 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
        await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
        if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
      }
+     if(await loadLocalOsmRoads(b,request))return roadLayer.querySelectorAll('polyline').length;
+     if(request!==roadRequest)return 0;
      clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — route guidance may still work.');
      return 0
    }
    roadLayer.replaceChildren(staged);
+   document.body.dataset.mapRoadSource='routing_graph';
    showRoadStatus('');clearBoot();setRenderState('stable');
    return count
  }catch{
@@ -258,6 +299,8 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
      await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
      if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
    }
+   if(await loadLocalOsmRoads(b,request))return roadLayer.querySelectorAll('polyline').length;
+   if(request!==roadRequest)return 0;
    clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — check map source.');
    return 0
  }
