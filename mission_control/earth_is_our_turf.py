@@ -273,6 +273,47 @@ def action(
             )
         if moved["completed"]:
             current["active_route"]=None
+    elif cmd=="transit-arrive":
+        # Fictional game services, not real routes, fares or timetables.
+        service=str(mode or "").strip().lower()
+        stops={
+            "bus": {"town-centre","western-road","eastfields","lower-mitcham","pollards-hill","mitcham-common"},
+            "train": {"eastfields","junction"},
+            "tram": {"phipps-bridge","junction"},
+            "taxi": {row["id"] for row in NODES if row["kind"] in {"centre","transport","road","neighbourhood","estate","estate-road"}},
+        }
+        destination=str(target or "").strip()
+        if service not in stops:
+            raise ValueError("eiot_transit_mode_invalid")
+        if here["id"]==destination or here["id"] not in stops[service] or destination not in stops[service]:
+            raise ValueError("eiot_transit_stop_invalid")
+        if current["vehicle_life"].get("inside_vehicle"):
+            raise ValueError("mtown_exit_vehicle_before_noncar_travel")
+        if current["interiors"].get("current_interior_id"):
+            raise ValueError("eiot_exit_interior_before_transit")
+        if current.get("active_route"):
+            raise ValueError("eiot_finish_route_before_transit")
+        # Preserve existing virtual economy; no actual payment is performed.
+        fare={"bus":2,"train":4,"tram":2,"taxi":8}[service]
+        if current["player"]["cash"]<fare:
+            raise ValueError("eiot_transit_cash_insufficient")
+        current["player"]["cash"]-=fare
+        current["player"]["node"]=destination
+        current["player"]["travel_mode"]="foot"
+        current["character"]=earth_is_our_turf_character.set_movement(
+            current["character"],mode="foot",node=destination,speed=0,segment=[],offset=0,
+        )
+        current["active_chunk"]=mitcham_world.chunk_for(destination)
+        current["loaded_chunks"]=mitcham_world.streamed_chunks(current["active_chunk"])
+        current["world_position"]=None
+        _node(current,destination)["memory"]+=1
+        elapsed={"bus":12,"train":8,"tram":10,"taxi":10}[service]
+        days,current["time_minutes"]=divmod(current["time_minutes"]+elapsed,24*60)
+        current["day"]+=days
+        current["events"].append({
+            "type":"transit_arrival","from":here["id"],"to":destination,
+            "mode":service,"virtual_fare":fare,"source":"fictional_game_service",
+        })
     elif cmd=="travel-route":
         plan=current.get("active_route")
         if not isinstance(plan,dict) or plan.get("from")!=here["id"]: raise ValueError("eiot_active_route_missing")
