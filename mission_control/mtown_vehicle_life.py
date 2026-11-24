@@ -8,6 +8,8 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from . import mtown_living_streets
+
 SCHEMA="oap.eiot.mtown-vehicle-life.v1"
 
 def new_state() -> dict[str,Any]:
@@ -91,6 +93,7 @@ def enter_vehicle(
     life["inside_vehicle"]=True
     vehicle["status"]="occupied"
     vehicle["parking_id"]=None
+    mtown_living_streets.refresh_parking(streets)
     char["movement"]["mode"]="car"
     return life,char,streets
 
@@ -112,7 +115,11 @@ def exit_vehicle(
     if vehicle is None:
         raise ValueError("mtown_vehicle_invalid")
     vehicle["node"]=char["movement"]["node"]
+    vehicle["segment"]=copy.deepcopy(char["movement"].get("segment"))
+    vehicle["offset"]=char["movement"].get("offset",0.0)
+    vehicle["parking_id"]=None
     vehicle["status"]="stopped"
+    mtown_living_streets.refresh_parking(streets)
     char["movement"]["mode"]="foot"
     char["movement"]["speed"]=0.0
     life["inside_vehicle"]=False
@@ -140,6 +147,7 @@ def sync_active_vehicle(
     vehicle["offset"]=movement.get("offset",0.0)
     vehicle["status"]="driving" if float(movement.get("speed") or 0)>0 else "occupied"
     vehicle["parking_id"]=None
+    mtown_living_streets.refresh_parking(streets)
     return streets
 
 def park_active_vehicle(
@@ -164,9 +172,9 @@ def park_active_vehicle(
     vehicle=next((v for v in streets.get("vehicles",[]) if v.get("id")==state["active_vehicle_id"]),None)
     if vehicle is None:
         raise ValueError("mtown_vehicle_invalid")
-    vehicle["node"]=parking["node"]
-    vehicle["parking_id"]=pid
-    vehicle["status"]="parked"
+    streets=mtown_living_streets.park_vehicle(
+        streets,vehicle_id=state["active_vehicle_id"],parking_id=pid,
+    )
     char=copy.deepcopy(character)
     char["movement"]["mode"]="foot"
     char["movement"]["speed"]=0.0
