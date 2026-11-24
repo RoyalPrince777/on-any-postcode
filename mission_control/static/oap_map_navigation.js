@@ -92,6 +92,7 @@ function placeVehicle(lon,lat,heading){
  const b=routeBounds();if(!b)return;
  const p=project(lon,lat,b),g=ensureVehicle();lastProjected=p;
  g.setAttribute('transform',`translate(${p[0]} ${p[1]}) rotate(${Number.isFinite(heading)?heading:0})`);
+ g.setAttribute('visibility','visible');
  if(driveMode){viewCenter=p;applyView()}
 }
 function nearestRouteState(lon,lat){
@@ -189,7 +190,11 @@ function renderRoute(d){
  etaRemain.textContent=Math.max(1,Math.round((+currentRoute.duration_s||0)/60))+' min';
  routeDistance.textContent=((+currentRoute.distance_m||0)/1000).toFixed(1)+' km';
  updateTurn(0);zoom=1;viewCenter=[500,350];applyView();
- if(currentGeometry.length){const p=currentGeometry[0];placeVehicle(+p[0],+p[1],0)}
+ if(body.dataset.carView==='true'){
+  const vehicle=q('#vehicle-marker');if(vehicle)vehicle.setAttribute('visibility','hidden');
+ }else if(currentGeometry.length){
+  const p=currentGeometry[0];placeVehicle(+p[0],+p[1],0)
+ }
 }
 driveToggle?.addEventListener('click',()=>setDrive(!driveMode));
 voiceToggle?.addEventListener('click',()=>setVoice(!voiceEnabled));
