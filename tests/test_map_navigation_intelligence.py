@@ -334,3 +334,31 @@ def test_map_carries_route_into_travel_and_movement_links():
     assert "params.set('service','ride')" in page
     assert "rideLink.href='/movement/workspace?'+params.toString()+'#book-title'" in page
     assert "syncMovementLinks(d.origin?.label||a,d.destination?.label||b)" in page
+
+
+def test_car_browser_view_is_opt_in_and_never_fakes_gps(client):
+    default = client.get("/oap-map")
+    car = client.get("/oap-map?view=car")
+    assert default.status_code == car.status_code == 200
+    assert 'data-car-view="false"' in default.get_data(as_text=True)
+    html = car.get_data(as_text=True)
+    assert 'data-car-view="true"' in html
+    assert 'id="oap-car-hud"' in html
+    assert 'id="oap-gps-speed"' in html
+    assert 'id="oap-gps-status"' in html
+    assert "GPS off · tap locate to enable" in html
+    assert "GPS estimate only · no vehicle telemetry" in html
+    assert "'&view=car'" in MAP.read_text(encoding="utf-8")
+    navigation = NAV.read_text(encoding="utf-8")
+    assert "Number.isFinite(speed)&&speed>=0" in navigation
+    assert "speed*2.2369362921" in navigation
+    assert "navigator.geolocation.watchPosition" in navigation
+    assert "startLocation" in navigation
+    assert "setDrive(true)" in navigation
+    assert "vehicle.setAttribute('visibility','hidden')" in navigation
+    assert "const p=currentGeometry[0];placeVehicle" in navigation
+    assert "oap-gps-speed" in navigation
+    css = CSS.read_text(encoding="utf-8")
+    assert 'body[data-car-view="true"] .movement-actions{display:none!important}' in css
+    assert "@media(min-width:800px) and (orientation:landscape)" in css
+    assert ".oap-ride-embed .oap-car-hud{display:none!important}" in css
