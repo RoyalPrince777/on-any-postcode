@@ -31,3 +31,18 @@ configurations.configureEach {
     exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
     exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
 }
+
+
+// Reject legacy-host APKs at build time; does not certify live DNS/TLS readiness.
+tasks.register('verifyFirstPartyOrigin') {
+    doLast {
+        def source = file('src/main/java/com/onanypostcode/oapworld/MainActivity.java').text
+        if (!source.contains('private static final String OAP_ORIGIN = "https://onanypostcode.global"')
+                || source.contains('onrender.com')) {
+            throw new GradleException('KORADASO APK must use its approved first-party HTTPS origin; Render is prohibited.')
+        }
+    }
+}
+tasks.named('preBuild') {
+    dependsOn tasks.named('verifyFirstPartyOrigin')
+}

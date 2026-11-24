@@ -85,10 +85,12 @@ def test_active_game_lifecycle_prevents_silent_restart(client, game, path):
     response = client.get(path)
     assert response.status_code == 200, game
     script = response.get_data(as_text=True)
-    assert 'state?.status==="active"' in script, game
+    compact = "".join(script.split())
+    assert 'state?.status==="active"' in compact, game
     assert "busy" in script, game
-    assert ('q("[data-start]").disabled' in script or \
-            'start.disabled=busy||state?.status==="active"' in script), game
+    assert ('q("[data-start]").disabled' in compact or
+            'start.disabled=busy||state?.status==="active"' in compact or
+            'start.disabled=busy||active' in compact), game
 
 
 def test_iq_choices_use_dom_nodes_and_single_request_guard(client):

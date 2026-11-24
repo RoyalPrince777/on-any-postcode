@@ -49,6 +49,16 @@ def _session_secret() -> bytes:
     raise FounderLocalAuthUnavailable("session_secret_not_configured")
 
 
+def session_signing_ready() -> bool:
+    """Check whether the local verifier can issue a signed session."""
+
+    try:
+        _session_secret()
+    except FounderLocalAuthUnavailable:
+        return False
+    return True
+
+
 def _identity() -> str:
     """Resolve the sole active level-zero Human Authority without exposing identity data."""
 

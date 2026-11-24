@@ -7,6 +7,7 @@ Never connects to production; no game move endpoint or browser action is mocked.
 from __future__ import annotations
 
 import os
+import re
 import sys
 import threading
 from pathlib import Path
@@ -21,7 +22,7 @@ from playwright.sync_api import expect, sync_playwright
 from werkzeug.serving import make_server
 
 import app as app_module
-from mission_control import postgres_db, web_security
+from mission_control import ludo, postgres_db, web_security
 
 BASE = "http://127.0.0.1:8768"
 
@@ -54,6 +55,20 @@ def assert_layout(page):
     assert page.evaluate(
         "() => document.documentElement.scrollWidth <= window.innerWidth + 2"
     ), "Horizontal screen overflow"
+
+
+def tap_connect4_board(page, column):
+    expect(page.locator(".c4-wordmark")).to_have_text("ON ANY POSTCODE")
+    controls = page.locator("[data-controls] button")
+    expect(controls).to_have_count(7)
+    expect(controls).to_have_text([""] * 7)
+    expect(controls.nth(column)).to_be_visible()
+    expect(controls.nth(column)).to_be_enabled()
+    cell = page.locator("[data-board] .c4-cell").nth(35 + column)
+    cell.scroll_into_view_if_needed()
+    target = cell.bounding_box()
+    assert target, "Expected visible board cell"
+    page.mouse.click(target["x"] + target["width"] / 2, target["y"] + target["height"] / 2)
 
 
 def play_two_seats(browser, game, host_viewport, guest_viewport):
@@ -89,8 +104,9 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
     match_selector = "[data-room]" if game == "connect4" else "[data-match]"
     expect(host.locator(match_selector)).to_be_visible()
     expect(host.locator("[data-create]")).to_be_hidden()
-    room_code = host.locator("[data-code]").inner_text()
-    assert len(room_code) == 6
+    code = host.locator("[data-code]")
+    expect(code).to_have_text(re.compile(r"^[A-Z2-9]{6}$"))
+    room_code = code.inner_text()
     expect(host.locator("[data-token]")).not_to_be_empty()
 
     guest_code = "[data-join-code]" if game == "connect4" else "[data-code-input]"
@@ -124,8 +140,10 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
         ),
         times=1,
     )
-    first_control = "[data-columns] button" if game == "connect4" else "[data-edges] button:not([disabled])"
-    host.locator(first_control).first.click()
+    if game == "connect4":
+        tap_connect4_board(host, 0)
+    else:
+        host.locator("[data-edges] button:not([disabled])").first.click()
     expect(host.locator("[data-error]")).to_contain_text("test_refresh_unavailable")
     expect(host.locator("[data-stop]")).to_be_disabled()
     if game == "connect4":
@@ -143,7 +161,7 @@ def play_two_seats(browser, game, host_viewport, guest_viewport):
         second = "[data-columns] button"
         guest.locator("[data-refresh]").click()
         expect(guest.locator("[data-revision]")).to_have_text("1")
-        guest.locator(second).nth(1).click()
+        guest.locator(second).nth(1).press("Enter")
         expect(guest.locator("[data-revision]")).to_have_text("2")
         host.locator("[data-refresh]").click()
         expect(host.locator("[data-revision]")).to_have_text("2")
@@ -197,13 +215,28 @@ def play_added_room(browser, game, host_viewport, guest_viewport):
     host.locator("[data-refresh]").click()
     expect(host.locator("[data-status]")).to_have_text("ACTIVE")
     if game == "ludo":
-        host.locator("[data-roll]").click()
+        original_randbelow = ludo.secrets.randbelow
+        ludo.secrets.randbelow = lambda _: 5
+        try:
+            host.locator("[data-roll]").click()
+            expect(host.locator("[data-revision]")).to_have_text("1")
+        finally:
+            ludo.secrets.randbelow = original_randbelow
+        piece = host.locator('[data-board] [data-piece="p1-1"]')
+        expect(piece).to_be_enabled()
+        piece.click()
+        expect(host.locator("[data-revision]")).to_have_text("2")
+        expect(piece).to_have_attribute("aria-label", "Alpha ludo, piece 1, Track 1")
     else:
         host.locator("[data-pits] button:not([disabled])").first.click()
-    expect(host.locator("[data-revision]")).to_have_text("1")
+        expect(host.locator("[data-revision]")).to_have_text("1")
 
     guest.locator("[data-refresh]").click()
-    expect(guest.locator("[data-revision]")).to_have_text("1")
+    expect(guest.locator("[data-revision]")).to_have_text("2" if game == "ludo" else "1")
+    if game == "ludo":
+        guest_piece = guest.locator('[data-board] [data-piece="p1-1"]')
+        expect(guest_piece).to_have_attribute("aria-label", "Alpha ludo, piece 1, Track 1")
+        expect(guest_piece).to_be_disabled()
     host.locator("[data-stop]").click()
     expect(host.locator("[data-status]")).to_have_text("STOPPED")
     guest.locator("[data-refresh]").click()
@@ -305,8 +338,8 @@ def prove_connect4_quick_match(browser):
             context.close()
 
 
-def prove_local_gameplay_percentages(browser):
-    """Exercise real Flask pages and observable game percentages in Chromium."""
+def prove_local_gameplay(browser):
+    """Exercise real Flask pages and observable moves in Chromium."""
     for game in ("connect4", "chess", "oware"):
         web_security.PUBLIC_WRITE_LIMITER.reset()
         context = browser.new_context(viewport={"width": 393, "height": 852})
@@ -318,17 +351,37 @@ def prove_local_gameplay_percentages(browser):
         manifest_response = page.request.get(BASE + "/manifest.webmanifest")
         assert manifest_response.ok, "OAP PWA manifest unavailable from Arena game"
         assert isinstance(manifest_response.json(), dict), "OAP PWA manifest invalid"
+        if game == "oware":
+            expect(page.locator(".oware-stones i")).to_have_count(48)
+            expect(page.locator(".oware-score")).to_have_text(["0", "0"])
+        if game == "connect4":
+            page.locator("[data-settings] summary").click()
+            page.get_by_label("Player 1 colour").select_option("blue")
         page.locator("[data-start]").click()
         expect(page.locator("[data-game]")).to_be_visible()
-        expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 0%")
-        expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "0")
         if game == "connect4":
-            page.locator("[data-controls] button:not([disabled])").first.click()
-            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Gameplay 2%")
-            expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "2")
+            tap_connect4_board(page, 0)
+            expect(page.locator(".c4-board .c4-p1")).to_have_count(1)
+            expect(page.locator(".c4-board .c4-p1")).to_have_attribute("data-counter-colour", "blue")
+            expect(page.locator("[data-turn]")).to_have_text("Player Two’s turn")
         elif game == "oware":
-            page.locator("[data-board] button:not([disabled])").first.click()
-            expect(page.locator("[data-gameplay-percent]")).to_contain_text("Seeds captured:")
+            for pit in (0, 10, 1, 7, 5):
+                page.locator(f'[data-pit="{pit}"]').click()
+            expect(page.locator(".oware-score")).to_have_text(["2", "2"])
+            expect(page.locator(".oware-captured-stones i")).to_have_count(4)
+            expect(page.locator(".oware-stones i")).to_have_count(44)
+            expect(page.locator(".oware-seeds-changed").first).to_be_visible()
+            expect(page.locator(".oware-capture")).to_have_count(1)
+            page.get_by_role("button", name="Settings").click()
+            settings = page.get_by_role("dialog", name="Game settings")
+            settings.get_by_label("Game type").select_option("nam-nam")
+            settings.get_by_label("Play against").select_option("agent")
+            settings.get_by_label("Agent level").select_option("expert")
+            settings.get_by_role("button", name="Start game").click()
+            expect(settings).to_be_hidden()
+            expect(page.locator("[data-status]")).to_have_text("Nam-Nam")
+            page.locator('[data-pit="0"]').click()
+            expect(page.locator(".oware-last")).to_have_attribute("data-pit", re.compile(r"^(?:[6-9]|1[01])$"))
         else:
             for source, target in (("e2", "e4"), ("d7", "d5"), ("e4", "d5")):
                 page.locator("[data-source]").fill(source)
@@ -339,7 +392,7 @@ def prove_local_gameplay_percentages(browser):
             expect(page.locator("[data-gameplay-bar]")).to_have_attribute("value", "3")
         assert_layout(page)
         context.close()
-        print("ARENA_GAMEPLAY_PERCENT_CHROMIUM_PASS", game)
+        print("ARENA_LOCAL_GAMEPLAY_CHROMIUM_PASS", game)
 
 
 def main():
@@ -359,7 +412,7 @@ def main():
             play_added_room(browser, "oware", desktop, mobile)
             play_final_room(browser, "iq", mobile, desktop)
             play_final_room(browser, "route-empire", desktop, mobile)
-            prove_local_gameplay_percentages(browser)
+            prove_local_gameplay(browser)
             browser.close()
     finally:
         server.shutdown()

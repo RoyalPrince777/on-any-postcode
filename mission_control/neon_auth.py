@@ -116,6 +116,16 @@ def configured_public_origin() -> str:
     return value.removesuffix("/")
 
 
+def founder_sign_in_ready() -> bool:
+    """Check the configuration required by the selected Founder verifier."""
+
+    if local_founder_ready():
+        return founder_local_auth.session_signing_ready()
+    return bool(
+        status()["valid"] and configured_founder_email() and configured_public_origin()
+    )
+
+
 def _required_public_origin() -> str:
     """Require the exact application origin for every state-changing Auth call."""
 

@@ -156,6 +156,8 @@ def _private_not_found():
 
 
 def _private_handoff(path: str):
+    if os.environ.get("OAP_PRIVATE_SMI_HANDOFF_ENABLED", "true").strip().casefold() != "true":
+        return None
     clean = path.rstrip("/") or "/"
     target = _PUBLIC_PRIVATE_HANDOFFS.get(clean)
     if target is None or request.method not in {"GET", "HEAD"}:

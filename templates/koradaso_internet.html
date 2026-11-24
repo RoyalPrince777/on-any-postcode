@@ -1,23 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-koradaso-release="{{ koradaso_release }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
+<meta name="referrer" content="no-referrer">
 <title>KORADASO Internet · ON ANY POSTCODE</title>
+<link rel="icon" type="image/jpeg" href="/static/oap/koradaso_internet_logo.jpg">
 <style>
 :root{--night:#050713;--panel:#111121;--gold:#f4cb74;--muted:#c5b5a0;--violet:#9b62e8;--line:#765b37;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 52% -13%,#302050 0%,#0d1024 41%,var(--night) 75%);color:#fff8ea;font:16px/1.45 system-ui,sans-serif}
 a{color:inherit;text-decoration:none}button,input{font:inherit}
 .skip{position:absolute;left:-9999px}.skip:focus{left:12px;top:12px;background:#fff;color:#000;padding:10px;z-index:10}
 .shell{max-width:900px;margin:auto;padding:16px 15px calc(26px + env(safe-area-inset-bottom))}
-.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 20px}.brand{font:700 1rem Georgia,serif;letter-spacing:.09em;color:var(--gold)}.tag{border:1px solid #795b4d;border-radius:20px;padding:5px 10px;font-size:.75rem;color:#e8cbaf}
-.hero{text-align:center;position:relative;isolation:isolate;padding:32px 12px 26px;border:1px solid #917043;border-radius:24px;overflow:hidden;background:radial-gradient(circle at 50% 46%,#2a2052 0,#14192d 34%,#070916 75%);box-shadow:0 0 30px #b2763426,inset 0 0 30px #9b62e80b}
-.hero:before{content:"";position:absolute;inset:-110px 12% auto;border:1px solid #a576c262;border-radius:50%;height:285px;transform:rotate(-16deg);z-index:-1}
-.crest{display:grid;place-items:center;width:142px;height:142px;margin:auto;border:2px solid var(--gold);border-radius:50%;background:radial-gradient(circle,#744eac 0,#29274d 30%,#090d20 70%);box-shadow:0 0 42px #ae79e55e,inset 0 0 22px #edc76b55;position:relative}
-.crest span{font:700 6.4rem/.9 Georgia,serif;color:var(--gold);text-shadow:0 0 12px #d49a65}
-.crown{font-size:2rem;color:var(--gold);line-height:1}.hero h1{font:700 clamp(2.3rem,8vw,4rem)/1.02 Georgia,serif;letter-spacing:.04em;margin:18px 0 4px;color:var(--gold);text-shadow:0 0 18px #bf7e6c66}
-.subtitle{font-weight:600;letter-spacing:.4em;font-size:.8rem}.powered{color:var(--muted);font-size:.75rem;letter-spacing:.16em;margin-top:9px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 20px}.brand{font:700 1rem Georgia,serif;letter-spacing:.09em;color:var(--gold)}
+
+.hero{margin:6px 0 0;overflow:hidden;border:1px solid #f0c66e;border-radius:20px;background:#050306;box-shadow:0 0 18px #9951f455}
+.hero h1{margin:0}
+.hero img{display:block;width:min(100%,360px);height:auto;margin:auto}
+@media(max-width:520px){.hero img{width:min(100%,240px)}}
 .search{display:flex;gap:8px;border:1px solid var(--gold);border-radius:24px;padding:7px;margin:20px 0 6px;background:#10111e;box-shadow:0 0 15px #b8894933}
 .search input{flex:1;min-width:0;background:transparent;border:0;padding:10px;color:white;outline-offset:4px}.search button,.action{background:linear-gradient(135deg,#ffe1a1,#b88736);border:0;border-radius:16px;color:#211407;font-weight:750;padding:10px 14px;cursor:pointer}
 .search button:focus-visible,.tile:focus-visible,a:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}
@@ -26,46 +27,350 @@ h2{font-size:.9rem;letter-spacing:.12em;color:#edcb83;margin:22px 0 12px}
 .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
 .tile{min-height:130px;border:1px solid #9a7644;border-radius:18px;background:linear-gradient(145deg,#1a2035,#0c0d19 78%);padding:19px 10px 12px;text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;box-shadow:inset 0 1px #fff2}
 .tile .ico{font-size:2rem;filter:drop-shadow(0 0 7px #9162f8)}.tile strong{color:var(--gold);font:700 1.05rem Georgia,serif}.tile span:last-child{font-size:.73rem;color:#c7bbaf}
-.nav{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}.nav a{flex:1;text-align:center;min-width:135px;border:1px solid #776044;border-radius:12px;padding:11px;font-weight:600;color:#f1cf91}
+
 footer{font-size:.78rem;color:#bba9a0;border-top:1px solid #4f4058;padding:18px 0;margin-top:16px}
-@media(max-width:490px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:118px}.hero{padding-top:24px}.hero h1{font-size:2.35rem}.crest{width:119px;height:119px}.crest span{font-size:5.5rem}}
+@media(max-width:490px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:118px}}
 @media(prefers-reduced-motion:reduce){*,*:before{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+:root{--gold:#f5cd77;--violet:#a66bff}
+.top{padding:8px 2px 11px;border-bottom:1px solid #a57b46;position:relative}
+.brand{margin-right:auto}
+.shell{max-width:650px;padding:9px 11px calc(35px + env(safe-area-inset-bottom));border-inline:1px solid #3e2b4e}
+
+.search{border-color:#ffe59f;box-shadow:0 0 15px #9b47ff55,0 0 10px #ffc75944;border-radius:27px}
+.grid{grid-template-columns:repeat(12,minmax(0,1fr));gap:8px}
+.tile{grid-column:span 3;min-height:111px;border-color:#d9ad66;box-shadow:inset 0 1px #fff3,0 0 10px #6c35c044}
+.tile:nth-child(-n+3){grid-column:span 4;min-height:130px}
+.tile .ico{font-size:2.35rem}.tile strong{font-size:1rem}
+
+.browser-bar{display:flex;justify-content:space-around;gap:7px;border:1px solid #c69a57;border-radius:18px;background:#10101b;padding:9px;margin:17px 0}
+
+.browser-bar button{flex:1;color:#f1cd8d;border:1px solid #736044;border-radius:12px;padding:9px 4px;font-size:.86rem;background:transparent;cursor:pointer}.browser-bar button:focus-visible{outline:3px solid #c5a6ff;outline-offset:3px}body.reduce-motion *,body.reduce-motion *:before,body.reduce-motion *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.bookmark-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}.bookmark-heading h2{margin:14px 0}.bookmark-heading .action{font-size:.8rem;padding:8px 12px}.bookmark-remove{background:transparent;color:#ffd991;border:0;cursor:pointer;padding:3px 6px}.bookmark-saved{display:inline-flex;align-items:center;gap:5px;background:#141423;border:1px solid #65553d;border-radius:10px;padding-left:10px}.bookmark-saved a{padding:8px 0!important;border:0!important}.shortcuts{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap}.shortcuts a{padding:8px 10px;background:#141423;border:1px solid #65553d;border-radius:10px;font-size:.78rem}
+@media(max-width:490px){.tile:nth-child(-n+3){min-height:118px}.tile{min-height:105px}}
+
+.settings-actions{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+.settings-actions button{border:1px solid #977349;background:#171425;color:#f5dba8;padding:9px 13px;border-radius:12px}
+.trust-state{font-size:.78rem;color:#e4c58d;margin:9px 2px}
+
+.tile{border:1px solid #c79b55;border-radius:15px;background:linear-gradient(155deg,#302045,#0a0b17 72%);box-shadow:inset 0 1px #ffdb9955,0 0 8px #ab60e733}
+.tile:focus-visible{outline:3px solid #d9b0ff;outline-offset:3px}
+.search{background:linear-gradient(#171128,#080c16);border-color:#f3cd85;box-shadow:0 0 0 1px #6d329a,0 0 20px #9951f466}
+
+/* Redmi A5 responsive polish: preserve existing royal layout and live controls. */
+@media(max-width:520px){
+ .shell{padding:8px 12px calc(22px + env(safe-area-inset-bottom));border-inline:0}
+ .top{gap:8px;padding:4px 0 9px}
+ .top:before{font-size:1rem;margin-right:0}
+ .brand{font-size:.91rem;letter-spacing:.045em}
+
+.search{gap:5px;margin:14px 0 6px;padding:5px;min-width:0;border-radius:20px}
+ .search input{min-width:0;width:0;flex:1 1 0;padding:12px 8px;font-size:.91rem;text-overflow:ellipsis}
+ .search button{flex:0 0 auto;min-height:46px;padding:10px 12px;border-radius:15px;font-size:.85rem;white-space:nowrap}
+
+.trust-state{margin-top:7px}
+ .note{margin-bottom:14px}
+ .grid{gap:7px}
+ .tile,
+ .tile:nth-child(-n+3){min-height:110px}
+ .tile .ico{font-size:1.95rem}
+ .tile strong{font-size:.87rem}
+ .tile span:last-child{font-size:.68rem}
+ .browser-bar{gap:5px;padding:6px}
+ .browser-bar a,.browser-bar button{min-width:0;padding:10px 2px;font-size:.76rem}
+}
+@media(max-width:360px){
+ .brand{font-size:.8rem}
+
+.search button{padding:9px 10px;font-size:.8rem}
+}
+
+/* Genuine search destinations versus unavailable media indexes. */
+.discovery-strip{display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:7px 1px 10px}
+.discovery-strip a,.discovery-strip span{flex:0 0 auto;font-size:.76rem;white-space:nowrap;padding:9px 11px;border:1px solid #8b6a4e;border-radius:999px;background:#191225;color:#f1d49d}
+.discovery-strip span{border-style:dashed;color:#b2a8bd;cursor:default}
+.discovery-strip a:focus-visible{outline:3px solid #dbb0ff;outline-offset:2px}
+.arena-tile{border-color:#f7ce79;box-shadow:0 0 15px #a659ea33,inset 0 1px #f9d68b66}
+@media(max-width:520px){.discovery-strip a,.discovery-strip span{font-size:.72rem;padding:9px 10px}}
+.top{flex-wrap:wrap;min-height:56px;padding-right:54px}
+.top .royal-menu{flex:0 0 calc(100% + 54px);margin-right:-54px}
+.top .royal-menu:not([open]){flex-basis:0;margin-right:0}
+.royal-menu summary{list-style:none;position:absolute;right:0;top:2px;display:grid;place-items:center;width:44px;min-height:44px;border:1px solid #bb975c;border-radius:13px;color:#f5d185;font-size:1.5rem;cursor:pointer;background:#20152e}
+.royal-menu summary::-webkit-details-marker{display:none}
+.royal-menu summary:focus-visible{outline:3px solid #dbb0ff;outline-offset:3px}
+.settings-panel{padding:12px 14px;border:1px solid #b78e56;border-radius:15px;background:#131023}
+.settings-panel h2{margin:0 0 8px;font-size:1rem;letter-spacing:0}
+.settings-panel section{padding:10px 0;border-top:1px solid #443357}
+.settings-panel section:last-child{padding-bottom:0}
+.settings-panel h3,.settings-panel p{margin:0 0 6px;font-size:.86rem}
+.settings-panel p{color:#d1c5b1}
+.settings-panel label{display:flex;align-items:center;gap:9px;min-height:44px;font-size:.9rem}
+.search-row{display:flex;align-items:center;gap:8px;margin:14px 0 6px}
+.search-row .search{margin:0;flex:1 1 0;min-width:0}
+@media(max-width:520px){.top .search-row{gap:7px;margin:12px 0 6px}.search-row .search{min-width:0}.search-row .search input{font-size:.81rem;padding-inline:5px}.search-row .search button{padding-inline:8px;font-size:.77rem}}
+@media(max-width:520px){
+ .top{justify-content:flex-start;min-height:52px;padding-right:54px}
+ .top 
+
+}
+@media(max-width:360px){.top }
+/* Quiet professional hierarchy: preserve original artwork and functional controls. */
+.shell{max-width:760px;padding:12px 16px calc(24px + env(safe-area-inset-bottom))}
+.top{padding-bottom:10px;min-height:52px}
+.hero{margin:5px auto 0;border-color:#87683e;border-radius:16px;box-shadow:none}
+.hero img{width:min(100%,180px)}
+@media(max-width:520px){.hero img{width:min(100%,148px)}}
+.search-row{margin:14px 0 5px}
+.search{border-color:#a7844e;border-radius:16px;box-shadow:none}
+.search input{font-size:1rem}
+
+.trust-state,.note{min-height:0}
+.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tile{min-height:98px;border-color:#594967;border-radius:13px;padding:12px 8px;box-shadow:none}
+.tile .ico{font-size:1.45rem;filter:none}
+.tile strong{font:650 .95rem system-ui,sans-serif}
+.tile span:last-child{font-size:.7rem}
+h2{letter-spacing:.03em;text-transform:none}
+.browser-bar{gap:8px}
+.browser-bar a,.browser-bar button{min-height:44px}
+@media(max-width:520px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tile{min-height:100px}}
+
+/* Compact public browser: actions in a real top-right drawer, never the home grid. */
+.top .royal-menu[open] .settings-panel{position:fixed;right:0;top:0;bottom:0;z-index:30;width:min(360px,100vw);height:100vh;height:100dvh;overflow-y:auto;border-radius:16px 0 0 16px;padding:18px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:-18px 0 45px #000b}
+.drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.drawer-heading h2{margin:0}
+.drawer-heading button{min-width:44px;min-height:44px;border:1px solid #977349;border-radius:12px;background:#21172e;color:#f1cd8d;font-size:1.4rem;cursor:pointer}
+.address-feedback:empty{display:none}
+.address-feedback:not(:empty){margin:4px 2px 12px;color:#ffda9c}
+@media(max-width:520px){.top .royal-menu[open] .settings-panel{border-radius:12px 0 0 12px}}
+.top .royal-menu[open]{flex-basis:0;margin-right:0}
+.screen-reader-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.public-smi{display:grid;place-items:center;min-height:49px;min-width:54px;padding:8px 11px;border:1px solid #ab83d0;border-radius:14px;background:#312046;color:#f6d48e;font-weight:750}
+.public-smi:focus-visible{outline:3px solid #d9b0ff;outline-offset:3px}
+.settings-panel .shortcuts{justify-content:flex-start}
+.settings-panel .shortcuts a{min-height:40px}
+.settings-panel .bookmark-heading{margin-bottom:8px}
+.settings-panel .bookmark-heading h3{margin:0}
+.grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tile:nth-child(-n+3){grid-column:auto;min-height:100px}
+@media(max-width:520px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.tile,.tile:nth-child(-n+3){min-height:93px}.tile strong{font-size:.81rem}.public-smi{min-width:52px}}
+
+/* Quiet KORADASO home: one image, one omnibox, five destinations and Back. */
+.shell{max-width:610px}
+.top{min-height:48px;padding-block:3px 8px}
+.hero{background:#050306;border:0;border-radius:0;box-shadow:none;margin:5px auto 0}
+.hero img{width:min(100%,260px);height:auto}
+.search-row{margin:12px 0 9px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile,.tile:nth-child(-n+3){min-height:86px;padding:10px 5px;border-color:#755536;border-radius:12px;background:#100e19;box-shadow:none}
+.tile .ico{font-size:1.55rem;filter:none}
+.tile strong{font-size:.86rem}
+.public-smi{background:#20152e;border-color:#987348}
+.browser-bar{border:0;background:transparent;margin:9px 0;padding:0;justify-content:flex-start}
+.browser-bar button{border:1px solid #80613c;background:#100e19;border-radius:11px;min-width:82px}
+@media(max-width:520px){.hero img{width:min(100%,240px)}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.tile,.tile:nth-child(-n+3){min-height:82px}.top .brand{font-size:.9rem}}
+
+/* Royal reference refinement: presentation only, no fictitious browser functions. */
+body{background:radial-gradient(ellipse at 50% -6%,#241138 0%,#080918 49%,#040511 100%)}
+.top{border-bottom:1px solid #ae7a344d}
+.hero{background:transparent}
+.hero img{width:min(100%,310px);filter:drop-shadow(0 7px 20px #7c37bf55)}
+.search{background:linear-gradient(115deg,#0c0d1d,#10091d);border:1px solid #dbb56d;border-radius:22px}
+.search-row{margin-top:14px}
+.search:focus-within{outline:2px solid #e0b46d;outline-offset:2px}
+.grid{gap:9px}
+.tile,.tile:nth-child(-n+3){background:linear-gradient(145deg,#231434,#0b0b19 75%);border:1px solid #ae8142;border-radius:16px;min-height:100px;gap:7px}
+.tile .ico{display:grid;place-items:center;width:46px;height:46px;border:1px solid #b58b4c;border-radius:14px;background:radial-gradient(circle at 45% 30%,#432254,#171021);box-shadow:0 0 15px #8139b94d;font-size:1.45rem}
+.tile strong{color:#efd196;font-weight:700}
+.tile:hover,.tile:focus-visible{border-color:#e7c57c;background:linear-gradient(140deg,#301943,#101126)}
+.public-smi{background:linear-gradient(145deg,#392050,#160f26);border-color:#d8a75c;color:#ffe0a0}
+@media(max-width:520px){.hero img{width:min(100%,280px)}.tile,.tile:nth-child(-n+3){min-height:96px;padding:9px 4px}.tile .ico{width:43px;height:43px}.grid{gap:7px}}
+/* Founder-approved mobile refinement: retain the original crown/globe artwork and routes. */
+@media(max-width:520px){
+  .shell{padding-inline:14px}
+  .hero img{width:min(100%,300px);height:auto}
+  .search-row{align-items:stretch;gap:8px}
+  .search-row .search{min-width:0}
+  .search-row .search input{min-width:0;font-size:16px;padding-inline:12px}
+  .search-row .search button{min-height:48px;padding-inline:13px;font-size:.88rem}
+  .public-smi{min-height:48px;min-width:70px;font-size:.85rem;padding-inline:9px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .tile,.tile:nth-child(-n+3){min-height:116px;padding:13px 10px;gap:8px}
+  .tile .ico{width:46px;height:46px}
+  .tile strong{font-size:.95rem}
+  .browser-bar button{min-height:48px}
+}
+@media(max-width:360px){
+  .shell{padding-inline:10px}
+  .search-row{gap:6px}
+  .public-smi{min-width:64px}
+  .tile,.tile:nth-child(-n+3){padding-inline:6px}
+}
+@media(prefers-reduced-motion:reduce){
+  .tile,.search,.public-smi,.royal-menu summary{transition:none!important;animation:none!important}
+}
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="shell">
-<header class="top"><span class="brand">♛ KORADASO</span><span class="tag">OAP LOCAL · FIRST PARTY</span></header>
+<header class="top">
+<a class="brand" href="/koradaso" aria-label="KORADASO homepage">♛ KORADASO</a>
+
+<details class="royal-menu" id="browser-settings">
+<summary aria-label="Browser menu" title="Browser menu"><span aria-hidden="true">☰</span></summary>
+<div class="settings-panel">
+<div class="drawer-heading"><h2>Settings</h2><button type="button" id="drawer-close" aria-label="Close browser menu">×</button></div>
+<section aria-labelledby="settings-downloads">
+<h3 id="settings-downloads">Downloads</h3>
+<p>Downloads are managed by your browser or Android.</p>
+</section>
+<section aria-labelledby="drawer-bookmarks">
+<div class="bookmark-heading"><h3 id="drawer-bookmarks">Bookmarks</h3><button type="button" class="action" id="bookmark-add">+ Save page</button></div>
+<div class="shortcuts" aria-label="Website shortcuts" id="bookmark-list"><a href="/koradaso">KORADASO</a><a href="/world?source=oap-os">OAP World</a><a href="/search">OAP Search</a></div>
+<p class="note" id="bookmark-note" role="status"></p>
+</section>
+<section aria-labelledby="settings-search">
+<h3 id="settings-search">Search</h3>
+<label for="open-web-search"><input type="checkbox" id="open-web-search"> Use WWW Search by default</label>
+<p>OAP apps or indexed public web pages.</p>
+<nav class="discovery-strip" aria-label="Search destinations"><a href="/search">OAP Search</a><a href="/koradaso/web-search">Web Index</a></nav>
+</section>
+<section aria-labelledby="settings-accessibility">
+<h3 id="settings-accessibility">Accessibility</h3>
+<label for="reduce-motion"><input type="checkbox" id="reduce-motion"> Reduce motion</label>
+</section>
+<section aria-labelledby="settings-privacy">
+<h3 id="settings-privacy">Privacy &amp; local data</h3>
+<p>External websites require confirmation; settings stay on this device.</p>
+<div class="settings-actions"><button type="button" id="clear-browser-preferences">Clear saved bookmarks and preferences</button></div>
+<p class="note" id="settings-note" role="status"></p>
+</section>
+</div>
+</details>
+</header>
+
 <main id="main">
 <section class="hero" aria-label="KORADASO Internet home">
-<div class="crown" aria-hidden="true">♛</div><div class="crest" aria-hidden="true"><span>K</span></div>
-<h1>KORADASO</h1><div class="subtitle">INTERNET</div><div class="powered">POWERED BY ON ANY POSTCODE</div>
+<h1><img src="/static/oap/koradaso_internet_logo.jpg" width="1536" height="1536" alt="KORADASO Internet · Powered by ON ANY POSTCODE"></h1>
 </section>
-<form class="search" id="address-form" role="search">
-<input id="address" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Website address" placeholder="Search or type a website address…" required>
-<button type="submit">GO</button>
-</form>
-<p class="note" id="address-note" role="status">Website addresses open outside OAP only with your confirmation. Search results are not connected.</p>
-<h2>EXPLORE YOUR WORLD</h2>
-<div class="grid">
-<a class="tile" href="/world"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong><span>Discover OAP World</span></a>
-<a class="tile" href="/maps"><span class="ico" aria-hidden="true">📍</span><strong>Maps</strong><span>Places & routes</span></a>
-<a class="tile" href="/the-link"><span class="ico" aria-hidden="true">✉️</span><strong>Mail</strong><span>The Link</span></a>
-<a class="tile" href="/the-spot/market"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong><span>First-party market</span></a>
-<a class="tile" href="/studio"><span class="ico" aria-hidden="true">✦</span><strong>Studio</strong><span>Create & explore</span></a>
-<a class="tile" href="/library"><span class="ico" aria-hidden="true">📚</span><strong>Library</strong><span>Knowledge & legacy</span></a>
+<div class="search-row"><form class="search" id="address-form" role="search" action="/search" method="get">
+<input id="address" name="q" type="text" inputmode="search" enterkeyhint="search" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search or website address" placeholder="Search or type a website address…" required>
+<button type="submit">Go</button>
+</form><a class="public-smi" href="/studio?source=koradaso" id="ask-smi-link" aria-label="Ask SMI using the existing public KORADASO intelligence">Ask SMI</a></div>
+<p class="trust-state screen-reader-only" id="trust-state" role="status">OAP FIRST PARTY · Catalogue search</p>
+<p class="note address-feedback" id="address-note" role="status" aria-live="polite"></p>
+<nav class="grid" aria-label="KORADASO destinations">
+<a class="tile" href="/world?source=oap-os"><span class="ico" aria-hidden="true">🌍</span><strong>World</strong></a>
+<a class="tile" href="/oap-map"><span class="ico" aria-hidden="true">🗺️</span><strong>Maps</strong></a>
+<a class="tile" href="/the-link"><span class="ico" aria-hidden="true">🔗</span><strong>Mail</strong></a>
+
+<a class="tile" href="/the-spot/market"><span class="ico" aria-hidden="true">🛒</span><strong>Market</strong></a>
+<a class="tile arena-tile" href="/arena"><span class="ico" aria-hidden="true">♟</span><strong>Arena</strong></a>
+
+</nav>
+<nav class="browser-bar" aria-label="Browser navigation"><button type="button" id="browser-back" aria-label="Back to previous OAP page">← Back</button></nav>
+</main><footer>Born Local. Built Global.</footer>
 </div>
-<nav class="nav" aria-label="KORADASO navigation"><a href="/world">OAP World</a><a href="/">OAP Home</a></nav>
-</main><footer>Born Local. Built Global. · Earth is our turf. <span aria-label="Private data does not cache here">No offline private-data access.</span></footer>
-</div>
+<script src="/static/koradaso_auto_update.js" defer></script>
 <script>
 (function(){
 "use strict";
 const form=document.getElementById("address-form"),field=document.getElementById("address"),note=document.getElementById("address-note");
+const back=document.getElementById("browser-back"),reduceMotion=document.getElementById("reduce-motion"),openWebSearch=document.getElementById("open-web-search");
+const trustState=document.getElementById("trust-state"),settingsNote=document.getElementById("settings-note");
+const smiLink=document.getElementById("ask-smi-link");
+if(smiLink)smiLink.addEventListener("click",function(){
+  // One-click local handoff, never a model request or query-string disclosure.
+  const draft=field.value.trim();
+  try{
+    sessionStorage.removeItem("koradaso.smi_draft.v1");
+    if(draft&&draft.length<=600)sessionStorage.setItem("koradaso.smi_draft.v1",draft);
+  }catch(_){/* Storage unavailable: navigate to the existing empty public chat. */}
+});
+
+const preferencesKey="koradaso.browser_prefs.v1";
+function currentSearchMode(){return openWebSearch.checked?"web":"oap";}
+function updateSearchMode(mode){trustState.textContent=mode==="web"?"KORADASO WWW INDEX · First-party results only":"OAP FIRST PARTY · Catalogue search";}
+function savePreferences(){try{localStorage.setItem(preferencesKey,JSON.stringify({webDefault:openWebSearch.checked,reduceMotion:reduceMotion.checked}));}catch(_){settingsNote.textContent="Browser storage unavailable; settings apply only for this page.";}}
+try{const p=JSON.parse(localStorage.getItem(preferencesKey)||"{}");openWebSearch.checked=p.webDefault===true;reduceMotion.checked=p.reduceMotion===true;}catch(_){/* use defaults */}
+document.body.classList.toggle("reduce-motion",reduceMotion.checked);
+updateSearchMode(openWebSearch.checked?"web":"oap");
+openWebSearch.addEventListener("change",()=>{updateSearchMode(openWebSearch.checked?"web":"oap");savePreferences();});
+back.addEventListener("click",function(){if(window.history.length>1&&document.referrer){try{const previous=new URL(document.referrer);if(previous.origin===window.location.origin){window.history.back();return;}}catch(_){/* fallback home */}}window.location.assign("/koradaso");});
+const settings=document.getElementById("browser-settings");
+document.getElementById("drawer-close").addEventListener("click",()=>{settings.open=false;settings.querySelector("summary").focus();});
+const settingsLinks='a[href="#browser-settings"],a[href="#settings-downloads"]';
+document.querySelectorAll(settingsLinks).forEach(link=>link.addEventListener("click",()=>{settings.open=true;}));
+settings.querySelectorAll("a").forEach(link=>link.addEventListener("click",()=>{settings.open=false;}));
+settings.addEventListener("keydown",event=>{
+  if(event.key!=="Escape"||!settings.open)return;
+  settings.open=false;
+  settings.querySelector("summary").focus();
+});
+if(["#browser-settings","#settings-downloads"].includes(window.location.hash))settings.open=true;
+reduceMotion.addEventListener("change",function(){document.body.classList.toggle("reduce-motion",reduceMotion.checked);savePreferences();});
+// Bookmarks are user-initiated, browser-local and limited to OAP routes.
+const bookmarkList=document.getElementById("bookmark-list"),bookmarkNote=document.getElementById("bookmark-note");
+const bookmarkKey="koradaso.first_party_bookmarks.v1";
+const allowedRoutes=new Set(["/koradaso","/world","/search","/oap-map","/the-link","/the-spot/market","/arena","/studio","/koradaso/web-search"]);
+function readBookmarks(){try{const value=JSON.parse(localStorage.getItem(bookmarkKey)||"[]");return Array.isArray(value)?value.filter(x=>typeof x==="string"&&allowedRoutes.has(x)).slice(0,12):[];}catch(_){return [];}}
+function showBookmarks(){
+  bookmarkList.querySelectorAll(".bookmark-saved").forEach(node=>node.remove());
+  readBookmarks().forEach(route=>{
+    const item=document.createElement("span");item.className="bookmark-saved";
+    const link=document.createElement("a");link.href=route;link.textContent=route;item.append(link);
+    const remove=document.createElement("button");remove.type="button";remove.className="bookmark-remove";remove.textContent="×";remove.setAttribute("aria-label","Remove bookmark "+route);
+    remove.addEventListener("click",()=>{try{localStorage.setItem(bookmarkKey,JSON.stringify(readBookmarks().filter(x=>x!==route)));bookmarkNote.textContent="Bookmark removed.";showBookmarks();}catch(_){bookmarkNote.textContent="Browser storage unavailable.";}});item.append(remove);bookmarkList.append(item);
+  });
+}
+document.getElementById("bookmark-add").addEventListener("click",()=>{
+  const raw=field.value.trim();
+  // Blank address means the current page. Never silently bookmark this page
+  // when a typed external or unapproved address was rejected.
+  let route=window.location.pathname;
+  if(raw){
+    if(!raw.startsWith("/")||raw.startsWith("//")){
+      bookmarkNote.textContent="Only approved first-party OAP routes can be bookmarked here.";
+      return;
+    }
+    route=raw.split(/[?#]/,1)[0];
+  }
+  if(!allowedRoutes.has(route)){bookmarkNote.textContent="Only approved first-party OAP routes can be bookmarked here.";return;}
+  const saved=readBookmarks();if(saved.includes(route)){bookmarkNote.textContent="Route already bookmarked.";return;}
+  if(saved.length>=12){bookmarkNote.textContent="Bookmark limit reached (12). Remove one first.";return;}
+  try{localStorage.setItem(bookmarkKey,JSON.stringify([...saved,route]));bookmarkNote.textContent="Saved "+route+" to this browser.";showBookmarks();}catch(_){bookmarkNote.textContent="Browser storage unavailable; bookmark not saved."}
+});
+showBookmarks();
+document.getElementById("clear-browser-preferences").addEventListener("click",()=>{
+  if(!window.confirm("Clear KORADASO saved bookmarks and browser preferences on this device?"))return;
+  try{localStorage.removeItem(bookmarkKey);localStorage.removeItem(preferencesKey);}catch(_){settingsNote.textContent="Browser storage unavailable; saved data could not be cleared.";return;}
+  openWebSearch.checked=false;reduceMotion.checked=false;
+  document.body.classList.remove("reduce-motion");updateSearchMode("oap");showBookmarks();
+  settingsNote.textContent="Local bookmarks and preferences cleared.";
+});
+
 form.addEventListener("submit",function(e){
 e.preventDefault();const raw=field.value.trim();if(!raw){note.textContent="Enter a website address.";return;}
-if(/\s/.test(raw)){note.textContent="Search is not yet connected. Enter a website address.";return;}
-let url;try{url=new URL(/^https?:\/\//i.test(raw)?raw:"https://"+raw);}catch(_){note.textContent="Invalid address.";return;}
+if(raw.startsWith("//")){note.textContent="Protocol-relative addresses are not allowed.";return;}
+// Keep the same OAP-first routing as the native Android omnibox.
+// Approved OAP paths stay first-party; never interpret arbitrary // URLs as OAP routes.
+if(raw.startsWith("/")&&!raw.startsWith("//")){
+  const firstParty=new URL(raw,window.location.origin);
+  if(firstParty.origin===window.location.origin&&allowedRoutes.has(firstParty.pathname)){
+    window.location.assign(firstParty.pathname+firstParty.search+firstParty.hash);
+  }else{note.textContent="Unknown OAP route. Use an approved destination or search.";}
+  return;
+}
+const explicitScheme=/^[a-z][a-z0-9+.-]*:\/\//i.test(raw);
+const hostLike=/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:[/?#][^\s]*)?$/i.test(raw);
+if(!explicitScheme&&!hostLike){
+  if(raw.length>120){note.textContent="OAP Search supports up to 120 characters. Shorten your query.";return;}
+  if(currentSearchMode()==="web"){
+    window.location.assign("/koradaso/web-search?q="+encodeURIComponent(raw));
+  }else{window.location.assign("/search?q="+encodeURIComponent(raw));}
+  return;
+}
+let url;try{url=new URL(explicitScheme?raw:"https://"+raw);}catch(_){note.textContent="Invalid website address.";return;}
 if(url.protocol!=="https:"||!url.hostname.includes(".")||url.username||url.password||url.hostname==="localhost"||/^(?:\d{1,3}\.){3}\d{1,3}$/.test(url.hostname)||url.hostname.startsWith("[")){note.textContent="External addresses must be valid HTTPS domains.";return;}
 if(window.confirm("OPEN WEB — "+url.hostname+" is outside OAP. Continue?")){window.location.assign(url.href)}else{note.textContent="Stayed in KORADASO Internet."}
 });

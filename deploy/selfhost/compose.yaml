@@ -24,6 +24,8 @@ services:
       OAP_RUNTIME_TARGET: app:app
       PORT: "10000"
       OAP_AUTH_REQUIRED: "true"
+      OAP_SURFACE_ROLE: "public"
+      OAP_PRIVATE_SMI_HANDOFF_ENABLED: "false"
       OAP_PUBLIC_ORIGIN: https://${OAP_DOMAIN:?Set OAP_DOMAIN}
       OAP_PRIMARY_DATABASE_URL: ${OAP_PRIMARY_DATABASE_URL:?Set first-party database secret locally}
     # No host port: only the HTTPS edge reaches the app.

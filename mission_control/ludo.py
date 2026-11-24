@@ -27,6 +27,9 @@ TRACK_LENGTH = 52
 HOME_LENGTH = 6
 FINISH_PROGRESS = TRACK_LENGTH + HOME_LENGTH
 PIECES_PER_PLAYER = 4
+LOCAL_RECEIPT_LIMIT = 24
+AGENT_ID = "p2"
+AGENT_NAME = "Ludo Agent"
 START_OFFSETS = (0, 13, 26, 39)
 SAFE_TRACK_SQUARES = frozenset({0, 8, 13, 21, 26, 34, 39, 47})
 
@@ -44,6 +47,14 @@ def _seal(state):
     result.pop("checkpoint", None)
     result["checkpoint"] = _digest(result)
     return result
+
+
+def local_session_state(state):
+    """Keep recent retries without growing Flask’s signed cookie every turn."""
+    receipts = state["request_receipts"]
+    if len(receipts) <= LOCAL_RECEIPT_LIMIT:
+        return state
+    return _seal({**state, "request_receipts": receipts[-LOCAL_RECEIPT_LIMIT:]})
 
 
 def _req(value):
@@ -64,7 +75,11 @@ def _clean_players(players):
     return names
 
 
-def new_game(players: object):
+def new_game(players: object, *, versus_agent=False):
+    if versus_agent:
+        if not isinstance(players, list) or len(players) != 1:
+            raise ValueError("ludo_player_count_invalid")
+        players = [players[0], AGENT_NAME]
     names = _clean_players(players)
     roster = []
     for index, name in enumerate(names):
@@ -90,6 +105,7 @@ def new_game(players: object):
             "result": None,
             "pending_roll": None,
             "request_receipts": [],
+            **({"agent_id": AGENT_ID} if versus_agent else {}),
         }
     )
 
@@ -171,6 +187,7 @@ def public_state(state):
         raise ValueError(result["errors"][0])
     player = state["players"][state["turn_index"]]
     pending_roll = state.get("pending_roll")
+    last_action = next(reversed(state["request_receipts"]), None)
     players = []
     for item in state["players"]:
         players.append(
@@ -189,10 +206,12 @@ def public_state(state):
         "players": players,
         "current_player_id": player["id"],
         "current_player_name": player["name"],
+        "agent_turn": _agent_turn(state),
         "winner_id": state["winner_id"],
         "winner_name": next((item["name"] for item in state["players"] if item["id"] == state["winner_id"]), None),
         "result": state.get("result"),
         "pending_roll": pending_roll,
+        "last_roll": last_action["value"] if last_action and last_action["action"] == "roll" else None,
         "movable_piece_ids": (
             _movable_piece_ids(state, pending_roll)
             if state["status"] == "active" and pending_roll is not None
@@ -205,7 +224,14 @@ def public_state(state):
     }
 
 
-def roll(state, *, request_id: object, die_value: int | None = None):
+def _agent_turn(state):
+    return (
+        state["status"] == "active"
+        and state["players"][state["turn_index"]]["id"] == state.get("agent_id")
+    )
+
+
+def roll(state, *, request_id: object, die_value: int | None = None, agent=False):
     current = _copy(state)
     request_id = _req(request_id)
     for receipt in current["request_receipts"]:
@@ -213,6 +239,8 @@ def roll(state, *, request_id: object, die_value: int | None = None):
             return current
     if current["status"] != "active":
         raise ValueError(f"ludo_game_{current['status']}")
+    if _agent_turn(current) != agent:
+        raise ValueError("ludo_wrong_opponent_turn")
     if current.get("pending_roll") is not None:
         raise ValueError("ludo_roll_pending")
     if die_value is None:
@@ -233,7 +261,7 @@ def roll(state, *, request_id: object, die_value: int | None = None):
     return _seal(current)
 
 
-def move(state, *, piece_id: object, request_id: object):
+def move(state, *, piece_id: object, request_id: object, agent=False):
     current = _copy(state)
     request_id = _req(request_id)
     for receipt in current["request_receipts"]:
@@ -241,6 +269,8 @@ def move(state, *, piece_id: object, request_id: object):
             return current
     if current["status"] != "active":
         raise ValueError(f"ludo_game_{current['status']}")
+    if _agent_turn(current) != agent:
+        raise ValueError("ludo_wrong_opponent_turn")
     roll_value = current.get("pending_roll")
     if roll_value is None:
         raise ValueError("ludo_roll_required")
@@ -292,6 +322,35 @@ def move(state, *, piece_id: object, request_id: object):
         _advance_turn(current)
 
     return _seal(current)
+
+
+def agent_step(state, *, request_id: object):
+    """Take one agent roll and legal move. The caller may request an extra turn."""
+    current = _copy(state)
+    req = _req(request_id)
+    if any(item["request_id"] == req for item in current["request_receipts"]):
+        return current
+    if not _agent_turn(current):
+        raise ValueError("ludo_wrong_opponent_turn")
+    rolled = roll(current, request_id=req, agent=True)
+    value = rolled["pending_roll"]
+    if value is None:
+        return rolled
+
+    move_id = "agent-" + _digest(req)
+    # Compare actual rule-engine outcomes. A tie preserves the board's piece order.
+    def score(outcome):
+        player = outcome["players"][1]
+        progress = sum(piece["progress"] for piece in player["pieces"])
+        finished = sum(piece["progress"] == FINISH_PROGRESS for piece in player["pieces"])
+        captures = len(outcome["request_receipts"][-1]["captured"])
+        return finished, captures, progress
+
+    return max(
+        (move(rolled, piece_id=piece, request_id=move_id, agent=True)
+         for piece in _movable_piece_ids(rolled, value)),
+        key=score,
+    )
 
 
 def stop(state, *, request_id: object):

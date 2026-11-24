@@ -1,43 +1,165 @@
-(()=>{
-"use strict";
-const root=document.querySelector("[data-ludo-root]");if(!root)return;
-const q=s=>root.querySelector(s);const csrf=document.querySelector('meta[name="oap-csrf-token"]')?.content||"";
-let state=null,busy=false;const requestId=()=>crypto.randomUUID().replaceAll("-").slice(0,20);
-const error=e=>q("[data-error]").textContent=e?.message||String(e);
-async function post(url,payload){const r=await fetch(url,{method:"POST",credentials:"same-origin",cache:"no-store",headers:{"Content-Type":"application/json","X-OAP-CSRF":csrf},body:JSON.stringify(payload)});const result=await r.json();if(!r.ok)throw new Error(result?.error?.code||"arena_request_failed");return result;}
-function pieceLabel(piece){if(piece.zone==="yard")return "Yard";if(piece.zone==="track")return "Track "+(piece.track_square+1);if(piece.zone==="home")return "Home "+piece.home_step;return "Finished";}
-function render(){
- if(!state)return;
- q("[data-game]").hidden=false;q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
- q("[data-roll-value]").textContent=state.pending_roll??"—";
- q("[data-status]").textContent=state.status==="completed"?"Finished":state.status;
- const view=q("[data-players-view]");view.replaceChildren();
- for(const player of state.players){
-  const row=document.createElement("section");row.className="arena-race-row";
-  const title=document.createElement("strong");title.textContent=player.name+" · "+player.finished+"/4 home";
-  const pieces=document.createElement("div");pieces.className="arena-actions";pieces.setAttribute("role","group");pieces.setAttribute("aria-label",player.name+" pieces");
-  for(const piece of player.pieces){
-   const btn=document.createElement("button");btn.type="button";btn.dataset.piece=piece.id;btn.textContent=piece.id.split("-").at(-1)+" · "+pieceLabel(piece);
-   const selectable=state.status==="active"&&player.id===state.current_player_id&&state.movable_piece_ids.includes(piece.id)&&state.pending_roll!==null;
-   btn.disabled=busy||!selectable;pieces.append(btn);
+(() => {
+  "use strict";
+
+  const root = document.querySelector("[data-ludo-root]");
+  if (!root) return;
+
+  const q = selector => root.querySelector(selector);
+  const csrf = document.querySelector('meta[name="oap-csrf-token"]')?.content || "";
+  const renderBoard = window.OAPLudoBoard.mount(root);
+  const settings = q("[data-settings]");
+  const seats = [...root.querySelectorAll("[data-seat]")];
+  const count = q("[data-count]");
+  const opponent = q("[data-opponent]");
+  const retry = q("[data-agent-retry]");
+  const error = q("[data-error]");
+  let state;
+  let busy = false;
+  let matchColours;
+  let agentTimer;
+  let agentRequest;
+  let agentRetry = false;
+
+  const versusAgent = () => opponent.value === "agent";
+  const configuredSeats = () => seats.slice(0, versusAgent() ? 2 : Number(count.value));
+  const names = activeSeats => activeSeats.map(seat => seat.querySelector("[data-name]").value.trim());
+  const colours = activeSeats => activeSeats.map(seat => seat.querySelector("[data-colour]").value);
+
+  function updateSettings(locked) {
+    const activeSeats = configuredSeats();
+    const selected = colours(activeSeats);
+    opponent.disabled = locked;
+    q("[data-count-label]").hidden = versusAgent();
+    count.disabled = locked || versusAgent();
+    seats[1].querySelector("[data-player-name-label]").hidden = versusAgent();
+    seats[1].querySelector("[data-agent-name]").hidden = !versusAgent();
+    for (const [index, seat] of seats.entries()) {
+      seat.hidden = index >= activeSeats.length;
+      seat.querySelector("[data-name]").disabled = locked;
+      const picker = seat.querySelector("[data-colour]");
+      picker.disabled = locked;
+      for (const option of picker.options) {
+        option.disabled = option.value !== picker.value && selected.includes(option.value);
+      }
+    }
   }
-  row.append(title,pieces);view.append(row);
- }
- const active=state.status==="active",pending=state.pending_roll!==null;
- q("[data-start]").disabled=busy||active;
- q("[data-players]").disabled=busy||active;
- q("[data-roll]").disabled=busy||!active||pending;
- q("[data-stop]").disabled=busy||!active;
- const feedback=q("[data-feedback]");
- if(state.status==="completed"){feedback.textContent="Winner: "+(state.winner_name||state.players.find(p=>p.id===state.winner_id)?.name||"—")+" · All four pieces home";}
- else if(state.status==="stopped"){feedback.textContent="Match stopped.";}
- else if(pending&&state.movable_piece_ids.length){feedback.textContent="Rolled "+state.pending_roll+". Choose a highlighted piece.";}
- else if(pending){feedback.textContent="Rolled "+state.pending_roll+".";}
- else{feedback.textContent="Roll the die.";}
-}
-async function action(path,payload){if(busy||(path==="/arena/ludo/start"&&state?.status==="active"))return;busy=true;q("[data-start]").disabled=true;q("[data-error]").textContent="";try{state=await post(path,payload);render();}catch(e){error(e);}finally{busy=false;q("[data-start]").disabled=state?.status==="active";render();}}
-q("[data-start]").onclick=()=>action("/arena/ludo/start",{players:q("[data-players]").value.split(",").map(x=>x.trim()).filter(Boolean)});
-q("[data-roll]").onclick=()=>action("/arena/ludo/roll",{request_id:requestId()});
-root.addEventListener("click",e=>{const btn=e.target.closest("[data-piece]");if(btn&&!btn.disabled)action("/arena/ludo/move",{piece_id:btn.dataset.piece,request_id:requestId()});});
-q("[data-stop]").onclick=()=>action("/arena/ludo/stop",{request_id:requestId()});
+
+  function preview() {
+    const activeSeats = configuredSeats();
+    const palette = colours(activeSeats);
+    const players = names(activeSeats).map((name, seat) => ({
+      name: seat === 1 && versusAgent() ? "Ludo Agent" : name || "Player " + (seat + 1),
+      finished: 0,
+      pieces: Array.from({length:4}, (_, index) => ({id:"p" + (seat + 1) + "-" + (index + 1), zone:"yard"})),
+    }));
+    renderBoard({players}, palette);
+  }
+
+  function render() {
+    const active = state?.status === "active";
+    updateSettings(busy || active);
+    const start = q("[data-start]");
+    start.disabled = busy || active;
+    q("[data-menu]").hidden = active;
+    start.hidden = active;
+    start.textContent = state ? "New game" : "Play";
+    q("[data-stop]").disabled = busy || !active;
+    q("[data-stop]").hidden = !active;
+    retry.hidden = !active || !state.agent_turn || !agentRetry;
+    retry.disabled = busy;
+    if (!state) {
+      preview();
+      return;
+    }
+    q("[data-status]").textContent = state.status;
+    q("[data-turn]").textContent = active ? state.current_player_name :
+      state.status === "completed" ? state.winner_name + " wins" : "Match stopped";
+    q("[data-feedback]").textContent = active
+      ? state.agent_turn ? agentRetry ? "" : "The agent is taking its turn." :
+        state.pending_roll != null ? "Choose a highlighted piece." :
+        state.last_roll != null ? "No legal move." : ""
+      : state.status === "stopped" ? "Match stopped." : "";
+    renderBoard(state, matchColours, !busy && active && !state.agent_turn);
+  }
+
+  async function action(verb, payload, keyboard = false) {
+    if (busy) return;
+    clearTimeout(agentTimer);
+    busy = true;
+    error.textContent = "";
+    render();
+    try {
+      const response = await fetch("/arena/ludo/" + verb, {
+        method:"POST", credentials:"same-origin", cache:"no-store",
+        headers:{"Content-Type":"application/json", "X-OAP-CSRF":csrf},
+        body:JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.error?.code);
+      state = result;
+      agentRequest = undefined;
+      agentRetry = false;
+      if (verb === "start") {
+        matchColours = colours(configuredSeats());
+        settings.open = false;
+      }
+    } catch (failure) {
+      if (verb === "agent-turn") agentRetry = true;
+      error.textContent = verb === "agent-turn" ? "The agent turn could not finish. Retry or stop the match." :
+        failure.message === "ludo_players_invalid" ? "Enter a different name for each player." :
+        "The match could not update. Try again.";
+    } finally {
+      busy = false;
+      render();
+      if (state?.agent_turn && !agentRetry) agentTimer = setTimeout(takeAgentTurn, 450);
+      if (keyboard) {
+        const target = q("[data-legal] button:not([disabled])") ||
+          q("[data-roll]:not([disabled])") || q("[data-start]:not([hidden])");
+        target?.focus();
+      }
+    }
+  }
+
+  const requestId = () => crypto.randomUUID().replaceAll("-", "").slice(0,20);
+  function takeAgentTurn() {
+    if (!state?.agent_turn) return;
+    agentRequest ||= requestId();
+    action("agent-turn", {request_id:agentRequest});
+  }
+
+  retry.onclick = takeAgentTurn;
+  function assignDistinctColours() {
+    const taken = new Set();
+    for (const seat of configuredSeats()) {
+      const picker = seat.querySelector("[data-colour]");
+      if (taken.has(picker.value)) picker.value = [...picker.options].find(option => !taken.has(option.value)).value;
+      taken.add(picker.value);
+    }
+  }
+  count.addEventListener("change", assignDistinctColours);
+  opponent.addEventListener("change", assignDistinctColours);
+  settings.addEventListener("change", () => {
+    updateSettings(busy || state?.status === "active");
+    if (!state) preview();
+  });
+  q("[data-start]").onclick = event => {
+    if (state?.status === "active") return;
+    const activeSeats = configuredSeats();
+    if (new Set(colours(activeSeats)).size !== activeSeats.length) {
+      error.textContent = "Choose a different colour for each player.";
+      settings.open = true;
+      return;
+    }
+    const players = names(activeSeats);
+    action("start", {players:versusAgent() ? players.slice(0,1) : players, opponent_mode:opponent.value}, event.detail === 0);
+  };
+  q("[data-roll]").onclick = event => action("roll", {request_id:requestId()}, event.detail === 0);
+  root.addEventListener("click", event => {
+    const button = event.target.closest("[data-piece]");
+    if (button && !button.disabled) {
+      action("move", {piece_id:button.dataset.piece, request_id:requestId()}, event.detail === 0);
+    }
+  });
+  q("[data-stop]").onclick = event => action("stop", {request_id:requestId()}, event.detail === 0);
+  render();
 })();

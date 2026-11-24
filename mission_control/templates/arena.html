@@ -9,20 +9,60 @@
   <link rel="stylesheet" href="{{ url_for('public_stylesheet') }}">
   <script src="{{ url_for('static', filename='arena_intelligence.js') }}" defer></script>
   <style>
-    .arena-hero{background:radial-gradient(circle at 85% 5%,rgba(163,109,255,.22),transparent 32%),linear-gradient(135deg,rgba(15,20,34,.98),rgba(32,18,53,.98));overflow:hidden}.arena-title{font-size:clamp(2.5rem,8vw,5.8rem);line-height:.9;margin:.18em 0}.arena-gold{color:#f5c451}.arena-tagline{max-width:760px;font-size:1.08rem}.arena-route{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:18px 0 0}.arena-route span{border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;background:rgba(255,255,255,.04)}.arena-route b{color:#a36dff}.arena-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.arena-layer{border:1px solid var(--mc-line);border-radius:16px;padding:15px;background:var(--mc-panel-soft)}.arena-layer h3{margin:.25rem 0 .5rem}.arena-console{border:1px solid rgba(163,109,255,.7);box-shadow:0 18px 50px rgba(0,0,0,.25)}.arena-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.arena-state{display:inline-flex;border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;font-weight:800}.arena-score{display:grid;grid-template-columns:repeat(3,minmax(84px,1fr));gap:8px;margin:14px 0}.arena-score div{border:1px solid var(--mc-line);border-radius:12px;padding:11px;background:rgba(255,255,255,.03)}.arena-score strong{display:block;font-size:1.35rem}.arena-question{margin:18px 0}.arena-choices{display:grid;gap:9px}.arena-choice,.arena-control{border:1px solid var(--mc-line);border-radius:13px;padding:12px 14px;background:var(--mc-panel-soft);color:var(--mc-text);text-align:left;font:inherit;cursor:pointer}.arena-choice:hover,.arena-choice:focus-visible,.arena-control:hover,.arena-control:focus-visible{border-color:#a36dff;outline:none}.arena-control-primary{background:#6f3ec3;border-color:#a36dff;font-weight:800}.arena-control-stop{border-color:#d45b68;color:#ffb7bf}.arena-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.arena-feedback{border-left:3px solid #a36dff;padding:10px 12px;margin:14px 0;background:rgba(163,109,255,.08)}.arena-feedback[data-tone="correct"]{border-color:#43d17d}.arena-feedback[data-tone="wrong"]{border-color:#f5c451}.arena-error{color:#ffb7bf}.arena-truth{border-left:3px solid #f5c451;padding-left:12px}.arena-boundary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.arena-lock{border:1px solid var(--mc-line);border-radius:12px;padding:10px}.arena-lock strong{color:#f5c451}.arena-receipt{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;overflow-wrap:anywhere;color:var(--mc-muted)}[hidden]{display:none!important}@media(max-width:560px){.arena-score{grid-template-columns:1fr}.arena-controls button{flex:1 1 44%}}
+    body.arena-workspace {background:#100f0d!important}
+    .arena-workspace .arena-hero {
+      padding:24px 0 16px;
+      border-bottom-color:#39332a!important;
+    }
+    .arena-workspace .arena-hero:before,.arena-workspace .mc-header-actions a:after {display:none}
+    .arena-workspace .arena-title {font-size:clamp(1.8rem,6vw,2.75rem);letter-spacing:-.035em}
+    .arena-gold {color:#e1c18a}
+    .arena-workspace .mc-header-actions {gap:4px 12px}
+    .arena-workspace .mc-header-actions a {
+      display:inline-flex;align-items:center;min-height:44px;padding:4px 0;border:0;
+      background:none!important;box-shadow:none!important;font-size:.84rem;font-weight:600;
+    }
+    .arena-workspace .arena-lobby {
+      padding:0!important;border:0;background:none!important;box-shadow:none!important;
+    }
+    .arena-lobby h2 {margin:0 0 12px;font-size:1.1rem}
+    .arena-route{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:18px 0 0}.arena-route span{border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;background:rgba(255,255,255,.04)}.arena-route b{color:#a36dff}.arena-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.arena-layer{border:1px solid var(--mc-line);border-radius:16px;padding:15px;background:var(--mc-panel-soft)}.arena-layer h3{margin:.25rem 0 .5rem}.arena-console{border:1px solid rgba(163,109,255,.7);box-shadow:0 18px 50px rgba(0,0,0,.25)}.arena-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}.arena-state{display:inline-flex;border:1px solid var(--mc-line);border-radius:999px;padding:7px 11px;text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;font-weight:800}.arena-score{display:grid;grid-template-columns:repeat(3,minmax(84px,1fr));gap:8px;margin:14px 0}.arena-score div{border:1px solid var(--mc-line);border-radius:12px;padding:11px;background:rgba(255,255,255,.03)}.arena-score strong{display:block;font-size:1.35rem}.arena-question{margin:18px 0}.arena-choices{display:grid;gap:9px}.arena-choice,.arena-control{border:1px solid var(--mc-line);border-radius:13px;padding:12px 14px;background:var(--mc-panel-soft);color:var(--mc-text);text-align:left;font:inherit;cursor:pointer}.arena-choice:hover,.arena-choice:focus-visible,.arena-control:hover,.arena-control:focus-visible{border-color:#a36dff;outline:none}.arena-control-primary{background:#6f3ec3;border-color:#a36dff;font-weight:800}.arena-control-stop{border-color:#d45b68;color:#ffb7bf}.arena-controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.arena-feedback{border-left:3px solid #a36dff;padding:10px 12px;margin:14px 0;background:rgba(163,109,255,.08)}.arena-feedback[data-tone="correct"]{border-color:#43d17d}.arena-feedback[data-tone="wrong"]{border-color:#f5c451}.arena-error{color:#ffb7bf}.arena-truth{border-left:3px solid #f5c451;padding-left:12px}.arena-boundary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}.arena-lock{border:1px solid var(--mc-line);border-radius:12px;padding:10px}.arena-lock strong{color:#f5c451}.arena-receipt{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;overflow-wrap:anywhere;color:var(--mc-muted)}[hidden]{display:none!important}@media(max-width:560px){.arena-score{grid-template-columns:1fr}.arena-controls button{flex:1 1 44%}}
+    .arena-lobby-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+    .arena-lobby .arena-game-card {
+      display:flex;flex-direction:column;min-width:0;padding:14px;
+      border:1px solid #39332a!important;border-radius:10px;
+      background:#141310!important;box-shadow:none!important;
+    }
+    .arena-lobby .arena-game-card h3 {margin:0 0 4px;font-size:1.02rem;color:#f8f3e8!important}
+    .arena-game-card > p {margin:0;color:#c6c0b4;font-size:.83rem;line-height:1.4}
+    .arena-game-card .arena-game-actions {display:grid;gap:6px;margin-top:auto;padding-top:12px}
+    .arena-game-card .arena-game-actions p {margin:0}
+    .arena-game-card .arena-control {
+      display:flex;align-items:center;justify-content:center;min-height:44px;padding:7px 8px;
+      border:1px solid #544a39;border-radius:7px;background:transparent;
+      color:#e5d5b9!important;font-size:.84rem;font-weight:650;text-decoration:none;text-align:center;
+    }
+    .arena-game-card .arena-control-primary {border-color:#d9bc87;background:#d9bc87;color:#211b11!important}
+    .arena-game-card .arena-control:hover {border-color:#f1d7a4}
+    .arena-game-card .arena-control:focus-visible,.arena-opponents summary:focus-visible {outline:2px solid #f5d398;outline-offset:3px}
+    .arena-opponents summary,.arena-progression summary {padding:8px 0;cursor:pointer;font-weight:700}
+    @media(max-width:900px) {.arena-lobby-grid {grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:650px) {
+      .arena-workspace .arena-hero {align-items:flex-start;flex-direction:column;gap:2px;padding:16px 0 6px}
+      .arena-workspace .mc-workspace {padding-top:14px}
+      .arena-lobby-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+      .arena-lobby .arena-game-card {padding:10px}
+    }
+    @media(max-width:335px) {.arena-lobby-grid {grid-template-columns:1fr}}
   </style>
 </head>
-<body class="mc-workspace-body">
+<body class="mc-workspace-body arena-workspace">
   <header class="mc-workspace-header arena-hero">
     <div>
-      <p class="mc-eyebrow">👑 OAP Live + Events · First-party Challenge Engine</p>
       <h1 class="arena-title">OAP <span class="arena-gold">ARENA</span></h1>
-      <p class="arena-tagline">{{ hub.tagline }} — sports, music, gaming and creator competition can share one governed path without becoming one unfair scoring system.</p>
-      <div class="arena-route" aria-label="Arena progression">
-        {% for level in hub.progression %}<span>{{ level }}</span>{% if not loop.last %}<b aria-hidden="true">→</b>{% endif %}{% endfor %}
-      </div>
     </div>
     <div class="mc-header-actions">
+      <a class="mc-secondary-link" href="/koradaso">KORADASO</a>
       <a class="mc-secondary-link" href="{{ url_for('the_spot_front_door') }}">The Spot</a>
       <a class="mc-secondary-link" href="/my-card">My Card</a>
       <a class="mc-secondary-link" href="{{ url_for('home') }}">OAP World</a>
@@ -30,84 +70,98 @@
   </header>
 
   <main class="mc-workspace">
-    <section class="mc-panel">
-      <p class="mc-eyebrow">First-party opponents · same visible state as people</p>
-      <h2>🤖 Play an Agent</h2>
-      <p>Choose an OAP Arena agent by game fit. Agents never receive hidden board information and never control payments or human authority.</p>
-      <div class="arena-grid" role="list">
-        <article class="arena-layer" role="listitem"><h3>🐆 Bagheera (Panther) · ⭐⭐⭐⭐⭐⭐⭐</h3><p>Default adaptive opponent. Best overall fit; Connect 4 and Dot specialist.</p></article>
-        <article class="arena-layer" role="listitem"><h3>🦉 Owl · ⭐⭐⭐⭐⭐⭐⭐</h3><p>IQ Arena and Chess specialist.</p></article>
-        <article class="arena-layer" role="listitem"><h3>🦅 Eagle · ⭐⭐⭐⭐⭐⭐☆</h3><p>Route Empire long-range strategy specialist.</p></article>
-        <article class="arena-layer" role="listitem"><h3>🦅 Falcon · ⭐⭐⭐⭐⭐⭐☆</h3><p>Fast tactical opponent for Connect 4 and Dot.</p></article>
-        <article class="arena-layer" role="listitem"><h3>🐘 Colonel Hathi · Hathi Jr (Elephant / Control) · ⭐⭐⭐⭐⭐⭐☆</h3><p>Control, memory and pattern continuity.</p></article>
-        <article class="arena-layer" role="listitem"><h3>🐝 Bee · ⭐⭐⭐⭐⭐☆☆</h3><p>Ludo and coordination specialist.</p></article>
-        <article class="arena-layer" role="listitem"><h3>🦍 Gorilla · ⭐⭐⭐⭐⭐☆☆</h3><p>Defensive strategy specialist.</p></article>
+    <section class="mc-panel arena-lobby" aria-labelledby="arena-games">
+      <h2 id="arena-games">Games</h2>
+      <div class="arena-lobby-grid">
+        <article class="arena-layer arena-game-card">
+          <h3>Ludo</h3>
+          <p>A dice and board race.</p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/ludo" aria-label="Play Ludo">Play</a></p>
+            <p><a class="arena-control" href="/arena/ludo/room" aria-label="Online room for Ludo">Online room</a></p>
+          </div>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <h3>Oware</h3>
+          <p>Abapa and Nam-Nam.</p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/oware" aria-label="Play Oware">Play</a></p>
+            <p><a class="arena-control" href="/arena/oware/room" aria-label="Online room for Oware">Online room</a></p>
+          </div>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <h3>Chess</h3>
+          <p>Classic strategy.</p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/chess" aria-label="Play Chess">Play</a></p>
+            <p><a class="arena-control" href="/arena/chess/room" aria-label="Online room for Chess">Online room</a></p>
+          </div>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <h3>Dot</h3>
+          <p>Dots and boxes.</p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/dot" aria-label="Play Dot">Play</a></p>
+            <p><a class="arena-control" href="/arena/dot/room" aria-label="Online room for Dot">Online room</a></p>
+          </div>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <h3>Connect 4</h3>
+          <p>Four in a row.</p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/connect4" aria-label="Play Connect 4">Play</a></p>
+            <p><a class="arena-control" href="/arena/connect4/room" aria-label="Online room for Connect 4">Online room</a></p>
+          </div>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <h3>IQ Arena</h3>
+          <p>Logic and memory challenges.</p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/iq" aria-label="Play IQ Arena">Play</a></p>
+            <p><a class="arena-control" href="/arena/iq/room" aria-label="Online room for IQ Arena">Online room</a></p>
+          </div>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <h3>Earth Is Our Turf</h3>
+          <p>Explore Mitcham, CR4.</p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/earth-is-our-turf">Enter Mitcham</a></p>
+          </div>
+        </article>
+
+        <article class="arena-layer arena-game-card">
+          <h3>Route Empire</h3>
+          <p>Build routes and expand.</p>
+          <div class="arena-game-actions">
+            <p><a class="arena-control arena-control-primary" href="/arena/route-empire" aria-label="Play Route Empire">Play</a></p>
+            <p><a class="arena-control" href="/arena/route-empire/room" aria-label="Online room for Route Empire">Online room</a></p>
+          </div>
+        </article>
       </div>
-      <p class="arena-truth"><strong>Difficulty:</strong> Easy → Standard → Strong → A7. Agent identity and difficulty stay separate.</p>
     </section>
 
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Turn-based race · bounded first-party game</p>
-      <h2>🎲 Ludo</h2>
-      <p>Race. Move. Finish.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/ludo">Open Ludo</a></p>\n      <p><a class="arena-control" href="/arena/ludo/room">Create / Join Ludo Room</a></p>
-    </section>
+    <details class="mc-panel arena-progression">
+      <summary>Arena progression</summary>
+      <p>{{ hub.tagline }}</p>
+      <div class="arena-route">
+        {% for level in hub.progression %}<span>{{ level }}</span>{% if not loop.last %}<b aria-hidden="true">→</b>{% endif %}{% endfor %}
+      </div>
+    </details>
 
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Akan strategy · bounded Abapa core</p>
-      <h2>🌰 Oware</h2>
-      <p>Sow. Capture. Protect the game.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/oware">Open Oware</a></p>\n      <p><a class="arena-control" href="/arena/oware/room">Create / Join Oware Room</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Strategy board · bounded legal-move engine</p>
-      <h2>♟️ Chess</h2>
-      <p>Think. Move. Control.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/chess">Open Chess</a></p>
-      <p><a class="arena-control" href="/arena/chess/room">Create / Join Chess Room</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Dots and boxes · first-party match</p>
-      <h2>⚫ Dot</h2>
-      <p>Draw. Box. Score.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/dot">Open Dot</a></p>
-      <p><a class="arena-control" href="/arena/dot/room">Create / Join Dot Room</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Classic strategy · server-authoritative match</p>
-      <h2>🔴 Connect 4</h2>
-      <p>Drop. Connect. Win.</p>
-      <p>Two-player first-party match with authoritative turns, win detection, duplicate protection and STOP.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/connect4">Open Connect 4</a></p>
-      <p><a class="arena-control" href="/arena/connect4/room">Create / Join Online Room</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Mind challenge · seven-domain skill profile</p>
-      <h2>🧠 IQ Arena</h2>
-      <p><strong>Think. Solve. Adapt.</strong></p>
-      <p>Logic, Patterns, Memory, Spatial, Numbers, Language and Strategy. In-game skill profile only; not a clinical IQ score.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/iq">Open IQ Arena</a></p>\n      <p><a class="arena-control" href="/arena/iq/room">Create / Join IQ Duel Room</a></p>
-    </section>
-
-    <section class="mc-panel arena-console">
-      <p class="mc-eyebrow">Living world · Mitcham / CR4 first playable district</p>
-      <h2>🌍 EARTH IS OUR TURF</h2>
-      <p><strong>Born Local. Built Global.</strong></p>
-      <p>Do something in the postcode → the postcode remembers → the world changes. Explore the first Mitcham living-world slice with time, routes, businesses and persistent session consequences.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/earth-is-our-turf">Enter Mitcham</a></p>
-    </section>
-
-    <section class="mc-panel">
-      <p class="mc-eyebrow">Royal Arena Empire · first strategy slice</p>
-      <h2>🌍 Route Empire</h2>
-      <p><strong>Born Local. Built Global.</strong></p>
-      <p>Start local, build routes and expand your world using game-only points. No real property ownership or payment execution.</p>
-      <p><a class="arena-control arena-control-primary" href="/arena/route-empire">Open Route Empire v1</a></p>\n      <p><a class="arena-control" href="/arena/route-empire/room">Create / Join Route Empire Room</a></p>
-    </section>
+    <details class="mc-panel arena-opponents">
+      <summary>Agent play and difficulty</summary>
+      <p>Connect 4 and Oware offer Starter, Club and Expert levels.</p>
+      <ul>
+        <li><a href="/arena/connect4">Connect 4</a> — choose Bagheera, Falcon, Owl or Gorilla.</li>
+        <li><a href="/arena/oware">Oware</a> — choose the Oware Agent in Abapa or Nam-Nam.</li>
+      </ul>
+    </details>
 
     <section class="mc-panel arena-console" aria-labelledby="arena-console-title" data-arena-console>
       <div class="arena-head">
