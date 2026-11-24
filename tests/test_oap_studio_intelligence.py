@@ -555,6 +555,11 @@ def test_factory_scene_01_exact_timeline_stays_unrendered():
     shots = plan["shots"]
     assert len(shots) == 7
     assert plan["duration_ms"] == 21000
+    assert (plan["master_width"], plan["master_height"]) == (1920, 1080)
+    assert plan["master_fps"] == 24
+    assert plan["master_frame_count"] == 504
+    assert plan["cinematic_quality_verified"] is False
+    assert all(shot["camera_move"] and shot["lens_mm_target"] for shot in shots)
     assert sum(shot["provider_seconds"] * 1000 for shot in shots) == plan["source_duration_ms"]
     for index, shot in enumerate(shots):
         assert shot["start_ms"] == index * 3000
