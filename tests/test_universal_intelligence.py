@@ -3,7 +3,6 @@ import pytest
 
 from oap.smi.universal_intelligence import PROTOCOL, advisory_growth_record
 
-
 EVIDENCE = {"source": "review", "reference": "case-1", "observation": "observed"}
 
 
