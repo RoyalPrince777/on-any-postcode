@@ -191,6 +191,18 @@ def prove_transport(browser, viewport):
     expect(page.locator("#ride-action")).to_have_text("Continue to booking")
     assert_layout(page)
 
+    # Existing first-party map in phone AND landscape car browser layouts.
+    result = page.goto(BASE + "/oap-map?view=car", wait_until="domcontentloaded")
+    assert result is not None and result.status == 200
+    expect(page.locator('body[data-car-view="true"]')).to_have_count(1)
+    expect(page.locator("#oap-car-gps")).to_be_visible()
+    expect(page.locator("#oap-gps-speed")).to_have_text("—")
+    expect(page.locator("#oap-gps-status")).to_contain_text("GPS off")
+    assert_layout(page)
+    # No autoplay voice, fake vehicle speed, or external map SDK.
+    assert page.locator('script[src*="mapbox"]').count() == 0
+    assert page.locator('script[src*="google"]').count() == 0
+
     # Explicitly prove the direct Global Transport ride aliases exist and redirect
     # to their durable Movement owners instead of dead-ending.
     aliases = (
