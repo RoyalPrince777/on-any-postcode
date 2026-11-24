@@ -164,10 +164,15 @@
  const settingsHomeButton=document.createElement("button");
  settingsHomeButton.type="button";settingsHomeButton.textContent="⚙ Settings";
  settingsHomeButton.setAttribute("aria-label","Open SMI Settings");
- settingsHomeButton.addEventListener("click",()=>{
+ settingsHomeButton.addEventListener("click",event=>{
+  event.stopPropagation(); // Keep the canonical outside-click guard from closing Settings.
   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
-  document.getElementById("plus-button")?.click();
+  const plus=document.getElementById("plus-button");
   const settings=document.getElementById("smi-settings-button");
+  if(!plus||plus.disabled||!settings||settings.disabled){
+   missionStatus("SMI Settings unavailable");return;
+  }
+  if(plus.getAttribute("aria-expanded")!=="true")plus.click();
   if(settings){
    const panelOpen=settings.getAttribute("aria-expanded")==="true";
    if(!panelOpen)settings.click();
