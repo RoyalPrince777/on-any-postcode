@@ -90,6 +90,39 @@ def test_proposal_selection_requires_current_certification(monkeypatch):
     assert connection.committed is True
 
 
+def test_accessibility_lookup_failure_cannot_match_driver(monkeypatch):
+    connection = _Connection(
+        [
+            ("SELECT service_type,pickup,state", ("ride", {"zone": "CR4"}, "REQUESTED")),
+            ("oap_identity_roles", (WORKER, "driver", "CR4")),
+        ]
+    )
+    monkeypatch.setattr(
+        movement_match_safety.postgres_db,
+        "connect",
+        _connect(connection),
+    )
+
+    def broken_accessibility(**kwargs):
+        raise RuntimeError("accessibility_database_unavailable")
+
+    monkeypatch.setattr(
+        movement_match_safety.oap_ride_driver_accessibility,
+        "eligible",
+        broken_accessibility,
+    )
+    result = movement_match_safety.SafePostgresMovementStore().propose_match(
+        booking_id=BOOKING,
+        member_identity_id=MEMBER,
+    )
+    assert result is None
+    assert connection.committed is False
+    assert not any(
+        "INSERT INTO oap_movement_match_proposals" in sql
+        for sql in connection.queries
+    )
+
+
 def test_accept_rejects_expired_availability_before_assignment(monkeypatch):
     expired = datetime.now(UTC) - timedelta(seconds=1)
     connection = _Connection(
