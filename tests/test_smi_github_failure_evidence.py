@@ -206,6 +206,14 @@ def test_original_three_first_party_worker_observes_both_approved_prs_without_ex
         inspect_mission_continuity,
     )
     expected = {
+        1083: ("OAP governed checks", "OAP runtime image"),
+        1417: ("OAP governed checks", "SMI Chromium recovery proof",
+               "OAP War Room real Chromium acceptance", "OAP runtime image"),
+        1245: ("OAP governed checks",),
+        1256: ("OAP governed checks",),
+        1257: ("OAP governed checks", "OAP runtime image",
+               "OAP real routing container proof"),
+        1400: ("OAP governed checks", "OAP runtime image"),
         1318: ("OAP governed checks", "SMI Chromium recovery proof",
                "OAP runtime image"),
         1384: ("OAP governed checks", "SMI agent achievement proof",
