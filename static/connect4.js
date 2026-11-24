@@ -7,7 +7,7 @@ let state=null,agentMode=false,busy=false;
 let lastMove=null;
 const colours=[
  ["Gold","#f5c451"],["Red","#e45d68"],["Blue","#57b2fa"],
- ["Green","#50c995"],["Orange","#fa9b50"],["Pink","#ee87be"],["White","#f3f4f8"]
+ ["Green","#50c995"],["Purple","#a36dff"],["Orange","#fa9b50"],["White","#f3f4f8"]
 ];
 const icons=[["Crown","👑"],["Lion","🦁"],["Wolf","🐺"],["Diamond","💎"],["Star","⭐"],["Fire","🔥"],["Lightning","⚡"]];
 function pieceSelection(){
@@ -18,6 +18,21 @@ function pieceSelection(){
   const option=document.createElement("option");option.value=String(index);option.textContent=name;select.append(option);
  });
  select.value=String(Math.min(previous,6));
+}
+function secondPlayerColours(){
+ const select=q("[data-p2-piece]");
+ colours.forEach(([name],index)=>{const option=document.createElement("option");option.value=String(index);option.textContent=name;select.append(option);});
+ select.value="1";
+}
+function validPieceSelection(){
+ const p1=Number(q("[data-piece-choice]").value)||0;
+ const p2=Number(q("[data-p2-piece]").value)||0;
+ return agentMode||q("[data-piece-style]").value==="icon"||p1!==p2;
+}
+function refreshPieceSelection(){
+ const valid=validPieceSelection();
+ q("[data-error]").textContent=valid?"":"Choose different colours for both players.";
+ return valid;
 }
 function winCells(board){
  for(let row=0;row<6;row++)for(let col=0;col<7;col++){
@@ -109,7 +124,10 @@ function render(){
  start.disabled=busy||state?.status==="active";
  q("[data-mode]").disabled=busy||state?.status==="active";
  q("[data-agent]").disabled=busy||state?.status==="active";
- q("[data-difficulty]").disabled=busy;
+ q("[data-difficulty]").disabled=busy||state?.status==="active";
+ q("[data-piece-style]").disabled=busy||state?.status==="active";
+ q("[data-piece-choice]").disabled=busy||state?.status==="active";
+ q("[data-p2-piece]").disabled=busy||state?.status==="active";
  if(!state)return;
  q("[data-game]").hidden=false;
  q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
@@ -123,7 +141,7 @@ function render(){
  const locked=busy||!active||(agentMode&&state.current_player_id==="p2");
  for(let column=0;column<7;column++){
   const button=document.createElement("button");button.type="button";
-  button.dataset.col=String(column);button.textContent="↓";
+  button.dataset.col=String(column);button.textContent=String(column+1);
   button.setAttribute("aria-label","Drop into column "+(column+1));
   button.disabled=locked||state.board[0][column]!==0;
   controls.append(button);
@@ -132,6 +150,8 @@ function render(){
  const iconMode=q("[data-piece-style]").value==="icon";
  const choice=Number(q("[data-piece-choice]").value)||0;
  board.style.setProperty("--c4-human",colours[choice][1]);
+ const other=Number(q("[data-p2-piece]").value)||0;
+ board.style.setProperty("--c4-opponent",agentMode?"#292a30":colours[other][1]);
  const winners=state.result==="connect_four"?winCells(state.board):[];
  state.board.flat().forEach((value,index)=>{
   const column=index%7;
@@ -184,10 +204,12 @@ q("[data-mode]").onchange=()=>{
  if(state?.status==="active")return;
  agentMode=q("[data-mode]").value==="agent";
  q("[data-human-wrap]").hidden=agentMode;q("[data-agent-wrap]").hidden=!agentMode;
+ refreshPieceSelection();render();
 };
 q("[data-start]").onclick=()=>{
  if(busy||state?.status==="active")return;
  agentMode=q("[data-mode]").value==="agent";
+ if(!refreshPieceSelection())return;
  const agentName=agentMode?q("[data-agent]").selectedOptions[0].text:q("[data-p2]").value;
  action("/arena/connect4/start",{player_one:q("[data-p1]").value,player_two:agentName,
   opponent_mode:agentMode?"agent":"human",agent_key:agentMode?q("[data-agent]").value:null});
@@ -210,9 +232,10 @@ q("[data-agent-persona]").textContent=(personalities[q("[data-agent]").value]||p
 q("[data-agent-talk]").onclick=()=>{if(!agentMode||!state)return;sayAgent("talk");};
 
 updateAgentLevels();
-q("[data-piece-style]").onchange=()=>{pieceSelection();render();};
-q("[data-piece-choice]").onchange=()=>render();
-pieceSelection();
+q("[data-piece-style]").onchange=()=>{pieceSelection();refreshPieceSelection();render();};
+q("[data-piece-choice]").onchange=()=>{refreshPieceSelection();render();};
+q("[data-p2-piece]").onchange=()=>{refreshPieceSelection();render();};
+pieceSelection();secondPlayerColours();refreshPieceSelection();
 q("[data-board]").onclick=e=>{
  const button=e.target.closest("[data-col]");
  if(!button||button.disabled)return;
