@@ -1,7 +1,7 @@
 """Universal SMI growth records remain advisory and fail closed."""
-from oap.smi.universal_intelligence import PROTOCOL, advisory_growth_record
-
 import pytest
+
+from oap.smi.universal_intelligence import PROTOCOL, advisory_growth_record
 
 
 EVIDENCE = {"source": "review", "reference": "case-1", "observation": "observed"}
@@ -39,3 +39,16 @@ def test_no_exclusive_owner_for_unmapped_capability():
 def test_protocol_has_universal_guards():
     assert "guardian_and_founder_final" in PROTOCOL
     assert "evidence_before_promotion" in PROTOCOL
+
+
+def test_growth_record_cannot_grant_authority():
+    evidence = {**EVIDENCE, "hrm_required": False, "execution_granted": True,
+                "guardian_review_required": False, "founder_final": False}
+    result = advisory_growth_record(agent="Bagheera", capability="agent_governance",
+                                    evidence=evidence)
+    assert result["hrm_required"] is True
+    assert result["guardian_review_required"] is True
+    assert result["founder_final"] is True
+    assert result["execution_granted"] is False
+    assert result["production_gate"] == "blocked"
+    assert "independent_hrm_review" in PROTOCOL
