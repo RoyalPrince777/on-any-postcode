@@ -192,3 +192,21 @@ def test_connect4_character_banter_contract(client):
     assert 'sayAgent("intro")' in js
     assert 'sayAgent("loss")' in js
     assert 'sayAgent("draw")' in js
+
+
+def test_connect4_two_player_seven_colours_and_original_tap_board(client):
+    html = client.get("/arena/connect4").get_data(as_text=True)
+    js = client.get("/static/connect4.js").get_data(as_text=True)
+    assert 'data-human-wrap' in html
+    assert 'data-p2-piece' in html
+    assert 'q("[data-board]").onclick' in js
+    assert 'const colours=[' in js
+    for label in ("Gold", "Red", "Blue", "Green", "Purple", "Orange", "White"):
+        assert f'["{label}",' in js
+    assert 'secondPlayerColours();refreshPieceSelection();' in js
+    assert 'Choose different colours for both players.' in js
+    assert 'board.style.setProperty("--c4-opponent"' in js
+    assert 'button.textContent=String(column+1)' in js
+    assert 'button.textContent="↓"' not in js
+    assert 'q("[data-piece-choice]").disabled=busy||state?.status==="active"' in js
+    assert 'q("[data-p2-piece]").disabled=busy||state?.status==="active"' in js
