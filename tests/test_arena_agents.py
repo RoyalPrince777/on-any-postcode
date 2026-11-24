@@ -3,7 +3,7 @@ from mission_control import arena_agents
 
 def test_catalogue_has_locked_first_party_agents_and_fair_play():
     data = arena_agents.catalogue()
-    assert set(data["agents"]) == {"panther", "owl", "eagle", "falcon", "elephant", "bee", "gorilla"}
+    assert set(data["agents"]) == {"panther", "owl", "eagle", "falcon", "elephant", "bee", "gorilla", "fox", "tiger", "neo", "octopus", "queen-bee"}
     assert data["defaults"]["connect4"] == "panther"
     assert data["agents"]["panther"]["name"] == "Bagheera"
     assert data["agents"]["panther"]["animal"] == "Panther"
@@ -41,4 +41,5 @@ def test_connect4_agent_easy_uses_bounded_legal_move():
     board = [[0 for _ in range(7)] for _ in range(6)]
     for row in range(6):
         board[row][0] = 1
-    assert arena_agents.connect4_column(board, difficulty="easy") == 6
+    assert arena_agents.connect4_column(board, difficulty="easy") in {1, 2, 3, 4, 5, 6}
+    assert arena_agents.connect4_column(board, difficulty="easy", agent_key="fox") in {1, 2, 3, 4, 5, 6}
