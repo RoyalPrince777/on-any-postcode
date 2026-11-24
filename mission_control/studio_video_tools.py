@@ -129,11 +129,12 @@ def normalise_swap_source(
 
 def assemble_scene_21(
     *, owner_root: Path, sources: tuple[Path, ...], output_name: str,
-    profile: str = "standard",
+    profile: str = "standard", soundtrack: Path | None = None,
 ) -> dict[str, Any]:
     """Assemble seven authorised local clips; caller must verify owner and rights.
 
-    Allowlisted 720p or 1080p/24fps silent picture edit. No provider calls, audio mastering,
+    Allowlisted 720p or 1080p/24fps edit with optional owner-approved soundtrack.
+    No provider calls, creative audio mastering,
     publishing, character-identity approval or new execution authority.
     """
     profiles = {"standard": (1280, 720), "cinema": (1920, 1080), "cinema_vertical": (1080, 1920)}
@@ -153,6 +154,13 @@ def assemble_scene_21(
     for path in paths:
         if probe_owned_video(root=root, source=path)["duration_seconds"] < 3:
             raise ValueError("studio_scene_clip_too_short")
+    audio = None
+    if soundtrack is not None:
+        audio = soundtrack.resolve(strict=True)
+        if (root not in audio.parents or not audio.is_file()
+                or audio.suffix.lower() not in {".wav", ".mp3", ".m4a", ".aac"}
+                or not 0 < audio.stat().st_size <= MAX_SOURCE_BYTES):
+            raise ValueError("studio_scene_soundtrack_invalid")
     target = root / f"{output_name}.mp4"
     if target.exists() or target.is_symlink():
         raise ValueError("studio_video_output_exists")
@@ -160,6 +168,8 @@ def assemble_scene_21(
     command = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-n"]
     for path in paths:
         command.extend(["-protocol_whitelist", "file", "-i", str(path)])
+    if audio is not None:
+        command.extend(["-protocol_whitelist", "file", "-i", str(audio)])
     filters = [
         f"[{i}:v:0]setpts=PTS-STARTPTS,fps=24,trim=end_frame=72,"
         f"scale={width}:{height}:force_original_aspect_ratio=decrease:force_divisible_by=2,"
@@ -170,16 +180,23 @@ def assemble_scene_21(
     filters.append("".join(f"[v{i}]" for i in range(7)) + "concat=n=7:v=1:a=0[out]")
     command.extend([
         "-filter_complex_threads", "1", "-filter_complex", ";".join(filters),
-        "-map", "[out]", "-an", "-c:v", "libx264", "-preset", "veryfast",
-        "-movflags", "+faststart", str(temp),
+        "-map", "[out]", "-c:v", "libx264", "-preset", "veryfast",
     ])
+    if audio is not None:
+        command.extend([
+            "-map", "7:a:0", "-af", "asetpts=PTS-STARTPTS,apad,atrim=duration=21",
+            "-c:a", "aac", "-ar", "48000", "-ac", "2", "-b:a", "192k", "-t", "21",
+        ])
+    else:
+        command.append("-an")
+    command.extend(["-movflags", "+faststart", str(temp)])
     try:
         subprocess.run(command, check=True, capture_output=True, timeout=180)
         metadata = probe_owned_video(root=root, source=temp)
         if (
             abs(metadata["duration_seconds"] - 21) > 0.01
             or metadata["width"] != width or metadata["height"] != height
-            or metadata["audio_present"]
+            or metadata["audio_present"] != (audio is not None)
         ):
             raise ValueError("studio_scene_output_not_21_seconds")
         # Count decoded frames, not merely container metadata.
@@ -191,6 +208,20 @@ def assemble_scene_21(
         )
         if frames.stdout.strip() != "504":
             raise ValueError("studio_scene_frame_count_invalid")
+        if audio is not None:
+            audio_probe = subprocess.run(
+                ["ffprobe", "-v", "error", "-select_streams", "a:0",
+                 "-show_entries", "stream=codec_name,channels,sample_rate,duration",
+                 "-of", "json", str(temp)],
+                check=True, capture_output=True, text=True, timeout=20,
+            )
+            tracks = json.loads(audio_probe.stdout).get("streams", [])
+            if not tracks or tracks[0].get("codec_name") != "aac":
+                raise ValueError("studio_scene_soundtrack_output_invalid")
+            track = tracks[0]
+            if (track.get("channels") != 2 or track.get("sample_rate") != "48000"
+                    or abs(float(track.get("duration", 0)) - 21) > 0.05):
+                raise ValueError("studio_scene_soundtrack_output_invalid")
         with temp.open("rb") as handle:
             digest = hashlib.file_digest(handle, "sha256").hexdigest()
         os.link(temp, target)
@@ -205,6 +236,7 @@ def assemble_scene_21(
             "native_source_resolution_verified": False,
             "cinematic_quality_verified": False,
             "picture_edit_verified": True,
+            "soundtrack_mux_verified": audio is not None,
             "audio_mastered": False,
             "identity_verified": False,
             "published": False,
