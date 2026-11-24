@@ -7,6 +7,11 @@ const tripBar=q('#trip-bar'),driveToggle=q('#drive-toggle'),voiceToggle=q('#voic
 const details=q('#details-sheet'),detailsToggle=q('#details-toggle'),detailsClose=q('#details-close');
 const locate=q('#map-locate'),recenter=q('#recenter'),zoomIn=q('#zoom-in'),zoomOut=q('#zoom-out');
 const status=q('#route-state');
+const gpsSpeed=q('#oap-gps-speed'),gpsStatus=q('#oap-gps-status');
+const resetGps=message=>{
+ if(gpsSpeed)gpsSpeed.textContent='—';
+ if(gpsStatus)gpsStatus.textContent=message;
+};
 let currentRoute=null,currentGeometry=[],watchId=null,lastPoint=null,lastHeading=0,lastProjected=null;
 let zoom=1,viewCenter=[500,350],driveMode=false,voiceEnabled=false,lastSpokenKey='',offRouteSamples=0,lastRerouteAt=0;
 const OFF_ROUTE_METERS=80,REROUTE_SAMPLES=3,REROUTE_COOLDOWN_MS=15000;
@@ -130,7 +135,11 @@ function updateTurn(progress){
  if(remaining<=350||hit.step.type==='arrive')speakGuidance((remaining>20?remaining+' metres. ':'')+text,key);
 }
 function updateFromPosition(pos){
- const {longitude,latitude,heading}=pos.coords;
+ const {longitude,latitude,heading,speed,accuracy}=pos.coords;
+ if(gpsSpeed)gpsSpeed.textContent=Number.isFinite(speed)&&speed>=0
+   ?String(Math.round(speed*2.2369362921)):'—';
+ if(gpsStatus)gpsStatus.textContent=Number.isFinite(accuracy)&&accuracy>=0
+   ?'GPS active · ±'+Math.round(accuracy)+' m':'GPS active · accuracy unknown';
  let h=Number.isFinite(heading)?heading:lastHeading;
  if(!Number.isFinite(heading)&&lastPoint){
    const dx=(longitude-lastPoint[0])*Math.cos(latitude*Math.PI/180),dy=latitude-lastPoint[1];
@@ -149,11 +158,20 @@ function updateFromPosition(pos){
  locate?.classList.add('active');
 }
 function startLocation(){
- if(!navigator.geolocation){status.textContent='Location unavailable';status.hidden=false;return}
- if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;locate?.classList.remove('active');return}
+ if(!navigator.geolocation){
+  status.textContent='Location unavailable';status.hidden=false;
+  resetGps('GPS unavailable');return
+ }
+ if(watchId!==null){
+  navigator.geolocation.clearWatch(watchId);watchId=null;
+  locate?.classList.remove('active');resetGps('GPS off · tap locate to enable');return
+ }
  status.textContent='Allow location to follow your route';status.hidden=false;
+ resetGps('Requesting GPS permission…');
  watchId=navigator.geolocation.watchPosition(updateFromPosition,err=>{
-   status.textContent=err.code===1?'Location permission blocked':'Location unavailable';status.hidden=false;locate?.classList.remove('active');
+   const message=err.code===1?'Location permission blocked':'Location unavailable';
+  status.textContent=message;status.hidden=false;locate?.classList.remove('active');
+  resetGps(message);
  },{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
 }
 function clearRoute(){
@@ -184,5 +202,6 @@ zoomOut?.addEventListener('click',()=>setZoom(zoom-.45));
 window.addEventListener('oap-map-route-clear',clearRoute);
 window.addEventListener('oap-map-route-ready',e=>renderRoute(e.detail||{}));
 window.addEventListener('pagehide',()=>{if(watchId!==null)navigator.geolocation?.clearWatch(watchId);cancelGuidanceVoice()});
+if(body.dataset.carView==='true'&&!body.classList.contains('oap-ride-embed'))setDrive(true);
 window.OAP_MAP_NAVIGATION={version:'3.0',product:'On Any Postcode Maps',lowNoise:true,driveFollow:true,perspectiveDriveCamera:true,routeCasing:true,progressiveTurnGuidance:true,voiceTurnGuidance:true,voiceUserControlled:true,voiceAudioStored:false,offRouteReroute:true,consentLocation:true,storesPreciseLocation:false,individualPeopleTracking:false};
 })();
