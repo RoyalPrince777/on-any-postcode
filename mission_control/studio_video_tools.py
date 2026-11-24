@@ -6,11 +6,14 @@ credit spending. Rendering is performed on an authorised media worker.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import math
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 MAX_SOURCE_BYTES = 100 * 1024 * 1024
 MAX_INPUT_SECONDS = 600
@@ -122,3 +125,82 @@ def normalise_swap_source(
         "publishing_granted": False,
         "founder_review_required": True,
     }
+
+
+def assemble_scene_21(
+    *, owner_root: Path, sources: tuple[Path, ...], output_name: str,
+) -> dict[str, Any]:
+    """Assemble seven authorised local clips; caller must verify owner and rights.
+
+    Fixed 720p/24fps silent picture edit. No provider calls, audio mastering,
+    publishing, character-identity approval or new execution authority.
+    """
+    if len(sources) != 7:
+        raise ValueError("studio_scene_requires_seven_clips")
+    if not output_name or not all(
+        char.isascii() and (char.isalnum() or char in "_-") for char in output_name
+    ):
+        raise ValueError("studio_video_output_name_invalid")
+    root = owner_root.resolve(strict=True)
+    paths = tuple(_owned_path(root, source) for source in sources)
+    if len(set(paths)) != 7:
+        raise ValueError("studio_scene_requires_distinct_clips")
+    for path in paths:
+        if probe_owned_video(root=root, source=path)["duration_seconds"] < 3:
+            raise ValueError("studio_scene_clip_too_short")
+    target = root / f"{output_name}.mp4"
+    if target.exists() or target.is_symlink():
+        raise ValueError("studio_video_output_exists")
+    temp = root / f".{uuid4().hex}.mp4"
+    command = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-n"]
+    for path in paths:
+        command.extend(["-protocol_whitelist", "file", "-i", str(path)])
+    filters = [
+        f"[{i}:v:0]setpts=PTS-STARTPTS,fps=24,trim=end_frame=72,"
+        "scale=1280:720:force_original_aspect_ratio=decrease,"
+        "pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p,"
+        f"setpts=PTS-STARTPTS[v{i}]"
+        for i in range(7)
+    ]
+    filters.append("".join(f"[v{i}]" for i in range(7)) + "concat=n=7:v=1:a=0[out]")
+    command.extend([
+        "-filter_complex_threads", "1", "-filter_complex", ";".join(filters),
+        "-map", "[out]", "-an", "-c:v", "libx264", "-preset", "veryfast",
+        "-movflags", "+faststart", str(temp),
+    ])
+    try:
+        subprocess.run(command, check=True, capture_output=True, timeout=180)
+        metadata = probe_owned_video(root=root, source=temp)
+        if (
+            abs(metadata["duration_seconds"] - 21) > 0.01
+            or metadata["width"] != 1280 or metadata["height"] != 720
+            or metadata["audio_present"]
+        ):
+            raise ValueError("studio_scene_output_not_21_seconds")
+        # Count decoded frames, not merely container metadata.
+        frames = subprocess.run(
+            ["ffprobe", "-v", "error", "-select_streams", "v:0", "-count_frames",
+             "-show_entries", "stream=nb_read_frames", "-of",
+             "default=noprint_wrappers=1:nokey=1", str(temp)],
+            check=True, capture_output=True, text=True, timeout=60,
+        )
+        if frames.stdout.strip() != "504":
+            raise ValueError("studio_scene_frame_count_invalid")
+        with temp.open("rb") as handle:
+            digest = hashlib.file_digest(handle, "sha256").hexdigest()
+        os.link(temp, target)
+        return {
+            "filename": target.name,
+            "sha256": digest,
+            "duration_seconds": metadata["duration_seconds"],
+            "frame_count": 504,
+            "picture_edit_verified": True,
+            "audio_mastered": False,
+            "identity_verified": False,
+            "published": False,
+            "founder_review_required": True,
+        }
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError("studio_scene_assembly_failed") from exc
+    finally:
+        temp.unlink(missing_ok=True)
