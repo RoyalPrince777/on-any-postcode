@@ -92,11 +92,11 @@ def test_scene_21_rejects_duplicate_source(tmp_path):
         )
 
 
-@pytest.mark.parametrize(("profile", "width", "height"), [
-    ("standard", 1280, 720), ("cinema", 1920, 1080),
-    ("cinema_vertical", 1080, 1920),
+@pytest.mark.parametrize(("profile", "width", "height", "with_audio"), [
+    ("standard", 1280, 720, False), ("cinema", 1920, 1080, True),
+    ("cinema_vertical", 1080, 1920, False),
 ])
-def test_scene_21_real_ffmpeg_picture_edit(tmp_path, profile, width, height):
+def test_scene_21_real_ffmpeg_picture_edit(tmp_path, profile, width, height, with_audio):
     import shutil
     import subprocess
 
@@ -112,8 +112,17 @@ def test_scene_21_real_ffmpeg_picture_edit(tmp_path, profile, width, height):
             check=True, capture_output=True, timeout=30,
         )
         sources.append(path)
+    soundtrack = None
+    if with_audio:
+        soundtrack = tmp_path / "owned.wav"
+        subprocess.run(
+            ["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
+             "sine=frequency=440:duration=2", str(soundtrack)],
+            check=True, capture_output=True, timeout=30,
+        )
     result = studio_video_tools.assemble_scene_21(
         owner_root=tmp_path, sources=tuple(sources), output_name="scene", profile=profile,
+        soundtrack=soundtrack,
     )
     assert (result["width"], result["height"]) == (width, height)
     assert result["native_source_resolution_verified"] is False
@@ -121,6 +130,7 @@ def test_scene_21_real_ffmpeg_picture_edit(tmp_path, profile, width, height):
     assert result["duration_seconds"] == 21
     assert result["frame_count"] == 504
     assert result["picture_edit_verified"] is True
+    assert result["soundtrack_mux_verified"] is with_audio
     assert result["audio_mastered"] is False
     assert result["identity_verified"] is False
     assert result["published"] is False
