@@ -14,6 +14,7 @@ PROTOCOL = (
     "individual_identity", "shared_capability_access", "evidence_before_promotion",
     "mutual_teaching_with_attribution", "no_permanent_superiority",
     "one_existing_foundation", "guardian_and_founder_final",
+    "independent_hrm_review",
 )
 
 
@@ -41,5 +42,6 @@ def advisory_growth_record(*, agent: str, capability: str,
         "evidence_verified": False, "learning_verified": False,
         "rank_change": None, "mode": "advisory",
         "guardian_review_required": True, "founder_final": True,
+        "hrm_required": True, "execution_granted": False,
         "production_gate": "blocked",
     }
