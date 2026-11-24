@@ -133,3 +133,35 @@ def test_parking_capacity_departure_and_position_regression():
     life,char,streets=mtown_vehicle_life.exit_vehicle(life,character=char,living_streets=streets)
     assert streets["vehicles"][1]["offset"]==23
     assert streets["vehicles"][1]["segment"]==["town-centre","western-road"]
+
+
+def test_transit_arrival_preserves_world_and_streams_destination():
+    state=earth_is_our_turf.new_world()
+    arrived=earth_is_our_turf.action(state,command="transit-arrive",target="eastfields",mode="bus")
+    assert arrived["world_id"]==state["world_id"]
+    assert arrived["character"]["character_id"]==state["character"]["character_id"]
+    assert arrived["player"]["cash"]==state["player"]["cash"]-2
+    assert arrived["character"]["movement"]["node"]=="eastfields"
+    assert arrived["active_chunk"]=="eastfields"
+    assert arrived["loaded_chunks"][0]=="eastfields"
+    assert len(arrived["loaded_chunks"])<=4
+    assert arrived["world_position"] is None
+    assert arrived["events"][-1]["source"]=="fictional_game_service"
+    train=earth_is_our_turf.action(arrived,command="transit-arrive",target="junction",mode="train")
+    tram=earth_is_our_turf.action(train,command="transit-arrive",target="phipps-bridge",mode="tram")
+    taxi=earth_is_our_turf.action(tram,command="transit-arrive",target="town-centre",mode="taxi")
+    assert taxi["player"]["node"]=="town-centre"
+    assert taxi["player"]["cash"]==state["player"]["cash"]-16
+    assert earth_is_our_turf.validate(taxi)["passed"]
+
+
+def test_transit_rejects_invalid_stop_and_active_vehicle():
+    import pytest
+
+    state=earth_is_our_turf.new_world()
+    with pytest.raises(ValueError,match="eiot_transit_stop_invalid"):
+        earth_is_our_turf.action(state,command="transit-arrive",target="junction",mode="train")
+    state=earth_is_our_turf.action(state,command="claim-vehicle",target="vehicle-oap-001")
+    state=earth_is_our_turf.action(state,command="enter-vehicle",target="vehicle-oap-001")
+    with pytest.raises(ValueError,match="mtown_exit_vehicle_before_noncar_travel"):
+        earth_is_our_turf.action(state,command="transit-arrive",target="eastfields",mode="bus")
