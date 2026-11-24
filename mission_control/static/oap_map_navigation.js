@@ -8,9 +8,11 @@ const details=q('#details-sheet'),detailsToggle=q('#details-toggle'),detailsClos
 const locate=q('#map-locate'),recenter=q('#recenter'),zoomIn=q('#zoom-in'),zoomOut=q('#zoom-out');
 const status=q('#route-state');
 const gpsSpeed=q('#oap-gps-speed'),gpsStatus=q('#oap-gps-status');
+const carGps=q('#oap-car-gps'),hazardList=q('#oap-hazard-list');
 const resetGps=message=>{
  if(gpsSpeed)gpsSpeed.textContent='—';
  if(gpsStatus)gpsStatus.textContent=message;
+ if(carGps){carGps.textContent='Enable GPS';carGps.setAttribute('aria-pressed','false')}
 };
 let currentRoute=null,currentGeometry=[],watchId=null,lastPoint=null,lastHeading=0,lastProjected=null;
 let zoom=1,viewCenter=[500,350],driveMode=false,voiceEnabled=false,lastSpokenKey='',offRouteSamples=0,lastRerouteAt=0;
@@ -141,6 +143,7 @@ function updateFromPosition(pos){
    ?String(Math.round(speed*2.2369362921)):'—';
  if(gpsStatus)gpsStatus.textContent=Number.isFinite(accuracy)&&accuracy>=0
    ?'GPS active · ±'+Math.round(accuracy)+' m':'GPS active · accuracy unknown';
+ if(carGps){carGps.textContent='Stop GPS';carGps.setAttribute('aria-pressed','true')}
  let h=Number.isFinite(heading)?heading:lastHeading;
  if(!Number.isFinite(heading)&&lastPoint){
    const dx=(longitude-lastPoint[0])*Math.cos(latitude*Math.PI/180),dy=latitude-lastPoint[1];
@@ -159,9 +162,9 @@ function updateFromPosition(pos){
  locate?.classList.add('active');
 }
 function startLocation(){
- if(!navigator.geolocation){
-  status.textContent='Location unavailable';status.hidden=false;
-  resetGps('GPS unavailable');return
+ if(!navigator.geolocation||!window.isSecureContext){
+  status.textContent=window.isSecureContext?'Location unavailable':'HTTPS required for GPS';
+  status.hidden=false;resetGps(status.textContent);return
  }
  if(watchId!==null){
   navigator.geolocation.clearWatch(watchId);watchId=null;
@@ -172,8 +175,36 @@ function startLocation(){
  watchId=navigator.geolocation.watchPosition(updateFromPosition,err=>{
    const message=err.code===1?'Location permission blocked':'Location unavailable';
   status.textContent=message;status.hidden=false;locate?.classList.remove('active');
+  if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null}
   resetGps(message);
  },{enableHighAccuracy:true,maximumAge:3000,timeout:10000});
+}
+function renderHazards(items){
+ if(!hazardList)return;
+ hazardList.replaceChildren();
+ const reports=(Array.isArray(items)?items:[]).filter(item=>
+  item&&typeof item==='object'&&
+  (['closure','hazard','roadworks'].includes(item.kind)||
+   ['closed','slow','heavy'].includes(item.road_state))
+ ).slice(0,5);
+ if(!reports.length){
+  hazardList.textContent='No verified alert information for this route';return
+ }
+ for(const item of reports){
+  const tfl=item.authority_verified===true&&
+    ['Transport for London Open Data','Transport for London Road Status'].includes(item.source);
+  const entry=document.createElement('div');entry.className='place';
+  const name=document.createElement('strong');
+  name.textContent=String(item.kind||'Road report').slice(0,22)+' · '+
+    String(item.road||'Unknown road').slice(0,100);
+  const meta=document.createElement('small');
+  const updated=String(item.updated_at||item.created_at||'').slice(0,36);
+  meta.textContent=(tfl?'TfL source report':'Community report · unverified')+
+    (updated?' · '+updated:' · time unknown');
+  const note=document.createElement('div');
+  note.textContent=String(item.note||'').slice(0,240);
+  entry.append(name,meta,note);hazardList.append(entry);
+ }
 }
 function clearRoute(){
  currentRoute=null;currentGeometry=[];offRouteSamples=0;lastSpokenKey='';cancelGuidanceVoice();
@@ -185,6 +216,7 @@ function renderRoute(d){
  currentRoute=d?.route||null;currentGeometry=currentRoute?.geometry?.coordinates||[];
  offRouteSamples=0;
  if(!currentRoute){clearRoute();return}
+ renderHazards(currentRoute.live_pattern_reports);
  turnCard.hidden=false;tripBar.hidden=false;
  etaClock.textContent=formatEta(currentRoute.duration_s);
  etaRemain.textContent=Math.max(1,Math.round((+currentRoute.duration_s||0)/60))+' min';
@@ -197,6 +229,7 @@ function renderRoute(d){
  }
 }
 driveToggle?.addEventListener('click',()=>setDrive(!driveMode));
+carGps?.addEventListener('click',startLocation);
 voiceToggle?.addEventListener('click',()=>setVoice(!voiceEnabled));
 detailsToggle?.addEventListener('click',()=>{details.hidden=!details.hidden;detailsToggle.setAttribute('aria-expanded',String(!details.hidden))});
 detailsClose?.addEventListener('click',()=>{details.hidden=true;detailsToggle?.setAttribute('aria-expanded','false')});
