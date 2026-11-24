@@ -184,6 +184,30 @@ body{background:radial-gradient(ellipse at 50% -6%,#241138 0%,#080918 49%,#04051
 .tile:hover,.tile:focus-visible{border-color:#e7c57c;background:linear-gradient(140deg,#301943,#101126)}
 .public-smi{background:linear-gradient(145deg,#392050,#160f26);border-color:#d8a75c;color:#ffe0a0}
 @media(max-width:520px){.hero img{width:min(100%,280px)}.tile,.tile:nth-child(-n+3){min-height:96px;padding:9px 4px}.tile .ico{width:43px;height:43px}.grid{gap:7px}}
+/* Founder-approved mobile refinement: retain the original crown/globe artwork and routes. */
+@media(max-width:520px){
+  .shell{padding-inline:14px}
+  .hero img{width:min(100%,300px);height:auto}
+  .search-row{align-items:stretch;gap:8px}
+  .search-row .search{min-width:0}
+  .search-row .search input{min-width:0;font-size:16px;padding-inline:12px}
+  .search-row .search button{min-height:48px;padding-inline:13px;font-size:.88rem}
+  .public-smi{min-height:48px;min-width:70px;font-size:.85rem;padding-inline:9px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .tile,.tile:nth-child(-n+3){min-height:116px;padding:13px 10px;gap:8px}
+  .tile .ico{width:46px;height:46px}
+  .tile strong{font-size:.95rem}
+  .browser-bar button{min-height:48px}
+}
+@media(max-width:360px){
+  .shell{padding-inline:10px}
+  .search-row{gap:6px}
+  .public-smi{min-width:64px}
+  .tile,.tile:nth-child(-n+3){padding-inline:6px}
+}
+@media(prefers-reduced-motion:reduce){
+  .tile,.search,.public-smi,.royal-menu summary{transition:none!important;animation:none!important}
+}
 </style>
 </head>
 <body>
