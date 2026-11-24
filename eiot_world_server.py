@@ -34,6 +34,12 @@ def _boot_persistence() -> None:
         })
         return
     if not mtown_persistence_broker.configured():
+        _PERSISTENCE_BOOT.update({
+            "attempted":False,
+            "ready":False,
+            "backend":"none",
+            "error":None,
+        })
         return
     _PERSISTENCE_BOOT["attempted"]=True
     _PERSISTENCE_BOOT["backend"]="oap-core-postgresql-broker"
