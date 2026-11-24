@@ -24,6 +24,7 @@ from . import (
     atlas_live_sources,
     live_road_intelligence,
     local_map_intelligence,
+    local_osm_roads,
     location_intelligence,
     map_live_pattern,
     mobility_provider_intelligence,
@@ -235,6 +236,33 @@ def map_intelligence_road_geometry(z: int, x: int, y: int):
     response = jsonify(payload)
     response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60"
     response.headers["X-OAP-Map-Source"] = "first-party-routing-graph"
+    return response
+
+
+@bp.get("/map-intelligence/local-roads")
+def map_intelligence_local_roads():
+    """Read the existing imported OSM source when routing tiles are missing."""
+    try:
+        values = {
+            key: float(request.args[key])
+            for key in ("west", "south", "east", "north")
+        }
+        payload = local_osm_roads.road_lines(**values)
+    except (KeyError, TypeError, ValueError, local_osm_roads.LocalRoadsUnavailable) as exc:
+        code = (
+            "invalid_bounds"
+            if isinstance(exc, (KeyError, TypeError)) or str(exc) in {
+                "invalid_bounds", "bounds_too_large",
+            }
+            else "local_osm_roads_unavailable"
+        )
+        response = jsonify({"error": {"code": code}, "routing_verified": False})
+        response.status_code = 400 if code == "invalid_bounds" else 503
+    else:
+        response = jsonify(payload)
+        response.headers["X-OAP-Map-Source"] = "existing-local-osm-import"
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
