@@ -29,7 +29,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{ou
 /* Optional car browser layout: same first-party SVG map, no external SDK. */
 .oap-car-hud{display:none}
 body[data-car-view="true"]:not(.oap-ride-embed) .oap-car-hud{
- position:absolute;z-index:17;left:12px;bottom:140px;width:min(215px,calc(100% - 150px));
+ display:block;position:absolute;z-index:17;left:12px;bottom:140px;width:min(215px,calc(100% - 150px));
  padding:13px 15px;border:1px solid #756035;border-radius:17px;
  background:#10141aeb;color:#fff;box-shadow:0 12px 32px #0009;backdrop-filter:blur(12px)
 }
