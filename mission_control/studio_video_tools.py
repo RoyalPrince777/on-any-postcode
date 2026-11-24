@@ -129,12 +129,17 @@ def normalise_swap_source(
 
 def assemble_scene_21(
     *, owner_root: Path, sources: tuple[Path, ...], output_name: str,
+    profile: str = "standard",
 ) -> dict[str, Any]:
     """Assemble seven authorised local clips; caller must verify owner and rights.
 
-    Fixed 720p/24fps silent picture edit. No provider calls, audio mastering,
+    Allowlisted 720p or 1080p/24fps silent picture edit. No provider calls, audio mastering,
     publishing, character-identity approval or new execution authority.
     """
+    profiles = {"standard": (1280, 720), "cinema": (1920, 1080), "cinema_vertical": (1080, 1920)}
+    if profile not in profiles:
+        raise ValueError("studio_scene_profile_unsupported")
+    width, height = profiles[profile]
     if len(sources) != 7:
         raise ValueError("studio_scene_requires_seven_clips")
     if not output_name or not all(
@@ -157,8 +162,8 @@ def assemble_scene_21(
         command.extend(["-protocol_whitelist", "file", "-i", str(path)])
     filters = [
         f"[{i}:v:0]setpts=PTS-STARTPTS,fps=24,trim=end_frame=72,"
-        "scale=1280:720:force_original_aspect_ratio=decrease,"
-        "pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p,"
+        f"scale={width}:{height}:force_original_aspect_ratio=decrease:force_divisible_by=2,"
+        f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p,"
         f"setpts=PTS-STARTPTS[v{i}]"
         for i in range(7)
     ]
@@ -173,7 +178,7 @@ def assemble_scene_21(
         metadata = probe_owned_video(root=root, source=temp)
         if (
             abs(metadata["duration_seconds"] - 21) > 0.01
-            or metadata["width"] != 1280 or metadata["height"] != 720
+            or metadata["width"] != width or metadata["height"] != height
             or metadata["audio_present"]
         ):
             raise ValueError("studio_scene_output_not_21_seconds")
@@ -194,6 +199,11 @@ def assemble_scene_21(
             "sha256": digest,
             "duration_seconds": metadata["duration_seconds"],
             "frame_count": 504,
+            "profile": profile,
+            "width": width,
+            "height": height,
+            "native_source_resolution_verified": False,
+            "cinematic_quality_verified": False,
             "picture_edit_verified": True,
             "audio_mastered": False,
             "identity_verified": False,
