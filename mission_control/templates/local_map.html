@@ -46,6 +46,7 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
       <strong>ON ANY POSTCODE · DRIVE</strong>
       <div class="oap-car-speed"><output id="oap-gps-speed" aria-label="GPS speed">—</output><span>MPH</span></div>
       <p id="oap-gps-status" role="status" aria-live="polite">GPS off · tap locate to enable</p>
+      <button id="oap-car-gps" type="button" aria-pressed="false">Enable GPS</button>
       <small>GPS estimate only · no vehicle telemetry</small>
     </section>
 
@@ -108,6 +109,7 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
       </div>
       <div class="sheet-section"><strong>Directions</strong><div id="directions"></div></div>
       <div class="sheet-section"><strong>Roads</strong><div id="roads" class="chips"></div></div>
+      <div class="sheet-section"><strong>Road alerts</strong><p class="map-alert-source">TfL source reports and unverified community reports are separate.</p><div id="oap-hazard-list" role="status">No verified alert information for this route</div></div>
       <div class="sheet-section"><strong>Nearby</strong><div id="places"></div></div>
       <div id="from-label" hidden>{{ local_map.area_key|title }}</div>
       <div id="to-label" hidden>{{ local_map.route.to|title }}</div>
