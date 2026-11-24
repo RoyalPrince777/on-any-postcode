@@ -92,7 +92,11 @@ def test_scene_21_rejects_duplicate_source(tmp_path):
         )
 
 
-def test_scene_21_real_ffmpeg_picture_edit(tmp_path):
+@pytest.mark.parametrize(("profile", "width", "height"), [
+    ("standard", 1280, 720), ("cinema", 1920, 1080),
+    ("cinema_vertical", 1080, 1920),
+])
+def test_scene_21_real_ffmpeg_picture_edit(tmp_path, profile, width, height):
     import shutil
     import subprocess
 
@@ -109,8 +113,11 @@ def test_scene_21_real_ffmpeg_picture_edit(tmp_path):
         )
         sources.append(path)
     result = studio_video_tools.assemble_scene_21(
-        owner_root=tmp_path, sources=tuple(sources), output_name="scene",
+        owner_root=tmp_path, sources=tuple(sources), output_name="scene", profile=profile,
     )
+    assert (result["width"], result["height"]) == (width, height)
+    assert result["native_source_resolution_verified"] is False
+    assert result["cinematic_quality_verified"] is False
     assert result["duration_seconds"] == 21
     assert result["frame_count"] == 504
     assert result["picture_edit_verified"] is True
@@ -122,4 +129,11 @@ def test_scene_21_real_ffmpeg_picture_edit(tmp_path):
     with pytest.raises(ValueError, match="output_exists"):
         studio_video_tools.assemble_scene_21(
             owner_root=tmp_path, sources=tuple(sources), output_name="scene",
+        )
+
+
+def test_scene_21_rejects_unsupported_profile(tmp_path):
+    with pytest.raises(ValueError, match="profile_unsupported"):
+        studio_video_tools.assemble_scene_21(
+            owner_root=tmp_path, sources=(), output_name="scene", profile="arbitrary",
         )
