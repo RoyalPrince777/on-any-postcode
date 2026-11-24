@@ -84,7 +84,9 @@ def test_use_entrance_records_receipt_without_claiming_real_access():
 
 def test_parking_capacity_departure_and_position_regression():
     import copy
+
     import pytest
+
     from mission_control import mtown_living_streets as streets_module
 
     streets=streets_module.new_state()
