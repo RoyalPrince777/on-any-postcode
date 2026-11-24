@@ -25,3 +25,42 @@ body[data-map-mode="drive"] .road-svg polyline.local{opacity:.72}body[data-map-m
 button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #ffd85a;outline-offset:2px}
 .oap-map-boot{box-shadow:0 8px 30px #000a}
 @media(max-width:700px){.road-svg polyline.local{stroke-width:2.5}.road-svg polyline.secondary{stroke-width:3.6}.road-svg polyline.major{stroke-width:5}.road-label{font-size:14px;stroke-width:4.5px}.route-svg #route-casing{stroke-width:18}.route-svg #route-line{stroke-width:10}.map-float-btn{width:50px;height:50px}.search-card input{min-height:44px}}
+
+/* Optional car browser layout: same first-party SVG map, no external SDK. */
+.oap-car-hud{display:none}
+body[data-car-view="true"]:not(.oap-ride-embed) .oap-car-hud{
+ position:absolute;z-index:17;left:12px;bottom:140px;width:min(215px,calc(100% - 150px));
+ padding:13px 15px;border:1px solid #756035;border-radius:17px;
+ background:#10141aeb;color:#fff;box-shadow:0 12px 32px #0009;backdrop-filter:blur(12px)
+}
+.oap-car-hud strong{display:block;color:#f1d17c;font-size:.73rem;letter-spacing:.04em}
+.oap-car-speed{display:flex;align-items:baseline;gap:9px;margin:9px 0 4px}
+.oap-car-speed output{font-size:clamp(2.9rem,6vw,5rem);line-height:1;font-weight:850;font-variant-numeric:tabular-nums}
+.oap-car-speed span{font-size:1rem;font-weight:700;color:#d3c6a5}
+.oap-car-hud p{margin:6px 0;color:#f0e6d1;font-size:.78rem}
+.oap-car-hud small{display:block;color:#b8b3a9;font-size:.68rem}
+body[data-car-view="true"] .movement-actions{display:none!important}
+body[data-car-view="true"][data-map-mode="drive"] .search-card{opacity:1;transform:none}
+@media(min-width:800px) and (orientation:landscape){
+ body[data-car-view="true"] .map-surface,
+ body[data-car-view="true"] .road-svg,
+ body[data-car-view="true"] .route-svg{left:31%;width:69%}
+ body[data-car-view="true"] .map-wrap:before{
+  content:"";position:absolute;z-index:8;left:0;top:0;bottom:0;width:31%;
+  background:#0d0f12;border-right:1px solid #49402d;pointer-events:none
+ }
+ body[data-car-view="true"] .oap-mark{left:12px;top:12px}
+ body[data-car-view="true"] .search-card{top:65px;left:12px;width:calc(31% - 24px)}
+ body[data-car-view="true"] .oap-car-hud{
+  display:block;top:240px;left:12px;bottom:12px;width:calc(31% - 24px);
+  border:0;box-shadow:none;background:transparent;padding:7px 0
+ }
+ body[data-car-view="true"] .turn-card{
+  top:12px;left:calc(31% + 12px);width:min(390px,calc(69% - 24px))
+ }
+ body[data-car-view="true"] .trip-bar{
+  left:calc(31% + 12px);transform:none;width:calc(69% - 24px)
+ }
+ body[data-car-view="true"] .map-toast{left:65.5%}
+}
+.oap-ride-embed .oap-car-hud{display:none!important}
