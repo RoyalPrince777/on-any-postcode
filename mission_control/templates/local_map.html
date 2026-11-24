@@ -28,7 +28,7 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
 </style>
 <link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css', v='map-runtime-v4') }}">
 </head>
-<body data-map-mode="explore" class="{% if request.args.get('embed') == 'ride' %}oap-ride-embed{% endif %}">
+<body data-map-mode="explore" data-car-view="{{ 'true' if request.args.get('view') == 'car' else 'false' }}" class="{% if request.args.get('embed') == 'ride' %}oap-ride-embed{% endif %}">
 <main class="map-app">
   <section class="map-wrap" aria-label="On Any Postcode Maps">
     <div class="map-surface"></div>
@@ -42,6 +42,12 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
     </svg>
 
     <a class="oap-mark" href="/" aria-label="Back to OAP World">OAP</a>
+    <section id="oap-car-hud" class="oap-car-hud" aria-label="Car navigation information">
+      <strong>ON ANY POSTCODE · DRIVE</strong>
+      <div class="oap-car-speed"><output id="oap-gps-speed" aria-label="GPS speed">—</output><span>MPH</span></div>
+      <p id="oap-gps-status" role="status" aria-live="polite">GPS off · tap locate to enable</p>
+      <small>GPS estimate only · no vehicle telemetry</small>
+    </section>
 
     <form id="map-form" class="search-card" autocomplete="off">
       <div class="search-row">
@@ -320,7 +326,7 @@ async function route(options={}){
    renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);
    syncMovementLinks(d.origin?.label||a,d.destination?.label||b);
    window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}));
-   history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
+   history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value)+(document.body.dataset.carView==='true'?'&view=car':''));
  }catch(error){
    if(error?.name==='AbortError'||request!==routeRequest)return;
    svg.hidden=true;toast('Route temporarily unavailable');
