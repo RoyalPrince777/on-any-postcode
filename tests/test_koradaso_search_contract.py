@@ -764,3 +764,15 @@ def test_koradaso_bookmark_rejects_typed_external_address_instead_of_saving_curr
     assert 'if(!raw.startsWith("/")||raw.startsWith("//")){' in bookmark_handler
     assert 'Only approved first-party OAP routes can be bookmarked here.' in bookmark_handler
     assert 'route=raw.split(/[?#]/,1)[0];' in bookmark_handler
+
+
+def test_koradaso_mobile_refinement_preserves_five_real_public_destinations():
+    source = SOURCE.read_text(encoding="utf-8")
+    assert "Founder-approved mobile refinement" in source
+    assert "grid-template-columns:repeat(2,minmax(0,1fr))" in source
+    assert ".search-row .search input{min-width:0;font-size:16px" in source
+    assert "@media(prefers-reduced-motion:reduce)" in source
+    assert 'href="/world?source=oap-os"' in source
+    for route in ("/oap-map", "/the-link", "/the-spot/market", "/arena"):
+        assert f'href="{route}"' in source
+    assert 'href="/mission/smi"' not in source
