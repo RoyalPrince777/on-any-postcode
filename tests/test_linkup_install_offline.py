@@ -51,9 +51,11 @@ def test_offline_shell_is_linkup_aware_but_contains_no_private_content():
 
 
 def test_service_worker_remains_network_first_for_linkup_navigation():
-    assert 'const CACHE_VERSION = "oap-os-public-v1.1";' in WORKER
+    assert 'const CACHE_VERSION = "oap-os-public-transport-offline";' in WORKER
     assert 'if (request.mode === "navigate")' in WORKER
-    assert 'fetch(request).catch(() => caches.match("/offline"))' in WORKER
+    assert 'const offlineFallback = transportPage ? "/transport/offline" : "/offline";' in WORKER
+    assert 'fetch(request).catch(() => caches.match(offlineFallback))' in WORKER
+    assert 'url.pathname.startsWith("/transport/")' in WORKER
     assert "cache.put" not in WORKER
     public_shell = WORKER.split("const PRIVATE_PREFIXES", 1)[0]
     assert '"/linkup"' not in public_shell

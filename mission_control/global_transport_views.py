@@ -11,6 +11,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, make_response, redirect, render_template_string, request
 
 from . import authority, oap_ride, operator_gateway, transport_execution_evidence, web_security
+from .oap_ride_backend_bridge import bp as oap_ride_backend_bridge_bp
 from .oap_ride_dashboards import bp as oap_ride_dashboards_bp
 from .oap_ride_runtime_routes import bp as oap_ride_runtime_bp
 from .oap_ride_journey_views import bp as oap_ride_journey_bp
@@ -24,6 +25,7 @@ from .oap_eats_routes import bp as oap_eats_bp
 from .travel_transport_views import bp as travel_transport_booking_bp
 
 bp = Blueprint("oap_global_transport", __name__)
+bp.register_blueprint(oap_ride_backend_bridge_bp)
 bp.register_blueprint(oap_ride_dashboards_bp)
 bp.register_blueprint(oap_ride_runtime_bp)
 bp.register_blueprint(oap_ride_journey_bp)
@@ -36,17 +38,39 @@ bp.register_blueprint(oap_ride_ops_bp)
 bp.register_blueprint(oap_eats_bp)
 bp.register_blueprint(travel_transport_booking_bp)
 
+# Keep the routed nine-door destinations as compatibility metadata.
+# They are not the visible navigation, and no underlying routes are removed.
+LEGACY_PUBLIC_ROUTES = {
+    "journey": "/travel",
+    "move": "/movement/workspace",
+    "ride": "/transport/ride",
+    "transit": "/travel",
+    "drive": "/oap-map?profile=driving",
+    "fly": "/travel",
+    "cargo": "/distribution",
+    "deliver": "/movement/workspace#book-title",
+    "fleet": "/transport/ride/driver",
+}
+
 PUBLIC_DOORS = (
-    ("Journey", "End-to-end multimodal journey planning", "/travel"),
-    ("Move", "Movement, disruption and route state", "/movement/workspace"),
-    ("Ride", "Governed ride-request capability", "/transport/ride"),
-    ("Transit", "Bus, rail, metro, tram and ferry", "/travel"),
-    ("Drive", "Personal vehicle and road journey layer", "/oap-map?profile=driving"),
-    ("Fly", "Air journey and airport layer", "/travel"),
-    ("Cargo", "Freight and cross-border planning", "/distribution"),
-    ("Deliver", "Local and global delivery layer", "/movement/workspace#book-title"),
-    ("Fleet", "Commercial vehicle and driver operations", "/transport/ride/driver"),
+    ("Journey", "End-to-end journey planning", "/travel"),
+    ("Move", "Movement, maps and navigation", "/movement/workspace"),
+    ("Ride", "OAP Rider and Driver", "/transport/ride"),
+    ("Logistics", "Cargo, deliveries and fleet", "/transport/logistics"),
+    ("Guardian", "Journey safety and protection", "/transport/guardian"),
+    ("Operators", "Provider and shared-bike discovery", "/transport/operators"),
+    ("Control Center", "Transport execution readiness", "/transport/control-center"),
 )
+
+DOOR_GROUPS = {
+    "journey": ["journey", "walk", "cycle", "parking"],
+    "move": ["move", "drive", "transit", "fly", "sail", "road", "terminal", "energy"],
+    "ride": ["ride", "accessibility"],
+    "logistics": ["cargo", "deliver", "fleet"],
+    "guardian": ["guardian_transport"],
+    "operators": ["transport_market"],
+    "control_center": ["transport_intelligence", "transport_control_center"],
+}
 
 CAPABILITIES = (
     "journey", "move", "ride", "drive", "transit", "fly", "sail",
@@ -145,8 +169,10 @@ def status() -> dict[str, object]:
         "architecture": "One World -> One Front Door -> Many Transport Systems Inside",
         "software_surface_install_ready": True,
         "first_party_surface": True,
-        "public_doors": [name.lower() for name, _, _ in PUBLIC_DOORS],
-        "public_routes": {name.lower(): href for name, _, href in PUBLIC_DOORS},
+        "public_doors": [name.lower().replace(" ", "_") for name, _, _ in PUBLIC_DOORS],
+        "public_routes": {name.lower().replace(" ", "_"): href for name, _, href in PUBLIC_DOORS},
+        "legacy_public_routes": LEGACY_PUBLIC_ROUTES,
+        "door_groups": DOOR_GROUPS,
         "capability_count": len(CAPABILITIES),
         "capabilities": list(CAPABILITIES),
         "integrations": list(INTEGRATIONS),
@@ -178,43 +204,104 @@ _PAGE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="/transport/manifest.webmanifest">
-<meta name="theme-color" content="#050807">
+<meta name="theme-color" content="#090909">
 <title>OAP Global Transport</title>
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}
-body{margin:0;background:#090909;color:#f5f5f5;font-family:system-ui,-apple-system,sans-serif}
-main{max-width:920px;margin:auto;padding:24px 16px 48px}
-.hero{padding:24px;border:1px solid #7a6420;border-radius:22px;background:linear-gradient(145deg,#17130a,#0c0c0c)}
-.eyebrow{color:#d8b64b;font-weight:800;letter-spacing:.08em}.hero h1{margin:.3rem 0;font-size:clamp(2rem,7vw,4rem)}
-.hero p{color:#ccc;max-width:680px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:18px}
-.card{display:block;text-decoration:none;color:#fff;padding:18px;border-radius:18px;border:1px solid #292929;background:#111}
-.card strong{display:block;font-size:1.15rem;color:#f0cf63}.card span{display:block;color:#aaa;margin-top:7px;line-height:1.35}
-.bar{margin-top:18px;padding:14px;border-radius:14px;background:#121212;color:#bbb}.green{color:#6ee7a8}.purple{color:#c4a1ff}
-small{display:block;margin-top:18px;color:#777}
+:root{color-scheme:dark;--bg:#090909;--panel:#161512;--edge:#353025;--gold:#efcf73;--muted:#bdb7aa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#f7f7f7;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:800px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid var(--edge)}
+.brand{color:var(--gold);font-weight:800;font-size:.78rem;letter-spacing:.075em}
+.return{color:var(--gold);text-decoration:none;font-weight:700;padding:10px 0;min-height:44px;display:inline-flex;align-items:center}
+h1{font-size:clamp(2.15rem,7.5vw,3.3rem);line-height:1.08;letter-spacing:-.045em;margin:0 0 23px;font-weight:850}
+.intro{color:var(--muted);margin:0 0 24px}
+.journey-start{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#231e13;border:1px solid #917442;border-radius:15px;padding:13px 16px;min-height:58px;margin:0 0 18px;color:var(--gold);font-weight:850;text-decoration:none}.journey-start span{font-size:.81rem;color:#d1c8b5;font-weight:500}.journey-start b{font-size:1.25rem}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:80px;min-width:0;
+padding:16px;border-radius:17px;background:var(--panel);border:1px solid var(--edge);
+text-decoration:none;color:inherit;transition:border-color .15s}
+.card:hover,.card:focus-visible{border-color:var(--gold)}.card:active{background:#22201a}
+.card:focus-visible,.return:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.card strong{display:block;color:#f7f7f7;font-size:1rem;line-height:1.25;overflow-wrap:break-word;flex:1;font-weight:750}
+
+.card .arrow{font-size:1.1rem;color:var(--gold);flex:none}.card .mark{width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:11px;background:#262116;font-size:1.2rem}
+.card:last-child{grid-column:1/-1;min-height:80px}
+footer{margin-top:21px;padding-top:15px;border-top:1px solid var(--edge);color:var(--muted);font-size:.82rem}
+.customer{margin:18px 0 6px}.customer a{border-bottom:1px solid #6f5b33}.install{margin-top:12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}.install:has(> button[hidden]):has(> [role=status]:empty){display:none}
+.install button{background:#2a2418;border:1px solid #927744;border-radius:12px;color:var(--gold);padding:12px 17px;min-height:48px;font:inherit;font-weight:750;cursor:pointer}
+.install [role=status]{color:var(--muted);font-size:.82rem}
+@media(max-width:390px){main{padding-inline:14px}.grid{gap:9px}.card{padding:12px;min-height:80px;gap:7px}.card strong{font-size:.91rem}.card .mark{width:28px;height:28px;font-size:1rem}.card .arrow{font-size:1rem}}
+@media(max-width:320px){.grid{grid-template-columns:1fr}.card:last-child{grid-column:auto}}
+@media(prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
 </head>
 <body><main>
-<section class="hero">
-<div class="eyebrow">🌍 ON ANY POSTCODE</div>
+<header><div class="brand">ON ANY POSTCODE</div><a class="return" href="/world">OAP World</a></header>
 <h1>Global Transport</h1>
-<p>One World → One Front Door → Many Transport Systems Inside.</p>
-<div class="bar"><span class="green">● Software surface ready</span> · <span class="purple">● Live execution stays evidence-gated</span></div>
-<div class="bar">
-<button type="button" data-oap-install hidden>Install OAP Transport</button>
-<span data-oap-install-status role="status">Checking install support</span>
-<span data-oap-install-platform hidden></span>
-</div>
-</section>
-<section class="grid">
+<a class="journey-start" href="/transport/ride">Where to? <span>Enter pickup &amp; destination</span><b aria-hidden="true">›</b></a>
+
+{% set icons = {"Journey":"🧭", "Move":"🗺️", "Ride":"🚗", "Logistics":"📦", "Guardian":"🛡️", "Operators":"🏢", "Control Center":"⚙️"} %}
+<nav class="grid" aria-label="Global Transport main menu">
 {% for name, description, href in doors %}
-<a class="card" href="{{ href }}"><strong>{{ name }}</strong><span>{{ description }}</span></a>
+<a class="card" href="{{ href }}"><span class="mark" aria-hidden="true">{{ icons[name] }}</span><strong>{{ name }}</strong><b class="arrow" aria-hidden="true">›</b></a>
 {% endfor %}
-</section>
-<small>Software + digital coordination only. Physical transport operations remain evidence-gated. Human Authority remains final.</small>
+</nav>
+<p class="customer"><a class="return" href="/transport/my">My Transport · Customer controls</a></p>
+<div class="install"><button type="button" data-oap-install hidden>Install OAP Transport</button>
+<span data-oap-install-status role="status" aria-live="polite"></span>
+<span data-oap-install-platform hidden></span></div>
+
 <script src="/assets/oap-os.js" defer></script>
 </main></body></html>"""
+
+
+# Static, public-safe offline navigation. No session, personal location or write actions.
+_TRANSPORT_OFFLINE_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>Global Transport · Offline</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:760px;margin:auto;padding:20px 16px 48px}
+h1{font-size:clamp(1.85rem,7vw,2.8rem);line-height:1.12;margin:8px 0 12px}
+p{color:#c8c8c8;margin:0 0 18px}
+.brand{color:#f0cf63;font-weight:800;font-size:.8rem;letter-spacing:.075em}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{background:#161616;border:1px solid #353535;border-radius:16px;min-height:76px;
+padding:14px;display:flex;align-items:center;font-weight:700;color:#dedede}
+.tile:last-child{grid-column:1/-1}
+.notice{border-left:3px solid #f0cf63;padding:12px 14px;margin:20px 0;background:#211d14}
+.retry{display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;border-radius:12px;
+color:#090909;background:#f0cf63;text-decoration:none;font-weight:700}
+.retry:focus-visible{outline:3px solid #fff;outline-offset:3px}
+small{display:block;color:#bdbdbd;margin-top:16px}
+@media(max-width:320px){.grid{grid-template-columns:1fr}.tile:last-child{grid-column:auto}}
+</style></head><body><main>
+<p class="brand">ON ANY POSTCODE</p><h1>Global Transport</h1>
+<p role="status">Offline shell only · live transport data unavailable</p>
+<section class="grid" aria-label="Seven transport doors, unavailable while the server is offline">
+{% for name, description, href in doors %}<div class="tile">{{ name }}</div>{% endfor %}
+</section>
+<div class="notice">Bookings, payments, dispatch, tracking, vehicle control and private journeys
+are unavailable. No actions are queued or executed offline. Guardian, HRM and
+Founder Final restrictions remain in force. Unverified status: Unknown · blocked.</div>
+<a class="retry" href="/transport">Retry Global Transport</a>
+<small>If your first-party Termux Flask server is running on this device, the full local
+interface can open without internet. Otherwise only this public offline shell is available.</small>
+</main></body></html>"""
+
+
+@bp.get("/transport/offline")
+def transport_offline():
+    """Bounded public snapshot only; service worker may precache this exact route."""
+    response = make_response(render_template_string(_TRANSPORT_OFFLINE_PAGE, doors=PUBLIC_DOORS))
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @bp.get("/transport")
@@ -244,6 +331,376 @@ def transport_capabilities():
         "execution_readiness": state["execution_readiness"],
         "human_authority_final": True,
     }))
+
+
+# Public-facing navigation only. Technical JSON contracts remain on their original URLs.
+# No operator, payment, dispatch or evidence-writing action is exposed here.
+_TRANSPORT_INSIDE_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>{{ title }} · OAP Global Transport</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font:16px system-ui,-apple-system,sans-serif}
+main{max-width:760px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
+nav{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+a{color:inherit;text-decoration:none}
+.back{color:#e7c764;font-weight:650;min-height:44px;display:inline-flex;align-items:center;font-size:.91rem}
+h1{font-size:clamp(1.75rem,6vw,2.4rem);line-height:1.15;margin:18px 0 8px}
+p{line-height:1.5;color:#bdbdbd;margin:0 0 20px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{background:#151515;border:1px solid #333;border-radius:16px;padding:14px;
+min-height:84px;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.card strong{color:#efd06b;font-size:.98rem;line-height:1.25;overflow-wrap:anywhere}.card span{font-size:.8rem;line-height:1.35;color:#bdbdbd;overflow-wrap:anywhere}
+a:focus-visible{outline:3px solid #e7c764;outline-offset:3px}.card:hover,.card:focus-visible{border-color:#efd06b}
+.note{margin-top:18px;color:#a9a9a9;font-size:.82rem;line-height:1.4}
+@media(max-width:380px){.grid{gap:9px}.card{padding:12px}.back{font-size:.87rem}}
+@media(max-width:320px){.grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<nav><a class="back" href="/transport">← Global Transport</a><a class="back" href="/transport/my">My Transport</a></nav>
+<h1>{{ title }}</h1>
+<section class="grid" aria-label="{{ title }} options">
+{% for name, detail, href in items %}
+<a class="card" href="{{ href }}"><strong>{{ name }}</strong><span>{{ detail }}</span></a>
+{% endfor %}
+</section>
+<p class="note">Live services require verified availability and authorisation.</p>
+</main></body></html>"""
+
+_INSIDE_DOORS = {
+    "logistics": (
+        "Logistics", "Cargo, deliveries and fleet.",
+        (
+            ("Cargo", "Sign-in required · distribution status", "/distribution"),
+            ("Deliver", "Sign-in required · Delivery booking", "/movement/workspace?service=delivery#book-title"),
+            ("Fleet", "Driver workspace", "/transport/ride/driver"),
+        ),
+    ),
+    "guardian": (
+        "Guardian", "Safety tools for your journey.",
+        (
+            ("Journey safety", "Protected journey controls", "/transport/ride/current"),
+            ("Guardian status", "Read journey safety status", "/transport/ride/guardian/status"),
+            ("My journeys", "Return to your journeys", "/transport/my"),
+        ),
+    ),
+    "operators": (
+        "Operators", "Discover available transport information.",
+        (
+            ("Shared bikes", "Mitcham discovery information", "/transport/shared-bikes/mitcham"),
+            ("Provider status", "Technical availability data", "/transport/shared-bikes/status"),
+            ("Ride", "OAP Rider and Driver", "/transport/ride"),
+        ),
+    ),
+    "control-center": (
+        "Control Center", "Transport software status and readiness.",
+        (
+            ("Readiness", "Review execution requirements", "/transport/control-center/readiness"),
+            ("Capabilities", "View the 21 capability groups", "/transport/control-center/capabilities"),
+            ("Transport status", "Evidence-gated operational status", "/transport/control-center/status"),
+        ),
+    ),
+}
+
+
+def _inside_door(name: str):
+    title, description, items = _INSIDE_DOORS[name]
+    return _no_store(make_response(render_template_string(
+        _TRANSPORT_INSIDE_PAGE, title=title, description=description, items=items,
+    )))
+
+
+# Human-readable views; the original JSON endpoints remain unchanged.
+_TRANSPORT_CONTROL_SUMMARY_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>{{ title }} · OAP Global Transport</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:760px;margin:auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(36px + env(safe-area-inset-bottom))}
+a{color:#e7c764}.back{display:inline-flex;align-items:center;min-height:44px;text-decoration:none;font-weight:650}
+h1{font-size:clamp(1.8rem,6vw,2.5rem);margin:18px 0}
+h2{font-size:1rem;margin:0 0 8px;color:#efcf73}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.panel{background:#151515;border:1px solid #353535;border-radius:16px;padding:16px;min-width:0}
+.panel p{margin:0;color:#c8c8c8;overflow-wrap:anywhere}
+.notice{margin:18px 0 0;border-left:3px solid #efcf73;padding:12px 14px;background:#211d14}
+.note{font-size:.85rem;color:#bdbdbd;margin-top:16px}
+a:focus-visible{outline:3px solid #efcf73;outline-offset:3px}
+@media(max-width:360px){.grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<a class="back" href="/transport/control-center">← Control Center</a>
+<h1>{{ title }}</h1>
+{% if groups is defined %}
+<section class="grid" aria-label="21 grouped transport capabilities">
+{% for name, items in groups %}
+<article class="panel"><h2>{{ name }}</h2>
+<p>{{ items|join(", ") }}</p></article>
+{% endfor %}
+</section>
+<p class="note">Capabilities describe the software catalogue, not permissions to operate transport services.</p>
+{% else %}
+<section class="grid" aria-label="Execution gate status">
+<article class="panel"><h2>Software</h2><p>Configured contracts; no physical operations</p></article>
+<article class="panel"><h2>Live execution</h2>
+<p>{% if not readiness.evidence_store_reachable %}Unknown · blocked{% elif readiness.live_execution_authorised %}Evidence requirements recorded; external authenticity unverified{% else %}Not authorised{% endif %}</p></article>
+{% for name, area in readiness.areas.items() %}
+<article class="panel"><h2>{{ name.replace("_", " ").title() }}</h2>
+<p>{% if not readiness.evidence_store_reachable %}Unknown · blocked{% elif area.live_execution_authorised %}Required references recorded; authenticity unverified{% else %}Not authorised · {{ area.missing|length }} requirements outstanding{% endif %}</p></article>
+{% endfor %}
+</section>
+<div class="notice">Live bookings, payments, dispatch and vehicle control require independently verified authority and evidence. Guardian, HRM and Founder Final remain in force.</div>
+<a class="back" href="/transport/control-center/readiness">Review required evidence</a>
+<p class="note">Human Authority remains final. Recorded references alone do not verify external authenticity.</p>
+{% endif %}
+</main></body></html>"""
+
+
+@bp.get("/transport/control-center/capabilities")
+def transport_capabilities_page():
+    """Human-readable 21-capability grouping, never a live service authorisation."""
+    groups = [(name.replace("_", " ").title(), [item.replace("_", " ").title() for item in members])
+              for name, members in DOOR_GROUPS.items()]
+    return _no_store(make_response(render_template_string(
+        _TRANSPORT_CONTROL_SUMMARY_PAGE, title="Capabilities", groups=groups,
+    )))
+
+
+@bp.get("/transport/control-center/status")
+def transport_status_page():
+    """Evidence-based human status; fail closed when runtime evidence is unknown."""
+    return _no_store(make_response(render_template_string(
+        _TRANSPORT_CONTROL_SUMMARY_PAGE, title="Transport Status",
+        readiness=execution_readiness(),
+    )))
+
+
+# Founder-private oversight uses existing transport evidence; never creates
+# a competing dispatch, approval, payments or booking backend.
+_FOUNDER_TRANSPORT_CONTROLS = (
+    ("🧠 SMI", "Mission coordination", "/mission/ollama"),
+    ("⚔️ WAR ROOM", "Blockers and recovery", "/mission/war-room"),
+    ("🚗 Movement", "Bookings and work", "/movement/workspace"),
+    ("📦 Logistics", "Deliveries and cargo", "/distribution"),
+    ("🛡️ Guardian", "Journey protection", "/transport/guardian"),
+    ("🧾 Evidence", "Proof requirements", "/transport/control-center/readiness"),
+    ("📜 HRM Receipts", "Decision receipts", "/mission/smi/brain/receipts"),
+    ("👑 Founder Final", "Final authority", "/mission/judgement"),
+)
+
+_FOUNDER_TRANSPORT_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090909">
+<title>Transport Control · Founder My World</title>
+<style>
+:root{color-scheme:dark;--bg:#090909;--panel:#181712;--gold:#efd076;--edge:#393327;--muted:#c0b9a8}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:#fff;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:940px;margin:auto;padding:calc(20px + env(safe-area-inset-top)) 16px calc(55px + env(safe-area-inset-bottom))}
+a{color:inherit;text-decoration:none}
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;border-bottom:1px solid var(--edge);padding-bottom:14px}
+.top a{display:inline-flex;align-items:center;min-height:44px;color:var(--gold);font-weight:750}
+.eyebrow{margin:23px 0 7px;font-size:.76rem;font-weight:900;color:var(--gold);letter-spacing:.09em}
+h1{font-size:clamp(2.1rem,9vw,3.9rem);line-height:1.02;margin:0 0 10px;letter-spacing:-.045em}
+.lead{max-width:700px;color:var(--muted);margin:0 0 20px}
+.mission{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border:1px solid #87713f;border-radius:16px;background:#211c12;padding:15px 16px;margin:0 0 16px}
+.mission strong{display:block;font-size:1rem;color:var(--gold)}
+.mission span{display:block;font-size:.81rem;color:var(--muted);margin-top:4px}
+.mission a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 14px;border-radius:12px;background:var(--gold);color:#16130b;font-size:.88rem;font-weight:850}
+.summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:24px}
+.panel,.control{border:1px solid var(--edge);border-radius:16px;background:var(--panel);padding:16px;min-width:0}
+.panel span{color:var(--muted);font-size:.79rem}.panel strong{display:block;margin-top:6px;line-height:1.3;color:var(--gold);overflow-wrap:anywhere}
+h2{margin:28px 0 12px;font-size:1.15rem}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.control{display:flex;flex-direction:column;justify-content:center;min-height:92px;gap:6px;transition:border-color .15s,background .15s}.control:hover{background:#242014}
+.control strong{font-size:1rem;color:#f8e0a0}.control span{color:var(--muted);font-size:.83rem}
+.control:first-child{border-color:#9c8040}
+.gate{border-bottom:1px solid var(--edge);padding:12px 0;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.gate span{overflow-wrap:anywhere}.gate small{color:var(--muted);text-align:right}
+.evidence{margin-top:23px;border:1px solid var(--edge);border-radius:16px;background:var(--panel);padding:0 16px}.evidence summary{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:60px;cursor:pointer;font-weight:750;list-style:none}.evidence summary::-webkit-details-marker{display:none}.evidence summary::after{content:"+";color:var(--gold);font-size:1.3rem}.evidence[open] summary::after{content:"−"}.evidence section{padding:0 0 12px}.notice{margin:21px 0 0;padding:13px 15px;background:#231e15;border-left:3px solid var(--gold);font-size:.84rem;color:#d9d1c2}
+a:hover,a:focus-visible{border-color:var(--gold)}a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:320px){.grid,.summary{grid-template-columns:1fr}.gate{align-items:flex-start;flex-direction:column}.gate small{text-align:left}}@media(prefers-reduced-motion:reduce){.control{transition:none}}
+</style></head><body><main>
+<nav class="top"><a href="/my-world">← My World</a><a href="/transport/my">My Transport · Customer</a></nav>
+<p class="eyebrow">FOUNDER PRIVATE · SMI GOVERNED</p>
+<h1>Global Transport<br>Control Room</h1>
+<p class="lead">Private oversight. Customer and Driver access stay separate.</p>
+<section class="mission" aria-label="SMI Mission Keeper">
+<div><strong>🧠 SMI → ALL IN A.I.</strong><span data-mission-status role="status" aria-live="polite">Latest Founder mission · checking evidence</span></div>
+<a href="/mission/all-in-ai/app">Open Mission Keeper</a>
+</section>
+<section class="summary" aria-label="Live proof position">
+<div class="panel"><span>Software capabilities</span><strong>21 registered</strong></div>
+<div class="panel"><span>Real-world transport execution</span>
+<strong>{% if not evidence_reachable %}Unknown · blocked{% elif externally_verified %}Independent proof required{% elif recorded %}References recorded · not independently verified{% else %}Not authorised{% endif %}</strong></div>
+</section>
+<h2>Command</h2>
+<nav class="grid" aria-label="Founder Transport command controls">
+{% for name, detail, href in controls %}
+<a class="control" href="{{ href }}"><strong>{{ name }}</strong><span>{{ detail }}</span></a>
+{% endfor %}
+</nav>
+<details class="evidence"><summary>Execution gates · {{ areas|length }}</summary>
+<section aria-label="Transport gate evidence">
+{% for key, area in areas.items() %}
+<div class="gate"><span>{{ key.replace("_", " ").title() }}</span>
+<small>{% if not evidence_reachable %}Unknown · blocked{% elif area.live_execution_authorised %}References recorded · verify externally{% else %}Locked · {{ area.missing|length }} requirements outstanding{% endif %}</small></div>
+{% endfor %}
+</section></details>
+<div class="notice">Live dispatch, payments and vehicle control remain gated by Guardian, HRM and Founder Final. Missing proof never becomes Green.</div>
+</main>
+<script>
+(() => {
+  "use strict";
+  const label = document.querySelector("[data-mission-status]");
+  if (!label) return;
+  // One founder-authenticated, read-only request. No polling, POST, approvals or auto-execution.
+  fetch("/mission/all-in-ai/mission/latest", {
+    method: "GET", credentials: "same-origin", cache: "no-store",
+    headers: {"Accept": "application/json"}
+  }).then(response => {
+    if (!response.ok) throw new Error("mission_evidence_unavailable");
+    return response.json();
+  }).then(data => {
+    if (data.found === false) {
+      label.textContent = "No verified Founder mission checkpoint";
+    } else if (data.found === true &&
+               ["planned", "stopped", "recovered"].includes(data.state) &&
+               data.read_back_verified === true &&
+               data.audit_verified === true &&
+               data.hrm_verified === true &&
+               data.execution_granted === false &&
+               data.approval_granted === false) {
+      label.textContent = "Latest Founder mission: " + data.state +
+        " · HRM receipt verified · No execution authority";
+    } else {
+      label.textContent = "Mission proof incomplete · blocked";
+    }
+  }).catch(() => { label.textContent = "Mission evidence unavailable · blocked"; });
+})();
+</script>
+</body></html>"""
+
+
+@bp.get("/my-world/transport-control")
+@web_security.login_required(founder_only=True)
+def founder_transport_control_room():
+    """Founder-only command links and evidence status, without execution bypass."""
+    readiness = execution_readiness()
+    return _no_store(make_response(render_template_string(
+        _FOUNDER_TRANSPORT_PAGE,
+        controls=_FOUNDER_TRANSPORT_CONTROLS,
+        areas=readiness.get("areas") or {},
+        evidence_reachable=readiness.get("evidence_store_reachable") is True,
+        recorded=readiness.get("live_execution_authorised") is True,
+        externally_verified=readiness.get("software_verified_external_authenticity") is True,
+    )))
+
+
+@bp.get("/transport/logistics")
+def transport_logistics_home():
+    """Public navigation only; distribution, booking and dispatch stay gated."""
+    return _inside_door("logistics")
+
+
+@bp.get("/transport/guardian")
+def transport_guardian_home():
+    return _inside_door("guardian")
+
+
+@bp.get("/transport/operators")
+def transport_operators_home():
+    return _inside_door("operators")
+
+
+@bp.get("/transport/control-center")
+def transport_control_center_home():
+    return _inside_door("control-center")
+
+
+_EXECUTION_READINESS_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#090909">
+<title>Execution Readiness · OAP Global Transport</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090909;color:#f5f5f5;font:16px/1.5 system-ui,-apple-system,sans-serif}
+main{max-width:800px;margin:auto;padding:20px 16px 48px}
+.back{display:inline-flex;align-items:center;min-height:44px;color:#efce68;text-decoration:none;font-weight:650}
+h1{font-size:clamp(1.8rem,7vw,2.6rem);line-height:1.1;margin:20px 0 8px}
+.intro,.muted{color:#bbb}.intro{margin:0 0 20px}
+.summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+.panel,details{border:1px solid #343434;background:#161616;border-radius:16px;padding:16px}
+.label{display:block;color:#bcbcbc;font-size:.8rem}
+.value{font-size:1rem;font-weight:700;margin-top:5px}
+section h2{font-size:1.15rem;margin:24px 0 12px}
+details{margin:10px 0;padding:0}
+summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;padding:16px;min-height:64px;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:1.3rem;color:#efce68}
+details[open] summary::after{content:"−"}
+.name{font-weight:700}.state{display:block;color:#bdbdbd;font-size:.82rem}
+.content{padding:0 16px 16px}
+ul{padding-left:20px;margin:8px 0;color:#e0e0e0}
+li{margin:7px 0}
+small{color:#bdbdbd}
+.notice{border-left:3px solid #e7c762;padding:10px 14px;background:#211c12;border-radius:6px}
+a:focus-visible,summary:focus-visible{outline:3px solid #efce68;outline-offset:3px}
+@media(max-width:350px){.summary{grid-template-columns:1fr}}
+</style></head><body><main>
+<nav><a class="back" href="/transport/control-center">← Control Center</a></nav>
+<h1>Execution Readiness</h1>
+<p class="intro">The evidence required before transport services can operate.</p>
+<div class="summary">
+<div class="panel"><span class="label">Software contracts</span>
+<div class="value">{{ "Configured" if state.software_execution_layer_ready else "Not ready" }}</div></div>
+<div class="panel"><span class="label">Live execution</span>
+<div class="value">{% if not state.evidence_store_reachable %}Unknown · blocked{% elif state.live_execution_authorised %}Evidence requirements met{% else %}Not authorised{% endif %}</div></div>
+</div>
+<div class="notice">
+{% if not state.evidence_store_reachable %}
+Evidence store not reachable. Live execution is blocked; verified coverage is unknown.
+{% elif not state.live_execution_authorised %}
+Live execution is not authorised for all areas. Missing requirements are shown below.
+{% else %}
+All required evidence references are recorded as verified. External authenticity is not independently software-verified.
+{% endif %}
+</div>
+<section aria-label="Execution evidence areas"><h2>Execution areas · {{ state.areas|length }}</h2>
+{% for key, area in state.areas.items() %}
+<details><summary><span><span class="name">{{ key.replace("_", " ").title() }}</span>
+<span class="state">{% if not state.evidence_store_reachable %}Evidence unavailable{% elif area.live_execution_authorised %}Requirements recorded{% else %}Not authorised{% endif %}</span>
+</span><span class="state">{{ area.verified|length }}/{{ area.requires|length }} recorded</span></summary>
+<div class="content">
+{% if state.evidence_store_reachable %}
+<p class="muted">Required evidence</p>
+<ul>{% for requirement in area.requires %}
+<li>{{ requirement.replace("_", " ").capitalize() }} —
+{% if requirement in area.verified %}Verified reference recorded{% else %}Missing{% endif %}</li>
+{% endfor %}</ul>
+{% else %}
+<p class="muted">Evidence coverage cannot be checked. These are required proofs, not confirmed missing records.</p>
+<ul>{% for requirement in area.requires %}
+<li>{{ requirement.replace("_", " ").capitalize() }}</li>
+{% endfor %}</ul>
+{% endif %}
+</div></details>
+{% endfor %}
+</section>
+<p class="muted">A verified reference alone does not prove external authenticity. Human Authority remains final.</p>
+</main></body></html>"""
+
+
+@bp.get("/transport/control-center/readiness")
+def transport_readiness_page():
+    return _no_store(make_response(render_template_string(
+        _EXECUTION_READINESS_PAGE, state=execution_readiness(),
+    )))
 
 
 @bp.get("/transport/execution-readiness")
@@ -341,77 +798,222 @@ def transport_execution_evidence_record():
 
 
 _RIDE_PAGE = """<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0a0d10">
-<title>OAP Rides</title>
+<meta name="theme-color" content="#090909"><title>OAP Ride · ON ANY POSTCODE</title>
 <style>
-:root{color-scheme:dark;--bg:#0a0d10;--panel:#12171b;--panel2:#172027;--line:#26323a;--gold:#efc85d;--blue:#80bfff;--green:#7ee2a8;--muted:#94a2ad;--text:#f7f9fa}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-body{min-height:100vh}.app{max-width:760px;margin:auto;padding:env(safe-area-inset-top) 16px calc(92px + env(safe-area-inset-bottom))}
-.top{display:flex;justify-content:space-between;align-items:center;padding:16px 0 10px;position:sticky;top:0;z-index:4;background:linear-gradient(var(--bg) 72%,transparent)}
-.brand{display:flex;gap:11px;align-items:center;text-decoration:none;color:var(--text)}.mark{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#16212a,#0e1114);border:1px solid #3b5363;color:var(--blue);font-weight:900}
-.brand strong{display:block}.brand small{display:block;color:var(--muted)}.round{width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:var(--panel);text-decoration:none;color:var(--text)}
-.hero{padding:22px 0 8px}.eyebrow{font-size:.76rem;letter-spacing:.12em;color:var(--gold);font-weight:900}.hero h1{font-size:clamp(2rem,9vw,3.7rem);line-height:.98;margin:.45rem 0}.hero p{max-width:540px;color:#c3cbd1;margin:.6rem 0}
-.routebox{margin:17px 0;padding:16px;border-radius:24px;background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid var(--line)}
-.route-line{display:grid;grid-template-columns:18px 1fr auto;gap:10px;align-items:center;padding:11px 4px}.route-line+.route-line{border-top:1px solid #202a30}.dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px #173328}.dot.to{background:var(--gold);box-shadow:0 0 0 4px #342d17}.route-line a{color:var(--text);text-decoration:none;font-weight:800}.route-line span{color:var(--muted);font-size:.82rem}.go{display:block;margin-top:12px;text-align:center;padding:14px;border-radius:16px;background:var(--gold);color:#17130a;text-decoration:none;font-weight:900}
-.section-head{display:flex;justify-content:space-between;align-items:end;margin:24px 2px 12px}.section-head h2{margin:0;font-size:1.15rem}.section-head a{color:var(--blue);text-decoration:none;font-size:.88rem}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{min-height:118px;border:1px solid var(--line);border-radius:22px;padding:16px;background:linear-gradient(145deg,var(--panel2),var(--panel));color:var(--text);text-decoration:none;display:flex;flex-direction:column;justify-content:space-between}.card .emoji{font-size:1.6rem}.card strong{font-size:1.02rem}.card span{font-size:.81rem;line-height:1.3;color:var(--muted)}
-.mode{display:grid;grid-template-columns:1fr 1fr;gap:9px}.mode a{padding:15px;border-radius:18px;border:1px solid var(--line);background:var(--panel);text-decoration:none;color:var(--text);font-weight:900}.mode small{display:block;color:var(--muted);font-weight:500;margin-top:4px}
-.status{margin-top:22px;padding:14px 15px;border:1px solid #25342c;border-radius:16px;background:#101712;color:#aab8af;font-size:.82rem;line-height:1.45}.status b{color:var(--green)}
-.bottom{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(760px,100%);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(10,13,16,.96);backdrop-filter:blur(16px);border-top:1px solid var(--line);z-index:5}.bottom a{display:grid;gap:3px;place-items:center;text-decoration:none;color:var(--muted);font-size:.68rem;padding:7px 2px;border-radius:12px}.bottom a.active{color:var(--blue);background:#13202a}.bottom b{font-size:1.05rem}
-@media(min-width:620px){.grid{grid-template-columns:repeat(4,1fr)}.card{min-height:136px}}
-</style>
-</head>
-<body>
-<main class="app">
-<header class="top">
-<a class="brand" href="/transport/ride"><span class="mark">OAP</span><span><strong>Rides</strong><small>From this postcode to the next.</small></span></a>
-<a class="round" href="/transport/my" aria-label="My Transport">◎</a>
-</header>
-<section class="hero">
-<div class="eyebrow">ON ANY POSTCODE · RIDES</div>
-<h1>Move through<br>your world.</h1>
-<p>One ride door powered by OAP Movement, OAP World, Guardian and SIKA.</p>
-</section>
-<section class="routebox">
-<div class="route-line"><span class="dot"></span><a href="/oap-map">Choose pickup</a><span>OAP World</span></div>
-<div class="route-line"><span class="dot to"></span><a href="/oap-map">Choose destination</a><span>Route</span></div>
-<a class="go" href="/movement/workspace#book-title">Request a journey</a>
-</section>
-<div class="section-head"><h2>Journey tools</h2><a href="/transport/ride/current">Current journey</a></div>
-<section class="grid">
-<a class="card" href="/movement/workspace#book-title"><span class="emoji">🚗</span><div><strong>Request ride</strong><span>Create a governed journey request.</span></div></a>
-<a class="card" href="/oap-map"><span class="emoji">🗺️</span><div><strong>Open map</strong><span>Plan pickup, destination and route.</span></div></a>
-<a class="card" href="/transport/ride/current"><span class="emoji">🧭</span><div><strong>Current journey</strong><span>Journey state, code, receipt and feedback.</span></div></a>
-<a class="card" href="/transport/ride/guardian/status"><span class="emoji">🛡️</span><div><strong>Guardian</strong><span>Safety controls and protected journey state.</span></div></a>
-<a class="card" href="/pay/bank"><span class="emoji">🪙</span><div><strong>SIKA</strong><span>Open payment and value controls.</span></div></a>
-<a class="card" href="/movement/workspace#bookings-title"><span class="emoji">🧾</span><div><strong>My journeys</strong><span>Review your movement history.</span></div></a>
-<a class="card" href="/transport/ride/driver/earnings"><span class="emoji">📊</span><div><strong>Earnings</strong><span>Driver earnings software view.</span></div></a>
-<a class="card" href="/eats"><span class="emoji">🍲</span><div><strong>Eats</strong><span>Switch to food and delivery.</span></div></a>
-</section>
-<div class="section-head"><h2>Choose mode</h2></div>
-<div class="mode">
-<a href="/transport/ride/rider">Rider<small>Request, match, journey, receipt</small></a>
-<a href="/transport/ride/driver">Driver<small>Availability, jobs, drive, earnings</small></a>
-</div>
-<div class="status"><b>● Software surface active.</b> Journey requests, matching, Guardian and payment bindings are software capabilities. Physical vehicle operation and external dispatch remain outside this build.</div>
-</main>
-<nav class="bottom" aria-label="OAP Rides navigation">
-<a class="active" href="/transport/ride"><b>⌂</b><span>Rides</span></a>
-<a href="/oap-map"><b>◎</b><span>World</span></a>
-<a href="/transport/ride/current"><b>↗</b><span>Journey</span></a>
-<a href="/transport/ride/guardian/status"><b>⛨</b><span>Guardian</span></a>
-<a href="/pay/bank"><b>◈</b><span>SIKA</span></a>
+:root{color-scheme:dark;--bg:#090909;--panel:#181612;--edge:#433a2b;--gold:#efcf73;--muted:#bdb5a8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#fff;font:16px/1.4 system-ui,-apple-system,sans-serif}
+main{max-width:720px;margin:auto;padding:calc(8px + env(safe-area-inset-top)) 13px calc(30px + env(safe-area-inset-bottom))}
+a{color:inherit;text-decoration:none}
+.top{height:48px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top a{color:var(--gold);font-size:.88rem;font-weight:750;min-height:44px;display:inline-flex;align-items:center}
+.top strong{color:var(--gold);font-size:.85rem;letter-spacing:.05em}
+.modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:3px 0 11px}
+.modes button{min-width:0;min-height:46px;border:1px solid var(--edge);border-radius:12px;background:var(--panel);color:#ddd5c5;font:750 .9rem system-ui;cursor:pointer}
+.modes button[aria-pressed="true"]{background:#302717;border-color:var(--gold);color:var(--gold)}
+.map{height:clamp(190px,27vh,255px);position:relative;overflow:hidden;border:1px solid var(--edge);border-radius:15px;background:#121719;margin-bottom:11px}
+.map iframe{width:100%;height:100%;border:0;display:block}
+.map .full{position:absolute;right:9px;bottom:9px;z-index:3;border:1px solid #8c7548;background:#19160fee;border-radius:10px;padding:9px 12px;color:var(--gold);font-size:.8rem;font-weight:800}
+.map-alert{position:absolute;left:11px;right:11px;top:50%;transform:translateY(-50%);z-index:2;padding:15px;border-radius:13px;border:1px solid #55452f;background:#171613ed;text-align:center;color:var(--muted);font-size:.86rem}
+.map-alert[hidden]{display:none}
+.search{display:grid;gap:8px;padding:12px;border:1px solid var(--edge);border-radius:16px;background:var(--panel)}
+.search h1{font-size:1.12rem;margin:0 0 1px;font-weight:850;letter-spacing:-.025em}
+.search label{font-size:.76rem;font-weight:800;color:#e5ddce}
+.search input{display:block;width:100%;min-height:45px;margin-top:4px;padding:10px 13px;border:1px solid #7d694a;border-radius:10px;background:#080807;color:#fff;font:inherit}
+.search input::placeholder{color:#a59d90}
+.action{width:100%;min-height:48px;margin-top:4px;border:0;border-radius:11px;background:var(--gold);color:#211809;font:850 .95rem system-ui;cursor:pointer}
+.backend-warning{margin:8px 2px;color:#cbbba0;font-size:.8rem}
+.price{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0;padding:11px 13px;border:1px solid var(--edge);border-radius:12px;background:var(--panel)}
+.price strong{font-size:.95rem;color:var(--gold)}
+.price span{font-size:.75rem;color:var(--muted);text-align:right}
+.quick{display:flex;align-items:center;justify-content:space-between;gap:9px}
+.quick a{min-height:44px;display:inline-flex;align-items:center;font-size:.85rem;font-weight:750;color:#d6caba}
+.more{margin-top:7px;border-top:1px solid var(--edge)}
+.more summary{min-height:44px;display:flex;align-items:center;font-size:.81rem;color:var(--muted);font-weight:700;cursor:pointer}
+.more nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.more nav a{min-height:44px;border:1px solid var(--edge);border-radius:10px;padding:10px;background:var(--panel);font-size:.84rem}
+a:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+@media(max-width:350px){.map{height:175px}.search{padding:10px}.modes button{font-size:.82rem}}
+</style></head><body><main>
+<header class="top"><a href="/transport">← Transport</a><strong>ON ANY RIDE</strong></header>
+<nav class="modes" aria-label="Transport mode">
+<button type="button" data-mode="ride" aria-pressed="true">🚗 Ride</button>
+<button type="button" data-mode="ebike" aria-pressed="false">🚲 E-Bike</button>
+<button type="button" data-mode="drive" aria-pressed="false">🧭 Drive</button>
 </nav>
-</body>
-</html>"""
+<section class="map" aria-label="OAP route map">
+<iframe id="ride-map" title="OAP first-party map" src="/oap-map?location=Mitcham&amp;embed=ride" loading="eager"></iframe>
+<div id="map-alert" class="map-alert" role="status" hidden>Road network unavailable · Full map remains available</div>
+<a class="full" href="/oap-map">Full map ↗</a>
+</section>
+<form class="search" id="oap-ride-draft" action="/movement/workspace#book-title" method="get" autocomplete="off">
+<h1>Where to?</h1>
+<label for="ride-pickup">Pickup<input id="ride-pickup" type="search" list="ride-pickup-options" placeholder="Postcode or place" maxlength="120" autocomplete="off" required></label>
+<datalist id="ride-pickup-options"></datalist>
+<label for="ride-destination">Destination<input id="ride-destination" type="search" list="ride-destination-options" placeholder="Search destination" maxlength="120" autocomplete="off" required></label>
+<datalist id="ride-destination-options"></datalist>
+<button class="action" id="ride-action" type="submit">Continue to booking</button>
+</form>
+<p id="ride-backend-warning" role="status" class="backend-warning" hidden>Local Ride backend unavailable · booking uses My Movement</p>
+<div class="price" aria-label="Ride fare"><strong id="ride-fare">Price unavailable</strong><span id="ride-quote-source">Verified quote required</span></div>
+<nav class="quick" aria-label="OAP Rides navigation">
+<a href="/transport/ride/rider">Rider</a><a href="/transport/ride/driver">Driver</a><a href="/transport/my">My Transport</a>
+</nav>
+<details class="more"><summary>More journey tools</summary><nav aria-label="Additional Ride actions">
+<a href="/transport/ride/current">Current journey</a><a href="/movement/workspace#bookings-title">My journeys</a>
+<a href="/transport/ride/guardian/status">Guardian</a><a href="/pay/bank">SIKA</a><a href="/eats">Eats</a>
+</nav></details>
+</main><script>
+(() => {
+  "use strict";
+  const form=document.getElementById("oap-ride-draft");
+  const pickup=document.getElementById("ride-pickup");
+  const destination=document.getElementById("ride-destination");
+  const action=document.getElementById("ride-action");
+  const fare=document.getElementById("ride-fare");
+  const source=document.getElementById("ride-quote-source");
+  const map=document.getElementById("ride-map");
+  const alert=document.getElementById("map-alert");
+  let mode="ride";
+  const setMode=value=>{
+    if(!["ride","ebike","drive"].includes(value)) return;
+    mode=value;
+    document.querySelectorAll("[data-mode]").forEach(btn=>btn.setAttribute("aria-pressed",String(btn.dataset.mode===mode)));
+    action.textContent=mode==="drive"?"Plan drive":mode==="ebike"?"Continue to E-Bike request":"Continue to booking";
+    fare.textContent=mode==="drive"?"No fare · own vehicle":"Price unavailable";
+    source.textContent=mode==="drive"?"Route guidance requires road data":"Verified quote required";
+    if(map.contentWindow) map.src="/oap-map?location=Mitcham&embed=ride&profile="+(mode==="ebike"?"cycling":"driving");
+    if(mode!=="drive")quote();
+  };
+  document.querySelectorAll("[data-mode]").forEach(btn=>btn.addEventListener("click",()=>setMode(btn.dataset.mode)));
+  const syncMap=()=>{
+    try{
+      const body=map.contentDocument?.body;
+      if(!body)return;
+      const state=body.dataset.mapRenderState;
+      alert.hidden=state!=="degraded";
+    }catch(_){alert.hidden=false}
+  };
+  map.addEventListener("load",()=>{
+    syncMap();
+    try{new MutationObserver(syncMap).observe(map.contentDocument.body,{attributes:true,attributeFilter:["data-map-render-state"]})}
+    catch(_){alert.hidden=false}
+  });
+  map.addEventListener("error",()=>{alert.hidden=false});
+  const quoteCsrf={{ quote_csrf|tojson }};
+  const warning=document.getElementById("ride-backend-warning");
+  const chosen=new Map();
+  let backendConnected=false, quoteSequence=0;
+  const unavailable=()=>{
+    fare.textContent="Price unavailable";
+    source.textContent=backendConnected?"Select mapped places · local data only":"Local backend not connected";
+  };
+  const quote=async()=>{
+    const current=++quoteSequence;
+    if(mode==="drive")return;
+    if(!backendConnected || !chosen.has("ride-pickup") || !chosen.has("ride-destination")){
+      unavailable();return;
+    }
+    const a=chosen.get("ride-pickup"),b=chosen.get("ride-destination");
+    fare.textContent="Checking local route…";
+    source.textContent="Self-hosted OSRM required";
+    try{
+      const response=await fetch("/transport/ride/backend/quote",{
+        method:"POST",credentials:"same-origin",cache:"no-store",
+        headers:{"Content-Type":"application/json","X-OAP-CSRF":quoteCsrf},
+        body:JSON.stringify({
+          pickup_lat:a.lat,pickup_lon:a.lon,drop_lat:b.lat,drop_lon:b.lon,
+          vehicle_class:mode==="ebike"?"ebike":"car"
+        })
+      });
+      if(!response.ok)throw new Error("no_route_quote");
+      const result=await response.json();
+      if(current!==quoteSequence)return;
+      if(result.quote_status!=="estimate_not_firm_fare" ||
+         result.source!=="self_hosted_osrm" ||
+         result.currency!=="GBP" ||
+         !Number.isSafeInteger(result.amount_minor) ||
+         result.amount_minor<=0 ||
+         result.live_dispatch_confirmed!==false)return unavailable();
+      fare.textContent="Est. "+new Intl.NumberFormat("en-GB",{
+        style:"currency",currency:"GBP"
+      }).format(result.amount_minor/100);
+      source.textContent="OSRM estimate · not a booking price";
+    }catch(_){if(current===quoteSequence)unavailable()}
+  };
+  fetch("/transport/ride/backend/status",{
+    credentials:"same-origin",cache:"no-store",headers:{"Accept":"application/json"}
+  }).then(async response=>{
+    if(!response.ok)throw new Error("backend_unavailable");
+    const state=await response.json();
+    backendConnected=state.connected===true && state.status==="database_and_redis_ready";
+    warning.hidden=backendConnected;
+    quote();
+  }).catch(()=>{backendConnected=false;warning.hidden=false;quote()});
+  const bindSuggestions=(input,list)=>{
+    let timer=0,seq=0;
+    const offered=new Map();
+    input.addEventListener("input",()=>{
+      clearTimeout(timer);
+      const term=input.value.trim();
+      const selected=offered.get(term);
+      if(selected)chosen.set(input.id,selected);
+      else chosen.delete(input.id);
+      quote();
+      if(term.length<2 || selected){if(term.length<2)list.replaceChildren();return}
+      const mine=++seq;
+      timer=setTimeout(async()=>{
+        try{
+          const response=await fetch(
+            "/transport/ride/backend/places?q="+encodeURIComponent(term.slice(0,80)),
+            {credentials:"same-origin",cache:"no-store"}
+          );
+          if(!response.ok||mine!==seq)return;
+          const data=await response.json();
+          list.replaceChildren();offered.clear();
+          (Array.isArray(data.results)?data.results:[]).slice(0,8).forEach(item=>{
+            const label=String(item.label||"").slice(0,120);
+            if(!label)return;
+            const option=document.createElement("option");
+            option.value=label;list.appendChild(option);
+            if(Number.isFinite(item.lat)&&Number.isFinite(item.lon))
+              offered.set(label,{lat:item.lat,lon:item.lon});
+          });
+        }catch(_){list.replaceChildren();offered.clear()}
+      },220);
+    });
+    input.addEventListener("change",()=>{
+      const selected=offered.get(input.value.trim());
+      if(selected)chosen.set(input.id,selected);
+      else chosen.delete(input.id);
+      quote();
+    });
+  };
+  bindSuggestions(pickup,document.getElementById("ride-pickup-options"));
+  bindSuggestions(destination,document.getElementById("ride-destination-options"));
+  form.addEventListener("submit",event=>{
+    const start=pickup.value.trim().slice(0,120),end=destination.value.trim().slice(0,120);
+    if(!start||!end)return;
+    try{
+      sessionStorage.setItem("oap_transport_ride_draft",JSON.stringify({
+        pickup:start,destination:end,service:mode,created:Date.now()
+      }));
+    }catch(_){}
+    if(mode==="drive"){
+      event.preventDefault();
+      location.assign("/oap-map?view=car");
+    }
+  });
+})();
+</script></body></html>"""
+
 
 @bp.get("/transport/ride")
 def transport_ride():
-    return _no_store(make_response(render_template_string(_RIDE_PAGE), 200))
+    return _no_store(make_response(render_template_string(
+        _RIDE_PAGE, quote_csrf=web_security.csrf_token()
+    ), 200))
 
 
 @bp.get("/transport/ride/status")

@@ -35,6 +35,11 @@ on:
       - "templates/global_affairs.html"
       - ".github/workflows/runtime-image.yml"
   workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type PROMOTE to authorise production promotion explicitly"
+        required: true
+        type: string
 
 permissions:
   actions: read
@@ -114,7 +119,7 @@ jobs:
           docker run --rm "${IMAGE_NAME}@${IMAGE_DIGEST}" python -c "from mission_control.smi_reply_voice_local import render_reply; r=render_reply('SMI production lip sync proof'); a=r['alignment']; assert r['engine']=='self_hosted_espeak' and r['phonemeIssuedBySynth'] is True and r['audio_wav'][:4]==b'RIFF' and a['source']=='decoded_audio_phoneme_timeline' and len(a['cues'])>=3 and a['cues'][0]['viseme']=='silence' and a['cues'][-1]['viseme']=='silence'; print('oap-published-local-voice-viseme-proof-ok')"
 
   promote-core:
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' && inputs.confirmation == 'PROMOTE'
     needs: runtime-image
     runs-on: ubuntu-latest
     environment: production
@@ -317,7 +322,7 @@ jobs:
           PY
 
   map-production-browser-proof:
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' && inputs.confirmation == 'PROMOTE'
     needs: [runtime-image, promote-core]
     runs-on: ubuntu-latest
     steps:
@@ -340,7 +345,7 @@ jobs:
         run: python tests/map_production_chromium_smoke.py
 
   bank-production-browser-proof:
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' && inputs.confirmation == 'PROMOTE'
     needs: [runtime-image, promote-core, map-production-browser-proof]
     runs-on: ubuntu-latest
     steps:
@@ -364,7 +369,7 @@ jobs:
         run: python tests/oap_bank_production_chromium_smoke.py
 
   promote-smi:
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' && inputs.confirmation == 'PROMOTE'
     needs: [runtime-image, promote-core, map-production-browser-proof, bank-production-browser-proof]
     runs-on: ubuntu-latest
     environment: production
@@ -537,7 +542,7 @@ jobs:
           PY
 
   certify-production-release:
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' && inputs.confirmation == 'PROMOTE'
     needs: [runtime-image, promote-core, promote-smi, bank-production-browser-proof]
     runs-on: ubuntu-latest
     environment: production

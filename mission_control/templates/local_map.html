@@ -23,10 +23,12 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
 .movement-actions{position:absolute;left:50%;bottom:88px;z-index:8;transform:translateX(-50%);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;width:min(94vw,680px);padding:8px;border:1px solid #303943;border-radius:18px;background:#0b0f14e8;backdrop-filter:blur(14px)}
 .movement-actions[hidden]{display:none!important}.movement-actions a{min-width:0;padding:10px 8px;border-radius:12px;text-align:center;text-decoration:none;color:#eef3f7;background:#151b22;border:1px solid #2d3742;font:800 12px system-ui}.movement-actions a.primary{background:#e7bf55;color:#17130a;border-color:#f1d477}
 @media(max-width:520px){.movement-actions{grid-template-columns:repeat(2,minmax(0,1fr));bottom:82px}}
+.oap-ride-embed .oap-mark,.oap-ride-embed .search-card,.oap-ride-embed .turn-card,.oap-ride-embed .movement-actions,.oap-ride-embed .map-controls,.oap-ride-embed .map-toast,.oap-ride-embed .oap-map-boot,.oap-ride-embed .trip-bar,.oap-ride-embed .details-sheet,.oap-ride-embed .map-footer{display:none!important}
+.oap-ride-embed .map-app,.oap-ride-embed .map-wrap{height:100vh;min-height:100vh}
 </style>
 <link rel="stylesheet" href="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.css', v='map-runtime-v4') }}">
 </head>
-<body data-map-mode="explore">
+<body data-map-mode="explore" data-car-view="{{ 'true' if request.args.get('view') == 'car' else 'false' }}" class="{% if request.args.get('embed') == 'ride' %}oap-ride-embed{% endif %}">
 <main class="map-app">
   <section class="map-wrap" aria-label="On Any Postcode Maps">
     <div class="map-surface"></div>
@@ -40,6 +42,13 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
     </svg>
 
     <a class="oap-mark" href="/" aria-label="Back to OAP World">OAP</a>
+    <section id="oap-car-hud" class="oap-car-hud" aria-label="Car navigation information">
+      <strong>ON ANY POSTCODE · DRIVE</strong>
+      <div class="oap-car-speed"><output id="oap-gps-speed" aria-label="GPS speed">—</output><span>MPH</span></div>
+      <p id="oap-gps-status" role="status" aria-live="polite">GPS off · tap locate to enable</p>
+      <button id="oap-car-gps" type="button" aria-pressed="false">Enable GPS</button>
+      <small>GPS estimate only · no vehicle telemetry</small>
+    </section>
 
     <form id="map-form" class="search-card" autocomplete="off">
       <div class="search-row">
@@ -100,6 +109,7 @@ html,body{margin:0;width:100%;height:100%;min-height:100%;background:#0b0e12;col
       </div>
       <div class="sheet-section"><strong>Directions</strong><div id="directions"></div></div>
       <div class="sheet-section"><strong>Roads</strong><div id="roads" class="chips"></div></div>
+      <div class="sheet-section"><strong>Road alerts</strong><p class="map-alert-source">TfL source reports and unverified community reports are separate.</p><div id="oap-hazard-list" role="status">No verified alert information for this route</div></div>
       <div class="sheet-section"><strong>Nearby</strong><div id="places"></div></div>
       <div id="from-label" hidden>{{ local_map.area_key|title }}</div>
       <div id="to-label" hidden>{{ local_map.route.to|title }}</div>
@@ -168,12 +178,50 @@ async function draw(coords){
  const roadCount=await loadRoadNetwork(bounds,profile.value);
  svg.hidden=false;
  const usableRoadCount=roadCount>0?roadCount:retainedRoadCount;
- if(usableRoadCount>0){showRoadStatus('');setRenderState('stable');return true}
+ if(usableRoadCount>0){if(document.body.dataset.mapRoadSource!=='local_osm')showRoadStatus('');setRenderState('stable');return true}
  setRenderState('degraded');return false
 }
 function lon2x(lon,z){return Math.floor((lon+180)/360*Math.pow(2,z))}
 function lat2y(lat,z){const r=lat*Math.PI/180;return Math.floor((1-Math.asinh(Math.tan(r))/Math.PI)/2*Math.pow(2,z))}
 function tilePointLonLat(tx,ty,z,u,v){const n=Math.pow(2,z),wx=(tx+u)/n,wy=(ty+v)/n;return[wx*360-180,Math.atan(Math.sinh(Math.PI*(1-2*wy)))*180/Math.PI]}
+async function loadLocalOsmRoads(b,request){
+ // No CDN, data fabrication or implicit source trust: existing TDA import only.
+ const params=new URLSearchParams({west:b.minX,south:b.minY,east:b.maxX,north:b.maxY});
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),3200);
+ try{
+  const response=await fetch('/map-intelligence/local-roads?'+params.toString(),{
+    credentials:'same-origin',cache:'no-store',signal:controller.signal
+  });
+  if(request!==roadRequest||!response.ok)return 0;
+  const data=await response.json();
+  if(data.source!=='existing_tda_osm_import'||data.routing_verified!==false||
+     !Array.isArray(data.lines)||data.lines.length>450)return 0;
+  const staged=document.createDocumentFragment();
+  let count=0;
+  for(const feature of data.lines){
+   if(!feature||!Array.isArray(feature.points)||feature.points.length<2)continue;
+   const points=feature.points;
+   if(!points.every(p=>Array.isArray(p)&&p.length>=2&&
+      Number.isFinite(p[0])&&Number.isFinite(p[1])&&
+      p[0]>=-180&&p[0]<=180&&p[1]>=-90&&p[1]<=90))continue;
+   const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+   const klass=String(feature.class||'').toLowerCase();
+   poly.setAttribute('points',points.map(p=>project(p[0],p[1],b).join(',')).join(' '));
+   poly.setAttribute('class',/(motorway|trunk|primary)/.test(klass)?'major':
+     /(secondary|tertiary)/.test(klass)?'secondary':'local');
+   staged.appendChild(poly);count++;
+  }
+  if(count&&request===roadRequest){
+   roadLayer.replaceChildren(staged);
+   document.body.dataset.mapRoadSource='local_osm';
+   showRoadStatus('Mitcham OSM roads · navigation graph unavailable');
+   clearBoot();setRenderState('stable');
+  }
+  return count;
+ }catch{return 0}
+ finally{clearTimeout(timeout)}
+}
 const ROAD_TILE_TIMEOUT_MS=6000;
 async function fetchRoadTile(z,x,y,mode){
  const url='/map-intelligence/road-geometry/'+z+'/'+x+'/'+y+'?profile='+encodeURIComponent(mode);
@@ -238,10 +286,13 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
        await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
        if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
      }
+     if(await loadLocalOsmRoads(b,request))return roadLayer.querySelectorAll('polyline').length;
+     if(request!==roadRequest)return 0;
      clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — route guidance may still work.');
      return 0
    }
    roadLayer.replaceChildren(staged);
+   document.body.dataset.mapRoadSource='routing_graph';
    showRoadStatus('');clearBoot();setRenderState('stable');
    return count
  }catch{
@@ -250,6 +301,8 @@ async function loadRoadNetwork(b,mode,batchAttempt=0,requestToken=null){
      await new Promise(resolve=>setTimeout(resolve,1000*(batchAttempt+1)));
      if(request===roadRequest)return loadRoadNetwork(b,mode,batchAttempt+1,request);
    }
+   if(await loadLocalOsmRoads(b,request))return roadLayer.querySelectorAll('polyline').length;
+   if(request!==roadRequest)return 0;
    clearBoot();setRenderState('degraded');showRoadStatus('Road network unavailable — check map source.');
    return 0
  }
@@ -318,7 +371,7 @@ async function route(options={}){
    renderRoads(d.route.roads||[]);renderSteps(d.route.steps||[]);loadPlaces(b);
    syncMovementLinks(d.origin?.label||a,d.destination?.label||b);
    window.dispatchEvent(new CustomEvent('oap-map-route-ready',{detail:d}));
-   history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value));
+   history.replaceState(null,'','/oap-map?location='+encodeURIComponent(a)+'&to='+encodeURIComponent(b)+'&profile='+encodeURIComponent(profile.value)+(document.body.dataset.carView==='true'?'&view=car':''));
  }catch(error){
    if(error?.name==='AbortError'||request!==routeRequest)return;
    svg.hidden=true;toast('Route temporarily unavailable');
@@ -348,6 +401,32 @@ setRenderState('loading');
 profile.addEventListener('change',()=>{if(bounds)loadRoadNetwork(bounds,profile.value);else loadRoadNetwork(defaultBounds,profile.value)});
 if(from.value.trim()&&to.value.trim())route();else loadRoadNetwork(defaultBounds,profile.value);
 loadPlaces(from.value.trim());
+})();
+</script>
+<script>
+/* One-use, same-tab Drive route input. No request, dispatch or tracking added. */
+(() => {
+  let draft;
+  try {
+    const raw=sessionStorage.getItem("oap_transport_ride_draft");
+    if (!raw) return;
+    draft=JSON.parse(raw);
+    if (!draft || draft.service!=="drive") return;
+    sessionStorage.removeItem("oap_transport_ride_draft");
+  } catch (_) { return; }
+  if (!Number.isFinite(draft.created) || Date.now()<draft.created ||
+      Date.now()-draft.created>10*60*1000 ||
+      typeof draft.pickup!=="string" || typeof draft.destination!=="string" ||
+      !draft.pickup.trim() || !draft.destination.trim()) return;
+  const form=document.getElementById("map-form");
+  const start=document.getElementById("map-from");
+  const end=document.getElementById("map-to");
+  const mode=document.getElementById("map-profile");
+  if(!form || !start || !end || !mode) return;
+  start.value=draft.pickup.slice(0,120);
+  end.value=draft.destination.slice(0,120);
+  mode.value="driving";
+  form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
 })();
 </script>
 <script src="{{ url_for('on_any_place.map_intelligence_asset', filename='oap_map_navigation.js', v='map-runtime-v4') }}"></script>

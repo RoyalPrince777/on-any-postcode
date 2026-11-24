@@ -46,6 +46,34 @@ def assert_layout(page):
     ), "Transport surface has horizontal overflow"
 
 
+def assert_seven_door_alignment(page, viewport):
+    """Exercise actual Chromium layout, focus and routes instead of CSS-only claims."""
+    cards = page.locator('nav[aria-label="Global Transport main menu"] a.card')
+    assert cards.count() == 7, "Seven main doors must remain visible"
+    bounds = [cards.nth(i).bounding_box() for i in range(7)]
+    assert all(box is not None for box in bounds), "Hidden transport door"
+    for i, box in enumerate(bounds):
+        assert box["width"] >= 120, (i, box)
+        assert box["height"] >= 44, (i, box)
+        assert box["x"] >= 0
+        assert box["x"] + box["width"] <= viewport["width"] + 2
+    if viewport["width"] > 320:
+        for left, right in ((0, 1), (2, 3), (4, 5)):
+            a, b = bounds[left], bounds[right]
+            assert abs(a["y"] - b["y"]) <= 2, (left, right, bounds)
+            assert abs(a["height"] - b["height"]) <= 2, (left, right, bounds)
+            assert b["x"] > a["x"] + a["width"], (left, right, bounds)
+        assert bounds[6]["y"] > bounds[4]["y"], "Control Center must follow last pair"
+        assert bounds[6]["width"] > bounds[0]["width"], "Last door spans remaining row"
+    links = [cards.nth(i).get_attribute("href") for i in range(7)]
+    assert len(set(links)) == 7, "Duplicate door routes"
+    for href in links:
+        assert href and href.startswith("/")
+        assert_navigation_target(page.context, href)
+    cards.nth(0).focus()
+    assert cards.nth(0).evaluate("(el) => document.activeElement === el")
+
+
 def assert_navigation_target(context, href: str):
     target = urlsplit(href)
     path = target.path or "/"
@@ -68,6 +96,32 @@ def prove_transport(browser, viewport):
     )
     expect(page.locator("[data-oap-install-status]")).to_be_visible()
     assert_layout(page)
+    assert_seven_door_alignment(page, viewport)
+    for submenu in ("/transport/guardian", "/transport/operators", "/transport/control-center"):
+        result = page.goto(BASE + submenu, wait_until="domcontentloaded")
+        assert result is not None and result.status == 200
+        assert_layout(page)
+        items = page.locator('section.grid a.card')
+        assert items.count() == 3, submenu
+        for i in range(items.count()):
+            rect = items.nth(i).bounding_box()
+            assert rect and rect["height"] >= 44 and rect["width"] >= 120, (submenu, i, rect)
+            href = items.nth(i).get_attribute("href")
+            assert href and href.startswith("/"), (submenu, i, href)
+
+    # Human-facing Control Center must not dump JSON or hide an unknown gate.
+    for route, title in (
+        ("/transport/control-center/capabilities", "Capabilities"),
+        ("/transport/control-center/status", "Transport Status"),
+    ):
+        result = page.goto(BASE + route, wait_until="domcontentloaded")
+        assert result is not None and result.status == 200, route
+        assert_layout(page)
+        expect(page.locator("h1")).to_have_text(title)
+        expect(page.locator('a.back[href="/transport/control-center"]')).to_be_visible()
+    gate_state = page.locator('section[aria-label="Execution gate status"]').inner_text()
+    assert "Unknown · blocked" in gate_state or "Not authorised" in gate_state, gate_state
+    assert "Guardian, HRM and Founder Final remain in force." in page.locator("main").inner_text()
 
     api = page.evaluate(
         """async () => {
@@ -95,6 +149,60 @@ def prove_transport(browser, viewport):
             assert href and href.startswith("/"), (route, label, href)
             assert_navigation_target(context, href)
 
+    # Check only the newly added Rider/Driver install surfaces in this existing
+    # real-browser run; standalone installation on a physical phone is separate.
+    for role in ("rider", "driver"):
+        route = f"/transport/ride/{role}"
+        page.goto(BASE + route, wait_until="domcontentloaded")
+        expect(page.locator('link[rel="manifest"]')).to_have_attribute(
+            "href", f"{route}/manifest.webmanifest"
+        )
+        assert page.locator("button[data-oap-install]").count() == 1
+        assert page.locator('script[src="/assets/oap-os.js"]').count() == 1
+        assert_layout(page)
+        tiles = page.locator("section.grid a.btn")
+        for index in range(tiles.count()):
+            bounds = tiles.nth(index).bounding_box()
+            assert bounds and bounds["width"] >= 120 and bounds["height"] >= 44
+        manifest_result = context.request.get(BASE + f"{route}/manifest.webmanifest")
+        assert manifest_result.status == 200
+        manifest = manifest_result.json()
+        assert manifest["id"] == route
+        assert manifest["start_url"].split("?", 1)[0] == route
+
+    # Real phone-width Ride controls: OAP Ride, E-Bike and own-car Drive are
+    # selections, not three duplicate applications or fake live operator quotes.
+    result = page.goto(BASE + "/transport/ride", wait_until="domcontentloaded")
+    assert result is not None and result.status == 200
+    assert_layout(page)
+    expect(page.locator("#ride-map")).to_be_visible()
+    expect(page.locator("#ride-pickup")).to_be_visible()
+    expect(page.locator("#ride-destination")).to_be_visible()
+    expect(page.get_by_text("Price unavailable", exact=True)).to_be_visible()
+    mode_buttons = page.locator('nav[aria-label="Transport mode"] button')
+    expect(mode_buttons).to_have_count(3)
+    page.locator('button[data-mode="ebike"]').click()
+    expect(page.locator('button[data-mode="ebike"]')).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("#ride-action")).to_have_text("Continue to E-Bike request")
+    page.locator('button[data-mode="drive"]').click()
+    expect(page.locator("#ride-action")).to_have_text("Plan drive")
+    expect(page.locator("#ride-fare")).to_contain_text("No fare")
+    page.locator('button[data-mode="ride"]').click()
+    expect(page.locator("#ride-action")).to_have_text("Continue to booking")
+    assert_layout(page)
+
+    # Existing first-party map in phone AND landscape car browser layouts.
+    result = page.goto(BASE + "/oap-map?view=car", wait_until="domcontentloaded")
+    assert result is not None and result.status == 200
+    expect(page.locator('body[data-car-view="true"]')).to_have_count(1)
+    expect(page.locator("#oap-car-gps")).to_be_visible()
+    expect(page.locator("#oap-gps-speed")).to_have_text("—")
+    expect(page.locator("#oap-gps-status")).to_contain_text("GPS off")
+    assert_layout(page)
+    # No autoplay voice, fake vehicle speed, or external map SDK.
+    assert page.locator('script[src*="mapbox"]').count() == 0
+    assert page.locator('script[src*="google"]').count() == 0
+
     # Explicitly prove the direct Global Transport ride aliases exist and redirect
     # to their durable Movement owners instead of dead-ending.
     aliases = (
@@ -105,6 +213,28 @@ def prove_transport(browser, viewport):
         result = context.request.post(BASE + source, max_redirects=0)
         assert result.status == 307, (source, result.status)
         assert result.headers["location"].endswith(expected), result.headers
+
+    # Real browser network-loss proof. Pre-cached public menu survives a lost server,
+    # but no private journey, payment or operational route is cached.
+    page.goto(BASE + "/transport", wait_until="load")
+    page.evaluate("() => navigator.serviceWorker.ready")
+    page.wait_for_function("() => !!navigator.serviceWorker.controller")
+    context.set_offline(True)
+    offline = page.goto(BASE + "/transport", wait_until="domcontentloaded")
+    assert offline is not None and offline.status == 200
+    expect(page.locator("h1")).to_have_text("Global Transport")
+    expect(page.get_by_text("Offline shell only", exact=False)).to_be_visible()
+    assert page.locator(".tile").count() == 7
+    expect(page.get_by_text("Unknown · blocked", exact=False)).to_be_visible()
+    assert page.locator("form").count() == 0
+    assert_layout(page)
+    gated = page.goto(BASE + "/transport/ride/current", wait_until="domcontentloaded")
+    assert gated is not None and gated.status == 200
+    expect(page.get_by_text("No actions are queued or executed offline.", exact=False)).to_be_visible()
+    context.set_offline(False)
+    restored = page.goto(BASE + "/transport", wait_until="domcontentloaded")
+    assert restored is not None and restored.status == 200
+    expect(page.locator('nav[aria-label="Global Transport main menu"] .card')).to_have_count(7)
 
     assert not errors, errors
     context.close()
@@ -123,7 +253,9 @@ def main():
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
+            prove_transport(browser, {"width": 320, "height": 750})
             prove_transport(browser, {"width": 393, "height": 852})
+            prove_transport(browser, {"width": 768, "height": 900})
             prove_transport(browser, {"width": 1280, "height": 800})
             browser.close()
     finally:

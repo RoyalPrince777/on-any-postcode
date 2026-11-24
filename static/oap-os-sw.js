@@ -1,8 +1,9 @@
 "use strict";
 
-const CACHE_VERSION = "oap-os-public-v1.1";
+const CACHE_VERSION = "oap-os-public-transport-offline";
 const PUBLIC_SHELL = Object.freeze([
   "/offline",
+  "/transport/offline",
   "/manifest.webmanifest",
   "/assets/oap.css",
   "/assets/oap-os.js",
@@ -48,8 +49,13 @@ self.addEventListener("fetch", (event) => {
   if (isPrivatePath(url.pathname)) return;
 
   if (request.mode === "navigate") {
+    // Public transport shell is pre-cached; never cache a signed-in transport page.
+    const transportPage = url.pathname === "/transport" ||
+      url.pathname === "/global-transport" ||
+      url.pathname.startsWith("/transport/");
+    const offlineFallback = transportPage ? "/transport/offline" : "/offline";
     event.respondWith(
-      fetch(request).catch(() => caches.match("/offline"))
+      fetch(request).catch(() => caches.match(offlineFallback))
     );
     return;
   }
