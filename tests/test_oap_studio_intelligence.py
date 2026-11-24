@@ -548,3 +548,25 @@ def test_project_shell_smi_ui_is_founder_only_and_reuses_existing_media_tool():
     assert "video_seconds:projectShell.video_seconds" in final_js
     assert "rendered" not in js.lower() or "unverified" in js.lower()
     assert "No render submitted" in js
+
+
+def test_factory_scene_01_exact_timeline_stays_unrendered():
+    plan = studio_intelligence.factory_structure()["scene_01_plan"]
+    shots = plan["shots"]
+    assert len(shots) == 7
+    assert plan["duration_ms"] == 21000
+    assert sum(shot["provider_seconds"] * 1000 for shot in shots) == plan["source_duration_ms"]
+    for index, shot in enumerate(shots):
+        assert shot["start_ms"] == index * 3000
+        assert shot["end_ms"] == (index + 1) * 3000
+        assert shot["provider_seconds"] == 4
+        assert shot["trim_end_ms"] - shot["trim_start_ms"] == 3000
+        assert shot["artifact_verified"] is False
+    assert plan["approved_reference_required"] is True
+    assert plan["location_reference_required"] is True
+    assert plan["guardian_required"] is True
+    assert plan["hrm_required"] is True
+    assert plan["founder_final"] is True
+    for key in ("render_submitted", "artifact_verified", "composition_verified",
+                "execution_granted", "payment_authorised", "publishing_granted"):
+        assert plan[key] is False
