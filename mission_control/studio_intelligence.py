@@ -586,9 +586,16 @@ def no_boundaries_scene_plan() -> dict[str, Any]:
         ("Jewellery catches sunlight", "lighting_materials"),
         ("Cinematic brand reveal", "editing_audio"),
     )
+    camera_moves = (
+        ("crane_reveal", 24), ("low_tracking", 35), ("side_dolly", 50),
+        ("low_angle_push", 50), ("parallel_tracking", 35),
+        ("macro_push", 85), ("wide_pullback", 24),
+    )
     shots = [
         {
             "shot": index + 1,
+            "camera_move": camera_moves[index][0],
+            "lens_mm_target": camera_moves[index][1],
             "start_ms": index * 3000,
             "end_ms": (index + 1) * 3000,
             "provider_seconds": 4,
@@ -604,6 +611,18 @@ def no_boundaries_scene_plan() -> dict[str, Any]:
         "id": "no_boundaries_scene_01",
         "duration_ms": 21000,
         "source_duration_ms": 28000,
+        "picture_edit_profile": "cinema",
+        "master_width": 1920,
+        "master_height": 1080,
+        "master_fps": 24,
+        "master_frame_count": 504,
+        "vertical_profile": "cinema_vertical",
+        "native_source_resolution_verified": False,
+        "cinematic_quality_verified": False,
+        "audio_mastered": False,
+        "natural_motion_review_required": True,
+        "lighting_continuity_review_required": True,
+        "camera_continuity_review_required": True,
         "shots": shots,
         "approved_reference_required": True,
         "location_reference_required": True,
