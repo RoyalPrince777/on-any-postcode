@@ -103,7 +103,9 @@ class SafePostgresMovementStore(movement_operations.PostgresMovementStore):
                         driver_identity_id=item[0],
                     )
                 except Exception:
-                    accessibility_result = {"eligible": True, "reason": "accessibility_layer_unavailable"}
+                    # Availability or preference lookup failure must never
+                    # silently promote a candidate as accessibility-eligible.
+                    accessibility_result = {"eligible": False, "reason": "accessibility_layer_unavailable"}
                 if accessibility_result.get("eligible") is True:
                     candidate = item
                     break
