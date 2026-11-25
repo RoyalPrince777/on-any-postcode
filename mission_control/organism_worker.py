@@ -23,6 +23,7 @@ from . import (
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
 
 Handler = Callable[[RuntimeJob], dict[str, Any]]
+CONTINUOUS_CHECKPOINT_SECONDS = 21.0
 
 
 def _heartbeat_job(job: RuntimeJob) -> dict[str, Any]:
@@ -150,7 +151,7 @@ def run() -> int:
         "OAP_WORKER_SCHEDULER_SECONDS", 5.0, 1.0, 60.0
     )
     recovery_seconds = _positive_seconds(
-        "OAP_WORKER_RECOVERY_SECONDS", 30.0, 10.0, 300.0
+        "OAP_WORKER_RECOVERY_SECONDS", CONTINUOUS_CHECKPOINT_SECONDS, 10.0, 300.0
     )
     lease_seconds = int(
         _positive_seconds("OAP_WORKER_LEASE_SECONDS", 60.0, 30.0, 300.0)
@@ -179,6 +180,7 @@ def run() -> int:
         worker_id=worker_id,
         revision=revision,
         independent_authority=False,
+        checkpoint_seconds=recovery_seconds,
         allowed_job_types=sorted(HANDLERS),
         autonomy=autonomy_levels.status(),
         oap_core_autonomy=oap_core_autonomy.status(),
@@ -219,7 +221,15 @@ def run() -> int:
 
             job = store.claim(worker_id, lease_seconds=lease_seconds)
             if job is None:
-                stop_event.wait(poll_seconds)
+                # Do not sleep past the next due maintenance checkpoint while idle.
+                now = time.monotonic()
+                remaining = min(
+                    poll_seconds,
+                    max(0.0, last_heartbeat + heartbeat_seconds - now),
+                    max(0.0, last_scheduler + scheduler_seconds - now),
+                    max(0.0, last_recovery + recovery_seconds - now),
+                )
+                stop_event.wait(remaining)
                 continue
             last_job_id = job.job_id
             handler = HANDLERS.get(job.job_type)
@@ -251,7 +261,8 @@ def run() -> int:
                 result = handler(job)
                 if result.get("consequential_action") is not False:
                     raise PermissionError("runtime handler crossed authority boundary")
-                store.complete(job, worker_id, result)
+                # Bind durable completion evidence to this worker revision.
+                store.complete(job, worker_id, {**result, "worker_revision": revision})
                 _log(
                     "runtime_job_succeeded",
                     job_id=job.job_id,

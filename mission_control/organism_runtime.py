@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -183,6 +184,51 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
     except Exception:  # noqa: BLE001 - readiness degrades without exposing DB details.
         result["error"] = "runtime_store_unavailable"
         return result
+
+
+def worker_execution_evidence(worker_id: str, revision: str) -> dict[str, object]:
+    """Require fresh identity and a durable successful job on the exact revision.
+
+    A heartbeat alone, another worker, or an unknown revision is insufficient.
+    This proves bounded maintenance execution only, never engineering or release.
+    """
+    result: dict[str, object] = {
+        "status": "Unknown",
+        "worker_fresh": False,
+        "job_receipt_verified": False,
+        "engineering_execution_verified": False,
+        "job_id": None,
+    }
+    if not worker_id or not re.fullmatch(r"[0-9a-f]{40}", revision):
+        return result
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT w.worker_id, evidence.job_id
+                   FROM oap_runtime_workers w
+                   LEFT JOIN LATERAL (
+                     SELECT r.job_id FROM oap_runtime_receipts r
+                     JOIN oap_runtime_jobs j ON j.job_id=r.job_id
+                     WHERE r.worker_id=w.worker_id
+                       AND r.event_type='JOB_SUCCEEDED' AND r.state='SUCCEEDED'
+                       AND j.state='SUCCEEDED'
+                       AND r.detail->>'worker_revision'=w.revision
+                       AND r.created_at >= w.started_at
+                       AND r.created_at >= CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+                       AND j.job_type IN ('RUNTIME_HEARTBEAT','RUNTIME_HEALTH_PROBE')
+                     ORDER BY r.created_at DESC LIMIT 1
+                   ) evidence ON TRUE
+                   WHERE w.worker_id=%s AND w.revision=%s AND w.status='ACTIVE'
+                     AND w.heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '90 seconds'""",
+                (worker_id, revision),
+            ).fetchone()
+    except Exception:  # noqa: BLE001 - never promote unavailable evidence.
+        return result
+    if row is not None:
+        result["worker_fresh"] = True
+        if row[1] is not None:
+            result.update(status="Verified", job_receipt_verified=True, job_id=str(row[1]))
+    return result
 
 
 def inference_worker_status(*, stale_after_seconds: int = 60) -> dict[str, object]:

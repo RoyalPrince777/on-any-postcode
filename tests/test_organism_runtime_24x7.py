@@ -113,3 +113,51 @@ def test_free_mode_does_not_provision_a_paid_background_worker():
     assert "plan: free" in content
     assert "runtime: image" in content
     assert 'value: "smi_gateway:app"' in content
+
+
+def test_continuous_checkpoint_defaults_to_21_seconds(monkeypatch):
+    monkeypatch.delenv("OAP_WORKER_RECOVERY_SECONDS", raising=False)
+    assert organism_worker._positive_seconds(
+        "OAP_WORKER_RECOVERY_SECONDS", organism_worker.CONTINUOUS_CHECKPOINT_SECONDS, 10, 300
+    ) == 21
+
+
+def test_execution_evidence_rejects_unknown_revision(monkeypatch):
+    def forbidden(**kwargs):
+        pytest.fail("unknown revision must not query the database")
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", forbidden)
+    result = organism_runtime.worker_execution_evidence("worker", "device-local")
+    assert result["status"] == "Unknown"
+    assert result["engineering_execution_verified"] is False
+
+
+@pytest.mark.parametrize("row, expected", [
+    (None, "Unknown"),
+    (("worker", None), "Unknown"),
+    (("worker", "job-123"), "Verified"),
+])
+def test_execution_evidence_requires_receipt(monkeypatch, row, expected):
+    from contextlib import contextmanager
+
+    class Connection:
+        def execute(self, sql, parameters):
+            assert parameters == ("worker", "a" * 40)
+            assert "r.detail->>'worker_revision'=w.revision" in sql
+            assert "r.worker_id=w.worker_id" in sql
+            assert "JOB_SUCCEEDED" in sql
+            return self
+
+        def fetchone(self):
+            return row
+
+    @contextmanager
+    def connect(*, readonly):
+        assert readonly
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    result = organism_runtime.worker_execution_evidence("worker", "a" * 40)
+    assert result["status"] == expected
+    assert result["job_receipt_verified"] is (expected == "Verified")
+    assert result["engineering_execution_verified"] is False
