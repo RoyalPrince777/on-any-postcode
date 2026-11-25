@@ -1,0 +1,959 @@
+{
+  "schema_version": 1,
+  "policy": "Unknown percentages must remain null; no inferred progress from file counts, draft PRs, or mocked tests.",
+  "weights": {
+    "architecture": 10,
+    "implementation": 30,
+    "testing_security": 20,
+    "integration": 20,
+    "production": 15,
+    "recovery": 5
+  },
+  "missions": [
+    {
+      "id": 1,
+      "name": "Sovereign Megaverse Intelligence",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 2,
+      "name": "SMI Agents & Intelligence Family",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 3,
+      "name": "Guardian & Security",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 4,
+      "name": "OAP Law & Governance",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 5,
+      "name": "OAP Living Organism",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 6,
+      "name": "War Room & Mission Control",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 7,
+      "name": "OAP World",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 8,
+      "name": "OAP Internet & Browser",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 9,
+      "name": "OAP Operating System",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 10,
+      "name": "My World & My Card",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 11,
+      "name": "Link Up & Live Link",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 12,
+      "name": "OAP Mail",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 13,
+      "name": "OAP Data",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 14,
+      "name": "OAP LAB",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 15,
+      "name": "Mission to £1 Million",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 16,
+      "name": "OAP Business Engine",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 17,
+      "name": "Corner Shop & Supermarket",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 18,
+      "name": "OAP Market",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 19,
+      "name": "SIKA Financial Infrastructure",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 20,
+      "name": "OAP Banking",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 21,
+      "name": "MANSA Economic Intelligence",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 22,
+      "name": "HRM Work & Wealth",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 23,
+      "name": "Real Estate & Property",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 24,
+      "name": "OAP Earth Intelligence",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 25,
+      "name": "OAP Maps & Navigation",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 26,
+      "name": "On Any Place",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 27,
+      "name": "On Any Route",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 28,
+      "name": "On Any Ride",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 29,
+      "name": "On Any Drop",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 30,
+      "name": "Live Pattern",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 31,
+      "name": "Telecommunications eSIM & 6G",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 32,
+      "name": "OAP TV",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 33,
+      "name": "OAP Music & Records",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 34,
+      "name": "OAP Radio",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 35,
+      "name": "OAP Library",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 36,
+      "name": "OAP Arena",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 37,
+      "name": "Rankings Ratings & Voting",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 38,
+      "name": "Global Birth Weekday App",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 39,
+      "name": "KORADASO Heritage & Development",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 40,
+      "name": "OAP Global Affairs",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 41,
+      "name": "Community & Economic Opportunities",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 42,
+      "name": "Health & Longevity Intelligence",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 43,
+      "name": "Youth Protection & Safety",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    },
+    {
+      "id": 44,
+      "name": "OAP Global Expansion",
+      "overall_percent": null,
+      "dimensions": {
+        "architecture": null,
+        "implementation": null,
+        "testing_security": null,
+        "integration": null,
+        "production": null,
+        "recovery": null
+      },
+      "evidence": [],
+      "audit_status": "pending",
+      "signals": {
+        "model": "smi_73",
+        "states": {},
+        "evidence_timestamp": null,
+        "source_commit": null
+      }
+    }
+  ],
+  "bounded_proofs": [
+    {
+      "mission_id": 13,
+      "scope": "Repository OAP Data security regression and merge verification only",
+      "completion_percent": 100,
+      "merge_sha": "e6ebe73aaa85fbad88122eb5915508a8b95a359c",
+      "workflow_run_id": 38085696447,
+      "production_verified": false
+    }
+  ],
+  "signal_model": {
+    "source": "mission_control.smi_73_signal_field.SIGNAL_KEYS",
+    "expected_count": 73,
+    "states": [
+      "proven",
+      "active",
+      "blocked",
+      "unknown"
+    ],
+    "policy": "Signals are evidence states, not completion percentages. Missing or stale evidence remains unknown; never infer proven from presence of code."
+  }
+}
