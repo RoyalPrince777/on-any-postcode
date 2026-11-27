@@ -117,9 +117,24 @@ def capability_review_route(message: object) -> dict[str, object] | None:
     plan = protocol_capability_plan(protocols[0])
     if plan["status"] != "PROPOSED_UNVERIFIED":
         return plan
+    # Reuse the canonical HYBRID policy for this read-only review. A candidate
+    # execution path is not selected until actual capability evidence exists.
+    from .oap_system_protocol import ExecutionPath, choose_protocol
+
+    review = choose_protocol(
+        "protocol_capability_review", requested_paths=(ExecutionPath.DETERMINISTIC,),
+    )
     return {
         **plan,
         "capability_inventory": observe_protocol_capabilities(protocols[0]),
+        "hybrid_review": {
+            "scope": "deterministic_read_only_review",
+            "layers": tuple(layer.value for layer in review.layers),
+            "review_paths": tuple(path.value for path in review.execution_paths),
+            "candidate_execution_selected": False,
+            "candidate_execution_verified": False,
+            "human_authority_final": True,
+        },
     }
 
 
