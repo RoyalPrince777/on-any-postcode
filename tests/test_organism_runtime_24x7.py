@@ -122,6 +122,7 @@ def test_free_mode_does_not_provision_a_paid_background_worker():
         (0, 0, 0, "not_running", False, False),
         (1, 1, 0, "fresh", True, False),
         (1, 1, 2, "fresh", True, True),
+        (1, 1, None, "unknown", False, False),
     ],
 )
 def test_worker_readiness_is_heartbeat_based_not_active_flag(
@@ -157,6 +158,8 @@ def test_worker_readiness_is_heartbeat_based_not_active_flag(
                 assert "JOB_SUCCEEDED" in sql
                 assert "INTERVAL '15 minutes'" in sql
                 assert "w.status = 'ACTIVE'" in sql
+                if receipts is None:
+                    raise RuntimeError("receipt read interrupted")
                 return Rows(one=(receipts,))
             raise AssertionError("Unexpected SQL in status check")
 
@@ -178,6 +181,8 @@ def test_worker_readiness_is_heartbeat_based_not_active_flag(
     assert result["recent_successful_job_receipts"] == receipts
     assert result["native_job_execution_observed"] is expected_execution
     assert result["consequential_execution"] is False
+    if receipts is None:
+        assert result["error"] == "runtime_store_unavailable"
 
 
 def test_queue_duplicate_key_only_reuses_identical_job():
