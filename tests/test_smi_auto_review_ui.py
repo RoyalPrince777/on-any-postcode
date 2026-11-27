@@ -72,3 +72,46 @@ def test_founder_protocol_review_response_exposes_unknown_not_fake_green(monkeyp
     assert "unknown protocol" in smi_chat_runtime_core._protocol_review_response(
         {"status": "UNRECOGNISED"}
     )
+
+
+def test_founder_benchmark_reports_real_fixed_case_without_candidate_certification():
+    from mission_control import smi_chat_runtime_core
+
+    founder = {
+        "is_human_authority": True,
+        "authority_level": 0,
+        "permissions": ("APPROVE_RECOMMENDATION",),
+    }
+    review = smi_chat_runtime_core._founder_protocol_review
+    plan = review("benchmark: dependencies", founder, "PASSED")
+    assert plan["baseline"]["status"] == "Passed"
+    assert plan["baseline"]["checks_passed"] == 1
+    assert plan["baseline"]["candidate_benchmark_verified"] is False
+    assert "Not a model benchmark" in smi_chat_runtime_core._protocol_review_response(plan)
+    receipt = smi_chat_runtime_core._protocol_review_evidence(plan)
+    assert receipt["baseline_status"] == "Passed"
+    assert receipt["operational_status"] == "Unknown"
+    assert receipt["independent_verification"] is False
+    assert receipt["execution_granted"] is False
+    assert "capability_inventory" not in receipt
+    assert review("benchmark: dependencies", {}, "PASSED") is None
+    assert review("benchmark: dependencies", founder, "BLOCKED") is None
+
+
+def test_founder_benchmark_failure_is_bounded(monkeypatch):
+    from mission_control import smi_chat_runtime_core
+    from oap.smi import protocol_selection
+
+    def failed(protocol):
+        raise RuntimeError("private runtime detail")
+
+    monkeypatch.setattr(protocol_selection, "benchmark_builtin_capability", failed)
+    founder = {
+        "is_human_authority": True,
+        "authority_level": 0,
+        "permissions": ("APPROVE_RECOMMENDATION",),
+    }
+    plan = smi_chat_runtime_core._founder_protocol_review("benchmark: audit", founder, "PASSED")
+    assert plan["baseline"]["status"] == "Failed"
+    assert plan["baseline"]["checks_passed"] == 0
+    assert "private runtime detail" not in str(plan)
