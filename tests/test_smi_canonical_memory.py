@@ -81,5 +81,5 @@ def test_founder_working_protocol_is_locked_in_canonical_memory():
     assert "cosmetic percentage inflation" in joined
     assert "3/7/21 controls analytical depth only" in joined
     assert "safety/evidence gates, not mandatory progress theatre" in joined
-    assert "🟣 means active/in-progress" in joined
-    assert "no Green" in joined
+    assert "🟣 incomplete or under repair" in joined
+    assert "never establish runtime Green" in joined
