@@ -95,7 +95,10 @@ def capability_review_route(message: object) -> dict[str, object] | None:
     No inference, installation, provider call or permission change is performed.
     Ambiguous multiple protocol commands fail closed rather than guessing.
     """
-    from oap.smi.protocol_selection import protocol_capability_plan
+    from oap.smi.protocol_selection import (
+        observe_protocol_capabilities,
+        protocol_capability_plan,
+    )
 
     if not isinstance(message, str) or len(message) > 4000:
         return None
@@ -111,7 +114,13 @@ def capability_review_route(message: object) -> dict[str, object] | None:
             "execution_granted": False,
             "approval_granted": False,
         }
-    return protocol_capability_plan(protocols[0])
+    plan = protocol_capability_plan(protocols[0])
+    if plan["status"] != "PROPOSED_UNVERIFIED":
+        return plan
+    return {
+        **plan,
+        "capability_inventory": observe_protocol_capabilities(protocols[0]),
+    }
 
 
 def observe(method: object, path: object, endpoint: object = None, message: object = None) -> dict[str, object]:
