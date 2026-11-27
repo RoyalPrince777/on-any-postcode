@@ -124,3 +124,25 @@ def test_smi_intelligence_does_not_escalate_depth_without_need():
     assert observed["smi_intelligence"]["level"] == "A1"
     assert observed["semantic_lenses"] == ()
     assert observed["smi_intelligence"]["stop_reason"].startswith("minimum sufficient intelligence")
+
+
+def test_auto_explicit_protocol_consumes_existing_capability_plan():
+    result = smi_auto.observe("POST", "/mission/ollama", message="protocol: execution")
+    plan = result["capability_plan"]
+    assert plan["status"] == "PROPOSED_UNVERIFIED"
+    assert "Qwen3-Coder-Next" in plan["candidates"]
+    assert plan["installed_verified"] is False
+    assert result["provider_call_performed"] is False
+    assert result["database_write_performed"] is False
+    assert result["execution_granted"] is False
+
+
+def test_auto_protocol_route_rejects_unknown_ambiguous_and_public_requests():
+    assert smi_auto.observe("GET", "/mission/ollama", message="protocol: unknown")[
+        "capability_plan"
+    ]["status"] == "UNRECOGNISED"
+    assert smi_auto.observe("GET", "/mission/ollama", message="protocol: memory; protocol: deployment")[
+        "capability_plan"
+    ]["status"] == "AMBIGUOUS_PROTOCOL"
+    assert smi_auto.observe("GET", "/the-spot", message="protocol: execution")["capability_plan"] is None
+    assert smi_auto.observe("GET", "/mission/ollama", message="hello")["capability_plan"] is None
