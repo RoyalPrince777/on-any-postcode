@@ -34,10 +34,14 @@
     animate: "Animate reference",
     voice: "Generate speech",
     dub: "Dub authorised audio",
-    composite: "Local composition"
+    composite: "Local composition",
+    graphics_engineering: "Graphics engineering", generate_mesh: "Generate 3D mesh",
+    texture_mesh: "Texture mesh", rig_mesh: "Rig character", facial_animation: "Facial animation",
+    bake_materials: "Bake PBR materials", optimize_mesh: "Optimize GLB", validate_mesh: "Validate GLB",
+    render_check: "Device render check", visual_reference: "Visual reference"
   });
   const iconFor = Object.freeze({
-    image: "✦", video: "🎬", voice: "🎙", editing: "◈"
+    image: "✦", video: "🎬", voice: "🎙", editing: "◈", "3d": "◇", animation: "◉", engineering: "⚙"
   });
 
   function show(message, state = "unknown") {

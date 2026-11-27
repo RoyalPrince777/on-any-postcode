@@ -101,6 +101,104 @@ _PROVIDERS = (
         "docs": "/mission/ollama",
         "note": "Existing source code is not evidence that the device renderer is installed.",
     },
+    {
+        "id": "codex-cli", "name": "Codex CLI", "maker": "OpenAI",
+        "kind": "engineering", "tasks": ("graphics_engineering",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://github.com/openai/codex",
+        "note": "Apache-2.0 CLI; model access is separate and not automatically local.",
+    },
+    {
+        "id": "claude-code", "name": "Claude Code", "maker": "Anthropic",
+        "kind": "engineering", "tasks": ("graphics_engineering",),
+        "transport": "external", "integration": "research_only",
+        "docs": "https://code.claude.com/docs/en/legal-and-compliance",
+        "note": "Licensed external engineering service; do not copy proprietary models.",
+    },
+    {
+        "id": "meshy-3d", "name": "Meshy 3D", "maker": "Meshy",
+        "kind": "3d", "tasks": ("generate_mesh", "texture_mesh", "rig_mesh",),
+        "transport": "external", "integration": "research_only",
+        "docs": "https://docs.meshy.ai/en/api/quick-start",
+        "note": "Commercial service; no local model source or credits assumed.",
+    },
+    {
+        "id": "tripo-api", "name": "Tripo API", "maker": "Tripo AI",
+        "kind": "3d", "tasks": ("generate_mesh", "rig_mesh",),
+        "transport": "external", "integration": "research_only",
+        "docs": "https://developers.tripo3d.ai/en/docs/introduction",
+        "note": "External service, separate from TripoSR.",
+    },
+    {
+        "id": "triposr", "name": "TripoSR", "maker": "Tripo AI / Stability AI",
+        "kind": "3d", "tasks": ("generate_mesh",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://github.com/VAST-AI-Research/TripoSR",
+        "note": "MIT image-to-mesh code and weights; GPU worker and dependencies need proof.",
+    },
+    {
+        "id": "trellis", "name": "TRELLIS", "maker": "Microsoft",
+        "kind": "3d", "tasks": ("generate_mesh", "texture_mesh",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://github.com/microsoft/TRELLIS",
+        "note": "MIT models and most code; review dependency terms and GPU worker requirements.",
+    },
+    {
+        "id": "audio2face", "name": "Audio2Face-3D", "maker": "NVIDIA",
+        "kind": "animation", "tasks": ("facial_animation",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://github.com/NVIDIA/Audio2Face-3D",
+        "note": "Review SDK and model licences separately; export blendshape tracks on worker.",
+    },
+    {
+        "id": "substance-3d", "name": "Substance 3D", "maker": "Adobe",
+        "kind": "3d", "tasks": ("texture_mesh", "bake_materials",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://adobedocs.github.io/substance-automation-toolkit/",
+        "note": "Licensed toolkit; no proprietary source acquisition.",
+    },
+    {
+        "id": "blender", "name": "Blender", "maker": "Blender Foundation",
+        "kind": "3d", "tasks": ("texture_mesh", "bake_materials", "rig_mesh", "optimize_mesh",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://projects.blender.org/blender/blender",
+        "note": "GPL tool; isolate worker process and review distribution obligations.",
+    },
+    {
+        "id": "babylonjs", "name": "Babylon.js", "maker": "BabylonJS",
+        "kind": "engineering", "tasks": ("graphics_engineering", "render_check",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://github.com/BabylonJS/Babylon.js",
+        "note": "Apache-2.0; existing TDA engine choice, runtime not verified here.",
+    },
+    {
+        "id": "unreal-reference", "name": "Unreal Engine 5", "maker": "Epic Games",
+        "kind": "engineering", "tasks": ("visual_reference",),
+        "transport": "reference_only", "integration": "research_only",
+        "docs": "https://www.unrealengine.com/ue-on-github",
+        "note": "EULA-restricted source; reference only, no second engine.",
+    },
+    {
+        "id": "meshoptimizer", "name": "meshoptimizer", "maker": "Arseny Kapoulkine",
+        "kind": "3d", "tasks": ("optimize_mesh",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://github.com/zeux/meshoptimizer",
+        "note": "MIT mesh optimization; validate output and local decoders.",
+    },
+    {
+        "id": "gltf-transform", "name": "glTF Transform", "maker": "glTF Transform",
+        "kind": "3d", "tasks": ("optimize_mesh", "validate_mesh",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://github.com/donmccurdy/glTF-Transform",
+        "note": "MIT asset processing; verify GLB load and visual quality on target.",
+    },
+    {
+        "id": "rhubarb", "name": "Rhubarb Lip Sync", "maker": "Daniel Wolf",
+        "kind": "animation", "tasks": ("facial_animation",),
+        "transport": "local_optional", "integration": "research_only",
+        "docs": "https://github.com/DanielSWolf/rhubarb-lip-sync",
+        "note": "MIT mouth cues; map to owned rig, not full facial performance.",
+    },
 )
 _BY_ID = {item["id"]: item for item in _PROVIDERS}
 _ALLOWED_FIELDS = frozenset({
@@ -170,11 +268,20 @@ def preflight(payload: object, existing_backend: Mapping[str, Any] | None = None
                         "provider_endpoint_and_model_id_verification"])
         if not payload.get("remote_approved"):
             missing.append("external_transfer_not_approved")
+    elif provider["transport"] == "reference_only":
+        missing.append("reference_only_no_execution")
     elif provider["transport"] == "local_optional":
-        missing.extend(["local_model_licence_review", "on_device_runtime_proof"])
+        if provider["kind"] in ("3d", "animation", "engineering"):
+            missing.extend(["source_revision_and_licence_review", "dependency_and_worker_hardware_proof",
+                            "asset_validation_and_target_device_proof"])
+        else:
+            missing.extend(["local_model_licence_review", "on_device_runtime_proof"])
     else:
         missing.append("local_render_device_proof")
-    if task in ("animate", "edit", "dub", "composite"):
+    if model_id == "codex-cli":
+        missing.append("model_backend_and_network_egress_review")
+    if task in ("animate", "edit", "dub", "composite", "generate_mesh", "texture_mesh",
+                "rig_mesh", "facial_animation", "bake_materials", "optimize_mesh", "validate_mesh", "render_check"):
         if not payload.get("owner_rights_confirmed"):
             missing.append("reference_ownership_not_confirmed")
         if not payload.get("subject_consent_confirmed"):

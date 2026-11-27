@@ -96,3 +96,27 @@ def test_dashboard_is_additive_and_uses_real_routes():
     assert '"/mission/studio/providers/preflight"' in js
     assert 'executionAuthority: false' in js
     assert "navigator.clipboard.writeText" in js
+
+
+@pytest.mark.parametrize("model_id,task", [["codex-cli","graphics_engineering"],["claude-code","graphics_engineering"],["meshy-3d","generate_mesh"],["tripo-api","generate_mesh"],["triposr","generate_mesh"],["trellis","generate_mesh"],["audio2face","facial_animation"],["substance-3d","texture_mesh"],["blender","texture_mesh"],["babylonjs","graphics_engineering"],["unreal-reference","visual_reference"],["meshoptimizer","optimize_mesh"],["gltf-transform","optimize_mesh"],["rhubarb","facial_animation"]])
+def test_graphics_capability_is_not_execution(model_id, task):
+    models = {m["id"]: m for m in catalogue.status()["provider_catalogue"]}
+    assert models[model_id]["runtime_verified"] is False
+    assert models[model_id]["integration"] == "research_only"
+    result = catalogue.preflight({"model_id": model_id, "task": task,
+        "owner_rights_confirmed": True, "subject_consent_confirmed": True,
+        "remote_approved": True})
+    assert result["execution_granted"] is False
+    assert result["provider_called"] is False
+    assert result["output_generated"] is False
+
+
+def test_graphics_worker_and_reference_gates():
+    local = catalogue.preflight({"model_id": "triposr", "task": "generate_mesh"})
+    assert "dependency_and_worker_hardware_proof" in local["missing_evidence"]
+    assert "asset_validation_and_target_device_proof" in local["missing_evidence"]
+    assert "reference_ownership_not_confirmed" in local["missing_evidence"]
+    assert "external_transfer_not_approved" in catalogue.preflight({
+        "model_id": "meshy-3d", "task": "generate_mesh"})["missing_evidence"]
+    assert "reference_only_no_execution" in catalogue.preflight({
+        "model_id": "unreal-reference", "task": "visual_reference"})["missing_evidence"]
