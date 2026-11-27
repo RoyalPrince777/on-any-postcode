@@ -89,6 +89,31 @@ def _adaptive_level(*, lenses: tuple[str, ...], semantic_lenses: tuple[str, ...]
         "stop_reason": "minimum sufficient intelligence selected; escalate only if new evidence, risk or mission complexity appears",
     }
 
+def capability_review_route(message: object) -> dict[str, object] | None:
+    """Resolve an explicit protocol command through the existing advisory selector.
+
+    No inference, installation, provider call or permission change is performed.
+    Ambiguous multiple protocol commands fail closed rather than guessing.
+    """
+    from oap.smi.protocol_selection import protocol_capability_plan
+
+    if not isinstance(message, str) or len(message) > 4000:
+        return None
+    protocols = tuple(dict.fromkeys(
+        re.findall(r"\bprotocol\s*[:=]\s*([a-z0-9_-]+)\b", message.casefold())
+    ))
+    if not protocols:
+        return None
+    if len(protocols) != 1:
+        return {
+            "status": "AMBIGUOUS_PROTOCOL",
+            "candidates": (),
+            "execution_granted": False,
+            "approval_granted": False,
+        }
+    return protocol_capability_plan(protocols[0])
+
+
 def observe(method: object, path: object, endpoint: object = None, message: object = None) -> dict[str, object]:
     """Return deterministic SMI routing metadata for one request.
 
@@ -121,6 +146,9 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
         _add(lenses, ("risk", "security", "privacy", "readiness", "decision", "judgement"))
 
     semantic_lenses = _semantic_lenses(message)
+    capability_plan = capability_review_route(message) if private_surface else None
+    if capability_plan:
+        _add(lenses, ("architecture", "dependency", "readiness"))
     _add(lenses, semantic_lenses)
 
     consequential = write_action or any(
@@ -155,6 +183,7 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
         "endpoint": endpoint_key,
         "lenses": tuple(lenses),
         "semantic_lenses": semantic_lenses,
+        "capability_plan": capability_plan,
         "selector": "surface+action+mission",
         "smi_intelligence": adaptive,
         "private_surface": private_surface,
