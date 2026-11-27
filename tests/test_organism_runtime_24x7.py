@@ -299,3 +299,46 @@ def test_expired_lease_recovery_uses_bounded_backoff_or_dead_letter(
     else:
         assert "DEAD_LETTER" in calls[1][0]
         assert "oap_runtime_dead_letters" in calls[2][0]
+
+
+def test_isolation_preserves_exhausted_job_dead_letter_evidence(monkeypatch):
+    from contextlib import contextmanager
+
+    calls = []
+    receipts = []
+    audits = []
+
+    class Connection:
+        def execute(self, sql, params):
+            calls.append((sql, params))
+            return self
+
+        def fetchone(self):
+            return ("worker-one",)
+
+        def fetchall(self):
+            return [("job-one", 5, 5, "RUNTIME_HEARTBEAT", {}),
+                    ("job-two", 1, 5, "RUNTIME_HEARTBEAT", {})]
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    monkeypatch.setattr(organism_runtime, "_append_runtime_audit",
+                        lambda connection, **kwargs: audits.append(kwargs))
+    store = organism_runtime.PostgresRuntimeStore()
+    monkeypatch.setattr(store, "_receipt", lambda *args: receipts.append(args))
+    result = store.isolate_worker("worker-one")
+    dead_letters = [params for sql, params in calls
+                    if "INSERT INTO oap_runtime_dead_letters" in sql]
+    assert dead_letters == [("job-one", "RUNTIME_HEARTBEAT", 5,
+                             "aegis_isolation", organism_runtime.payload_digest({}))]
+    assert [receipt[4] for receipt in receipts] == ["DEAD_LETTER", "RETRY"]
+    assert len(audits) == 2
+    assert result["released_jobs"] == 2
+    assert result["new_claims_blocked"] is True
+    assert result["execution_authority_expanded"] is False
