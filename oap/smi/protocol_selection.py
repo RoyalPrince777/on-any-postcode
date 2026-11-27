@@ -2,8 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
+from graphlib import CycleError, TopologicalSorter
+from hashlib import sha256
 from importlib.metadata import PackageNotFoundError, version
+from math import isclose, sqrt
 from shutil import which
+from time import perf_counter
 
 # Named specialist roles are recommendations, not verified active agent processes.
 PROTOCOL_TEAMS: dict[str, tuple[str, tuple[str, ...]]] = {
@@ -173,6 +178,76 @@ def observe_protocol_capabilities(protocol: str) -> dict[str, object]:
         "execution_granted": False,
         "approval_granted": False,
         "human_authority_final": True,
+    }
+
+
+def _dependency_baseline() -> bool:
+    graph = {"verify": {"test"}, "test": {"build"}, "build": set()}
+    order = tuple(TopologicalSorter(graph).static_order())
+    try:
+        tuple(TopologicalSorter({"a": {"b"}, "b": {"a"}}).static_order())
+    except CycleError:
+        return order == ("build", "test", "verify")
+    return False
+
+
+def _economics_baseline() -> bool:
+    # Exact arithmetic on synthetic ledger values; not real financial records.
+    values = tuple(Decimal(value) for value in ("12.35", "-2.10", "-10.25"))
+    return sum(values) == Decimal("0.00")
+
+
+def _science_baseline() -> bool:
+    return isclose(sqrt(2.0) ** 2, 2.0, rel_tol=1e-12)
+
+
+def _audit_baseline() -> bool:
+    first = sha256(b"genesis|synthetic-event-1").hexdigest()
+    second = sha256((first + "|synthetic-event-2").encode()).hexdigest()
+    changed = sha256(b"genesis|changed-event-1").hexdigest()
+    return second != sha256((changed + "|synthetic-event-2").encode()).hexdigest()
+
+
+BUILTIN_BASELINES = {
+    "dependencies": _dependency_baseline,
+    "economics": _economics_baseline,
+    "science": _science_baseline,
+    "audit": _audit_baseline,
+}
+
+
+def benchmark_builtin_capability(protocol: str) -> dict[str, object]:
+    """Explicit fixed synthetic smoke test, not an automatic request-path action.
+
+    Never executes candidate packages, user-provided code or external commands.
+    These tiny cases establish a standard-library baseline, not a performance
+    ranking or independent operational certification of the selected protocol.
+    """
+    selected = recommend_protocol_team(protocol)
+    runner = BUILTIN_BASELINES.get(selected.protocol)
+    result = {
+        "protocol": selected.protocol,
+        "scope": "synthetic_standard_library_smoke_test",
+        "status": "Not tested",
+        "checks_passed": 0,
+        "checks_total": 0,
+        "elapsed_ms": None,
+        "candidate_benchmark_verified": False,
+        "independent_verification": False,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+    if runner is None:
+        return result
+    started = perf_counter()
+    passed = runner() is True
+    return {
+        **result,
+        "status": "Passed" if passed else "Failed",
+        "checks_passed": int(passed),
+        "checks_total": 1,
+        "elapsed_ms": round((perf_counter() - started) * 1000, 3),
     }
 
 
