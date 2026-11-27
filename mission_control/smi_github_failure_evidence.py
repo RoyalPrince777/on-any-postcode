@@ -119,7 +119,10 @@ def _fetch_json(url: str, token: str) -> dict[str, Any]:
     return data
 
 
-def inspect_failed_run(run_id: object, *, token: str, fetch: Fetch = _fetch_json) -> dict[str, Any]:
+def inspect_failed_run(
+    run_id: object, *, token: str, fetch: Fetch = _fetch_json,
+    expected_head: str | None = None,
+) -> dict[str, Any]:
     """Retrieve real failed-job metadata; never infer a fix or release outcome."""
     result: dict[str, Any] = {
         "kind": "smi_github_failure_evidence",
@@ -146,6 +149,12 @@ def inspect_failed_run(run_id: object, *, token: str, fetch: Fetch = _fetch_json
             return {**result, "error": "run_not_completed_failure"}
         if not isinstance(run.get("repository"), dict) or run["repository"].get("full_name") != REPO:
             return {**result, "error": "repository_identity_mismatch"}
+        if expected_head is not None and (
+            not isinstance(expected_head, str)
+            or not re.fullmatch(r"[0-9a-f]{40}", expected_head)
+            or run.get("head_sha") != expected_head
+        ):
+            return {**result, "error": "failed_run_head_mismatch"}
         jobs_data = fetch(f"{API}/actions/runs/{run_id}/jobs?per_page=100", token)
         if not isinstance(jobs_data, dict):
             raise ValueError("jobs_not_object")  # noqa: TRY004 - preserve existing fail-closed API
