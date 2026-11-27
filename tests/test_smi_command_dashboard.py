@@ -42,6 +42,19 @@ def test_smi_command_dashboard_composes_canonical_sources():
         "GOVERNANCE",
         "BLOCK",
     )
+    ml = command["machine_learning"]
+    assert ml["engine"] == "oap_smi_machine_learning"
+    assert ml["algorithm_count"] == 8
+    assert ml["local_only"] is True
+    assert ml["external_api_calls"] is False
+    assert ml["production_fitness"] == "unknown"
+    assert ml["redmi_a5_runtime"] == "unknown"
+    assert ml["status_href"] == "/mission/ml/status"
+    assert ml["verify_href"] == "/mission/ml/verify"
+    assert ml["evaluate_href"] == "/mission/ml/evaluate"
+    assert ml["live_runtime_verified"] is False
+    assert ml["guardian_hrm_runtime_verified"] is False
+    assert ml["human_authority_final"] is True
     assert command["execution_granted"] is False
     assert command["approval_granted"] is False
     assert command["human_authority_final"] is True

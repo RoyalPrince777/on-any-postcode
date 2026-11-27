@@ -31,6 +31,7 @@ from . import (
     smi_73_signal_field,
     smi_chat_runtime,
     smi_library_mission,
+    smi_machine_learning_runtime,
     war_room,
 )
 
@@ -83,6 +84,7 @@ def status() -> dict[str, Any]:
     mission_field = smi_73_signal_field.definition_status()
     inference = oap_inference_gateway.status(probe=True)
     smi_health = smi_chat_runtime.health()
+    machine_learning = smi_machine_learning_runtime.status()
     mission_evaluation = smi_health.get("mission_to_100") or {}
 
     smi_21_dimensions = tuple(
@@ -186,6 +188,15 @@ def status() -> dict[str, Any]:
             "overall_evidence_score": int(war_summary.get("overall_evidence_score") or 0),
             "runtime_verified": int(war_summary.get("runtime_verified") or 0),
             "operationally_certified": int(war_summary.get("operationally_certified") or 0),
+        },
+        "machine_learning": {
+            **machine_learning,
+            "status_href": "/mission/ml/status",
+            "verify_href": "/mission/ml/verify",
+            "evaluate_href": "/mission/ml/evaluate",
+            "live_runtime_verified": False,
+            "guardian_hrm_runtime_verified": False,
+            "human_authority_final": True,
         },
         "inference": {
             "first_party_ready": bool(inference.get("first_party_inference_ready")),
