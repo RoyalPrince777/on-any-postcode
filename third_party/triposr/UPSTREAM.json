@@ -91,9 +91,11 @@
       {
         "repository": "https://huggingface.co/facebook/dino-vitb16",
         "filename": "config.json",
-        "revision": null,
+        "revision": "fdc136b8ef48f5a94159af5dd6323ae7a219697a",
         "sha256": null,
-        "reason": "Upstream tokenizer calls hf_hub_download even with local checkpoint."
+        "reason": "Upstream tokenizer calls hf_hub_download even with local checkpoint.",
+        "evidence": "https://huggingface.co/facebook/dino-vitb16/blob/fdc136b8ef48f5a94159af5dd6323ae7a219697a/config.json",
+        "license": "Apache-2.0"
       }
     ]
   },

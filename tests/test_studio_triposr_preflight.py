@@ -22,3 +22,22 @@ def test_bounded_checkpoint_hash_match_and_rejection(tmp_path):
     assert _inspect_checkpoint(tmp_path, size=len(raw), expected_sha256=digest)["status"] == "failed"
     model.unlink()
     assert _inspect_checkpoint(tmp_path, size=len(raw), expected_sha256=digest)["status"] == "blocked"
+
+
+def test_acquisition_rejects_nonprivate_directory(tmp_path, monkeypatch):
+    from mission_control.studio_triposr_preflight import acquire_checkpoint
+
+    tmp_path.chmod(0o755)
+    monkeypatch.setenv("OAP_STUDIO_TRIPOSR_MODEL_DIR", str(tmp_path))
+    assert acquire_checkpoint()["reason"] == "private_model_directory_required"
+
+
+def test_acquisition_does_not_replace_existing_checkpoint(tmp_path, monkeypatch):
+    from mission_control.studio_triposr_preflight import acquire_checkpoint
+
+    tmp_path.chmod(0o700)
+    monkeypatch.setenv("OAP_STUDIO_TRIPOSR_MODEL_DIR", str(tmp_path))
+    model = tmp_path / "model.ckpt"
+    model.write_bytes(b"existing")
+    assert acquire_checkpoint()["reason"] == "existing_checkpoint_not_replaced"
+    assert model.read_bytes() == b"existing"

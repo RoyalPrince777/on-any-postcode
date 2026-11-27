@@ -28,3 +28,6 @@ Pinned upstream CLI and all tsr Python sources, README, requirements and MIT lic
 
 ## Checkpoint integrity
 Official TripoSR checkpoint pinned at c1cf7716aed5aa6c1c5e174657791ef0e1327bde with publisher-listed size and SHA-256. Offline streaming integrity helper checks administrator-configured directory only; never downloads or unpickles. Configuration hash is a third-party candidate, not independently confirmed; DINO configuration is not pinned. Even matching weights remain blocked for execution. No model bytes acquired by this change. The worker must enforce resource/time limits and safe deserialization before inference. Small hash-test fixtures are not generation evidence.
+
+## Explicit checkpoint acquisition
+On an administrator-authorized private Linux worker only, configure an owned mode-0700 model directory as OAP_STUDIO_TRIPOSR_MODEL_DIR and run `python -m mission_control.studio_triposr_preflight --acquire`. The fixed public HTTPS artifact is staged, bounded, hash-checked, and atomically linked without replacement; nothing is loaded or run. No automatic download in web/worker routes. DINO config source revision fdc136b8ef48f5a94159af5dd6323ae7a219697a identified, but raw byte hash and local config integration remain pending. Model acquisition, runtime and hardware proof are not established. 
