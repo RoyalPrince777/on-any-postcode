@@ -984,6 +984,72 @@ MASTER_ANATOMY_REFERENCE = {
 }
 
 
+# Proposed functional correspondence to existing registries, not new organs.
+# Names absent from these maps intentionally remain unresolved.
+MASTER_FUNCTIONAL_LINKS = {
+    "core_foundations": {
+        "Brain": ("smi",), "Heart": ("living_kernel",),
+        "Body": ("body_systems",), "Soul / Identity": ("dna", "identity"),
+    },
+    "living_dimensions": {
+        "Mind": ("smi", "synthetic_mind"), "Body": ("body_systems", "muscles"),
+        "Soul": ("dna", "identity"), "Spirit": ("energy", "healing"),
+        "Heart": ("living_kernel",), "Senses": ("sp_signals", "thalamus"),
+        "Conscience": ("guardian", "war_room"), "Identity": ("identity", "dna"),
+        "Memory": ("memory", "hippocampus"), "Will": ("human_authority",),
+        "Time": ("cerebellum", "brainstem"), "Growth": ("growth",),
+        "Recovery": ("healing", "aegis"),
+    },
+    "inside_anatomy": {
+        "Brain": ("smi",), "Nervous System": ("nexus",),
+        "Cardiovascular": ("living_kernel", "blood", "circulation"),
+        "Respiratory": ("lungs",), "Digestive": ("digestive",),
+        "Urinary": ("liver_kidneys",), "Endocrine": ("endocrine",),
+        "Lymphatic / Immune": ("immune", "guardian", "aegis"),
+        "Reproductive": ("growth", "genes"),
+    },
+    "organ_systems": {
+        "Nervous": ("nexus", "brainstem"), "Sensory": ("sp_signals", "thalamus"),
+        "Skeletal": ("dna", "oap_core"), "Muscular": ("muscles", "body_systems"),
+        "Cardiovascular": ("living_kernel", "blood", "circulation"),
+        "Respiratory": ("lungs",), "Digestive": ("digestive",),
+        "Urinary": ("liver_kidneys",), "Endocrine": ("endocrine", "hypothalamus"),
+        "Lymphatic / Immune": ("immune", "healing", "guardian"),
+        "Reproductive": ("growth", "genes"), "Integumentary": ("skin", "healing"),
+    },
+    "integration": {
+        "Sense": ("sp_signals", "thalamus"), "Process": ("oap_core", "smi"),
+        "Understand": ("smi", "synthetic_mind"), "Decide": ("human_authority",),
+        "Act": ("living_kernel", "muscles"), "Grow": ("growth", "memory"),
+        "Recover": ("healing", "aegis"),
+    },
+}
+
+
+def master_functional_links() -> dict[str, Any]:
+    """Validate proposed links against existing canonical IDs.
+
+    Section-level links do not cover individual parts, nor prove execution.
+    Reproductive links mean governed growth only, never autonomous replication.
+    """
+    ids = {
+        item["id"]
+        for registry in (ORGANISM_SYSTEMS, PHYSIOLOGY_SYSTEMS, SMI_REGIONS)
+        for item in registry
+    }
+    sections = {}
+    for section, links in MASTER_FUNCTIONAL_LINKS.items():
+        sections[section] = {
+            label: {
+                "targets": targets,
+                "registry_resolved": bool(targets) and all(target in ids for target in targets),
+                "operational_status": "Unknown",
+            }
+            for label, targets in links.items()
+        }
+    return sections
+
+
 def master_anatomy_review() -> dict[str, Any]:
     """Expose chart requirements and exact registered brain-region matches.
 
@@ -1009,7 +1075,8 @@ def master_anatomy_review() -> dict[str, Any]:
         "requirements": MASTER_ANATOMY_REFERENCE,
         "brain_registry_matches": brain_matches,
         "brain_mapping_gaps": brain_gaps,
-        "other_sections_mapping": "Review required",
+        "functional_links": master_functional_links(),
+        "other_sections_mapping": "Section links proposed; individual parts require review",
         "operational_status": "Unknown",
         "full_organism_verified": False,
         "execution_granted": False,
