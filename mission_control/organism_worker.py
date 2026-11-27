@@ -10,6 +10,7 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
+from uuid import uuid4
 
 from . import (
     autonomy_levels,
@@ -173,6 +174,8 @@ def run() -> int:
     last_heartbeat = 0.0
     last_scheduler = 0.0
     last_recovery = 0.0
+    recovery_session = uuid4().hex
+    recovery_sequence = 0
     last_job_id: str | None = None
     store.heartbeat(worker_id, status="ACTIVE", revision=revision)
     _log(
@@ -210,6 +213,11 @@ def run() -> int:
                     continue
             if now - last_recovery >= recovery_seconds:
                 recovered = store.recover_stale()
+                recovery_sequence += 1
+                store.record_recovery_checkpoint(
+                    worker_id, revision, recovery_session, recovery_sequence,
+                    recovery_seconds, recovered,
+                )
                 if recovered:
                     _log("runtime_stale_leases_recovered", count=recovered)
                 last_recovery = now
