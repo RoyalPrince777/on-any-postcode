@@ -140,7 +140,7 @@ def test_native_specialist_alliance_is_evidence_selected_and_advisory():
     passed = smi_auto.mission_continuity_alliance(
         {"next_move": "continue_target_proof", "ci_proven": True},
     )
-    assert passed["roles"] == ("Trinity", "Tank", "Dozer", "Owl")
+    assert passed["roles"] == ("Trinity", "Octopus", "Tank", "Dozer", "Owl")
     unknown = smi_auto.mission_continuity_alliance(
         {"next_move": "continue_target_proof", "ci_proven": "true"},
     )
