@@ -590,7 +590,7 @@ def test_octopus_health_cycle_rejects_invalid_denominator_and_boolean_counts() -
         "gates_green": True, "gates_total": 21, "health_status": "healthy",
     })
     assert result.status == "UNKNOWN"
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         assess_octopus_runtime_cycle(None)
 
 
