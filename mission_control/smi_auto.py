@@ -416,7 +416,7 @@ def mission_continuity_alliance(evidence: object) -> dict[str, object]:
     source = evidence if isinstance(evidence, dict) else {}
     move = source.get("next_move")
     if move == "inspect_failed_ci":
-        roles = ("Morpheus", "Nirmata", "Neo", "Mouse", "Tank", "Dozer", "AEI", "Fox", "Shere Khan")
+        roles = ("Morpheus", "Nirmata", "Neo", "Mouse", "Spider", "Tank", "Dozer", "AEI", "Fox", "Shere Khan")
         reason = "Diagnose failed CI before growth; category is not root cause."
     elif move == "continue_target_proof" and source.get("ci_proven") is True:
         roles = ("Trinity", "Tank", "Dozer", "Owl")
