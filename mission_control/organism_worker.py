@@ -15,8 +15,8 @@ from uuid import uuid4
 from . import (
     autonomy_levels,
     oap_core_autonomy,
-    organism_autonomy,
     organism,
+    organism_autonomy,
     postgres_db,
     smi_auto,
     smi_github_failure_evidence,
