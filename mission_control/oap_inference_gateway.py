@@ -73,7 +73,7 @@ def _read_local_json(req, *, timeout: float) -> dict[str, Any]:
         raise ValueError("local_response_too_large")
     body = json.loads(raw)
     if not isinstance(body, dict):
-        raise ValueError("local_response_not_object")
+        raise TypeError("local_response_not_object")
     return body
 
 
@@ -260,7 +260,7 @@ def _call_local_public(
         body = _read_local_json(req, timeout=2.0)
     except HTTPError as exc:
         raise RuntimeError(f"local_inference_http_{exc.code}") from exc
-    except (URLError, TimeoutError, OSError, ValueError) as exc:
+    except (URLError, TimeoutError, OSError, TypeError, ValueError) as exc:
         raise RuntimeError("local_inference_unavailable") from exc
     text = str((body.get("message") or {}).get("content", "")).strip() or str(
         body.get("response", "")
@@ -339,7 +339,7 @@ def _call_local(
         body = _read_local_json(req, timeout=2.0)
     except HTTPError as exc:
         raise RuntimeError(f"local_inference_http_{exc.code}") from exc
-    except (URLError, TimeoutError, OSError, ValueError) as exc:
+    except (URLError, TimeoutError, OSError, TypeError, ValueError) as exc:
         raise RuntimeError("local_inference_unavailable") from exc
     text = str((body.get("message") or {}).get("content", "")).strip() or str(
         body.get("response", "")
@@ -391,7 +391,7 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
         try:
             body = _read_local_json(req, timeout=1.0)
             if not isinstance(body.get("models"), list):
-                raise ValueError("local_model_list_invalid")
+                raise TypeError("local_model_list_invalid")
             names = {
                 str(item.get("name") or item.get("model") or "")
                 for item in body.get("models", [])
@@ -406,7 +406,7 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
             )
         except HTTPError as exc:
             result["reason"] = f"local_probe_http_{exc.code}"
-        except (URLError, TimeoutError, OSError, ValueError):
+        except (URLError, TimeoutError, OSError, TypeError, ValueError):
             result["reason"] = "local_probe_unavailable"
     _probe_cache = (now, dict(result))
     return result
@@ -465,7 +465,7 @@ def probe_native_inference(availability: dict[str, Any]) -> dict[str, Any]:
             "duration_ns": time.monotonic_ns() - started,
             "reason": "local_service_response_observed_not_independent_model_proof",
         }
-    except (HTTPError, URLError, TimeoutError, OSError, ValueError):
+    except (HTTPError, URLError, TimeoutError, OSError, TypeError, ValueError):
         return {**result, "reason": "native_inference_response_unavailable"}
 
 

@@ -15,8 +15,8 @@ from uuid import uuid4
 from . import (
     autonomy_levels,
     founder_kernel_execution,
-    oap_inference_gateway,
     oap_core_autonomy,
+    oap_inference_gateway,
     organism,
     organism_autonomy,
     postgres_db,
