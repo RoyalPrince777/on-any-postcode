@@ -41,6 +41,11 @@ jobs:
           node-version: "22"
       - name: Install runtime and verification dependencies
         run: python -m pip install -r requirements.txt pytest ruff
+      - name: Verify local Studio geometry libraries
+        working-directory: mission_control/studio_geometry
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+          npm test
       - name: Install RTL simulator
         run: |
           if ! command -v iverilog >/dev/null 2>&1; then
