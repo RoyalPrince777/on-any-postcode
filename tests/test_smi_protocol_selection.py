@@ -235,7 +235,10 @@ def test_malformed_passport_fields_fail_closed_without_activation():
 
 
 def test_all_protocols_have_bounded_capability_acquisition_plans():
-    from oap.smi.protocol_selection import PROTOCOL_CAPABILITIES, protocol_capability_plan
+    from oap.smi.protocol_selection import (
+        PROTOCOL_CAPABILITIES,
+        protocol_capability_plan,
+    )
 
     assert set(PROTOCOL_CAPABILITIES) == set(PROTOCOL_TEAMS)
     for protocol in PROTOCOL_TEAMS:
