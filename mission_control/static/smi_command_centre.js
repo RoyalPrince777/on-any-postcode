@@ -592,6 +592,8 @@
  topologyTier([["engineering","NEO · ENGINEERING",cfg.agentsUrl,null],
   ["edgecases","MOUSE · EDGE CASES",cfg.agentsUrl,null]]);
  topologyConnector("↓");
+ topologyTier([["trinity","TRINITY · OPERATIONS & USER JOURNEYS",cfg.agentsUrl,null]]);
+ topologyConnector("↓");
  topologyTier([["organiser","ORGANISER","/mission/organiser",null],
   ["workers","WORKERS",cfg.warRoomUrl,null],
   ["repair","REPAIR ENGINE",null,()=>smiRepair.click()]]);
@@ -783,6 +785,7 @@
   setTopology("commander",mission?.read_back_verified===true&&mission?.hrm_verified===true&&mission?.audit_verified===true?"Checkpoint read back · execution unknown":"Unknown · mission receipt required");
   setTopology("engineering","Unknown · engineering job and receipt required");
   setTopology("edgecases","Unknown · test execution receipt required");
+  setTopology("trinity","Unknown · authenticated end-to-end browser/device acceptance required");
   setTopology("organiser","Unknown · schedule execution proof required");
   setTopology("workers","Unknown · fresh worker heartbeat required");
   setTopology("repair","Unknown · governed repair receipt required");
