@@ -260,3 +260,33 @@ def test_capability_plan_rejects_unknown_and_marks_large_coder_server_only():
     plan = protocol_capability_plan("execution")
     assert plan["server_candidate_only"] == ("Qwen3-Coder-Next",)
     assert "sandbox_test" in plan["required_evidence"]
+
+
+def test_capability_inventory_distinguishes_presence_from_proof(monkeypatch):
+    from oap.smi import protocol_selection
+
+    monkeypatch.setattr(protocol_selection, "version", lambda name: "1.2.3")
+    monkeypatch.setattr(protocol_selection, "which", lambda name: "/local/bin/opa")
+    inventory = protocol_selection.observe_protocol_capabilities("guardian")
+    observations = inventory["observations"]
+    assert observations["OPA"]["observation"] == "Executable detected"
+    assert observations["Semgrep"]["observation"] == "Metadata present"
+    assert "/local/bin/opa" not in str(inventory)
+    assert all(item["functional_status"] == "Unknown" for item in observations.values())
+    assert all(item["integrity_verified"] is False for item in observations.values())
+    assert inventory["commands_executed"] is False
+    assert inventory["execution_granted"] is False
+
+
+def test_capability_inventory_handles_missing_and_unprobed_candidates(monkeypatch):
+    from oap.smi import protocol_selection
+
+    def missing(name):
+        raise protocol_selection.PackageNotFoundError(name)
+
+    monkeypatch.setattr(protocol_selection, "version", missing)
+    monkeypatch.setattr(protocol_selection, "which", lambda name: None)
+    assert protocol_selection.observe_protocol_capabilities("guardian")["observations"]["OPA"]["observation"] == "Not detected"
+    assert protocol_selection.observe_protocol_capabilities("science")["observations"]["SciPy"]["observation"] == "Not detected"
+    assert protocol_selection.observe_protocol_capabilities("execution")["observations"]["Qwen3-Coder-Next"]["observation"] == "Unknown"
+    assert protocol_selection.observe_protocol_capabilities("unknown")["observations"] == {}
