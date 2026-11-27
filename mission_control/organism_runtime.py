@@ -250,6 +250,58 @@ def worker_execution_evidence(worker_id: str, revision: str) -> dict[str, object
     return result
 
 
+def recovery_checkpoint_evidence(worker_id: str, revision: str) -> dict[str, object]:
+    """Report a finite sample of recovery checkpoints, never full SMI execution."""
+    result: dict[str, object] = {
+        "status": "Unknown", "sample_count": 0, "observed_cadence": False,
+        "target_seconds": 21, "tolerance_seconds": 5,
+        "full_organism_verified": False,
+    }
+    if not worker_id or not re.fullmatch(r"[0-9a-f]{40}", revision):
+        return result
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT r.detail, r.created_at,
+                          EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP-r.created_at))
+                   FROM oap_runtime_receipts r
+                   JOIN oap_runtime_workers w ON w.worker_id=r.worker_id
+                   WHERE w.worker_id=%s AND w.revision=%s AND w.status='ACTIVE'
+                     AND w.heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '90 seconds'
+                     AND r.event_type='RECOVERY_CHECKPOINT' AND r.state='SUCCEEDED'
+                     AND r.detail->>'worker_revision'=w.revision
+                     AND r.created_at >= w.started_at
+                     AND r.created_at >= CURRENT_TIMESTAMP - INTERVAL '4 minutes'
+                   ORDER BY r.created_at DESC LIMIT 7""",
+                (worker_id, revision),
+            ).fetchall()
+        result["sample_count"] = len(rows)
+        if len(rows) != 7:
+            return result
+        samples = [(_json_object(row[0]), row[1], float(row[2])) for row in rows]
+        session = samples[0][0].get("session_id")
+        sequences = [sample[0].get("sequence") for sample in samples]
+        if (not isinstance(session, str) or not re.fullmatch(r"[0-9a-f]{32}", session)
+                or any(type(sequence) is not int for sequence in sequences)
+                or any(sample[0].get("session_id") != session
+                       or sample[0].get("target_seconds") != 21
+                       for sample in samples)
+                or any(age < 0 for _, _, age in samples)
+                or not 0 <= samples[0][2] <= 26):
+            return result
+        if any(a - b != 1 for a, b in zip(sequences, sequences[1:], strict=False)):
+            return result
+        gaps = [(a[1] - b[1]).total_seconds()
+                for a, b in zip(samples, samples[1:], strict=False)]
+        result["maximum_gap_seconds"] = max(gaps)
+        result["minimum_gap_seconds"] = min(gaps)
+        if all(16 <= gap <= 26 for gap in gaps):
+            result.update(status="Observed", observed_cadence=True)
+        return result
+    except Exception:  # noqa: BLE001 - missing evidence stays Unknown.
+        return result
+
+
 def inference_worker_status(*, stale_after_seconds: int = 60) -> dict[str, object]:
     """Return durable readiness for an authenticated Home Node inference worker.
 
@@ -680,6 +732,30 @@ class PostgresRuntimeStore:
                 recovered += 1
             connection.commit()
         return recovered
+
+    def record_recovery_checkpoint(
+        self, worker_id: str, revision: str, session_id: str,
+        sequence: int, target_seconds: float, recovered: int,
+    ) -> None:
+        """Persist an actual completed recovery check using the existing receipt store."""
+        if not re.fullmatch(r"[0-9a-f]{40}", revision):
+            return
+        worker = _worker_id(worker_id)
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """INSERT INTO oap_runtime_receipts
+                   (worker_id,event_type,state,detail)
+                   SELECT worker_id,'RECOVERY_CHECKPOINT','SUCCEEDED',%s::jsonb
+                   FROM oap_runtime_workers
+                   WHERE worker_id=%s AND revision=%s AND status='ACTIVE'
+                   RETURNING receipt_id""",
+                (json.dumps({"worker_revision": revision, "session_id": session_id,
+                             "sequence": sequence, "target_seconds": target_seconds,
+                             "recovered_leases": recovered}), worker, revision),
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("checkpoint worker is not active on this revision")
+            connection.commit()
 
     @staticmethod
     def _enqueue_in_connection(
