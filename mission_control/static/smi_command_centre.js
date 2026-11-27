@@ -552,6 +552,54 @@
   copy.append(nameEl,document.createElement("br"),detailEl);link.append(mark,copy);
   parent.append(link);
  }
+ // Founder command topology: expose the existing owners, never create a second executor.
+ const topology=document.createElement("section");
+ topology.className="smi-command-topology";
+ topology.setAttribute("aria-label","Founder execution hierarchy");
+ const topologyHeading=document.createElement("h3");
+ topologyHeading.textContent="FOUNDER · COMMAND CENTRE 5000";
+ topology.append(topologyHeading);
+ const topologyNote=document.createElement("p");
+ topologyNote.textContent="One brain · command hierarchy, not runtime certification. Founder Final remains separate.";
+ topology.append(topologyNote);
+ const topologyNodes=new Map();
+ function topologyTier(items){
+  const tier=document.createElement("div");
+  tier.style.cssText="display:grid;grid-template-columns:repeat("+items.length+",minmax(0,1fr));gap:4px;margin:4px 0";
+  items.forEach(([key,label,url,action])=>{
+   const node=document.createElement("article");
+   node.className="smi-command-proof";
+   node.style.cssText="min-width:0;overflow-wrap:anywhere;padding:5px";
+   node.dataset.proven="false";
+   const control=document.createElement(url?"a":action?"button":"strong");
+   control.textContent=label;
+   if(url)control.href=url;
+   if(action){control.type="button";control.addEventListener("click",action);}
+   const status=document.createElement("small");status.textContent="Unknown";
+   node.append(control,status);tier.append(node);topologyNodes.set(key,status);
+  });
+  topology.append(tier);
+ }
+ function topologyConnector(label){
+  const line=document.createElement("div");line.style.textAlign="center";
+  line.textContent=label;line.setAttribute("aria-hidden","true");topology.append(line);
+ }
+ topologyTier([["brain","ONE SMI BRAIN",cfg.brainUrl,null]]);
+ topologyConnector("↓");
+ topologyTier([["commander","COMMANDER","/mission/all-in-ai/app",null]]);
+ topologyConnector("↓");
+ topologyTier([["organiser","ORGANISER","/mission/organiser",null],
+  ["workers","WORKERS",cfg.warRoomUrl,null],
+  ["repair","REPAIR ENGINE",null,()=>smiRepair.click()]]);
+ topologyConnector("↓");
+ topologyTier([["guardian","GUARDIAN",null,()=>triggerMasterTool("guardian")],
+  ["hrm","HRM",cfg.hrmUrl,null],
+  ["rollback","ROLLBACK",cfg.greenGateUrl,null]]);
+ const topologyFull=document.createElement("a");
+ topologyFull.href="/mission/organism";topologyFull.textContent="Open canonical full anatomy";
+ topology.append(topologyFull);
+ anatomy.append(topology);
+ const setTopology=(key,message)=>{const state=topologyNodes.get(key);if(state)state.textContent=message;};
  anatomyLinks.forEach(([icon,name,detail,url])=>addLink(anatomy,icon,name,detail,url));
  // The approved command-room picture keeps intelligence, signals and gate evidence
  // in the scene itself; Status drawer remains a secondary detailed view.
@@ -692,6 +740,7 @@
   roomGates.forEach((node,key)=>setRoom(node,false,key==="founder"?"Founder decision required":"Checking proof…"));
   for(const key of ["matrix","guardian","hrm","signals","gate","civilization","ecosystem"])setUnified(key,false,"Checking backend evidence…");
   setUnified("mission",false,"No verified active mission feed · do not infer one");
+  topologyNodes.forEach(state=>{state.textContent="Unknown · refreshing";});
   const targets=[
    ["runtime",cfg.healthUrl],
    ["functions",cfg.functionHealthUrl],
@@ -726,6 +775,14 @@
   setRoom(roomStats.get("alignment"),gate?.green===true,
    gate?(gate.green===true?"Backend checks satisfied · Founder final":"Proof required · "+(Array.isArray(gate.missing)?gate.missing.length:"?")+" gaps"):"Unavailable · NOT PROVEN");
   const checks=gate?.checks||{};
+  setTopology("brain",health?.checks?.biological_brain===true?"Backend check passed · inference proof separate":"Unknown · brain proof required");
+  setTopology("commander",mission?.read_back_verified===true&&mission?.hrm_verified===true&&mission?.audit_verified===true?"Checkpoint read back · execution unknown":"Unknown · mission receipt required");
+  setTopology("organiser","Unknown · schedule execution proof required");
+  setTopology("workers","Unknown · fresh worker heartbeat required");
+  setTopology("repair","Unknown · governed repair receipt required");
+  setTopology("guardian",health?.checks?.guardian===true?"Backend check passed · authority separate":"Unknown · Guardian proof required");
+  setTopology("hrm","Unknown · durable receipt required");
+  setTopology("rollback",checks.rollback_recovery===true?"Recovery check passed · execution separate":"Unknown · rollback proof required");
   const mindProven=signalProven&&gate?.green===true;
   const bodyProven=health?.ready===true&&functionsProven&&checks.runtime_guard===true;
   const soulProven=checks.rollback_recovery===true&&checks.isolation_recovery===true;
