@@ -21,7 +21,7 @@ from . import (
     smi_github_failure_evidence,
     smi_runtime_autonomy,
 )
-from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
+from .organism_runtime import JobLeaseLost, PostgresRuntimeStore, RuntimeJob, runtime_status
 
 Handler = Callable[[RuntimeJob], dict[str, Any]]
 
@@ -205,6 +205,15 @@ def _positive_seconds(name: str, default: float, minimum: float, maximum: float)
     return min(maximum, max(minimum, value))
 
 
+def _record_failure(store: PostgresRuntimeStore, job: RuntimeJob, worker_id: str, *, error_code: str) -> str:
+    """A fenced attempt must not stop the worker or overwrite its successor."""
+    try:
+        return store.fail(job, worker_id, error_code=error_code)
+    except JobLeaseLost:
+        _log("runtime_job_lease_lost", job_id=job.job_id, job_type=job.job_type)
+        return "LEASE_LOST"
+
+
 def run() -> int:
     """Run until SIGTERM/SIGINT; finish the current bounded job before exit."""
     status = runtime_status()
@@ -299,7 +308,7 @@ def run() -> int:
             last_job_id = job.job_id
             handler = HANDLERS.get(job.job_type)
             if handler is None:
-                state = store.fail(job, worker_id, error_code="handler_not_allowlisted")
+                state = _record_failure(store, job, worker_id, error_code="handler_not_allowlisted")
                 _log(
                     "runtime_job_failed",
                     job_id=job.job_id,
@@ -310,7 +319,7 @@ def run() -> int:
 
             autonomy_decision = autonomy_levels.evaluate_runtime_job(job.job_type)
             if not autonomy_decision["allowed"]:
-                state = store.fail(job, worker_id, error_code="autonomy_policy_blocked")
+                state = _record_failure(store, job, worker_id, error_code="autonomy_policy_blocked")
                 _log(
                     "runtime_job_failed",
                     job_id=job.job_id,
@@ -334,9 +343,14 @@ def run() -> int:
                     autonomy_level=autonomy_decision["configured_level"],
                     a4_supervision_required=autonomy_decision["supervision_required"],
                 )
+            except JobLeaseLost:
+                # Another attempt owns the job; no success or failure receipt
+                # may be written by this stale attempt.
+                _log("runtime_job_lease_lost", job_id=job.job_id, job_type=job.job_type)
+                continue
             except Exception as exc:  # noqa: BLE001 - failure becomes retry/DLQ receipt.
                 error_code = f"{type(exc).__name__.casefold()}"[:120]
-                state = store.fail(job, worker_id, error_code=error_code)
+                state = _record_failure(store, job, worker_id, error_code=error_code)
                 _log(
                     "runtime_job_failed",
                     job_id=job.job_id,
