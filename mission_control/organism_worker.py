@@ -16,6 +16,7 @@ from . import (
     autonomy_levels,
     oap_core_autonomy,
     organism_autonomy,
+    organism,
     postgres_db,
     smi_auto,
     smi_github_failure_evidence,
@@ -122,6 +123,14 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
     organism_cycle["native_anatomy_evidence"] = organism_autonomy.native_anatomy_evidence(
         organism_cycle, smi_cycle,
     )
+    chart = organism.master_anatomy_review()
+    organism_cycle["master_anatomy_review"] = {
+        "reference": chart["reference"],
+        "brain_registry_matches": len(chart["brain_registry_matches"]),
+        "brain_mapping_gaps": len(chart["brain_mapping_gaps"]),
+        "other_sections_mapping": chart["other_sections_mapping"],
+        "full_organism_verified": False,
+    }
     # Read-only GitHub observation piggybacks on the existing scheduled
     # health probe; no new job type, scheduler or elevated authority.
     # A dedicated least-privilege read token is required to activate it.
