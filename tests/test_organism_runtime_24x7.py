@@ -257,3 +257,40 @@ def test_worker_does_not_swallow_unrelated_database_failure():
         organism_worker._record_failure(
             Store(), None, "worker-one", error_code="test",
         )
+
+
+@pytest.mark.parametrize(("attempts", "expected_state"), [(2, "RETRY"), (5, "DEAD_LETTER")])
+def test_expired_lease_recovery_uses_bounded_backoff_or_dead_letter(
+    monkeypatch, attempts, expected_state,
+):
+    from contextlib import contextmanager
+
+    calls = []
+    receipts = []
+
+    class Connection:
+        def execute(self, sql, params):
+            calls.append((sql, params))
+            return self
+
+        def fetchall(self):
+            return [("job-one", "RUNTIME_HEARTBEAT", {}, attempts, 5)]
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    store = organism_runtime.PostgresRuntimeStore()
+    monkeypatch.setattr(store, "_receipt", lambda *args: receipts.append(args))
+    assert store.recover_stale() == 1
+    assert receipts[0][3:5] == ("LEASE_RECOVERED", expected_state)
+    if expected_state == "RETRY":
+        assert "INTERVAL '1 second'" in calls[1][0]
+        assert calls[1][1] == (10, "job-one")
+    else:
+        assert "DEAD_LETTER" in calls[1][0]
+        assert "oap_runtime_dead_letters" in calls[2][0]
