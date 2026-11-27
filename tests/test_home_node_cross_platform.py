@@ -48,3 +48,11 @@ def test_home_node_role_is_device_agnostic_and_governed():
     ):
         assert phrase in DOC
     assert "does not self-update" in DOC.casefold()
+
+
+def test_home_node_launchers_publish_full_commit_revision():
+    termux = (ROOT / "scripts" / "termux_home_node_run.sh").read_text(encoding="utf-8")
+    for launcher in (POSIX, WINDOWS, termux):
+        assert "git rev-parse --verify HEAD" in launcher
+        assert "--short" not in launcher
+    assert "$LASTEXITCODE -ne 0" in WINDOWS
