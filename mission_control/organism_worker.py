@@ -106,9 +106,11 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
             entry = smi_github_failure_evidence.inspect_mission_continuity(
                 pr_number, token=github_token,
             )
-            if entry.get("next_move") == "inspect_failed_ci" and entry.get("failed_run_id"):
+            if (entry.get("next_move") == "inspect_failed_ci"
+                    and entry.get("failed_run_id") and entry.get("head_sha")):
                 failure = smi_github_failure_evidence.inspect_failed_run(
                     entry["failed_run_id"], token=github_token,
+                    expected_head=entry["head_sha"],
                 )
                 if failure.get("ready"):
                     log_analysis = smi_github_failure_evidence.inspect_failed_job_logs(
