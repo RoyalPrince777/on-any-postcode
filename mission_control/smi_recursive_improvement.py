@@ -205,7 +205,14 @@ def run_cycle() -> dict[str, Any]:
             "promotion_ready": False,
         }
 
-    continuous_cycle_proven = bool(core_observation.get("runtime_worker_fresh"))
+    bounded_job_receipt_verified = (
+        core_observation.get("runtime_worker_fresh") is True
+        and core_observation.get("runtime_ready") is True
+        and core_observation.get("runtime_job_receipt_verified") is True
+    )
+    # A fresh heartbeat or one successful maintenance receipt cannot establish
+    # uninterrupted cadence. No cadence evidence is currently exposed here.
+    continuous_cycle_proven = False
     governance_evidence_ready = bool(smi_gate.get("ready"))
     live_green = bool(
         not weaknesses and continuous_cycle_proven and governance_evidence_ready
@@ -230,6 +237,7 @@ def run_cycle() -> dict[str, Any]:
                 if isinstance(completion.get("runtime_evidence"), Mapping)
                 else False
             ),
+            "bounded_job_receipt_verified": bounded_job_receipt_verified,
             "continuous_cycle_proven": continuous_cycle_proven,
             "governance_evidence_ready": governance_evidence_ready,
             "sandbox_passed": False,
