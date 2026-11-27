@@ -150,6 +150,7 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
                 "repair_authorized": False,
                 "human_authority_final": True,
             }}
+            entry["specialist_alliance"] = smi_auto.mission_continuity_alliance(entry)
             mission_continuity.append(entry)
         github_evidence = {
             **github_evidence,
