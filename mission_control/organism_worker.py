@@ -21,7 +21,12 @@ from . import (
     smi_github_failure_evidence,
     smi_runtime_autonomy,
 )
-from .organism_runtime import JobLeaseLost, PostgresRuntimeStore, RuntimeJob, runtime_status
+from .organism_runtime import (
+    JobLeaseLost,
+    PostgresRuntimeStore,
+    RuntimeJob,
+    runtime_status,
+)
 
 Handler = Callable[[RuntimeJob], dict[str, Any]]
 
