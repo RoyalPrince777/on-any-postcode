@@ -208,7 +208,94 @@ def _audit_baseline() -> bool:
     return second != sha256((changed + "|synthetic-event-2").encode()).hexdigest()
 
 
+def _coordination_baseline() -> bool:
+    from oap.smi.runtime_guard import RuntimeGuardViolation, WorkBudget
+
+    budget = WorkBudget("synthetic-coordination", max_requests=1)
+    budget.admit(depth=1, retry=0, idempotency_key="first")
+    try:
+        budget.admit(depth=1, retry=0, idempotency_key="second")
+    except RuntimeGuardViolation as exc:
+        return str(exc) == "request_budget_exceeded" and budget.requests == 1
+    return False
+
+
+def _pack_baseline() -> bool:
+    from oap.smi.runtime_guard import RuntimeGuardViolation, WorkBudget
+
+    budget = WorkBudget("synthetic-pack")
+    budget.admit(depth=1, retry=0, idempotency_key="shared-job")
+    try:
+        budget.admit(depth=1, retry=0, idempotency_key="shared-job")
+    except RuntimeGuardViolation as exc:
+        return str(exc) == "duplicate_work_blocked" and budget.requests == 1
+    return False
+
+
+def _swarm_baseline() -> bool:
+    from oap.smi.runtime_guard import RuntimeGuardViolation, WorkBudget
+
+    budget = WorkBudget("synthetic-swarm", max_depth=2)
+    try:
+        budget.admit(depth=3, retry=0, idempotency_key="nested")
+    except RuntimeGuardViolation as exc:
+        return str(exc) == "recursion_depth_blocked" and budget.requests == 0
+    return False
+
+
+def _recovery_baseline() -> bool:
+    from oap.smi.runtime_guard import RuntimeGuardViolation, WorkBudget
+
+    budget = WorkBudget("synthetic-recovery", max_retries=1)
+    budget.admit(depth=1, retry=1, idempotency_key="retry-1")
+    try:
+        budget.admit(depth=1, retry=2, idempotency_key="retry-2")
+    except RuntimeGuardViolation as exc:
+        return str(exc) == "retry_budget_exceeded" and budget.requests == 1
+    return False
+
+
+def _guardian_baseline() -> bool:
+    from oap.smi.runtime_guard import RuntimeGuardViolation, validate_action_payload
+
+    validate_action_payload({"task": {"name": "synthetic-review"}})
+    try:
+        validate_action_payload({"task": {"permissions": ["deploy"]}})
+    except RuntimeGuardViolation as exc:
+        return str(exc) == "protected_key_blocked:permissions"
+    return False
+
+
+def _adversarial_baseline() -> bool:
+    from oap.smi.coherence import CoherenceEngine
+
+    report = CoherenceEngine().evaluate((
+        {"component": "synthetic-a", "coherence_claims": {"authority": "human"}},
+        {"component": "synthetic-b", "coherence_claims": {"authority": "automatic"}},
+    ))
+    return not report.coherent and report.human_review_required and len(report.conflicts) == 1
+
+
+def _command_baseline() -> bool:
+    from oap.smi.runtime_guard import RuntimeGuardViolation, assert_no_authority_growth
+
+    before = {"authority_level": 2, "permissions": ("read",)}
+    assert_no_authority_growth(before, before)
+    try:
+        assert_no_authority_growth(before, {"authority_level": 2, "permissions": ("read", "deploy")})
+    except RuntimeGuardViolation as exc:
+        return str(exc) == "permission_expansion_blocked"
+    return False
+
+
 BUILTIN_BASELINES = {
+    "coordination": _coordination_baseline,
+    "pack": _pack_baseline,
+    "swarm": _swarm_baseline,
+    "recovery": _recovery_baseline,
+    "guardian": _guardian_baseline,
+    "adversarial": _adversarial_baseline,
+    "command": _command_baseline,
     "dependencies": _dependency_baseline,
     "economics": _economics_baseline,
     "science": _science_baseline,
@@ -220,14 +307,14 @@ def benchmark_builtin_capability(protocol: str) -> dict[str, object]:
     """Explicit fixed synthetic smoke test, not an automatic request-path action.
 
     Never executes candidate packages, user-provided code or external commands.
-    These tiny cases establish a standard-library baseline, not a performance
+    These tiny cases exercise standard-library or existing OAP controls, not a performance
     ranking or independent operational certification of the selected protocol.
     """
     selected = recommend_protocol_team(protocol)
     runner = BUILTIN_BASELINES.get(selected.protocol)
     result = {
         "protocol": selected.protocol,
-        "scope": "synthetic_standard_library_smoke_test",
+        "scope": "synthetic_fixed_case_smoke_test",
         "status": "Not tested",
         "checks_passed": 0,
         "checks_total": 0,
