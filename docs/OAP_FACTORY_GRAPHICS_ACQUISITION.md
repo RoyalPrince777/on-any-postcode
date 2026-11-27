@@ -25,3 +25,6 @@ The local byte-only Node helper in `mission_control/studio_geometry` uses exact 
 
 ## TripoSR acquisition
 Pinned upstream CLI and all tsr Python sources, README, requirements and MIT licence preserved under third_party/triposr. Provenance and AST tests do not execute inference. Before use: review and pin dependencies including torchmcubes, PyTorch and rembg, verify exact model revision and hashes, review dynamic config imports and torch.load checkpoint deserialization, require isolated network-disabled worker and resource limits. Upstream requirements are not an approved install lock. Default upstream single-image inference uses about 6 GB VRAM. No weights acquired, no native authority or runtime claim. No new queue or UI.
+
+## Checkpoint integrity
+Official TripoSR checkpoint pinned at c1cf7716aed5aa6c1c5e174657791ef0e1327bde with publisher-listed size and SHA-256. Offline streaming integrity helper checks administrator-configured directory only; never downloads or unpickles. Configuration hash is a third-party candidate, not independently confirmed; DINO configuration is not pinned. Even matching weights remain blocked for execution. No model bytes acquired by this change. The worker must enforce resource/time limits and safe deserialization before inference. Small hash-test fixtures are not generation evidence.

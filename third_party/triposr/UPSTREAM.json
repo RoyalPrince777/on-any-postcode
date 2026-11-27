@@ -71,8 +71,31 @@
       "config.yaml",
       "model.ckpt"
     ],
-    "revision": null,
-    "installed": false
+    "revision": "c1cf7716aed5aa6c1c5e174657791ef0e1327bde",
+    "installed": false,
+    "checkpoint": {
+      "filename": "model.ckpt",
+      "size_bytes": 1677246742,
+      "sha256": "429e2c6b22a0923967459de24d67f05962b235f79cde6b032aa7ed2ffcd970ee",
+      "evidence": "https://huggingface.co/stabilityai/TripoSR/blob/c1cf7716aed5aa6c1c5e174657791ef0e1327bde/model.ckpt"
+    },
+    "config": {
+      "filename": "config.yaml",
+      "size_bytes": 987,
+      "sha256": null,
+      "sha256_candidate": "74ca708ce086bf68e97709ea6b3d91f14717921c04691e84043f0eb8fcc68e62",
+      "candidate_source": "https://huggingface.co/oxide-lab/TripoSR/blob/main/manifest.json",
+      "evidence": "https://huggingface.co/stabilityai/TripoSR/blob/c1cf7716aed5aa6c1c5e174657791ef0e1327bde/config.yaml"
+    },
+    "additional_dependencies": [
+      {
+        "repository": "https://huggingface.co/facebook/dino-vitb16",
+        "filename": "config.json",
+        "revision": null,
+        "sha256": null,
+        "reason": "Upstream tokenizer calls hf_hub_download even with local checkpoint."
+      }
+    ]
   },
   "execution_granted": false,
   "runtime_verified": false
