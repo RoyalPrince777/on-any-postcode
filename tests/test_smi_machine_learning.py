@@ -2,10 +2,12 @@
 
 from pathlib import Path
 
-import app as app_module
 import numpy as np
 import pytest
-from mission_control import smi_machine_learning_runtime as runtime, web_security
+
+import app as app_module
+from mission_control import smi_machine_learning_runtime as runtime
+from mission_control import web_security
 
 
 def _client(monkeypatch, *, authenticated=True, founder=True):
