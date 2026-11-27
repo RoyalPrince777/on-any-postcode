@@ -7,6 +7,7 @@ governed services; caller assertions cannot activate a team.
 from __future__ import annotations
 
 from oap.smi.protocol_selection import (
+    protocol_capability_plan,
     recommend_mission_team,
     screen_mission_team_candidates,
 )
@@ -40,6 +41,7 @@ def review_mission_candidates(
     )
     return {
         **screening,
+        "capability_plan": protocol_capability_plan(recommendation.protocol),
         "status": "FOUNDER_REVIEW_REQUIRED"
         if screening["all_eligible"]
         else "REJECTED_INELIGIBLE_CANDIDATES",
