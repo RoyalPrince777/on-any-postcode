@@ -327,8 +327,8 @@ def revision_recovery_evidence(revision: str) -> dict[str, object]:
             ).fetchall()
         if len(rows) == 1:
             return recovery_checkpoint_evidence(str(rows[0][0]), revision)
-    except Exception:  # noqa: BLE001 - unavailable or ambiguous evidence is unknown.
-        pass
+    except Exception:  # noqa: BLE001 - unavailable evidence must stay unknown.
+        return unknown
     return unknown
 
 
