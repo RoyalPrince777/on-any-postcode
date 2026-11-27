@@ -416,7 +416,7 @@ def _bounded_local_probe_json(url: str, payload: dict | None = None) -> dict:
         raise RuntimeError("local_probe_response_too_large")
     body = json.loads(raw.decode("utf-8"))
     if not isinstance(body, dict):
-        raise RuntimeError("local_probe_invalid_response")
+        raise TypeError("local_probe_invalid_response")
     return body
 
 
@@ -456,7 +456,7 @@ def benchmark_configured_local_model() -> dict[str, Any]:
         tags = _bounded_local_probe_json(_tags_url())
         models = tags.get("models")
         if not isinstance(models, list):
-            raise RuntimeError("local_probe_invalid_response")
+            raise TypeError("local_probe_invalid_response")
         result["model_listed"] = any(
             isinstance(item, dict) and (item.get("name") or item.get("model")) == LOCAL_MODEL
             for item in models
@@ -485,7 +485,7 @@ def benchmark_configured_local_model() -> dict[str, Any]:
             reason="fixed_case_matched" if matched else "fixed_case_not_matched",
             exact_answer_matched=matched,
         )
-    except (RuntimeError, HTTPError, URLError, TimeoutError, OSError, ValueError):
+    except (RuntimeError, HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError):
         result["reason"] = "local_probe_unavailable_or_invalid"
         if result["inference_attempted"]:
             result["status"] = "Failed"
