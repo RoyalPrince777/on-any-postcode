@@ -135,6 +135,7 @@ def test_native_specialist_alliance_is_evidence_selected_and_advisory():
     failed = smi_auto.mission_continuity_alliance({"next_move": "inspect_failed_ci"})
     assert {"Morpheus", "Neo", "Mouse", "Tank", "Dozer", "AEI"} <= set(failed["roles"])
     assert failed["roles"][0] == "Morpheus"
+    assert "Spider" in failed["roles"]
     assert "training objectives" in smi_auto.review_lens("Morpheus")
     passed = smi_auto.mission_continuity_alliance(
         {"next_move": "continue_target_proof", "ci_proven": True},
