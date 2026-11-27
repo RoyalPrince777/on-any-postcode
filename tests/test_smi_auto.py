@@ -285,3 +285,17 @@ def test_auto_master_chart_review_does_not_leak_on_public_surfaces():
     result = smi_auto.observe("GET", "/the-spot", message="full organism")
     assert result["anatomy_mission"] is None
     assert smi_auto.observe("GET", "/mission/ollama", message="hello")["anatomy_mission"] is None
+
+
+def test_master_chart_functional_links_reuse_registered_ids():
+    review = smi_auto.anatomy_review_route("full organism")["review"]
+    links = review["functional_links"]
+    for section in ("core_foundations", "living_dimensions", "inside_anatomy",
+                    "organ_systems", "integration"):
+        assert set(links[section]) == set(review["requirements"][section])
+        assert all(item["registry_resolved"] for item in links[section].values())
+        assert all(item["operational_status"] == "Unknown" for item in links[section].values())
+    assert links["living_dimensions"]["Will"]["targets"] == ("human_authority",)
+    assert links["organ_systems"]["Reproductive"]["targets"] == ("growth", "genes")
+    assert "outside_anatomy" not in links
+    assert review["full_organism_verified"] is False
