@@ -10,3 +10,6 @@ mapbox-vector-tile>=2.2,<3
 # Offline bundled eSpeak NG 1.51 runtime (GPL-3.0-or-later).
 espeak-english==0.1.1
 # credential-bridge-recheck 2026-09-28-v3
+
+# Local first-party SMI machine-learning engine.
+numpy>=2.0,<3

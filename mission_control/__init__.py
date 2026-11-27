@@ -117,6 +117,7 @@ def init_app(app: Flask) -> None:
     from .product_core_views import bp as product_core_bp
     from .provider_views import bp as provider_bp
     from .travel_supply_views import bp as travel_supply_bp
+    from .smi_machine_learning_views import bp as smi_machine_learning_bp
     from .views import bp
 
     movement_operations.STORE = movement_match_safety.STORE
@@ -1548,5 +1549,6 @@ def init_app(app: Flask) -> None:
     app.register_blueprint(checkpoint_bp, url_prefix="/mission")
     app.register_blueprint(maps_movement_direct_proof_bp, url_prefix="/mission")
     app.register_blueprint(alignment_bp, url_prefix="/mission")
+    app.register_blueprint(smi_machine_learning_bp, url_prefix="/mission")
     app.register_blueprint(bp, url_prefix="/mission")
     routing.startup_probe()
