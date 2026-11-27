@@ -105,6 +105,10 @@ class RuntimeJob:
     idempotency_key: str
 
 
+class JobLeaseLost(RuntimeError):
+    """A stale attempt no longer owns the job; do not mutate its successor."""
+
+
 def retry_delay_seconds(attempts: int) -> int:
     """Return bounded exponential retry delay for a completed failed attempt."""
     count = max(1, int(attempts))
@@ -458,7 +462,7 @@ class PostgresRuntimeStore:
                 (job.job_id, worker, job.attempts),
             ).fetchone()
             if row is None:
-                raise RuntimeError("job lease lost before completion")
+                raise JobLeaseLost("job lease lost before completion")
             self._receipt(connection, job.job_id, worker, "JOB_SUCCEEDED", "SUCCEEDED", safe_detail)
             _append_runtime_audit(
                 connection,
@@ -482,7 +486,7 @@ class PostgresRuntimeStore:
                 (job.job_id, worker, job.attempts),
             ).fetchone()
             if row is None:
-                raise RuntimeError("job lease lost before failure recording")
+                raise JobLeaseLost("job lease lost before failure recording")
             attempts = int(row[0])
             max_attempts = int(row[1])
             body = _json_object(row[2])
