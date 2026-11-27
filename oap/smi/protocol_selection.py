@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib.metadata import PackageNotFoundError, version
+from shutil import which
 
 # Named specialist roles are recommendations, not verified active agent processes.
 PROTOCOL_TEAMS: dict[str, tuple[str, tuple[str, ...]]] = {
@@ -103,6 +105,71 @@ def protocol_capability_plan(protocol: str) -> dict[str, object]:
         "server_candidate_only": ("Qwen3-Coder-Next",) if "Qwen3-Coder-Next" in tools else (),
         "installed_verified": False,
         "benchmark_verified": False,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
+# Read-only observations of local package metadata and executable presence.
+CAPABILITY_DISTRIBUTIONS = {
+    "NetworkX": "networkx", "Presidio": "presidio-analyzer",
+    "Semgrep": "semgrep", "Hypothesis": "hypothesis",
+    "scikit-learn": "scikit-learn", "PaddleOCR": "paddleocr",
+    "pytest": "pytest", "Playwright": "playwright",
+    "OpenTelemetry": "opentelemetry-api", "OR-Tools": "ortools",
+    "SciPy": "scipy", "SymPy": "sympy",
+}
+CAPABILITY_COMMANDS = {
+    "OPA": "opa", "Git": "git", "Podman": "podman",
+    "whisper.cpp": "whisper-cli",
+}
+
+
+def observe_protocol_capabilities(protocol: str) -> dict[str, object]:
+    """Inspect current-process presence without imports, downloads or execution.
+
+    Presence is not integrity, compatibility or functional proof. Models and
+    internal services require their dedicated runtime evidence readers.
+    """
+    plan = protocol_capability_plan(protocol)
+    observations: dict[str, dict[str, object]] = {}
+    for candidate in plan["candidates"]:
+        evidence = "Unknown"
+        observed_version = None
+        source = "dedicated_runtime_probe_required"
+        if candidate in CAPABILITY_DISTRIBUTIONS:
+            source = "local_distribution_metadata"
+            try:
+                observed_version = version(CAPABILITY_DISTRIBUTIONS[candidate])
+                evidence = "Metadata present" if observed_version else "Unknown"
+            except PackageNotFoundError:
+                evidence = "Not detected"
+            except (OSError, ValueError):
+                evidence = "Unknown"
+        elif candidate in CAPABILITY_COMMANDS:
+            source = "local_executable_lookup"
+            try:
+                evidence = "Executable detected" if which(
+                    CAPABILITY_COMMANDS[candidate]
+                ) else "Not detected"
+            except (OSError, ValueError):
+                evidence = "Unknown"
+        observations[candidate] = {
+            "observation": evidence,
+            "source": source,
+            "observed_version": observed_version,
+            "functional_status": "Unknown",
+            "integrity_verified": False,
+            "benchmark_verified": False,
+        }
+    return {
+        "protocol": plan.get("protocol"),
+        "status": plan["status"],
+        "scope": "current_process_environment_only",
+        "observations": observations,
+        "commands_executed": False,
+        "downloads_performed": False,
         "execution_granted": False,
         "approval_granted": False,
         "human_authority_final": True,
