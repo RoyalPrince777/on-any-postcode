@@ -304,6 +304,34 @@ def recovery_checkpoint_evidence(worker_id: str, revision: str) -> dict[str, obj
         return result
 
 
+def revision_recovery_evidence(revision: str) -> dict[str, object]:
+    """Resolve one current-revision recovery worker without guessing identity."""
+    unknown = {"status": "Unknown", "sample_count": 0, "observed_cadence": False,
+               "full_organism_verified": False}
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        return unknown
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT DISTINCT w.worker_id
+                   FROM oap_runtime_workers w
+                   JOIN oap_runtime_receipts r ON r.worker_id=w.worker_id
+                   WHERE w.revision=%s AND w.status='ACTIVE'
+                     AND w.heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '90 seconds'
+                     AND r.event_type='RECOVERY_CHECKPOINT' AND r.state='SUCCEEDED'
+                     AND r.detail->>'worker_revision'=w.revision
+                     AND r.created_at >= w.started_at
+                     AND r.created_at >= CURRENT_TIMESTAMP - INTERVAL '4 minutes'
+                   LIMIT 2""",
+                (revision,),
+            ).fetchall()
+        if len(rows) == 1:
+            return recovery_checkpoint_evidence(str(rows[0][0]), revision)
+    except Exception:  # noqa: BLE001 - unavailable or ambiguous evidence is unknown.
+        pass
+    return unknown
+
+
 def inference_worker_status(*, stale_after_seconds: int = 60) -> dict[str, object]:
     """Return durable readiness for an authenticated Home Node inference worker.
 
