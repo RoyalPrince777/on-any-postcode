@@ -71,6 +71,8 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('Unknown · fresh worker heartbeat required', source)
         self.assertIn("NEO · ENGINEERING", source)
         self.assertIn("MOUSE · EDGE CASES", source)
+        self.assertIn("TRINITY · OPERATIONS & USER JOURNEYS", source)
+        self.assertIn("Unknown · authenticated end-to-end browser/device acceptance required", source)
         self.assertIn("Unknown · engineering job and receipt required", source)
         self.assertIn('node.dataset.proven="false"', source)
 
