@@ -41,6 +41,61 @@ def _heartbeat_job(job: RuntimeJob) -> dict[str, Any]:
     }
 
 
+
+def observe_engineering_receipt() -> dict:
+    """Observe a bounded local engineering receipt; never approve or execute it."""
+    import datetime as dt
+    import re
+    import stat
+
+    result = {"ready": False, "status": "unknown", "read_only": True,
+              "independent_execution": False, "independent_verification": False,
+              "human_authority_final": True, "production_approved": False,
+              "consequential_action": False}
+    path = os.environ.get("OAP_SMI_ENGINEERING_RECEIPT", "").strip()
+    if not path:
+        return {**result, "reason": "not_configured"}
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+        with os.fdopen(fd, "rb") as handle:
+            if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                raise ValueError("not_regular")
+            raw = handle.read(65537)
+        if len(raw) > 65536:
+            raise ValueError("too_large")
+        data = json.loads(raw)
+        if not isinstance(data, dict) or data.get("schema") != "oap.engineering.evidence.v1" or data.get("mission") != "ebike-backend":
+            raise ValueError("schema")
+        if not isinstance(data.get("sourceSha256"), str) or not re.fullmatch(r"[a-f0-9]{64}", data["sourceSha256"]):
+            raise ValueError("revision")
+        step = data.get("step")
+        if type(step) is not int or not 1 <= step <= 10:
+            raise ValueError("step")
+        if not isinstance(data.get("runId"), str) or not re.fullmatch(r"[a-f0-9]{32}", data["runId"]):
+            raise ValueError("run_id")
+        if data.get("status") not in ("failed", "blocked", "incomplete"):
+            raise ValueError("status")
+        finished = dt.datetime.fromisoformat(data["finishedAt"])
+        age = (dt.datetime.now(dt.timezone.utc) - finished).total_seconds()
+        if age < -60 or age > 86400:
+            return {**result, "reason": "stale_or_future_receipt"}
+        expected = os.environ.get("OAP_SMI_ENGINEERING_SOURCE_SHA256", "").strip()
+        if expected and expected != data["sourceSha256"]:
+            return {**result, "reason": "revision_mismatch"}
+        checks = data.get("checks")
+        if not isinstance(checks, list) or not 1 <= len(checks) <= 40:
+            raise ValueError("checks")
+        safe_checks = []
+        for check in checks:
+            if not isinstance(check, dict) or not isinstance(check.get("name"), str) or not re.fullmatch(r"[a-z0-9_-]{1,80}", check["name"]) or check.get("status") not in ("passed", "failed", "blocked"):
+                raise ValueError("check")
+            safe_checks.append({"name": check["name"], "status": check["status"]})
+        status = "failed" if data.get("sourceChangedDuringRun") or any(c["status"] == "failed" for c in safe_checks) else "blocked" if any(c["status"] == "blocked" for c in safe_checks) else "incomplete"
+        return {**result, "ready": True, "status": status, "mission": "ebike-backend", "step": step, "run_id": data["runId"], "source_sha256": data["sourceSha256"], "revision_matched": bool(expected), "checks": safe_checks, "reason": "observed_untrusted_receipt"}
+    except (OSError, ValueError, TypeError, KeyError, OverflowError):
+        return {**result, "reason": "receipt_unavailable_or_invalid"}
+
+
 def _health_probe(job: RuntimeJob) -> dict[str, Any]:
     del job
     database = postgres_db.postgres_status()
@@ -94,6 +149,7 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         )
     return {
         "kind": "runtime_health_probe",
+        "engineering_receipt": observe_engineering_receipt(),
         "database_ready": bool(database.get("initialized")),
         "human_authority_present": human_authority_present,
         "oap_core_autonomy": oap_core_cycle,
