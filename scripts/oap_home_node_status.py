@@ -7,7 +7,9 @@ import os
 import socket
 from pathlib import Path
 
-from mission_control.organism_runtime import runtime_status, worker_execution_evidence
+from mission_control.organism_runtime import (
+    recovery_checkpoint_evidence, runtime_status, worker_execution_evidence,
+)
 
 STATE_DIR = Path(os.environ.get("OAP_HOME_STATE", Path.home() / ".local" / "state" / "oap-home-node"))
 STATE_FILE = STATE_DIR / "workers.json"
@@ -43,6 +45,9 @@ organism_id = os.environ.get("OAP_WORKER_ID", "").strip()[:120]
 if not organism_id and snapshot["organism_worker"] == "running":
     organism_id = f"{socket.gethostname()}:{state.get('organism_pid')}"[:120]
 snapshot["organism_execution_evidence"] = worker_execution_evidence(
+    organism_id, str(state.get("revision") or "")
+)
+snapshot["recovery_checkpoint_evidence"] = recovery_checkpoint_evidence(
     organism_id, str(state.get("revision") or "")
 )
 snapshot["device_ready"] = bool(
