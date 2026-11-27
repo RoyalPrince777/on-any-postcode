@@ -342,3 +342,41 @@ def test_isolation_preserves_exhausted_job_dead_letter_evidence(monkeypatch):
     assert result["released_jobs"] == 2
     assert result["new_claims_blocked"] is True
     assert result["execution_authority_expanded"] is False
+
+
+@pytest.mark.parametrize("worker_state", ["ACTIVE", "DRAINING", "STOPPED", None])
+def test_claim_serializes_with_isolation_before_selecting_eligible_work(
+    monkeypatch, worker_state,
+):
+    from contextlib import contextmanager
+
+    calls = []
+
+    class Rows:
+        def __init__(self, row):
+            self.row = row
+
+        def fetchone(self):
+            return self.row
+
+    class Connection:
+        def execute(self, sql, params):
+            calls.append(sql)
+            if len(calls) == 1:
+                assert "FOR UPDATE" in sql
+                assert params == ("worker-one",)
+                return Rows((worker_state,) if worker_state else None)
+            assert "attempts < max_attempts" in sql
+            assert "FOR UPDATE SKIP LOCKED" in sql
+            return Rows(None)
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    assert organism_runtime.PostgresRuntimeStore().claim("worker-one") is None
+    assert len(calls) == (2 if worker_state == "ACTIVE" else 1)
