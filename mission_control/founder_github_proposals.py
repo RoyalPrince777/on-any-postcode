@@ -34,6 +34,20 @@ def _branch(value: object) -> str:
     return branch
 
 
+EXISTING_SMI_MISSION_BRANCH = "smi/privacy-vpn-cc-truth-20261120"
+EXISTING_SMI_MISSION_PR = 1413
+
+
+def validate_file_write_branch(branch: object, *, path: str, sha: str) -> str:
+    """Allow one existing mission only for SHA-bound source/test upgrades."""
+    value = str(branch or "").strip()
+    if value != EXISTING_SMI_MISSION_BRANCH:
+        return _branch(value)
+    if not path.startswith(("mission_control/", "tests/")) or not _SHA.fullmatch(sha):
+        raise PermissionError("Existing SMI mission requires a source/test path and existing file SHA")
+    return value
+
+
 def _proposal(plan: ActionPlan) -> dict[str, Any]:
     return {
         "request_id": plan.request_id,
@@ -58,7 +72,6 @@ def propose_branch_create(*, branch: str, base_sha: str, request_id: str | None 
 
 def propose_file_write(*, branch: str, path: str, content: str, message: str, sha: str | None = None, request_id: str | None = None) -> dict[str, Any]:
     founder_tool_registry().authorize_capability("github", "file.write", mutation=True)
-    clean_branch = _branch(branch)
     clean_path = str(path or "").strip().lstrip("/")
     clean_message = str(message or "").strip()
     if not clean_path or ".." in clean_path.split("/"):
@@ -70,6 +83,7 @@ def propose_file_write(*, branch: str, path: str, content: str, message: str, sh
     clean_sha = str(sha or "").strip()
     if clean_sha and not _SHA.fullmatch(clean_sha):
         raise ValueError("Existing file SHA must be 40 hexadecimal characters")
+    clean_branch = validate_file_write_branch(branch, path=clean_path, sha=clean_sha)
     payload: dict[str, Any] = {"branch": clean_branch, "path": clean_path, "content": content, "message": clean_message}
     if clean_sha:
         payload["sha"] = clean_sha
