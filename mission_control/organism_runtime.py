@@ -476,7 +476,7 @@ class PostgresRuntimeStore:
                 worker_id=worker,
                 action="RUNTIME_JOB_SUCCEEDED",
                 job_id=job.job_id,
-                metadata={"job_type": job.job_type, "attempts": job.attempts, **safe_detail},
+                metadata={**safe_detail, "job_type": job.job_type, "attempts": job.attempts},
             )
             connection.commit()
 
@@ -736,7 +736,7 @@ def _append_runtime_audit(
         "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
     ).fetchone()
     prev_hash = str(previous[0]) if previous else "GENESIS"
-    safe_metadata = {"runtime": True, "job_id": job_id, **_payload(metadata)}
+    safe_metadata = {**_payload(metadata), "runtime": True, "job_id": job_id}
     canonical = json.dumps(safe_metadata, sort_keys=True, separators=(",", ":"))
     curr_hash = hashlib.sha256((prev_hash + canonical).encode()).hexdigest()
     connection.execute(
