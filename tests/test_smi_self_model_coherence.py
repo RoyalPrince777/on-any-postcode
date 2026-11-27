@@ -90,3 +90,13 @@ def test_coherence_engine_detects_duplicate_component_readiness_disagreement():
     assert report.coherent is False
     assert report.human_review_required is True
     assert any(conflict.claim == "ready:Provider Fabric" for conflict in report.conflicts)
+
+
+
+def test_empty_observation_is_not_coherent():
+    report = CoherenceEngine().evaluate(())
+    assert report.coherent is False
+    assert report.checked_components == 0
+    assert report.uncertainty == 1.0
+    assert report.human_review_required is True
+    assert report.conflicts == ()

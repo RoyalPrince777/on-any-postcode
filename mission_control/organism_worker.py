@@ -334,11 +334,28 @@ def run() -> int:
                 continue
 
             try:
+                started_at = datetime.now(UTC)
+                started_tick = time.monotonic_ns()
                 result = handler(job)
+                finished_at = datetime.now(UTC)
+                elapsed_ns = time.monotonic_ns() - started_tick
                 if result.get("consequential_action") is not False:
                     raise PermissionError("runtime handler crossed authority boundary")
-                # Bind durable completion evidence to this worker revision.
-                store.complete(job, worker_id, {**result, "worker_revision": revision})
+                # Attribute only the allowlisted handler, not observed external work.
+                store.complete(job, worker_id, {
+                    **result,
+                    "worker_revision": revision,
+                    "native_task": {
+                        "job_id": job.job_id,
+                        "job_type": job.job_type,
+                        "worker_id": worker_id,
+                        "started_at": started_at.isoformat(),
+                        "finished_at": finished_at.isoformat(),
+                        "duration_ns": elapsed_ns,
+                        "execution_scope": "bounded_maintenance",
+                        "engineering_execution_verified": False,
+                    },
+                })
                 _log(
                     "runtime_job_succeeded",
                     job_id=job.job_id,

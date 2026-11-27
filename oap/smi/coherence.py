@@ -78,12 +78,12 @@ class CoherenceEngine:
 
         conflict_count = len(conflicts)
         checked = len(records)
-        uncertainty = min(1.0, conflict_count / max(checked, 1))
+        uncertainty = min(1.0, conflict_count / checked) if checked else 1.0
         return CoherenceReport(
-            coherent=conflict_count == 0,
+            coherent=checked > 0 and conflict_count == 0,
             checked_components=checked,
             uncertainty=uncertainty,
-            human_review_required=conflict_count > 0,
+            human_review_required=checked == 0 or conflict_count > 0,
             conflicts=tuple(conflicts),
         )
 
