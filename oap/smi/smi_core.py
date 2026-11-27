@@ -136,6 +136,14 @@ class SMICore:
             return self._block_early(request, state, permission.reason)
         state.advance(ProcessingState.IDENTITY_VERIFIED)
 
+        # A denied private property match cannot become a positive recommendation.
+        # A positive input is not proof of authority and never permits execution.
+        if (
+            request.task_type.strip().upper() == "PROPERTY"
+            and request.oapcore.get("property_match_eligible") is False
+        ):
+            return self._block_early(request, state, "Property eligibility denied.")
+
         agi_route = self.agi_core.route(request.content, request.task_type)
         command_review = self.command_intelligence.review(
             request.content,
