@@ -1445,6 +1445,19 @@ def get_war_room_dashboard() -> dict[str, Any]:
     return {
         "name": "OAP War Room",
         "mode": "read_only_evidence_review",
+        "native_runtime_evidence": {
+            "worker_state": snapshot["runtime"].get("worker_state", "unknown"),
+            "worker_fresh": snapshot["runtime"].get("worker_fresh") is True,
+            "schema_ready": snapshot["runtime"].get("schema_ready") is True,
+            "recent_successful_job_receipts": snapshot["runtime"].get(
+                "recent_successful_job_receipts"
+            ),
+            "native_job_execution_observed": (
+                snapshot["runtime"].get("native_job_execution_observed") is True
+            ),
+            "receipt_window_minutes": 15,
+            "engineering_execution_granted": False,
+        },
         "validation": {
             "passed": not validation_errors,
             "errors": validation_errors,
