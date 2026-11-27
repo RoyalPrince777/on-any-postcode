@@ -447,16 +447,19 @@ def build_evidence_vote_board(
             "human_authority_final": True,
         }
 
-    blocked = str(guardian_outcome).upper() == "BLOCKED"
-    coherent = bool(coherence.get("passed"))
-    constitution = bool(judgement.get("constitution_consistent"))
-    provider_ready = bool(brain.get("passed"))
-    high_impact = bool(brain.get("high_impact"))
+    guardian_state = str(guardian_outcome).upper()
+    blocked = guardian_state == "BLOCKED"
+    coherent = coherence.get("passed") is True
+    constitution = judgement.get("constitution_consistent") is True
+    provider_ready = brain.get("passed") is True
+    # Unknown impact or Guardian evidence cannot inherit a passing review.
+    high_impact = brain.get("high_impact") is not False
     review_required = bool(
-        not coherent
+        not provider_ready
+        or not coherent
         or not constitution
         or high_impact
-        or str(guardian_outcome).upper() == "REVIEW_REQUIRED"
+        or guardian_state != "PASSED"
     )
     if blocked:
         base_vote = "FAIL"
@@ -468,7 +471,11 @@ def build_evidence_vote_board(
     votes: list[dict[str, object]] = []
     for reviewer in roles:
         vote = base_vote
-        reason = "Current governed evidence supports the recommendation."
+        reason = {
+            "PASS": "Current governed evidence supports the recommendation only.",
+            "FAIL": "Guardian blocked the recommendation.",
+            "CONDITIONAL": "Required evidence is missing, invalid or requires review.",
+        }[vote]
         if reviewer == "Shere Khan" and (high_impact or not coherent):
             vote = "FAIL" if blocked else "CONDITIONAL"
             reason = "Shere Khan holds Green until survivability, hidden-dependency, authority-misuse, failure-propagation, recovery and evidence quality are strong; the Claw Test is one pressure mode."
