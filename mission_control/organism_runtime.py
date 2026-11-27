@@ -647,9 +647,10 @@ class PostgresRuntimeStore:
                     connection.execute(
                         """UPDATE oap_runtime_jobs SET state='RETRY',
                            lease_owner=NULL,lease_expires_at=NULL,
-                           last_error_code='lease_expired',available_at=CURRENT_TIMESTAMP,
+                           last_error_code='lease_expired',
+                           available_at=CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),
                            updated_at=CURRENT_TIMESTAMP WHERE job_id=%s""",
-                        (job_id,),
+                        (retry_delay_seconds(attempts), job_id),
                     )
                 self._receipt(
                     connection,
