@@ -232,3 +232,28 @@ def test_malformed_passport_fields_fail_closed_without_activation():
         assert result["reason"] == "MALFORMED_PASSPORT"
         assert result["grants_permissions"] is False
         assert result["execution_verified"] is False
+
+
+def test_all_protocols_have_bounded_capability_acquisition_plans():
+    from oap.smi.protocol_selection import PROTOCOL_CAPABILITIES, protocol_capability_plan
+
+    assert set(PROTOCOL_CAPABILITIES) == set(PROTOCOL_TEAMS)
+    for protocol in PROTOCOL_TEAMS:
+        plan = protocol_capability_plan(protocol)
+        assert plan["status"] == "PROPOSED_UNVERIFIED"
+        assert plan["capabilities"] and plan["candidates"] and plan["acceptance_test"]
+        assert "independent_review" in plan["required_evidence"]
+        assert "hardware_compatibility" in plan["required_evidence"]
+        assert plan["installed_verified"] is False
+        assert plan["benchmark_verified"] is False
+        assert plan["execution_granted"] is False
+        assert plan["approval_granted"] is False
+
+
+def test_capability_plan_rejects_unknown_and_marks_large_coder_server_only():
+    from oap.smi.protocol_selection import protocol_capability_plan
+
+    assert protocol_capability_plan("unknown")["candidates"] == ()
+    plan = protocol_capability_plan("execution")
+    assert plan["server_candidate_only"] == ("Qwen3-Coder-Next",)
+    assert "sandbox_test" in plan["required_evidence"]
