@@ -18,7 +18,9 @@ permissions:
 
 jobs:
   smi-browser-proof:
-    runs-on: ubuntu-latest
+    # Pin a supported LTS image: ubuntu-latest moved to 26.04 and its
+    # Microsoft package feed returned 403 during Playwright dependency setup.
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v5
