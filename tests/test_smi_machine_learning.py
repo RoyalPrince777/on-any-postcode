@@ -2,10 +2,9 @@
 
 from pathlib import Path
 
+import app as app_module
 import numpy as np
 import pytest
-
-import app as app_module
 from mission_control import smi_machine_learning_runtime as runtime, web_security
 
 
