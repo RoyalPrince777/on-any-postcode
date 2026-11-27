@@ -10,6 +10,20 @@ OAP is upgrade-only.
 
 Existing approved systems must be kept, upgraded, merged safely, or removed only when they are true duplicates or unsafe. No new duplicate system may be created when an existing OAP organ already owns the function.
 
+## Mission-to-100 delivery discipline
+
+This is one continuous evidence-driven mission, not a mandatory sequence of version bumps, status ceremonies or demo milestones.
+
+- Batch related UI and behaviour fixes against the existing owner system. A small UI correction does not independently justify a new app version, signing run, release candidate or PR.
+- Reuse an existing open branch or PR when its scope and base are compatible. Open a new PR only when a distinct, necessary change cannot safely join existing work; never create competing PRs for the same fix.
+- Use one canonical signing and release workflow. Do not duplicate signing jobs or trigger signing for documentation-only and ordinary non-release UI edits.
+- Reuse retained passing evidence for unchanged functionality when the source revision, environment and dependency assumptions remain applicable. Run focused tests for changed code, impacted boundaries and previously unproven claims. Security, compliance, release and device acceptance checks remain mandatory when applicable.
+- Do not call a mock, screenshot, simulation, preview or proposed route a delivered feature. Only actual source, execution receipts, CI, deployed runtime or physical-device checks can support the corresponding claim.
+- Keep one concise evidence ledger per mission: verified working, verified blocked, changed in this work, remaining exact proof, and next owner/action. Never inflate completion percentages, agent votes or stars without measured criteria.
+- Continue within already-approved bounded work without repeated approval prompts or stopping after every tiny edit. Escalate only material new scope, consequential execution, rights, money, data, security or deployment decisions to Human Authority.
+- Preserve Founder Final, Guardian/Aegis, HRM, rollback and Green Gate. Less process noise never means bypassing safeguards.
+- Prefer founder-controlled first-party infrastructure; do not introduce Render as a deployment destination.
+
 ## No demo rule
 
 OAP must not present placeholder surfaces, mock status cards, decorative modules, fake green checks, fake live labels, fake data, fake users, fake payments, fake distribution, fake routing, fake AI actions, or fake integrations as finished production capability.
@@ -217,7 +231,7 @@ Function Health must check:
 - ISAC software routes
 - source health
 - stale signals
-- Render/live service status
+- first-party origin/live service status
 - error/critical logs
 
 Function Health must report truth, not ambition.
@@ -335,7 +349,7 @@ Human Authority is final.
 18. Safe Signals green: weather, news facts, civic/community notices from trusted sources.
 19. Monitoring green: Datadog or approved open monitoring with live probes and alerts.
 20. HRM green: decision logs, risk logs, build logs, audit logs, correction logs, approval receipts.
-21. Production green: Render, Neon, public/private security, logs, rollback and live proof.
+21. Production green: founder-controlled first-party hosting, public/private security, logs, rollback and live proof.
 
 ## Final lock
 

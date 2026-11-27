@@ -12,6 +12,9 @@ function render(){
  q("[data-game]").hidden=false;
  q("[data-turn]").textContent=state.status==="active"?state.current_player_name:"—";
  q("[data-status]").textContent=state.draw?"Draw":state.status;
+ const activity=window.OAPGameplayProgress?.measure("oware",state);
+ q("[data-gameplay-percent]").textContent=activity?"Gameplay "+activity.value+"% · "+activity.label:"Gameplay percentage unavailable";
+ q("[data-gameplay-bar]").value=activity?activity.value:0;
  q("[data-score]").textContent=state.players.map(p=>p.name+" "+p.captured).join(" · ");
  const board=q("[data-board]");board.replaceChildren();
  board.append(row([11,10,9,8,7,6],"Player Two houses"),row([0,1,2,3,4,5],"Player One houses"));

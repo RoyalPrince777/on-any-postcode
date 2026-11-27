@@ -9,7 +9,7 @@ def test_smi_command_dashboard_composes_canonical_sources():
     assert command["component"] == "SMI Founder Command Dashboard"
     assert command["brain"]["count"] == 1
     assert command["brain"]["regions"] == 14
-    assert command["brain"]["lenses"] == 26
+    assert command["brain"]["lenses"] == 28
     assert command["intelligence"]["worlds"] == 7
     assert command["intelligence"]["agents"] == 78
     assert command["bank"]["software_controls_present"] is True
@@ -219,7 +219,7 @@ def test_smi_command_dashboard_front_surface_has_backend_controls(client):
     assert "SMI Inference" in page
     assert "Check backend" in page
     assert "Talk to SMI" in page
-    assert "Start the OAP Home Node worker" in page
+    assert "Start the OAP Core worker" in page
 
 
 

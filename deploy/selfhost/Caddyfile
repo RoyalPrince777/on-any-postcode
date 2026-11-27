@@ -1,0 +1,8 @@
+{
+    email {$OAP_TLS_EMAIL}
+}
+
+{$OAP_DOMAIN} {
+    encode zstd gzip
+    reverse_proxy world:10000
+}

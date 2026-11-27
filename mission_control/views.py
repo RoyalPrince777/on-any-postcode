@@ -25,13 +25,16 @@ from . import (
     civilization,
     infrastructure,
     judgement,
+    matrix_simulation,
     ollama_chat,
     organism,
     postgres_db,
     products,
     public_store,
     smi_android_live_evidence,
+    smi_auto,
     smi_chat_runtime,
+    smi_chatgpt_connector,
     smi_command_dashboard,
     smi_founder_assets,
     smi_receipt_backend,
@@ -41,6 +44,7 @@ from . import (
     status,
     studio_build_preview,
     studio_intelligence,
+    studio_project_shell,
     studio_workspace_orchestrator,
     war_room,
     web_security,
@@ -67,6 +71,7 @@ BUTTON_PROOF_TARGETS = {
     "studio-refine": "/mission/studio/generate",
     "studio-bring-alive": "/mission/studio/generate",
     "studio-scene-builder": "/mission/studio/generate",
+    "studio-character-swap": "/mission/studio/character-swap/prepare",
     "studio-orchestrate": "/mission/studio/orchestrate/plan",
     "studio-build-preview": "/mission/studio/build-preview",
     "studio-workspace-research": "/mission/studio/workspace/research",
@@ -333,6 +338,7 @@ def brain_status():
     return _no_store(make_response(jsonify(brain.get_public_brain_status())))
 
 
+@bp.get("/smi-cc")
 @bp.get("/war-room")
 @web_security.login_required()
 def war_room_dashboard():
@@ -353,6 +359,48 @@ def war_room_status():
     """Return the same read-only, redacted War Room evidence projection."""
 
     return _no_store(make_response(jsonify(war_room.get_war_room_dashboard())))
+
+
+@bp.post("/war-room/divisions/route")
+@web_security.login_required(api=True)
+def war_room_divisions_route():
+    """Founder-session-only advisory selection; no actions or votes executed."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh the secure session.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Expected JSON object.", 400)
+    mission = payload.get("mission", "")
+    notes = payload.get("notes", "")
+    if not isinstance(mission, str) or not isinstance(notes, str) or len(mission) > 2000 or len(notes) > 2000:
+        return _error("invalid_mission", "Mission and notes must be text within 2000 characters.", 400)
+    try:
+        result = smi_auto.route_divisions(payload.get("divisions"), thinking=payload.get("thinking", "AUTO"), mission=mission)
+    except ValueError as exc:
+        return _error("invalid_selection", str(exc), 400)
+    # Founder-supplied text is request-scoped; never log, store or treat it as authorisation.
+    return _no_store(make_response(jsonify({**result, "mission": mission.strip(), "notes": notes.strip()})))
+
+
+@bp.post("/war-room/mouse-training")
+@web_security.login_required(api=True)
+def war_room_mouse_training():
+    """Run a bounded interactive fictional exercise inside Founder War Room."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh secure session.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "Expected a JSON object.", 400)
+    choice = payload.get("choice")
+    if choice is not None and not isinstance(choice, str):
+        return _error("invalid_choice", "Invalid response.", 400)
+    try:
+        result = matrix_simulation.run_mouse_attention_training(
+            payload.get("objective"), choice=choice
+        )
+    except ValueError as exc:
+        return _error("invalid_training", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
 
 
 @bp.get("/war-room/actions")
@@ -939,6 +987,32 @@ def smi_studio_status():
     return _no_store(make_response(jsonify(studio_intelligence.status())))
 
 
+@bp.post("/studio/project-shell/prepare")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_project_shell_prepare():
+    """Founder-only scene preflight; no paid renderer or publication call."""
+
+    if not web_security.csrf_valid(request):
+        return _error(
+            "csrf_failed",
+            "The secure session expired. Refresh the page and try again.",
+            403,
+        )
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = studio_project_shell.prepare(
+            payload.get("scene_id"),
+            ratio=payload.get("aspect_ratio", "16:9"),
+            fps_target=payload.get("fps_target", 60),
+            reference_attached=payload.get("reference_attached", False),
+        )
+    except (TypeError, ValueError) as exc:
+        return _error("project_shell_invalid", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.get("/studio/workspace/<workspace_id>")
 @web_security.login_required(api=True, founder_only=True)
 def smi_studio_workspace_preflight(workspace_id: str):
@@ -1119,6 +1193,31 @@ def smi_android_live_evidence_receipt():
     return _no_store(make_response(jsonify(result), status_code))
 
 
+@bp.post("/studio/character-swap/prepare")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_character_swap_prepare():
+    """Founder-only SMI character-swap preflight. Never spends credits."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh the page and try again.", 403)
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _error("invalid_request", "A JSON object is required.", 400)
+    try:
+        result = studio_intelligence.prepare_character_swap(
+            source_video_id=payload.get("source_video_id"),
+            character_image_id=payload.get("character_image_id"),
+            source_duration_seconds=payload.get("source_duration_seconds"),
+            quoted_credits=payload.get("quoted_credits"),
+        )
+    except ValueError as exc:
+        return _error("invalid_studio_request", str(exc), 400)
+    except RuntimeError:
+        return _error("studio_preparation_unavailable", "Studio preparation is unavailable.", 503)
+    if not result.get("receipt_proven"):
+        return _error("studio_receipt_unconfirmed", "HRM receipt is not verified.", 503)
+    return _no_store(make_response(jsonify(result), 200))
+
+
 @bp.post("/studio/generate")
 @web_security.login_required(api=True, founder_only=True)
 def smi_studio_generate():
@@ -1139,6 +1238,11 @@ def smi_studio_generate():
             prompt=payload.get("prompt", ""),
             source_image_data=payload.get("source_image_data", ""),
             character_lock=payload.get("character_lock", False),
+            **({
+                key: payload[key]
+                for key in ("video_size", "video_seconds")
+                if key in payload
+            }),
         )
         artifact = result.get("artifact") or {}
         studio_asset = {
@@ -1340,3 +1444,16 @@ def civilization_system_status():
     return _no_store(
         make_response(jsonify(civilization.get_civilization_status()), 200)
     )
+
+
+@bp.get("/smi/connector/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_connector_status():
+    """Founder-session-only read-only status. Not an external ChatGPT auth path."""
+    return _no_store(make_response(jsonify(
+        smi_chatgpt_connector.safe_status(
+            authorized=True,
+            studio_status=studio_intelligence.status(),
+        )
+    ), 200))
+

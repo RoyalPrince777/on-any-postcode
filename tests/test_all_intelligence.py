@@ -89,3 +89,19 @@ def test_all_intelligence_founder_page_is_read_only(client):
     assert "78/78 Agents" in page
     assert "Human Authority final" in page
     assert "Enable A7" not in page
+
+
+def test_oap_intelligence_recognises_first_party_governed_data_boundary():
+    snapshot = all_intelligence.status()
+    contract = snapshot["oap_data_contract"]
+    assert contract == {
+        "product": "OAP Data",
+        "consumer": "OAP Intelligence",
+        "domain_count": 7,
+        "raw_records_exposed": False,
+        "access_model": "OAP-owned governed operational data",
+        "integration_truth": "Contract discovery implemented; authorised operational data retrieval not yet proven.",
+    }
+    assert snapshot["execution_granted"] is False
+    assert snapshot["human_authority_final"] is True
+    assert "oap_data_contract" not in all_intelligence.public_safe_status()

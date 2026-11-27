@@ -7,6 +7,25 @@ import pytest
 from mission_control import coherent_automation, smi_proof_gate, telemetry
 
 
+def test_oap_data_telemetry_cannot_export_even_with_legacy_flags(monkeypatch):
+    monkeypatch.setenv("OAP_DATADOG_ENABLED", "true")
+    monkeypatch.setenv("DD_API_KEY", "legacy-key-must-be-ignored")
+    assert telemetry.enabled() is False
+    assert telemetry.configured() is False
+    assert telemetry.metric("http.request", 1, tags=("route:/private/person",)) is False
+    assert telemetry.status()["delivery_verified"] is False
+    assert telemetry.status()["configured"] is False
+
+
+def test_oap_data_telemetry_source_has_no_external_network_sender():
+    import inspect
+    source = inspect.getsource(telemetry)
+    assert "urlopen(" not in source
+    assert "urlrequest" not in source
+    assert "datadoghq" not in source
+    assert "request_path" not in telemetry.status()
+
+
 def test_first_party_observability_works_without_datadog(monkeypatch):
     monkeypatch.delenv("OAP_DATADOG_ENABLED", raising=False)
     monkeypatch.delenv("DD_API_KEY", raising=False)

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Final
 
+from . import smi_brain_protocol
+
 AI_BEHAVIOUR_REVISION: Final = "2026-09-04-v1"
 ADAPTIVE_REASONING_DEPTHS: Final = (3, 7, 21)
 TRUTH_LABELS: Final = ("VERIFIED", "INFERRED", "UNKNOWN", "BLOCKED")
@@ -51,12 +53,41 @@ def depth_for(mode: str) -> int:
     return 3
 
 
+
+def review_checks_for(mode: str) -> dict[str, object]:
+    """Project existing Mind/Body/Soul checks to canonical 3/7/21 depth.
+
+    Planning metadata only: selecting checks never means they passed or that
+    SMI has been authorised to execute consequential actions.
+    """
+    depth = depth_for(mode)
+    blocks = smi_brain_protocol.MIND_BODY_SOUL_777
+    checks = tuple(
+        {"block": str(block["block"]), "check": str(check)}
+        for block in blocks
+        for check in block["steps"]
+    )
+    if len(checks) != 21 or tuple(len(block["steps"]) for block in blocks) != (7, 7, 7):
+        raise ValueError("invalid_mind_body_soul_contract")
+    return {
+        "thinking_depth": depth,
+        "selected_checks": checks[:depth],
+        "total_available_checks": len(checks),
+        "checks_executed": False,
+        "checks_passed": False,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
 def status() -> dict[str, object]:
     """Return a redacted behaviour profile suitable for private dashboards."""
     return {
         "component": "Personal SMI Behaviour",
         "revision": AI_BEHAVIOUR_REVISION,
         "adaptive_reasoning_depths": ADAPTIVE_REASONING_DEPTHS,
+        "thinking_check_profiles": {str(depth): review_checks_for(str(depth)) for depth in ADAPTIVE_REASONING_DEPTHS},
         "truth_labels": TRUTH_LABELS,
         "response_rules": RESPONSE_RULES,
         "thinking_stage_labels": THINKING_STAGE_LABELS,

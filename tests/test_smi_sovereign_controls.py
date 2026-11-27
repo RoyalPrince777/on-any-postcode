@@ -231,6 +231,34 @@ def test_provider_router_blocks_external_adapter_until_allowlisted(monkeypatch):
     assert allowed.error_code is None
 
 
+def test_external_provider_cannot_receive_private_oap_data_even_allowlisted(monkeypatch):
+    from oap.contracts import FocusedSignal
+    class External:
+        provider_id = "external-test"
+        sovereign_scope = "external"
+        called = False
+        def analyse(self, signal):
+            self.called = True
+            return ProviderResult(provider_id=self.provider_id, available=True, text="unexpected")
+    adapter = External()
+    monkeypatch.setenv("OAP_SOVEREIGN_EXTERNAL_PROVIDER_ALLOWLIST", "external-test")
+    monkeypatch.delenv("OAP_MASTER_SOVEREIGN_MODE", raising=False)
+    router = ProviderRouter(adapters=(adapter,), approved_assignments={"general": "external-test"})
+    cases = (
+        ({"identity_id": "private-123"}, (), False),
+        ({}, ("location",), False),
+        ({}, ("microphone",), False),
+        ({}, (), True),
+    )
+    for context, tags, impact in cases:
+        signal = FocusedSignal("r", "i", "GENERAL", "Sensitive user content",
+                               context, impact, tags)
+        result = router.route(signal)[0]
+        assert result.error_code == "private_oap_data_egress_blocked"
+        assert result.available is False
+    assert adapter.called is False
+
+
 def test_policy_fingerprint_is_stable_for_locked_policy(monkeypatch):
     _clear_master(monkeypatch)
     controls = SovereignControlPlane()

@@ -1,0 +1,32 @@
+name: OAP Data first-party no-Meta source proof
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tests/test_oap_data_no_meta_tracking.py'
+      - 'app.py'
+      - 'templates/home.html'
+      - 'templates/world.html'
+      - '.github/workflows/oap-data-no-meta.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tests/test_oap_data_no_meta_tracking.py'
+      - 'app.py'
+      - 'templates/home.html'
+      - 'templates/world.html'
+      - '.github/workflows/oap-data-no-meta.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run no-Meta entry guard and positive detection fixtures
+        run: python3 -m unittest discover -s tests -p 'test_oap_data_no_meta_tracking.py' -v
+      - name: Record proof limit
+        run: echo 'Source checks only; no production egress or historical transfer audit claimed.'
