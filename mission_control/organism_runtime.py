@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime
+from itertools import pairwise
 from typing import Any
 from uuid import uuid4
 
@@ -128,6 +130,7 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
         "component": "24/7 Organism Runtime",
         "schema_ready": False,
         "worker_fresh": False,
+        "job_receipt_verified": False,
         "queued": 0,
         "running": 0,
         "retry": 0,
@@ -178,11 +181,155 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
                 (max(30, int(stale_after_seconds)),),
             ).fetchone()
             result["worker_fresh"] = fresh is not None
-            result["ready"] = bool(result["schema_ready"] and result["worker_fresh"])
+            receipt = connection.execute(
+                """SELECT 1 FROM oap_runtime_workers w
+                   JOIN oap_runtime_receipts r ON r.worker_id=w.worker_id
+                   JOIN oap_runtime_jobs j ON j.job_id=r.job_id
+                   WHERE w.status='ACTIVE'
+                     AND w.heartbeat_at >= CURRENT_TIMESTAMP - (%s * INTERVAL '1 second')
+                     AND w.revision ~ '^[0-9a-f]{40}$'
+                     AND r.event_type='JOB_SUCCEEDED' AND r.state='SUCCEEDED'
+                     AND j.state='SUCCEEDED'
+                     AND r.detail->>'worker_revision'=w.revision
+                     AND r.created_at >= w.started_at
+                     AND r.created_at >= CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+                     AND j.job_type IN ('RUNTIME_HEARTBEAT','RUNTIME_HEALTH_PROBE')
+                   LIMIT 1""",
+                (max(30, int(stale_after_seconds)),),
+            ).fetchone()
+            result["job_receipt_verified"] = receipt is not None
+            result["ready"] = bool(result["schema_ready"] and result["worker_fresh"]
+                                   and result["job_receipt_verified"])
             return result
     except Exception:  # noqa: BLE001 - readiness degrades without exposing DB details.
         result["error"] = "runtime_store_unavailable"
         return result
+
+
+def worker_execution_evidence(worker_id: str, revision: str) -> dict[str, object]:
+    """Require fresh identity and a durable successful job on the exact revision.
+
+    A heartbeat alone, another worker, or an unknown revision is insufficient.
+    This proves bounded maintenance execution only, never engineering or release.
+    """
+    result: dict[str, object] = {
+        "status": "Unknown",
+        "worker_fresh": False,
+        "job_receipt_verified": False,
+        "engineering_execution_verified": False,
+        "job_id": None,
+    }
+    if not worker_id or not re.fullmatch(r"[0-9a-f]{40}", revision):
+        return result
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            row = connection.execute(
+                """SELECT w.worker_id, evidence.job_id
+                   FROM oap_runtime_workers w
+                   LEFT JOIN LATERAL (
+                     SELECT r.job_id FROM oap_runtime_receipts r
+                     JOIN oap_runtime_jobs j ON j.job_id=r.job_id
+                     WHERE r.worker_id=w.worker_id
+                       AND r.event_type='JOB_SUCCEEDED' AND r.state='SUCCEEDED'
+                       AND j.state='SUCCEEDED'
+                       AND r.detail->>'worker_revision'=w.revision
+                       AND r.created_at >= w.started_at
+                       AND r.created_at >= CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+                       AND j.job_type IN ('RUNTIME_HEARTBEAT','RUNTIME_HEALTH_PROBE')
+                     ORDER BY r.created_at DESC LIMIT 1
+                   ) evidence ON TRUE
+                   WHERE w.worker_id=%s AND w.revision=%s AND w.status='ACTIVE'
+                     AND w.heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '90 seconds'""",
+                (worker_id, revision),
+            ).fetchone()
+    except Exception:  # noqa: BLE001 - never promote unavailable evidence.
+        return result
+    if row is not None:
+        result["worker_fresh"] = True
+        if row[1] is not None:
+            result.update(status="Verified", job_receipt_verified=True, job_id=str(row[1]))
+    return result
+
+
+def recovery_checkpoint_evidence(worker_id: str, revision: str) -> dict[str, object]:
+    """Report a finite sample of recovery checkpoints, never full SMI execution."""
+    result: dict[str, object] = {
+        "status": "Unknown", "sample_count": 0, "observed_cadence": False,
+        "target_seconds": 21, "tolerance_seconds": 5,
+        "full_organism_verified": False,
+    }
+    if not worker_id or not re.fullmatch(r"[0-9a-f]{40}", revision):
+        return result
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT r.detail, r.created_at,
+                          EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP-r.created_at))
+                   FROM oap_runtime_receipts r
+                   JOIN oap_runtime_workers w ON w.worker_id=r.worker_id
+                   WHERE w.worker_id=%s AND w.revision=%s AND w.status='ACTIVE'
+                     AND w.heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '90 seconds'
+                     AND r.event_type='RECOVERY_CHECKPOINT' AND r.state='SUCCEEDED'
+                     AND r.detail->>'worker_revision'=w.revision
+                     AND r.created_at >= w.started_at
+                     AND r.created_at >= CURRENT_TIMESTAMP - INTERVAL '4 minutes'
+                   ORDER BY r.created_at DESC LIMIT 7""",
+                (worker_id, revision),
+            ).fetchall()
+        result["sample_count"] = len(rows)
+        if len(rows) != 7:
+            return result
+        samples = [(_json_object(row[0]), row[1], float(row[2])) for row in rows]
+        session = samples[0][0].get("session_id")
+        sequences = [sample[0].get("sequence") for sample in samples]
+        if (not isinstance(session, str) or not re.fullmatch(r"[0-9a-f]{32}", session)
+                or any(not isinstance(sequence, int) or isinstance(sequence, bool)
+                       for sequence in sequences)
+                or any(sample[0].get("session_id") != session
+                       or sample[0].get("target_seconds") != 21
+                       for sample in samples)
+                or any(age < 0 for _, _, age in samples)
+                or not 0 <= samples[0][2] <= 26):
+            return result
+        if any(a - b != 1 for a, b in pairwise(sequences)):
+            return result
+        gaps = [(a[1] - b[1]).total_seconds()
+                for a, b in pairwise(samples)]
+        result["maximum_gap_seconds"] = max(gaps)
+        result["minimum_gap_seconds"] = min(gaps)
+        if all(16 <= gap <= 26 for gap in gaps):
+            result.update(status="Observed", observed_cadence=True)
+        return result
+    except Exception:  # noqa: BLE001 - missing evidence stays Unknown.
+        return result
+
+
+def revision_recovery_evidence(revision: str) -> dict[str, object]:
+    """Resolve one current-revision recovery worker without guessing identity."""
+    unknown = {"status": "Unknown", "sample_count": 0, "observed_cadence": False,
+               "full_organism_verified": False}
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        return unknown
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            rows = connection.execute(
+                """SELECT DISTINCT w.worker_id
+                   FROM oap_runtime_workers w
+                   JOIN oap_runtime_receipts r ON r.worker_id=w.worker_id
+                   WHERE w.revision=%s AND w.status='ACTIVE'
+                     AND w.heartbeat_at >= CURRENT_TIMESTAMP - INTERVAL '90 seconds'
+                     AND r.event_type='RECOVERY_CHECKPOINT' AND r.state='SUCCEEDED'
+                     AND r.detail->>'worker_revision'=w.revision
+                     AND r.created_at >= w.started_at
+                     AND r.created_at >= CURRENT_TIMESTAMP - INTERVAL '4 minutes'
+                   LIMIT 2""",
+                (revision,),
+            ).fetchall()
+        if len(rows) == 1:
+            return recovery_checkpoint_evidence(str(rows[0][0]), revision)
+    except Exception:  # noqa: BLE001 - unavailable evidence must stay unknown.
+        return unknown
+    return unknown
 
 
 def inference_worker_status(*, stale_after_seconds: int = 60) -> dict[str, object]:
@@ -288,6 +435,7 @@ class PostgresRuntimeStore:
         status: str = "ACTIVE",
         revision: str = "unknown",
         last_job_id: str | None = None,
+        new_session: bool = False,
     ) -> None:
         worker = _worker_id(worker_id)
         state = str(status).upper()
@@ -305,11 +453,13 @@ class PostgresRuntimeStore:
                        THEN 'DRAINING'
                        ELSE EXCLUDED.status
                      END,
+                     started_at=CASE WHEN %s OR oap_runtime_workers.revision<>EXCLUDED.revision
+                       THEN CURRENT_TIMESTAMP ELSE oap_runtime_workers.started_at END,
                      revision=EXCLUDED.revision,
                      heartbeat_at=CURRENT_TIMESTAMP,
                      last_job_id=EXCLUDED.last_job_id,
                      updated_at=CURRENT_TIMESTAMP""",
-                (worker, state, str(revision or "unknown")[:120], last_job_id),
+                (worker, state, str(revision or "unknown")[:120], last_job_id, new_session),
             )
             connection.commit()
 
@@ -615,6 +765,30 @@ class PostgresRuntimeStore:
                 recovered += 1
             connection.commit()
         return recovered
+
+    def record_recovery_checkpoint(
+        self, worker_id: str, revision: str, session_id: str,
+        sequence: int, target_seconds: float, recovered: int,
+    ) -> None:
+        """Persist an actual completed recovery check using the existing receipt store."""
+        if not re.fullmatch(r"[0-9a-f]{40}", revision):
+            return
+        worker = _worker_id(worker_id)
+        with postgres_db.connect() as connection:
+            row = connection.execute(
+                """INSERT INTO oap_runtime_receipts
+                   (worker_id,event_type,state,detail)
+                   SELECT worker_id,'RECOVERY_CHECKPOINT','SUCCEEDED',%s::jsonb
+                   FROM oap_runtime_workers
+                   WHERE worker_id=%s AND revision=%s AND status='ACTIVE'
+                   RETURNING receipt_id""",
+                (json.dumps({"worker_revision": revision, "session_id": session_id,
+                             "sequence": sequence, "target_seconds": target_seconds,
+                             "recovered_leases": recovered}), worker, revision),
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("checkpoint worker is not active on this revision")
+            connection.commit()
 
     @staticmethod
     def _enqueue_in_connection(

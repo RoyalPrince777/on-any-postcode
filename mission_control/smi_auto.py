@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-from . import ai_behaviour
+from . import ai_behaviour, organism
 
 AUTO_VERSION = 6
 AUTO_LIGHT = "purple"
@@ -223,6 +223,24 @@ def _adaptive_level(*, lenses: tuple[str, ...], semantic_lenses: tuple[str, ...]
         "stop_reason": "minimum sufficient intelligence selected; escalate only if new evidence, risk or mission complexity appears",
     }
 
+def anatomy_review_route(message: object) -> dict[str, object] | None:
+    """Select the full chart audit only for an explicit organism mission."""
+    text = str(message or "").casefold()
+    triggers = ("full anatomy", "complete anatomy", "master anatomy",
+                "full organism", "complete organism", "digital organism",
+                "full in out", "inside and out", "inside & out", "full brain anatomy")
+    if not any(trigger in text for trigger in triggers):
+        return None
+    return {
+        "mission": "master_anatomy_recovery",
+        "review": organism.master_anatomy_review(),
+        "next_action": "map_missing_requirements_to_existing_systems",
+        "checks_executed": False,
+        "execution_granted": False,
+        "approval_granted": False,
+    }
+
+
 def observe(method: object, path: object, endpoint: object = None, message: object = None) -> dict[str, object]:
     """Return deterministic SMI routing metadata for one request.
 
@@ -256,6 +274,9 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
 
     semantic_lenses = _semantic_lenses(message)
     memory_route = memory_learning_route(message)
+    anatomy_route = anatomy_review_route(message) if private_surface else None
+    if anatomy_route:
+        _add(lenses, ("architecture", "dependency", "gap", "readiness", "resilience"))
     _add(lenses, semantic_lenses)
     if memory_route:
         _add(lenses, memory_route["lenses"])
@@ -293,6 +314,7 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
         "lenses": tuple(lenses),
         "semantic_lenses": semantic_lenses,
         "specialist_mission": memory_route,
+        "anatomy_mission": anatomy_route,
         "selector": "surface+action+mission",
         "smi_intelligence": adaptive,
         "private_surface": private_surface,
@@ -425,16 +447,19 @@ def build_evidence_vote_board(
             "human_authority_final": True,
         }
 
-    blocked = str(guardian_outcome).upper() == "BLOCKED"
-    coherent = bool(coherence.get("passed"))
-    constitution = bool(judgement.get("constitution_consistent"))
-    provider_ready = bool(brain.get("passed"))
-    high_impact = bool(brain.get("high_impact"))
+    guardian_state = str(guardian_outcome).upper()
+    blocked = guardian_state == "BLOCKED"
+    coherent = coherence.get("passed") is True
+    constitution = judgement.get("constitution_consistent") is True
+    provider_ready = brain.get("passed") is True
+    # Unknown impact or Guardian evidence cannot inherit a passing review.
+    high_impact = brain.get("high_impact") is not False
     review_required = bool(
-        not coherent
+        not provider_ready
+        or not coherent
         or not constitution
         or high_impact
-        or str(guardian_outcome).upper() == "REVIEW_REQUIRED"
+        or guardian_state != "PASSED"
     )
     if blocked:
         base_vote = "FAIL"
@@ -446,7 +471,11 @@ def build_evidence_vote_board(
     votes: list[dict[str, object]] = []
     for reviewer in roles:
         vote = base_vote
-        reason = "Current governed evidence supports the recommendation."
+        reason = {
+            "PASS": "Current governed evidence supports the recommendation only.",
+            "FAIL": "Guardian blocked the recommendation.",
+            "CONDITIONAL": "Required evidence is missing, invalid or requires review.",
+        }[vote]
         if reviewer == "Shere Khan" and (high_impact or not coherent):
             vote = "FAIL" if blocked else "CONDITIONAL"
             reason = "Shere Khan holds Green until survivability, hidden-dependency, authority-misuse, failure-propagation, recovery and evidence quality are strong; the Claw Test is one pressure mode."

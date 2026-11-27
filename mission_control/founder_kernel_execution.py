@@ -31,7 +31,10 @@ from oap.smi.sovereign_controls import SovereignControlPlane
 from oap.state_machine import ProcessingState
 
 from . import approval_service, authority, postgres_db
-from .founder_github_write import register_github_builder_actions
+from .founder_github_write import (
+    FounderGitHubWriteAdapter,
+    register_github_builder_actions,
+)
 
 _ALLOWED_ACTIONS = frozenset(
     {"github.branch.create", "github.file.write", "github.pr.create"}
@@ -244,15 +247,53 @@ def execute_approved_action(
     }
 
 
-def status() -> dict[str, object]:
+def status(*, branch: str | None = None) -> dict[str, object]:
+    """Read configuration and scope only; never consume approval or call GitHub."""
     sovereign = _SOVEREIGN_CONTROLS.status()
-    credentials_ready = bool(
-        os.getenv("OAP_GITHUB_TOKEN", "").strip()
-        and os.getenv("OAP_APPROVAL_SIGNING_KEY", "").strip()
+    token_configured = bool(os.getenv("OAP_GITHUB_TOKEN", "").strip())
+    try:
+        approval_service._signing_key()
+        signing_key_configured = True
+    except approval_service.ApprovalUnavailable:
+        signing_key_configured = False
+    master_gate = (
+        not sovereign["master_mode_requested"]
+        or sovereign["master_full_sovereignty_ready"]
+    )
+    branch_allowed = None
+    if branch is not None:
+        try:
+            FounderGitHubWriteAdapter._validated_branch(branch)
+            branch_allowed = True
+        except ValueError:
+            branch_allowed = False
+    configuration_ready = bool(
+        token_configured and signing_key_configured
+        and sovereign["execution_enabled"] and master_gate
     )
     return {
         "component": "Founder Living Kernel Execution Bridge",
-        "ready": bool(credentials_ready and sovereign["execution_enabled"]),
+        "ready": configuration_ready and branch_allowed is not False,
+        "configuration_ready": configuration_ready,
+        "token_configured": token_configured,
+        "signing_key_configured": signing_key_configured,
+        "branch_scope_allowed": branch_allowed,
+        "branch_prefix": "oap-mind/",
+        "native_worker_dispatch_connected": False,
+        "native_engineering_execution_verified": False,
+        "live_github_write_verified": False,
+        "execution_granted": False,
+        "evidence_class": "configuration_and_policy_only",
+        "blockers": [
+            name for name, blocked in (
+                ("github_token_missing", not token_configured),
+                ("approval_signing_key_missing_or_short", not signing_key_configured),
+                ("emergency_halt_active", not sovereign["execution_enabled"]),
+                ("master_sovereignty_gate_incomplete", not master_gate),
+                ("branch_outside_existing_builder_scope", branch_allowed is False),
+                ("native_engineering_dispatch_not_connected", True),
+            ) if blocked
+        ],
         "actions": sorted(_ALLOWED_ACTIONS),
         "requires_signed_receipt": True,
         "requires_exact_action_digest": True,

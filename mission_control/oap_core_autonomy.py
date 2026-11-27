@@ -67,6 +67,7 @@ def observe() -> dict[str, Any]:
         "runtime_ready": bool(runtime.get("ready")),
         "runtime_schema_ready": bool(runtime.get("schema_ready")),
         "runtime_worker_fresh": bool(runtime.get("worker_fresh")),
+        "runtime_job_receipt_verified": runtime.get("job_receipt_verified") is True,
         "retry_jobs": int(runtime.get("retry", 0) or 0),
         "dead_letter_jobs": int(runtime.get("dead_letter", 0) or 0),
         "read_only": True,

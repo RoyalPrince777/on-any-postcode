@@ -90,6 +90,7 @@ def run_cycle() -> dict[str, Any]:
         **cycle,
         "source": "production_3x7_21_gate_health",
         "health_status": str(health.get("status") or "degraded"),
+        "health_checks": {name: value is True for name, value in checks.items()},
         "gates_green": sum(value is True for value in checks.values()),
         "gates_total": len(checks),
         "production_invariants": {

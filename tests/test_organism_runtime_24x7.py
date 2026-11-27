@@ -113,3 +113,118 @@ def test_free_mode_does_not_provision_a_paid_background_worker():
     assert "plan: free" in content
     assert "runtime: image" in content
     assert 'value: "smi_gateway:app"' in content
+
+
+def test_continuous_checkpoint_defaults_to_21_seconds(monkeypatch):
+    monkeypatch.delenv("OAP_WORKER_RECOVERY_SECONDS", raising=False)
+    assert organism_worker._positive_seconds(
+        "OAP_WORKER_RECOVERY_SECONDS", organism_worker.CONTINUOUS_CHECKPOINT_SECONDS, 10, 300
+    ) == 21
+
+
+def test_execution_evidence_rejects_unknown_revision(monkeypatch):
+    def forbidden(**kwargs):
+        pytest.fail("unknown revision must not query the database")
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", forbidden)
+    result = organism_runtime.worker_execution_evidence("worker", "device-local")
+    assert result["status"] == "Unknown"
+    assert result["engineering_execution_verified"] is False
+
+
+@pytest.mark.parametrize("row, expected", [
+    (None, "Unknown"),
+    (("worker", None), "Unknown"),
+    (("worker", "job-123"), "Verified"),
+])
+def test_execution_evidence_requires_receipt(monkeypatch, row, expected):
+    from contextlib import contextmanager
+
+    class Connection:
+        def execute(self, sql, parameters):
+            assert parameters == ("worker", "a" * 40)
+            assert "r.detail->>'worker_revision'=w.revision" in sql
+            assert "r.worker_id=w.worker_id" in sql
+            assert "JOB_SUCCEEDED" in sql
+            return self
+
+        def fetchone(self):
+            return row
+
+    @contextmanager
+    def connect(*, readonly):
+        assert readonly
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    result = organism_runtime.worker_execution_evidence("worker", "a" * 40)
+    assert result["status"] == expected
+    assert result["job_receipt_verified"] is (expected == "Verified")
+    assert result["engineering_execution_verified"] is False
+
+
+@pytest.mark.parametrize("gap, restart, age, expected", [
+    (21, False, 2, True),
+    (30, False, 2, False),
+    (21, True, 2, False),
+    (21, False, 30, False),
+    (0, False, 2, False),
+])
+def test_recovery_checkpoint_requires_fresh_same_session_sequence(
+    monkeypatch, gap, restart, age, expected,
+):
+    from contextlib import contextmanager
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    rows = [
+        ({"session_id": "b" * 32 if restart and i == 3 else "a" * 32,
+          "sequence": 7 - i, "target_seconds": 21},
+         now - timedelta(seconds=age + i * gap), age + i * gap)
+        for i in range(7)
+    ]
+
+    class Connection:
+        def execute(self, sql, parameters):
+            assert parameters == ("worker", "c" * 40)
+            assert "r.detail->>'worker_revision'=w.revision" in sql
+            assert "RECOVERY_CHECKPOINT" in sql
+            return self
+
+        def fetchall(self):
+            return rows
+
+    @contextmanager
+    def connect(*, readonly):
+        assert readonly
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    evidence = organism_runtime.recovery_checkpoint_evidence("worker", "c" * 40)
+    assert evidence["observed_cadence"] is expected
+    assert evidence["full_organism_verified"] is False
+
+
+def test_worker_restart_resets_receipt_eligibility_boundary(monkeypatch):
+    from contextlib import contextmanager
+
+    calls = []
+
+    class Connection:
+        def execute(self, sql, parameters):
+            calls.append((sql, parameters))
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    store = organism_runtime.PostgresRuntimeStore()
+    store.heartbeat("worker", revision="a" * 40, new_session=True)
+    store.heartbeat("worker", revision="a" * 40)
+    assert "started_at=CASE WHEN %s" in calls[0][0]
+    assert calls[0][1][-1] is True
+    assert calls[1][1][-1] is False

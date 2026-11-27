@@ -308,6 +308,90 @@ def smi_command_dashboard_view():
     )
 
 
+def _smi_port_alignment():
+    """Fixed host-local observations, never service identity or release proof."""
+    import os
+    import socket
+    from pathlib import Path
+
+    local_mode = os.environ.get("OAP_LOCAL_MODE", "").lower() == "true"
+    registry = (
+        (5000, "SMI Founder HQ", "private_front_door"),
+        (5052, "KORADASO", "approved_offline_surface"),
+        (11434, "Local intelligence", "internal"),
+        (3000, "Transport", "internal"),
+        (3001, "Maps", "internal"),
+        (6379, "Redis", "internal_optional"),
+        (1883, "MQTT", "restricted"),
+        (9000, "Object storage", "internal_optional"),
+        (5050, "Legacy application", "legacy_investigate"),
+        (3091, "Unidentified", "investigate_only"),
+    )
+    services = []
+    for port, name, access in registry:
+        observed = "unknown"
+        if local_mode:
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(0.15)
+                    code = sock.connect_ex(("127.0.0.1", port))
+                observed = "listener_observed" if code == 0 else "no_connection"
+            except OSError:
+                pass
+        services.append({"port": port, "name": name, "access": access,
+                         "observation": observed, "service_verified": False})
+    # A path is not proof of a working PostgreSQL connection.
+    db_socket = Path.home() / ".local/state/oap-postgres/socket/.s.PGSQL.5432"
+    try:
+        socket_present = db_socket.is_socket() if local_mode else None
+    except OSError:
+        socket_present = None
+    return {
+        "scope": "server_host_only" if local_mode else "registry_only",
+        "private_front_door": "/mission/smi",
+        "approved_surface_port": 5052,
+        "services": services,
+        "database_socket_present": socket_present,
+        "database_verified": False,
+        "public_update": "locked",
+        "founder_final_required": True,
+        "production_approved": False,
+        "consequential_action": False,
+    }
+
+
+@bp.get("/smi/maps/", defaults={"path": ""})
+@bp.get("/smi/maps/<path:path>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_private_navigation(path):
+    """Serve only the approved local navigation adapter through the private HQ."""
+    import os
+
+    from . import smi_navigation_bridge
+
+    local_mode = os.environ.get("OAP_LOCAL_MODE", "").lower() == "true"
+    if not smi_navigation_bridge.private_context(local_mode, request.host):
+        return _no_store(make_response(jsonify({"error": "local_navigation_only"}), 404))
+    code, mime, body = smi_navigation_bridge.response(path, request.query_string)
+    response = Response(body, status=code, mimetype=mime)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; script-src 'self'; style-src 'self'; "
+        "connect-src 'self'; img-src 'self'; frame-ancestors 'none'; "
+        "base-uri 'none'; form-action 'none'; object-src 'none'"
+    )
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = (
+        "geolocation=(self), camera=(), microphone=(), payment=()"
+    )
+    return _no_store(response)
+
+
+@bp.get("/smi/ports")
+@web_security.login_required(api=True, founder_only=True)
+def smi_port_alignment_status():
+    return _no_store(make_response(jsonify(_smi_port_alignment())))
+
+
 @bp.get("/smi/status")
 @web_security.login_required(api=True, founder_only=True)
 def smi_command_dashboard_status():

@@ -16,7 +16,7 @@ set +a
 
 cd "$REPO_DIR"
 export OAP_WORKER_ID="${OAP_WORKER_ID:-termux-$(hostname 2>/dev/null || echo android)}"
-export OAP_ENV_REVISION="$(git rev-parse --short=12 HEAD 2>/dev/null || echo termux-unknown)"
+export OAP_ENV_REVISION="$(git rev-parse --verify HEAD 2>/dev/null || echo termux-unknown)"
 
 termux-wake-lock >/dev/null 2>&1 || true
 cleanup() {

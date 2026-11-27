@@ -19,7 +19,10 @@ from .organism import (
     BLOCKED_CONSEQUENTIAL_ACTIONS,
     BODY_ORGANS,
     ORGANISM_SIGNAL_PATH,
+    ORGANISM_SYSTEMS,
+    PHYSIOLOGY_SYSTEMS,
     SAFE_AUTONOMY_ACTIONS,
+    SMI_REGIONS,
     validate_architecture,
 )
 from .organism_runtime import runtime_status
@@ -93,6 +96,7 @@ def observe() -> dict[str, Any]:
         "architecture_ready": bool(architecture.get("passed")),
         "runtime_schema_ready": bool(runtime.get("schema_ready")),
         "runtime_worker_fresh": bool(runtime.get("worker_fresh")),
+        "runtime_job_receipt_verified": runtime.get("job_receipt_verified") is True,
         "product_cores_ready": bool(products.get("schema_ready")),
         "movement_ready": bool(movement.get("schema_ready")),
         "routing_production_ready": bool(routing_state.get("production_ready")),
@@ -106,7 +110,7 @@ def observe() -> dict[str, Any]:
 
 def coherence_review(observation: dict[str, Any] | None = None) -> dict[str, Any]:
     """Detect drift across anatomy, runtime and body-system foundations."""
-    evidence = observation or observe()
+    evidence = observe() if observation is None else observation
     issues: list[str] = []
     if not evidence.get("architecture_ready"):
         issues.append("architecture_not_coherent")
@@ -114,6 +118,8 @@ def coherence_review(observation: dict[str, Any] | None = None) -> dict[str, Any
         issues.append("runtime_schema_not_ready")
     if not evidence.get("runtime_worker_fresh"):
         issues.append("runtime_worker_not_fresh")
+    if evidence.get("runtime_job_receipt_verified") is not True:
+        issues.append("runtime_job_receipt_unverified")
     if not evidence.get("product_cores_ready"):
         issues.append("product_cores_not_ready")
     if not evidence.get("movement_ready"):
@@ -180,6 +186,97 @@ def growth_proposal(review: dict[str, Any] | None = None) -> dict[str, Any]:
     }
 
 
+def physiology_evidence(
+    observation: dict[str, Any], growth: dict[str, Any],
+) -> dict[str, Any]:
+    """Project canonical physiology coverage, not independent organ certification.
+
+    Only checks actually performed by the bounded cycle can be attributed.
+    All other systems retain Unknown until their own operational proof exists.
+    """
+    observed = {
+        "dna": ("architecture_validation", observation.get("architecture_ready")),
+        "cells": ("durable_maintenance_receipt", observation.get("runtime_job_receipt_verified")),
+        "growth": ("bounded_proposal_created", bool(growth.get("proposed_actions"))),
+    }
+    systems = {}
+    for system in PHYSIOLOGY_SYSTEMS:
+        system_id = system["id"]
+        check, result = observed.get(system_id, ("organ_specific_proof_missing", None))
+        systems[system_id] = {
+            "check": check,
+            "check_observed": result is True,
+            "operational_status": "Unknown",
+        }
+    return {
+        "systems": systems,
+        "full_organism_verified": False,
+        "scope": "bounded_health_observation",
+        "independent_execution": False,
+    }
+
+
+def native_anatomy_evidence(
+    cycle: dict[str, Any], smi_cycle: dict[str, Any],
+) -> dict[str, Any]:
+    """Bind existing health observations to canonical internal and external anatomy.
+
+    A health check is not an independent organ-level execution test. Keep all
+    operational states unknown, including for organs with observed prerequisites.
+    Do not infer individual brain-region or product execution from aggregate checks.
+    """
+    checks = smi_cycle.get("health_checks")
+    if not isinstance(checks, dict):
+        checks = {}
+    observation = cycle.get("observation", {})
+    physiology = cycle.get("physiology_evidence", {}).get("systems", {})
+    physiology_checks = {
+        "genes": ("agent_registry",),
+        "circulation": ("nexus", "thalamus_input"),
+        "skin": ("identity", "permission"),
+        "immune": ("aegis", "guardian"),
+    }
+    for system_id, names in physiology_checks.items():
+        if system_id in physiology:
+            physiology[system_id] = {
+                "check": "+".join(names),
+                "check_observed": all(checks.get(name) is True for name in names),
+                "operational_status": "Unknown",
+            }
+    systems_checks = {
+        "nexus": ("nexus",),
+        "identity": ("identity", "permission"),
+        "smi": ("biological_brain", "thalamus_input"),
+        "aegis": ("aegis",),
+        "guardian": ("guardian",),
+        "war_room": ("war_room",),
+        "human_authority": ("human_authority",),
+        "memory": ("hrm", "conversation_memory"),
+    }
+    # Compact evidence: each existing ID occurs exactly once in its own registry.
+    # Unmapped IDs have no attributed check and cannot inherit aggregate success.
+    systems = {
+        item["id"]: {
+            "checks": systems_checks.get(item["id"], ()),
+            "observed": bool(systems_checks.get(item["id"]))
+            and all(checks.get(name) is True for name in systems_checks[item["id"]]),
+        }
+        for item in ORGANISM_SYSTEMS
+    }
+    systems["oap_core"] = {
+        "checks": ("oap_core_configured",),
+        "observed": observation.get("oap_core_autonomy_ready") is True,
+    }
+    return {
+        "systems": systems,
+        "brain_regions": [item["id"] for item in SMI_REGIONS],
+        "body_organs": [item["id"] for item in BODY_ORGANS],
+        "unverified_operational_status": "Unknown",
+        "full_organism_verified": False,
+        "scope": "bounded_health_observation_only",
+    }
+
+
 def run_cycle() -> dict[str, Any]:
     """Run one full Digital Organism thought/review cycle."""
     observation = observe()
@@ -193,6 +290,7 @@ def run_cycle() -> dict[str, Any]:
         "coherence": coherence,
         "recovery": recovery,
         "growth": growth,
+        "physiology_evidence": physiology_evidence(observation, growth),
         "human_authority_final": True,
         "independent_approval": False,
         "independent_execution": False,

@@ -10,10 +10,14 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
+from uuid import uuid4
 
 from . import (
     autonomy_levels,
+    founder_kernel_execution,
     oap_core_autonomy,
+    oap_inference_gateway,
+    organism,
     organism_autonomy,
     postgres_db,
     smi_auto,
@@ -23,6 +27,7 @@ from . import (
 from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
 
 Handler = Callable[[RuntimeJob], dict[str, Any]]
+CONTINUOUS_CHECKPOINT_SECONDS = 21.0
 
 
 def _heartbeat_job(job: RuntimeJob) -> dict[str, Any]:
@@ -37,6 +42,61 @@ def _heartbeat_job(job: RuntimeJob) -> dict[str, Any]:
         "independent_execution": False,
         "consequential_action": False,
     }
+
+
+
+def observe_engineering_receipt() -> dict:
+    """Observe a bounded local engineering receipt; never approve or execute it."""
+    import datetime as dt
+    import re
+    import stat
+
+    result = {"ready": False, "status": "unknown", "read_only": True,
+              "independent_execution": False, "independent_verification": False,
+              "human_authority_final": True, "production_approved": False,
+              "consequential_action": False}
+    path = os.environ.get("OAP_SMI_ENGINEERING_RECEIPT", "").strip()
+    if not path:
+        return {**result, "reason": "not_configured"}
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+        with os.fdopen(fd, "rb") as handle:
+            if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                raise ValueError("not_regular")
+            raw = handle.read(65537)
+        if len(raw) > 65536:
+            raise ValueError("too_large")
+        data = json.loads(raw)
+        if not isinstance(data, dict) or data.get("schema") != "oap.engineering.evidence.v1" or data.get("mission") != "ebike-backend":
+            raise ValueError("schema")
+        if not isinstance(data.get("sourceSha256"), str) or not re.fullmatch(r"[a-f0-9]{64}", data["sourceSha256"]):
+            raise ValueError("revision")
+        step = data.get("step")
+        if type(step) is not int or not 1 <= step <= 10:
+            raise ValueError("step")
+        if not isinstance(data.get("runId"), str) or not re.fullmatch(r"[a-f0-9]{32}", data["runId"]):
+            raise ValueError("run_id")
+        if data.get("status") not in ("failed", "blocked", "incomplete"):
+            raise ValueError("status")
+        finished = dt.datetime.fromisoformat(data["finishedAt"])
+        age = (dt.datetime.now(dt.UTC) - finished).total_seconds()
+        if age < -60 or age > 86400:
+            return {**result, "reason": "stale_or_future_receipt"}
+        expected = os.environ.get("OAP_SMI_ENGINEERING_SOURCE_SHA256", "").strip()
+        if expected and expected != data["sourceSha256"]:
+            return {**result, "reason": "revision_mismatch"}
+        checks = data.get("checks")
+        if not isinstance(checks, list) or not 1 <= len(checks) <= 40:
+            raise ValueError("checks")
+        safe_checks = []
+        for check in checks:
+            if not isinstance(check, dict) or not isinstance(check.get("name"), str) or not re.fullmatch(r"[a-z0-9_-]{1,80}", check["name"]) or check.get("status") not in ("passed", "failed", "blocked"):
+                raise ValueError("check")
+            safe_checks.append({"name": check["name"], "status": check["status"]})
+        status = "failed" if data.get("sourceChangedDuringRun") or any(c["status"] == "failed" for c in safe_checks) else "blocked" if any(c["status"] == "blocked" for c in safe_checks) else "incomplete"
+        return {**result, "ready": True, "status": status, "mission": "ebike-backend", "step": step, "run_id": data["runId"], "source_sha256": data["sourceSha256"], "revision_matched": bool(expected), "checks": safe_checks, "reason": "observed_untrusted_receipt"}
+    except (OSError, ValueError, TypeError, KeyError, OverflowError):
+        return {**result, "reason": "receipt_unavailable_or_invalid"}
 
 
 def _health_probe(job: RuntimeJob) -> dict[str, Any]:
@@ -62,6 +122,17 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
     oap_core_cycle = oap_core_autonomy.run_cycle()
     smi_cycle = smi_runtime_autonomy.run_cycle()
     organism_cycle = organism_autonomy.run_cycle()
+    organism_cycle["native_anatomy_evidence"] = organism_autonomy.native_anatomy_evidence(
+        organism_cycle, smi_cycle,
+    )
+    chart = organism.master_anatomy_review()
+    organism_cycle["master_anatomy_review"] = {
+        "reference": chart["reference"],
+        "brain_registry_matches": len(chart["brain_registry_matches"]),
+        "brain_mapping_gaps": len(chart["brain_mapping_gaps"]),
+        "other_sections_mapping": chart["other_sections_mapping"],
+        "full_organism_verified": False,
+    }
     # Read-only GitHub observation piggybacks on the existing scheduled
     # health probe; no new job type, scheduler or elevated authority.
     # A dedicated least-privilege read token is required to activate it.
@@ -90,8 +161,18 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         github_evidence["latest_failure"]["swot_intelligence"] = (
             smi_auto.evidence_swot_for_failed_build(github_evidence["latest_failure"])
         )
+    local_model = oap_inference_gateway.probe_local(force=True)
     return {
         "kind": "runtime_health_probe",
+        "local_model_evidence": {
+            "reachable": local_model.get("reachable") is True,
+            "model_available": local_model.get("model_available") is True,
+            "inference_execution_verified": False,
+            "local_response_check": oap_inference_gateway.probe_native_inference(local_model),
+            "engineering_execution_verified": False,
+        },
+        "engineering_receipt": observe_engineering_receipt(),
+        "engineering_handoff": founder_kernel_execution.status(),
         "database_ready": bool(database.get("initialized")),
         "human_authority_present": human_authority_present,
         "oap_core_autonomy": oap_core_cycle,
@@ -150,7 +231,7 @@ def run() -> int:
         "OAP_WORKER_SCHEDULER_SECONDS", 5.0, 1.0, 60.0
     )
     recovery_seconds = _positive_seconds(
-        "OAP_WORKER_RECOVERY_SECONDS", 30.0, 10.0, 300.0
+        "OAP_WORKER_RECOVERY_SECONDS", CONTINUOUS_CHECKPOINT_SECONDS, 10.0, 300.0
     )
     lease_seconds = int(
         _positive_seconds("OAP_WORKER_LEASE_SECONDS", 60.0, 30.0, 300.0)
@@ -172,13 +253,16 @@ def run() -> int:
     last_heartbeat = 0.0
     last_scheduler = 0.0
     last_recovery = 0.0
+    recovery_session = uuid4().hex
+    recovery_sequence = 0
     last_job_id: str | None = None
-    store.heartbeat(worker_id, status="ACTIVE", revision=revision)
+    store.heartbeat(worker_id, status="ACTIVE", revision=revision, new_session=True)
     _log(
         "runtime_worker_started",
         worker_id=worker_id,
         revision=revision,
         independent_authority=False,
+        checkpoint_seconds=recovery_seconds,
         allowed_job_types=sorted(HANDLERS),
         autonomy=autonomy_levels.status(),
         oap_core_autonomy=oap_core_autonomy.status(),
@@ -208,6 +292,11 @@ def run() -> int:
                     continue
             if now - last_recovery >= recovery_seconds:
                 recovered = store.recover_stale()
+                recovery_sequence += 1
+                store.record_recovery_checkpoint(
+                    worker_id, revision, recovery_session, recovery_sequence,
+                    recovery_seconds, recovered,
+                )
                 if recovered:
                     _log("runtime_stale_leases_recovered", count=recovered)
                 last_recovery = now
@@ -219,7 +308,15 @@ def run() -> int:
 
             job = store.claim(worker_id, lease_seconds=lease_seconds)
             if job is None:
-                stop_event.wait(poll_seconds)
+                # Do not sleep past the next due maintenance checkpoint while idle.
+                now = time.monotonic()
+                remaining = min(
+                    poll_seconds,
+                    max(0.0, last_heartbeat + heartbeat_seconds - now),
+                    max(0.0, last_scheduler + scheduler_seconds - now),
+                    max(0.0, last_recovery + recovery_seconds - now),
+                )
+                stop_event.wait(remaining)
                 continue
             last_job_id = job.job_id
             handler = HANDLERS.get(job.job_type)
@@ -248,10 +345,28 @@ def run() -> int:
                 continue
 
             try:
+                started_at = datetime.now(UTC)
+                started_tick = time.monotonic_ns()
                 result = handler(job)
+                finished_at = datetime.now(UTC)
+                elapsed_ns = time.monotonic_ns() - started_tick
                 if result.get("consequential_action") is not False:
                     raise PermissionError("runtime handler crossed authority boundary")
-                store.complete(job, worker_id, result)
+                # Attribute only the allowlisted handler, not observed external work.
+                store.complete(job, worker_id, {
+                    **result,
+                    "worker_revision": revision,
+                    "native_task": {
+                        "job_id": job.job_id,
+                        "job_type": job.job_type,
+                        "worker_id": worker_id,
+                        "started_at": started_at.isoformat(),
+                        "finished_at": finished_at.isoformat(),
+                        "duration_ns": elapsed_ns,
+                        "execution_scope": "bounded_maintenance",
+                        "engineering_execution_verified": False,
+                    },
+                })
                 _log(
                     "runtime_job_succeeded",
                     job_id=job.job_id,

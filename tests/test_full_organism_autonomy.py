@@ -188,3 +188,97 @@ def test_organism_page_renders_full_physiology(client):
     assert "OAP Immune System" in page
     assert "OAP Healing System" in page
     assert "OAP Muscles" in page
+
+
+def test_native_cycle_accounts_for_canonical_physiology_without_certifying_organs():
+    evidence = organism_autonomy.physiology_evidence(
+        {"architecture_ready": True, "runtime_job_receipt_verified": False},
+        {"proposed_actions": ("review:runtime",)},
+    )
+    systems = evidence["systems"]
+    assert set(systems) == {system["id"] for system in organism.PHYSIOLOGY_SYSTEMS}
+    assert systems["dna"]["check_observed"] is True
+    assert systems["cells"]["check_observed"] is False
+    assert systems["growth"]["check_observed"] is True
+    assert systems["immune"]["check_observed"] is False
+    assert systems["muscles"]["check_observed"] is False
+    assert all(item["operational_status"] == "Unknown" for item in systems.values())
+    assert evidence["full_organism_verified"] is False
+
+
+def test_native_health_cycle_carries_physiology_evidence(monkeypatch):
+    monkeypatch.setattr(organism_worker.postgres_db, "postgres_status",
+                        lambda: {"initialized": False})
+    monkeypatch.delenv("OAP_SMI_GITHUB_READ_TOKEN", raising=False)
+    result = organism_worker._health_probe(_job("RUNTIME_HEALTH_PROBE"))
+    evidence = result["organism_autonomy"]["physiology_evidence"]
+    assert set(evidence["systems"]) == {
+        system["id"] for system in organism.PHYSIOLOGY_SYSTEMS
+    }
+    assert evidence["full_organism_verified"] is False
+    assert result["consequential_action"] is False
+
+
+def test_native_anatomy_uses_actual_health_checks_without_inheriting_green():
+    cycle = {
+        "observation": {"oap_core_autonomy_ready": True},
+        "physiology_evidence": organism_autonomy.physiology_evidence({}, {}),
+    }
+    evidence = organism_autonomy.native_anatomy_evidence(cycle, {
+        "health_checks": {"nexus": True, "thalamus_input": True,
+                          "agent_registry": True, "guardian": True},
+    })
+    assert set(evidence["systems"]) == {item["id"] for item in organism.ORGANISM_SYSTEMS}
+    assert set(evidence["brain_regions"]) == {item["id"] for item in organism.SMI_REGIONS}
+    assert set(evidence["body_organs"]) == {item["id"] for item in organism.BODY_ORGANS}
+    assert evidence["systems"]["nexus"]["observed"] is True
+    assert evidence["systems"]["smi"]["observed"] is False
+    assert evidence["systems"]["sp_signals"]["observed"] is False
+    physiology = cycle["physiology_evidence"]["systems"]
+    assert physiology["circulation"]["check_observed"] is True
+    assert physiology["genes"]["check_observed"] is True
+    assert physiology["immune"]["check_observed"] is False
+    assert all(item["operational_status"] == "Unknown" for item in physiology.values())
+    assert evidence["full_organism_verified"] is False
+
+
+def test_coherence_requires_verified_durable_receipt():
+    observation = {
+        "architecture_ready": True,
+        "runtime_schema_ready": True,
+        "runtime_worker_fresh": True,
+        "product_cores_ready": True,
+        "movement_ready": True,
+        "routing_production_ready": True,
+        "oap_core_autonomy_ready": True,
+        "smi_autonomy_ready": True,
+        "body_organs": organism.BODY_ORGANS,
+    }
+    for value in (None, False, 1, "true"):
+        review = organism_autonomy.coherence_review(
+            {**observation, "runtime_job_receipt_verified": value}
+        )
+        assert review["coherent"] is False
+        assert review["issues"] == ("runtime_job_receipt_unverified",)
+        assert organism_autonomy.recovery_review(review)["recovery_attention"] is True
+        assert "review:runtime_job_receipt_unverified" in organism_autonomy.growth_proposal(review)["proposed_actions"]
+    missing = organism_autonomy.coherence_review(observation)
+    assert missing["coherent"] is False
+    assert missing["issues"] == ("runtime_job_receipt_unverified",)
+    verified = organism_autonomy.coherence_review(
+        {**observation, "runtime_job_receipt_verified": True}
+    )
+    assert verified["coherent"] is True
+    assert verified["issues"] == ()
+    assert verified["review_only"] is True
+    assert verified["consequential_action"] is False
+
+
+def test_empty_coherence_observation_fails_closed(monkeypatch):
+    def unexpected_observe():
+        raise AssertionError("Explicit empty evidence must not be replaced")
+
+    monkeypatch.setattr(organism_autonomy, "observe", unexpected_observe)
+    review = organism_autonomy.coherence_review({})
+    assert review["coherent"] is False
+    assert "runtime_job_receipt_unverified" in review["issues"]

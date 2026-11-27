@@ -110,3 +110,28 @@ def test_auto_swot_uses_only_verified_categories_without_granting_execution():
             {"job_id": 31, "categories": ("untrusted_input",)},
         )}
     })["ready"] is False
+
+
+def test_auto_review_requires_explicit_guardian_and_boolean_evidence():
+    valid = {
+        "roles": ("Neo", "Guardian", "Green Gate"),
+        "brain": {"passed": True, "high_impact": False},
+        "coherence": {"passed": True},
+        "judgement": {"constitution_consistent": True},
+        "guardian_outcome": "PASSED",
+    }
+    cases = (
+        {"guardian_outcome": "UNKNOWN"},
+        {"guardian_outcome": ""},
+        {"guardian_outcome": "REVIEW_REQUIRED"},
+        {"brain": {"passed": "true", "high_impact": False}},
+        {"brain": {"passed": True}},
+        {"brain": {"passed": True, "high_impact": 0}},
+        {"coherence": {"passed": 1}},
+        {"judgement": {"constitution_consistent": "false"}},
+    )
+    for changes in cases:
+        board = smi_auto.build_evidence_vote_board(**{**valid, **changes})
+        assert board["summary"] == {"PASS": 0, "FAIL": 0, "CONDITIONAL": 3}
+        assert board["authority_granted"] is False
+        assert not any(v["independent_personality_claimed"] for v in board["votes"])

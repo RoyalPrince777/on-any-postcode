@@ -25,6 +25,9 @@
     <article class="card"><strong>{{ cycle.weaknesses|length }}</strong><small>evidence weaknesses</small></article>
     <article class="card"><strong>{{ cycle.proof.smi_gates_green }}/{{ cycle.proof.smi_gates_total }}</strong><small>SMI runtime gates</small></article>
     <article class="card"><strong>{{ 'PROVEN' if cycle.proof.continuous_cycle_proven else 'UNPROVEN' }}</strong><small>continuous worker cycle</small></article>
+    {% set checkpoint = cycle.proof.get("recovery_checkpoint", {}) %}
+    <article class="card"><strong>{{ "OBSERVED" if checkpoint.get("observed_cadence") is sameas true else "UNKNOWN" }}</strong><small>21-second recovery cadence · {{ checkpoint.get("sample_count", 0) }}/7 samples · not full-organism proof</small></article>
+    <article class="card"><strong>{{ "VERIFIED" if cycle.proof.get("bounded_job_receipt_verified") is sameas true else "UNKNOWN" }}</strong><small>bounded maintenance receipt · not engineering proof</small></article>
     <article class="card"><strong>LOCKED</strong><small>independent apply and deploy</small></article>
   </section>
 

@@ -13,5 +13,5 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 cd "$REPO_DIR"
 export OAP_HOME_REPO="$REPO_DIR"
-export OAP_ENV_REVISION="$(git rev-parse --short=12 HEAD 2>/dev/null || echo device-local)"
+export OAP_ENV_REVISION="$(git rev-parse --verify HEAD 2>/dev/null || echo device-local)"
 exec "$VENV_DIR/bin/python" "$REPO_DIR/scripts/oap_home_node_supervisor.py"

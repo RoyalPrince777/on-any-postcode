@@ -908,6 +908,183 @@ def validate_architecture(
     }
 
 
+# Founder master chart: 21284.png. Reference requirements, not new runtime organs.
+# Keep the original labels and distinguish registry correspondence from proof.
+MASTER_ANATOMY_REFERENCE = {
+    "core_foundations": ("Brain", "Heart", "Body", "Soul / Identity"),
+    "living_dimensions": (
+        "Mind", "Body", "Soul", "Spirit", "Heart", "Senses", "Conscience",
+        "Identity", "Memory", "Will", "Time", "Growth", "Recovery",
+    ),
+    "outside_anatomy": {
+        "Head & Face": ("Scalp", "Skull", "Forehead", "Eyes", "Eyelids", "Ears",
+                        "Nose", "Cheeks", "Mouth", "Lips", "Teeth", "Tongue", "Jaw", "Chin"),
+        "Neck & Trunk": ("Neck", "Shoulders", "Chest", "Back", "Abdomen", "Waist",
+                         "Pelvis", "Hips"),
+        "Upper Limbs": ("Arms", "Elbows", "Forearms", "Wrists", "Hands", "Palms",
+                        "Fingers", "Thumbs"),
+        "Lower Limbs": ("Thighs", "Knees", "Legs", "Ankles", "Feet", "Soles", "Toes"),
+        "Outer Covering": ("Skin", "Hair", "Nails"),
+    },
+    "inside_anatomy": (
+        "Brain", "Nervous System", "Cardiovascular", "Respiratory", "Digestive",
+        "Urinary", "Endocrine", "Lymphatic / Immune", "Reproductive",
+    ),
+    "organ_systems": {
+        "Nervous": ("Brain", "Spinal Cord", "Peripheral Nerves", "Sensory Nerves",
+                    "Motor Nerves", "Autonomic Nerves"),
+        "Sensory": ("Eyes", "Ears", "Nose", "Tongue", "Skin", "Balance"),
+        "Skeletal": ("Skull", "Spine", "Rib Cage", "Shoulder Girdle", "Pelvis",
+                     "Arm / Hand Bones", "Leg / Foot Bones", "Joints", "Cartilage"),
+        "Muscular": ("Skeletal Muscles", "Smooth Muscles", "Cardiac Muscle",
+                     "Tendons", "Ligaments"),
+        "Cardiovascular": ("Heart", "Arteries", "Veins", "Capillaries", "Blood",
+                           "Circulation"),
+        "Respiratory": ("Nasal Cavity", "Pharynx", "Larynx", "Trachea", "Bronchi",
+                        "Lungs", "Diaphragm"),
+        "Digestive": ("Mouth", "Saliva", "Teeth", "Tongue", "Oesophagus", "Stomach",
+                      "Liver", "Gallbladder", "Pancreas", "Small Intestine",
+                      "Large Intestine", "Rectum", "Anus"),
+        "Urinary": ("Kidneys", "Ureters", "Bladder", "Urethra"),
+        "Endocrine": ("Hypothalamus", "Pituitary", "Pineal", "Thyroid",
+                      "Parathyroids", "Adrenals", "Pancreatic Cells",
+                      "Reproductive Glands"),
+        "Lymphatic / Immune": ("Lymph Nodes", "Lymph Vessels", "Spleen", "Thymus",
+                               "Bone Marrow", "Immune Cells", "Defence", "Repair"),
+        "Reproductive": ("Male / Female Structures", "Gonads", "Internal Organs",
+                         "External Anatomy", "Reproduction (Regulated)"),
+        "Integumentary": ("Skin", "Hair", "Nails", "Temperature", "Sensation",
+                          "Barrier Defence", "Self-Repair"),
+    },
+    "brain_anatomy": {
+        "Cerebrum & Lobes": ("Left Hemisphere", "Right Hemisphere", "Frontal Lobe",
+                             "Parietal Lobe", "Temporal Lobe", "Occipital Lobe",
+                             "Limbic Lobe", "Insula"),
+        "Surface Landmarks": ("Precentral Gyrus", "Postcentral Gyrus", "Central Sulcus",
+                              "Parieto-Occipital Sulcus", "Calcarine Sulcus", "Gyri",
+                              "Sulci", "Cerebral Cortex"),
+        "Connections": ("Corpus Callosum", "Anterior Commissure", "Posterior Commissure",
+                        "Septum Pellucidum", "Fornix", "Interthalamic Adhesion"),
+        "Deep Centres": ("Thalamus", "Hypothalamus", "Epithalamus", "Pineal Gland",
+                         "Pituitary Gland", "Mammillary Body", "Optic Chiasm",
+                         "Choroid Plexus"),
+        "Limbic & Memory": ("Hippocampus", "Amygdala", "Caudate Nucleus", "Basal Ganglia",
+                            "Cingulate Gyrus", "Parahippocampal Gyrus"),
+        "Mid & Lower Brain": ("Midbrain", "Cerebral Aqueduct", "Corpora Quadrigemina",
+                              "Pons", "Medulla Oblongata", "Brain Stem",
+                              "Reticular Activating Formation"),
+        "Coordination": ("Cerebellum", "Arbor Vitae", "Motor Coordination", "Precision",
+                         "Balance"),
+        "Fluid & Protection": ("Lateral Ventricles", "Third Ventricle", "Fourth Ventricle",
+                               "Interventricular Foramen", "Foramen of Luschka",
+                               "Central Canal", "Meninges", "Skull", "Vertebrae",
+                               "Spinal Cord"),
+    },
+    "integration": ("Sense", "Process", "Understand", "Decide", "Act", "Grow", "Recover"),
+}
+
+
+# Proposed functional correspondence to existing registries, not new organs.
+# Names absent from these maps intentionally remain unresolved.
+MASTER_FUNCTIONAL_LINKS = {
+    "core_foundations": {
+        "Brain": ("smi",), "Heart": ("living_kernel",),
+        "Body": ("body_systems",), "Soul / Identity": ("dna", "identity"),
+    },
+    "living_dimensions": {
+        "Mind": ("smi", "synthetic_mind"), "Body": ("body_systems", "muscles"),
+        "Soul": ("dna", "identity"), "Spirit": ("energy", "healing"),
+        "Heart": ("living_kernel",), "Senses": ("sp_signals", "thalamus"),
+        "Conscience": ("guardian", "war_room"), "Identity": ("identity", "dna"),
+        "Memory": ("memory", "hippocampus"), "Will": ("human_authority",),
+        "Time": ("cerebellum", "brainstem"), "Growth": ("growth",),
+        "Recovery": ("healing", "aegis"),
+    },
+    "inside_anatomy": {
+        "Brain": ("smi",), "Nervous System": ("nexus",),
+        "Cardiovascular": ("living_kernel", "blood", "circulation"),
+        "Respiratory": ("lungs",), "Digestive": ("digestive",),
+        "Urinary": ("liver_kidneys",), "Endocrine": ("endocrine",),
+        "Lymphatic / Immune": ("immune", "guardian", "aegis"),
+        "Reproductive": ("growth", "genes"),
+    },
+    "organ_systems": {
+        "Nervous": ("nexus", "brainstem"), "Sensory": ("sp_signals", "thalamus"),
+        "Skeletal": ("dna", "oap_core"), "Muscular": ("muscles", "body_systems"),
+        "Cardiovascular": ("living_kernel", "blood", "circulation"),
+        "Respiratory": ("lungs",), "Digestive": ("digestive",),
+        "Urinary": ("liver_kidneys",), "Endocrine": ("endocrine", "hypothalamus"),
+        "Lymphatic / Immune": ("immune", "healing", "guardian"),
+        "Reproductive": ("growth", "genes"), "Integumentary": ("skin", "healing"),
+    },
+    "integration": {
+        "Sense": ("sp_signals", "thalamus"), "Process": ("oap_core", "smi"),
+        "Understand": ("smi", "synthetic_mind"), "Decide": ("human_authority",),
+        "Act": ("living_kernel", "muscles"), "Grow": ("growth", "memory"),
+        "Recover": ("healing", "aegis"),
+    },
+}
+
+
+def master_functional_links() -> dict[str, Any]:
+    """Validate proposed links against existing canonical IDs.
+
+    Section-level links do not cover individual parts, nor prove execution.
+    Reproductive links mean governed growth only, never autonomous replication.
+    """
+    ids = {
+        item["id"]
+        for registry in (ORGANISM_SYSTEMS, PHYSIOLOGY_SYSTEMS, SMI_REGIONS)
+        for item in registry
+    }
+    sections = {}
+    for section, links in MASTER_FUNCTIONAL_LINKS.items():
+        sections[section] = {
+            label: {
+                "targets": targets,
+                "registry_resolved": bool(targets) and all(target in ids for target in targets),
+                "operational_status": "Unknown",
+            }
+            for label, targets in links.items()
+        }
+    return sections
+
+
+def master_anatomy_review() -> dict[str, Any]:
+    """Expose chart requirements and exact registered brain-region matches.
+
+    Other chart-to-runtime associations remain unresolved until explicitly
+    mapped. Matching a name is architecture evidence, never execution evidence.
+    """
+    brain_names = {
+        re.sub(r"[^a-z0-9]", "", item["name"].casefold()): item["id"]
+        for item in SMI_REGIONS
+    }
+    brain_matches = {}
+    brain_gaps = []
+    for group, labels in MASTER_ANATOMY_REFERENCE["brain_anatomy"].items():
+        for label in labels:
+            key = re.sub(r"[^a-z0-9]", "", label.casefold())
+            match = brain_names.get(key)
+            if match:
+                brain_matches[label] = match
+            else:
+                brain_gaps.append({"group": group, "label": label})
+    return {
+        "reference": "21284.png",
+        "requirements": MASTER_ANATOMY_REFERENCE,
+        "brain_registry_matches": brain_matches,
+        "brain_mapping_gaps": brain_gaps,
+        "functional_links": master_functional_links(),
+        "other_sections_mapping": "Section links proposed; individual parts require review",
+        "operational_status": "Unknown",
+        "full_organism_verified": False,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
 def get_public_anatomy() -> dict[str, Any]:
     """Return the immutable architecture as a template-ready public projection."""
 

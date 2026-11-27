@@ -7,6 +7,7 @@ Provider brands are not part of Personal SMI identity or authority.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -54,6 +55,26 @@ BRIDGE_ENABLED = os.environ.get("OAP_HOME_NODE_BRIDGE_ENABLED", "1").strip().low
 OFFLINE_ONLY = os.environ.get("OAP_INFERENCE_OFFLINE_ONLY", "0").strip().lower() in {
     "1", "true", "yes", "on",
 }
+
+
+class _NoLocalRedirect(urlrequest.HTTPRedirectHandler):
+    """A local request must never follow a redirect, including to another local service."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _read_local_json(req, *, timeout: float) -> dict[str, Any]:
+    """Ignore environment proxies and reject redirects and oversized responses."""
+    opener = urlrequest.build_opener(urlrequest.ProxyHandler({}), _NoLocalRedirect())
+    with opener.open(req, timeout=timeout) as response:
+        raw = response.read(262145)
+    if len(raw) > 262144:
+        raise ValueError("local_response_too_large")
+    body = json.loads(raw)
+    if not isinstance(body, dict):
+        raise TypeError("local_response_not_object")
+    return body
 
 
 def _local_endpoint_allowed() -> bool:
@@ -236,11 +257,10 @@ def _call_local_public(
         method="POST",
     )
     try:
-        with urlrequest.urlopen(req, timeout=2.0) as response:
-            body = json.loads(response.read().decode("utf-8", errors="replace"))
+        body = _read_local_json(req, timeout=2.0)
     except HTTPError as exc:
         raise RuntimeError(f"local_inference_http_{exc.code}") from exc
-    except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+    except (URLError, TimeoutError, OSError, TypeError, ValueError) as exc:
         raise RuntimeError("local_inference_unavailable") from exc
     text = str((body.get("message") or {}).get("content", "")).strip() or str(
         body.get("response", "")
@@ -316,11 +336,10 @@ def _call_local(
         method="POST",
     )
     try:
-        with urlrequest.urlopen(req, timeout=2.0) as response:
-            body = json.loads(response.read().decode("utf-8", errors="replace"))
+        body = _read_local_json(req, timeout=2.0)
     except HTTPError as exc:
         raise RuntimeError(f"local_inference_http_{exc.code}") from exc
-    except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+    except (URLError, TimeoutError, OSError, TypeError, ValueError) as exc:
         raise RuntimeError("local_inference_unavailable") from exc
     text = str((body.get("message") or {}).get("content", "")).strip() or str(
         body.get("response", "")
@@ -370,8 +389,9 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
             method="GET",
         )
         try:
-            with urlrequest.urlopen(req, timeout=1.0) as response:
-                body = json.loads(response.read().decode("utf-8", errors="replace"))
+            body = _read_local_json(req, timeout=1.0)
+            if not isinstance(body.get("models"), list):
+                raise TypeError("local_model_list_invalid")
             names = {
                 str(item.get("name") or item.get("model") or "")
                 for item in body.get("models", [])
@@ -386,10 +406,67 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
             )
         except HTTPError as exc:
             result["reason"] = f"local_probe_http_{exc.code}"
-        except (URLError, TimeoutError, OSError, json.JSONDecodeError):
+        except (URLError, TimeoutError, OSError, TypeError, ValueError):
             result["reason"] = "local_probe_unavailable"
     _probe_cache = (now, dict(result))
     return result
+
+
+def probe_native_inference(availability: dict[str, Any]) -> dict[str, Any]:
+    """Opt-in local service response check, not model identity or engineering proof."""
+    result = {
+        "attempted": False,
+        "local_response_observed": False,
+        "model_identity_independently_verified": False,
+        "engineering_execution_verified": False,
+        "external_fallback_used": False,
+        "reason": "native_inference_probe_disabled",
+    }
+    if os.getenv("OAP_SMI_NATIVE_INFERENCE_PROBE", "").strip().lower() not in {
+        "1", "true", "yes",
+    }:
+        return result
+    if (
+        not LOCAL_ENABLED or not LOCAL_MODEL or not _local_endpoint_allowed()
+        or availability.get("reachable") is not True
+        or availability.get("model_available") is not True
+    ):
+        return {**result, "reason": "local_model_unavailable"}
+    # Never send Founder data, source code, secrets or credentials for this check.
+    req = urlrequest.Request(
+        LOCAL_URL,
+        data=json.dumps({
+            "model": LOCAL_MODEL,
+            "messages": [{"role": "user", "content": "Reply with the word READY."}],
+            "stream": False,
+            "options": {"temperature": 0, "num_predict": 8},
+        }).encode(),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    result["attempted"] = True
+    started = time.monotonic_ns()
+    try:
+        body = _read_local_json(req, timeout=5.0)
+        message = body.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        count = body.get("eval_count")
+        if (
+            body.get("model") != LOCAL_MODEL or body.get("done") is not True
+            or not isinstance(content, str) or not content.strip()
+            or type(count) is not int or not 0 < count <= 8
+        ):
+            return {**result, "reason": "local_response_evidence_invalid"}
+        return {
+            **result,
+            "local_response_observed": True,
+            "response_sha256": hashlib.sha256(content.encode()).hexdigest(),
+            "reported_output_tokens": count,
+            "duration_ns": time.monotonic_ns() - started,
+            "reason": "local_service_response_observed_not_independent_model_proof",
+        }
+    except (HTTPError, URLError, TimeoutError, OSError, TypeError, ValueError):
+        return {**result, "reason": "native_inference_response_unavailable"}
 
 
 def generate(

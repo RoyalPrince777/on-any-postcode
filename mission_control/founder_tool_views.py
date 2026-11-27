@@ -90,7 +90,7 @@ def github_status():
 @bp.get("/tools/github/kernel-status")
 @web_security.login_required(api=True, founder_only=True)
 def github_kernel_status():
-    return _no_store(make_response(jsonify(kernel_execution_status())))
+    return _no_store(make_response(jsonify(kernel_execution_status(branch=request.args.get("branch")))))
 
 
 @bp.get("/tools/github/repository")
