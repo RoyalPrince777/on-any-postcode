@@ -263,3 +263,25 @@ def test_matrix_home_groups_preserve_character_home_and_external_smi_boundary():
     assert agents.matrix_home_for('Niobe')['group_id'] == 'logos'
     assert agents.matrix_home_for('Nirmata') is None
     assert agents.matrix_home_for('Mouse')['execution_granted'] is False
+
+
+def test_auto_full_anatomy_routes_to_original_master_chart_without_authority():
+    result = smi_auto.observe("POST", "/mission/ollama", message="Fix full organism inside and out")
+    route = result["anatomy_mission"]
+    review = route["review"]
+    assert len(review["requirements"]["core_foundations"]) == 4
+    assert len(review["requirements"]["living_dimensions"]) == 13
+    assert len(review["requirements"]["organ_systems"]) == 12
+    assert len(review["requirements"]["brain_anatomy"]) == 8
+    assert review["brain_registry_matches"]["Thalamus"] == "thalamus"
+    assert any(item["label"] == "Pons" for item in review["brain_mapping_gaps"])
+    assert review["full_organism_verified"] is False
+    assert route["checks_executed"] is False
+    assert result["execution_granted"] is False
+    assert result["approval_granted"] is False
+
+
+def test_auto_master_chart_review_does_not_leak_on_public_surfaces():
+    result = smi_auto.observe("GET", "/the-spot", message="full organism")
+    assert result["anatomy_mission"] is None
+    assert smi_auto.observe("GET", "/mission/ollama", message="hello")["anatomy_mission"] is None
