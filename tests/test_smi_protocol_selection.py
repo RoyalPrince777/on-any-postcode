@@ -299,6 +299,8 @@ def test_builtin_capability_baselines():
         "dependencies", "economics", "science", "audit", "coordination",
         "pack", "swarm", "recovery", "guardian", "adversarial", "command",
         "memory", "creation", "investigation", "language", "execution", "verification",
+        "stealth", "patterns", "last_line_defence", "complex_missions", "matrix",
+        "identity", "civic_rights", "threat_awareness", "living_kernel", "deployment", "green_gate",
     ):
         result = benchmark_builtin_capability(protocol)
         assert result["status"] == "Passed"
@@ -313,7 +315,7 @@ def test_builtin_capability_baselines():
 def test_builtin_capability_baseline_does_not_claim_unimplemented_protocols():
     from oap.smi.protocol_selection import benchmark_builtin_capability
 
-    for protocol in ("matrix", "deployment", "unknown"):
+    for protocol in ("unknown", ""):
         result = benchmark_builtin_capability(protocol)
         assert result["status"] == "Not tested"
         assert result["checks_total"] == 0
@@ -357,3 +359,9 @@ def test_execution_baseline_requires_human_approval(monkeypatch):
     result = benchmark_builtin_capability("execution")
     assert result["status"] == "Failed"
     assert result["execution_granted"] is False
+
+
+def test_all_protocols_have_smoke_case_coverage():
+    from oap.smi.protocol_selection import BUILTIN_BASELINES
+
+    assert set(BUILTIN_BASELINES) == set(PROTOCOL_TEAMS)
