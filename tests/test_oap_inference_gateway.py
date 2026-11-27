@@ -184,3 +184,52 @@ def test_offline_status_does_not_claim_network_proof(monkeypatch):
     assert status["offline_only_policy_enabled"] is True
     assert status["offline_only_model_available"] is True
     assert status["device_wide_no_egress_proven"] is False
+
+
+def test_configured_model_benchmark_uses_only_fixed_local_prompt(monkeypatch):
+    gateway = oap_inference_gateway
+    monkeypatch.setattr(gateway, "LOCAL_ENABLED", True)
+    monkeypatch.setattr(gateway, "LOCAL_URL", "http://127.0.0.1:11434/api/chat")
+    monkeypatch.setattr(gateway, "LOCAL_MODEL", "fixture:latest")
+    calls = []
+
+    def fixture(url, payload=None):
+        calls.append((url, payload))
+        if payload is None:
+            return {"models": [{"name": "fixture:latest"}]}
+        return {"model": "fixture:latest", "done": True, "message": {"content": "4"}}
+
+    monkeypatch.setattr(gateway, "_bounded_local_probe_json", fixture)
+    result = gateway.benchmark_configured_local_model()
+    assert result["status"] == "Passed"
+    assert result["exact_answer_matched"] is True
+    assert result["independent_verification"] is False
+    assert result["hardware_compatibility_verified"] is False
+    assert result["fallback_used"] is False
+    assert result["execution_granted"] is False
+    assert calls[0] == ("http://127.0.0.1:11434/api/tags", None)
+    assert calls[1][1]["model"] == "fixture:latest"
+    assert calls[1][1]["options"]["num_predict"] == 8
+    assert len(calls[1][1]["messages"]) == 1
+
+
+def test_configured_model_benchmark_fails_closed_on_missing_or_remote_model(monkeypatch):
+    gateway = oap_inference_gateway
+    monkeypatch.setattr(gateway, "LOCAL_ENABLED", True)
+    monkeypatch.setattr(gateway, "LOCAL_URL", "http://127.0.0.1:11434/api/chat")
+    monkeypatch.setattr(gateway, "LOCAL_MODEL", "fixture:latest")
+    calls = []
+
+    def missing(url, payload=None):
+        calls.append(url)
+        assert payload is None
+        return {"models": []}
+
+    monkeypatch.setattr(gateway, "_bounded_local_probe_json", missing)
+    result = gateway.benchmark_configured_local_model()
+    assert result["status"] == "Unknown"
+    assert result["inference_attempted"] is False
+    assert len(calls) == 1
+    monkeypatch.setattr(gateway, "LOCAL_URL", "https://example.invalid/api/chat")
+    assert gateway.benchmark_configured_local_model()["inference_attempted"] is False
+    assert len(calls) == 1

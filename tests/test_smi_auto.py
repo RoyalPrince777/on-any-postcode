@@ -263,3 +263,66 @@ def test_matrix_home_groups_preserve_character_home_and_external_smi_boundary():
     assert agents.matrix_home_for('Niobe')['group_id'] == 'logos'
     assert agents.matrix_home_for('Nirmata') is None
     assert agents.matrix_home_for('Mouse')['execution_granted'] is False
+
+
+def test_auto_explicit_protocol_consumes_existing_capability_plan():
+    result = smi_auto.observe("POST", "/mission/ollama", message="protocol: execution")
+    plan = result["capability_plan"]
+    assert plan["status"] == "PROPOSED_UNVERIFIED"
+    assert "Qwen3-Coder-Next" in plan["candidates"]
+    assert plan["installed_verified"] is False
+    assert result["provider_call_performed"] is False
+    assert result["database_write_performed"] is False
+    assert result["execution_granted"] is False
+
+
+def test_auto_protocol_route_rejects_unknown_ambiguous_and_public_requests():
+    assert smi_auto.observe("GET", "/mission/ollama", message="protocol: unknown")[
+        "capability_plan"
+    ]["status"] == "UNRECOGNISED"
+    assert smi_auto.observe("GET", "/mission/ollama", message="protocol: memory; protocol: deployment")[
+        "capability_plan"
+    ]["status"] == "AMBIGUOUS_PROTOCOL"
+    assert smi_auto.observe("GET", "/the-spot", message="protocol: execution")["capability_plan"] is None
+    assert smi_auto.observe("GET", "/mission/ollama", message="hello")["capability_plan"] is None
+
+
+def test_auto_protocol_inventory_never_executes_candidates(monkeypatch):
+    from oap.smi import protocol_selection
+
+    monkeypatch.setattr(protocol_selection, "which", lambda name: "/local/bin/opa")
+    result = smi_auto.observe("POST", "/mission/ollama", message="protocol: guardian")
+    inventory = result["capability_plan"]["capability_inventory"]
+    assert inventory["observations"]["OPA"]["observation"] == "Executable detected"
+    assert inventory["observations"]["OPA"]["functional_status"] == "Unknown"
+    assert inventory["commands_executed"] is False
+    assert inventory["downloads_performed"] is False
+    assert inventory["execution_granted"] is False
+    assert result["approval_granted"] is False
+
+
+def test_auto_invalid_protocol_does_not_probe_inventory(monkeypatch):
+    from oap.smi import protocol_selection
+
+    def unexpected_probe(protocol):
+        raise AssertionError("Invalid or public request must not probe capability inventory")
+
+    monkeypatch.setattr(protocol_selection, "observe_protocol_capabilities", unexpected_probe)
+    for path, message in (
+        ("/mission/ollama", "protocol: invalid"),
+        ("/mission/ollama", "protocol: memory; protocol: deployment"),
+        ("/the-spot", "protocol: guardian"),
+    ):
+        result = smi_auto.observe("GET", path, message=message)
+        assert not (result["capability_plan"] or {}).get("capability_inventory")
+
+
+def test_auto_capability_review_reuses_hybrid_without_selecting_execution():
+    result = smi_auto.observe("POST", "/mission/ollama", message="protocol: deployment")
+    review = result["capability_plan"]["hybrid_review"]
+    assert "HYBRID" in review["layers"]
+    assert review["review_paths"] == ("DETERMINISTIC",)
+    assert review["candidate_execution_selected"] is False
+    assert review["candidate_execution_verified"] is False
+    assert review["human_authority_final"] is True
+    assert result["execution_granted"] is False

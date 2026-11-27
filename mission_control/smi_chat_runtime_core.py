@@ -717,6 +717,99 @@ def _auto_runtime_mode(
     return "instant", auto_studio, 3
 
 
+def _founder_protocol_review(
+    message: str, authority_context: dict, guardian_outcome: str, *, has_media: bool = False,
+) -> dict | None:
+    """Only explicit, authenticated Founder commands can inspect local inventory."""
+    command = re.fullmatch(r"(protocol|benchmark)\s*[:=]\s*([a-z0-9_-]+)", message.strip(), re.IGNORECASE)
+    if (
+        guardian_outcome != "PASSED"
+        or authority_context.get("is_human_authority") is not True
+        or type(authority_context.get("authority_level")) is not int
+        or authority_context["authority_level"] != 0
+        or authority.APPROVAL_PERMISSION not in (authority_context.get("permissions") or ())
+        or has_media
+        or command is None
+    ):
+        return None
+    if command.group(1).casefold() == "protocol":
+        return smi_auto.capability_review_route(message)
+    if command.group(2).casefold() == "local_model":
+        return {
+            "protocol": "local_model", "status": "LOCAL_MODEL_REVIEW",
+            "local_model_probe": oap_inference_gateway.benchmark_configured_local_model(),
+            "execution_granted": False, "approval_granted": False,
+        }
+    from oap.smi.protocol_selection import benchmark_builtin_capability
+
+    plan = smi_auto.capability_review_route(f"protocol: {command.group(2)}")
+    if plan is None or plan.get("status") != "PROPOSED_UNVERIFIED":
+        return plan
+    try:
+        benchmark = benchmark_builtin_capability(command.group(2))
+    except Exception:  # noqa: BLE001 - fail closed without exposing internal exception details.
+        benchmark = {
+            "scope": "synthetic_fixed_case_smoke_test", "status": "Failed",
+            "checks_passed": 0, "checks_total": 1, "elapsed_ms": None,
+            "candidate_benchmark_verified": False, "independent_verification": False,
+            "execution_granted": False, "approval_granted": False,
+        }
+    return {**plan, "baseline": benchmark}
+
+
+def _protocol_review_response(plan: dict) -> str:
+    """Render observed inventory directly; never send it to a model provider."""
+    if plan.get("status") == "LOCAL_MODEL_REVIEW":
+        probe = plan["local_model_probe"]
+        return (
+            f"Configured loopback model fixed-case result: {probe['status']}. "
+            f"Model listed: {probe['model_listed']}; inference attempted: {probe['inference_attempted']}. "
+            "Hardware compatibility and independent runtime certification: Unknown. "
+            "No model installation, provider fallback or authority grant."
+        )
+    if plan.get("status") != "PROPOSED_UNVERIFIED":
+        return "Protocol review: unknown protocol. No candidate selected or executed."
+    inventory = plan["capability_inventory"]
+    lines = [
+        f"SMI protocol: {plan['protocol']}",
+        "Status: proposed, unverified. Local process observations only.",
+    ]
+    for candidate, item in inventory["observations"].items():
+        lines.append(f"- {candidate}: {item['observation']}; functional status Unknown.")
+    lines.extend((
+        f"Required test: {plan['acceptance_test']}",
+        "No candidate executed or benchmarked. Human Authority remains final.",
+    ))
+    baseline = plan.get("baseline")
+    if baseline is not None:
+        lines.append(
+            f"Fixed-case baseline: {baseline['status']} "
+            f"({baseline['checks_passed']}/{baseline['checks_total']}). "
+            "Not a model benchmark or independent runtime certification."
+        )
+    return "\n".join(lines)
+
+
+def _protocol_review_evidence(plan: dict | None) -> dict | None:
+    """Store minimal review evidence in existing HRM; no host versions or paths."""
+    if plan is None:
+        return None
+    baseline = plan.get("baseline") or {}
+    model_probe = plan.get("local_model_probe") or {}
+    return {
+        "protocol": plan.get("protocol"),
+        "status": plan.get("status"),
+        "operational_status": "Unknown",
+        "baseline_status": baseline.get("status"),
+        "baseline_checks_passed": baseline.get("checks_passed"),
+        "baseline_checks_total": baseline.get("checks_total"),
+        "local_model_probe_status": model_probe.get("status"),
+        "local_model_inference_attempted": model_probe.get("inference_attempted"),
+        "independent_verification": False,
+        "execution_granted": False,
+    }
+
+
 def chat(
     message: object,
     identity_id: str,
@@ -903,6 +996,12 @@ def chat(
                (request_id,identity_id,outcome,reason) VALUES (%s,%s,%s,%s)""",
             (request_id, identity, outcome, reason),
         )
+        protocol_review = _founder_protocol_review(
+            clean, authority_context, outcome, has_media=bool(image or attachment),
+        )
+        protocol_evidence = _protocol_review_evidence(protocol_review)
+        response_provider = "SMI_DETERMINISTIC" if protocol_review is not None else PROVIDER
+        response_model = "protocol_review" if protocol_review is not None else MODEL
         provider_completed = False
         oap_inference_gateway.clear_inference_route()
         if cancellation_token is not None:
@@ -910,6 +1009,10 @@ def chat(
         if outcome == "BLOCKED":
             response = reason
             state = "BLOCK_REQUEST"
+            _emit(on_event, "delta", delta=response)
+        elif protocol_review is not None:
+            response = _protocol_review_response(protocol_review)
+            state = "REVIEW_REQUIRED"
             _emit(on_event, "delta", delta=response)
         else:
             _emit(
@@ -991,7 +1094,9 @@ def chat(
                             if provider_completed else None
                         ),
                         "inference_route_attestation": False,
-                        "provider": PROVIDER,
+                        "provider": response_provider,
+                        "protocol_review_status": (protocol_review or {}).get("status"),
+                        "protocol_review_evidence": protocol_evidence,
                         "image_attached": bool(image),
                         "media_kind": media.get("kind"),
                         "media_retained": False,
@@ -1015,7 +1120,7 @@ def chat(
             response=response,
             coherence=coherence,
             provider_completed=provider_completed,
-            provider_id=PROVIDER,
+            provider_id=response_provider,
         )
         auto_review = smi_auto.build_evidence_vote_board(
             roles=tuple(brain.get("active_reviewers") or ()),
@@ -1040,7 +1145,7 @@ def chat(
             """INSERT INTO smi_messages
                (conversation_id,request_id,role,content,provider,model,guardian_outcome)
                VALUES (%s,%s,'assistant',%s,%s,%s,%s)""",
-            (conversation, request_id, response, PROVIDER, MODEL, outcome),
+            (conversation, request_id, response, response_provider, response_model, outcome),
         )
         founder_assets = smi_founder_assets.record_chat_assets(
             connection,
@@ -1055,8 +1160,10 @@ def chat(
             "identity_id": identity,
             "action": "SMI_REVIEWED",
             "guardian": outcome,
-            "provider": PROVIDER,
-            "model": MODEL,
+            "provider": response_provider,
+            "model": response_model,
+            "protocol_review_status": (protocol_review or {}).get("status"),
+                        "protocol_review_evidence": protocol_evidence,
             "image_attached": bool(image),
             "media_kind": media.get("kind"),
             "media_retained": False,
@@ -1091,14 +1198,14 @@ def chat(
         )
         _commit_if_not_cancelled(connection, cancellation_token)
     return {
-        "status": "green",
+        "status": "review_required" if protocol_review is not None else "green",
         "request_id": request_id,
         "conversation_id": conversation,
         "response": response,
         "output_state": state,
         "guardian": outcome,
-        "provider": PROVIDER,
-        "model": MODEL,
+        "provider": response_provider,
+        "model": response_model,
         "human_authority_final": True,
         "task_type": brain["task_type"],
         "advisor_ids": brain["advisor_ids"],
@@ -1115,6 +1222,8 @@ def chat(
         "continuation": continuation,
         "active_reviewers": list(brain.get("active_reviewers") or ()),
         "auto_review": auto_review,
+        "protocol_review": protocol_review,
+        "protocol_review_evidence": protocol_evidence,
         "can_execute": False,
         "adaptive": {"active": True, "hrm_lessons": len(adaptive_memory)},
         "media": {

@@ -223,6 +223,55 @@ def _adaptive_level(*, lenses: tuple[str, ...], semantic_lenses: tuple[str, ...]
         "stop_reason": "minimum sufficient intelligence selected; escalate only if new evidence, risk or mission complexity appears",
     }
 
+def capability_review_route(message: object) -> dict[str, object] | None:
+    """Resolve an explicit protocol command through the existing advisory selector.
+
+    No inference, installation, provider call or permission change is performed.
+    Ambiguous multiple protocol commands fail closed rather than guessing.
+    """
+    from oap.smi.protocol_selection import (
+        observe_protocol_capabilities,
+        protocol_capability_plan,
+    )
+
+    if not isinstance(message, str) or len(message) > 4000:
+        return None
+    protocols = tuple(dict.fromkeys(
+        re.findall(r"\bprotocol\s*[:=]\s*([a-z0-9_-]+)\b", message.casefold())
+    ))
+    if not protocols:
+        return None
+    if len(protocols) != 1:
+        return {
+            "status": "AMBIGUOUS_PROTOCOL",
+            "candidates": (),
+            "execution_granted": False,
+            "approval_granted": False,
+        }
+    plan = protocol_capability_plan(protocols[0])
+    if plan["status"] != "PROPOSED_UNVERIFIED":
+        return plan
+    # Reuse the canonical HYBRID policy for this read-only review. A candidate
+    # execution path is not selected until actual capability evidence exists.
+    from .oap_system_protocol import ExecutionPath, choose_protocol
+
+    review = choose_protocol(
+        "protocol_capability_review", requested_paths=(ExecutionPath.DETERMINISTIC,),
+    )
+    return {
+        **plan,
+        "capability_inventory": observe_protocol_capabilities(protocols[0]),
+        "hybrid_review": {
+            "scope": "deterministic_read_only_review",
+            "layers": tuple(layer.value for layer in review.layers),
+            "review_paths": tuple(path.value for path in review.execution_paths),
+            "candidate_execution_selected": False,
+            "candidate_execution_verified": False,
+            "human_authority_final": True,
+        },
+    }
+
+
 def observe(method: object, path: object, endpoint: object = None, message: object = None) -> dict[str, object]:
     """Return deterministic SMI routing metadata for one request.
 
@@ -256,6 +305,9 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
 
     semantic_lenses = _semantic_lenses(message)
     memory_route = memory_learning_route(message)
+    capability_plan = capability_review_route(message) if private_surface else None
+    if capability_plan:
+        _add(lenses, ("architecture", "dependency", "readiness"))
     _add(lenses, semantic_lenses)
     if memory_route:
         _add(lenses, memory_route["lenses"])
@@ -293,6 +345,7 @@ def observe(method: object, path: object, endpoint: object = None, message: obje
         "lenses": tuple(lenses),
         "semantic_lenses": semantic_lenses,
         "specialist_mission": memory_route,
+        "capability_plan": capability_plan,
         "selector": "surface+action+mission",
         "smi_intelligence": adaptive,
         "private_surface": private_surface,

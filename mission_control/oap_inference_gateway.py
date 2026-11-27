@@ -392,6 +392,108 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
     return result
 
 
+class _NoLocalProbeRedirect(urlrequest.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _bounded_local_probe_json(url: str, payload: dict | None = None) -> dict:
+    """Loopback-only probe, with no proxy, redirect, history or provider fallback."""
+    parts = urlsplit(url)
+    if not _local_endpoint_allowed() or parts.netloc != urlsplit(LOCAL_URL).netloc:
+        raise RuntimeError("local_probe_endpoint_rejected")
+    if parts.scheme != "http" or parts.path not in {"/api/tags", "/api/chat"} or parts.query or parts.fragment:
+        raise RuntimeError("local_probe_endpoint_rejected")
+    data = json.dumps(payload).encode() if payload is not None else None
+    req = urlrequest.Request(
+        url, data=data, headers={"Accept": "application/json", "Content-Type": "application/json"},
+        method="POST" if data is not None else "GET",
+    )
+    opener = urlrequest.build_opener(urlrequest.ProxyHandler({}), _NoLocalProbeRedirect())
+    with opener.open(req, timeout=5.0 if data is not None else 1.0) as response:
+        raw = response.read(65537)
+    if len(raw) > 65536:
+        raise RuntimeError("local_probe_response_too_large")
+    body = json.loads(raw.decode("utf-8"))
+    if not isinstance(body, dict):
+        raise TypeError("local_probe_invalid_response")
+    return body
+
+
+def benchmark_configured_local_model() -> dict[str, Any]:
+    """Explicit synthetic inference smoke test; never choose/download a model.
+
+    CPU and physical memory reflect the gateway host/process environment only.
+    They do not establish model fit, accelerator capacity or Redmi readiness.
+    """
+    result: dict[str, Any] = {
+        "scope": "configured_loopback_model_fixed_case",
+        "status": "Unknown",
+        "reason": "local_model_unavailable",
+        "model_listed": False,
+        "inference_attempted": False,
+        "exact_answer_matched": False,
+        "elapsed_ms": None,
+        "cpu_count": os.cpu_count(),
+        "physical_memory_bytes": None,
+        "hardware_compatibility_verified": False,
+        "independent_verification": False,
+        "fallback_used": False,
+        "downloads_performed": False,
+        "execution_granted": False,
+    }
+    try:
+        memory = os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
+        if memory > 0:
+            result["physical_memory_bytes"] = memory
+    except (AttributeError, OSError, ValueError):
+        pass
+    if not LOCAL_ENABLED or not LOCAL_MODEL or not _local_endpoint_allowed():
+        result["reason"] = "local_inference_disabled_or_rejected"
+        return result
+    started = time.perf_counter()
+    try:
+        tags = _bounded_local_probe_json(_tags_url())
+        models = tags.get("models")
+        if not isinstance(models, list):
+            raise TypeError("local_probe_invalid_response")
+        result["model_listed"] = any(
+            isinstance(item, dict) and (item.get("name") or item.get("model")) == LOCAL_MODEL
+            for item in models
+        )
+        if not result["model_listed"]:
+            result["reason"] = "configured_model_missing"
+            return result
+        parts = urlsplit(LOCAL_URL)
+        endpoint = urlunsplit((parts.scheme, parts.netloc, "/api/chat", "", ""))
+        result["inference_attempted"] = True
+        body = _bounded_local_probe_json(endpoint, {
+            "model": LOCAL_MODEL,
+            "stream": False,
+            "messages": [{"role": "user", "content": "Return exactly the number 4 and nothing else. What is 2 + 2?"}],
+            "options": {"temperature": 0, "num_predict": 8},
+        })
+        message = body.get("message")
+        matched = (
+            isinstance(message, dict)
+            and str(message.get("content", "")).strip() == "4"
+            and body.get("done") is True
+            and body.get("model") == LOCAL_MODEL
+        )
+        result.update(
+            status="Passed" if matched else "Failed",
+            reason="fixed_case_matched" if matched else "fixed_case_not_matched",
+            exact_answer_matched=matched,
+        )
+    except (RuntimeError, HTTPError, URLError, TimeoutError, OSError, ValueError, TypeError):
+        result["reason"] = "local_probe_unavailable_or_invalid"
+        if result["inference_attempted"]:
+            result["status"] = "Failed"
+    finally:
+        result["elapsed_ms"] = round((time.perf_counter() - started) * 1000, 3)
+    return result
+
+
 def generate(
     compatibility_engine: Callable[..., str],
     message: str,
