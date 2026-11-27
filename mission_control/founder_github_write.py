@@ -19,6 +19,11 @@ from oap.contracts import BuilderContext
 from oap.registry import founder_tool_registry
 
 from .founder_github import DEFAULT_REPOSITORY
+from .founder_github_proposals import (
+    EXISTING_SMI_MISSION_BRANCH,
+    EXISTING_SMI_MISSION_PR,
+    validate_file_write_branch,
+)
 
 _API_BASE = "https://api.github.com"
 _BRANCH = re.compile(r"^oap-mind/[A-Za-z0-9._/-]{1,80}$")
@@ -103,7 +108,6 @@ class FounderGitHubWriteAdapter:
 
     def write_file(self, payload: dict[str, Any], context: BuilderContext) -> None:
         self._authorize("file.write", context)
-        branch = self._validated_branch(payload.get("branch"))
         path = str(payload.get("path") or "").strip().lstrip("/")
         message = str(payload.get("message") or "").strip()
         content = payload.get("content")
@@ -117,12 +121,32 @@ class FounderGitHubWriteAdapter:
         body: dict[str, Any] = {
             "message": message,
             "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
-            "branch": branch,
         }
         if current_sha:
             if not re.fullmatch(r"[0-9a-fA-F]{40}", current_sha):
                 raise ValueError("Existing file SHA must be 40 hexadecimal characters")
             body["sha"] = current_sha
+        branch = validate_file_write_branch(payload.get("branch"), path=path, sha=current_sha)
+        body["branch"] = branch
+        if branch == EXISTING_SMI_MISSION_BRANCH:
+            pr = self._request("GET", f"/repos/{self.repository}/pulls/{EXISTING_SMI_MISSION_PR}")
+            head = pr.get("head") if isinstance(pr, dict) else None
+            base = pr.get("base") if isinstance(pr, dict) else None
+            if (
+                not isinstance(pr, dict)
+                or pr.get("number") != EXISTING_SMI_MISSION_PR
+                or pr.get("state") != "open"
+                or pr.get("draft") is not True
+                or not isinstance(head, dict)
+                or head.get("ref") != branch
+                or not isinstance(head.get("repo"), dict)
+                or head["repo"].get("full_name") != self.repository
+                or not isinstance(base, dict)
+                or base.get("ref") != "main"
+                or not isinstance(base.get("repo"), dict)
+                or base["repo"].get("full_name") != self.repository
+            ):
+                raise PermissionError("Existing mission PR is not an open matching draft")
         encoded = "/".join(quote(part, safe="") for part in path.split("/"))
         self._request("PUT", f"/repos/{self.repository}/contents/{encoded}", payload=body)
 
