@@ -588,6 +588,8 @@
  topologyConnector("↓");
  topologyTier([["commander","COMMANDER","/mission/all-in-ai/app",null]]);
  topologyConnector("↓");
+ topologyTier([["morpheus","MORPHEUS · STRATEGY & TRAINING",cfg.agentsUrl,null]]);
+ topologyConnector("↓");
  // Existing engineering passports, not new agents or independent execution.
  topologyTier([["engineering","NEO · ENGINEERING",cfg.agentsUrl,null],
   ["edgecases","MOUSE · EDGE CASES",cfg.agentsUrl,null]]);
@@ -783,6 +785,7 @@
   const checks=gate?.checks||{};
   setTopology("brain",health?.checks?.biological_brain===true?"Backend check passed · inference proof separate":"Unknown · brain proof required");
   setTopology("commander",mission?.read_back_verified===true&&mission?.hrm_verified===true&&mission?.audit_verified===true?"Checkpoint read back · execution unknown":"Unknown · mission receipt required");
+  setTopology("morpheus","Unknown · strategy review and observed training outcome required");
   setTopology("engineering","Unknown · engineering job and receipt required");
   setTopology("edgecases","Unknown · test execution receipt required");
   setTopology("trinity","Unknown · authenticated end-to-end browser/device acceptance required");
