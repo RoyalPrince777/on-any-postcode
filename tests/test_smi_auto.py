@@ -146,3 +146,33 @@ def test_auto_protocol_route_rejects_unknown_ambiguous_and_public_requests():
     ]["status"] == "AMBIGUOUS_PROTOCOL"
     assert smi_auto.observe("GET", "/the-spot", message="protocol: execution")["capability_plan"] is None
     assert smi_auto.observe("GET", "/mission/ollama", message="hello")["capability_plan"] is None
+
+
+def test_auto_protocol_inventory_never_executes_candidates(monkeypatch):
+    from oap.smi import protocol_selection
+
+    monkeypatch.setattr(protocol_selection, "which", lambda name: "/local/bin/opa")
+    result = smi_auto.observe("POST", "/mission/ollama", message="protocol: guardian")
+    inventory = result["capability_plan"]["capability_inventory"]
+    assert inventory["observations"]["OPA"]["observation"] == "Executable detected"
+    assert inventory["observations"]["OPA"]["functional_status"] == "Unknown"
+    assert inventory["commands_executed"] is False
+    assert inventory["downloads_performed"] is False
+    assert inventory["execution_granted"] is False
+    assert result["approval_granted"] is False
+
+
+def test_auto_invalid_protocol_does_not_probe_inventory(monkeypatch):
+    from oap.smi import protocol_selection
+
+    def unexpected_probe(protocol):
+        raise AssertionError("Invalid or public request must not probe capability inventory")
+
+    monkeypatch.setattr(protocol_selection, "observe_protocol_capabilities", unexpected_probe)
+    for path, message in (
+        ("/mission/ollama", "protocol: invalid"),
+        ("/mission/ollama", "protocol: memory; protocol: deployment"),
+        ("/the-spot", "protocol: guardian"),
+    ):
+        result = smi_auto.observe("GET", path, message=message)
+        assert not (result["capability_plan"] or {}).get("capability_inventory")
