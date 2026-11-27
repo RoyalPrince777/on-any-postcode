@@ -224,9 +224,13 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
             result["ready"] = bool(result["schema_ready"] and result["worker_fresh"])
             return result
     except Exception:  # noqa: BLE001 - readiness degrades without exposing DB details.
+        # Never publish a partially read heartbeat as current runtime proof.
         result["error"] = "runtime_store_unavailable"
+        result["worker_fresh"] = False
+        result["worker_state"] = "unknown"
         result["native_job_execution_observed"] = False
         result["recent_successful_job_receipts"] = None
+        result["ready"] = False
         return result
 
 
