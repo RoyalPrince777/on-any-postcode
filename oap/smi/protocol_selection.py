@@ -36,6 +36,79 @@ PROTOCOL_TEAMS: dict[str, tuple[str, tuple[str, ...]]] = {
 }
 
 
+# Capability acquisition candidates, not installed tools or benchmark winners.
+# These requirements belong to the existing protocol selector, not a second brain.
+PROTOCOL_CAPABILITIES: dict[str, tuple[tuple[str, ...], tuple[str, ...], str]] = {
+    "coordination": (("dependency-aware scheduling",), ("existing mission queue", "NetworkX"), "dependency order and cancellation"),
+    "creation": (("architecture reasoning", "blueprint generation"), ("local inference gateway", "Qwen3-4B"), "contract-valid reproducible blueprint"),
+    "execution": (("repository coding", "isolated engineering"), ("Qwen3-Coder-Next", "OpenHands"), "sandbox patch and independent regression"),
+    "stealth": (("privacy minimisation",), ("Presidio",), "redaction and consent boundary"),
+    "guardian": (("deterministic policy", "static analysis"), ("OPA", "Semgrep"), "deny forbidden actions"),
+    "adversarial": (("defensive property testing",), ("Hypothesis",), "reproduce a controlled fault"),
+    "pack": (("bounded collaboration",), ("existing worker queue",), "no duplicate claims"),
+    "swarm": (("resource-bounded parallel jobs",), ("existing worker queue",), "concurrency and isolation limits"),
+    "patterns": (("anomaly detection",), ("scikit-learn",), "labelled holdout accuracy"),
+    "dependencies": (("graph analysis",), ("NetworkX",), "cycle and missing dependency detection"),
+    "recovery": (("fault diagnosis", "rollback"), ("existing recovery path", "Git"), "restore known-good state"),
+    "last_line_defence": (("process containment",), ("Podman", "existing Aegis"), "isolation and emergency stop"),
+    "command": (("priority reasoning",), ("local inference gateway",), "respect mission dependencies and authority"),
+    "memory": (("semantic retrieval", "provenance"), ("BGE-M3", "pgvector"), "retrieval accuracy and authorised recall"),
+    "investigation": (("source retrieval", "provenance"), ("SearXNG", "PaddleOCR"), "reproducible primary-source citations"),
+    "complex_missions": (("bounded multi-step planning",), ("local inference gateway", "existing mission queue"), "recover interrupted task without duplication"),
+    "matrix": (("spatial simulation",), ("Babylon.js",), "reproducible world-state and collision test"),
+    "identity": (("authentication", "permission validation"), ("WebAuthn", "existing identity engine"), "reject invalid identity and replay"),
+    "verification": (("independent regression",), ("pytest", "Playwright"), "independent witness reproduces result"),
+    "audit": (("durable provenance", "telemetry"), ("existing HRM", "OpenTelemetry"), "receipt readback and integrity"),
+    "economics": (("optimisation", "statistical modelling"), ("OR-Tools", "SciPy"), "reconcile constraints and totals"),
+    "civic_rights": (("legal-source retrieval", "privacy review"), ("SearXNG", "Presidio"), "dated sources and uncertainty"),
+    "language": (("multilingual understanding", "speech recognition"), ("Qwen3-4B", "whisper.cpp"), "multilingual accuracy on held-out samples"),
+    "science": (("scientific computation",), ("SymPy", "SciPy"), "reproduce numerical result"),
+    "threat_awareness": (("defensive anomaly monitoring",), ("Wazuh", "OpenTelemetry"), "detect controlled threat without external action"),
+    "living_kernel": (("transactional execution", "policy validation"), ("existing Living Kernel", "OPA"), "atomic approved action and rollback"),
+    "deployment": (("reproducible build",), ("Podman", "existing CI"), "exact-revision artifact and approval gate"),
+    "green_gate": (("independent functional proof",), ("pytest", "Playwright", "existing HRM"), "live receipt and independent review"),
+}
+
+# Verified upstream locations for selected research candidates. Other candidate
+# names still require source, licence, pinned-version and compatibility review.
+CAPABILITY_SOURCE_CANDIDATES = {
+    "Qwen3-4B": "https://huggingface.co/Qwen/Qwen3-4B",
+    "Qwen3-Coder-Next": "https://huggingface.co/Qwen/Qwen3-Coder-Next",
+    "OpenHands": "https://github.com/OpenHands/OpenHands",
+    "OPA": "https://github.com/open-policy-agent/opa",
+}
+
+
+def protocol_capability_plan(protocol: str) -> dict[str, object]:
+    """Return a proposal only; never install, rank untested models or grant authority."""
+    selected = recommend_protocol_team(protocol)
+    candidate = PROTOCOL_CAPABILITIES.get(selected.protocol)
+    if selected.lead is None or candidate is None:
+        return {"status": "UNRECOGNISED", "capabilities": (), "candidates": (),
+                "execution_granted": False, "approval_granted": False}
+    capabilities, tools, acceptance = candidate
+    return {
+        "protocol": selected.protocol,
+        "status": "PROPOSED_UNVERIFIED",
+        "capabilities": capabilities,
+        "candidates": tools,
+        "source_candidates": {
+            tool: CAPABILITY_SOURCE_CANDIDATES[tool]
+            for tool in tools if tool in CAPABILITY_SOURCE_CANDIDATES
+        },
+        "acceptance_test": acceptance,
+        "required_evidence": ("source_and_licence", "pinned_version", "hardware_compatibility",
+                              "sandbox_test", "independent_review", "hrm_receipt"),
+        "local_first": True,
+        "server_candidate_only": ("Qwen3-Coder-Next",) if "Qwen3-Coder-Next" in tools else (),
+        "installed_verified": False,
+        "benchmark_verified": False,
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
+    }
+
+
 @dataclass(frozen=True)
 class ProtocolRecommendation:
     protocol: str
