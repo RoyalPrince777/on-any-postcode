@@ -108,13 +108,14 @@ def test_failure_diagnosis_requires_classification_and_never_authorizes_repair(m
             "ready": True, "pr_number": pr_number,
             "next_move": "inspect_failed_ci" if pr_number == 1413 else "await_exact_head_evidence",
             "failed_run_id": 71 if pr_number == 1413 else None,
+            "head_sha": "a" * 40,
             "ci_proven": False, "consequential_action": False,
         },
     )
     monkeypatch.setattr(
         organism_worker.smi_github_failure_evidence,
         "inspect_failed_run",
-        lambda run_id, *, token: {"ready": True,
+        lambda run_id, *, token, expected_head: {"ready": expected_head == "a" * 40,
                                    "failed_jobs": ({"job_id": 72},)},
     )
     monkeypatch.setattr(
