@@ -19,6 +19,7 @@ from typing import Any
 from . import (
     oap_core_autonomy,
     organism_autonomy,
+    organism_runtime,
     smi_completion_contract,
     smi_runtime_autonomy,
 )
@@ -210,8 +211,8 @@ def run_cycle() -> dict[str, Any]:
         and core_observation.get("runtime_ready") is True
         and core_observation.get("runtime_job_receipt_verified") is True
     )
-    # A fresh heartbeat or one successful maintenance receipt cannot establish
-    # uninterrupted cadence. No cadence evidence is currently exposed here.
+    checkpoint = organism_runtime.revision_recovery_evidence(baseline)
+    # A finite recovery sample does not establish continuous full-organism execution.
     continuous_cycle_proven = False
     governance_evidence_ready = bool(smi_gate.get("ready"))
     live_green = bool(
@@ -238,6 +239,7 @@ def run_cycle() -> dict[str, Any]:
                 else False
             ),
             "bounded_job_receipt_verified": bounded_job_receipt_verified,
+            "recovery_checkpoint": checkpoint,
             "continuous_cycle_proven": continuous_cycle_proven,
             "governance_evidence_ready": governance_evidence_ready,
             "sandbox_passed": False,
