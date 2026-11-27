@@ -380,3 +380,60 @@ def test_claim_serializes_with_isolation_before_selecting_eligible_work(
     monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
     assert organism_runtime.PostgresRuntimeStore().claim("worker-one") is None
     assert len(calls) == (2 if worker_state == "ACTIVE" else 1)
+
+
+def test_runtime_audit_provenance_cannot_be_overridden_by_handler_metadata():
+    import hashlib
+    import json
+
+    calls = []
+
+    class Connection:
+        def execute(self, sql, params=()):
+            calls.append((sql, params))
+            return self
+
+        def fetchone(self):
+            return ("previous-hash",)
+
+    organism_runtime._append_runtime_audit(
+        Connection(), worker_id="worker-one", action="RUNTIME_JOB_SUCCEEDED",
+        job_id="real-job", metadata={"job_id": "wrong-job", "runtime": False},
+    )
+    params = calls[-1][1]
+    metadata = json.loads(params[-1])
+    assert metadata["job_id"] == "real-job"
+    assert metadata["runtime"] is True
+    assert params[1] == hashlib.sha256(
+        ("previous-hash" + params[-1]).encode(),
+    ).hexdigest()
+
+
+def test_job_completion_preserves_authoritative_type_and_attempt(monkeypatch):
+    from contextlib import contextmanager
+
+    captured = []
+
+    class Connection:
+        def execute(self, sql, params):
+            return self
+
+        def fetchone(self):
+            return ("job-one",)
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    monkeypatch.setattr(organism_runtime, "_append_runtime_audit",
+                        lambda connection, **kwargs: captured.append(kwargs))
+    job = RuntimeJob("job-one", "RUNTIME_HEARTBEAT", {}, 2, 5, "test")
+    organism_runtime.PostgresRuntimeStore().complete(
+        job, "worker-one", {"job_type": "wrong-type", "attempts": 999},
+    )
+    assert captured[0]["metadata"]["job_type"] == "RUNTIME_HEARTBEAT"
+    assert captured[0]["metadata"]["attempts"] == 2
