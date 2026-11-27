@@ -356,6 +356,12 @@ REVIEW_ROLE_LENSES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Octopus", ("octopus",), "systems integration, multi-route coordination and dependency reach"),
     ("Spider", ("spider",), "route mesh, connection integrity and hidden dependency detection"),
     ("Fox", ("fox",), "optimisation, loophole detection and edge-case efficiency"),
+    ("Mouse", ("mouse",), "programming, interactive systems and edge-case review"),
+    ("Tank", ("tank",), "runtime diagnostics and worker readiness"),
+    ("Dozer", ("dozer",), "infrastructure continuity and recovery"),
+    ("Queen Bee", ("queen bee",), "coordination of actual queued work and bounded retries"),
+    ("Colonel Hathi", ("colonel hathi", "hathi"), "mission continuity and memory review"),
+    ("Gyata", ("gyata",), "bounded mission alignment and priorities"),
 )
 
 CORE_AUTO_REVIEW = (
@@ -403,6 +409,31 @@ def selected_review_roles(message: object, *, auto_mode: bool) -> tuple[str, ...
             _add(selected, ("Nirmata", "AEI", "Gorilla"))
         return tuple(selected)
     return explicit
+
+
+def mission_continuity_alliance(evidence: object) -> dict[str, object]:
+    """Select existing advisory roles from the worker's exact-head evidence."""
+    source = evidence if isinstance(evidence, dict) else {}
+    move = source.get("next_move")
+    if move == "inspect_failed_ci":
+        roles = ("Nirmata", "Neo", "Mouse", "Tank", "Dozer", "AEI", "Fox", "Shere Khan")
+        reason = "Diagnose failed CI before growth; category is not root cause."
+    elif move == "continue_target_proof" and source.get("ci_proven") is True:
+        roles = ("Trinity", "Tank", "Dozer", "Owl")
+        reason = "Source CI passed; require authenticated target and device proof."
+    else:
+        roles = ("Owl", "Oracle")
+        reason = "Hold until exact-head evidence is available."
+    return {
+        "roles": roles,
+        "reason": reason,
+        "selection_only": True,
+        "agents_executed": False,
+        "execution_granted": False,
+        "guardian_required": True,
+        "hrm_proof_required": True,
+        "human_authority_final": True,
+    }
 
 
 def build_evidence_vote_board(
