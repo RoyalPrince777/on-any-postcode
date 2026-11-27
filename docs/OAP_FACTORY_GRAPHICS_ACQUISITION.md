@@ -16,3 +16,6 @@ Redmi A5 acceptance target (not measured): stable 30 FPS gameplay in Mitcham, lo
 
 ## Local asset inspection implementation
 `studio_local_media.inspect_owned_glb` is a bounded read-only helper for authenticated owner-scoped callers. Checks container layout, strict self-contained URI policy, buffer length and SHA-256; not full glTF validation, rendering, dispatch, optimization or native worker evidence. No route or queue added. Tests cover malformed, external and traversal inputs. Runtime wiring requires existing authenticated worker and asset ownership proof.
+
+## Native optimization source acquired
+MIT meshoptimizer v1.0 vertex cache/fetch subset is vendored in `third_party/meshoptimizer` at upstream commit `73583c335e541c139821d0de2bf5f12960a04941`. Unmodified upstream files and full MIT notice retained, with blob provenance in UPSTREAM.json. Native C++ compile/run acceptance checks triangle preservation and vertex remapping. This is source acquisition, not full meshoptimizer, GLB rewrite, GPU performance, Studio dispatch or TDA runtime proof. No new permission or executor. Build only in the existing authorized engineering environment; do not promote on CI alone.
