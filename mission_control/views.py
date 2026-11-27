@@ -360,6 +360,32 @@ def _smi_port_alignment():
     }
 
 
+@bp.get("/smi/maps/", defaults={"path": ""})
+@bp.get("/smi/maps/<path:path>")
+@web_security.login_required(api=True, founder_only=True)
+def smi_private_navigation(path):
+    """Serve only the approved local navigation adapter through the private HQ."""
+    import os
+
+    from . import smi_navigation_bridge
+
+    local_mode = os.environ.get("OAP_LOCAL_MODE", "").lower() == "true"
+    if not smi_navigation_bridge.private_context(local_mode, request.host):
+        return _no_store(make_response(jsonify({"error": "local_navigation_only"}), 404))
+    code, mime, body = smi_navigation_bridge.response(path, request.query_string)
+    response = Response(body, status=code, mimetype=mime)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; script-src 'self'; style-src 'self'; "
+        "connect-src 'self'; img-src 'self'; frame-ancestors 'none'; "
+        "base-uri 'none'; form-action 'none'; object-src 'none'"
+    )
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = (
+        "geolocation=(self), camera=(), microphone=(), payment=()"
+    )
+    return _no_store(response)
+
+
 @bp.get("/smi/ports")
 @web_security.login_required(api=True, founder_only=True)
 def smi_port_alignment_status():
