@@ -58,6 +58,19 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('["🕶 Matrix Routes","matrix-routes"]', source)
 
 
+    def test_founder_execution_topology_reuses_canonical_owners(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        for label in ("FOUNDER · COMMAND CENTRE 5000", "ONE SMI BRAIN",
+                      "COMMANDER", "ORGANISER", "WORKERS", "REPAIR ENGINE",
+                      "GUARDIAN", "HRM", "ROLLBACK"):
+            self.assertIn(label, source)
+        self.assertIn('anatomy.append(topology)', source)
+        self.assertIn('()=>smiRepair.click()', source)
+        self.assertIn('"/mission/organiser"', source)
+        self.assertIn('topologyFull.href="/mission/organism"', source)
+        self.assertIn('Unknown · fresh worker heartbeat required', source)
+        self.assertIn('node.dataset.proven="false"', source)
+
     def test_full_organism_offline_route_reuses_private_canonical_anatomy(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         self.assertIn('"/mission/organism#offline-route"', source)
