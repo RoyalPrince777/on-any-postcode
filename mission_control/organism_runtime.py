@@ -282,7 +282,8 @@ def recovery_checkpoint_evidence(worker_id: str, revision: str) -> dict[str, obj
         session = samples[0][0].get("session_id")
         sequences = [sample[0].get("sequence") for sample in samples]
         if (not isinstance(session, str) or not re.fullmatch(r"[0-9a-f]{32}", session)
-                or any(type(sequence) is not int for sequence in sequences)
+                or any(not isinstance(sequence, int) or isinstance(sequence, bool)
+                       for sequence in sequences)
                 or any(sample[0].get("session_id") != session
                        or sample[0].get("target_seconds") != 21
                        for sample in samples)
@@ -405,6 +406,7 @@ class PostgresRuntimeStore:
         status: str = "ACTIVE",
         revision: str = "unknown",
         last_job_id: str | None = None,
+        new_session: bool = False,
     ) -> None:
         worker = _worker_id(worker_id)
         state = str(status).upper()
@@ -422,11 +424,13 @@ class PostgresRuntimeStore:
                        THEN 'DRAINING'
                        ELSE EXCLUDED.status
                      END,
+                     started_at=CASE WHEN %s OR oap_runtime_workers.revision<>EXCLUDED.revision
+                       THEN CURRENT_TIMESTAMP ELSE oap_runtime_workers.started_at END,
                      revision=EXCLUDED.revision,
                      heartbeat_at=CURRENT_TIMESTAMP,
                      last_job_id=EXCLUDED.last_job_id,
                      updated_at=CURRENT_TIMESTAMP""",
-                (worker, state, str(revision or "unknown")[:120], last_job_id),
+                (worker, state, str(revision or "unknown")[:120], last_job_id, new_session),
             )
             connection.commit()
 
