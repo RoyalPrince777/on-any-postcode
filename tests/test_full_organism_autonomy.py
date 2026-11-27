@@ -217,3 +217,26 @@ def test_native_health_cycle_carries_physiology_evidence(monkeypatch):
     }
     assert evidence["full_organism_verified"] is False
     assert result["consequential_action"] is False
+
+
+def test_native_anatomy_uses_actual_health_checks_without_inheriting_green():
+    cycle = {
+        "observation": {"oap_core_autonomy_ready": True},
+        "physiology_evidence": organism_autonomy.physiology_evidence({}, {}),
+    }
+    evidence = organism_autonomy.native_anatomy_evidence(cycle, {
+        "health_checks": {"nexus": True, "thalamus_input": True,
+                          "agent_registry": True, "guardian": True},
+    })
+    assert set(evidence["systems"]) == {item["id"] for item in organism.ORGANISM_SYSTEMS}
+    assert set(evidence["brain_regions"]) == {item["id"] for item in organism.SMI_REGIONS}
+    assert set(evidence["body_organs"]) == {item["id"] for item in organism.BODY_ORGANS}
+    assert evidence["systems"]["nexus"]["observed"] is True
+    assert evidence["systems"]["smi"]["observed"] is False
+    assert evidence["systems"]["sp_signals"]["observed"] is False
+    physiology = cycle["physiology_evidence"]["systems"]
+    assert physiology["circulation"]["check_observed"] is True
+    assert physiology["genes"]["check_observed"] is True
+    assert physiology["immune"]["check_observed"] is False
+    assert all(item["operational_status"] == "Unknown" for item in physiology.values())
+    assert evidence["full_organism_verified"] is False
