@@ -116,15 +116,16 @@ def test_free_mode_does_not_provision_a_paid_background_worker():
 
 
 @pytest.mark.parametrize(
-    ("active", "fresh", "expected_state", "expected_ready"),
+    ("active", "fresh", "receipts", "expected_state", "expected_ready", "expected_execution"),
     [
-        (1, 0, "stale_active", False),
-        (0, 0, "not_running", False),
-        (1, 1, "fresh", True),
+        (1, 0, 0, "stale_active", False, False),
+        (0, 0, 0, "not_running", False, False),
+        (1, 1, 0, "fresh", True, False),
+        (1, 1, 2, "fresh", True, True),
     ],
 )
 def test_worker_readiness_is_heartbeat_based_not_active_flag(
-    monkeypatch, active, fresh, expected_state, expected_ready,
+    monkeypatch, active, fresh, receipts, expected_state, expected_ready, expected_execution,
 ):
     from contextlib import contextmanager
 
@@ -151,6 +152,12 @@ def test_worker_readiness_is_heartbeat_based_not_active_flag(
                 assert "WHERE worker_id NOT LIKE %s" in sql
                 assert "heartbeat_at <= CURRENT_TIMESTAMP" in sql
                 return Rows(one=(active, fresh))
+            if "COUNT(DISTINCT j.job_id)" in sql:
+                assert params == (90, "%-inference")
+                assert "JOB_SUCCEEDED" in sql
+                assert "INTERVAL '15 minutes'" in sql
+                assert "w.status = 'ACTIVE'" in sql
+                return Rows(one=(receipts,))
             raise AssertionError("Unexpected SQL in status check")
 
     @contextmanager
@@ -168,4 +175,6 @@ def test_worker_readiness_is_heartbeat_based_not_active_flag(
     assert result["worker_state"] == expected_state
     assert result["worker_fresh"] is expected_ready
     assert result["ready"] is expected_ready
+    assert result["recent_successful_job_receipts"] == receipts
+    assert result["native_job_execution_observed"] is expected_execution
     assert result["consequential_execution"] is False
