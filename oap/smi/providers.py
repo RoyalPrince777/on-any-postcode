@@ -129,6 +129,17 @@ class ProviderRouter:
 
         adapter = self._adapters[provider_id]
         local = self._provider_scopes[provider_id] == "local"
+        # Property intelligence is first-party: no external reasoning provider,
+        # even if an external assignment was explicitly configured.
+        if signal.task_type.strip().casefold() == "property" and not local:
+            return (
+                ProviderResult(
+                    provider_id=provider_id,
+                    available=False,
+                    text="",
+                    error_code="property_external_provider_blocked",
+                ),
+            )
         if not self._sovereign_controls.provider_allowed(provider_id, local=local):
             return (
                 ProviderResult(
