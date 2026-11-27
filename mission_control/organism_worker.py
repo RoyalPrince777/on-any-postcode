@@ -177,7 +177,7 @@ def run() -> int:
     recovery_session = uuid4().hex
     recovery_sequence = 0
     last_job_id: str | None = None
-    store.heartbeat(worker_id, status="ACTIVE", revision=revision)
+    store.heartbeat(worker_id, status="ACTIVE", revision=revision, new_session=True)
     _log(
         "runtime_worker_started",
         worker_id=worker_id,
