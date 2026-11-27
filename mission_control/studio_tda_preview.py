@@ -8,6 +8,8 @@ import os
 import stat
 from pathlib import Path
 
+from . import master_upgrade_contract
+
 FILES = {"index.html": 128 * 1024, "game.js": 1024 * 1024,
          "babylon.js": 16 * 1024 * 1024}
 LOADER = "s.src=url;"
@@ -74,6 +76,7 @@ def publication_preflight(instance: str, expected: str) -> dict:
         "status": "blocked",
         "version": version,
         "public_route": PUBLIC_ROUTE,
+        "hrm_review": master_upgrade_contract.release_hrm_review("tda-london", version),
         "published": False,
         "execution_granted": False,
         "blockers": ["independent_device_runtime_proof_required",
