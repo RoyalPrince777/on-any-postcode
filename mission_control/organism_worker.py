@@ -76,7 +76,7 @@ def observe_engineering_receipt() -> dict:
         if data.get("status") not in ("failed", "blocked", "incomplete"):
             raise ValueError("status")
         finished = dt.datetime.fromisoformat(data["finishedAt"])
-        age = (dt.datetime.now(dt.timezone.utc) - finished).total_seconds()
+        age = (dt.datetime.now(dt.UTC) - finished).total_seconds()
         if age < -60 or age > 86400:
             return {**result, "reason": "stale_or_future_receipt"}
         expected = os.environ.get("OAP_SMI_ENGINEERING_SOURCE_SHA256", "").strip()
