@@ -445,8 +445,8 @@ def test_octopus_a7_rejects_contradictory_certification_evidence(
 def test_evolution_intelligence_requires_reflection_and_changed_method() -> None:
     from oap.smi.oap_mind import (
         EVOLUTION_INTELLIGENCE_CAPABILITY,
-        INTELLIGENT_EVOLUTION_LAW,
         EVOLUTION_QUALITY_GATES,
+        INTELLIGENT_EVOLUTION_LAW,
         review_intelligent_evolution,
     )
 
