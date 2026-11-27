@@ -734,6 +734,12 @@ def _founder_protocol_review(
         return None
     if command.group(1).casefold() == "protocol":
         return smi_auto.capability_review_route(message)
+    if command.group(2).casefold() == "local_model":
+        return {
+            "protocol": "local_model", "status": "LOCAL_MODEL_REVIEW",
+            "local_model_probe": oap_inference_gateway.benchmark_configured_local_model(),
+            "execution_granted": False, "approval_granted": False,
+        }
     from oap.smi.protocol_selection import benchmark_builtin_capability
 
     plan = smi_auto.capability_review_route(f"protocol: {command.group(2)}")
@@ -753,6 +759,14 @@ def _founder_protocol_review(
 
 def _protocol_review_response(plan: dict) -> str:
     """Render observed inventory directly; never send it to a model provider."""
+    if plan.get("status") == "LOCAL_MODEL_REVIEW":
+        probe = plan["local_model_probe"]
+        return (
+            f"Configured loopback model fixed-case result: {probe['status']}. "
+            f"Model listed: {probe['model_listed']}; inference attempted: {probe['inference_attempted']}. "
+            "Hardware compatibility and independent runtime certification: Unknown. "
+            "No model installation, provider fallback or authority grant."
+        )
     if plan.get("status") != "PROPOSED_UNVERIFIED":
         return "Protocol review: unknown protocol. No candidate selected or executed."
     inventory = plan["capability_inventory"]
@@ -781,6 +795,7 @@ def _protocol_review_evidence(plan: dict | None) -> dict | None:
     if plan is None:
         return None
     baseline = plan.get("baseline") or {}
+    model_probe = plan.get("local_model_probe") or {}
     return {
         "protocol": plan.get("protocol"),
         "status": plan.get("status"),
@@ -788,6 +803,8 @@ def _protocol_review_evidence(plan: dict | None) -> dict | None:
         "baseline_status": baseline.get("status"),
         "baseline_checks_passed": baseline.get("checks_passed"),
         "baseline_checks_total": baseline.get("checks_total"),
+        "local_model_probe_status": model_probe.get("status"),
+        "local_model_inference_attempted": model_probe.get("inference_attempted"),
         "independent_verification": False,
         "execution_granted": False,
     }
