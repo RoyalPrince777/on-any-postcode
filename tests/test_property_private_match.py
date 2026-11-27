@@ -4,7 +4,10 @@ from uuid import uuid4
 import pytest
 
 from mission_control import property_advertising as ads
-from mission_control.property_private_match import eligible_match
+from mission_control.property_private_match import eligible_match, review_match
+from oap.contracts import IdentityRecord, OutputState
+from oap.hrm import HRMCore
+from oap.smi.bootstrap import build_smi
 
 PUBLISHER = str(uuid4())
 REVIEWER = str(uuid4())
@@ -92,3 +95,47 @@ def test_missing_evidence_and_provider_outage(approved, buyer):
     assert eligible_match(
         approved, buyer, **{**GATES, "seller_permission": outage},
     ) is False
+
+
+def test_review_uses_existing_brain_and_hrm(approved, buyer):
+    store = HRMCore.in_memory()
+    try:
+        brain = build_smi(store.connection, identities=(
+            IdentityRecord(
+                identity_id="property-reviewer",
+                identity_type="human",
+                authority_level=0,
+                permissions=frozenset({"REQUEST_RECOMMENDATION"}),
+            ),
+        ))
+        kwargs = {"identity_id": "property-reviewer", **GATES}
+        blocked = review_match(
+            brain, approved, buyer, request_id="property-denied",
+            **{**kwargs, "seller_permission": no},
+        )
+        assert blocked.output_state == OutputState.BLOCK_REQUEST
+        assert "Property eligibility denied." in blocked.rationale
+        result = review_match(
+            brain, approved, buyer, request_id="property-review", **kwargs,
+        )
+        assert result.output_state in {
+            OutputState.REVIEW_REQUIRED, OutputState.BLOCK_REQUEST,
+        }
+        assert not result.can_execute
+        assert brain.hrm.has_request("property-review")
+        assert brain.hrm.has_request("property-denied")
+        assert brain.hrm.status()["memory_records"] == 2
+        assert brain.hrm.status()["audit_events"] == 2
+        repeat = review_match(
+            brain, approved, buyer, request_id="property-review", **kwargs,
+        )
+        assert repeat.output_state == OutputState.SYSTEM_LOG_ONLY
+        assert brain.hrm.status()["memory_records"] == 2
+        assert brain.hrm.status()["kernel_outcomes"] == 0
+        assert brain.hrm.status()["approval_receipts"] == 0
+        rows = store.connection.execute(
+            "SELECT summary, rationale_json FROM smi_memory_records"
+        ).fetchall()
+        assert all("example.org" not in str(tuple(row)) for row in rows)
+    finally:
+        store.connection.close()
