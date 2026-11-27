@@ -1,7 +1,10 @@
 """Checkpoint integrity test uses small byte fixtures, never fake inference."""
 import hashlib
 
-from mission_control.studio_triposr_preflight import _inspect_checkpoint, checkpoint_preflight
+from mission_control.studio_triposr_preflight import (
+    _inspect_checkpoint,
+    checkpoint_preflight,
+)
 
 
 def test_unconfigured_preflight_fails_closed(monkeypatch):
