@@ -1,8 +1,8 @@
 """Compile the real pinned upstream geometry optimization subset; no GPU claim."""
-from pathlib import Path
 import os
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
