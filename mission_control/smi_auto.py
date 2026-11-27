@@ -340,7 +340,7 @@ REVIEW_ROLE_LENSES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Shere Khan", ("shere khan", "claw test"), "adversarial stress-test, threat intelligence, failure-hunting, survivability authority and false-Green blocking; Claw Test is one pressure mode"),
     ("Bagheera", ("bagheera",), "protection, balance and reversible judgement"),
     ("Agent Smith", ("agent smith", "smith"), "duplication, corruption, bypass and false-green detection"),
-    ("Morpheus", ("morpheus",), "mission clarity and alignment"),
+    ("Morpheus", ("morpheus",), "mission clarity and alignment; strategic direction, training objectives and observed outcome review"),
     ("Trinity", ("trinity",), "integration and continuity"),
     ("Oracle", ("oracle",), "accuracy, uncertainty and adaptation"),
     ("Architect", ("architect",), "architecture, maintainability and dependency structure"),
@@ -416,7 +416,7 @@ def mission_continuity_alliance(evidence: object) -> dict[str, object]:
     source = evidence if isinstance(evidence, dict) else {}
     move = source.get("next_move")
     if move == "inspect_failed_ci":
-        roles = ("Nirmata", "Neo", "Mouse", "Tank", "Dozer", "AEI", "Fox", "Shere Khan")
+        roles = ("Morpheus", "Nirmata", "Neo", "Mouse", "Tank", "Dozer", "AEI", "Fox", "Shere Khan")
         reason = "Diagnose failed CI before growth; category is not root cause."
     elif move == "continue_target_proof" and source.get("ci_proven") is True:
         roles = ("Trinity", "Tank", "Dozer", "Owl")
