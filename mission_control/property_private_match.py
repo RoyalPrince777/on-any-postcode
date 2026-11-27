@@ -3,6 +3,9 @@ from collections.abc import Callable
 from decimal import Decimal
 from typing import Any
 
+from oap.contracts import BrainRequest, Recommendation
+from oap.smi.smi_core import SMICore
+
 from . import property_advertising as ads
 
 Gate = Callable[[dict[str, Any], dict[str, Any]], bool]
@@ -60,3 +63,42 @@ def eligible_match(
         return price > 0 and budget >= price
     except Exception:  # noqa: BLE001 - malformed data or unavailable gate denies.
         return False
+
+
+def review_match(
+    brain: SMICore,
+    record: dict[str, Any],
+    buyer: dict[str, Any],
+    *,
+    request_id: str,
+    identity_id: str,
+    seller_permission: Gate,
+    buyer_qualification: Gate,
+    authority_check: ads.AuthorityCheck | None = None,
+    certified_check: ads.CertifiedCheck | None = None,
+    reviewer_check: ads.ReviewerCheck | None = None,
+) -> Recommendation:
+    """Submit a minimal private review to the existing brain and its HRM.
+
+    Only authenticated server-side callers may supply the brain, identity,
+    records and gates. This is not a delivery or approval endpoint.
+    Recheck live permission before any later consequential action.
+    """
+    eligible = eligible_match(
+        record, buyer, seller_permission=seller_permission,
+        buyer_qualification=buyer_qualification,
+        authority_check=authority_check, certified_check=certified_check,
+        reviewer_check=reviewer_check,
+    )
+    return brain.process(BrainRequest(
+        request_id=request_id,
+        identity_id=identity_id,
+        task_type="PROPERTY",
+        high_impact=True,
+        content=(
+            "Private property eligibility review. "
+            + ("Eligibility checks passed; human review required."
+               if eligible else "Eligibility blocked; do not introduce parties.")
+        ),
+        oapcore={"property_match_eligible": eligible, "delivery_allowed": False},
+    ))
