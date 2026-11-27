@@ -749,6 +749,24 @@
   for(const key of ["matrix","guardian","hrm","signals","gate","civilization","ecosystem"])setUnified(key,false,"Checking backend evidence…");
   setUnified("mission",false,"No verified active mission feed · do not infer one");
   topologyNodes.forEach(state=>{state.textContent="Unknown · refreshing";});
+  // Use the existing authenticated War Room projection, independently of slower
+  // dashboard probes. No worker IDs, job payloads or new execution authority.
+  fetch("/mission/war-room/status",{cache:"no-store",credentials:"same-origin",signal})
+   .then(response=>{if(!response.ok)throw new Error("Runtime evidence unavailable");return response.json();})
+   .then(data=>{
+    if(signal.aborted)return;
+    const native=data?.native_runtime_evidence;
+    const receipts=native?.recent_successful_job_receipts;
+    if(native?.schema_ready===true&&native.worker_fresh===true&&native.worker_state==="fresh"){
+     const observed=native.native_job_execution_observed===true&&Number.isSafeInteger(receipts)&&receipts>0;
+     setTopology("workers",observed?"Native bounded jobs observed · "+receipts+" receipts (15 min) · engineering unproven":"Fresh heartbeat · completed job proof missing");
+    }else if(native?.worker_state==="stale_active"||native?.worker_state==="not_running"){
+     setTopology("workers","Blocked · no fresh worker heartbeat");
+    }else{
+     setTopology("workers","Unknown · native runtime evidence unavailable");
+    }
+   })
+   .catch(()=>{if(!signal.aborted)setTopology("workers","Unknown · native runtime evidence unavailable");});
   const targets=[
    ["runtime",cfg.healthUrl],
    ["functions",cfg.functionHealthUrl],
@@ -790,7 +808,7 @@
   setTopology("edgecases","Unknown · test execution receipt required");
   setTopology("trinity","Unknown · authenticated end-to-end browser/device acceptance required");
   setTopology("organiser","Unknown · schedule execution proof required");
-  setTopology("workers","Unknown · fresh worker heartbeat required");
+
   setTopology("repair","Unknown · governed repair receipt required");
   setTopology("guardian",health?.checks?.guardian===true?"Backend check passed · authority separate":"Unknown · Guardian proof required");
   setTopology("hrm","Unknown · durable receipt required");
