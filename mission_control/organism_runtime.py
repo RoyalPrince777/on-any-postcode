@@ -416,8 +416,10 @@ class PostgresRuntimeStore:
         worker = _worker_id(worker_id)
         lease = min(300, max(30, int(lease_seconds)))
         with postgres_db.connect() as connection:
+            # Serialize claims with AEGIS isolation on the same worker row.
+            # Isolation takes this lock before releasing any outstanding jobs.
             worker_state = connection.execute(
-                "SELECT status FROM oap_runtime_workers WHERE worker_id=%s",
+                "SELECT status FROM oap_runtime_workers WHERE worker_id=%s FOR UPDATE",
                 (worker,),
             ).fetchone()
             if worker_state is None or str(worker_state[0]) != "ACTIVE":
@@ -428,6 +430,7 @@ class PostgresRuntimeStore:
                      SELECT job_id FROM oap_runtime_jobs
                      WHERE state IN ('QUEUED','RETRY')
                        AND available_at <= CURRENT_TIMESTAMP
+                       AND attempts < max_attempts
                      ORDER BY priority,created_at
                      FOR UPDATE SKIP LOCKED LIMIT 1
                    )
