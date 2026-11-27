@@ -19,8 +19,10 @@ from .organism import (
     BLOCKED_CONSEQUENTIAL_ACTIONS,
     BODY_ORGANS,
     ORGANISM_SIGNAL_PATH,
+    ORGANISM_SYSTEMS,
     PHYSIOLOGY_SYSTEMS,
     SAFE_AUTONOMY_ACTIONS,
+    SMI_REGIONS,
     validate_architecture,
 )
 from .organism_runtime import runtime_status
@@ -209,6 +211,67 @@ def physiology_evidence(
         "full_organism_verified": False,
         "scope": "bounded_health_observation",
         "independent_execution": False,
+    }
+
+
+def native_anatomy_evidence(
+    cycle: dict[str, Any], smi_cycle: dict[str, Any],
+) -> dict[str, Any]:
+    """Bind existing health observations to canonical internal and external anatomy.
+
+    A health check is not an independent organ-level execution test. Keep all
+    operational states unknown, including for organs with observed prerequisites.
+    Do not infer individual brain-region or product execution from aggregate checks.
+    """
+    checks = smi_cycle.get("health_checks")
+    if not isinstance(checks, dict):
+        checks = {}
+    observation = cycle.get("observation", {})
+    physiology = cycle.get("physiology_evidence", {}).get("systems", {})
+    physiology_checks = {
+        "genes": ("agent_registry",),
+        "circulation": ("nexus", "thalamus_input"),
+        "skin": ("identity", "permission"),
+        "immune": ("aegis", "guardian"),
+    }
+    for system_id, names in physiology_checks.items():
+        if system_id in physiology:
+            physiology[system_id] = {
+                "check": "+".join(names),
+                "check_observed": all(checks.get(name) is True for name in names),
+                "operational_status": "Unknown",
+            }
+    systems_checks = {
+        "nexus": ("nexus",),
+        "identity": ("identity", "permission"),
+        "smi": ("biological_brain", "thalamus_input"),
+        "aegis": ("aegis",),
+        "guardian": ("guardian",),
+        "war_room": ("war_room",),
+        "human_authority": ("human_authority",),
+        "memory": ("hrm", "conversation_memory"),
+    }
+    # Compact evidence: each existing ID occurs exactly once in its own registry.
+    # Unmapped IDs have no attributed check and cannot inherit aggregate success.
+    systems = {
+        item["id"]: {
+            "checks": systems_checks.get(item["id"], ()),
+            "observed": bool(systems_checks.get(item["id"]))
+            and all(checks.get(name) is True for name in systems_checks[item["id"]]),
+        }
+        for item in ORGANISM_SYSTEMS
+    }
+    systems["oap_core"] = {
+        "checks": ("oap_core_configured",),
+        "observed": observation.get("oap_core_autonomy_ready") is True,
+    }
+    return {
+        "systems": systems,
+        "brain_regions": [item["id"] for item in SMI_REGIONS],
+        "body_organs": [item["id"] for item in BODY_ORGANS],
+        "unverified_operational_status": "Unknown",
+        "full_organism_verified": False,
+        "scope": "bounded_health_observation_only",
     }
 
 
