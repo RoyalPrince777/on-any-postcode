@@ -1,5 +1,7 @@
 """Acceptance and security boundaries for SMI machine learning."""
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -44,7 +46,9 @@ def test_kmeans_is_unsupervised_and_bounded():
 
 
 def test_routes_are_founder_only_and_mutation_is_csrf_guarded():
-    source = open("mission_control/smi_machine_learning_views.py", encoding="utf-8").read()
+    source = Path("mission_control/smi_machine_learning_views.py").read_text(
+        encoding="utf-8"
+    )
     assert source.count("founder_only=True") == 3
     assert '@bp.post("/ml/evaluate")' in source
     assert "web_security.csrf_valid(request)" in source
