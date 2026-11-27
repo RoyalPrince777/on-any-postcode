@@ -5,6 +5,8 @@ authority, runtime, registry, proof system, or duplicate intelligence model.
 """
 from __future__ import annotations
 
+import logging
+import time
 from typing import Any
 
 from oap.smi.action_risk_router import status as action_risk_status
@@ -33,6 +35,23 @@ from . import (
     smi_library_mission,
     war_room,
 )
+
+_LOG = logging.getLogger(__name__)
+_SLOW_COMPONENT_MS = 500.0
+
+
+def _timed_status(name: str, callback):
+    """Log slow status-source names and durations, never their contents."""
+    started = time.monotonic()
+    try:
+        return callback()
+    finally:
+        duration_ms = (time.monotonic() - started) * 1000.0
+        if duration_ms >= _SLOW_COMPONENT_MS:
+            _LOG.warning(
+                "smi_dashboard_slow_component component=%s duration_ms=%.1f",
+                name, duration_ms,
+            )
 
 
 def _regulated_unlock_matrix() -> dict[str, object]:
@@ -66,23 +85,23 @@ def _regulated_unlock_matrix() -> dict[str, object]:
 
 
 def status() -> dict[str, Any]:
-    brain_status = brain.get_public_brain_status()
-    war_status = war_room.get_war_room_dashboard()
-    intelligence = all_intelligence.public_safe_status()
-    runtime = intelligence_runtime_proof.status()
-    risk = action_risk_status()
-    bank_identity = prince_sovereign_bank.status()
-    account = sika_account_engine.status()
-    pay = sika_pay_gateway.status()
-    orchestrator = sika_payment_orchestrator.status()
-    unlock_matrix = _regulated_unlock_matrix()
-    telecom = personal_telecom.status()
-    mail = mail_outbound.status()
-    mailbox = mail_mailbox.status()
-    movement = movement_intelligence.movement_intelligence_status()
-    mission_field = smi_73_signal_field.definition_status()
-    inference = oap_inference_gateway.status(probe=True)
-    smi_health = smi_chat_runtime.health()
+    brain_status = _timed_status("brain", brain.get_public_brain_status)
+    war_status = _timed_status("war_room", war_room.get_war_room_dashboard)
+    intelligence = _timed_status("intelligence", all_intelligence.public_safe_status)
+    runtime = _timed_status("runtime", intelligence_runtime_proof.status)
+    risk = _timed_status("risk", action_risk_status)
+    bank_identity = _timed_status("bank", prince_sovereign_bank.status)
+    account = _timed_status("account", sika_account_engine.status)
+    pay = _timed_status("pay", sika_pay_gateway.status)
+    orchestrator = _timed_status("orchestrator", sika_payment_orchestrator.status)
+    unlock_matrix = _timed_status("regulated_unlock", _regulated_unlock_matrix)
+    telecom = _timed_status("telecom", personal_telecom.status)
+    mail = _timed_status("mail", mail_outbound.status)
+    mailbox = _timed_status("mailbox", mail_mailbox.status)
+    movement = _timed_status("movement", movement_intelligence.movement_intelligence_status)
+    mission_field = _timed_status("signal_field", smi_73_signal_field.definition_status)
+    inference = _timed_status("inference", lambda: oap_inference_gateway.status(probe=True))
+    smi_health = _timed_status("smi_health", smi_chat_runtime.health)
     mission_evaluation = smi_health.get("mission_to_100") or {}
 
     smi_21_dimensions = tuple(
@@ -395,7 +414,7 @@ def status() -> dict[str, Any]:
                 },
             ),
         },
-        "library_mission": smi_library_mission.status(),
+        "library_mission": _timed_status("library", smi_library_mission.status),
         "mission_to_100": {
             "signal_count": mission_field.get("signal_count"),
             "major_dimension_count": mission_field.get("major_dimension_count"),
@@ -515,4 +534,85 @@ def status() -> dict[str, Any]:
             "This dashboard aggregates canonical evidence only. Built, runtime-verified, "
             "live-external and operationally-certified remain separate claims."
         ),
+    }
+
+
+def home_shell_status() -> dict[str, Any]:
+    """Fast, read-only SMI landing projection without runtime or database probes.
+
+    The shell never advertises live readiness: expensive evidence is available
+    only through the existing Founder-gated /mission/smi/status endpoint.
+    """
+    controls = (
+        ("smi_chat", "Talk to SMI", "Ask, analyse and receive governed recommendations.", "SMI", "/mission/ollama", "SMI Chat", "🧠"),
+        ("intelligence", "Intelligence", "Open the existing intelligence directory.", "SMI", "/mission/agents", "Intelligence Directory", "◈"),
+        ("movement", "Movement", "Open movement and maps intelligence.", "Movement Intelligence", "/movement", "Movement Intelligence", "⌁"),
+        ("learning", "Learning", "Review bounded learning and improvement receipts.", "HRM + SMI", "/mission/improvement", "Learning", "◉"),
+        ("memory", "Memory", "Inspect governed records and context.", "HRM", "/mission/organism", "Memory", "▤"),
+        ("protection", "Protection", "Review independent protection boundaries.", "Guardian", "/mission/war-room", "Protection", "◇"),
+        ("war_room", "War Room", "Review live evidence on its separate route.", "War Room", "/mission/war-room", "War Room", "⚔"),
+        ("recovery", "Recovery", "Review governed STOP and recovery controls.", "SMI", "/mission/organism", "Recovery", "↺"),
+        ("founder_final", "Founder Final", "Human authority remains final.", "Founder", "/mission/war-room", "Founder Final", "♛"),
+    )
+    signals = (
+        ("inference", "SMI Inference", "/mission/ollama"),
+        ("signal_field", "73 Signal Field", "/mission/intelligence"),
+        ("runtime", "Runtime", "/mission/war-room"),
+        ("war_room", "War Room", "/mission/war-room"),
+        ("movement", "Movement", "/movement"),
+        ("learning", "Learning", "/mission/improvement"),
+        ("human_authority", "Human Authority", "/mission/war-room"),
+    )
+    dimensions = tuple(
+        {
+            "name": dimension.replace("_", " ").title(),
+            "state": "unknown",
+            "family": family.replace("_", " ").title(),
+            "checks": tuple(checks),
+        }
+        for family, family_dimensions in smi_73_signal_field.DIMENSION_FAMILIES
+        for dimension, checks in family_dimensions
+    )
+    return {
+        "component": "SMI Founder Command Dashboard",
+        "sovereign_ui": {
+            "primary_route": "/mission/ollama",
+            "essential_controls": tuple(
+                dict(zip(
+                    ("id", "label", "function", "owner", "href", "route_label", "icon"),
+                    control,
+                ))
+                for control in controls
+            ),
+        },
+        "important_signals": tuple(
+            {"id": key, "label": label, "href": href,
+             "state": "FINAL" if key == "human_authority" else "UNKNOWN",
+             "summary": "Evidence not checked on this fast landing screen."}
+            for key, label, href in signals
+        ),
+        "smi_21_dimensions": dimensions,
+        "mission_to_100": {
+            "signal_count": "—", "major_dimension_count": len(dimensions),
+            "reviewer_count": "—",
+        },
+        "brain": {"count": "—"},
+        "intelligence": {"worlds": "—"},
+        "character": {
+            "href": "/mission/ollama",
+            "states": ("ready", "listening", "thinking", "speaking", "paused", "stopped"),
+        },
+        "movement": {
+            "href": "/movement", "architecture_ready": False,
+            "component_count": "—", "mode_count": "—",
+        },
+        "learning": {
+            "href": "/mission/improvement",
+            "receipt_learning_defined": False,
+        },
+        "war_room": {"validation_passed": False},
+        "evidence_state": "UNKNOWN",
+        "execution_granted": False,
+        "approval_granted": False,
+        "human_authority_final": True,
     }

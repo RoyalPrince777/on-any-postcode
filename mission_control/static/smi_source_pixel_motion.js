@@ -36,19 +36,113 @@
   return {width:w,height:h,data:next};
  }
  function motionFor(state,ms,speechPulse=0){
-  const a=Math.sin(ms/620),b=Math.sin(ms/1110);
   if(state==="stopped"||state==="paused")return Object.freeze({head:[0,0,1],eyes:[0,0,1],mouth:[0,0,1],chest:[0,0,1],hands:[0,0,1]});
-  const focus=state==="thinking"?1.35:state==="listening"?1.18:1;
+  // Bounded, natural-feeling movement of the same approved source pixels.
+  const breathe=Math.sin(ms/1510);
+  const glance=Math.sin(ms/2440);
+  const micro=Math.sin(ms/760);
+  const engaged=state==="listening"?1.16:state==="thinking"?1.09:1;
+  const speak=state==="speaking";
   const blinkPhase=ms%4300;
   const blink=blinkPhase<135?Math.max(0,1-Math.abs(blinkPhase-67.5)/67.5):0;
   const eyeScale=Math.max(.2,1-(blink*.78));
   return Object.freeze({
-   head:[a*1.35*focus,b*.72*focus,1],
-   eyes:[a*1.9*focus,b*.58*focus,eyeScale],
-   mouth:state==="speaking"?[speechPulse*1.15,speechPulse*1.45,1+speechPulse*.32]:[0,0,1],
-   chest:[0,b*.78,1+b*.0045],
-   hands:[a*.48,-b*.42,1]
+   head:[(micro*.9+glance*.30)*engaged,(breathe*.65+(speak?micro*.28:0))*engaged,1],
+   eyes:[(glance*1.25+micro*.35)*engaged,breathe*.38,eyeScale],
+   mouth:speak?[speechPulse*1.15,speechPulse*1.45,1+speechPulse*.32]:[0,0,1],
+   chest:[0,breathe*.74,1+breathe*.0045],
+   hands:[micro*(state==="listening"?.22:.44),-breathe*.36,1]
   });
+ }
+ // First-party, bounded time-based pose easing over the ORIGINAL verified JPG.
+ // This smooths state transitions at variable rAF rates; it is not a
+ // certified anatomical rig, a new sprite or a generated facial expression.
+ const POSE_HALF_LIFE_MS=Object.freeze({
+  head:Object.freeze([110,125,150]),
+  eyes:Object.freeze([65,70,22]),
+  mouth:Object.freeze([42,48,55]),
+  chest:Object.freeze([150,155,155]),
+  hands:Object.freeze([120,145,150])
+ });
+ function createPoseSmoother(){
+  const values=Object.fromEntries(Object.keys(POSE_HALF_LIFE_MS).map(name=>[
+   name,[0,0,1]
+  ]));
+  let previousTime=null;
+  function reset(){
+   for(const key of Object.keys(values))values[key]=[0,0,1];
+   previousTime=null;
+  }
+  function next(target,ms){
+   if(!Number.isFinite(ms))throw Error("invalid_smi_pose_clock");
+   // Cap long background delays: no jump forward when a tab wakes up.
+   const dt=previousTime===null?16:Math.max(0,Math.min(70,ms-previousTime));
+   previousTime=ms;
+   const output={};
+   for(const [key,halfLives] of Object.entries(POSE_HALF_LIFE_MS)){
+    const pose=target?.[key];
+    if(!Array.isArray(pose)||pose.length!==3||pose.some(v=>!Number.isFinite(v)))
+     throw Error("invalid_smi_source_pose");
+    const current=values[key];
+    const eased=pose.map((value,index)=>{
+     const alpha=1-Math.pow(.5,dt/halfLives[index]);
+     return current[index]+(value-current[index])*alpha;
+    });
+    values[key]=eased;
+    output[key]=Object.freeze(eased);
+   }
+   return Object.freeze(output);
+  }
+  return Object.freeze({next,reset});
+ }
+ // A bounded, local sample of actual canvas submissions. These are browser
+ // timings, not display scan-out, thermal readings or physical-device proof.
+ function createFrameWindow(){
+  const samples=[];
+  let previous=null,completed=false,captureMode="unknown";
+  const round=value=>Math.round(value*100)/100;
+  function record(now,cost,budget,mode="unknown"){
+   if(!Number.isFinite(now)||!Number.isFinite(cost)||cost<0||
+      !Number.isFinite(budget)||budget<=0||
+      !["unknown","ambient","live"].includes(mode))return;
+   if(mode!==captureMode)boundary();
+   if(!completed&&previous!==null&&now<=previous)return;
+   if(completed){samples.length=0;previous=null;completed=false;}
+   captureMode=mode;
+   if(previous!==null&&now>previous){
+    samples.push({interval:now-previous,cost,budget});
+    if(samples.length>600)samples.shift();
+   }
+   previous=now;
+  }
+  function boundary(){previous=null;completed=true;}
+  function snapshot(){
+   const intervals=samples.map(x=>x.interval).sort((a,b)=>a-b);
+   const costs=samples.map(x=>x.cost).sort((a,b)=>a-b);
+   const percentile=(values,p)=>values.length?round(values[Math.ceil(values.length*p)-1]):null;
+   const duration=samples.reduce((sum,x)=>sum+x.interval,0);
+   return Object.freeze({version:1,measurement:"browser_canvas_submission",
+    status:samples.length?(completed?"completed":"capturing"):"unknown",
+    captureMode,
+    sampleCount:samples.length,durationMs:round(duration),
+    measuredFps:duration>0?round(samples.length*1000/duration):null,
+    frameP50Ms:percentile(intervals,.5),frameP95Ms:percentile(intervals,.95),
+    frameMaxMs:intervals.length?round(intervals[intervals.length-1]):null,
+    renderP95Ms:percentile(costs,.95),
+    overBudgetCount:samples.filter(x=>x.interval>x.budget*1.5).length,
+    physicalDeviceProven:false,thermalStatus:"unknown",smoothnessApproved:false});
+  }
+  return Object.freeze({record,boundary,snapshot});
+ }
+ // Facial patches inherit the head translation; their blink/mouth deformation
+ // remains local. No neck joint, depth or hidden anatomy is inferred.
+ function regionPose(id,poses){
+  if(id==="eyes"||id==="mouth"){
+   const local=poses[id];
+   return [local[0]+poses.head[0],local[1]+poses.head[1],local[2]];
+  }
+  return id==="left-hand"||id==="right-hand"?poses.hands:
+   id==="chest"?poses.chest:poses.head;
  }
  async function attach(win=typeof window!=="undefined"?window:null,doc=win?.document){
   const shell=doc?.querySelector?.(".smi-shell");
@@ -74,10 +168,23 @@
   canvas.width=WIDTH;canvas.height=HEIGHT;canvas.setAttribute("aria-hidden","true");
   canvas.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center center;pointer-events:none;z-index:0";
   shell.prepend(canvas);
-  const context=canvas.getContext("2d",{willReadFrequently:true});
+  // Render at native source resolution on the display canvas. Readback belongs
+  // to a one-time evidence canvas; willReadFrequently on the display surface
+  // would force software rendering on common Android Chromium builds.
+  const context=canvas.getContext("2d",{alpha:false});
   if(!context){canvas.remove();image.close?.();return null;}
+  context.imageSmoothingEnabled=true;
+  context.imageSmoothingQuality="high";
+  const evidenceCanvas=doc.createElement("canvas");
+  evidenceCanvas.width=WIDTH;evidenceCanvas.height=HEIGHT;
+  const evidenceContext=evidenceCanvas.getContext("2d",{willReadFrequently:true});
+  if(!evidenceContext){canvas.remove();image.close?.();return null;}
+  evidenceContext.drawImage(image,0,0);
+  const samples=Object.fromEntries(REGIONS.map(region=>[
+    region.id,evidenceContext.getImageData(region.x,region.y,region.w,region.h)
+  ]));
+  evidenceCanvas.width=0;evidenceCanvas.height=0;
   context.drawImage(image,0,0);
-  const samples=Object.fromEntries(REGIONS.map(region=>[region.id,context.getImageData(region.x,region.y,region.w,region.h)]));
   async function digestParts(parts){
    const encoder=new win.TextEncoder();
    let total=0;
@@ -102,11 +209,53 @@
    upper_body:await digestParts([["head",samples["head"].data],["chest",samples["chest"].data],["left-hand",samples["left-hand"].data],["right-hand",samples["right-hand"].data]])
   });
   const lowPower=/Android/i.test(win.navigator?.userAgent||"")||Number(win.navigator?.hardwareConcurrency||8)<=4;
-  const frameBudgetMs=lowPower?50:34;
+  // 30/60 live and 20/30 idle are upper *targets*, not measured results.
+  // Dynamically lower the rate if drawing is expensive; no 60-FPS device claim.
+  const frameBudgetMs=lowPower?33:16;
+  const ambientFrameBudgetMs=lowPower?50:33;
   let epoch=0,frame=0,last=0,phase="ready",live=false,reducedPreference=Boolean(win.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches),userReducedMotion=Boolean(win.OAP_SMI_REDUCED_MOTION?.read?.()),explicitLiveMotion=false,played=0,speechUntil=0,audioCues=0,droppedFrames=0;
+  let renderCostMs=0,observedFps=0,lastPaintTime=0,adaptiveFrameBudgetMs=ambientFrameBudgetMs;
+  const frameWindow=createFrameWindow();
+  function resetFrameTelemetry(){
+   frameWindow.boundary();
+   last=0;lastPaintTime=0;observedFps=0;renderCostMs=0;
+   adaptiveFrameBudgetMs=live?frameBudgetMs:ambientFrameBudgetMs;
+  }
+  function renderActive(){
+   return epoch>=0&&!doc.hidden&&!userReducedMotion&&
+    (!reducedPreference||explicitLiveMotion)&&
+    phase!=="paused"&&phase!=="stopped"&&(live||phase==="ready");
+  }
   let playbackEpoch=null,localAudio=false,localViseme="silence",maxAudioClockDeltaMs=0;
   const rigLayerFrames={eyes:0,head:0,breathing:0,mouth_visemes:0,face:0,hands:0,upper_body:0};
   const LOCAL_POSE=Object.freeze({silence:0,closed:.04,wide:1,round:.7,teeth:.45,tongue:.55});
+  const poseSmoother=createPoseSmoother();
+  // One-time edge feathering from the approved source JPG only. Hard cropped
+  // ellipses left visible borders against the unmoving original at subpixel
+  // offsets. Cached source-derived overlays remove that seam without a
+  // substitute character, hidden anatomy, a second renderer, or per-frame
+  // getImageData readbacks. Everything stays in this private browser session.
+  const featheredPatches=new Map(REGIONS.map(region=>{
+   const patch=doc.createElement("canvas");
+   patch.width=region.w;patch.height=region.h;
+   const pc=patch.getContext("2d",{alpha:true});
+   if(!pc)return [region.id,null];
+   pc.drawImage(image,region.x,region.y,region.w,region.h,0,0,region.w,region.h);
+   pc.globalCompositeOperation="destination-in";
+   pc.save();
+   pc.translate(region.cx-region.x,region.cy-region.y);
+   pc.scale(region.rx,region.ry);
+   const edge=pc.createRadialGradient(0,0,.77,0,0,1);
+   edge.addColorStop(0,"rgba(255,255,255,1)");
+   edge.addColorStop(1,"rgba(255,255,255,0)");
+   pc.fillStyle=edge;
+   // Normalised extent covers the entire original region, including outside
+   // its ellipse; transparent outer pixels cannot retain a hard rectangle.
+   pc.fillRect(-2,-2,4,4);
+   pc.restore();
+   pc.globalCompositeOperation="source-over";
+   return [region.id,patch];
+  }));
   function drawRegion(region,params){
    const [dx,dy,scaleY]=params;
    context.save();
@@ -117,17 +266,19 @@
    context.translate(region.cx,region.cy);
    context.scale(1,Math.max(.18,Math.min(1.4,scaleY)));
    context.translate(-region.cx,-region.cy);
-   context.drawImage(image,region.x,region.y,region.w,region.h,region.x,region.y,region.w,region.h);
+   const patch=featheredPatches.get(region.id);
+   if(patch)context.drawImage(patch,region.x,region.y);
+   else context.drawImage(image,region.x,region.y,region.w,region.h,region.x,region.y,region.w,region.h);
    context.restore();
   }
   function draw(ms){
    context.drawImage(image,0,0);
    const motionAllowed=!userReducedMotion&&(!reducedPreference||explicitLiveMotion);
-   if(!live||!motionAllowed||phase==="paused"||phase==="stopped")return;
+   if((!live&&phase!=="ready")||!motionAllowed||phase==="paused"||phase==="stopped")return;
    const pulse=phase==="speaking"?(localAudio?LOCAL_POSE[localViseme]:Math.max(0,Math.min(1,(speechUntil-ms)/170))):0;
-   const poses=motionFor(phase,ms,pulse);
+   const poses=poseSmoother.next(motionFor(phase,ms,pulse),ms);
    for(const region of REGIONS){
-    const params=region.id==="left-hand"||region.id==="right-hand"?poses.hands:region.id==="chest"?poses.chest:region.id==="eyes"?poses.eyes:region.id==="mouth"?poses.mouth:poses.head;
+    const params=regionPose(region.id,poses);
     drawRegion(region,params);
    }
    played++;
@@ -138,23 +289,39 @@
   function tick(now){
    if(epoch<0)return;
    frame=win.requestAnimationFrame(tick);
-   const motionAllowed=!userReducedMotion&&(!reducedPreference||explicitLiveMotion);
-   if(doc.hidden||!live||!motionAllowed||phase==="paused"||phase==="stopped")return;
-   if(now-last<frameBudgetMs){droppedFrames+=1;return;}
-   last=now;draw(now);
+   if(!renderActive())return;
+   const baseline=live?frameBudgetMs:ambientFrameBudgetMs;
+   adaptiveFrameBudgetMs=Math.max(baseline,Math.min(100,renderCostMs*1.8));
+   if(now-last<adaptiveFrameBudgetMs){droppedFrames+=1;return;}
+   last=now;
+   const paintStart=win.performance.now();
+   draw(now);
+   const cost=Math.max(0,win.performance.now()-paintStart);
+   frameWindow.record(now,cost,baseline,live?"live":"ambient");
+   renderCostMs=renderCostMs===0?cost:renderCostMs*.85+cost*.15;
+   if(lastPaintTime>0){
+     const instantaneous=1000/Math.max(1,now-lastPaintTime);
+     observedFps=observedFps===0?instantaneous:observedFps*.8+instantaneous*.2;
+   }
+   lastPaintTime=now;
   }
   function onState(event){
    const state=String(event?.detail?.state||"ready");
    phase=STATES.has(state)?state:"stopped";
    playbackEpoch=event?.detail?.epoch;
    explicitLiveMotion=event?.detail?.live===true&&!event?.detail?.stopped;
-   live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&!event?.detail?.stopped;
-   if(!live||phase==="paused"||phase==="stopped"){speechUntil=0;localViseme="silence";draw(0);}
+   live=(explicitLiveMotion||phase==='listening'||phase==='thinking'||phase==='speaking')&&
+    !event?.detail?.stopped&&phase!=="paused"&&phase!=="stopped";
+   resetFrameTelemetry();
+   if(!live||phase==="paused"||phase==="stopped"){
+    speechUntil=0;localViseme="silence";poseSmoother.reset();draw(0);
+   }
   }
   win.addEventListener("oap-smi-character-state",onState);
   win.addEventListener("oap-smi-reduced-motion-change",event=>{
    userReducedMotion=event?.detail?.enabled===true;
-   if(userReducedMotion){speechUntil=0;localViseme="silence";draw(0);}
+   resetFrameTelemetry();
+   if(userReducedMotion){speechUntil=0;localViseme="silence";poseSmoother.reset();draw(0);}
   });
   win.addEventListener("oap-smi-playback-state",event=>{
    localAudio=event?.detail?.phase==="playing"&&event?.detail?.source==="oap-first-party-pcm"&&event?.detail?.decodedAudio===true;
@@ -177,24 +344,43 @@
    if(!Number.isFinite(event.detail.elapsedMs)||event.detail.elapsedMs<0)return;
    speechUntil=win.performance.now()+170;
   });
-  win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);image.close?.();});
+  doc.addEventListener?.("visibilitychange",()=>{
+   resetFrameTelemetry();if(doc.hidden)poseSmoother.reset();
+  });
+  win.addEventListener("pagehide",()=>{epoch=-1;win.cancelAnimationFrame?.(frame);resetFrameTelemetry();context.drawImage(image,0,0);for(const patch of featheredPatches.values())if(patch){patch.width=0;patch.height=0;}image.close?.();});
   frame=win.requestAnimationFrame(tick);
   shell.dataset.smiSourcePixelMotion="original_sha_verified";
   function proofSnapshot(){
    const layerKeys=["eyes","head","breathing","mouth_visemes","face","hands","upper_body"];
    const allHashes=layerKeys.every(name=>/^[a-f0-9]{64}$/.test(String(evidenceLayerSha256[name]||"")));
-   const fullBodyRigProven=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
-   const accurateSoftwareLipSyncProven=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
+   // Cropped source-image regions demonstrate renderer activity, NOT an
+   // independently reviewed anatomical seven-layer rig.
+   const sourcePixelRegionsObserved=played>0&&layerKeys.every(name=>rigLayerFrames[name]>0)&&allHashes;
+   const fullBodyRigProven=false;
+   const audioClockSchedulingObserved=audioCues>=3&&maxAudioClockDeltaMs<=80&&rigLayerFrames.mouth_visemes>0;
+   // Timely cue delivery cannot certify source-derived mouth geometry.
+   const accurateSoftwareLipSyncProven=false;
    return Object.freeze({phase,live,frames:played,audioCues,localAudio,localViseme,
     sourceSha256:actual,evidenceLayerSha256,rigLayerFrames:Object.freeze({...rigLayerFrames}),
     reducedMotionPreference:reducedPreference,userReducedMotionPreference:userReducedMotion,explicitLiveMotion,
-    maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,fullBodyRigProven,
-    accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
+    ambientVisualMotion:renderActive()&&phase==="ready"&&!live&&played>0,
+    renderActive:renderActive(),
+    frameRateTargetFps:renderActive()?(live?(lowPower?30:60):(lowPower?20:30)):0,
+    observedFps:renderActive()?Math.round(observedFps*10)/10:0,
+    renderCostMs:Math.round(renderCostMs*10)/10,
+    adaptiveFrameBudgetMs:Math.round(adaptiveFrameBudgetMs*10)/10,
+    regionEdgeBlending:"source_pixel_feather_no_anatomy_approval",
+    poseEasing:"bounded_time_based_source_pixel_only",
+    facialMotion:"inherited_head_translation_2d_only",
+    performanceWindow:frameWindow.snapshot(),
+    fullArticulatedMotionProven:false,
+    maxAudioClockDeltaMs,fullSceneSourcePixelMotion:played>0,sourcePixelRegionsObserved,fullBodyRigProven,
+    audioClockSchedulingObserved,accurateSoftwareLipSyncProven,accurateHumanLipSyncProven:false,
     physicalDeviceProofExcluded:true,privacyNoTelemetry:true});
   }
   return Object.freeze({sourceSha256:actual,sourceOnly:true,decodedAudio:false,
    privacyNoTelemetry:true,snapshot:proofSnapshot,
-   stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);context.drawImage(image,0,0);}});
+   stop:()=>{epoch=-1;win.cancelAnimationFrame?.(frame);poseSmoother.reset();resetFrameTelemetry();context.drawImage(image,0,0);}});
  }
- return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,attach});
+ return Object.freeze({SOURCE,SHA256,WIDTH,HEIGHT,REGIONS,remapRegion,motionFor,createPoseSmoother,createFrameWindow,regionPose,attach});
 });

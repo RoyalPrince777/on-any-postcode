@@ -24,6 +24,7 @@ from . import (
     brain,
     civilization,
     infrastructure,
+    intelligence_alliances,
     judgement,
     matrix_simulation,
     ollama_chat,
@@ -301,11 +302,17 @@ def smi_command_dashboard_view():
     return _no_store(
         make_response(
             render_template(
-                "smi_command_dashboard.html",
-                command=smi_command_dashboard.status(),
+                "smi_visual_home.html",
             )
         )
     )
+
+
+@bp.get("/smi/alliances/status")
+@web_security.login_required(api=True, founder_only=True)
+def smi_command_alliances_status():
+    """Founder-only read-only SMI alliance passports and advisory roles."""
+    return _no_store(make_response(jsonify(intelligence_alliances.get_smi_command_alliances())))
 
 
 @bp.get("/smi/status")
@@ -314,6 +321,25 @@ def smi_command_dashboard_status():
     """Return the same read-only Founder command projection as JSON."""
 
     return _no_store(make_response(jsonify(smi_command_dashboard.status())))
+
+
+@bp.get("/character-mask-workbench")
+@web_security.login_required(founder_only=True)
+def smi_character_mask_workbench():
+    """SMI CC's original-pixel editor: Founder-only, draft and browser-local.
+
+    No private mask bytes are received here and no live rig is activated.
+    """
+    from oap.smi.character_rig_assets import APPROVED_SOURCE_SHA256
+
+    response = make_response(
+        render_template(
+            "smi_character_masks.html",
+            approved_image_url=url_for("static", filename="oap/smi_live_chat_dashboard.jpg"),
+            approved_image_sha256=APPROVED_SOURCE_SHA256,
+        )
+    )
+    return _no_store(response)
 
 
 @bp.get("/brain")

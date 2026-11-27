@@ -164,10 +164,15 @@
  const settingsHomeButton=document.createElement("button");
  settingsHomeButton.type="button";settingsHomeButton.textContent="⚙ Settings";
  settingsHomeButton.setAttribute("aria-label","Open SMI Settings");
- settingsHomeButton.addEventListener("click",()=>{
+ settingsHomeButton.addEventListener("click",event=>{
+  event.stopPropagation(); // Keep the canonical outside-click guard from closing Settings.
   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
-  document.getElementById("plus-button")?.click();
+  const plus=document.getElementById("plus-button");
   const settings=document.getElementById("smi-settings-button");
+  if(!plus||plus.disabled||!settings||settings.disabled){
+   missionStatus("SMI Settings unavailable");return;
+  }
+  if(plus.getAttribute("aria-expanded")!=="true")plus.click();
   if(settings){
    const panelOpen=settings.getAttribute("aria-expanded")==="true";
    if(!panelOpen)settings.click();
@@ -332,6 +337,7 @@
   ["＋ Master Tools","master-tools"],
   ["🌍 OAP World","world-controls"],
   ["🐆 Jungle","jungle-controls"],
+  ["🤝 Alliances","alliances"],
   ["⚔️ War Room","war-room"],
   ["🕶 Matrix Routes","matrix-routes"],
   ["🧠 HRM","hrm"],
@@ -347,6 +353,137 @@
   universe.append(button);
  }
  panel.querySelector(".smi-command-layout").after(universe);
+
+ // One read-only alliance lens over existing passports and advisory profiles.
+ // It never creates a second brain, starts workers, or invokes an agent.
+ const alliancePanel=document.createElement("section");
+ alliancePanel.className="smi-command-alliance-panel";
+ alliancePanel.setAttribute("aria-label","SMI Agent Alliances · Founder private");
+ alliancePanel.hidden=true;
+ alliancePanel.innerHTML='<header><strong>🤝 SMI · AGENT ALLIANCES</strong><small>One SMI brain · existing passports and advisory roles only</small></header><p class="smi-alliance-state" role="status">Not checked</p><div class="smi-alliance-leadership" aria-label="SMI Kernel and Commander ratings review"></div><div class="smi-alliance-grid"></div><details class="smi-alliance-families"><summary>Other existing alliance families</summary><div class="smi-alliance-family-list"></div></details><p class="smi-alliance-note">No independent agents, votes, worker execution or automatic Green. Guardian/HRM and Founder Final remain mandatory.</p>';
+ universe.after(alliancePanel);
+ const allianceState=alliancePanel.querySelector(".smi-alliance-state");
+ const allianceLeadership=alliancePanel.querySelector(".smi-alliance-leadership");
+ const allianceGrid=alliancePanel.querySelector(".smi-alliance-grid");
+ const allianceFamilyList=alliancePanel.querySelector(".smi-alliance-family-list");
+ let allianceRequest=null;
+ function closeAllianceRoster(){
+  if(allianceRequest){allianceRequest.abort();allianceRequest=null;}
+  alliancePanel.hidden=true;
+  panel.dataset.alliancesOpen="false";
+  universe.querySelector('[data-action="alliances"]')?.setAttribute("aria-expanded","false");
+ }
+ function renderAllianceRoster(rows){
+  allianceGrid.replaceChildren();
+  const icons={shere_khan:"🐅",smith_adversarial:"🕶️",bagheera:"🐆",octopus:"🐙",queen_bee:"🐝",matrix_twins:"👥"};
+  rows.forEach(item=>{
+   const card=document.createElement("article");
+   card.className="smi-alliance-card";
+   const heading=document.createElement("strong");
+   heading.textContent=(icons[item.id]||"🧩")+" "+String(item.name||"Unknown");
+   const role=document.createElement("p");
+   role.textContent=String(item.role||"Role not verified");
+   const badge=document.createElement("small");
+   const registered=item.passport_status==="registered"&&typeof item.passport_id==="string";
+   badge.textContent=registered?"Passport registered · runtime unverified":"Advisory only · no registered passport";
+   const members=document.createElement("small");
+   members.textContent=Array.isArray(item.members)&&item.members.length>1?"Members: "+item.members.join(", "):"";
+   const allies=document.createElement("small");
+   allies.textContent=Array.isArray(item.allies)&&item.allies.length?"Alliance: "+item.allies.join(", "):"";
+   card.append(heading,role,badge);
+   if(members.textContent)card.append(members);
+   if(allies.textContent)card.append(allies);
+   const directory=String(item.directory_url||"");
+   if(registered&&new RegExp("^/mission/agents[?]family=(?:jungle_book|animal|matrix)$").test(directory)){
+    const link=document.createElement("a");
+    link.textContent="View existing passport";
+    link.href=directory;
+    card.append(link);
+   }
+   const consult=document.createElement("button");
+   consult.type="button";
+   consult.className="smi-alliance-consult";
+   consult.textContent="Review in SMI";
+   consult.setAttribute("aria-label","Use "+String(item.name||"this role")+" as an advisory SMI perspective");
+   consult.addEventListener("click",()=>{
+    const input=document.getElementById("message");
+    if(!input){allianceState.textContent="SMI chat unavailable";return;}
+    const existing=input.value.trim();
+    input.value="SMI, review with the "+String(item.name)+" advisory perspective: "+existing;
+    input.dispatchEvent(new Event("input",{bubbles:true}));
+    closeAllianceRoster();
+    setOpen(false);
+    input.focus();
+   });
+   card.append(consult);
+   allianceGrid.append(card);
+  });
+ }
+ async function refreshAllianceRoster(){
+  if(allianceRequest)allianceRequest.abort();
+  allianceRequest=new AbortController();
+  const signal=allianceRequest.signal;
+  allianceState.textContent="Checking existing alliance records…";
+  allianceGrid.replaceChildren();
+  try{
+   const target=String(cfg.alliancesUrl||"");
+   if(target!=="/mission/smi/alliances/status")throw new Error("Alliance status unavailable");
+   const response=await fetch(target,{cache:"no-store",credentials:"same-origin",signal});
+   if(!response.ok)throw new Error("Alliance evidence unavailable");
+   const data=await response.json();
+   if(data?.brain!=="SMI"||data?.scope!=="founder_private_read_only"||!Array.isArray(data.members)||data.members.length!==6||data.can_execute!==false)throw new Error("Alliance proof incomplete");
+   if(signal.aborted||alliancePanel.hidden)return;
+   allianceLeadership.replaceChildren();
+   const leadership=data.leadership;
+   const reviews=data.ratings_review;
+   if(leadership?.smi?.name!=="SMI"||leadership?.kernel?.name!=="Living Kernel"||
+      leadership?.kernel?.agent_rating!==null||leadership?.commander?.name!=="Commander ALL IN"||
+      leadership?.commander?.permissions_expanded!==false||
+      reviews?.mode!=="historic_role_fit_only"||reviews?.live_performance_verified!==false||
+      !Array.isArray(reviews?.rows))throw new Error("Leadership rating evidence incomplete");
+   const headings=[
+    ["🧠 SMI","One brain · no agent star rating"],
+    ["❤️ Living Kernel","Governed organism system · not an agent · runtime unknown"],
+    ["🎖️ Commander ALL IN","Mission Keeper · formerly Captain · historic 7/7 advisory · live unrated"]
+   ];
+   headings.forEach(([name,detail])=>{
+    const tile=document.createElement("article");
+    const title=document.createElement("strong");
+    title.textContent=name;
+    const rating=document.createElement("small");
+    rating.textContent=detail;
+    tile.append(title,rating);
+    allianceLeadership.append(tile);
+   });
+   renderAllianceRoster(data.members);
+   const ratingsByName=new Map(reviews.rows.map(row=>[row.name,row]));
+   Array.from(allianceGrid.children).forEach((card,index)=>{
+    const name=String(data.members[index]?.name||"");
+    const rating=ratingsByName.get(name);
+    const detail=document.createElement("small");
+    detail.className="smi-alliance-rating";
+    detail.textContent=rating?.historical_role_fit!=null
+      ?"Historic advisory role-fit: "+rating.historical_role_fit+"/7 · 2026-10-15 · live unrated"
+      :"Historic advisory role-fit: not recorded · live unrated";
+    card.append(detail);
+   });
+   allianceFamilyList.replaceChildren();
+   if(Array.isArray(data.existing_alliance_families)){
+    data.existing_alliance_families.forEach(family=>{
+     const item=document.createElement("p");
+     const label=String(family.name||"Unknown alliance");
+     const registered=family.status==="canonical_registered_family";
+     item.textContent=label+" · "+(registered?"Registered family":"Advisory design only");
+     allianceFamilyList.append(item);
+    });
+   }
+   allianceState.textContent="Registry and advisory profiles checked · live workers not verified";
+  }catch(error){
+   if(signal.aborted)return;
+   allianceGrid.replaceChildren();
+   allianceState.textContent="Alliance records unavailable · no active agents inferred";
+  }finally{if(allianceRequest?.signal===signal)allianceRequest=null;}
+ }
  // Founder Command Centre: non-operational banking controls. Do not create a
  // second banking engine, manufacture proof, or expose a transactional action.
  const bankControls=document.createElement("section");
@@ -722,6 +859,7 @@
    refreshEvidence();
    refreshRoomStatus();
   }else{
+   closeAllianceRoster();
    if(marker.parentNode)marker.parentNode.insertBefore(character,marker);
    document.body.classList.remove("smi-command-open");
    toggle.textContent="◈ Command Centre";toggle.setAttribute("aria-label","Open SMI Command Centre");
@@ -755,6 +893,17 @@
   const trigger=event.target.closest("[data-action]");
   if(!trigger)return;
   const action=trigger.dataset.action;
+  if(action!=="alliances"&&!alliancePanel.hidden)closeAllianceRoster();
+  if(action==="alliances"){
+   if(!alliancePanel.hidden){closeAllianceRoster();return;}
+   worldPanel.hidden=true;
+   junglePanel.hidden=true;
+   alliancePanel.hidden=false;
+   panel.dataset.alliancesOpen="true";
+   trigger.setAttribute("aria-expanded","true");
+   refreshAllianceRoster();
+   return;
+  }
   if(action==="world-controls"){
    worldPanel.hidden=!worldPanel.hidden;
    junglePanel.hidden=true;

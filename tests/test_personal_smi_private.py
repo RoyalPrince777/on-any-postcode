@@ -31,6 +31,17 @@ def test_personal_smi_contract_is_private_provider_neutral_and_direct():
     assert "purple is learning, never warning" in contract
 
 
+def test_internal_reviews_are_quiet_but_risk_and_receipts_remain_explainable():
+    contract = smi_chat_grounded.evidence_contract({"status": "unknown"})
+    assert "SILENT INTERNAL QUALITY CONTROL" in contract
+    assert "within this one SMI brain" in contract
+    assert "Truth Mode, Expose, Red Team, Devil's Advocate" in contract
+    assert "Do not invent that checks, tests" in contract
+    assert "Never hide material risk" in contract
+    assert "Founder explicitly requests evidence" in contract
+    assert "Guardian/HRM and Founder Final gates" in contract
+
+
 def test_personal_smi_ui_identity_and_safe_thinking_process_are_explicit():
     compact = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text()
     base = (ROOT / "mission_control" / "templates" / "ollama_chat_base.html").read_text()

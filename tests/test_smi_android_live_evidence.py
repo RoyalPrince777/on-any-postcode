@@ -104,6 +104,58 @@ def test_record_requires_durable_independent_hrm_readback(monkeypatch):
     assert "humanNote" not in safe
     assert safe["stores_audio"] is False
     assert safe["stores_transcript"] is False
+    assert safe["motion_performance"] is None
+    assert safe["motion_performance_measured"] is False
+    assert safe["physical_smoothness_approved"] is False
+    assert safe["accurate_lip_sync_approved"] is False
+
+
+def motion_performance():
+    return {
+        "version": 1, "measurement": "browser_canvas_submission", "status": "completed",
+        "captureMode": "live",
+        "sampleCount": 60, "durationMs": 2000, "measuredFps": 30,
+        "frameP50Ms": 33, "frameP95Ms": 50, "frameMaxMs": 70, "renderP95Ms": 4,
+        "overBudgetCount": 2, "physicalDeviceProven": False,
+        "thermalStatus": "unknown", "smoothnessApproved": False,
+    }
+
+
+def test_browser_measurements_are_bounded_evidence_not_physical_approval(monkeypatch):
+    payload = valid_receipt()
+    payload["motionPerformance"] = motion_performance()
+    assert evidence.validate_physical_android_receipt(payload)["accepted"] is True
+    stored = []
+
+    def write_receipt(kind, data, **kwargs):
+        stored.append(data["safe_payload"])
+        return {"ok": True, "durable": True, "read_back_ok": True, "fallback_used": False}
+
+    monkeypatch.setattr(evidence.smi_receipt_backend, "write_receipt", write_receipt)
+    evidence.record_physical_android_receipt(payload, identity_id="founder")
+    assert stored[0]["motion_performance"] == motion_performance()
+    assert stored[0]["motion_performance_measured"] is True
+    assert stored[0]["physical_smoothness_approved"] is False
+    assert stored[0]["anatomical_masks_approved"] is False
+    for field, value in [
+        ("sampleCount", 601), ("sampleCount", True), ("durationMs", float("nan")),
+        ("measuredFps", 60), ("frameP95Ms", 10), ("frameP50Ms", -1),
+        ("overBudgetCount", 61), ("renderP95Ms", float("inf")),
+        ("physicalDeviceProven", True), ("smoothnessApproved", True),
+        ("thermalStatus", "cool"), ("transcript", "must never be retained"),
+    ]:
+        payload["motionPerformance"] = {**motion_performance(), field: value}
+        result = evidence.validate_physical_android_receipt(payload)
+        assert result["accepted"] is False, field
+        assert "motion_performance_invalid" in result["reasons"]
+
+
+def test_nonfinite_timing_cannot_pass_android_proof():
+    for field in ("maxAudioClockDeltaMs", "stopAcknowledgementMs"):
+        for value in (float("nan"), float("inf"), -float("inf"), 10**1000):
+            payload = valid_receipt()
+            payload[field] = value
+            assert evidence.validate_physical_android_receipt(payload)["accepted"] is False
 
 
 def test_record_does_not_fallback_to_fake_green(monkeypatch):

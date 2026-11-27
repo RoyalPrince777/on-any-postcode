@@ -52,6 +52,7 @@ jobs:
           node --check mission_control/static/smi_live_character_state.js
           node --check mission_control/static/smi_canonical_controller.js
           node --check mission_control/static/smi_chat_final.js
+          node --check mission_control/static/smi_command_centre.js
           node --check mission_control/static/smi_interaction_layer.js
           node --check mission_control/static/smi_media_controls.js
           node tests/smi_live_character_state_test.cjs
@@ -68,6 +69,7 @@ jobs:
           node tests/smi_android_motion_evidence_gate_test.cjs
           node --check mission_control/smi_real_reply_motion_bridge.js
           node tests/smi_real_reply_motion_bridge_test.cjs
+          node tests/smi_quiet_review_test.cjs
       - name: Validate first-party Arena browser controllers
         run: |
           for script in \

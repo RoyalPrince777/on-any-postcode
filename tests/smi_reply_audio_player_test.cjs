@@ -164,6 +164,37 @@ async function sha256(bytes){
  assert.equal(await pending,false);
  assert.equal(staleStarts,0);
 
+ // Web Audio schedules the source 25ms ahead: no visual phoneme before playback.
+ const measuredCues=[];
+ const timedPlayer=create({...win,fetch:async()=>({ok:true,json:async()=>payload})});
+ assert.equal(await timedPlayer.play({url:"/mission/chat/reply-audio",csrf:"csrf",
+  conversationId,requestId,onCue:cue=>measuredCues.push(cue)}),true);
+ contextInstance.currentTime=.01;raf?.();
+ assert.equal(measuredCues.length,0);
+ contextInstance.currentTime=.15;raf?.();
+ assert.equal(measuredCues[0].viseme,"wide");
+ assert.ok(Math.abs(measuredCues[0].audioClockMs-125)<.001);
+ assert.equal(measuredCues[0].accurateSoftwareLipSyncProven,false,
+  "cue scheduling cannot certify source-derived mouth artwork");
+ // A delayed ended callback must report its actual clock, never perfect timing.
+ contextInstance.currentTime=1.35;sources.at(-1).onended();
+ assert.ok(measuredCues.at(-1).audioClockMs>1300);
+ assert.ok(measuredCues.at(-1).maxAudioClockDeltaMs>300);
+ assert.equal(measuredCues.at(-1).audioClockSchedulingObserved,false);
+ timedPlayer.destroy();
+ const lateCues=[];
+ const latePlayer=create({...win,fetch:async()=>({ok:true,json:async()=>payload})});
+ assert.equal(await latePlayer.play({url:"/mission/chat/reply-audio",csrf:"csrf",
+  conversationId,requestId,onCue:cue=>lateCues.push(cue)}),true);
+ contextInstance.currentTime=.5;raf?.();
+ assert.equal(lateCues[0].viseme,"silence","late phoneme must not replay a stale mouth pose");
+ assert.equal(lateCues[0].lateCueSuppressed,true);
+ assert.ok(lateCues[0].maxAudioClockDeltaMs>300);
+ const callbackAfterStop=raf;
+ latePlayer.stop();callbackAfterStop?.();
+ assert.equal(lateCues.length,1,"STOP invalidates queued audio callbacks");
+ latePlayer.destroy();
+
  const html=fs.readFileSync("mission_control/templates/ollama_chat.html","utf8");
  const controller=fs.readFileSync("mission_control/static/smi_canonical_controller.js","utf8");
  const renderer=fs.readFileSync("mission_control/static/smi_source_pixel_motion.js","utf8");

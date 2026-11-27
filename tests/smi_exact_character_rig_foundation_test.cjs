@@ -23,16 +23,26 @@ const hashes=Object.fromEntries(expected.map(name=>[name,"a".repeat(64)]));
 const frames=Object.fromEntries(expected.map(name=>[name,7]));
 const session={snapshot:()=>({
  sourceSha256:sha,evidenceLayerSha256:hashes,rigLayerFrames:frames,
- fullBodyRigProven:true,accurateSoftwareLipSyncProven:true,live:true
+ fullBodyRigProven:true,sourcePixelRegionsObserved:true,
+ fullSceneSourcePixelMotion:true,frames:7,
+ accurateSoftwareLipSyncProven:true,live:true
 })};
 snap=rig.bindMotionSession(session);
 assert.equal(snap.enabled,true);
-assert.equal(snap.active,true);
-assert.equal(snap.proofState,"machine_proven");
-assert.equal(snap.fullRigProven,true);
-assert.equal(snap.accurateSoftwareLipSyncProven,true);
+assert.equal(snap.active,false,"no approved seven-layer anatomical rig");
+assert.equal(snap.sourcePixelMotionActive,true,"source-pixel renderer remains active");
+assert.equal(snap.proofState,"source_pixel_motion_observed");
+assert.equal(snap.sourcePixelMotionObserved,true);
+assert.equal(snap.sourcePixelRegionsObserved,true);
+assert.equal(snap.fullRigProven,false);
+assert.equal(snap.requiresHumanApproval,true);
+assert.equal(snap.accurateSoftwareLipSyncProven,false,
+ "a source session cannot self-certify reviewed mouth geometry");
 assert.equal(snap.accurateHumanLipSyncProven,false);
-for(const name of expected)assert.equal(snap.layers[name],true);
+for(const name of expected){
+ assert.equal(snap.sourcePixelRegionSignals[name],true,"source pixels observed");
+ assert.equal(snap.layers[name],false,"no approved anatomical mask proof");
+}
 assert.equal(snap.rendererOwner,"smi_source_pixel_motion");
 
 const bad=rigApi.create();

@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from . import agents
+from . import agents, organism
 
 # The recovered 14-person Mission: Impossible advisory design is *not* a
 # registration or licensing claim. Existing agent passports stay unchanged.
@@ -123,10 +123,22 @@ def get_founder_alliance_board(
             "command_position": "Above specialist agent rankings",
             "career_ranking_eligible": False,
         },
+        "living_kernel": {
+            "name": "Living Kernel",
+            "kind": "governed_organism_system",
+            "rating": None,
+            "rating_status": "not_an_agent_not_rated",
+            "execution_boundary": "Only approved actions after independent gates",
+            "authority_granted": False,
+        },
         "mission_coordinator": {
-            "name": "Captain ALL IN",
+            "name": "Commander ALL IN",
+            "legacy_name": "Captain ALL IN",
+            "title": "Commander",
             "kind": "mission_coordination_role",
             "ranking": "Separate from canonical agent achievement totals",
+            "promotion_scope": "display_and_coordination_title_only",
+            "permissions_expanded": False,
         },
         "historical_top_21": {
             "as_of": "2026-10-15",
@@ -177,4 +189,157 @@ def get_founder_alliance_board(
         "live_activation_claimed": False,
         "can_approve": False,
         "can_execute": False,
+    }
+
+
+
+def get_smi_command_alliances() -> dict[str, Any]:
+    """Read-only projection of the Founder's requested existing SMI alliances.
+
+    Registered passports are linked by exact canonical name; Matrix advisory
+    members remain unregistered. Nothing in this projection activates agents,
+    creates votes, grants permissions, or implies live swarm workers.
+    """
+    registered = {str(item["name"]): item for item in agents.AGENT_REGISTRY}
+    matrix = {str(item["id"]): item for item in agents.MATRIX_ADVISORY_ALLIANCES}
+    smith = matrix["smith_adversarial"]
+    twins = matrix["matrix_twins"]
+
+    def canonical(name: str, role: str) -> dict[str, Any]:
+        agent = registered.get(name)
+        return {
+            "id": name.lower().replace(" ", "_"),
+            "name": name,
+            "role": str(agent["role"]) if agent else role,
+            "family": str(agent["family_id"]) if agent else None,
+            "passport_id": str(agent["agent_id"]) if agent else None,
+            "passport_status": "registered" if agent else "advisory_only",
+            "members": (name,),
+            "allies": (),
+            "directory_url": (
+                "/mission/agents?family=" + str(agent["family_id"])
+                if agent else None
+            ),
+            "runtime_verified": False,
+            "execution_granted": False,
+        }
+
+    def matrix_alliance(row: dict[str, Any], name: str, role: str) -> dict[str, Any]:
+        return {
+            "id": str(row["id"]),
+            "name": name,
+            "role": role,
+            "family": "matrix",
+            "passport_id": None,
+            "passport_status": "advisory_only",
+            "members": tuple(str(member) for member in row["members"]),
+            "allies": tuple(str(member) for member in row.get("allies", ())),
+            "directory_url": None,
+            "runtime_verified": False,
+            "execution_granted": False,
+        }
+
+    # Historical role-fit is a dated reference, never an earned or live rating.
+    historical = dict(HISTORICAL_TOP_21_2026_10_15)
+    kernel = next(
+        (item for item in organism.ORGANISM_SYSTEMS if item.get("id") == "living_kernel"),
+        None,
+    )
+    if kernel is None:
+        raise RuntimeError("living_kernel_canonical_system_missing")
+    role_reviews = tuple(
+        {
+            "name": label,
+            "historical_role_fit": historical.get(source_name),
+            "historical_rating_max": 7 if source_name in historical else None,
+            "historical_as_of": "2026-10-15" if source_name in historical else None,
+            "live_performance_rating": None,
+            "earned_stars_awarded": False,
+        }
+        for label, source_name in (
+            ("Shere Khan", "Shere Khan"),
+            ("Agent Smiths", "Agent Smiths"),
+            ("Bagheera", "Bagheera"),
+            ("Octopus", "Octopus"),
+            ("Queen Bee", "Queen Bee"),
+            ("The Twins", "The Twins"),
+        )
+    )
+    return {
+        "name": "SMI Command Center · Agent Alliances",
+        "scope": "founder_private_read_only",
+        "leadership": {
+            "smi": {"name": "SMI", "kind": "single_brain", "agent_rating": None},
+            "kernel": {
+                "name": str(kernel["name"]),
+                "kind": "governed_organism_system",
+                "agent_rating": None,
+                "rating_status": "not_an_agent_not_rated",
+                "runtime_verified": False,
+                "permissions_expanded": False,
+            },
+            "commander": {
+                "name": "Commander ALL IN",
+                "previous_title": "Captain",
+                "legacy_name": "Captain ALL IN",
+                "role": "Mission Keeper",
+                "historical_role_fit": historical.get("Captain ALL IN"),
+                "historical_rating_max": 7,
+                "historical_as_of": "2026-10-15",
+                "live_performance_rating": None,
+                "passport_id": None,
+                "reports_to": "SMI",
+                "promotion_scope": "display_and_coordination_title_only",
+                "permissions_expanded": False,
+                "execution_granted": False,
+            },
+        },
+        "ratings_review": {
+            "mode": "historic_role_fit_only",
+            "live_performance_verified": False,
+            "earned_career_stars_granted": False,
+            "rows": role_reviews,
+        },
+        "status": "advisory_projection_not_runtime_proof",
+        "brain": "SMI",
+        "members": (
+            canonical("Shere Khan", "Adversarial threat review"),
+            matrix_alliance(
+                smith, "Agent Smiths", "Adversarial review and duplicate detection"
+            ),
+            canonical("Bagheera", "Protective strategy"),
+            canonical("Octopus", "Cross-system coordination"),
+            {
+                "id": "queen_bee",
+                "name": "Queen Bee",
+                "role": "Conditional swarm and distributed worker coordination",
+                "family": "insect_advisory",
+                "passport_id": None,
+                "passport_status": "advisory_only",
+                "members": ("Queen Bee",),
+                "allies": (),
+                "directory_url": None,
+                "runtime_verified": False,
+                "execution_granted": False,
+            },
+            matrix_alliance(
+                twins, "The Twins", "Alternative paths and contradiction review"
+            ),
+        ),
+        "existing_alliance_families": tuple(
+            {
+                "id": str(group["id"]),
+                "name": str(group["name"]),
+                "status": str(group["status"]),
+                "member_count": len(group["members"]),
+            }
+            for group in get_founder_alliance_board()["alliances"]
+        ),
+        "registered_agent_count_unchanged": len(agents.AGENT_REGISTRY),
+        "independent_votes_proven": False,
+        "workers_started": False,
+        "guardian_hrm_required": True,
+        "founder_final_required": True,
+        "can_execute": False,
+        "can_approve": False,
     }

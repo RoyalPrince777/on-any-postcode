@@ -1125,3 +1125,8 @@ body.smi-user-reduced-motion .smi-command-centre *::after{
 body.smi-user-reduced-motion .smi-approved-portrait{
   transform:none!important;
 }
+
+/* Internal analysis is quiet by default; safe work stages appear only on an
+   explicit Founder request. No private model reasoning is ever displayed. */
+body.smi-chat-tool-only #thinking:not([data-details-requested="true"]){display:none!important}
+body.smi-chat-tool-only #thinking.show[data-details-requested="true"]{display:block!important}

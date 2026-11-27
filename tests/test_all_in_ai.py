@@ -5,7 +5,10 @@ def test_identity_is_always_involved_and_founder_final():
     state = all_in_ai.status()
     assert state["identity"]["name"] == "ALL IN A.I."
     assert state["identity"]["meaning"] == "Always Involved"
-    assert state["identity"]["role"] == "Captain Agent"
+    assert state["identity"]["role"] == "Commander"
+    assert state["identity"]["legacy_role"] == "Captain Agent"
+    assert state["identity"]["display_name"] == "Commander ALL IN"
+    assert state["identity"]["permissions_expanded"] is False
     assert state["identity"]["title"] == "Mission Keeper"
     assert state["identity"]["founder_final"] is True
 

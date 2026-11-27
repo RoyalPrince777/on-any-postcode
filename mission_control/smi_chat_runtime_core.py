@@ -416,16 +416,18 @@ def record_founder_final(
         identity_id=identity,
         decision=decision,
     )
+    recorded_decision = str(receipt["decision"]).upper()
+    decision_marker = "🟢" if recorded_decision == "APPROVED" else "🔴"
     assistant_text = (
-        "Founder Final recorded. Signed Human Authority decision receipt verified. "
+        f"Founder Final {recorded_decision}. Signed Human Authority decision receipt verified. "
         "No execution was granted."
     )
     with postgres_db.connect() as connection:
         connection.execute(
             """INSERT INTO smi_messages
                (conversation_id,request_id,role,content,guardian_outcome)
-               VALUES (%s,%s,'user','🟢','PASSED')""",
-            (conversation, receipt["request_id"]),
+               VALUES (%s,%s,'user',%s,'PASSED')""",
+            (conversation, receipt["request_id"], decision_marker),
         )
         connection.execute(
             """INSERT INTO smi_messages

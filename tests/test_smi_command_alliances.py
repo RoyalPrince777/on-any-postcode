@@ -1,0 +1,133 @@
+"""Founder SMI alliance view reuses canonical agents, not fabricated workers."""
+from pathlib import Path
+
+from mission_control import agents, intelligence_alliances
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_six_founder_alliances_preserve_passports_and_authority():
+    before = tuple((x["agent_id"], x["name"]) for x in agents.AGENT_REGISTRY)
+    board = intelligence_alliances.get_smi_command_alliances()
+    rows = board["members"]
+    assert board["brain"] == "SMI"
+    assert board["scope"] == "founder_private_read_only"
+    leadership = board["leadership"]
+    assert leadership["smi"]["kind"] == "single_brain"
+    assert leadership["kernel"]["name"] == "Living Kernel"
+    assert leadership["kernel"]["kind"] == "governed_organism_system"
+    assert leadership["kernel"]["agent_rating"] is None
+    assert leadership["kernel"]["runtime_verified"] is False
+    assert leadership["commander"]["name"] == "Commander ALL IN"
+    assert leadership["commander"]["previous_title"] == "Captain"
+    assert leadership["commander"]["reports_to"] == "SMI"
+    assert leadership["commander"]["historical_role_fit"] == 7
+    assert leadership["commander"]["live_performance_rating"] is None
+    assert leadership["commander"]["permissions_expanded"] is False
+    assert leadership["commander"]["execution_granted"] is False
+    ratings = board["ratings_review"]
+    assert ratings["mode"] == "historic_role_fit_only"
+    assert ratings["live_performance_verified"] is False
+    assert ratings["earned_career_stars_granted"] is False
+    role_fit = {r["name"]: r["historical_role_fit"] for r in ratings["rows"]}
+    assert role_fit == {
+        "Shere Khan": 7, "Agent Smiths": None, "Bagheera": 7,
+        "Octopus": 7, "Queen Bee": 7, "The Twins": None,
+    }
+    assert tuple(x["name"] for x in rows) == (
+        "Shere Khan", "Agent Smiths", "Bagheera", "Octopus",
+        "Queen Bee", "The Twins",
+    )
+    by_name = {x["name"]: x for x in rows}
+    for name, passport in (
+        ("Shere Khan", "JUNGLE-SHERE-KHAN-001"),
+        ("Bagheera", "JUNGLE-BAGHEERA-001"),
+        ("Octopus", "ANIMAL-OCTOPUS-001"),
+    ):
+        assert by_name[name]["passport_id"] == passport
+        assert by_name[name]["passport_status"] == "registered"
+        assert by_name[name]["runtime_verified"] is False
+        assert by_name[name]["execution_granted"] is False
+    for name in ("Agent Smiths", "Queen Bee", "The Twins"):
+        assert by_name[name]["passport_id"] is None
+        assert by_name[name]["passport_status"] == "advisory_only"
+        assert by_name[name]["directory_url"] is None
+        assert by_name[name]["runtime_verified"] is False
+    assert by_name["Agent Smiths"]["members"] == (
+        "Agent Smith", "Brown", "Jones", "Johnson", "Jackson", "Thompson"
+    )
+    assert by_name["The Twins"]["members"] == ("Twin One", "Twin Two")
+    assert by_name["Queen Bee"]["members"] == ("Queen Bee",)
+    assert by_name["Agent Smiths"]["allies"] == ("Bagheera", "Seraph", "Guardian")
+    assert by_name["The Twins"]["allies"] == ("Fox", "Spider", "Architect")
+    assert {x["id"] for x in board["existing_alliance_families"]} == {"jungle_book", "mission_impossible", "terminator", "predator", "transformers", "batman"}
+    assert next(x for x in board["existing_alliance_families"] if x["id"] == "jungle_book")["status"] == "canonical_registered_family"
+    assert board["registered_agent_count_unchanged"] == agents.LOCKED_AGENT_COUNT
+    assert tuple((x["agent_id"], x["name"]) for x in agents.AGENT_REGISTRY) == before
+    assert board["can_approve"] is False
+    assert board["can_execute"] is False
+    assert board["workers_started"] is False
+    assert board["independent_votes_proven"] is False
+    assert board["guardian_hrm_required"] is True
+    assert board["founder_final_required"] is True
+
+
+def test_alliance_route_rejects_anonymous_session(anonymous_client):
+    response = anonymous_client.get("/mission/smi/alliances/status")
+    assert response.status_code == 401
+    assert "Shere Khan" not in response.get_data(as_text=True)
+
+
+def test_founder_alliance_route_is_read_only_and_no_store(client):
+    response = client.get("/mission/smi/alliances/status")
+    assert response.status_code == 200
+    assert "no-store" in response.headers.get("Cache-Control", "")
+    board = response.get_json()
+    assert board["brain"] == "SMI"
+    assert board["can_execute"] is False
+    assert board["can_approve"] is False
+    assert len(board["members"]) == 6
+    source = (ROOT / "mission_control" / "views.py").read_text(encoding="utf-8")
+    assert '@bp.get("/smi/alliances/status")\n@web_security.login_required(api=True, founder_only=True)' in source
+    assert 'jsonify(intelligence_alliances.get_smi_command_alliances())' in source
+    assert '_no_store(make_response(jsonify(intelligence_alliances' in source
+
+
+def test_command_room_contains_single_read_only_alliance_view():
+    ui = (ROOT / "mission_control" / "static" / "smi_command_centre.js").read_text(encoding="utf-8")
+    css = (ROOT / "mission_control" / "static" / "smi_command_centre.css").read_text(encoding="utf-8")
+    template = (ROOT / "mission_control" / "templates" / "ollama_chat.html").read_text(encoding="utf-8")
+    assert '["🤝 Alliances","alliances"]' in ui
+    assert 'const alliancePanel=document.createElement("section")' in ui
+    assert 'universe.after(alliancePanel)' in ui
+    assert "Other existing alliance families" in ui
+    assert "SMI Kernel and Commander ratings review" in ui
+    assert "Living Kernel" in ui
+    assert "Commander ALL IN" in ui
+    assert "smi-alliance-leadership" in css
+    assert "Historic advisory role-fit:" in ui
+    assert "smi-alliance-families" in css
+    assert 'consult.textContent="Review in SMI"' in ui
+    assert 'input.value="SMI, review with the "+String(item.name)+" advisory perspective: "+existing' in ui
+    assert 'input.dispatchEvent(new Event("input",{bubbles:true}))' in ui
+    assert "consult.addEventListener" in ui
+    assert 'refreshAllianceRoster()' in ui
+    assert 'credentials:"same-origin"' in ui
+    assert 'cache:"no-store"' in ui
+    assert 'response.ok' in ui
+    assert "no active agents inferred" in ui
+    assert 'panel.dataset.alliancesOpen="false"' in ui
+    assert 'new RegExp("^/mission/agents[?]family=' in ui
+    assert 'data-alliances-open="true"' in css
+    assert 'smi-command-alliance-panel:not([hidden])' in css
+    assert "alliancesUrl:{{ url_for('mission_control.smi_command_alliances_status')|tojson }}" in template
+    assert "Green. Guardian/HRM and Founder Final" in ui
+
+
+def test_no_public_alliance_disclosure_in_studio_or_browser():
+    for path in (
+        ROOT / "templates" / "studio_public.html",
+        ROOT / "templates" / "koradaso_internet.html",
+    ):
+        source = path.read_text(encoding="utf-8")
+        assert "/mission/smi/alliances/status" not in source

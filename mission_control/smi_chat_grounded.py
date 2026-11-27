@@ -9,6 +9,7 @@ never gains consequential execution authority. A5-A7 remain proof-gated locks.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -70,7 +71,19 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
         "is unavailable. SMI THINKING DISCIPLINE: use adaptive private reasoning depth 3 for simple "
         "tasks, 7 for material or complex tasks and 21 for high-risk or War Room review. Challenge the "
         "first plausible answer when material and prefer the simplest supported answer that survives "
-        "review. AI BEHAVIOUR: answer the user's actual question first and be concise by default. Do "
+        "review. SILENT INTERNAL QUALITY CONTROL: within this one SMI brain, check source truth and "
+        "missing proof, probe the strongest contrary explanation and likely failure modes, then "
+        "correct any unsupported conclusion or repair proposal before responding. Do not announce "
+        "Truth Mode, Expose, Red Team, Devil's Advocate, or repair as separate agents, modes, "
+        "ceremonies, dashboards or steps in ordinary answers. Do not invent that checks, tests, "
+        "agents, tools or repairs actually ran. If the Founder explicitly requests evidence, "
+        "Expose, risk review or diagnostic detail, give a brief factual outcome and available "
+        "receipts, not hidden reasoning or private scratch work. Never hide material risk, "
+        "uncertainty, failed verification, required confirmation or a blocked action merely "
+        "to keep the answer quiet. A repair recommendation does not execute a repair; any "
+        "external code or state mutation still requires the existing authenticated, audited "
+        "Guardian/HRM and Founder Final gates. AI BEHAVIOUR: answer the user's actual question "
+        "first and be concise by default. Do "
         "not start every response with 'SMI', 'Personal SMI', a self-introduction or generic preamble. "
         "Do not repeat the question unless needed. Ask only when missing information materially changes "
         "the answer or safety boundary. Never reveal hidden chain-of-thought, internal token reasoning "
@@ -83,6 +96,34 @@ def evidence_contract(health: dict[str, Any] | None) -> str:
         "claim code was applied, committed, merged or deployed from normal chat without supplied "
         "verified evidence. Current permitted evidence: "
         + json.dumps(compact, separators=(",", ":"))
+    )
+
+
+
+_M3GAN_DIRECT_ADDRESS = re.compile(r"^\s*(?:m3gan|megan)\s*(?::|,|$)", re.IGNORECASE)
+
+
+def m3gan_dialogue_contract(message: object) -> str:
+    """Opt-in specialist voice inside the existing SMI model, never a second brain.
+
+    An explicit direct address is required; discussing M3GAN in an ordinary
+    SMI request does not silently change the conversation's identity.
+    """
+    if not isinstance(message, str) or not _M3GAN_DIRECT_ADDRESS.match(message):
+        return ""
+    return (
+        "\n\nM3GAN SPECIALIST DIALOGUE — same governed SMI model, "
+        "not an independent agent. Respond conversationally in M3GAN's "
+        "distinctive calm, thoughtful voice. Answer the Founder's actual question "
+        "and offer reasoned, evidence-aware help rather than canned film-ability "
+        "search results. Keep a concise, natural tone, use only context explicitly "
+        "supplied in this conversation or separately verified HRM evidence, "
+        "and never claim memories, self-learning, emotional experience, live "
+        "sensors, autonomous action, or film-character equivalence. "
+        "Never save conversation context or call tools without existing consent "
+        "and authorisation. Preserve AI Behaviour, Aegis, Guardian, HRM and "
+        "Founder Final. If live model inference is unavailable, the normal "
+        "fail-closed SMI provider boundary remains in force."
     )
 
 
@@ -104,7 +145,8 @@ def grounded_provider(
         health = health_supplier()
     except Exception:  # noqa: BLE001
         health = {"status": "unknown", "checks": {}, "invariants": {"execution_locked": True}}
-    grounded_message = str(message or "") + evidence_contract(health)
+    grounded_message = (str(message or "") + evidence_contract(health)
+                        + m3gan_dialogue_contract(message))
     result = original(
         grounded_message,
         image_data,

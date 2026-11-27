@@ -302,6 +302,12 @@ def get_session(cookie_header: str) -> AuthResult:
             status_code=200,
             payload={"session": {"id": "render-local-founder"}, "user": local_user},
         )
+    # A present but invalid local Founder cookie must not fall through to
+    # remote managed Auth. Keep other managed-user cookies on their own path.
+    if founder_local_auth._token_from_cookie_header(cookie_header):
+        return AuthResult(
+            status_code=401, payload={"code": "LOCAL_FOUNDER_SESSION_INVALID"}
+        )
     return _request(
         "/get-session", method="GET", cookie_header=cookie_header or None
     )

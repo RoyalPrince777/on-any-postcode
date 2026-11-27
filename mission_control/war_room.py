@@ -1341,7 +1341,7 @@ def _a1_a7_evidence_projection(ratings: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "name": "SMI A1-A7 evidence projection",
         "intelligence": "Sovereign Megaverse Intelligence",
-        "mission_keeper": "Captain ALL IN",
+        "mission_keeper": "Commander ALL IN",
         "model": "one_intelligence_seven_operating_levels",
         "mode": "read_only_no_authority",
         "highest_certified_level": None,

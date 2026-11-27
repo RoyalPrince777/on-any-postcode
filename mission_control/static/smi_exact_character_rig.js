@@ -27,24 +27,38 @@
       const source=sourceSnapshot();
       const hashes=source?.evidenceLayerSha256||{};
       const frames=source?.rigLayerFrames||{};
-      const layers=Object.fromEntries(LAYERS.map(name=>[name,Boolean(
+      // Frame counters and hashes come from a flattened image's clipped regions.
+      // They are useful activity evidence, never approvals of seven anatomical
+      // layers, geometry, occlusion or human reviewed masks.
+      const sourcePixelRegionSignals=Object.fromEntries(LAYERS.map(name=>[name,Boolean(
         /^[a-f0-9]{64}$/.test(String(hashes[name]||""))&&Number(frames[name]||0)>0
       )]));
-      const fullRigProven=source?.fullBodyRigProven===true&&LAYERS.every(name=>layers[name]);
+      const sourcePixelMotionObserved=source?.fullSceneSourcePixelMotion===true&&
+        Number(source?.frames||0)>0;
+      const sourcePixelRegionsObserved=source?.sourcePixelRegionsObserved===true&&
+        LAYERS.every(name=>sourcePixelRegionSignals[name]);
+      const layers=Object.fromEntries(LAYERS.map(name=>[name,false]));
+      const fullRigProven=false;
       return Object.freeze({
         version:"1.0-live-source-pixel-proof",
         asset:APPROVED_ART.path,assetSha256:APPROVED_ART.sha256,
-        enabled:Boolean(motionSession),active:Boolean(source?.live),
-        proofState:fullRigProven?"machine_proven":"awaiting_runtime_frames",
+        // This aggregator has no approved anatomical rig or independent renderer.
+        // Source-pixel motion status remains separately visible for SMI CC.
+        enabled:Boolean(motionSession),active:false,
+        sourcePixelMotionActive:Boolean(source?.live),
+        proofState:sourcePixelMotionObserved?"source_pixel_motion_observed":"awaiting_runtime_frames",
+        sourcePixelMotionObserved,sourcePixelRegionsObserved,
+        sourcePixelRegionSignals:Object.freeze(sourcePixelRegionSignals),
         state,epoch,stopped,paused,layers:Object.freeze(layers),
         acceptedEvents,rejectedEvents,emitsFrames:false,
         rendererOwner:"smi_source_pixel_motion",
         fullRigProven,
-        accurateSoftwareLipSyncProven:source?.accurateSoftwareLipSyncProven===true,
+        audioClockSchedulingObserved:source?.audioClockSchedulingObserved===true,
+        accurateSoftwareLipSyncProven:false,
         accurateHumanLipSyncProven:false,
         physicalDeviceProofExcluded:true,
         storesAudio:false,storesTranscript:false,externalTelemetry:false,
-        requiresHumanApproval:false,productionApproved:false,humanFinalApproved:false
+        requiresHumanApproval:true,productionApproved:false,humanFinalApproved:false
       });
     }
     function transition(event){
