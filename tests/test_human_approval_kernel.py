@@ -401,3 +401,49 @@ def test_production_approval_status_distinguishes_usable_receipts(
     result = approval_service.status()
     assert result["latest_signature_valid"] is True
     assert result["latest_actionable"] is actionable
+
+
+def test_existing_smi_mission_proposal_only_permits_existing_source_files():
+    from mission_control import founder_github_proposals as proposals
+
+    branch = proposals.EXISTING_SMI_MISSION_BRANCH
+    assert proposals.validate_file_write_branch(
+        branch, path="mission_control/smi_auto.py", sha="a" * 40,
+    ) == branch
+    for path, sha in (("mission_control/smi_auto.py", ""),
+                      (".github/workflows/runtime-image.yml", "a" * 40)):
+        with pytest.raises(PermissionError):
+            proposals.validate_file_write_branch(branch, path=path, sha=sha)
+    for other in ("main", "smi/other-mission"):
+        with pytest.raises(ValueError):
+            proposals.validate_file_write_branch(other, path="tests/test_smi.py", sha="a" * 40)
+    with pytest.raises(ValueError):
+        proposals._branch(branch)
+
+
+def test_existing_mission_builder_checks_open_draft_before_writing(monkeypatch):
+    from mission_control import founder_github_write as writes
+
+    adapter = writes.FounderGitHubWriteAdapter(token="test-only")
+    monkeypatch.setattr(adapter, "_authorize", lambda *args: None)
+    calls = []
+    branch = writes.EXISTING_SMI_MISSION_BRANCH
+    pr = {
+        "number": 1413, "state": "closed", "draft": True,
+        "head": {"ref": branch, "repo": {"full_name": adapter.repository}},
+        "base": {"ref": "main", "repo": {"full_name": adapter.repository}},
+    }
+
+    def request(method, path, **kwargs):
+        calls.append(method)
+        return pr if method == "GET" else {}
+
+    monkeypatch.setattr(adapter, "_request", request)
+    payload = {"branch": branch, "path": "mission_control/smi_auto.py",
+               "sha": "a" * 40, "message": "Test", "content": "test"}
+    with pytest.raises(PermissionError):
+        adapter.write_file(payload, None)
+    assert calls == ["GET"]
+    pr["state"] = "open"
+    adapter.write_file(payload, None)
+    assert calls == ["GET", "GET", "PUT"]
