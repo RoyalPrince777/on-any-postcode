@@ -70,7 +70,7 @@ def _labels(raw: object, rows: int) -> np.ndarray:
 
 def evaluate(payload: object) -> dict[str, Any]:
     if not isinstance(payload, dict):
-        raise ValueError("json_object_required")
+        raise TypeError("json_object_required")
     model_name = str(payload.get("model") or "").strip().lower()
     X = _matrix(payload.get("features"))
     if model_name == "kmeans":
