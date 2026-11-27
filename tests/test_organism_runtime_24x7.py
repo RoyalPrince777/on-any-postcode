@@ -230,3 +230,30 @@ def test_stale_attempt_cannot_complete_or_fail_reassigned_job(monkeypatch):
         store.complete(job, "worker-one", {})
     with pytest.raises(RuntimeError, match="job lease lost"):
         store.fail(job, "worker-one", error_code="test")
+
+
+def test_worker_records_lost_lease_without_claiming_failure():
+    job = RuntimeJob(
+        job_id="00000000-0000-0000-0000-000000000001",
+        job_type="RUNTIME_HEARTBEAT", payload={}, attempts=1,
+        max_attempts=5, idempotency_key="test",
+    )
+
+    class Store:
+        def fail(self, job, worker_id, *, error_code):
+            raise organism_runtime.JobLeaseLost("job lease lost")
+
+    assert organism_worker._record_failure(
+        Store(), job, "worker-one", error_code="test",
+    ) == "LEASE_LOST"
+
+
+def test_worker_does_not_swallow_unrelated_database_failure():
+    class Store:
+        def fail(self, job, worker_id, *, error_code):
+            raise RuntimeError("database unavailable")
+
+    with pytest.raises(RuntimeError, match="database unavailable"):
+        organism_worker._record_failure(
+            Store(), None, "worker-one", error_code="test",
+        )
