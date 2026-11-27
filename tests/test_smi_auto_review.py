@@ -129,3 +129,22 @@ def test_auto_swot_cannot_promote_unclassified_python_logs():
     assert result["ready"] is True
     assert result["execution_granted"] is False
     assert result["approval_granted"] is False
+
+
+def test_native_specialist_alliance_is_evidence_selected_and_advisory():
+    failed = smi_auto.mission_continuity_alliance({"next_move": "inspect_failed_ci"})
+    assert {"Neo", "Mouse", "Tank", "Dozer", "AEI"} <= set(failed["roles"])
+    passed = smi_auto.mission_continuity_alliance(
+        {"next_move": "continue_target_proof", "ci_proven": True},
+    )
+    assert passed["roles"] == ("Trinity", "Tank", "Dozer", "Owl")
+    unknown = smi_auto.mission_continuity_alliance(
+        {"next_move": "continue_target_proof", "ci_proven": "true"},
+    )
+    assert unknown["roles"] == ("Owl", "Oracle")
+    for result in (failed, passed, unknown):
+        assert result["agents_executed"] is False
+        assert result["execution_granted"] is False
+        assert result["guardian_required"] is True
+        assert result["hrm_proof_required"] is True
+    assert smi_auto.explicit_review_roles("Mouse Tank Dozer") == ("Mouse", "Tank", "Dozer")
