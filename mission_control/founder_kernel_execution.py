@@ -31,7 +31,10 @@ from oap.smi.sovereign_controls import SovereignControlPlane
 from oap.state_machine import ProcessingState
 
 from . import approval_service, authority, postgres_db
-from .founder_github_write import FounderGitHubWriteAdapter, register_github_builder_actions
+from .founder_github_write import (
+    FounderGitHubWriteAdapter,
+    register_github_builder_actions,
+)
 
 _ALLOWED_ACTIONS = frozenset(
     {"github.branch.create", "github.file.write", "github.pr.create"}

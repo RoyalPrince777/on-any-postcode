@@ -168,6 +168,17 @@ AGENT_SELECTION = {
 
 
 REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
+    # Existing Matrix advisory profiles; not new registered agent passports.
+    "Tank": {
+        "role": "Build diagnostics and runtime operations reviewer",
+        "best_for": "native worker evidence, exact revision, task loading, Builder handoff and recovery",
+        "authority": "advisory_review_only",
+    },
+    "Dozer": {
+        "role": "Infrastructure and build continuity reviewer",
+        "best_for": "server dependencies, build continuity, offline readiness and recovery",
+        "authority": "advisory_review_only",
+    },
     "Twinz": {
         "role": "Dual-path contradiction / state-divergence reviewer",
         "best_for": "cache conflicts, race conditions, fresh-vs-existing state, split paths, new-then-old regressions",
@@ -231,6 +242,11 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
 }
 
 _AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
+    (
+        ("native worker", "native smi execution", "engineering handoff", "builder connection", "tank and dozer", "tank & dozer"),
+        ("Tank", "Dozer", "Bagheera"),
+        "Existing Matrix brothers: runtime diagnostics and infrastructure continuity, with independent recovery review.",
+    ),
     (
         ("map loading", "loading map", "old route", "old routes", "map route", "route loading", "maps still loading"),
         ("Shere Khan", "Bagheera", "Agent Smith", "Twinz", "Octopus", "Spider", "Fox", "Shark", "Bee"),
