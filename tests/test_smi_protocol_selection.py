@@ -295,7 +295,10 @@ def test_capability_inventory_handles_missing_and_unprobed_candidates(monkeypatc
 def test_builtin_capability_baselines():
     from oap.smi.protocol_selection import benchmark_builtin_capability
 
-    for protocol in ("dependencies", "economics", "science", "audit"):
+    for protocol in (
+        "dependencies", "economics", "science", "audit", "coordination",
+        "pack", "swarm", "recovery", "guardian", "adversarial", "command",
+    ):
         result = benchmark_builtin_capability(protocol)
         assert result["status"] == "Passed"
         assert result["checks_passed"] == result["checks_total"] == 1
@@ -309,7 +312,7 @@ def test_builtin_capability_baselines():
 def test_builtin_capability_baseline_does_not_claim_unimplemented_protocols():
     from oap.smi.protocol_selection import benchmark_builtin_capability
 
-    for protocol in ("execution", "guardian", "unknown"):
+    for protocol in ("execution", "memory", "unknown"):
         result = benchmark_builtin_capability(protocol)
         assert result["status"] == "Not tested"
         assert result["checks_total"] == 0
@@ -326,3 +329,14 @@ def test_builtin_capability_baseline_records_failure(monkeypatch):
     assert result["checks_passed"] == 0
     assert result["checks_total"] == 1
     assert result["independent_verification"] is False
+
+
+def test_existing_guard_baseline_observes_real_guard_failure(monkeypatch):
+    from oap.smi import runtime_guard
+    from oap.smi.protocol_selection import benchmark_builtin_capability
+
+    monkeypatch.setattr(runtime_guard, "validate_action_payload", lambda payload: None)
+    result = benchmark_builtin_capability("guardian")
+    assert result["status"] == "Failed"
+    assert result["checks_passed"] == 0
+    assert result["candidate_benchmark_verified"] is False
