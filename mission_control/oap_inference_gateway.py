@@ -56,6 +56,26 @@ OFFLINE_ONLY = os.environ.get("OAP_INFERENCE_OFFLINE_ONLY", "0").strip().lower()
 }
 
 
+class _NoLocalRedirect(urlrequest.HTTPRedirectHandler):
+    """A local request must never follow a redirect, including to another local service."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _read_local_json(req, *, timeout: float) -> dict[str, Any]:
+    """Ignore environment proxies and reject redirects and oversized responses."""
+    opener = urlrequest.build_opener(urlrequest.ProxyHandler({}), _NoLocalRedirect())
+    with opener.open(req, timeout=timeout) as response:
+        raw = response.read(262145)
+    if len(raw) > 262144:
+        raise ValueError("local_response_too_large")
+    body = json.loads(raw)
+    if not isinstance(body, dict):
+        raise ValueError("local_response_not_object")
+    return body
+
+
 def _local_endpoint_allowed() -> bool:
     """Never send Founder prompts to a non-loopback 'local' endpoint."""
     parts = urlsplit(LOCAL_URL)
@@ -236,11 +256,10 @@ def _call_local_public(
         method="POST",
     )
     try:
-        with urlrequest.urlopen(req, timeout=2.0) as response:
-            body = json.loads(response.read().decode("utf-8", errors="replace"))
+        body = _read_local_json(req, timeout=2.0)
     except HTTPError as exc:
         raise RuntimeError(f"local_inference_http_{exc.code}") from exc
-    except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+    except (URLError, TimeoutError, OSError, ValueError) as exc:
         raise RuntimeError("local_inference_unavailable") from exc
     text = str((body.get("message") or {}).get("content", "")).strip() or str(
         body.get("response", "")
@@ -316,11 +335,10 @@ def _call_local(
         method="POST",
     )
     try:
-        with urlrequest.urlopen(req, timeout=2.0) as response:
-            body = json.loads(response.read().decode("utf-8", errors="replace"))
+        body = _read_local_json(req, timeout=2.0)
     except HTTPError as exc:
         raise RuntimeError(f"local_inference_http_{exc.code}") from exc
-    except (URLError, TimeoutError, OSError, json.JSONDecodeError) as exc:
+    except (URLError, TimeoutError, OSError, ValueError) as exc:
         raise RuntimeError("local_inference_unavailable") from exc
     text = str((body.get("message") or {}).get("content", "")).strip() or str(
         body.get("response", "")
@@ -370,8 +388,9 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
             method="GET",
         )
         try:
-            with urlrequest.urlopen(req, timeout=1.0) as response:
-                body = json.loads(response.read().decode("utf-8", errors="replace"))
+            body = _read_local_json(req, timeout=1.0)
+            if not isinstance(body.get("models"), list):
+                raise ValueError("local_model_list_invalid")
             names = {
                 str(item.get("name") or item.get("model") or "")
                 for item in body.get("models", [])
@@ -386,7 +405,7 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
             )
         except HTTPError as exc:
             result["reason"] = f"local_probe_http_{exc.code}"
-        except (URLError, TimeoutError, OSError, json.JSONDecodeError):
+        except (URLError, TimeoutError, OSError, ValueError):
             result["reason"] = "local_probe_unavailable"
     _probe_cache = (now, dict(result))
     return result

@@ -15,6 +15,7 @@ from uuid import uuid4
 from . import (
     autonomy_levels,
     founder_kernel_execution,
+    oap_inference_gateway,
     oap_core_autonomy,
     organism,
     organism_autonomy,
@@ -160,8 +161,15 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         github_evidence["latest_failure"]["swot_intelligence"] = (
             smi_auto.evidence_swot_for_failed_build(github_evidence["latest_failure"])
         )
+    local_model = oap_inference_gateway.probe_local(force=True)
     return {
         "kind": "runtime_health_probe",
+        "local_model_evidence": {
+            "reachable": local_model.get("reachable") is True,
+            "model_available": local_model.get("model_available") is True,
+            "inference_execution_verified": False,
+            "engineering_execution_verified": False,
+        },
         "engineering_receipt": observe_engineering_receipt(),
         "engineering_handoff": founder_kernel_execution.status(),
         "database_ready": bool(database.get("initialized")),
