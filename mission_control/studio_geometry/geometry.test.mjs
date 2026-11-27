@@ -38,3 +38,18 @@ test("external asset and unknown extension rejected before library execution", a
     await assert.rejects(validateLocalGlb(bytes), /external_or_extension_blocked/);
   }
 });
+
+
+test("original shelter asset passes Khronos validation and round-trip", async () => {
+  const {readFile} = await import("node:fs/promises");
+  const input = await readFile(new URL("./assets/oap_bus_shelter.glb", import.meta.url));
+  const result = await roundTripLocalGlb(input);
+  assert.equal(result.before.sha256, "541bb74f2c1a411c0c0a57c0d814044b699c52f9c7df38060b966f7ff8b3f964");
+  assert.equal(result.before.errors, 0);
+  assert.equal(result.after.errors, 0);
+  const doc = await new NodeIO().readBinary(result.output);
+  assert.equal(doc.getRoot().listNodes().length, 14);
+  assert.equal(doc.getRoot().listMaterials().length, 5);
+  assert.equal(doc.getRoot().listNodes().reduce((n, node) => n + node.getMesh().listPrimitives().reduce((sum, primitive) => sum + primitive.getIndices().getCount()/3, 0), 0), 168);
+  assert.equal(result.runtime_verified, false);
+});
