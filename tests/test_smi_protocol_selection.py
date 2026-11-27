@@ -290,3 +290,39 @@ def test_capability_inventory_handles_missing_and_unprobed_candidates(monkeypatc
     assert protocol_selection.observe_protocol_capabilities("science")["observations"]["SciPy"]["observation"] == "Not detected"
     assert protocol_selection.observe_protocol_capabilities("execution")["observations"]["Qwen3-Coder-Next"]["observation"] == "Unknown"
     assert protocol_selection.observe_protocol_capabilities("unknown")["observations"] == {}
+
+
+def test_builtin_capability_baselines():
+    from oap.smi.protocol_selection import benchmark_builtin_capability
+
+    for protocol in ("dependencies", "economics", "science", "audit"):
+        result = benchmark_builtin_capability(protocol)
+        assert result["status"] == "Passed"
+        assert result["checks_passed"] == result["checks_total"] == 1
+        assert result["elapsed_ms"] >= 0
+        assert result["candidate_benchmark_verified"] is False
+        assert result["independent_verification"] is False
+        assert result["execution_granted"] is False
+        assert result["approval_granted"] is False
+
+
+def test_builtin_capability_baseline_does_not_claim_unimplemented_protocols():
+    from oap.smi.protocol_selection import benchmark_builtin_capability
+
+    for protocol in ("execution", "guardian", "unknown"):
+        result = benchmark_builtin_capability(protocol)
+        assert result["status"] == "Not tested"
+        assert result["checks_total"] == 0
+        assert result["elapsed_ms"] is None
+        assert result["execution_granted"] is False
+
+
+def test_builtin_capability_baseline_records_failure(monkeypatch):
+    from oap.smi import protocol_selection
+
+    monkeypatch.setitem(protocol_selection.BUILTIN_BASELINES, "audit", lambda: False)
+    result = protocol_selection.benchmark_builtin_capability("audit")
+    assert result["status"] == "Failed"
+    assert result["checks_passed"] == 0
+    assert result["checks_total"] == 1
+    assert result["independent_verification"] is False
