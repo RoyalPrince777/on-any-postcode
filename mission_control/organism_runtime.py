@@ -11,6 +11,7 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from itertools import pairwise
 from typing import Any
 from uuid import uuid4
 
@@ -290,10 +291,10 @@ def recovery_checkpoint_evidence(worker_id: str, revision: str) -> dict[str, obj
                 or any(age < 0 for _, _, age in samples)
                 or not 0 <= samples[0][2] <= 26):
             return result
-        if any(a - b != 1 for a, b in zip(sequences, sequences[1:], strict=False)):
+        if any(a - b != 1 for a, b in pairwise(sequences)):
             return result
         gaps = [(a[1] - b[1]).total_seconds()
-                for a, b in zip(samples, samples[1:], strict=False)]
+                for a, b in pairwise(samples)]
         result["maximum_gap_seconds"] = max(gaps)
         result["minimum_gap_seconds"] = min(gaps)
         if all(16 <= gap <= 26 for gap in gaps):
