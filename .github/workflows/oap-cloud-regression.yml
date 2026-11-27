@@ -1,0 +1,28 @@
+name: OAP Cloud bounded regression proof
+
+on:
+  pull_request:
+    paths:
+      - "oap_cloud/**"
+      - "tests/test_oap_cloud_*.py"
+      - ".github/workflows/oap-cloud-regression.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cloud-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install existing application and test dependencies
+        run: python -m pip install -r requirements.txt pytest ruff
+      - name: Lint Cloud implementation and Cloud tests
+        run: ruff check oap_cloud tests/test_oap_cloud_*.py
+      - name: Run actual isolated Cloud regressions
+        run: python -m pytest -q tests/test_oap_cloud_*.py
