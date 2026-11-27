@@ -119,6 +119,9 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
     oap_core_cycle = oap_core_autonomy.run_cycle()
     smi_cycle = smi_runtime_autonomy.run_cycle()
     organism_cycle = organism_autonomy.run_cycle()
+    organism_cycle["native_anatomy_evidence"] = organism_autonomy.native_anatomy_evidence(
+        organism_cycle, smi_cycle,
+    )
     # Read-only GitHub observation piggybacks on the existing scheduled
     # health probe; no new job type, scheduler or elevated authority.
     # A dedicated least-privilege read token is required to activate it.
