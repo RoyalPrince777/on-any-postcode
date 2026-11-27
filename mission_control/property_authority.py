@@ -118,3 +118,32 @@ def revoke_advertising_authority(*, evidence_ref: object, revoked_by: object,
         raise
     except Exception as exc:
         raise RuntimeError("property_revocation_unavailable") from exc
+
+
+def nyansa_readiness() -> dict[str, object]:
+    """Observe schema availability in the first-party store; never certify a deal.
+
+    No row identifiers, personal details, document references or writes.
+    A schema check is not proof of seller consent or buyer qualification.
+    """
+    result = {
+        "capability": "NYANSA",
+        "mission": "property_distribution",
+        "read_only": True,
+        "schema_observed": False,
+        "transaction_verified": False,
+        "execution_granted": False,
+        "consequential_action": False,
+        "human_authority_final": True,
+    }
+    try:
+        with postgres_db.connect(readonly=True) as connection:
+            connection.execute(
+                "SELECT evidence_id, status, valid_until "
+                "FROM oap_property_advertising_authority LIMIT 0"
+            )
+        return {**result, "schema_observed": True, "status": "incomplete",
+                "reason": "schema_only_live_deal_evidence_required"}
+    except Exception:  # noqa: BLE001 - absence or outage is not readiness.
+        return {**result, "status": "unknown",
+                "reason": "authority_store_unavailable"}
