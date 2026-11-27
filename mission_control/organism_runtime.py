@@ -555,7 +555,7 @@ class PostgresRuntimeStore:
             if row is None:
                 raise ValueError("worker_not_found")
             jobs = connection.execute(
-                """SELECT job_id,attempts,max_attempts
+                """SELECT job_id,attempts,max_attempts,job_type,payload
                    FROM oap_runtime_jobs
                    WHERE state='RUNNING' AND lease_owner=%s
                    FOR UPDATE""",
@@ -573,6 +573,14 @@ class PostgresRuntimeStore:
                            last_error_code=%s,completed_at=CURRENT_TIMESTAMP,
                            updated_at=CURRENT_TIMESTAMP WHERE job_id=%s""",
                         (error, job_id),
+                    )
+                    connection.execute(
+                        """INSERT INTO oap_runtime_dead_letters
+                           (job_id,job_type,attempts,error_code,payload_digest)
+                           VALUES (%s,%s,%s,%s,%s)
+                           ON CONFLICT (job_id) DO NOTHING""",
+                        (job_id, str(job_row[3]), attempts, error,
+                         payload_digest(_json_object(job_row[4]))),
                     )
                 else:
                     connection.execute(
