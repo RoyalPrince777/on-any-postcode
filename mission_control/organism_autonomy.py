@@ -19,6 +19,7 @@ from .organism import (
     BLOCKED_CONSEQUENTIAL_ACTIONS,
     BODY_ORGANS,
     ORGANISM_SIGNAL_PATH,
+    PHYSIOLOGY_SYSTEMS,
     SAFE_AUTONOMY_ACTIONS,
     validate_architecture,
 )
@@ -93,6 +94,7 @@ def observe() -> dict[str, Any]:
         "architecture_ready": bool(architecture.get("passed")),
         "runtime_schema_ready": bool(runtime.get("schema_ready")),
         "runtime_worker_fresh": bool(runtime.get("worker_fresh")),
+        "runtime_job_receipt_verified": runtime.get("job_receipt_verified") is True,
         "product_cores_ready": bool(products.get("schema_ready")),
         "movement_ready": bool(movement.get("schema_ready")),
         "routing_production_ready": bool(routing_state.get("production_ready")),
@@ -180,6 +182,36 @@ def growth_proposal(review: dict[str, Any] | None = None) -> dict[str, Any]:
     }
 
 
+def physiology_evidence(
+    observation: dict[str, Any], growth: dict[str, Any],
+) -> dict[str, Any]:
+    """Project canonical physiology coverage, not independent organ certification.
+
+    Only checks actually performed by the bounded cycle can be attributed.
+    All other systems retain Unknown until their own operational proof exists.
+    """
+    observed = {
+        "dna": ("architecture_validation", observation.get("architecture_ready")),
+        "cells": ("durable_maintenance_receipt", observation.get("runtime_job_receipt_verified")),
+        "growth": ("bounded_proposal_created", bool(growth.get("proposed_actions"))),
+    }
+    systems = {}
+    for system in PHYSIOLOGY_SYSTEMS:
+        system_id = system["id"]
+        check, result = observed.get(system_id, ("organ_specific_proof_missing", None))
+        systems[system_id] = {
+            "check": check,
+            "check_observed": result is True,
+            "operational_status": "Unknown",
+        }
+    return {
+        "systems": systems,
+        "full_organism_verified": False,
+        "scope": "bounded_health_observation",
+        "independent_execution": False,
+    }
+
+
 def run_cycle() -> dict[str, Any]:
     """Run one full Digital Organism thought/review cycle."""
     observation = observe()
@@ -193,6 +225,7 @@ def run_cycle() -> dict[str, Any]:
         "coherence": coherence,
         "recovery": recovery,
         "growth": growth,
+        "physiology_evidence": physiology_evidence(observation, growth),
         "human_authority_final": True,
         "independent_approval": False,
         "independent_execution": False,
