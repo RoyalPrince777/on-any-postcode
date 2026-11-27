@@ -7,8 +7,8 @@ existing canonical readback integration is in oap_mind_kernel.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Literal
 
 # Octopus is the existing SMI systems-coordination specialist, not OAP MIND
@@ -503,7 +503,7 @@ def assess_octopus_runtime_cycle(cycle: Mapping[str, object]) -> OctopusCycleAss
     not create a job, access private data, self-approve or claim arm execution.
     """
     if not isinstance(cycle, Mapping):
-        raise ValueError("SMI cycle evidence must be a mapping")
+        raise TypeError("SMI cycle evidence must be a mapping")
     invariants = cycle.get("production_invariants")
     if not isinstance(invariants, Mapping):
         invariants = {}
