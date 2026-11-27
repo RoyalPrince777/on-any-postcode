@@ -378,6 +378,7 @@ _SPECIALIST_RULES: tuple[dict[str, object], ...] = (
 )
 
 _TASK_DEFAULTS: dict[str, tuple[str, ...]] = {
+    "PROPERTY": ("earth", "language", "life", "movement", "civic", "civilisation", "matrix"),
     "TECHNICAL": ("matrix",),
     "COMMUNITY": ("civic", "life", "earth"),
     "AKAN": ("civilisation", "language", "earth"),
@@ -431,7 +432,7 @@ class AGICore:
             specialist_id = str(specialist["id"])
             keywords = tuple(str(item) for item in specialist["keywords"])
             hit = tuple(keyword for keyword in keywords if keyword in text)
-            if not hit:
+            if not hit and not (task == "PROPERTY" and specialist_id == "distribution"):
                 continue
             selected_specialists.append(specialist_id)
             legacy_domains.append(specialist_id)
