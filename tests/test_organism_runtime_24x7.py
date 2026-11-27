@@ -161,3 +161,45 @@ def test_execution_evidence_requires_receipt(monkeypatch, row, expected):
     assert result["status"] == expected
     assert result["job_receipt_verified"] is (expected == "Verified")
     assert result["engineering_execution_verified"] is False
+
+
+@pytest.mark.parametrize("gap, restart, age, expected", [
+    (21, False, 2, True),
+    (30, False, 2, False),
+    (21, True, 2, False),
+    (21, False, 30, False),
+    (0, False, 2, False),
+])
+def test_recovery_checkpoint_requires_fresh_same_session_sequence(
+    monkeypatch, gap, restart, age, expected,
+):
+    from contextlib import contextmanager
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    rows = [
+        ({"session_id": "b" * 32 if restart and i == 3 else "a" * 32,
+          "sequence": 7 - i, "target_seconds": 21},
+         now - timedelta(seconds=age + i * gap), age + i * gap)
+        for i in range(7)
+    ]
+
+    class Connection:
+        def execute(self, sql, parameters):
+            assert parameters == ("worker", "c" * 40)
+            assert "r.detail->>'worker_revision'=w.revision" in sql
+            assert "RECOVERY_CHECKPOINT" in sql
+            return self
+
+        def fetchall(self):
+            return rows
+
+    @contextmanager
+    def connect(*, readonly):
+        assert readonly
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    evidence = organism_runtime.recovery_checkpoint_evidence("worker", "c" * 40)
+    assert evidence["observed_cadence"] is expected
+    assert evidence["full_organism_verified"] is False
