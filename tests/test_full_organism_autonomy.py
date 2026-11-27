@@ -240,3 +240,45 @@ def test_native_anatomy_uses_actual_health_checks_without_inheriting_green():
     assert physiology["immune"]["check_observed"] is False
     assert all(item["operational_status"] == "Unknown" for item in physiology.values())
     assert evidence["full_organism_verified"] is False
+
+
+def test_coherence_requires_verified_durable_receipt():
+    observation = {
+        "architecture_ready": True,
+        "runtime_schema_ready": True,
+        "runtime_worker_fresh": True,
+        "product_cores_ready": True,
+        "movement_ready": True,
+        "routing_production_ready": True,
+        "oap_core_autonomy_ready": True,
+        "smi_autonomy_ready": True,
+        "body_organs": organism.BODY_ORGANS,
+    }
+    for value in (None, False, 1, "true"):
+        review = organism_autonomy.coherence_review(
+            {**observation, "runtime_job_receipt_verified": value}
+        )
+        assert review["coherent"] is False
+        assert review["issues"] == ("runtime_job_receipt_unverified",)
+        assert organism_autonomy.recovery_review(review)["recovery_attention"] is True
+        assert "review:runtime_job_receipt_unverified" in organism_autonomy.growth_proposal(review)["proposed_actions"]
+    missing = organism_autonomy.coherence_review(observation)
+    assert missing["coherent"] is False
+    assert missing["issues"] == ("runtime_job_receipt_unverified",)
+    verified = organism_autonomy.coherence_review(
+        {**observation, "runtime_job_receipt_verified": True}
+    )
+    assert verified["coherent"] is True
+    assert verified["issues"] == ()
+    assert verified["review_only"] is True
+    assert verified["consequential_action"] is False
+
+
+def test_empty_coherence_observation_fails_closed(monkeypatch):
+    def unexpected_observe():
+        raise AssertionError("Explicit empty evidence must not be replaced")
+
+    monkeypatch.setattr(organism_autonomy, "observe", unexpected_observe)
+    review = organism_autonomy.coherence_review({})
+    assert review["coherent"] is False
+    assert "runtime_job_receipt_unverified" in review["issues"]

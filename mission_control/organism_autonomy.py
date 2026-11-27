@@ -110,7 +110,7 @@ def observe() -> dict[str, Any]:
 
 def coherence_review(observation: dict[str, Any] | None = None) -> dict[str, Any]:
     """Detect drift across anatomy, runtime and body-system foundations."""
-    evidence = observation or observe()
+    evidence = observe() if observation is None else observation
     issues: list[str] = []
     if not evidence.get("architecture_ready"):
         issues.append("architecture_not_coherent")
@@ -118,6 +118,8 @@ def coherence_review(observation: dict[str, Any] | None = None) -> dict[str, Any
         issues.append("runtime_schema_not_ready")
     if not evidence.get("runtime_worker_fresh"):
         issues.append("runtime_worker_not_fresh")
+    if evidence.get("runtime_job_receipt_verified") is not True:
+        issues.append("runtime_job_receipt_unverified")
     if not evidence.get("product_cores_ready"):
         issues.append("product_cores_not_ready")
     if not evidence.get("movement_ready"):
