@@ -717,6 +717,41 @@ def _auto_runtime_mode(
     return "instant", auto_studio, 3
 
 
+def _founder_protocol_review(
+    message: str, authority_context: dict, guardian_outcome: str, *, has_media: bool = False,
+) -> dict | None:
+    """Only explicit, authenticated Founder commands can inspect local inventory."""
+    if (
+        guardian_outcome != "PASSED"
+        or authority_context.get("is_human_authority") is not True
+        or type(authority_context.get("authority_level")) is not int
+        or authority_context["authority_level"] != 0
+        or authority.APPROVAL_PERMISSION not in (authority_context.get("permissions") or ())
+        or has_media
+        or not re.fullmatch(r"protocol\s*[:=]\s*[a-z0-9_-]+", message.strip(), re.IGNORECASE)
+    ):
+        return None
+    return smi_auto.capability_review_route(message)
+
+
+def _protocol_review_response(plan: dict) -> str:
+    """Render observed inventory directly; never send it to a model provider."""
+    if plan.get("status") != "PROPOSED_UNVERIFIED":
+        return "Protocol review: unknown protocol. No candidate selected or executed."
+    inventory = plan["capability_inventory"]
+    lines = [
+        f"SMI protocol: {plan['protocol']}",
+        "Status: proposed, unverified. Local process observations only.",
+    ]
+    for candidate, item in inventory["observations"].items():
+        lines.append(f"- {candidate}: {item['observation']}; functional status Unknown.")
+    lines.extend((
+        f"Required test: {plan['acceptance_test']}",
+        "No candidate executed or benchmarked. Human Authority remains final.",
+    ))
+    return "\n".join(lines)
+
+
 def chat(
     message: object,
     identity_id: str,
@@ -903,6 +938,11 @@ def chat(
                (request_id,identity_id,outcome,reason) VALUES (%s,%s,%s,%s)""",
             (request_id, identity, outcome, reason),
         )
+        protocol_review = _founder_protocol_review(
+            clean, authority_context, outcome, has_media=bool(image or attachment),
+        )
+        response_provider = "SMI_DETERMINISTIC" if protocol_review is not None else PROVIDER
+        response_model = "protocol_review" if protocol_review is not None else MODEL
         provider_completed = False
         oap_inference_gateway.clear_inference_route()
         if cancellation_token is not None:
@@ -910,6 +950,10 @@ def chat(
         if outcome == "BLOCKED":
             response = reason
             state = "BLOCK_REQUEST"
+            _emit(on_event, "delta", delta=response)
+        elif protocol_review is not None:
+            response = _protocol_review_response(protocol_review)
+            state = "REVIEW_REQUIRED"
             _emit(on_event, "delta", delta=response)
         else:
             _emit(
@@ -991,7 +1035,8 @@ def chat(
                             if provider_completed else None
                         ),
                         "inference_route_attestation": False,
-                        "provider": PROVIDER,
+                        "provider": response_provider,
+                        "protocol_review_status": (protocol_review or {}).get("status"),
                         "image_attached": bool(image),
                         "media_kind": media.get("kind"),
                         "media_retained": False,
@@ -1015,7 +1060,7 @@ def chat(
             response=response,
             coherence=coherence,
             provider_completed=provider_completed,
-            provider_id=PROVIDER,
+            provider_id=response_provider,
         )
         auto_review = smi_auto.build_evidence_vote_board(
             roles=tuple(brain.get("active_reviewers") or ()),
@@ -1040,7 +1085,7 @@ def chat(
             """INSERT INTO smi_messages
                (conversation_id,request_id,role,content,provider,model,guardian_outcome)
                VALUES (%s,%s,'assistant',%s,%s,%s,%s)""",
-            (conversation, request_id, response, PROVIDER, MODEL, outcome),
+            (conversation, request_id, response, response_provider, response_model, outcome),
         )
         founder_assets = smi_founder_assets.record_chat_assets(
             connection,
@@ -1055,8 +1100,9 @@ def chat(
             "identity_id": identity,
             "action": "SMI_REVIEWED",
             "guardian": outcome,
-            "provider": PROVIDER,
-            "model": MODEL,
+            "provider": response_provider,
+            "model": response_model,
+            "protocol_review_status": (protocol_review or {}).get("status"),
             "image_attached": bool(image),
             "media_kind": media.get("kind"),
             "media_retained": False,
@@ -1097,8 +1143,8 @@ def chat(
         "response": response,
         "output_state": state,
         "guardian": outcome,
-        "provider": PROVIDER,
-        "model": MODEL,
+        "provider": response_provider,
+        "model": response_model,
         "human_authority_final": True,
         "task_type": brain["task_type"],
         "advisor_ids": brain["advisor_ids"],
@@ -1115,6 +1161,7 @@ def chat(
         "continuation": continuation,
         "active_reviewers": list(brain.get("active_reviewers") or ()),
         "auto_review": auto_review,
+        "protocol_review": protocol_review,
         "can_execute": False,
         "adaptive": {"active": True, "hrm_lessons": len(adaptive_memory)},
         "media": {
