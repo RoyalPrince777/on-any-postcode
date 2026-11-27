@@ -338,3 +338,26 @@ def test_unknown_logs_are_observed_but_never_claimed_as_classified():
     assert result["classification"] == "unknown"
     assert result["log_categories"][0]["categories"] == ()
     assert result["execution_granted"] is False
+
+
+def test_failed_run_must_match_expected_mission_head_before_job_read():
+    calls = []
+
+    def fetch(url, token):
+        calls.append(url)
+        result = _fake(url, token)
+        if url.endswith("/runs/157"):
+            result["head_sha"] = "a" * 40
+        return result
+
+    mismatch = inspect_failed_run(
+        157, token="read-only", fetch=fetch, expected_head="b" * 40,
+    )
+    assert mismatch["ready"] is False
+    assert mismatch["error"] == "failed_run_head_mismatch"
+    assert len(calls) == 1
+    matched = inspect_failed_run(
+        157, token="read-only", fetch=fetch, expected_head="a" * 40,
+    )
+    assert matched["ready"] is True
+    assert matched["execution_granted"] is False
