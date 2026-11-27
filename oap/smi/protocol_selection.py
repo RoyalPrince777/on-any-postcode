@@ -288,7 +288,89 @@ def _command_baseline() -> bool:
     return False
 
 
+def _memory_baseline() -> bool:
+    from oap.smi.memory_orchestrator import compose_text_memory
+
+    # Limit equals the supplied dynamic items: no private/static retrieval.
+    result = compose_text_memory("TECHNICAL", dynamic=("old", "new", "latest"), limit=2)
+    return result == ("new", "latest")
+
+
+def _creation_baseline() -> bool:
+    from oap.smi.capability_fabric import capability_descriptions, select_capabilities
+
+    selected = select_capabilities(
+        "TECHNICAL", "code bug fix test repo github deploy refactor", limit=4,
+    )
+    return (
+        "agentic_code_review" in selected
+        and len(selected) <= 4
+        and len(capability_descriptions(selected)) == len(selected)
+    )
+
+
+def _investigation_baseline() -> bool:
+    from oap.smi.capability_fabric import select_capabilities
+
+    selected = select_capabilities(
+        "GENERAL", "latest today current research source news live verify", limit=8,
+    )
+    return "cited_live_research" in selected and "evidence_first" in selected
+
+
+def _language_baseline() -> bool:
+    from oap.smi.capability_fabric import select_capabilities
+
+    selected = select_capabilities(
+        "CULTURE", "speech intelligence voice translation speech recognition authorised voice voice accessibility",
+        limit=8,
+    )
+    return "voice_speech_intelligence" in selected
+
+
+def _execution_baseline() -> bool:
+    from oap.contracts import OutputState, Recommendation, SignalLevel, WarRoomReport
+    from oap.smi.action_engine import ActionEngine
+
+    recommendation = Recommendation(
+        request_id="synthetic-execution",
+        output_state=OutputState.REVIEW_REQUIRED,
+        summary="Synthetic proposal only",
+        rationale=(),
+        signal_level=SignalLevel.WHITE,
+        advisor_ids=(),
+        provider_ids=(),
+        processing_states=(),
+        human_review_required=True,
+        war_room=WarRoomReport(False, (), "Review"),
+    )
+    plan = ActionEngine().prepare(
+        recommendation, action_type="review.synthetic", payload={"sample": 1},
+    )
+    return plan.requires_human_approval is True and recommendation.can_execute is False
+
+
+def _verification_baseline() -> bool:
+    from oap.smi.self_model import SelfModel
+
+    model = SelfModel()
+    missing = model.observe(({"component": "synthetic"},))
+    observed = model.observe(({"component": "synthetic", "ready": True},))
+    return (
+        missing.overall_ready is False
+        and missing.unknown_components == ("synthetic",)
+        and observed.overall_ready is True
+        and observed.revision == missing.revision + 1
+    )
+
+
 BUILTIN_BASELINES = {
+    "memory": _memory_baseline,
+    "creation": _creation_baseline,
+    "investigation": _investigation_baseline,
+    "language": _language_baseline,
+    "execution": _execution_baseline,
+    "verification": _verification_baseline,
     "coordination": _coordination_baseline,
     "pack": _pack_baseline,
     "swarm": _swarm_baseline,
