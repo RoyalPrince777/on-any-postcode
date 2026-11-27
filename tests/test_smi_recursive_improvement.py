@@ -145,3 +145,20 @@ def test_personal_smi_and_mission_control_link_the_improvement_loop():
     assert "Improvement Loop" in mission
     assert "improvementUrl" in chat
     assert "Improvement Loop" in controller
+
+
+def test_heartbeat_and_single_receipt_do_not_certify_continuous_cycle(monkeypatch):
+    monkeypatch.setattr(smi_recursive_improvement.smi_runtime_autonomy, "run_cycle",
+                        lambda: {"controlled_self_improvement_runtime": {"ready": True}})
+    monkeypatch.setattr(smi_recursive_improvement.organism_autonomy, "run_cycle", lambda: {})
+    monkeypatch.setattr(smi_recursive_improvement.smi_completion_contract, "completion_status", lambda: {})
+    for receipt_verified in (False, True):
+        monkeypatch.setattr(smi_recursive_improvement.oap_core_autonomy, "run_cycle", lambda: {
+            "observation": {"runtime_worker_fresh": True, "runtime_ready": receipt_verified,
+                            "runtime_job_receipt_verified": receipt_verified},
+        })
+        cycle = smi_recursive_improvement.run_cycle()
+        assert cycle["proof"]["bounded_job_receipt_verified"] is receipt_verified
+        assert cycle["proof"]["continuous_cycle_proven"] is False
+        assert cycle["output_state"] == "REVIEW_REQUIRED"
+        assert cycle["light"] == "orange"
