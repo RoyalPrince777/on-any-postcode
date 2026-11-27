@@ -188,3 +188,32 @@ def test_organism_page_renders_full_physiology(client):
     assert "OAP Immune System" in page
     assert "OAP Healing System" in page
     assert "OAP Muscles" in page
+
+
+def test_native_cycle_accounts_for_canonical_physiology_without_certifying_organs():
+    evidence = organism_autonomy.physiology_evidence(
+        {"architecture_ready": True, "runtime_job_receipt_verified": False},
+        {"proposed_actions": ("review:runtime",)},
+    )
+    systems = evidence["systems"]
+    assert set(systems) == {system["id"] for system in organism.PHYSIOLOGY_SYSTEMS}
+    assert systems["dna"]["check_observed"] is True
+    assert systems["cells"]["check_observed"] is False
+    assert systems["growth"]["check_observed"] is True
+    assert systems["immune"]["check_observed"] is False
+    assert systems["muscles"]["check_observed"] is False
+    assert all(item["operational_status"] == "Unknown" for item in systems.values())
+    assert evidence["full_organism_verified"] is False
+
+
+def test_native_health_cycle_carries_physiology_evidence(monkeypatch):
+    monkeypatch.setattr(organism_worker.postgres_db, "postgres_status",
+                        lambda: {"initialized": False})
+    monkeypatch.delenv("OAP_SMI_GITHUB_READ_TOKEN", raising=False)
+    result = organism_worker._health_probe(_job("RUNTIME_HEALTH_PROBE"))
+    evidence = result["organism_autonomy"]["physiology_evidence"]
+    assert set(evidence["systems"]) == {
+        system["id"] for system in organism.PHYSIOLOGY_SYSTEMS
+    }
+    assert evidence["full_organism_verified"] is False
+    assert result["consequential_action"] is False
