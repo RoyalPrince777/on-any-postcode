@@ -364,7 +364,133 @@ def _verification_baseline() -> bool:
     )
 
 
+def _stealth_baseline() -> bool:
+    from oap.registry.tools import ToolCapability, ToolRegistry
+
+    registry = ToolRegistry((ToolCapability("sample", "Sample", "data", ("read",)),))
+    registry.authorize_capability("sample", "read")
+    try:
+        registry.authorize_capability("sample", "read", mutation=True)
+    except PermissionError:
+        return True
+    return False
+
+
+def _patterns_baseline() -> bool:
+    from oap.smi.coherence import CoherenceEngine
+
+    report = CoherenceEngine().evaluate((
+        {"component": "sample", "ready": True},
+        {"component": "sample", "ready": False},
+    ))
+    return not report.coherent and len(report.conflicts) == 1
+
+
+def _last_line_defence_baseline() -> bool:
+    from oap.smi.runtime_guard import bounded_control_proof
+
+    proof = bounded_control_proof()
+    return (
+        proof["passed"] is True
+        and proof["production_state_mutated"] is False
+        and proof["execution_authority_expanded"] is False
+    )
+
+
+def _complex_missions_baseline() -> bool:
+    from oap.smi.alliance_selection import select_alliance
+
+    selection = select_alliance(
+        "TECHNICAL", "swarm parallel agents subagents batch large task",
+        distributed_work=False, limit=4,
+    )
+    return (
+        "Queen Bee" not in selection.specialists
+        and len(selection.capabilities) <= 4
+        and selection.advisory_only
+        and selection.founder_final
+    )
+
+
+def _matrix_baseline() -> bool:
+    from oap.smi.organ_manager import OrganManager
+
+    state = OrganManager().status()
+    regions = state["analysis_regions"]
+    return state["brain_count"] == 1 and len(regions) == len(set(regions))
+
+
+def _identity_baseline() -> bool:
+    from oap.contracts import IdentityRecord
+    from oap.permissions import PermissionEngine
+
+    engine = PermissionEngine()
+    identity = IdentityRecord("synthetic", "USER", 3, permissions=frozenset({"REQUEST_RECOMMENDATION"}))
+    inactive = IdentityRecord("synthetic", "USER", 3, status="INACTIVE",
+                              permissions=identity.permissions)
+    return engine.authorize_identity(identity).allowed and not engine.authorize_identity(inactive).allowed
+
+
+def _civic_rights_baseline() -> bool:
+    from mission_control.oap_system_protocol import choose_protocol
+
+    decision = choose_protocol("synthetic private data review", private_data=True)
+    return decision.fail_closed and decision.reason == "private_data_path_not_proven"
+
+
+def _threat_awareness_baseline() -> bool:
+    from oap.smi.runtime_guard import (
+        MAX_COLLECTION_ITEMS,
+        RuntimeGuardViolation,
+        validate_action_payload,
+    )
+
+    try:
+        validate_action_payload({"sample": [0] * (MAX_COLLECTION_ITEMS + 1)})
+    except RuntimeGuardViolation as exc:
+        return str(exc) == "payload_collection_limit_exceeded"
+    return False
+
+
+def _living_kernel_baseline() -> bool:
+    from oap.contracts import ActionPlan, action_plan_digest
+
+    original = ActionPlan("synthetic", "review.sample", {"a": 1, "b": 2})
+    reordered = ActionPlan("synthetic", "review.sample", {"b": 2, "a": 1})
+    altered = ActionPlan("synthetic", "review.sample", {"a": 2, "b": 2})
+    return action_plan_digest(original) == action_plan_digest(reordered) != action_plan_digest(altered)
+
+
+def _deployment_baseline() -> bool:
+    from oap.registry.tools import ToolRegistry
+    from oap.smi.capability_preflight import preflight
+
+    result = preflight(
+        ToolRegistry(), task_type="TECHNICAL", query="deploy",
+        tool_id="unregistered", ability="deploy.trigger", mutation=True,
+    )
+    return not result.permitted_for_proposal and result.human_approval_required and result.kernel_required
+
+
+def _green_gate_baseline() -> bool:
+    from mission_control.oap_system_protocol import mind_body_soul_review
+
+    result = mind_body_soul_review(mind_evidence=True, body_evidence=False, soul_evidence=True)
+    return result["all_proven"] is False and result["missing"] == ("BODY",)
+
+
 BUILTIN_BASELINES = {
+    "stealth": _stealth_baseline,
+    "patterns": _patterns_baseline,
+    "last_line_defence": _last_line_defence_baseline,
+    "complex_missions": _complex_missions_baseline,
+    "matrix": _matrix_baseline,
+    "identity": _identity_baseline,
+    "civic_rights": _civic_rights_baseline,
+    "threat_awareness": _threat_awareness_baseline,
+    "living_kernel": _living_kernel_baseline,
+    "deployment": _deployment_baseline,
+    "green_gate": _green_gate_baseline,
     "memory": _memory_baseline,
     "creation": _creation_baseline,
     "investigation": _investigation_baseline,
