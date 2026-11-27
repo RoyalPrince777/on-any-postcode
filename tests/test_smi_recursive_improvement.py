@@ -150,10 +150,10 @@ def test_personal_smi_and_mission_control_link_the_improvement_loop():
 def test_heartbeat_and_single_receipt_do_not_certify_continuous_cycle(monkeypatch):
     monkeypatch.setattr(smi_recursive_improvement.smi_runtime_autonomy, "run_cycle",
                         lambda: {"controlled_self_improvement_runtime": {"ready": True}})
-    monkeypatch.setattr(smi_recursive_improvement.organism_autonomy, "run_cycle", lambda: {})
-    monkeypatch.setattr(smi_recursive_improvement.smi_completion_contract, "completion_status", lambda: {})
+    monkeypatch.setattr(smi_recursive_improvement.organism_autonomy, "run_cycle", dict)
+    monkeypatch.setattr(smi_recursive_improvement.smi_completion_contract, "completion_status", dict)
     for receipt_verified in (False, True):
-        monkeypatch.setattr(smi_recursive_improvement.oap_core_autonomy, "run_cycle", lambda: {
+        monkeypatch.setattr(smi_recursive_improvement.oap_core_autonomy, "run_cycle", lambda receipt_verified=receipt_verified: {
             "observation": {"runtime_worker_fresh": True, "runtime_ready": receipt_verified,
                             "runtime_job_receipt_verified": receipt_verified},
         })
