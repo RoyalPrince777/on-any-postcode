@@ -7,6 +7,7 @@ Provider brands are not part of Personal SMI identity or authority.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -409,6 +410,63 @@ def probe_local(*, force: bool = False) -> dict[str, Any]:
             result["reason"] = "local_probe_unavailable"
     _probe_cache = (now, dict(result))
     return result
+
+
+def probe_native_inference(availability: dict[str, Any]) -> dict[str, Any]:
+    """Opt-in local service response check, not model identity or engineering proof."""
+    result = {
+        "attempted": False,
+        "local_response_observed": False,
+        "model_identity_independently_verified": False,
+        "engineering_execution_verified": False,
+        "external_fallback_used": False,
+        "reason": "native_inference_probe_disabled",
+    }
+    if os.getenv("OAP_SMI_NATIVE_INFERENCE_PROBE", "").strip().lower() not in {
+        "1", "true", "yes",
+    }:
+        return result
+    if (
+        not LOCAL_ENABLED or not LOCAL_MODEL or not _local_endpoint_allowed()
+        or availability.get("reachable") is not True
+        or availability.get("model_available") is not True
+    ):
+        return {**result, "reason": "local_model_unavailable"}
+    # Never send Founder data, source code, secrets or credentials for this check.
+    req = urlrequest.Request(
+        LOCAL_URL,
+        data=json.dumps({
+            "model": LOCAL_MODEL,
+            "messages": [{"role": "user", "content": "Reply with the word READY."}],
+            "stream": False,
+            "options": {"temperature": 0, "num_predict": 8},
+        }).encode(),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    result["attempted"] = True
+    started = time.monotonic_ns()
+    try:
+        body = _read_local_json(req, timeout=5.0)
+        message = body.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        count = body.get("eval_count")
+        if (
+            body.get("model") != LOCAL_MODEL or body.get("done") is not True
+            or not isinstance(content, str) or not content.strip()
+            or type(count) is not int or not 0 < count <= 8
+        ):
+            return {**result, "reason": "local_response_evidence_invalid"}
+        return {
+            **result,
+            "local_response_observed": True,
+            "response_sha256": hashlib.sha256(content.encode()).hexdigest(),
+            "reported_output_tokens": count,
+            "duration_ns": time.monotonic_ns() - started,
+            "reason": "local_service_response_observed_not_independent_model_proof",
+        }
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError):
+        return {**result, "reason": "native_inference_response_unavailable"}
 
 
 def generate(

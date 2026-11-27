@@ -168,6 +168,7 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
             "reachable": local_model.get("reachable") is True,
             "model_available": local_model.get("model_available") is True,
             "inference_execution_verified": False,
+            "local_response_check": oap_inference_gateway.probe_native_inference(local_model),
             "engineering_execution_verified": False,
         },
         "engineering_receipt": observe_engineering_receipt(),
