@@ -453,8 +453,9 @@ class PostgresRuntimeStore:
                      state='SUCCEEDED',lease_owner=NULL,lease_expires_at=NULL,
                      completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
                    WHERE job_id=%s AND state='RUNNING' AND lease_owner=%s
+                     AND attempts=%s
                    RETURNING job_id""",
-                (job.job_id, worker),
+                (job.job_id, worker, job.attempts),
             ).fetchone()
             if row is None:
                 raise RuntimeError("job lease lost before completion")
@@ -476,8 +477,9 @@ class PostgresRuntimeStore:
                 """SELECT attempts,max_attempts,payload,job_type
                    FROM oap_runtime_jobs
                    WHERE job_id=%s AND state='RUNNING' AND lease_owner=%s
+                     AND attempts=%s
                    FOR UPDATE""",
-                (job.job_id, worker),
+                (job.job_id, worker, job.attempts),
             ).fetchone()
             if row is None:
                 raise RuntimeError("job lease lost before failure recording")
@@ -672,9 +674,15 @@ class PostgresRuntimeStore:
                VALUES (%s,%s::jsonb,%s,%s,%s)
                ON CONFLICT (idempotency_key) DO UPDATE SET
                  idempotency_key=EXCLUDED.idempotency_key
+               WHERE oap_runtime_jobs.job_type=EXCLUDED.job_type
+                 AND oap_runtime_jobs.payload=EXCLUDED.payload
+                 AND oap_runtime_jobs.priority=EXCLUDED.priority
+                 AND oap_runtime_jobs.max_attempts=EXCLUDED.max_attempts
                RETURNING job_id""",
             (job_type, json.dumps(payload), idempotency_key, priority, max_attempts),
         ).fetchone()
+        if row is None:
+            raise ValueError("idempotency_key_conflicts_with_existing_job")
         return str(row[0])
 
     @staticmethod
