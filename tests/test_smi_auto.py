@@ -176,3 +176,14 @@ def test_auto_invalid_protocol_does_not_probe_inventory(monkeypatch):
     ):
         result = smi_auto.observe("GET", path, message=message)
         assert not (result["capability_plan"] or {}).get("capability_inventory")
+
+
+def test_auto_capability_review_reuses_hybrid_without_selecting_execution():
+    result = smi_auto.observe("POST", "/mission/ollama", message="protocol: deployment")
+    review = result["capability_plan"]["hybrid_review"]
+    assert "HYBRID" in review["layers"]
+    assert review["review_paths"] == ("DETERMINISTIC",)
+    assert review["candidate_execution_selected"] is False
+    assert review["candidate_execution_verified"] is False
+    assert review["human_authority_final"] is True
+    assert result["execution_granted"] is False
