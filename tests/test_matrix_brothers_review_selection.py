@@ -9,7 +9,7 @@ def test_matrix_brothers_selected_for_native_handoff_without_new_passports():
     assert original["members"] == ("Tank", "Dozer")
     plan = ai_behaviour_protocol.recommend_agent_team("Recover native SMI execution")
     assert tuple(row["name"] for row in plan["active_team"]) == (
-        "Tank", "Dozer", "Bagheera",
+        "Neo", "Tank", "Dozer", "Bagheera",
     )
     assert all(row["authority"] == "advisory_review_only" for row in plan["active_team"])
     assert "Guardian" in plan["mandatory_gates_unchanged"]
@@ -23,3 +23,17 @@ def test_brothers_strength_stays_unrated_without_evidence():
         assert row["measured_strength_percent"] is None
         assert row["strength_light"] == "purple"
         assert row["evidence_coverage_percent"] == 0
+
+
+def test_neo_leads_native_handoff_without_authority_expansion():
+    assert agents.NEO["agent_id"] == "NEO-001"
+    assert tuple(agents.NEO["permissions"]) == ("READ", "ANALYSE", "RECOMMEND")
+    plan = ai_behaviour_protocol.recommend_agent_team("Recover native SMI execution")
+    assert plan["mission_lead"] == "Neo"
+    assert plan["mission_lead_authority"] == "advisory_review_only"
+    assert plan["native_dispatch_verified"] is False
+    override = ai_behaviour_protocol.recommend_agent_team(
+        "Recover native SMI execution", founder_selection=["Tank", "Dozer"]
+    )
+    assert override["mission_lead"] == "Tank"
+    assert ai_behaviour_protocol.agent_strength_status("Neo")["proven_strength_percent"] is None

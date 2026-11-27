@@ -168,6 +168,11 @@ AGENT_SELECTION = {
 
 
 REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
+    "Neo": {
+        "role": "Kernel Sentinel / native engineering mission advisory lead",
+        "best_for": "technical strategy, system architecture, native engineering handoff and solution review",
+        "authority": "advisory_review_only",
+    },
     # Existing Matrix advisory profiles; not new registered agent passports.
     "Tank": {
         "role": "Build diagnostics and runtime operations reviewer",
@@ -244,8 +249,8 @@ REVIEW_AGENT_CATALOG: dict[str, dict[str, str]] = {
 _AGENT_MATCH_RULES: tuple[tuple[tuple[str, ...], tuple[str, ...], str], ...] = (
     (
         ("native worker", "native smi execution", "engineering handoff", "builder connection", "tank and dozer", "tank & dozer"),
-        ("Tank", "Dozer", "Bagheera"),
-        "Existing Matrix brothers: runtime diagnostics and infrastructure continuity, with independent recovery review.",
+        ("Neo", "Tank", "Dozer", "Bagheera"),
+        "Neo leads technical review; Tank and Dozer cover diagnostics and continuity, with independent recovery review.",
     ),
     (
         ("map loading", "loading map", "old route", "old routes", "map route", "route loading", "maps still loading"),
@@ -472,6 +477,9 @@ def recommend_agent_team(
         "recommendation_reason": reason,
         "recommended_team": _team_payload(tuple(recommended)),
         "active_team": _team_payload(active_names),
+        "mission_lead": active_names[0],
+        "mission_lead_authority": "advisory_review_only",
+        "native_dispatch_verified": False,
         "founder_can_change": True,
         "founder_override_applied": manual,
         "smi_can_silently_override_founder": False,
