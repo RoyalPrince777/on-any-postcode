@@ -7,8 +7,6 @@ They intentionally expose a compact scikit-learn-like ``fit``/``predict`` API.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
-
 import numpy as np
 
 
@@ -33,7 +31,7 @@ def _target(y: np.ndarray, n: int, *, numeric: bool = False) -> np.ndarray:
 
 
 class StandardScaler:
-    def fit(self, X: np.ndarray) -> "StandardScaler":
+    def fit(self, X: np.ndarray) -> StandardScaler:
         X = _features(X)
         self.mean_ = X.mean(axis=0)
         self.scale_ = X.std(axis=0)
@@ -50,7 +48,7 @@ class StandardScaler:
 class LinearRegression:
     """Ordinary least squares using a stable pseudo-inverse."""
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "LinearRegression":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> LinearRegression:
         X = _features(X)
         y = _target(y, len(X), numeric=True)
         design = np.column_stack((np.ones(len(X)), X))
@@ -75,7 +73,7 @@ class LogisticRegression:
     def _sigmoid(z: np.ndarray) -> np.ndarray:
         return 1.0 / (1.0 + np.exp(-np.clip(z, -40, 40)))
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "LogisticRegression":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> LogisticRegression:
         X = _features(X)
         y_raw = _target(y, len(X))
         self.classes_ = np.unique(y_raw)
@@ -106,16 +104,16 @@ class LogisticRegression:
 @dataclass
 class _ClassificationNode:
     prediction: object
-    feature: Optional[int] = None
-    threshold: Optional[float] = None
-    left: Optional["_ClassificationNode"] = None
-    right: Optional["_ClassificationNode"] = None
+    feature: int | None = None
+    threshold: float | None = None
+    left: _ClassificationNode | None = None
+    right: _ClassificationNode | None = None
 
 
 class DecisionTreeClassifier:
     """CART-style classification tree using Gini impurity."""
 
-    def __init__(self, max_depth: int = 5, min_samples_split: int = 2, max_features: Optional[int] = None, random_state: int = 0):
+    def __init__(self, max_depth: int = 5, min_samples_split: int = 2, max_features: int | None = None, random_state: int = 0):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.max_features = max_features
@@ -134,7 +132,7 @@ class DecisionTreeClassifier:
         probabilities = counts / len(y)
         return float(1.0 - np.sum(probabilities**2))
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "DecisionTreeClassifier":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> DecisionTreeClassifier:
         X = _features(X)
         y = _target(y, len(X))
         self.classes_ = np.unique(y)
@@ -185,13 +183,13 @@ class DecisionTreeClassifier:
 class RandomForestClassifier:
     """Bootstrap aggregation of randomised decision trees."""
 
-    def __init__(self, n_estimators: int = 25, max_depth: int = 6, max_features: Optional[int] = None, random_state: int = 0):
+    def __init__(self, n_estimators: int = 25, max_depth: int = 6, max_features: int | None = None, random_state: int = 0):
         self.n_estimators = n_estimators
         self.max_depth = max_depth
         self.max_features = max_features
         self.random_state = random_state
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "RandomForestClassifier":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> RandomForestClassifier:
         X = _features(X)
         y = _target(y, len(X))
         self.classes_ = np.unique(y)
@@ -216,10 +214,10 @@ class RandomForestClassifier:
 @dataclass
 class _RegressionNode:
     value: float
-    feature: Optional[int] = None
-    threshold: Optional[float] = None
-    left: Optional["_RegressionNode"] = None
-    right: Optional["_RegressionNode"] = None
+    feature: int | None = None
+    threshold: float | None = None
+    left: _RegressionNode | None = None
+    right: _RegressionNode | None = None
 
 
 class _RegressionTree:
@@ -227,7 +225,7 @@ class _RegressionTree:
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "_RegressionTree":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> _RegressionTree:
         self.root_ = self._grow(_features(X), np.asarray(y, dtype=float), 0)
         return self
 
@@ -271,7 +269,7 @@ class GradientBoostingRegressor:
         self.learning_rate = learning_rate
         self.max_depth = max_depth
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "GradientBoostingRegressor":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> GradientBoostingRegressor:
         X = _features(X)
         y = _target(y, len(X), numeric=True)
         self.initial_ = float(y.mean())
@@ -299,7 +297,7 @@ class KNearestNeighborsClassifier:
             raise ValueError("n_neighbors must be positive")
         self.n_neighbors = n_neighbors
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "KNearestNeighborsClassifier":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> KNearestNeighborsClassifier:
         X = _features(X)
         self.y_ = _target(y, len(X))
         self.scaler_ = StandardScaler()
@@ -326,7 +324,7 @@ class KMeans:
         self.tolerance = tolerance
         self.random_state = random_state
 
-    def fit(self, X: np.ndarray) -> "KMeans":
+    def fit(self, X: np.ndarray) -> KMeans:
         X = _features(X)
         if self.n_clusters < 1 or self.n_clusters > len(X):
             raise ValueError("n_clusters must be between 1 and the number of rows")
@@ -374,7 +372,7 @@ class NeuralNetworkClassifier:
     def _sigmoid(value: np.ndarray) -> np.ndarray:
         return 1.0 / (1.0 + np.exp(-np.clip(value, -40, 40)))
 
-    def fit(self, X: np.ndarray, y: np.ndarray) -> "NeuralNetworkClassifier":
+    def fit(self, X: np.ndarray, y: np.ndarray) -> NeuralNetworkClassifier:
         X = _features(X)
         raw = _target(y, len(X))
         self.classes_ = np.unique(raw)
