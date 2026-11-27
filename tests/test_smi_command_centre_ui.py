@@ -69,6 +69,9 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('"/mission/organiser"', source)
         self.assertIn('topologyFull.href="/mission/organism"', source)
         self.assertIn('Unknown · fresh worker heartbeat required', source)
+        self.assertIn("NEO · ENGINEERING", source)
+        self.assertIn("MOUSE · EDGE CASES", source)
+        self.assertIn("Unknown · engineering job and receipt required", source)
         self.assertIn('node.dataset.proven="false"', source)
 
     def test_full_organism_offline_route_reuses_private_canonical_anatomy(self):
