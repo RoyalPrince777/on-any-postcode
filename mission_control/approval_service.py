@@ -281,7 +281,7 @@ def status() -> dict[str, object]:
             result["approved_receipts"] = int(counts[1])
             row = connection.execute(
                 """SELECT receipt_id,request_id,identity_id,authority_level,
-                          decision,issued_at,expires_at,action_digest,nonce,signature
+                          decision,issued_at,expires_at,action_digest,nonce,signature,consumed_at
                    FROM smi_approval_receipts
                    WHERE decision='APPROVED' AND authority_level=0
                      AND nonce IS NOT NULL
@@ -292,7 +292,8 @@ def status() -> dict[str, object]:
             result["latest_actionable"] = bool(
                 result["latest_signature_valid"]
                 and row
-                and row[6] > datetime.now(UTC)
+                and row[5] <= datetime.now(UTC) < row[6]
+                and row[10] is None
                 and str(row[4]) == "APPROVED"
             )
     except Exception:  # noqa: BLE001
