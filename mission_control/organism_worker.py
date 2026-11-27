@@ -14,6 +14,7 @@ from uuid import uuid4
 
 from . import (
     autonomy_levels,
+    founder_kernel_execution,
     oap_core_autonomy,
     organism,
     organism_autonomy,
@@ -162,6 +163,7 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
     return {
         "kind": "runtime_health_probe",
         "engineering_receipt": observe_engineering_receipt(),
+        "engineering_handoff": founder_kernel_execution.status(),
         "database_ready": bool(database.get("initialized")),
         "human_authority_present": human_authority_present,
         "oap_core_autonomy": oap_core_cycle,
