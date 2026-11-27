@@ -298,6 +298,7 @@ def test_builtin_capability_baselines():
     for protocol in (
         "dependencies", "economics", "science", "audit", "coordination",
         "pack", "swarm", "recovery", "guardian", "adversarial", "command",
+        "memory", "creation", "investigation", "language", "execution", "verification",
     ):
         result = benchmark_builtin_capability(protocol)
         assert result["status"] == "Passed"
@@ -312,7 +313,7 @@ def test_builtin_capability_baselines():
 def test_builtin_capability_baseline_does_not_claim_unimplemented_protocols():
     from oap.smi.protocol_selection import benchmark_builtin_capability
 
-    for protocol in ("execution", "memory", "unknown"):
+    for protocol in ("matrix", "deployment", "unknown"):
         result = benchmark_builtin_capability(protocol)
         assert result["status"] == "Not tested"
         assert result["checks_total"] == 0
@@ -340,3 +341,19 @@ def test_existing_guard_baseline_observes_real_guard_failure(monkeypatch):
     assert result["status"] == "Failed"
     assert result["checks_passed"] == 0
     assert result["candidate_benchmark_verified"] is False
+
+
+def test_execution_baseline_requires_human_approval(monkeypatch):
+    from oap.contracts import ActionPlan
+    from oap.smi import action_engine
+    from oap.smi.protocol_selection import benchmark_builtin_capability
+
+    monkeypatch.setattr(
+        action_engine.ActionEngine, "prepare",
+        lambda self, recommendation, **kwargs: ActionPlan(
+            recommendation.request_id, kwargs["action_type"], {}, False,
+        ),
+    )
+    result = benchmark_builtin_capability("execution")
+    assert result["status"] == "Failed"
+    assert result["execution_granted"] is False
