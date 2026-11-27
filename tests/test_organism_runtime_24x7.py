@@ -178,3 +178,55 @@ def test_worker_readiness_is_heartbeat_based_not_active_flag(
     assert result["recent_successful_job_receipts"] == receipts
     assert result["native_job_execution_observed"] is expected_execution
     assert result["consequential_execution"] is False
+
+
+def test_queue_duplicate_key_only_reuses_identical_job():
+    class Connection:
+        def __init__(self, row):
+            self.row = row
+
+        def execute(self, sql, params):
+            assert "oap_runtime_jobs.job_type=EXCLUDED.job_type" in sql
+            assert "oap_runtime_jobs.payload=EXCLUDED.payload" in sql
+            assert "oap_runtime_jobs.priority=EXCLUDED.priority" in sql
+            assert "oap_runtime_jobs.max_attempts=EXCLUDED.max_attempts" in sql
+            assert params == ("RUNTIME_HEARTBEAT", "{}", "same-key", 100, 5)
+            return self
+
+        def fetchone(self):
+            return self.row
+
+    enqueue = organism_runtime.PostgresRuntimeStore._enqueue_in_connection
+    assert enqueue(Connection(("job-id",)), "RUNTIME_HEARTBEAT", {}, "same-key", 100, 5) == "job-id"
+    with pytest.raises(ValueError, match="idempotency_key_conflicts"):
+        enqueue(Connection(None), "RUNTIME_HEARTBEAT", {}, "same-key", 100, 5)
+
+
+def test_stale_attempt_cannot_complete_or_fail_reassigned_job(monkeypatch):
+    from contextlib import contextmanager
+
+    job = RuntimeJob(
+        job_id="00000000-0000-0000-0000-000000000001",
+        job_type="RUNTIME_HEARTBEAT", payload={}, attempts=1,
+        max_attempts=5, idempotency_key="same-key",
+    )
+
+    class Connection:
+        def execute(self, sql, params):
+            assert "AND attempts=%s" in sql
+            assert params == (job.job_id, "worker-one", job.attempts)
+            return self
+
+        def fetchone(self):
+            return None
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    store = organism_runtime.PostgresRuntimeStore()
+    with pytest.raises(RuntimeError, match="job lease lost"):
+        store.complete(job, "worker-one", {})
+    with pytest.raises(RuntimeError, match="job lease lost"):
+        store.fail(job, "worker-one", error_code="test")
