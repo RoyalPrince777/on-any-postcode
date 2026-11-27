@@ -352,3 +352,52 @@ def test_evolution_can_propose_but_never_self_apply():
     assert proposal.requires_human_approval is True
     with pytest.raises(PermissionError, match="cannot self-apply"):
         EvolutionEngine().apply(proposal)
+
+
+@pytest.mark.parametrize(("issued_delta", "consumed", "actionable"), [
+    (-60, False, True),
+    (-60, True, False),
+    (60, False, False),
+    (-1200, False, False),
+])
+def test_production_approval_status_distinguishes_usable_receipts(
+    monkeypatch, issued_delta, consumed, actionable,
+):
+    from contextlib import contextmanager
+    from datetime import UTC, datetime, timedelta
+
+    from mission_control import approval_service
+
+    now = datetime.now(UTC)
+    issued = now + timedelta(seconds=issued_delta)
+    receipt = (
+        "receipt", "request", "founder", 0, "APPROVED", issued,
+        issued + timedelta(seconds=900), "digest", "nonce", "signature",
+        now if consumed else None,
+    )
+
+    class Rows:
+        def __init__(self, row):
+            self.row = row
+
+        def fetchone(self):
+            return self.row
+
+    class Connection:
+        def execute(self, sql):
+            if "SELECT COUNT" in sql:
+                return Rows((1, 1))
+            assert "consumed_at" in sql
+            return Rows(receipt)
+
+    @contextmanager
+    def connect(*, readonly=False):
+        assert readonly is True
+        yield Connection()
+
+    monkeypatch.setattr(approval_service, "_signing_key", lambda: b"test")
+    monkeypatch.setattr(approval_service, "_row_signature_valid", lambda row: True)
+    monkeypatch.setattr(approval_service.postgres_db, "connect", connect)
+    result = approval_service.status()
+    assert result["latest_signature_valid"] is True
+    assert result["latest_actionable"] is actionable
