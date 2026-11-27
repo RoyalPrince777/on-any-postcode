@@ -203,3 +203,28 @@ def test_recovery_checkpoint_requires_fresh_same_session_sequence(
     evidence = organism_runtime.recovery_checkpoint_evidence("worker", "c" * 40)
     assert evidence["observed_cadence"] is expected
     assert evidence["full_organism_verified"] is False
+
+
+def test_worker_restart_resets_receipt_eligibility_boundary(monkeypatch):
+    from contextlib import contextmanager
+
+    calls = []
+
+    class Connection:
+        def execute(self, sql, parameters):
+            calls.append((sql, parameters))
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    store = organism_runtime.PostgresRuntimeStore()
+    store.heartbeat("worker", revision="a" * 40, new_session=True)
+    store.heartbeat("worker", revision="a" * 40)
+    assert "started_at=CASE WHEN %s" in calls[0][0]
+    assert calls[0][1][-1] is True
+    assert calls[1][1][-1] is False
