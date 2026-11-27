@@ -25,6 +25,7 @@ from . import (
     civilization,
     infrastructure,
     judgement,
+    master_upgrade_contract,
     matrix_simulation,
     ollama_chat,
     organism,
@@ -1492,7 +1493,7 @@ def smi_tda_preview():
 
     from . import studio_tda_preview
 
-    if request.environ.get("SERVER_PORT") != "5000":
+    if not master_upgrade_contract.private_origin_allowed(request.environ.get("SERVER_PORT")):
         return _error("private_port_required", "Open the private 5000 route.", 404)
     try:
         version, data = studio_tda_preview.candidate(current_app.instance_path)
@@ -1513,7 +1514,7 @@ def smi_tda_preview_content(version):
 
     from . import studio_tda_preview
 
-    if request.environ.get("SERVER_PORT") != "5000":
+    if not master_upgrade_contract.private_origin_allowed(request.environ.get("SERVER_PORT")):
         return _error("private_port_required", "Open the private 5000 route.", 404)
     try:
         actual, data = studio_tda_preview.candidate(current_app.instance_path)
@@ -1538,7 +1539,7 @@ def smi_tda_update():
 
     from . import studio_tda_preview
 
-    if request.environ.get("SERVER_PORT") != "5000":
+    if not master_upgrade_contract.private_origin_allowed(request.environ.get("SERVER_PORT")):
         return _error("private_port_required", "Open the private 5000 route.", 404)
     if not web_security.csrf_valid(request):
         return _error("csrf_failed", "Refresh the private page.", 403)

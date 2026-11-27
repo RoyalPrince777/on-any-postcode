@@ -13,8 +13,34 @@ def _now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
+PRIVATE_ORIGIN_PORT = "5000"
+PRIVATE_ORIGIN_PATH = "/mission/smi"
+RELEASE_EVIDENCE_REQUIREMENTS = (
+    "exact_candidate_digest",
+    "actual_target_runtime_proof",
+    "independent_guardian_review",
+    "durable_hrm_readback",
+    "exact_version_green_gate",
+    "rollback_verified",
+    "founder_final",
+)
+
+
+def private_origin_allowed(server_port: object) -> bool:
+    """Use the WSGI listener port, never a client Host or forwarded-port header."""
+    return server_port == PRIVATE_ORIGIN_PORT
+
+
 MASTER_UPGRADE_RULES = {
     "mode": "master_upgrades_only",
+    "private_origin_required": True,
+    "private_origin_path": PRIVATE_ORIGIN_PATH,
+    "private_origin_port": PRIVATE_ORIGIN_PORT,
+    "automatic_publication": False,
+    "simulation_counts_as_runtime_proof": False,
+    "code_or_ci_counts_as_runtime_proof": False,
+    "release_evidence_requirements": RELEASE_EVIDENCE_REQUIREMENTS,
+    "ecosystem_wide_runtime_enforcement_verified": False,
     "static_extra_counts_as_green": False,
     "real_green_definition": (
         "Fully functioning, working end-to-end, proof-passed, install-ready on supported platforms, "
@@ -110,7 +136,7 @@ def status() -> dict[str, object]:
         "noise_to_strip": OAP_WORLD_NOISE_TO_STRIP,
         "lanes": MASTER_UPGRADE_LANES,
         "status": {
-            "master_upgrade_contract": "🟢 locked",
+            "master_upgrade_contract": "🟣 source contract; runtime enforcement incomplete",
             "static_extra_green": "🔴 blocked",
             "oap_world_noise": "🟡 stripping",
             "install_ready_any_platform": "🟠 not proven",
