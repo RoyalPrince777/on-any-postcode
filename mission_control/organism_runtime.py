@@ -129,6 +129,8 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
         "schema_ready": False,
         "worker_fresh": False,
         "worker_state": "unknown",
+        "recent_successful_job_receipts": None,
+        "native_job_execution_observed": False,
         "queued": 0,
         "running": 0,
         "retry": 0,
@@ -192,10 +194,35 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
                 "fresh" if fresh_count else
                 "stale_active" if active_count else "not_running"
             )
+            # A heartbeat is not a completed job. Require fresh durable receipts
+            # joined to completed allowlisted jobs from a currently live worker.
+            receipt_row = connection.execute(
+                """SELECT COUNT(DISTINCT j.job_id)
+                   FROM oap_runtime_receipts r
+                   JOIN oap_runtime_jobs j ON j.job_id = r.job_id
+                   JOIN oap_runtime_workers w ON w.worker_id = r.worker_id
+                   WHERE r.event_type = 'JOB_SUCCEEDED' AND r.state = 'SUCCEEDED'
+                     AND j.state = 'SUCCEEDED'
+                     AND j.job_type IN ('RUNTIME_HEARTBEAT', 'RUNTIME_HEALTH_PROBE')
+                     AND r.created_at BETWEEN CURRENT_TIMESTAMP - INTERVAL '15 minutes'
+                         AND CURRENT_TIMESTAMP
+                     AND w.status = 'ACTIVE'
+                     AND w.heartbeat_at BETWEEN
+                         CURRENT_TIMESTAMP - (%s * INTERVAL '1 second')
+                         AND CURRENT_TIMESTAMP
+                     AND w.worker_id NOT LIKE %s""",
+                (max(30, int(stale_after_seconds)), "%-inference"),
+            ).fetchone()
+            result["recent_successful_job_receipts"] = int(receipt_row[0] or 0)
+            result["native_job_execution_observed"] = bool(
+                result["worker_fresh"] and result["recent_successful_job_receipts"]
+            )
             result["ready"] = bool(result["schema_ready"] and result["worker_fresh"])
             return result
     except Exception:  # noqa: BLE001 - readiness degrades without exposing DB details.
         result["error"] = "runtime_store_unavailable"
+        result["native_job_execution_observed"] = False
+        result["recent_successful_job_receipts"] = None
         return result
 
 
