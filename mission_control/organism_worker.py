@@ -146,7 +146,7 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
             )
             entry = {**entry, "behaviour_review": {
                 "truth": (
-                    "VERIFIED" if entry.get("ci_proven") is True
+                    "CI_VERIFIED" if entry.get("ci_proven") is True
                     else "BLOCKED" if entry.get("next_move") == "inspect_failed_ci"
                     else "UNKNOWN"
                 ),
