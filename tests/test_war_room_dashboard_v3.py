@@ -147,6 +147,24 @@ def test_war_room_status_is_redacted_and_preserves_human_authority(client):
     assert "council" not in serialized
 
 
+def test_native_runtime_evidence_exposes_only_bounded_receipt_summary(client, monkeypatch):
+    from mission_control import organism_runtime
+
+    monkeypatch.setattr(organism_runtime, "runtime_status", lambda: {
+        "schema_ready": True, "worker_fresh": True, "worker_state": "fresh",
+        "recent_successful_job_receipts": 2, "native_job_execution_observed": True,
+        "worker_id": "not-for-dashboard",
+    })
+    response = client.get("/mission/war-room/status")
+    assert response.status_code == 200
+    evidence = response.get_json()["native_runtime_evidence"]
+    assert evidence["recent_successful_job_receipts"] == 2
+    assert evidence["native_job_execution_observed"] is True
+    assert evidence["engineering_execution_granted"] is False
+    assert "worker_id" not in evidence
+    assert evidence["receipt_window_minutes"] == 15
+
+
 def test_mission_navigation_links_to_war_room(client):
     for path in ("/mission", "/mission/brain", "/mission/organism"):
         page = client.get(path).get_data(as_text=True)

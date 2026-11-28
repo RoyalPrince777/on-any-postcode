@@ -96,7 +96,7 @@ def test_auto_swot_requires_verified_failed_build_logs():
 
 
 def test_auto_swot_uses_only_verified_categories_without_granting_execution():
-    data = {"ready": True, "log_analysis": {"ready": True, "log_categories": (
+    data = {"ready": True, "log_analysis": {"ready": True, "classified": True, "log_categories": (
         {"job_id": 31, "categories": ("gradle_compile", "source_verification")},
     )}}
     result = smi_auto.evidence_swot_for_failed_build(data)
@@ -106,7 +106,48 @@ def test_auto_swot_uses_only_verified_categories_without_granting_execution():
     assert result["approval_granted"] is False
     assert result["human_authority_final"] is True
     assert smi_auto.evidence_swot_for_failed_build({
-        "ready": True, "log_analysis": {"ready": True, "log_categories": (
+        "ready": True, "log_analysis": {"ready": True, "classified": True, "log_categories": (
             {"job_id": 31, "categories": ("untrusted_input",)},
         )}
     })["ready"] is False
+
+
+def test_auto_swot_cannot_promote_unclassified_python_logs():
+    unclassified = {"ready": True, "log_analysis": {
+        "ready": True, "classified": False, "log_categories": (
+            {"job_id": 55, "categories": ("python_lint",)},
+        ),
+    }}
+    assert smi_auto.evidence_swot_for_failed_build(unclassified)["ready"] is False
+
+    classified = {"ready": True, "log_analysis": {
+        "ready": True, "classified": True, "log_categories": (
+            {"job_id": 55, "categories": ("python_lint", "python_tests")},
+        ),
+    }}
+    result = smi_auto.evidence_swot_for_failed_build(classified)
+    assert result["ready"] is True
+    assert result["execution_granted"] is False
+    assert result["approval_granted"] is False
+
+
+def test_native_specialist_alliance_is_evidence_selected_and_advisory():
+    failed = smi_auto.mission_continuity_alliance({"next_move": "inspect_failed_ci"})
+    assert {"Morpheus", "Neo", "Mouse", "Tank", "Dozer", "AEI"} <= set(failed["roles"])
+    assert failed["roles"][0] == "Morpheus"
+    assert "Spider" in failed["roles"]
+    assert "training objectives" in smi_auto.review_lens("Morpheus")
+    passed = smi_auto.mission_continuity_alliance(
+        {"next_move": "continue_target_proof", "ci_proven": True},
+    )
+    assert passed["roles"] == ("Trinity", "Octopus", "Tank", "Dozer", "Owl")
+    unknown = smi_auto.mission_continuity_alliance(
+        {"next_move": "continue_target_proof", "ci_proven": "true"},
+    )
+    assert unknown["roles"] == ("Owl", "Oracle")
+    for result in (failed, passed, unknown):
+        assert result["agents_executed"] is False
+        assert result["execution_granted"] is False
+        assert result["guardian_required"] is True
+        assert result["hrm_proof_required"] is True
+    assert smi_auto.explicit_review_roles("Mouse Tank Dozer") == ("Mouse", "Tank", "Dozer")

@@ -144,7 +144,7 @@ def test_log_classification_is_bounded_and_never_returns_secrets():
     result = inspect_failed_job_logs(
         evidence, token="read-only",
         fetch_log=lambda job_id, token: (
-            f"Missing OAP_HOME_KEYSTORE_B64: {secret}\\n"
+            f"Missing OAP_HOME_KEYSTORE_B64: {secret}\n"
             "Execution failed for task ':compileDebugJavaWithJavac'"
         ),
     )
@@ -158,3 +158,206 @@ def test_logs_fail_closed_without_prior_job_proof():
     from mission_control.smi_github_failure_evidence import inspect_failed_job_logs
     assert inspect_failed_job_logs({}, token="read-only")["ready"] is False
     assert inspect_failed_job_logs({"ready": True, "failed_jobs": ()}, token="read-only")["ready"] is False
+
+
+# Mission Keeper continuity uses exact PR head evidence, not guessed Green.
+def _mission_runs(names, *, sha="a" * 40, status="completed", conclusion="success"):
+    return [{"id": 100 + index, "name": name, "status": status,
+             "conclusion": conclusion, "head_sha": sha, "event": "pull_request",
+             "repository": {"full_name": REPO}}
+            for index, name in enumerate(names)]
+
+
+def _mission_fetch(runs, *, number=1413, sha="a" * 40,
+                   state="open", head_repo=REPO):
+    def fetch(url, token):
+        assert token == "read-only"
+        if url == f"{API}/pulls/{number}":
+            return {"number": number, "state": state, "draft": True,
+                    "head": {"sha": sha, "repo": {"full_name": head_repo}},
+                    "base": {"ref": "main"}}
+        if url == f"{API}/actions/runs?head_sha={sha}&event=pull_request&per_page=100":
+            return {"total_count": len(runs), "workflow_runs": runs}
+        raise AssertionError(url)
+    return fetch
+
+
+def test_mission_continues_to_runtime_proof_only_after_all_exact_head_ci():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
+    )
+    runs = _mission_runs(MISSION_PR_CHECKS[1413])
+    result = inspect_mission_continuity(
+        1413, token="read-only", fetch=_mission_fetch(runs),
+    )
+    assert result["ready"] is True
+    assert result["ci_proven"] is True
+    assert result["next_move"] == "continue_target_proof"
+    assert result["head_sha"] == "a" * 40
+    assert result["execution_granted"] is False
+    assert result["consequential_action"] is False
+
+
+
+def test_original_three_first_party_worker_observes_both_approved_prs_without_execution():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
+    )
+    expected = {
+        1083: ("OAP governed checks", "OAP runtime image"),
+        1417: ("OAP governed checks", "SMI Chromium recovery proof",
+               "OAP War Room real Chromium acceptance", "OAP runtime image"),
+        1245: ("OAP governed checks",),
+        1256: ("OAP governed checks",),
+        1257: ("OAP governed checks", "OAP runtime image",
+               "OAP real routing container proof"),
+        1400: ("OAP governed checks", "OAP runtime image"),
+        1318: ("OAP governed checks", "SMI Chromium recovery proof",
+               "OAP runtime image"),
+        1384: ("OAP governed checks", "SMI agent achievement proof",
+               "OAP runtime image"),
+    }
+    for pr_number, required in expected.items():
+        assert MISSION_PR_CHECKS[pr_number] == required
+        result = inspect_mission_continuity(
+            pr_number, token="read-only",
+            fetch=_mission_fetch(_mission_runs(required), number=pr_number),
+        )
+        assert result["ci_proven"] is True
+        assert result["next_move"] == "continue_target_proof"
+        assert result["execution_granted"] is False
+        assert result["approval_granted"] is False
+        assert result["human_authority_final"] is True
+
+
+def test_mission_does_not_auto_green_when_ci_missing_or_pending():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
+    )
+    checks = MISSION_PR_CHECKS[1413]
+    for runs in (
+        _mission_runs(checks[:-1]),
+        _mission_runs(checks, status="in_progress", conclusion=None),
+        _mission_runs(checks, conclusion="skipped"),
+    ):
+        result = inspect_mission_continuity(
+            1413, token="read-only", fetch=_mission_fetch(runs),
+        )
+        assert result["ci_proven"] is False
+        assert result["next_move"] == "await_exact_head_evidence"
+        assert result["execution_granted"] is False
+
+
+def test_mission_failure_selects_automatic_diagnosis_not_repair_permission():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
+    )
+    runs = _mission_runs(MISSION_PR_CHECKS[1411])
+    runs[1]["conclusion"] = "failure"
+    result = inspect_mission_continuity(
+        1411, token="read-only", fetch=_mission_fetch(runs, number=1411),
+    )
+    assert result["ready"] is True
+    assert result["ci_proven"] is False
+    assert result["next_move"] == "inspect_failed_ci"
+    assert result["failed_run_id"] == 101
+    assert result["human_authority_final"] is True
+
+
+def test_mission_rejects_unknown_pr_wrong_repo_and_stale_run():
+    from mission_control.smi_github_failure_evidence import (
+        MISSION_PR_CHECKS,
+        inspect_mission_continuity,
+    )
+    assert inspect_mission_continuity(999, token="read-only")["ready"] is False
+    assert inspect_mission_continuity(1413, token="")["ready"] is False
+    checks = MISSION_PR_CHECKS[1413]
+    wrong = inspect_mission_continuity(
+        1413, token="read-only",
+        fetch=_mission_fetch(_mission_runs(checks), head_repo="attacker/other"),
+    )
+    assert wrong["ready"] is False
+    stale = inspect_mission_continuity(
+        1413, token="read-only",
+        fetch=_mission_fetch(_mission_runs(checks, sha="b" * 40)),
+    )
+    assert stale["ready"] is False
+
+
+def test_closed_mission_pr_blocks_automatic_continuation():
+    from mission_control.smi_github_failure_evidence import inspect_mission_continuity
+    result = inspect_mission_continuity(
+        1413, token="read-only",
+        fetch=_mission_fetch([], state="closed"),
+    )
+    assert result["ready"] is True
+    assert result["ci_proven"] is False
+    assert result["next_move"] == "hold_closed_pr"
+
+
+def test_first_party_python_browser_failure_categories_do_not_leak_logs():
+    from mission_control.smi_github_failure_evidence import inspect_failed_job_logs
+
+    confidential = "CONFIDENTIAL_TOKEN_MUST_NOT_LEAK"
+    evidence = {"ready": True, "failed_jobs": ({"job_id": 71},)}
+    result = inspect_failed_job_logs(
+        evidence,
+        token="read-only",
+        fetch_log=lambda job_id, token: (
+            f"ruff check failed {confidential}\n"
+            "FAILED tests/test_smi_security.py::test_gate\n"
+            "ModuleNotFoundError: No module named something\n"
+            "playwright failed\n"
+        ),
+    )
+    assert result["ready"] is True
+    assert result["classified"] is True
+    assert result["classification"] == "classified"
+    assert set(result["log_categories"][0]["categories"]) == {
+        "python_lint", "python_tests", "python_import", "browser_tests",
+    }
+    assert confidential not in str(result)
+    assert result["execution_granted"] is False
+    assert result["approval_granted"] is False
+
+
+def test_unknown_logs_are_observed_but_never_claimed_as_classified():
+    from mission_control.smi_github_failure_evidence import inspect_failed_job_logs
+
+    result = inspect_failed_job_logs(
+        {"ready": True, "failed_jobs": ({"job_id": 72},)},
+        token="read-only",
+        fetch_log=lambda job_id, token: "unrecognised task failure",
+    )
+    assert result["ready"] is True
+    assert result["classified"] is False
+    assert result["classification"] == "unknown"
+    assert result["log_categories"][0]["categories"] == ()
+    assert result["execution_granted"] is False
+
+
+def test_failed_run_must_match_expected_mission_head_before_job_read():
+    calls = []
+
+    def fetch(url, token):
+        calls.append(url)
+        result = _fake(url, token)
+        if url.endswith("/runs/157"):
+            result["head_sha"] = "a" * 40
+        return result
+
+    mismatch = inspect_failed_run(
+        157, token="read-only", fetch=fetch, expected_head="b" * 40,
+    )
+    assert mismatch["ready"] is False
+    assert mismatch["error"] == "failed_run_head_mismatch"
+    assert len(calls) == 1
+    matched = inspect_failed_run(
+        157, token="read-only", fetch=fetch, expected_head="a" * 40,
+    )
+    assert matched["ready"] is True
+    assert matched["execution_granted"] is False

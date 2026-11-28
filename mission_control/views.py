@@ -296,16 +296,9 @@ def agent_intelligence():
 @bp.get("/smi")
 @web_security.login_required(founder_only=True)
 def smi_command_dashboard_view():
-    """Render one Founder command surface from canonical SMI status sources."""
+    """Serve the approved Command Centre; retire the duplicate dashboard UI."""
 
-    return _no_store(
-        make_response(
-            render_template(
-                "smi_command_dashboard.html",
-                command=smi_command_dashboard.status(),
-            )
-        )
-    )
+    return _render_smi_command_centre()
 
 
 @bp.get("/smi/status")
@@ -541,7 +534,13 @@ def judgement_decision(request_id: str):
 @bp.get("/ollama")
 @web_security.login_required()
 def ollama_chat_dashboard():
-    """Render the local-provider chat shell without contacting the provider."""
+    """Compatibility chat entrance to the existing Command Centre."""
+
+    return _render_smi_command_centre()
+
+
+def _render_smi_command_centre():
+    """One UI renderer, shared by the existing authenticated entry points."""
 
     _chat_identity()
     response = make_response(

@@ -113,3 +113,327 @@ def test_free_mode_does_not_provision_a_paid_background_worker():
     assert "plan: free" in content
     assert "runtime: image" in content
     assert 'value: "smi_gateway:app"' in content
+
+
+@pytest.mark.parametrize(
+    ("active", "fresh", "receipts", "expected_state", "expected_ready", "expected_execution"),
+    [
+        (1, 0, 0, "stale_active", False, False),
+        (0, 0, 0, "not_running", False, False),
+        (1, 1, 0, "fresh", True, False),
+        (1, 1, 2, "fresh", True, True),
+        (1, 1, None, "unknown", False, False),
+    ],
+)
+def test_worker_readiness_is_heartbeat_based_not_active_flag(
+    monkeypatch, active, fresh, receipts, expected_state, expected_ready, expected_execution,
+):
+    from contextlib import contextmanager
+
+    class Rows:
+        def __init__(self, *, one=None, many=None):
+            self.one, self.many = one, many
+
+        def fetchone(self):
+            return self.one
+
+        def fetchall(self):
+            return self.many
+
+    class Connection:
+        def execute(self, sql, params=()):
+            if "information_schema.tables" in sql:
+                return Rows(many=[(name,) for name in organism_runtime.RUNTIME_TABLES])
+            if "SELECT checksum FROM oap_schema_migrations" in sql:
+                return Rows(one=(organism_runtime.RUNTIME_MIGRATION_CHECKSUM,))
+            if "GROUP BY state" in sql:
+                return Rows(many=[("SUCCEEDED", 2)])
+            if "COUNT(*) FILTER (WHERE status='ACTIVE')" in sql:
+                assert params == (90, "%-inference")
+                assert "WHERE worker_id NOT LIKE %s" in sql
+                assert "heartbeat_at <= CURRENT_TIMESTAMP" in sql
+                return Rows(one=(active, fresh))
+            if "COUNT(DISTINCT j.job_id)" in sql:
+                assert params == (90, "%-inference")
+                assert "JOB_SUCCEEDED" in sql
+                assert "INTERVAL '15 minutes'" in sql
+                assert "w.status = 'ACTIVE'" in sql
+                if receipts is None:
+                    raise RuntimeError("receipt read interrupted")
+                return Rows(one=(receipts,))
+            raise AssertionError("Unexpected SQL in status check")
+
+    @contextmanager
+    def connect(*, readonly=False):
+        assert readonly is True
+        yield Connection()
+
+    monkeypatch.setattr(
+        organism_runtime.postgres_db, "postgres_status",
+        lambda: {"initialized": True},
+    )
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    result = organism_runtime.runtime_status()
+    assert result["schema_ready"] is True
+    assert result["worker_state"] == expected_state
+    assert result["worker_fresh"] is expected_ready
+    assert result["ready"] is expected_ready
+    assert result["recent_successful_job_receipts"] == receipts
+    assert result["native_job_execution_observed"] is expected_execution
+    assert result["consequential_execution"] is False
+    if receipts is None:
+        assert result["error"] == "runtime_store_unavailable"
+
+
+def test_queue_duplicate_key_only_reuses_identical_job():
+    class Connection:
+        def __init__(self, row):
+            self.row = row
+
+        def execute(self, sql, params):
+            assert "oap_runtime_jobs.job_type=EXCLUDED.job_type" in sql
+            assert "oap_runtime_jobs.payload=EXCLUDED.payload" in sql
+            assert "oap_runtime_jobs.priority=EXCLUDED.priority" in sql
+            assert "oap_runtime_jobs.max_attempts=EXCLUDED.max_attempts" in sql
+            assert params == ("RUNTIME_HEARTBEAT", "{}", "same-key", 100, 5)
+            return self
+
+        def fetchone(self):
+            return self.row
+
+    enqueue = organism_runtime.PostgresRuntimeStore._enqueue_in_connection
+    assert enqueue(Connection(("job-id",)), "RUNTIME_HEARTBEAT", {}, "same-key", 100, 5) == "job-id"
+    with pytest.raises(ValueError, match="idempotency_key_conflicts"):
+        enqueue(Connection(None), "RUNTIME_HEARTBEAT", {}, "same-key", 100, 5)
+
+
+def test_stale_attempt_cannot_complete_or_fail_reassigned_job(monkeypatch):
+    from contextlib import contextmanager
+
+    job = RuntimeJob(
+        job_id="00000000-0000-0000-0000-000000000001",
+        job_type="RUNTIME_HEARTBEAT", payload={}, attempts=1,
+        max_attempts=5, idempotency_key="same-key",
+    )
+
+    class Connection:
+        def execute(self, sql, params):
+            assert "AND attempts=%s" in sql
+            assert params == (job.job_id, "worker-one", job.attempts)
+            return self
+
+        def fetchone(self):
+            return None
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    store = organism_runtime.PostgresRuntimeStore()
+    with pytest.raises(RuntimeError, match="job lease lost"):
+        store.complete(job, "worker-one", {})
+    with pytest.raises(RuntimeError, match="job lease lost"):
+        store.fail(job, "worker-one", error_code="test")
+
+
+def test_worker_records_lost_lease_without_claiming_failure():
+    job = RuntimeJob(
+        job_id="00000000-0000-0000-0000-000000000001",
+        job_type="RUNTIME_HEARTBEAT", payload={}, attempts=1,
+        max_attempts=5, idempotency_key="test",
+    )
+
+    class Store:
+        def fail(self, job, worker_id, *, error_code):
+            raise organism_runtime.JobLeaseLost("job lease lost")
+
+    assert organism_worker._record_failure(
+        Store(), job, "worker-one", error_code="test",
+    ) == "LEASE_LOST"
+
+
+def test_worker_does_not_swallow_unrelated_database_failure():
+    class Store:
+        def fail(self, job, worker_id, *, error_code):
+            raise RuntimeError("database unavailable")
+
+    with pytest.raises(RuntimeError, match="database unavailable"):
+        organism_worker._record_failure(
+            Store(), None, "worker-one", error_code="test",
+        )
+
+
+@pytest.mark.parametrize(("attempts", "expected_state"), [(2, "RETRY"), (5, "DEAD_LETTER")])
+def test_expired_lease_recovery_uses_bounded_backoff_or_dead_letter(
+    monkeypatch, attempts, expected_state,
+):
+    from contextlib import contextmanager
+
+    calls = []
+    receipts = []
+
+    class Connection:
+        def execute(self, sql, params):
+            calls.append((sql, params))
+            return self
+
+        def fetchall(self):
+            return [("job-one", "RUNTIME_HEARTBEAT", {}, attempts, 5)]
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    store = organism_runtime.PostgresRuntimeStore()
+    monkeypatch.setattr(store, "_receipt", lambda *args: receipts.append(args))
+    assert store.recover_stale() == 1
+    assert receipts[0][3:5] == ("LEASE_RECOVERED", expected_state)
+    if expected_state == "RETRY":
+        assert "INTERVAL '1 second'" in calls[1][0]
+        assert calls[1][1] == (10, "job-one")
+    else:
+        assert "DEAD_LETTER" in calls[1][0]
+        assert "oap_runtime_dead_letters" in calls[2][0]
+
+
+def test_isolation_preserves_exhausted_job_dead_letter_evidence(monkeypatch):
+    from contextlib import contextmanager
+
+    calls = []
+    receipts = []
+    audits = []
+
+    class Connection:
+        def execute(self, sql, params):
+            calls.append((sql, params))
+            return self
+
+        def fetchone(self):
+            return ("worker-one",)
+
+        def fetchall(self):
+            return [("job-one", 5, 5, "RUNTIME_HEARTBEAT", {}),
+                    ("job-two", 1, 5, "RUNTIME_HEARTBEAT", {})]
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    monkeypatch.setattr(organism_runtime, "_append_runtime_audit",
+                        lambda connection, **kwargs: audits.append(kwargs))
+    store = organism_runtime.PostgresRuntimeStore()
+    monkeypatch.setattr(store, "_receipt", lambda *args: receipts.append(args))
+    result = store.isolate_worker("worker-one")
+    dead_letters = [params for sql, params in calls
+                    if "INSERT INTO oap_runtime_dead_letters" in sql]
+    assert dead_letters == [("job-one", "RUNTIME_HEARTBEAT", 5,
+                             "aegis_isolation", organism_runtime.payload_digest({}))]
+    assert [receipt[4] for receipt in receipts] == ["DEAD_LETTER", "RETRY"]
+    assert len(audits) == 2
+    assert result["released_jobs"] == 2
+    assert result["new_claims_blocked"] is True
+    assert result["execution_authority_expanded"] is False
+
+
+@pytest.mark.parametrize("worker_state", ["ACTIVE", "DRAINING", "STOPPED", None])
+def test_claim_serializes_with_isolation_before_selecting_eligible_work(
+    monkeypatch, worker_state,
+):
+    from contextlib import contextmanager
+
+    calls = []
+
+    class Rows:
+        def __init__(self, row):
+            self.row = row
+
+        def fetchone(self):
+            return self.row
+
+    class Connection:
+        def execute(self, sql, params):
+            calls.append(sql)
+            if len(calls) == 1:
+                assert "FOR UPDATE" in sql
+                assert params == ("worker-one",)
+                return Rows((worker_state,) if worker_state else None)
+            assert "attempts < max_attempts" in sql
+            assert "FOR UPDATE SKIP LOCKED" in sql
+            return Rows(None)
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    assert organism_runtime.PostgresRuntimeStore().claim("worker-one") is None
+    assert len(calls) == (2 if worker_state == "ACTIVE" else 1)
+
+
+def test_runtime_audit_provenance_cannot_be_overridden_by_handler_metadata():
+    import hashlib
+    import json
+
+    calls = []
+
+    class Connection:
+        def execute(self, sql, params=()):
+            calls.append((sql, params))
+            return self
+
+        def fetchone(self):
+            return ("previous-hash",)
+
+    organism_runtime._append_runtime_audit(
+        Connection(), worker_id="worker-one", action="RUNTIME_JOB_SUCCEEDED",
+        job_id="real-job", metadata={"job_id": "wrong-job", "runtime": False},
+    )
+    params = calls[-1][1]
+    metadata = json.loads(params[-1])
+    assert metadata["job_id"] == "real-job"
+    assert metadata["runtime"] is True
+    assert params[1] == hashlib.sha256(
+        ("previous-hash" + params[-1]).encode(),
+    ).hexdigest()
+
+
+def test_job_completion_preserves_authoritative_type_and_attempt(monkeypatch):
+    from contextlib import contextmanager
+
+    captured = []
+
+    class Connection:
+        def execute(self, sql, params):
+            return self
+
+        def fetchone(self):
+            return ("job-one",)
+
+        def commit(self):
+            pass
+
+    @contextmanager
+    def connect():
+        yield Connection()
+
+    monkeypatch.setattr(organism_runtime.postgres_db, "connect", connect)
+    monkeypatch.setattr(organism_runtime, "_append_runtime_audit",
+                        lambda connection, **kwargs: captured.append(kwargs))
+    job = RuntimeJob("job-one", "RUNTIME_HEARTBEAT", {}, 2, 5, "test")
+    organism_runtime.PostgresRuntimeStore().complete(
+        job, "worker-one", {"job_type": "wrong-type", "attempts": 999},
+    )
+    assert captured[0]["metadata"]["job_type"] == "RUNTIME_HEARTBEAT"
+    assert captured[0]["metadata"]["attempts"] == 2

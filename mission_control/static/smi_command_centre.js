@@ -17,6 +17,9 @@
   return true;
  };
  if(!chatbox||!head||!character||!messages||document.getElementById("smi-command-centre"))return;
+ const closeCommandCentre=()=>{
+  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+ };
  const marker=document.createComment("original SMI character position");
  character.parentNode.insertBefore(marker,character);
  const presenceActions=document.createElement("nav");
@@ -27,10 +30,10 @@
   button.addEventListener("click",event=>{
    event.stopPropagation(); // Prevent the canonical outside-click guard closing Master Tools.
    if(target==="messages"){
-    if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+    closeCommandCentre();
     document.getElementById("message")?.focus();return;
    }
-   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+   closeCommandCentre();
    if(target==="war-room"){openWarRoom();return;}
    document.getElementById(target)?.click();
   });
@@ -85,7 +88,7 @@
  const triggerMasterTool=(action)=>{
   const button=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
   if(button&&!button.disabled){
-   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+   closeCommandCentre();
    button.click();
    return true;
   }
@@ -99,7 +102,7 @@
  homeButton.setAttribute("aria-label","Return to SMI Home");
  homeButton.addEventListener("click",()=>{
   closeTransientPanels();
-  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+  closeCommandCentre();
   if(document.body.classList.contains("smi-status-open"))document.querySelector(".smi-chat-return")?.click();
   document.getElementById("message")?.focus();
  });
@@ -165,7 +168,7 @@
  settingsHomeButton.type="button";settingsHomeButton.textContent="⚙ Settings";
  settingsHomeButton.setAttribute("aria-label","Open SMI Settings");
  settingsHomeButton.addEventListener("click",()=>{
-  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+  closeCommandCentre();
   document.getElementById("plus-button")?.click();
   const settings=document.getElementById("smi-settings-button");
   if(settings){
@@ -520,6 +523,7 @@
  const evidence=panel.querySelector(".smi-command-evidence");
  const anatomyLinks=[
   ["🧠","Brain · SMI","Intelligence · memory · reasoning",cfg.brainUrl],
+  ["🦊","Offline Route · Full Organism","Local SMI service and sign-in required · offline proof unknown","/mission/organism#offline-route"],
   ["👁️","Eyes · Vision","Screens · maps · insight","/on-any-place"],
   ["🎙️","Ears · Language","Listening · communication",null],
   ["💬","Mouth · Communication","SMI Chat · messages",null],
@@ -551,6 +555,62 @@
   copy.append(nameEl,document.createElement("br"),detailEl);link.append(mark,copy);
   parent.append(link);
  }
+ // Founder command topology: expose the existing owners, never create a second executor.
+ const topology=document.createElement("section");
+ topology.className="smi-command-topology";
+ topology.setAttribute("aria-label","Founder execution hierarchy");
+ const topologyHeading=document.createElement("h3");
+ topologyHeading.textContent="FOUNDER · COMMAND CENTRE 5000";
+ topology.append(topologyHeading);
+ const topologyNote=document.createElement("p");
+ topologyNote.textContent="One brain · command hierarchy, not runtime certification. Founder Final remains separate.";
+ topology.append(topologyNote);
+ const topologyNodes=new Map();
+ function topologyTier(items){
+  const tier=document.createElement("div");
+  tier.style.cssText="display:grid;grid-template-columns:repeat("+items.length+",minmax(0,1fr));gap:4px;margin:4px 0";
+  items.forEach(([key,label,url,action])=>{
+   const node=document.createElement("article");
+   node.className="smi-command-proof";
+   node.style.cssText="min-width:0;overflow-wrap:anywhere;padding:5px";
+   node.dataset.proven="false";
+   const control=document.createElement(url?"a":action?"button":"strong");
+   control.textContent=label;
+   if(url)control.href=url;
+   if(action){control.type="button";control.addEventListener("click",action);}
+   const status=document.createElement("small");status.textContent="Unknown";
+   node.append(control,status);tier.append(node);topologyNodes.set(key,status);
+  });
+  topology.append(tier);
+ }
+ function topologyConnector(label){
+  const line=document.createElement("div");line.style.textAlign="center";
+  line.textContent=label;line.setAttribute("aria-hidden","true");topology.append(line);
+ }
+ topologyTier([["brain","ONE SMI BRAIN",cfg.brainUrl,null]]);
+ topologyConnector("↓");
+ topologyTier([["commander","COMMANDER","/mission/all-in-ai/app",null]]);
+ topologyConnector("↓");
+ topologyTier([["morpheus","MORPHEUS · STRATEGY & TRAINING",cfg.agentsUrl,null]]);
+ topologyConnector("↓");
+ // Existing engineering passports, not new agents or independent execution.
+ topologyTier([["engineering","NEO · ENGINEERING",cfg.agentsUrl,null],
+  ["edgecases","MOUSE · EDGE CASES",cfg.agentsUrl,null]]);
+ topologyConnector("↓");
+ topologyTier([["trinity","TRINITY · OPERATIONS & USER JOURNEYS",cfg.agentsUrl,null]]);
+ topologyConnector("↓");
+ topologyTier([["organiser","ORGANISER","/mission/organiser",null],
+  ["workers","WORKERS",cfg.warRoomUrl,null],
+  ["repair","REPAIR ENGINE",null,()=>smiRepair.click()]]);
+ topologyConnector("↓");
+ topologyTier([["guardian","GUARDIAN",null,()=>triggerMasterTool("guardian")],
+  ["hrm","HRM",cfg.hrmUrl,null],
+  ["rollback","ROLLBACK",cfg.greenGateUrl,null]]);
+ const topologyFull=document.createElement("a");
+ topologyFull.href="/mission/organism";topologyFull.textContent="Open canonical full anatomy";
+ topology.append(topologyFull);
+ anatomy.append(topology);
+ const setTopology=(key,message)=>{const state=topologyNodes.get(key);if(state)state.textContent=message;};
  anatomyLinks.forEach(([icon,name,detail,url])=>addLink(anatomy,icon,name,detail,url));
  // The approved command-room picture keeps intelligence, signals and gate evidence
  // in the scene itself; Status drawer remains a secondary detailed view.
@@ -624,8 +684,59 @@
  const refresh=document.createElement("button");refresh.className="smi-command-toggle";refresh.type="button";refresh.textContent="↻ Refresh evidence";
  refresh.setAttribute("aria-label","Check signed-in SMI health evidence");
  evidence.append(refresh);
+ // SMI-only Auto Repair entry: delegate to the existing governed SMI AUTO FIX.
+ // This never invokes ChatGPT automation, creates a second runner or bypasses approvals.
+ const smiRepair=document.createElement("button");
+ smiRepair.type="button";smiRepair.className="smi-command-toggle";
+ smiRepair.textContent="🟣 AUTO REPAIR · SMI ONLY";
+ smiRepair.setAttribute("aria-label","Run existing SMI governed Auto Fix checks");
+ smiRepair.addEventListener("click",()=>{
+  const canonical=document.querySelector(".smi-auto-fix");
+  if(!canonical||canonical.disabled){
+   missionStatus("SMI AUTO FIX unavailable or already running · no action executed");
+   return;
+  }
+  setOpen(false); // Original SMI chat owns the execution and visible evidence receipt.
+  canonical.click();
+ });
+ evidence.append(smiRepair);
  addLink(evidence,"🌍","OAP World","Explore · connect","/on-any-place");
  addLink(evidence,"📚","Founder Library","Governed records",cfg.founderLibraryUrl);
+ addLink(evidence,"🛡️","OAP Data · Privacy","Founder-only data evidence · no global exposure proof","/mission/data");
+ // VPN status is read-only: OAP Store release state is not tunnel proof.
+ const vpnNotice=document.createElement("div");
+ vpnNotice.className="smi-command-proof";
+ vpnNotice.dataset.proven="false";
+ const vpnTitle=document.createElement("strong");vpnTitle.textContent="🔐 VPN · Privacy";
+ const vpnState=document.createElement("small");vpnState.textContent="OAP VPN status: Not checked";
+ const deviceState=document.createElement("small");
+ deviceState.textContent="Proton VPN on your device: Unknown · SMI cannot see Android VPN state";
+ vpnNotice.append(vpnTitle,vpnState,deviceState);evidence.append(vpnNotice);
+ let vpnRequest=null;
+ async function refreshPrivacyVpn(){
+  // Latest request wins: stale or aborted evidence must never overwrite new status.
+  if(vpnRequest)vpnRequest.abort();
+  const controller=new AbortController();
+  vpnRequest=controller;
+  vpnNotice.dataset.proven="false";vpnState.textContent="OAP VPN status: Checking catalogue…";
+  try{
+   const response=await fetch("/oap-store/apps",{cache:"no-store",credentials:"same-origin",signal:controller.signal});
+   if(controller.signal.aborted)return;
+   if(!response.ok)throw new Error("Store unavailable");
+   const payload=await response.json();
+   if(controller.signal.aborted)return;
+   const apps=Array.isArray(payload?.apps)?payload.apps:[];
+   const vpn=apps.find(app=>app&&app.app_id==="oap.vpn");
+   if(!vpn)throw new Error("OAP VPN missing");
+   const planned=vpn.release_state==="planned"&&vpn.install_enabled===false&&vpn.open_url==null;
+   const release=planned?"planned · not installable":"changed or unverified catalogue state";
+   vpnState.textContent="OAP VPN: "+release+" · tunnel, DNS and device proof not verified";
+  }catch(_){
+   if(!controller.signal.aborted)vpnState.textContent="OAP VPN: Unknown · catalogue unavailable · no Green";
+  }finally{
+   if(vpnRequest===controller)vpnRequest=null;
+  }
+ }
  let active=false,request=null,roomRequest=null;
  const setRoom=(node,proven,message)=>{
   if(!node)return;
@@ -640,6 +751,25 @@
   roomGates.forEach((node,key)=>setRoom(node,false,key==="founder"?"Founder decision required":"Checking proof…"));
   for(const key of ["matrix","guardian","hrm","signals","gate","civilization","ecosystem"])setUnified(key,false,"Checking backend evidence…");
   setUnified("mission",false,"No verified active mission feed · do not infer one");
+  topologyNodes.forEach(state=>{state.textContent="Unknown · refreshing";});
+  // Use the existing authenticated War Room projection, independently of slower
+  // dashboard probes. No worker IDs, job payloads or new execution authority.
+  fetch("/mission/war-room/status",{cache:"no-store",credentials:"same-origin",signal})
+   .then(response=>{if(!response.ok)throw new Error("Runtime evidence unavailable");return response.json();})
+   .then(data=>{
+    if(signal.aborted)return;
+    const native=data?.native_runtime_evidence;
+    const receipts=native?.recent_successful_job_receipts;
+    if(native?.schema_ready===true&&native.worker_fresh===true&&native.worker_state==="fresh"){
+     const observed=native.native_job_execution_observed===true&&Number.isSafeInteger(receipts)&&receipts>0;
+     setTopology("workers",observed?"Native bounded jobs observed · "+receipts+" receipts (15 min) · engineering unproven":"Fresh heartbeat · completed job proof missing");
+    }else if(native?.worker_state==="stale_active"||native?.worker_state==="not_running"){
+     setTopology("workers","Blocked · no fresh worker heartbeat");
+    }else{
+     setTopology("workers","Unknown · native runtime evidence unavailable");
+    }
+   })
+   .catch(()=>{if(!signal.aborted)setTopology("workers","Unknown · native runtime evidence unavailable");});
   const targets=[
    ["runtime",cfg.healthUrl],
    ["functions",cfg.functionHealthUrl],
@@ -674,6 +804,18 @@
   setRoom(roomStats.get("alignment"),gate?.green===true,
    gate?(gate.green===true?"Backend checks satisfied · Founder final":"Proof required · "+(Array.isArray(gate.missing)?gate.missing.length:"?")+" gaps"):"Unavailable · NOT PROVEN");
   const checks=gate?.checks||{};
+  setTopology("brain",health?.checks?.biological_brain===true?"Backend check passed · inference proof separate":"Unknown · brain proof required");
+  setTopology("commander",mission?.read_back_verified===true&&mission?.hrm_verified===true&&mission?.audit_verified===true?"Checkpoint read back · execution unknown":"Unknown · mission receipt required");
+  setTopology("morpheus","Unknown · strategy review and observed training outcome required");
+  setTopology("engineering","Unknown · engineering job and receipt required");
+  setTopology("edgecases","Unknown · test execution receipt required");
+  setTopology("trinity","Unknown · authenticated end-to-end browser/device acceptance required");
+  setTopology("organiser","Unknown · schedule execution proof required");
+
+  setTopology("repair","Unknown · governed repair receipt required");
+  setTopology("guardian",health?.checks?.guardian===true?"Backend check passed · authority separate":"Unknown · Guardian proof required");
+  setTopology("hrm","Unknown · durable receipt required");
+  setTopology("rollback",checks.rollback_recovery===true?"Recovery check passed · execution separate":"Unknown · rollback proof required");
   const mindProven=signalProven&&gate?.green===true;
   const bodyProven=health?.ready===true&&functionsProven&&checks.runtime_guard===true;
   const soulProven=checks.rollback_recovery===true&&checks.isolation_recovery===true;
@@ -729,6 +871,7 @@
   }
  }
  async function refreshEvidence(){
+  refreshPrivacyVpn(); // Independent from SMI health endpoint; never assume VPN connected.
   if(!cfg.healthUrl)return;
   if(request)request.abort();
   request=new AbortController();

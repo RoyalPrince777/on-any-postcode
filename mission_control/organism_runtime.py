@@ -105,6 +105,10 @@ class RuntimeJob:
     idempotency_key: str
 
 
+class JobLeaseLost(RuntimeError):
+    """A stale attempt no longer owns the job; do not mutate its successor."""
+
+
 def retry_delay_seconds(attempts: int) -> int:
     """Return bounded exponential retry delay for a completed failed attempt."""
     count = max(1, int(attempts))
@@ -128,6 +132,9 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
         "component": "24/7 Organism Runtime",
         "schema_ready": False,
         "worker_fresh": False,
+        "worker_state": "unknown",
+        "recent_successful_job_receipts": None,
+        "native_job_execution_observed": False,
         "queued": 0,
         "running": 0,
         "retry": 0,
@@ -170,18 +177,60 @@ def runtime_status(*, stale_after_seconds: int = 90) -> dict[str, object]:
             result["running"] = int(counts.get("RUNNING", 0))
             result["retry"] = int(counts.get("RETRY", 0))
             result["dead_letter"] = int(counts.get("DEAD_LETTER", 0))
-            fresh = connection.execute(
-                """SELECT 1 FROM oap_runtime_workers
-                   WHERE status='ACTIVE'
-                     AND heartbeat_at >= CURRENT_TIMESTAMP - (%s * INTERVAL '1 second')
-                   LIMIT 1""",
-                (max(30, int(stale_after_seconds)),),
+            # An ACTIVE database flag alone is not a living worker.
+            # Classify stale liveness explicitly without exposing host IDs.
+            worker_counts = connection.execute(
+                """SELECT
+                   COUNT(*) FILTER (WHERE status='ACTIVE'),
+                   COUNT(*) FILTER (
+                     WHERE status='ACTIVE'
+                       AND heartbeat_at >= CURRENT_TIMESTAMP - (%s * INTERVAL '1 second')
+                       AND heartbeat_at <= CURRENT_TIMESTAMP
+                   )
+                   FROM oap_runtime_workers
+                   WHERE worker_id NOT LIKE %s""",
+                (max(30, int(stale_after_seconds)), "%-inference"),
             ).fetchone()
-            result["worker_fresh"] = fresh is not None
+            active_count = int(worker_counts[0] or 0)
+            fresh_count = int(worker_counts[1] or 0)
+            result["worker_fresh"] = fresh_count > 0
+            result["worker_state"] = (
+                "fresh" if fresh_count else
+                "stale_active" if active_count else "not_running"
+            )
+            # A heartbeat is not a completed job. Require fresh durable receipts
+            # joined to completed allowlisted jobs from a currently live worker.
+            receipt_row = connection.execute(
+                """SELECT COUNT(DISTINCT j.job_id)
+                   FROM oap_runtime_receipts r
+                   JOIN oap_runtime_jobs j ON j.job_id = r.job_id
+                   JOIN oap_runtime_workers w ON w.worker_id = r.worker_id
+                   WHERE r.event_type = 'JOB_SUCCEEDED' AND r.state = 'SUCCEEDED'
+                     AND j.state = 'SUCCEEDED'
+                     AND j.job_type IN ('RUNTIME_HEARTBEAT', 'RUNTIME_HEALTH_PROBE')
+                     AND r.created_at BETWEEN CURRENT_TIMESTAMP - INTERVAL '15 minutes'
+                         AND CURRENT_TIMESTAMP
+                     AND w.status = 'ACTIVE'
+                     AND w.heartbeat_at BETWEEN
+                         CURRENT_TIMESTAMP - (%s * INTERVAL '1 second')
+                         AND CURRENT_TIMESTAMP
+                     AND w.worker_id NOT LIKE %s""",
+                (max(30, int(stale_after_seconds)), "%-inference"),
+            ).fetchone()
+            result["recent_successful_job_receipts"] = int(receipt_row[0] or 0)
+            result["native_job_execution_observed"] = bool(
+                result["worker_fresh"] and result["recent_successful_job_receipts"]
+            )
             result["ready"] = bool(result["schema_ready"] and result["worker_fresh"])
             return result
     except Exception:  # noqa: BLE001 - readiness degrades without exposing DB details.
+        # Never publish a partially read heartbeat as current runtime proof.
         result["error"] = "runtime_store_unavailable"
+        result["worker_fresh"] = False
+        result["worker_state"] = "unknown"
+        result["native_job_execution_observed"] = False
+        result["recent_successful_job_receipts"] = None
+        result["ready"] = False
         return result
 
 
@@ -367,8 +416,10 @@ class PostgresRuntimeStore:
         worker = _worker_id(worker_id)
         lease = min(300, max(30, int(lease_seconds)))
         with postgres_db.connect() as connection:
+            # Serialize claims with AEGIS isolation on the same worker row.
+            # Isolation takes this lock before releasing any outstanding jobs.
             worker_state = connection.execute(
-                "SELECT status FROM oap_runtime_workers WHERE worker_id=%s",
+                "SELECT status FROM oap_runtime_workers WHERE worker_id=%s FOR UPDATE",
                 (worker,),
             ).fetchone()
             if worker_state is None or str(worker_state[0]) != "ACTIVE":
@@ -379,6 +430,7 @@ class PostgresRuntimeStore:
                      SELECT job_id FROM oap_runtime_jobs
                      WHERE state IN ('QUEUED','RETRY')
                        AND available_at <= CURRENT_TIMESTAMP
+                       AND attempts < max_attempts
                      ORDER BY priority,created_at
                      FOR UPDATE SKIP LOCKED LIMIT 1
                    )
@@ -412,18 +464,19 @@ class PostgresRuntimeStore:
                      state='SUCCEEDED',lease_owner=NULL,lease_expires_at=NULL,
                      completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
                    WHERE job_id=%s AND state='RUNNING' AND lease_owner=%s
+                     AND attempts=%s
                    RETURNING job_id""",
-                (job.job_id, worker),
+                (job.job_id, worker, job.attempts),
             ).fetchone()
             if row is None:
-                raise RuntimeError("job lease lost before completion")
+                raise JobLeaseLost("job lease lost before completion")
             self._receipt(connection, job.job_id, worker, "JOB_SUCCEEDED", "SUCCEEDED", safe_detail)
             _append_runtime_audit(
                 connection,
                 worker_id=worker,
                 action="RUNTIME_JOB_SUCCEEDED",
                 job_id=job.job_id,
-                metadata={"job_type": job.job_type, "attempts": job.attempts, **safe_detail},
+                metadata={**safe_detail, "job_type": job.job_type, "attempts": job.attempts},
             )
             connection.commit()
 
@@ -435,11 +488,12 @@ class PostgresRuntimeStore:
                 """SELECT attempts,max_attempts,payload,job_type
                    FROM oap_runtime_jobs
                    WHERE job_id=%s AND state='RUNNING' AND lease_owner=%s
+                     AND attempts=%s
                    FOR UPDATE""",
-                (job.job_id, worker),
+                (job.job_id, worker, job.attempts),
             ).fetchone()
             if row is None:
-                raise RuntimeError("job lease lost before failure recording")
+                raise JobLeaseLost("job lease lost before failure recording")
             attempts = int(row[0])
             max_attempts = int(row[1])
             body = _json_object(row[2])
@@ -504,7 +558,7 @@ class PostgresRuntimeStore:
             if row is None:
                 raise ValueError("worker_not_found")
             jobs = connection.execute(
-                """SELECT job_id,attempts,max_attempts
+                """SELECT job_id,attempts,max_attempts,job_type,payload
                    FROM oap_runtime_jobs
                    WHERE state='RUNNING' AND lease_owner=%s
                    FOR UPDATE""",
@@ -522,6 +576,14 @@ class PostgresRuntimeStore:
                            last_error_code=%s,completed_at=CURRENT_TIMESTAMP,
                            updated_at=CURRENT_TIMESTAMP WHERE job_id=%s""",
                         (error, job_id),
+                    )
+                    connection.execute(
+                        """INSERT INTO oap_runtime_dead_letters
+                           (job_id,job_type,attempts,error_code,payload_digest)
+                           VALUES (%s,%s,%s,%s,%s)
+                           ON CONFLICT (job_id) DO NOTHING""",
+                        (job_id, str(job_row[3]), attempts, error,
+                         payload_digest(_json_object(job_row[4]))),
                     )
                 else:
                     connection.execute(
@@ -600,9 +662,10 @@ class PostgresRuntimeStore:
                     connection.execute(
                         """UPDATE oap_runtime_jobs SET state='RETRY',
                            lease_owner=NULL,lease_expires_at=NULL,
-                           last_error_code='lease_expired',available_at=CURRENT_TIMESTAMP,
+                           last_error_code='lease_expired',
+                           available_at=CURRENT_TIMESTAMP + (%s * INTERVAL '1 second'),
                            updated_at=CURRENT_TIMESTAMP WHERE job_id=%s""",
-                        (job_id,),
+                        (retry_delay_seconds(attempts), job_id),
                     )
                 self._receipt(
                     connection,
@@ -631,9 +694,15 @@ class PostgresRuntimeStore:
                VALUES (%s,%s::jsonb,%s,%s,%s)
                ON CONFLICT (idempotency_key) DO UPDATE SET
                  idempotency_key=EXCLUDED.idempotency_key
+               WHERE oap_runtime_jobs.job_type=EXCLUDED.job_type
+                 AND oap_runtime_jobs.payload=EXCLUDED.payload
+                 AND oap_runtime_jobs.priority=EXCLUDED.priority
+                 AND oap_runtime_jobs.max_attempts=EXCLUDED.max_attempts
                RETURNING job_id""",
             (job_type, json.dumps(payload), idempotency_key, priority, max_attempts),
         ).fetchone()
+        if row is None:
+            raise ValueError("idempotency_key_conflicts_with_existing_job")
         return str(row[0])
 
     @staticmethod
@@ -667,7 +736,7 @@ def _append_runtime_audit(
         "SELECT curr_hash FROM audit_events ORDER BY event_seq DESC LIMIT 1"
     ).fetchone()
     prev_hash = str(previous[0]) if previous else "GENESIS"
-    safe_metadata = {"runtime": True, "job_id": job_id, **_payload(metadata)}
+    safe_metadata = {**_payload(metadata), "runtime": True, "job_id": job_id}
     canonical = json.dumps(safe_metadata, sort_keys=True, separators=(",", ":"))
     curr_hash = hashlib.sha256((prev_hash + canonical).encode()).hexdigest()
     connection.execute(

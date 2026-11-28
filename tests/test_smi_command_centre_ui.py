@@ -58,6 +58,36 @@ class CommandCentreUITest(unittest.TestCase):
         self.assertIn('["🕶 Matrix Routes","matrix-routes"]', source)
 
 
+    def test_founder_execution_topology_reuses_canonical_owners(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        for label in ("FOUNDER · COMMAND CENTRE 5000", "ONE SMI BRAIN",
+                      "COMMANDER", "ORGANISER", "WORKERS", "REPAIR ENGINE",
+                      "GUARDIAN", "HRM", "ROLLBACK"):
+            self.assertIn(label, source)
+        self.assertIn('anatomy.append(topology)', source)
+        self.assertIn('()=>smiRepair.click()', source)
+        self.assertIn('"/mission/organiser"', source)
+        self.assertIn('topologyFull.href="/mission/organism"', source)
+        self.assertIn('fetch("/mission/war-room/status"', source)
+        self.assertIn("native.native_job_execution_observed===true", source)
+        self.assertIn("Number.isSafeInteger(receipts)&&receipts>0", source)
+        self.assertIn("Fresh heartbeat · completed job proof missing", source)
+        self.assertIn("Blocked · no fresh worker heartbeat", source)
+        self.assertIn("Unknown · native runtime evidence unavailable", source)
+        self.assertIn("NEO · ENGINEERING", source)
+        self.assertIn("MOUSE · EDGE CASES", source)
+        self.assertIn("TRINITY · OPERATIONS & USER JOURNEYS", source)
+        self.assertIn("Unknown · authenticated end-to-end browser/device acceptance required", source)
+        self.assertIn("Unknown · engineering job and receipt required", source)
+        self.assertIn('node.dataset.proven="false"', source)
+
+    def test_full_organism_offline_route_reuses_private_canonical_anatomy(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        self.assertIn('"/mission/organism#offline-route"', source)
+        self.assertIn("Offline Route · Full Organism", source)
+        self.assertIn("Local SMI service and sign-in required · offline proof unknown", source)
+        self.assertNotIn('"/offline#offline-route"', source)
+
     def test_seven_major_links_reuse_real_existing_owners(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
         for label in (
@@ -95,6 +125,34 @@ class CommandCentreUITest(unittest.TestCase):
             self.assertIn('data-oap-action="'+action+'"', base)
         self.assertNotIn('["🕶 Matrix","agents"]', source)
         self.assertNotIn('["🛡 Guardian","guardian"]', source)
+
+    def test_vpn_and_privacy_evidence_keeps_device_truth_unknown(self):
+        source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        self.assertIn('"/mission/data"', source)
+        self.assertIn('fetch("/oap-store/apps",{cache:"no-store",credentials:"same-origin",signal:controller.signal})', source)
+        self.assertIn('if(vpnRequest)vpnRequest.abort()', source)
+        self.assertIn('if(controller.signal.aborted)return', source)
+        self.assertIn('vpn.install_enabled===false&&vpn.open_url==null', source)
+        self.assertIn('changed or unverified catalogue state', source)
+        self.assertIn('app.app_id==="oap.vpn"', source)
+        self.assertIn("Proton VPN on your device: Unknown", source)
+        self.assertIn("tunnel, DNS and device proof not verified", source)
+        self.assertIn('vpnNotice.dataset.proven="false"', source)
+        self.assertIn('refreshPrivacyVpn(); // Independent from SMI health endpoint', source)
+        self.assertNotIn("Proton VPN: Connected", source)
+
+    def test_smi_only_auto_repair_reuses_existing_check_runner(self):
+        command = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")
+        chat = (STATIC / "smi_chat_final.js").read_text(encoding="utf-8")
+        self.assertIn("AUTO REPAIR · SMI ONLY", command)
+        self.assertIn('document.querySelector(".smi-auto-fix")', command)
+        self.assertIn("if(!canonical||canonical.disabled)", command)
+        self.assertIn("setOpen(false); // Original SMI chat", command)
+        self.assertIn("canonical.click();", command)
+        self.assertIn("auto.addEventListener('click',async()=>", chat)
+        self.assertIn("const fullGreen=Boolean(allSafe&&health?.whole_smi_green===true&&gate?.green===true);", chat)
+        self.assertIn("'Consequential execution: NOT PERFORMED'", chat)
+        self.assertNotIn("ChatGPT", command.split("const smiRepair=")[1].split("evidence.append(smiRepair);")[0])
 
     def test_health_truth_is_fail_closed(self):
         source = (STATIC / "smi_command_centre.js").read_text(encoding="utf-8")

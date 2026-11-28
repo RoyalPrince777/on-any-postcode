@@ -340,7 +340,7 @@ REVIEW_ROLE_LENSES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Shere Khan", ("shere khan", "claw test"), "adversarial stress-test, threat intelligence, failure-hunting, survivability authority and false-Green blocking; Claw Test is one pressure mode"),
     ("Bagheera", ("bagheera",), "protection, balance and reversible judgement"),
     ("Agent Smith", ("agent smith", "smith"), "duplication, corruption, bypass and false-green detection"),
-    ("Morpheus", ("morpheus",), "mission clarity and alignment"),
+    ("Morpheus", ("morpheus",), "mission clarity and alignment; strategic direction, training objectives and observed outcome review"),
     ("Trinity", ("trinity",), "integration and continuity"),
     ("Oracle", ("oracle",), "accuracy, uncertainty and adaptation"),
     ("Architect", ("architect",), "architecture, maintainability and dependency structure"),
@@ -356,6 +356,12 @@ REVIEW_ROLE_LENSES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("Octopus", ("octopus",), "systems integration, multi-route coordination and dependency reach"),
     ("Spider", ("spider",), "route mesh, connection integrity and hidden dependency detection"),
     ("Fox", ("fox",), "optimisation, loophole detection and edge-case efficiency"),
+    ("Mouse", ("mouse",), "programming, interactive systems and edge-case review"),
+    ("Tank", ("tank",), "runtime diagnostics and worker readiness"),
+    ("Dozer", ("dozer",), "infrastructure continuity and recovery"),
+    ("Queen Bee", ("queen bee",), "coordination of actual queued work and bounded retries"),
+    ("Colonel Hathi", ("colonel hathi", "hathi"), "mission continuity and memory review"),
+    ("Gyata", ("gyata",), "bounded mission alignment and priorities"),
 )
 
 CORE_AUTO_REVIEW = (
@@ -403,6 +409,31 @@ def selected_review_roles(message: object, *, auto_mode: bool) -> tuple[str, ...
             _add(selected, ("Nirmata", "AEI", "Gorilla"))
         return tuple(selected)
     return explicit
+
+
+def mission_continuity_alliance(evidence: object) -> dict[str, object]:
+    """Select existing advisory roles from the worker's exact-head evidence."""
+    source = evidence if isinstance(evidence, dict) else {}
+    move = source.get("next_move")
+    if move == "inspect_failed_ci":
+        roles = ("Morpheus", "Nirmata", "Neo", "Mouse", "Spider", "Tank", "Dozer", "AEI", "Fox", "Shere Khan")
+        reason = "Diagnose failed CI before growth; category is not root cause."
+    elif move == "continue_target_proof" and source.get("ci_proven") is True:
+        roles = ("Trinity", "Octopus", "Tank", "Dozer", "Owl")
+        reason = "Source CI passed; require authenticated target, integrated workflow and device proof."
+    else:
+        roles = ("Owl", "Oracle")
+        reason = "Hold until exact-head evidence is available."
+    return {
+        "roles": roles,
+        "reason": reason,
+        "selection_only": True,
+        "agents_executed": False,
+        "execution_granted": False,
+        "guardian_required": True,
+        "hrm_proof_required": True,
+        "human_authority_final": True,
+    }
 
 
 def build_evidence_vote_board(
@@ -499,13 +530,16 @@ def evidence_swot_for_failed_build(evidence: object) -> dict[str, object]:
     if not isinstance(evidence, dict) or evidence.get("ready") is not True:
         return base
     log_analysis = evidence.get("log_analysis")
-    if not isinstance(log_analysis, dict) or log_analysis.get("ready") is not True:
+    if (not isinstance(log_analysis, dict)
+            or log_analysis.get("ready") is not True
+            or log_analysis.get("classified") is not True):
         return base
     categories = log_analysis.get("log_categories")
     if not isinstance(categories, (tuple, list)) or not categories:
         return base
     allowed = {"signing_configuration", "source_verification",
-               "gradle_compile", "dependency_resolution", "android_sdk"}
+               "gradle_compile", "dependency_resolution", "android_sdk",
+               "python_lint", "python_tests", "python_import", "browser_tests"}
     seen = set()
     for row in categories:
         if not isinstance(row, dict) or not isinstance(row.get("categories"), (tuple, list)):

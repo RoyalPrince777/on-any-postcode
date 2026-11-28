@@ -47,25 +47,17 @@ def test_smi_command_dashboard_composes_canonical_sources():
     assert command["human_authority_final"] is True
 
 
-def test_smi_command_dashboard_route_is_read_only(client):
-    response = client.get("/mission/smi")
-    page = response.get_data(as_text=True)
-
-    assert response.status_code == 200
-    assert response.headers["Cache-Control"] == "no-store"
-    assert "SMI Home" in page
-    assert "Sovereign Megaverse Intelligence" in page
-    assert "Your intelligence, visible without the noise." in page
-    assert "Mission to 100" in page
-    assert "Essential controls" in page
-    assert "Movement Intelligence" in page
-    assert "Learning Intelligence" in page
-    assert "War Room" in page
-    assert "Human Authority final" in page
-    assert "Telecom truth review" not in page
-    assert ">Graphs<" not in page
-    assert ">Monitors<" not in page
-    assert 'method="post"' not in page.lower()
+def test_smi_command_dashboard_route_uses_the_existing_live_command_centre(client):
+    for path in ("/mission/smi", "/mission/ollama"):
+        response = client.get(path)
+        page = response.get_data(as_text=True)
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "no-store"
+        for asset in ("smi_command_centre.js", "smi_command_centre.css",
+                      "smi_canonical_controller.js", "smi_noise_strip.js"):
+            assert asset in page
+        assert "Your intelligence, visible without the noise." not in page
+        assert 'id="chat-form"' in page
     assert client.post("/mission/smi").status_code == 405
 
 
@@ -181,26 +173,15 @@ def test_smi_essential_controls_have_clear_labels_functions_owners_and_real_rout
         assert response.status_code == 200, (control["id"], href, response.status_code)
 
 
-def test_smi_home_renders_clear_control_functions_and_founder_final_route(client):
-    page = client.get("/mission/smi").get_data(as_text=True)
-
-    for label in (
-        "Talk to SMI",
-        "Intelligence",
-        "Movement",
-        "Learning",
-        "Memory",
-        "Protection",
-        "War Room",
-        "Recovery",
-        "Founder Final",
-    ):
-        assert label in page
-
-    assert 'href="/mission/war-room"' in page
-    assert 'href="/mission/improvement"' in page
-    assert 'href="/mission/organism"' in page
-    assert "clear function · real route · named owner" in page
+def test_smi_home_preserves_control_routes_in_the_canonical_status_projection(client):
+    response = client.get("/mission/smi/status")
+    assert response.status_code == 200
+    controls = response.get_json()["sovereign_ui"]["essential_controls"]
+    assert {item["href"] for item in controls} >= {
+        "/mission/ollama", "/mission/agents", "/movement",
+        "/mission/war-room", "/mission/improvement", "/mission/organism",
+    }
+    assert any(item["id"] == "founder_final" for item in controls)
 
 
 def test_smi_command_dashboard_exposes_truthful_inference_readiness():
@@ -216,10 +197,10 @@ def test_smi_command_dashboard_exposes_truthful_inference_readiness():
 
 def test_smi_command_dashboard_front_surface_has_backend_controls(client):
     page = client.get("/mission/smi").get_data(as_text=True)
-    assert "SMI Inference" in page
-    assert "Check backend" in page
-    assert "Talk to SMI" in page
-    assert "Start the OAP Core worker" in page
+    for binding in ("healthUrl:", "workbenchUrl:", "warRoomStatusUrl:",
+                    "functionHealthUrl:", "greenGateUrl:", "hrmUrl:"):
+        assert binding in page
+    assert "smi_command_centre.js" in page
 
 
 

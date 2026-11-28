@@ -300,7 +300,7 @@ auto.addEventListener('click',async()=>{
   try{gate=await getJson(cfg.greenGateUrl);}catch{}
   const missing=Array.isArray(gate?.missing)?gate.missing:(Array.isArray(health?.green_gate?.missing)?health.green_gate.missing:[]);
   const allSafe=results.every(x=>x.ok);
-  const fullGreen=Boolean(health?.whole_smi_green===true&&gate?.green===true);
+  const fullGreen=Boolean(allSafe&&health?.whole_smi_green===true&&gate?.green===true);
   const lines=[
     'Safe checks: '+results.filter(x=>x.ok).length+'/'+results.length,
     'Runtime-ready: '+String(health?.runtime_ready_count??'?')+'/'+String(health?.expected_count??'?'),

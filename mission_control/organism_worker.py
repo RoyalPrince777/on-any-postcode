@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from . import (
+    ai_behaviour,
     autonomy_levels,
     oap_core_autonomy,
     organism_autonomy,
@@ -20,7 +21,12 @@ from . import (
     smi_github_failure_evidence,
     smi_runtime_autonomy,
 )
-from .organism_runtime import PostgresRuntimeStore, RuntimeJob, runtime_status
+from .organism_runtime import (
+    JobLeaseLost,
+    PostgresRuntimeStore,
+    RuntimeJob,
+    runtime_status,
+)
 
 Handler = Callable[[RuntimeJob], dict[str, Any]]
 
@@ -90,6 +96,82 @@ def _health_probe(job: RuntimeJob) -> dict[str, Any]:
         github_evidence["latest_failure"]["swot_intelligence"] = (
             smi_auto.evidence_swot_for_failed_build(github_evidence["latest_failure"])
         )
+    # Captain ALL IN continuity: automatically inspect the approved mission PRs
+    # on this existing five-minute health cycle. No buttons, extra job type or
+    # autonomous GitHub writes. Completed source CI selects next target proof,
+    # not release approval.
+    if github_token:
+        mission_continuity = []
+        for pr_number in smi_github_failure_evidence.MISSION_PR_CHECKS:
+            entry = smi_github_failure_evidence.inspect_mission_continuity(
+                pr_number, token=github_token,
+            )
+            if (entry.get("next_move") == "inspect_failed_ci"
+                    and entry.get("failed_run_id") and entry.get("head_sha")):
+                failure = smi_github_failure_evidence.inspect_failed_run(
+                    entry["failed_run_id"], token=github_token,
+                    expected_head=entry["head_sha"],
+                )
+                if failure.get("ready"):
+                    log_analysis = smi_github_failure_evidence.inspect_failed_job_logs(
+                        failure, token=github_token,
+                    )
+                    # Reading a log is not proof that its cause was identified.
+                    classified = (
+                        log_analysis.get("ready") is True
+                        and log_analysis.get("classified") is True
+                    )
+                    swot = smi_auto.evidence_swot_for_failed_build(
+                        {**failure, "log_analysis": log_analysis},
+                    )
+                    entry = {**entry, "automatic_failure_diagnosis": {
+                        "failed_jobs": len(failure.get("failed_jobs", ())),
+                        "log_categories": log_analysis.get("log_categories", ()),
+                        "log_evidence_retrieved": log_analysis.get("ready") is True,
+                        "classification": log_analysis.get("classification", "unknown"),
+                        # Pattern classification is evidence, not confirmed causation.
+                        "category_detected": classified,
+                        "verified": False,
+                        "root_cause_verified": False,
+                        "repair_authorized": False,
+                        "next_safe_action": (
+                            swot.get("next_action") if swot.get("ready") is True
+                            else "Review unclassified failure before proposing a fix."
+                        ),
+                    }}
+            # Existing SMI AI Behaviour selects review depth; it does not
+            # certify checks, learn autonomously or authorise a repair.
+            behaviour = ai_behaviour.review_checks_for(
+                "7" if entry.get("next_move") == "inspect_failed_ci" else "3"
+            )
+            entry = {**entry, "behaviour_review": {
+                "truth": (
+                    "CI_VERIFIED" if entry.get("ci_proven") is True
+                    else "BLOCKED" if entry.get("next_move") == "inspect_failed_ci"
+                    else "UNKNOWN"
+                ),
+                "thinking_depth": behaviour["thinking_depth"],
+                "selected_checks": behaviour["selected_checks"],
+                "checks_executed": False,
+                "independent_agent_executed": False,
+                "repair_authorized": False,
+                "human_authority_final": True,
+            }}
+            entry["specialist_alliance"] = smi_auto.mission_continuity_alliance(entry)
+            mission_continuity.append(entry)
+        github_evidence = {
+            **github_evidence,
+            "mission_continuity": tuple(mission_continuity),
+            "captain_next_move": next(
+                (entry["next_move"] for entry in mission_continuity
+                 if entry.get("next_move") == "inspect_failed_ci"),
+                next((entry["next_move"] for entry in mission_continuity
+                      if entry.get("ci_proven") is True),
+                     "await_exact_head_evidence"),
+            ),
+            "captain_automatic_observation": True,
+            "captain_code_execution": False,
+        }
     return {
         "kind": "runtime_health_probe",
         "database_ready": bool(database.get("initialized")),
@@ -128,6 +210,15 @@ def _positive_seconds(name: str, default: float, minimum: float, maximum: float)
     except ValueError:
         value = default
     return min(maximum, max(minimum, value))
+
+
+def _record_failure(store: PostgresRuntimeStore, job: RuntimeJob, worker_id: str, *, error_code: str) -> str:
+    """A fenced attempt must not stop the worker or overwrite its successor."""
+    try:
+        return store.fail(job, worker_id, error_code=error_code)
+    except JobLeaseLost:
+        _log("runtime_job_lease_lost", job_id=job.job_id, job_type=job.job_type)
+        return "LEASE_LOST"
 
 
 def run() -> int:
@@ -224,7 +315,7 @@ def run() -> int:
             last_job_id = job.job_id
             handler = HANDLERS.get(job.job_type)
             if handler is None:
-                state = store.fail(job, worker_id, error_code="handler_not_allowlisted")
+                state = _record_failure(store, job, worker_id, error_code="handler_not_allowlisted")
                 _log(
                     "runtime_job_failed",
                     job_id=job.job_id,
@@ -235,7 +326,7 @@ def run() -> int:
 
             autonomy_decision = autonomy_levels.evaluate_runtime_job(job.job_type)
             if not autonomy_decision["allowed"]:
-                state = store.fail(job, worker_id, error_code="autonomy_policy_blocked")
+                state = _record_failure(store, job, worker_id, error_code="autonomy_policy_blocked")
                 _log(
                     "runtime_job_failed",
                     job_id=job.job_id,
@@ -259,9 +350,14 @@ def run() -> int:
                     autonomy_level=autonomy_decision["configured_level"],
                     a4_supervision_required=autonomy_decision["supervision_required"],
                 )
+            except JobLeaseLost:
+                # Another attempt owns the job; no success or failure receipt
+                # may be written by this stale attempt.
+                _log("runtime_job_lease_lost", job_id=job.job_id, job_type=job.job_type)
+                continue
             except Exception as exc:  # noqa: BLE001 - failure becomes retry/DLQ receipt.
                 error_code = f"{type(exc).__name__.casefold()}"[:120]
-                state = store.fail(job, worker_id, error_code=error_code)
+                state = _record_failure(store, job, worker_id, error_code=error_code)
                 _log(
                     "runtime_job_failed",
                     job_id=job.job_id,
