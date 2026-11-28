@@ -74,3 +74,76 @@ def test_normalise_rejects_unsafe_output_names(tmp_path, name):
             owner_root=tmp_path, source=Path("/nonexistent"),
             output_root=tmp_path, output_name=name,
         )
+
+
+def test_scene_21_rejects_wrong_clip_count(tmp_path):
+    with pytest.raises(ValueError, match="requires_seven_clips"):
+        studio_video_tools.assemble_scene_21(
+            owner_root=tmp_path, sources=(), output_name="scene",
+        )
+
+
+def test_scene_21_rejects_duplicate_source(tmp_path):
+    clip = tmp_path / "clip.mp4"
+    clip.write_bytes(b"source")
+    with pytest.raises(ValueError, match="distinct_clips"):
+        studio_video_tools.assemble_scene_21(
+            owner_root=tmp_path, sources=(clip,) * 7, output_name="scene",
+        )
+
+
+@pytest.mark.parametrize(("profile", "width", "height", "with_audio"), [
+    ("standard", 1280, 720, False), ("cinema", 1920, 1080, True),
+    ("cinema_vertical", 1080, 1920, False),
+])
+def test_scene_21_real_ffmpeg_picture_edit(tmp_path, profile, width, height, with_audio):
+    import shutil
+    import subprocess
+
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        pytest.skip("local FFmpeg unavailable")
+    sources = []
+    for i, color in enumerate(("red", "green", "blue", "yellow", "white", "black", "purple")):
+        path = tmp_path / f"shot{i}.mp4"
+        subprocess.run(
+            ["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
+             f"color=c={color}:s=160x90:r=24:d=4", "-c:v", "libx264",
+             "-pix_fmt", "yuv420p", str(path)],
+            check=True, capture_output=True, timeout=30,
+        )
+        sources.append(path)
+    soundtrack = None
+    if with_audio:
+        soundtrack = tmp_path / "owned.wav"
+        subprocess.run(
+            ["ffmpeg", "-v", "error", "-f", "lavfi", "-i",
+             "sine=frequency=440:duration=2", str(soundtrack)],
+            check=True, capture_output=True, timeout=30,
+        )
+    result = studio_video_tools.assemble_scene_21(
+        owner_root=tmp_path, sources=tuple(sources), output_name="scene", profile=profile,
+        soundtrack=soundtrack,
+    )
+    assert (result["width"], result["height"]) == (width, height)
+    assert result["native_source_resolution_verified"] is False
+    assert result["cinematic_quality_verified"] is False
+    assert result["duration_seconds"] == 21
+    assert result["frame_count"] == 504
+    assert result["picture_edit_verified"] is True
+    assert result["soundtrack_mux_verified"] is with_audio
+    assert result["audio_mastered"] is False
+    assert result["identity_verified"] is False
+    assert result["published"] is False
+    assert len(result["sha256"]) == 64
+    assert (tmp_path / "scene.mp4").is_file()
+    with pytest.raises(ValueError, match="output_exists"):
+        studio_video_tools.assemble_scene_21(
+            owner_root=tmp_path, sources=tuple(sources), output_name="scene",
+        )
+
+
+def test_scene_21_rejects_unsupported_profile(tmp_path):
+    with pytest.raises(ValueError, match="profile_unsupported"):
+        studio_video_tools.assemble_scene_21(
+            owner_root=tmp_path, sources=(), output_name="scene", profile="arbitrary",
+        )

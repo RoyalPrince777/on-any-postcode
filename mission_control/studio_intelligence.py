@@ -572,6 +572,75 @@ def generation_status(video_id: object) -> dict[str, Any]:
     }
 
 
+def no_boundaries_scene_plan() -> dict[str, Any]:
+    """Prepare the approved 21-second scene against existing video duration limits.
+
+    This is a deterministic edit plan, not rendered media or provider approval.
+    """
+    beats = (
+        ("Reveal Mitcham town", "environmental_vision"),
+        ("Founder enters", "motion_intelligence"),
+        ("Bagheera emerges", "animal_anatomy"),
+        ("Shere Khan joins", "character_continuity"),
+        ("All three walk together", "physics_animation"),
+        ("Jewellery catches sunlight", "lighting_materials"),
+        ("Cinematic brand reveal", "editing_audio"),
+    )
+    camera_moves = (
+        ("crane_reveal", 24), ("low_tracking", 35), ("side_dolly", 50),
+        ("low_angle_push", 50), ("parallel_tracking", 35),
+        ("macro_push", 85), ("wide_pullback", 24),
+    )
+    shots = [
+        {
+            "shot": index + 1,
+            "camera_move": camera_moves[index][0],
+            "lens_mm_target": camera_moves[index][1],
+            "start_ms": index * 3000,
+            "end_ms": (index + 1) * 3000,
+            "provider_seconds": 4,
+            "trim_start_ms": 0,
+            "trim_end_ms": 3000,
+            "scene": scene,
+            "capability": capability,
+            "artifact_verified": False,
+        }
+        for index, (scene, capability) in enumerate(beats)
+    ]
+    return {
+        "id": "no_boundaries_scene_01",
+        "duration_ms": 21000,
+        "source_duration_ms": 28000,
+        "picture_edit_profile": "cinema",
+        "master_width": 1920,
+        "master_height": 1080,
+        "master_fps": 24,
+        "master_frame_count": 504,
+        "vertical_profile": "cinema_vertical",
+        "native_source_resolution_verified": False,
+        "cinematic_quality_verified": False,
+        "audio_mastered": False,
+        "natural_motion_review_required": True,
+        "lighting_continuity_review_required": True,
+        "camera_continuity_review_required": True,
+        "shots": shots,
+        "approved_reference_required": True,
+        "location_reference_required": True,
+        "identity_continuity_required": True,
+        "brand": "ON ANY POSTCODE",
+        "state": "prepared",
+        "artifact_verified": False,
+        "render_submitted": False,
+        "composition_verified": False,
+        "execution_granted": False,
+        "payment_authorised": False,
+        "publishing_granted": False,
+        "guardian_required": True,
+        "hrm_required": True,
+        "founder_final": True,
+    }
+
+
 def factory_structure() -> dict[str, Any]:
     """Founder → SMI → OAP Factory → approved member/public access; contract only.
 
@@ -597,6 +666,7 @@ def factory_structure() -> dict[str, Any]:
         "public_media_generation_proven": False,
         "public_studio_surface": "read_only_or_bounded_public_assistant",
         "creative_division": STUDIO_ID,
+        "scene_01_plan": no_boundaries_scene_plan(),
         "creative_division_name": STUDIO_NAME,
         "factory_is_second_studio_engine": False,
         "factory_is_separate_auth_system": False,

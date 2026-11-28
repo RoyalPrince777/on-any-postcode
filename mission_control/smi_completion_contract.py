@@ -23,17 +23,17 @@ def _now() -> str:
 
 
 SMI_COMPLETION_CHECKS = (
-    {"check": "Founder-only Mission Control boundary", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "Personal SMI streaming chat", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "stop / mic / plus / history / code controls", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "safe visible work stages", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "28 Intelligence lenses", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "Intelligence command router", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "War Room and evidence runner", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "Guardian / Aegis fail-closed boundary", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "HRM conversation persistence", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "Judgement / Human Authority gate", "status": "implemented", "light": "🟢", "proof_class": "code"},
-    {"check": "A1-A7 autonomy constitution", "status": "implemented", "light": "🟢", "proof_class": "code"},
+    {"check": "Founder-only Mission Control boundary", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "Personal SMI streaming chat", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "stop / mic / plus / history / code controls", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "safe visible work stages", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "28 Intelligence lenses", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "Intelligence command router", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "War Room and evidence runner", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "Guardian / Aegis fail-closed boundary", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "HRM conversation persistence", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "Judgement / Human Authority gate", "status": "implemented", "light": "🟣", "proof_class": "code"},
+    {"check": "A1-A7 autonomy constitution", "status": "implemented", "light": "🟣", "proof_class": "code"},
     {"check": "A5 preparation boundary", "status": "locked_until_proof", "light": "🔒", "proof_class": "governance"},
     {"check": "A6 governed execution", "status": "future_locked", "light": "🔒", "proof_class": "governance"},
     {"check": "A7 organism-scale autonomy", "status": "constitutional_locked", "light": "🔒", "proof_class": "governance"},
@@ -51,10 +51,10 @@ def _completion_checks(autonomy: dict[str, object]) -> tuple[dict[str, str], ...
     for row in rows:
         if row["check"] == "A5 preparation boundary":
             if autonomy.get("a5_enabled"):
-                row.update(status="governed_preparation_enabled", light="🟢")
+                row.update(status="governed_preparation_enabled", light="🟣")
         elif row["check"] == "A6 governed execution":
             if autonomy.get("a6_enabled") and autonomy.get("a6_matrix_control"):
-                row.update(status="matrix_governed_operation_gated", light="🟢")
+                row.update(status="matrix_governed_operation_gated", light="🟣")
         elif row["check"] == "A7 organism-scale autonomy":
             row.update(status="constitutional_locked", light="🔒")
     return tuple(rows)
@@ -278,7 +278,7 @@ def completion_status() -> dict[str, object]:
             "self_constitution_change": False,
         },
         "truth_light": {
-            "code_surface": "green",
+            "code_surface": "implemented_not_runtime_certified",
             "authenticated_interaction": "green" if founder_proven else "proof_required",
             "receipt_chain": "green" if receipt_proven else "proof_required",
             "rollback_recovery": "green" if rollback_proven else "proof_required",

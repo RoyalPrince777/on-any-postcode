@@ -1,0 +1,32 @@
+{
+  "asset": "oap_bus_shelter.glb",
+  "source": "Original procedural geometry produced during ChatGPT engineering session; not AI inference, not an actual surveyed location",
+  "size_bytes": 3772,
+  "sha256": "541bb74f2c1a411c0c0a57c0d814044b699c52f9c7df38060b966f7ff8b3f964",
+  "git_blob": "4e6552bd9d4013b59ab732f372c39d1ddb43fce0",
+  "instances": 14,
+  "triangles": 168,
+  "materials": 5,
+  "dimensions_m": [
+    3.2,
+    2.4,
+    1.45
+  ],
+  "external_resources": false,
+  "local_checks": [
+    "trimesh scene import",
+    "instance count",
+    "triangle count",
+    "dimensions",
+    "finite bounds",
+    "nondegenerate triangles",
+    "normal orientation",
+    "self-contained buffers"
+  ],
+  "actual_executor": "ChatGPT local container",
+  "native_smi_execution_verified": false,
+  "babylon_runtime_verified": false,
+  "redmi_a5_verified": false,
+  "published": false,
+  "founder_final_required": true
+}

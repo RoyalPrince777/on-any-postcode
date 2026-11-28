@@ -238,3 +238,116 @@ def export_owned_gif_as_mp4(
         raise StudioRenderUnavailable("studio_gif_export_timeout") from exc
     finally:
         temp.unlink(missing_ok=True)
+
+
+def inspect_owned_glb(*, owner_directory: str, asset_name: str) -> dict[str, object]:
+    """Read-only GLB 2 container and offline-reference inspection.
+
+    Only call after existing authenticated owner/asset authorization. This is
+    not a full glTF schema validator, renderer, optimizer or runtime receipt.
+    No download, shell, external resolution or file mutation.
+    """
+    import stat
+    import struct
+
+    configured = os.environ.get("OAP_STUDIO_PRIVATE_ASSET_ROOT", "").strip()
+    if not configured:
+        raise StudioRenderUnavailable("studio_private_asset_root_unconfigured")
+    base = Path(configured).absolute()
+    root = Path(owner_directory).absolute()
+    if (not base.is_dir() or base.is_symlink() or root.parent != base
+            or not root.is_dir() or root.is_symlink()
+            or root.resolve(strict=True).parent != base.resolve(strict=True)):
+        raise ValueError("studio_owner_directory_invalid")
+    if (not isinstance(asset_name, str) or asset_name != Path(asset_name).name
+            or not asset_name.lower().endswith(".glb")):
+        raise ValueError("studio_asset_filename_invalid")
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise StudioRenderUnavailable("studio_nofollow_unavailable")
+    # Open relative to the owner directory, without following its final symlink.
+    directory = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        fd = os.open(asset_name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                     dir_fd=directory)
+        with os.fdopen(fd, "rb") as stream:
+            before = os.fstat(stream.fileno())
+            if not stat.S_ISREG(before.st_mode) or not 20 <= before.st_size <= _MAX_INPUT_BYTES:
+                raise ValueError("studio_glb_size_invalid")
+            raw = stream.read(_MAX_INPUT_BYTES + 1)
+            after = os.fstat(stream.fileno())
+    finally:
+        os.close(directory)
+    if (len(raw) != before.st_size or before.st_size != after.st_size
+            or before.st_mtime_ns != after.st_mtime_ns
+            or before.st_ctime_ns != after.st_ctime_ns):
+        raise ValueError("studio_glb_changed_during_read")
+    magic, version, length = struct.unpack_from("<4sII", raw)
+    if magic != b"glTF" or version != 2 or length != len(raw):
+        raise ValueError("studio_glb_header_invalid")
+    offset = 12
+    chunks = []
+    while offset < length:
+        if length - offset < 8 or len(chunks) >= 2:
+            raise ValueError("studio_glb_chunk_invalid")
+        size, kind = struct.unpack_from("<I4s", raw, offset)
+        offset += 8
+        if size % 4 or size > length - offset:
+            raise ValueError("studio_glb_chunk_invalid")
+        chunks.append((kind, offset, size))
+        offset += size
+    if (not chunks or chunks[0][0] != b"JSON"
+            or chunks[0][2] > 4 * 1024 * 1024
+            or (len(chunks) == 2 and chunks[1][0] != b"BIN\x00")):
+        raise ValueError("studio_glb_chunk_invalid")
+
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("studio_glb_duplicate_json_key")
+            result[key] = value
+        return result
+
+    def reject_constant(value):
+        raise ValueError("studio_glb_json_constant_invalid")
+
+    _, start, size = chunks[0]
+    try:
+        doc = json.loads(raw[start:start + size].decode("utf-8"),
+                         object_pairs_hook=unique_object,
+                         parse_constant=reject_constant)
+    except (UnicodeError, ValueError, RecursionError) as exc:
+        raise ValueError("studio_glb_json_invalid") from exc
+    if (not isinstance(doc, dict) or not isinstance(doc.get("asset"), dict)
+            or doc["asset"].get("version") != "2.0"):
+        raise ValueError("studio_glb_asset_invalid")
+    # Reject all URI-bearing objects (including extension objects) for this
+    # strict self-contained GLB profile; no embedded data URIs either.
+    stack = [doc]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            if any(key.casefold() == "uri" for key in item):
+                raise ValueError("studio_glb_uri_blocked")
+            stack.extend(item.values())
+        elif isinstance(item, list):
+            stack.extend(item)
+    counts = {}
+    for key in ("meshes", "nodes", "materials", "textures", "animations", "buffers", "images"):
+        values = doc.get(key, [])
+        if not isinstance(values, list) or any(not isinstance(x, dict) for x in values):
+            raise ValueError("studio_glb_collection_invalid")
+        counts[key] = len(values)
+    buffers = doc.get("buffers", [])
+    binary_size = chunks[1][2] if len(chunks) == 2 else 0
+    if len(buffers) > 1 or (bool(buffers) != (len(chunks) == 2)):
+        raise ValueError("studio_glb_buffer_invalid")
+    if buffers:
+        declared = buffers[0].get("byteLength")
+        if type(declared) is not int or not 0 < declared <= binary_size <= declared + 3:
+            raise ValueError("studio_glb_buffer_invalid")
+    return {"filename": asset_name, "size_bytes": len(raw),
+            "sha256": hashlib.sha256(raw).hexdigest(), "counts": counts,
+            "container_inspected": True, "uri_fields_absent": True,
+            "full_schema_validated": False, "render_verified": False,
+            "runtime_verified": False, "published": False, "founder_final": True}

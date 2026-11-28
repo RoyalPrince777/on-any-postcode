@@ -25,6 +25,7 @@ from . import (
     civilization,
     infrastructure,
     judgement,
+    master_upgrade_contract,
     matrix_simulation,
     ollama_chat,
     organism,
@@ -45,6 +46,7 @@ from . import (
     studio_build_preview,
     studio_intelligence,
     studio_project_shell,
+    studio_provider_capabilities,
     studio_workspace_orchestrator,
     war_room,
     web_security,
@@ -987,6 +989,30 @@ def smi_studio_status():
     return _no_store(make_response(jsonify(studio_intelligence.status())))
 
 
+@bp.get("/studio/providers")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_provider_catalogue():
+    """Founder-only research catalogue; no external API request."""
+    snapshot = studio_provider_capabilities.status(studio_intelligence.studio_media_backend.status())
+    return _no_store(make_response(jsonify(snapshot)))
+
+
+@bp.post("/studio/providers/preflight")
+@web_security.login_required(api=True, founder_only=True)
+def smi_studio_provider_preflight():
+    """CSRF-protected capability check; never spends or executes."""
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "The secure session expired. Refresh and retry.", 403)
+    payload = request.get_json(silent=True)
+    try:
+        result = studio_provider_capabilities.preflight(
+            payload, studio_intelligence.studio_media_backend.status()
+        )
+    except (TypeError, ValueError) as exc:
+        return _error("studio_provider_preflight_invalid", str(exc), 400)
+    return _no_store(make_response(jsonify(result)))
+
+
 @bp.post("/studio/project-shell/prepare")
 @web_security.login_required(api=True, founder_only=True)
 def smi_studio_project_shell_prepare():
@@ -1457,3 +1483,73 @@ def smi_connector_status():
         )
     ), 200))
 
+
+
+@bp.get("/studio/tda")
+@web_security.login_required(founder_only=True)
+def smi_tda_preview():
+    """Private preview and explicit Founder promotion control on port 5000."""
+    from flask import current_app
+
+    from . import studio_tda_preview
+
+    if not master_upgrade_contract.private_origin_allowed(request.environ.get("SERVER_PORT")):
+        return _error("private_port_required", "Open the private 5000 route.", 404)
+    try:
+        version, data = studio_tda_preview.candidate(current_app.instance_path)
+        studio_tda_preview.document(data)
+    except (OSError, ValueError, AttributeError):
+        return _no_store(make_response(render_template(
+            "smi_tda_preview.html", version=None, csrf=web_security.csrf_token()
+        ), 503))
+    return _no_store(make_response(render_template(
+        "smi_tda_preview.html", version=version, csrf=web_security.csrf_token()
+    )))
+
+
+@bp.get("/studio/tda/preview/<version>")
+@web_security.login_required(founder_only=True)
+def smi_tda_preview_content(version):
+    from flask import current_app
+
+    from . import studio_tda_preview
+
+    if not master_upgrade_contract.private_origin_allowed(request.environ.get("SERVER_PORT")):
+        return _error("private_port_required", "Open the private 5000 route.", 404)
+    try:
+        actual, data = studio_tda_preview.candidate(current_app.instance_path)
+        if version != actual:
+            raise ValueError("candidate_version_changed")
+        response = make_response(studio_tda_preview.document(data))
+    except (OSError, ValueError, AttributeError):
+        return _error("candidate_unavailable", "Stage the verified candidate again.", 409)
+    response.headers["Content-Security-Policy"] = (
+        "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline' blob:; "
+        "style-src 'unsafe-inline'; img-src data: blob:; worker-src blob:; "
+        "connect-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'"
+    )
+    return _no_store(response)
+
+
+@bp.post("/studio/tda/update")
+@web_security.login_required(api=True, founder_only=True)
+def smi_tda_update():
+    """Real preflight, never a simulated public release."""
+    from flask import current_app
+
+    from . import studio_tda_preview
+
+    if not master_upgrade_contract.private_origin_allowed(request.environ.get("SERVER_PORT")):
+        return _error("private_port_required", "Open the private 5000 route.", 404)
+    if not web_security.csrf_valid(request):
+        return _error("csrf_failed", "Refresh the private page.", 403)
+    try:
+        result = studio_tda_preview.publication_preflight(
+            current_app.instance_path, request.form.get("version", "")
+        )
+    except (OSError, ValueError, AttributeError):
+        return _error("candidate_changed", "Refresh and inspect the exact build.", 409)
+    return _no_store(make_response(render_template(
+        "smi_tda_preview.html", version=result["version"],
+        csrf=web_security.csrf_token(), result=result
+    ), 409))

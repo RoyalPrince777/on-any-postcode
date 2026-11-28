@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Private TDA | Founder HQ</title>
+<style>body{margin:0;background:#111;color:#eee;font:16px system-ui}main{max-width:1100px;margin:auto;padding:16px}h1{color:#e7c47b;font-size:23px}iframe{width:100%;height:70vh;border:1px solid #aa8950;background:#080b10}button,a{font:inherit;color:#f4d58a}button{padding:12px;background:#292317;border:1px solid #aa8950;border-radius:7px}small{overflow-wrap:anywhere}p{line-height:1.45}</style></head>
+<body><main><a href="/mission/smi">Founder HQ</a><h1>TDA: LONDON — SECTION 12</h1>
+<p>Private build · Port 5000 · Public KORADASO Arena unchanged</p>
+{% if version %}<small>Candidate: {{ version }}</small>
+<form method="post" action="{{ url_for('mission_control.smi_tda_update') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="version" value="{{ version }}">
+<p><button type="submit">Update KORADASO Arena</button></p></form>
+<p>Publication locked pending independent runtime proof and canonical approval. This button checks the exact staged build; it does not bypass certification.</p>
+{% if result %}<p role="status">Update blocked. Public build unchanged.</p><ul>{% for blocker in result.blockers %}<li>{{ blocker|replace('_',' ') }}</li>{% endfor %}</ul>{% endif %}
+<iframe title="Private TDA candidate" sandbox="allow-scripts" src="{{ url_for('mission_control.smi_tda_preview_content',version=version) }}"></iframe>
+{% else %}<p role="status">Candidate not staged or integrity check failed. No publication.</p>{% endif %}
+<p>Isolated preview: public save data and network access are not shared.</p></main></body></html>

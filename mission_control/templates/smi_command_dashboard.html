@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="oap-csrf-token" content="{{ oap_csrf_token }}">
   <title>SMI Home · Sovereign Megaverse Intelligence</title>
   <style>
     :root{
@@ -115,6 +116,7 @@
       .shell{grid-template-columns:1fr}.rail{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;height:70px;flex-direction:row;padding:6px 8px;border-right:0;border-top:1px solid var(--line);overflow-x:auto}.crest{display:none}.rail nav{display:flex;gap:6px;margin:0}.rail a{min-width:68px;min-height:56px}.rail .final{margin:0}.main{padding:12px 10px 88px}.topbar{align-items:flex-start}.scope{max-width:48%}.hero{gap:10px}.presence{grid-template-columns:1fr;min-height:0;padding:14px}.portrait-wrap{min-height:280px}.portrait{width:min(100%,240px);height:310px}.rings{width:220px;height:220px}.mission-copy{padding:8px}.mission-copy h2{font-size:2.4rem}.overview{padding:14px}.control-grid{grid-template-columns:repeat(2,1fr)}.stars{grid-template-columns:repeat(4,1fr)}.grid{gap:10px}.card{padding:14px}
     }
   </style>
+  <link rel="stylesheet" href="{{ url_for('mission_control.static', filename='smi_studio_provider_panel.css') }}">
 </head>
 <body>
 <div class="shell">
@@ -123,6 +125,7 @@
     <nav>
       <a class="active" href="/mission/smi" aria-label="Open SMI Home"><span class="icon">◎</span><span>SMI Home</span></a>
       <a href="{{ command.sovereign_ui.primary_route }}" aria-label="Talk to SMI"><span class="icon">🧠</span><span>Talk to SMI</span></a>
+      <a href="#studio-providers" aria-label="OAP Factory Studio models"><span class="icon">🎬</span><span>Studio</span></a>
       <a href="/mission/war-room" aria-label="Open War Room review"><span class="icon">⚔</span><span>War Room</span></a>
       <a href="/mission/agents" aria-label="Open Intelligence directory"><span class="icon">◈</span><span>Intelligence</span></a>
       <a href="/movement" aria-label="Open Movement Intelligence"><span class="icon">⌁</span><span>Movement</span></a>
@@ -234,6 +237,68 @@
       </div>
     </section>
 
+    <section id="studio-providers" class="oap-studio-command" aria-labelledby="oap-studio-heading">
+      <header class="oap-studio-header">
+        <div>
+          <small>SMI → OAP Factory → Studio</small>
+          <h2 id="oap-studio-heading">Creation Command</h2>
+          <p>Professional image, motion and voice provider review. Your current Studio and My Card identity remain canonical. No automatic provider access.</p>
+        </div>
+        <span class="oap-studio-truth">🟣 Evidence before Green</span>
+      </header>
+      <div id="oap-studio-command" class="oap-studio-workspace">
+        <div class="oap-studio-modes">
+          <h3>Model &amp; capability directory</h3>
+          <div id="oap-studio-model-grid" class="oap-studio-models" role="group" aria-label="Available research and code model families">
+            <span class="oap-studio-mini-note">Reading source-backed model catalogue…</span>
+          </div>
+          <p class="oap-studio-mini-note">Model names indicate options to inspect, not active accounts or verified rendering.</p>
+        </div>
+        <div class="oap-studio-director">
+          <h3>Director · Safe preparation</h3>
+          <div class="oap-studio-fields">
+            <div class="oap-studio-field">
+              <label for="oap-studio-task">Workflow</label>
+              <select id="oap-studio-task" aria-label="Studio workflow"><option value="image">Generate image</option></select>
+            </div>
+            <div class="oap-studio-field">
+              <label for="oap-studio-aspect">Screen format</label>
+              <select id="oap-studio-aspect"><option value="16:9">16:9 · Cinema</option><option value="9:16">9:16 · Vertical</option><option value="1:1">1:1 · Square</option></select>
+            </div>
+            <div class="oap-studio-field">
+              <label for="oap-studio-seconds">Target seconds (video)</label>
+              <input id="oap-studio-seconds" type="number" min="1" max="30" step="1" value="5">
+            </div>
+            <div class="oap-studio-field full">
+              <label for="oap-studio-brief">Scene brief · stays on this device until explicitly submitted</label>
+              <textarea id="oap-studio-brief" maxlength="4000" spellcheck="true" placeholder="Describe the scene, camera, continuity and desired output…"></textarea>
+            </div>
+          </div>
+          <div class="oap-studio-consent">
+            <label><input id="oap-studio-rights" type="checkbox"> I have rights to the reference material, if used.</label>
+            <label><input id="oap-studio-consent" type="checkbox"> I have permission from any identifiable person, if used.</label>
+            <label><input id="oap-studio-remote" type="checkbox"> I understand that a future external provider may process submitted material. This checkbox does NOT authorise a transfer.</label>
+          </div>
+          <div class="oap-studio-actions">
+            <button class="oap-studio-action" type="button" id="oap-studio-refresh">↻ Check models</button>
+            <button class="oap-studio-action primary" type="button" id="oap-studio-preflight">🛡 Check gates</button>
+            <button class="oap-studio-action" type="button" id="oap-studio-copy">Copy brief</button>
+            <a class="oap-studio-action" href="/mission/ollama">Open SMI Studio</a>
+          </div>
+          <div class="oap-studio-evidence" id="oap-studio-evidence" aria-live="polite" role="status" data-state="unknown">Checking model readiness…</div>
+          <div class="oap-studio-links">
+            <a id="oap-studio-model-docs" href="/mission/ollama" target="_blank" rel="noopener noreferrer">Model documentation</a>
+            <a href="/mission/war-room">War Room</a>
+            <a href="/mission/ollama">SMI Chat</a>
+          </div>
+        </div>
+      </div>
+      <footer class="oap-studio-footer">
+        First-party default · No biometric uploads · No paid execution from this panel · Guardian/HRM independent · Founder Final.
+        OAP World → The Spot → The Link → Link Up remains unchanged.
+      </footer>
+    </section>
+
     <section class="grid">
       <article class="panel card wide">
         <div class="section-title"><strong>Essential controls</strong><span>clear function · real route · named owner</span></div>
@@ -306,5 +371,6 @@
   window.setInterval(check, 15000);
 })();
 </script>
+<script defer src="{{ url_for('mission_control.static', filename='smi_studio_provider_panel.js') }}"></script>
 </body>
 </html>

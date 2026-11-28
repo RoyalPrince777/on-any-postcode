@@ -1,0 +1,30 @@
+{
+  "repository": "https://github.com/zeux/meshoptimizer",
+  "tag": "v1.0",
+  "revision": "73583c335e541c139821d0de2bf5f12960a04941",
+  "license": "MIT",
+  "scope": "Vertex cache and vertex fetch optimization subset; not complete meshoptimizer library",
+  "files": [
+    {
+      "path": "LICENSE.md",
+      "upstream_git_blob_sha": "a5c3b1ccca7bbe958d17644bde2ec1fc6f14c19d"
+    },
+    {
+      "path": "src/meshoptimizer.h",
+      "upstream_git_blob_sha": "c9239bc301f7066939048b25a085f8106c8a96c3"
+    },
+    {
+      "path": "src/allocator.cpp",
+      "upstream_git_blob_sha": "6b6083da280b85ef2d1071a72ae58108b23de5ea"
+    },
+    {
+      "path": "src/vcacheoptimizer.cpp",
+      "upstream_git_blob_sha": "e4ecc71d36e5acb28752c03d0e28df33175f497b"
+    },
+    {
+      "path": "src/vfetchoptimizer.cpp",
+      "upstream_git_blob_sha": "465d6df5ca43758dbbd65a791583254b858eb201"
+    }
+  ],
+  "runtime_integration": false
+}

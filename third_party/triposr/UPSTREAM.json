@@ -1,0 +1,104 @@
+{
+  "repository": "https://github.com/VAST-AI-Research/TripoSR",
+  "revision": "107cefdc244c39106fa830359024f6a2f1c78871",
+  "license": "MIT",
+  "scope": "CLI and inference source only; no Gradio, images, weights or dependencies",
+  "files": [
+    {
+      "path": "LICENSE",
+      "upstream_git_blob_sha": "6c440ca1ef32cedcc2257b99953add129199ed26"
+    },
+    {
+      "path": "README.md",
+      "upstream_git_blob_sha": "b52bfb251b850f13a8b8565b52914f2bc9ede2e3"
+    },
+    {
+      "path": "requirements.txt",
+      "upstream_git_blob_sha": "c905bdb3540890d0af5382f984f48ef74d9a270c"
+    },
+    {
+      "path": "run.py",
+      "upstream_git_blob_sha": "1150529c1b9525c88e87dba44fa649129b1d2d95"
+    },
+    {
+      "path": "tsr/bake_texture.py",
+      "upstream_git_blob_sha": "642a4242e7952999e3a329d9a3fc7995dd3f86b0"
+    },
+    {
+      "path": "tsr/models/isosurface.py",
+      "upstream_git_blob_sha": "076321b81f573ab95a6c7d5328f6366e0f33c38e"
+    },
+    {
+      "path": "tsr/models/nerf_renderer.py",
+      "upstream_git_blob_sha": "0cf3ab6e31f79c3af8e75384f48c0e874621c2b8"
+    },
+    {
+      "path": "tsr/models/network_utils.py",
+      "upstream_git_blob_sha": "470c92b9a99901e93dee2b98e80eea53cfdf3f9d"
+    },
+    {
+      "path": "tsr/models/tokenizers/image.py",
+      "upstream_git_blob_sha": "d4034b25a7b2e8f38630fd69a0bae75ed2a5edb0"
+    },
+    {
+      "path": "tsr/models/tokenizers/triplane.py",
+      "upstream_git_blob_sha": "ecdd7fd2201c974bb70b18a90a633287b814886f"
+    },
+    {
+      "path": "tsr/models/transformer/attention.py",
+      "upstream_git_blob_sha": "34bd99778ce168cb68192c183814f098a3d08e67"
+    },
+    {
+      "path": "tsr/models/transformer/basic_transformer_block.py",
+      "upstream_git_blob_sha": "1ea41b0192b6fbb368fe3a587b7c04b0253d23b3"
+    },
+    {
+      "path": "tsr/models/transformer/transformer_1d.py",
+      "upstream_git_blob_sha": "a98d0fb98136ea873aef708717a809e434e7ca14"
+    },
+    {
+      "path": "tsr/system.py",
+      "upstream_git_blob_sha": "bcdb69b2e5c85b3c0ffebd7ff82fc4fe7b3d543e"
+    },
+    {
+      "path": "tsr/utils.py",
+      "upstream_git_blob_sha": "9758f2e44cd4091f2124929edc89b59e98fff667"
+    }
+  ],
+  "weights": {
+    "repository": "https://huggingface.co/stabilityai/TripoSR",
+    "files": [
+      "config.yaml",
+      "model.ckpt"
+    ],
+    "revision": "c1cf7716aed5aa6c1c5e174657791ef0e1327bde",
+    "installed": false,
+    "checkpoint": {
+      "filename": "model.ckpt",
+      "size_bytes": 1677246742,
+      "sha256": "429e2c6b22a0923967459de24d67f05962b235f79cde6b032aa7ed2ffcd970ee",
+      "evidence": "https://huggingface.co/stabilityai/TripoSR/blob/c1cf7716aed5aa6c1c5e174657791ef0e1327bde/model.ckpt"
+    },
+    "config": {
+      "filename": "config.yaml",
+      "size_bytes": 987,
+      "sha256": null,
+      "sha256_candidate": "74ca708ce086bf68e97709ea6b3d91f14717921c04691e84043f0eb8fcc68e62",
+      "candidate_source": "https://huggingface.co/oxide-lab/TripoSR/blob/main/manifest.json",
+      "evidence": "https://huggingface.co/stabilityai/TripoSR/blob/c1cf7716aed5aa6c1c5e174657791ef0e1327bde/config.yaml"
+    },
+    "additional_dependencies": [
+      {
+        "repository": "https://huggingface.co/facebook/dino-vitb16",
+        "filename": "config.json",
+        "revision": "fdc136b8ef48f5a94159af5dd6323ae7a219697a",
+        "sha256": null,
+        "reason": "Upstream tokenizer calls hf_hub_download even with local checkpoint.",
+        "evidence": "https://huggingface.co/facebook/dino-vitb16/blob/fdc136b8ef48f5a94159af5dd6323ae7a219697a/config.json",
+        "license": "Apache-2.0"
+      }
+    ]
+  },
+  "execution_granted": false,
+  "runtime_verified": false
+}

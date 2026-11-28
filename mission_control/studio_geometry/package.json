@@ -1,0 +1,16 @@
+{
+  "name": "oap-studio-local-geometry",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test geometry.test.mjs"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "4.2.1",
+    "gltf-validator": "2.0.0-dev.3.10",
+    "property-graph": "3.0.0"
+  },
+  "overrides": {
+    "property-graph": "3.0.0"
+  }
+}
