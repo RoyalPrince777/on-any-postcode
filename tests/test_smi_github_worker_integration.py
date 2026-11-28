@@ -66,7 +66,7 @@ def test_worker_continues_smi_mission_without_button_or_new_job(monkeypatch):
     reviews = result["github_failure_evidence"]["mission_continuity"]
     assert all(row["behaviour_review"]["checks_executed"] is False for row in reviews)
     assert all(row["behaviour_review"]["repair_authorized"] is False for row in reviews)
-    assert reviews[0]["behaviour_review"]["truth"] == "VERIFIED"
+    assert reviews[0]["behaviour_review"]["truth"] == "CI_VERIFIED"
     assert reviews[0]["specialist_alliance"]["roles"] == ("Trinity", "Octopus", "Tank", "Dozer", "Owl")
     assert reviews[1]["specialist_alliance"]["roles"] == ("Owl", "Oracle")
     assert all(row["specialist_alliance"]["agents_executed"] is False for row in reviews)
