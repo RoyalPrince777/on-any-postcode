@@ -17,6 +17,9 @@
   return true;
  };
  if(!chatbox||!head||!character||!messages||document.getElementById("smi-command-centre"))return;
+ const closeCommandCentre=()=>{
+  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+ };
  const marker=document.createComment("original SMI character position");
  character.parentNode.insertBefore(marker,character);
  const presenceActions=document.createElement("nav");
@@ -27,10 +30,10 @@
   button.addEventListener("click",event=>{
    event.stopPropagation(); // Prevent the canonical outside-click guard closing Master Tools.
    if(target==="messages"){
-    if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+    closeCommandCentre();
     document.getElementById("message")?.focus();return;
    }
-   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+   closeCommandCentre();
    if(target==="war-room"){openWarRoom();return;}
    document.getElementById(target)?.click();
   });
@@ -85,7 +88,7 @@
  const triggerMasterTool=(action)=>{
   const button=document.querySelector('#attach-menu [data-oap-action="'+action+'"]');
   if(button&&!button.disabled){
-   if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+   closeCommandCentre();
    button.click();
    return true;
   }
@@ -99,7 +102,7 @@
  homeButton.setAttribute("aria-label","Return to SMI Home");
  homeButton.addEventListener("click",()=>{
   closeTransientPanels();
-  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+  closeCommandCentre();
   if(document.body.classList.contains("smi-status-open"))document.querySelector(".smi-chat-return")?.click();
   document.getElementById("message")?.focus();
  });
@@ -165,7 +168,7 @@
  settingsHomeButton.type="button";settingsHomeButton.textContent="⚙ Settings";
  settingsHomeButton.setAttribute("aria-label","Open SMI Settings");
  settingsHomeButton.addEventListener("click",()=>{
-  if(document.body.classList.contains("smi-command-open"))document.querySelector(".smi-command-close")?.click();
+  closeCommandCentre();
   document.getElementById("plus-button")?.click();
   const settings=document.getElementById("smi-settings-button");
   if(settings){
